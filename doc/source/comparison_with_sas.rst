@@ -25,7 +25,7 @@ As is customary, we import pandas and NumPy as follows:
    This is often used in interactive work (e.g. `Jupyter notebook
    <https://jupyter.org/>`_ or terminal) - the equivalent in SAS would be:
 
-   .. code-block:: none
+   .. code-block:: sas
 
       proc print data=df(obs=5);
       run;
@@ -65,7 +65,7 @@ in the ``DATA`` step.
 
 Every ``DataFrame`` and ``Series`` has an ``Index`` - which are labels on the
 *rows* of the data. SAS does not have an exactly analogous concept. A data set's
-row are essentially unlabeled, other than an implicit integer index that can be
+rows are essentially unlabeled, other than an implicit integer index that can be
 accessed during the ``DATA`` step (``_N_``).
 
 In pandas, if no index is specified, an integer index is also used by default
@@ -87,7 +87,7 @@ A SAS data set can be built from specified values by
 placing the data after a ``datalines`` statement and
 specifying the column names.
 
-.. code-block:: none
+.. code-block:: sas
 
    data df;
        input x y;
@@ -121,7 +121,7 @@ will be used in many of the following examples.
 
 SAS provides ``PROC IMPORT`` to read csv data into a data set.
 
-.. code-block:: none
+.. code-block:: sas
 
    proc import datafile='tips.csv' dbms=csv out=tips replace;
        getnames=yes;
@@ -156,7 +156,7 @@ Exporting Data
 
 The inverse of ``PROC IMPORT`` in SAS is ``PROC EXPORT``
 
-.. code-block:: none
+.. code-block:: sas
 
    proc export data=tips outfile='tips2.csv' dbms=csv;
    run;
@@ -178,7 +178,7 @@ Operations on Columns
 In the ``DATA`` step, arbitrary math expressions can
 be used on new or existing columns.
 
-.. code-block:: none
+.. code-block:: sas
 
    data tips;
        set tips;
@@ -207,7 +207,7 @@ Filtering
 Filtering in SAS is done with an ``if`` or ``where`` statement, on one
 or more columns.
 
-.. code-block:: none
+.. code-block:: sas
 
    data tips;
        set tips;
@@ -233,7 +233,7 @@ If/Then Logic
 
 In SAS, if/then logic can be used to create new columns.
 
-.. code-block:: none
+.. code-block:: sas
 
    data tips;
        set tips;
@@ -262,7 +262,7 @@ Date Functionality
 SAS provides a variety of functions to do operations on
 date/datetime columns.
 
-.. code-block:: none
+.. code-block:: sas
 
    data tips;
        set tips;
@@ -279,7 +279,7 @@ date/datetime columns.
 
 The equivalent pandas operations are shown below.  In addition to these
 functions pandas supports other Time Series features
-not available in Base SAS (such as resampling and and custom offsets) -
+not available in Base SAS (such as resampling and custom offsets) -
 see the :ref:`timeseries documentation<timeseries>` for more details.
 
 .. ipython:: python
@@ -307,7 +307,7 @@ Selection of Columns
 SAS provides keywords in the ``DATA`` step to select,
 drop, and rename columns.
 
-.. code-block:: none
+.. code-block:: sas
 
    data tips;
        set tips;
@@ -343,7 +343,7 @@ Sorting by Values
 
 Sorting in SAS is accomplished via ``PROC SORT``
 
-.. code-block:: none
+.. code-block:: sas
 
    proc sort data=tips;
        by sex total_bill;
@@ -369,7 +369,7 @@ SAS determines the length of a character string with the
 and `LENGTHC <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm>`__ 
 functions. ``LENGTHN`` excludes trailing blanks and ``LENGTHC`` includes trailing blanks.
 
-.. code-block:: none
+.. code-block:: sas
 
    data _null_;
    set tips;
@@ -395,7 +395,7 @@ SAS determines the position of a character in a string with the
 ``FINDW`` takes the string defined by the first argument and searches for the first position of the substring 
 you supply as the second argument.
 
-.. code-block:: none
+.. code-block:: sas
 
    data _null_;
    set tips;
@@ -419,7 +419,7 @@ Substring
 SAS extracts a substring from a string based on its position with the 
 `SUBSTR <http://www2.sas.com/proceedings/sugi25/25/cc/25p088.pdf>`__ function. 
 
-.. code-block:: none
+.. code-block:: sas
 
    data _null_;
    set tips;
@@ -442,7 +442,7 @@ The SAS `SCAN <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/def
 function returns the nth word from a string. The first argument is the string you want to parse and the 
 second argument specifies which word you want to extract.
 
-.. code-block:: none
+.. code-block:: sas
 
    data firstlast;
    input String $60.;
@@ -474,7 +474,7 @@ The SAS `UPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/d
 `PROPCASE <http://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/a002598106.htm>`__ 
 functions change the case of the argument.
 
-.. code-block:: none
+.. code-block:: sas
 
    data firstlast;
    input String $60.;
@@ -516,7 +516,7 @@ types of joins are accomplished using the ``in=`` dummy
 variables to track whether a match was found in one or both
 input frames.
 
-.. code-block:: none
+.. code-block:: sas
 
    proc sort data=df1;
        by key;
@@ -572,7 +572,7 @@ operations, and is ignored by default for aggregations.
 One difference is that missing data cannot be compared to its sentinel value.
 For example, in SAS you could do this to filter missing values.
 
-.. code-block:: none
+.. code-block:: sas
 
    data outer_join_nulls;
        set outer_join;
@@ -584,7 +584,7 @@ For example, in SAS you could do this to filter missing values.
        if value_x ^= .;
    run;
 
-Which doesn't work in in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
+Which doesn't work in pandas.  Instead, the ``pd.isna`` or ``pd.notna`` functions
 should be used for comparisons.
 
 .. ipython:: python
@@ -615,7 +615,7 @@ SAS's PROC SUMMARY can be used to group by one or
 more key variables and compute aggregations on
 numeric columns.
 
-.. code-block:: none
+.. code-block:: sas
 
    proc summary data=tips nway;
        class sex smoker;
@@ -640,7 +640,7 @@ In SAS, if the group aggregations need to be used with
 the original frame, it must be merged back together.  For
 example, to subtract the mean for each observation by smoker group.
 
-.. code-block:: none
+.. code-block:: sas
 
    proc summary data=tips missing nway;
        class smoker;
@@ -679,7 +679,7 @@ replicate most other by group processing from SAS. For example,
 this ``DATA`` step reads the data by sex/smoker group and filters to
 the first entry for each.
 
-.. code-block:: none
+.. code-block:: sas
 
    proc sort data=tips;
       by sex smoker;
@@ -719,7 +719,7 @@ Data Interop
 pandas provides a :func:`read_sas` method that can read SAS data saved in
 the XPORT or SAS7BDAT binary format.
 
-.. code-block:: none
+.. code-block:: sas
 
    libname xportout xport 'transport-file.xpt';
    data xportout.tips;

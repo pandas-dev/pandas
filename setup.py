@@ -32,7 +32,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_cython_ver = '0.24'
+min_cython_ver = '0.28.2'
 try:
     import Cython
     ver = Cython.__version__
@@ -134,7 +134,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-DESCRIPTION = ("Powerful data structures for data analysis, time series,"
+DESCRIPTION = ("Powerful data structures for data analysis, time series, "
                "and statistics")
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
@@ -217,6 +217,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering']
 
@@ -302,16 +303,18 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/hashtable.pyx',
                  'pandas/_libs/tslib.pyx',
                  'pandas/_libs/index.pyx',
+                 'pandas/_libs/internals.pyx',
                  'pandas/_libs/algos.pyx',
                  'pandas/_libs/join.pyx',
                  'pandas/_libs/indexing.pyx',
                  'pandas/_libs/interval.pyx',
                  'pandas/_libs/hashing.pyx',
                  'pandas/_libs/missing.pyx',
+                 'pandas/_libs/reduction.pyx',
                  'pandas/_libs/testing.pyx',
-                 'pandas/_libs/window.pyx',
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
+                 'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
@@ -326,7 +329,12 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
+
+    _cpp_pyxfiles = ['pandas/_libs/window.pyx',
+                     'pandas/io/msgpack/_packer.pyx',
+                     'pandas/io/msgpack/_unpacker.pyx']
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
@@ -335,12 +343,17 @@ class CheckSDist(sdist_class):
         if 'cython' in cmdclass:
             self.run_command('cython')
         else:
-            for pyxfile in self._pyxfiles:
-                cfile = pyxfile[:-3] + 'c'
-                msg = ("C-source file '{source}' not found.\n"
-                       "Run 'setup.py cython' before sdist.".format(
-                           source=cfile))
-                assert os.path.isfile(cfile), msg
+            # If we are not running cython then
+            # compile the extensions correctly
+            pyx_files = [(self._pyxfiles, 'c'), (self._cpp_pyxfiles, 'cpp')]
+
+            for pyxfiles, extension in pyx_files:
+                for pyxfile in pyxfiles:
+                    sourcefile = pyxfile[:-3] + extension
+                    msg = ("{extension}-source file '{source}' not found.\n"
+                           "Run 'setup.py cython' before sdist.".format(
+                               source=sourcefile, extension=extension))
+                    assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
 
 
@@ -414,7 +427,12 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
-lib_depends = ['reduce', 'inference']
+if sys.byteorder == 'big':
+    endian_macro = [('__BIG_ENDIAN__', '1')]
+else:
+    endian_macro = [('__LITTLE_ENDIAN__', '1')]
+
+lib_depends = ['inference']
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -433,13 +451,13 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 
 def pxd(name):
-    return os.path.abspath(pjoin('pandas', name + '.pxd'))
+    return pjoin('pandas', name + '.pxd')
 
 
-# args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
 else:
+    # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
@@ -450,6 +468,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
+
 tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
@@ -478,6 +497,8 @@ ext_data = {
         'sources': np_datetime_sources},
     '_libs.indexing': {
         'pyxfile': '_libs/indexing'},
+    '_libs.internals': {
+        'pyxfile': '_libs/internals'},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
         'pxdfiles': ['_libs/hashtable'],
@@ -503,15 +524,13 @@ ext_data = {
                     'pandas/_libs/src/numpy_helper.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
-    '_libs.tslibs.period': {
-        'pyxfile': '_libs/tslibs/period',
+    '_libs.reduction': {
+        'pyxfile': '_libs/reduction',
+        'pxdfiles': ['_libs/src/util']},
+    '_libs.ops': {
+        'pyxfile': '_libs/ops',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/lib',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
+                     '_libs/missing']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
@@ -531,7 +550,8 @@ ext_data = {
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
@@ -563,6 +583,7 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
@@ -571,10 +592,21 @@ ext_data = {
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util']},
+    '_libs.tslibs.period': {
+        'pyxfile': '_libs/tslibs/period',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
+        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
+        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/khash',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -588,7 +620,8 @@ ext_data = {
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timestamps': {
@@ -597,6 +630,7 @@ ext_data = {
                      '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -608,14 +642,43 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
+        'pxdfiles': ['_libs/skiplist', '_libs/src/util'],
+        'language': 'c++',
+        'suffix': '.cpp'},
+    '_libs.writers': {
+        'pyxfile': '_libs/writers',
+        'pxdfiles': ['_libs/src/util']},
     'io.sas._sas': {
-        'pyxfile': 'io/sas/sas'}}
+        'pyxfile': 'io/sas/sas'},
+    'io.msgpack._packer': {
+        'macros': endian_macro,
+        'depends': ['pandas/_libs/src/msgpack/pack.h',
+                    'pandas/_libs/src/msgpack/pack_template.h'],
+        'include': ['pandas/_libs/src/msgpack'] + common_include,
+        'language': 'c++',
+        'suffix': '.cpp',
+        'pyxfile': 'io/msgpack/_packer',
+        'subdir': 'io/msgpack'},
+    'io.msgpack._unpacker': {
+        'depends': ['pandas/_libs/src/msgpack/unpack.h',
+                    'pandas/_libs/src/msgpack/unpack_define.h',
+                    'pandas/_libs/src/msgpack/unpack_template.h'],
+        'macros': endian_macro,
+        'include': ['pandas/_libs/src/msgpack'] + common_include,
+        'language': 'c++',
+        'suffix': '.cpp',
+        'pyxfile': 'io/msgpack/_unpacker',
+        'subdir': 'io/msgpack'
+    }
+}
 
 extensions = []
 
 for name, data in ext_data.items():
-    sources = [srcpath(data['pyxfile'], suffix=suffix, subdir='')]
+    source_suffix = suffix if suffix == '.pyx' else data.get('suffix', '.c')
+
+    sources = [srcpath(data['pyxfile'], suffix=source_suffix, subdir='')]
+
     pxds = [pxd(x) for x in data.get('pxdfiles', [])]
     if suffix == '.pyx' and pxds:
         sources.extend(pxds)
@@ -628,46 +691,11 @@ for name, data in ext_data.items():
                     sources=sources,
                     depends=data.get('depends', []),
                     include_dirs=include,
+                    language=data.get('language', 'c'),
+                    define_macros=data.get('macros', []),
                     extra_compile_args=extra_compile_args)
 
     extensions.append(obj)
-
-
-# ----------------------------------------------------------------------
-# msgpack
-
-if sys.byteorder == 'big':
-    macros = [('__BIG_ENDIAN__', '1')]
-else:
-    macros = [('__LITTLE_ENDIAN__', '1')]
-
-msgpack_include = ['pandas/_libs/src/msgpack'] + common_include
-msgpack_suffix = suffix if suffix == '.pyx' else '.cpp'
-unpacker_depends = ['pandas/_libs/src/msgpack/unpack.h',
-                    'pandas/_libs/src/msgpack/unpack_define.h',
-                    'pandas/_libs/src/msgpack/unpack_template.h']
-
-packer_ext = Extension('pandas.io.msgpack._packer',
-                       depends=['pandas/_libs/src/msgpack/pack.h',
-                                'pandas/_libs/src/msgpack/pack_template.h'],
-                       sources=[srcpath('_packer',
-                                suffix=msgpack_suffix,
-                                subdir='io/msgpack')],
-                       language='c++',
-                       include_dirs=msgpack_include,
-                       define_macros=macros,
-                       extra_compile_args=extra_compile_args)
-unpacker_ext = Extension('pandas.io.msgpack._unpacker',
-                         depends=unpacker_depends,
-                         sources=[srcpath('_unpacker',
-                                  suffix=msgpack_suffix,
-                                  subdir='io/msgpack')],
-                         language='c++',
-                         include_dirs=msgpack_include,
-                         define_macros=macros,
-                         extra_compile_args=extra_compile_args)
-extensions.append(packer_ext)
-extensions.append(unpacker_ext)
 
 # ----------------------------------------------------------------------
 # ujson
@@ -680,18 +708,16 @@ if suffix == '.pyx':
             ext.sources[0] = root + suffix
 
 ujson_ext = Extension('pandas._libs.json',
-                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/numpy_helper.h'],
+                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h'],
                       sources=(['pandas/_libs/src/ujson/python/ujson.c',
                                 'pandas/_libs/src/ujson/python/objToJSON.c',
                                 'pandas/_libs/src/ujson/python/JSONtoObj.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
                                np_datetime_sources),
-                      include_dirs=(['pandas/_libs/src/ujson/python',
-                                     'pandas/_libs/src/ujson/lib',
-                                     'pandas/_libs/src/datetime'] +
-                                    common_include),
+                      include_dirs=['pandas/_libs/src/ujson/python',
+                                    'pandas/_libs/src/ujson/lib',
+                                    'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args))
 
@@ -713,11 +739,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*'],
-                    'pandas.tests.io': ['data/legacy_hdf/*.h5',
-                                        'data/legacy_pickle/*/*.pickle',
-                                        'data/legacy_msgpack/*/*.msgpack',
-                                        'data/html_encoding/*.html']},
+      package_data={'': ['templates/*', '_libs/*.dll']},
       ext_modules=extensions,
       maintainer_email=EMAIL,
       description=DESCRIPTION,
@@ -728,4 +750,5 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
+      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
       **setuptools_kwargs)

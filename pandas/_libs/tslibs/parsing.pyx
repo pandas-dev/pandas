@@ -18,9 +18,9 @@ from datetime import datetime
 import time
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray
-np.import_array()
+cnp.import_array()
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
@@ -57,7 +57,7 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 
 cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 
-cdef set _not_datelike_strings = set(['a', 'A', 'm', 'M', 'p', 'P', 't', 'T'])
+cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 NAT_SENTINEL = object()
 # This allows us to reference NaT without having to import it
@@ -651,7 +651,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
                     break
 
     # Only consider it a valid guess if we have a year, month and day
-    if len(set(['year', 'month', 'day']) & found_attrs) != 3:
+    if len({'year', 'month', 'day'} & found_attrs) != 3:
         return None
 
     output_format = []

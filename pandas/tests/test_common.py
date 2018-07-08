@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import os
 import collections
 from functools import partial
 
 import numpy as np
 
-from pandas import Series, Timestamp
+from pandas import Series, DataFrame, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
+from pandas.core import ops
+from pandas.io.common import _get_handle
 import pandas.util.testing as tm
 
 
@@ -22,7 +25,6 @@ def test_mut_exclusive():
 
 
 def test_get_callable_name():
-    from functools import partial
     getname = com._get_callable_name
 
     def fn(x):
@@ -151,8 +153,7 @@ def test_random_state():
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    assert (com._random_state(state2).uniform() ==
-            npr.RandomState(10).uniform())
+    assert com._random_state(state2).uniform() == npr.RandomState(10).uniform()
 
     # check with no arg random state
     assert com._random_state() is np.random
@@ -165,29 +166,15 @@ def test_random_state():
         com._random_state(5.5)
 
 
-def test_maybe_match_name():
-
-    matched = com._maybe_match_name(
-        Series([1], name='x'), Series(
-            [2], name='x'))
-    assert (matched == 'x')
-
-    matched = com._maybe_match_name(
-        Series([1], name='x'), Series(
-            [2], name='y'))
-    assert (matched is None)
-
-    matched = com._maybe_match_name(Series([1]), Series([2], name='x'))
-    assert (matched is None)
-
-    matched = com._maybe_match_name(Series([1], name='x'), Series([2]))
-    assert (matched is None)
-
-    matched = com._maybe_match_name(Series([1], name='x'), [2])
-    assert (matched == 'x')
-
-    matched = com._maybe_match_name([1], Series([2], name='y'))
-    assert (matched == 'y')
+@pytest.mark.parametrize('left, right, expected', [
+    (Series([1], name='x'), Series([2], name='x'), 'x'),
+    (Series([1], name='x'), Series([2], name='y'), None),
+    (Series([1]), Series([2], name='x'), None),
+    (Series([1], name='x'), Series([2]), None),
+    (Series([1], name='x'), [2], 'x'),
+    ([1], Series([2], name='y'), 'y')])
+def test_maybe_match_name(left, right, expected):
+    assert ops._maybe_match_name(left, right) == expected
 
 
 def test_dict_compat():
@@ -221,3 +208,57 @@ def test_standardize_mapping():
 
     dd = collections.defaultdict(list)
     assert isinstance(com.standardize_mapping(dd), partial)
+
+
+@pytest.mark.parametrize('obj', [
+    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                     [12.32112, 123123.2, 321321.2]],
+              columns=['X', 'Y', 'Z']),
+    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
+@pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
+def test_compression_size(obj, method, compression_only):
+
+    with tm.ensure_clean() as filename:
+        getattr(obj, method)(filename, compression=compression_only)
+        compressed = os.path.getsize(filename)
+        getattr(obj, method)(filename, compression=None)
+        uncompressed = os.path.getsize(filename)
+        assert uncompressed > compressed
+
+
+@pytest.mark.parametrize('obj', [
+    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                     [12.32112, 123123.2, 321321.2]],
+              columns=['X', 'Y', 'Z']),
+    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
+@pytest.mark.parametrize('method', ['to_csv', 'to_json'])
+def test_compression_size_fh(obj, method, compression_only):
+
+    with tm.ensure_clean() as filename:
+        f, _handles = _get_handle(filename, 'w', compression=compression_only)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
+        compressed = os.path.getsize(filename)
+    with tm.ensure_clean() as filename:
+        f, _handles = _get_handle(filename, 'w', compression=None)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
+        uncompressed = os.path.getsize(filename)
+        assert uncompressed > compressed
+
+
+# GH 21227
+def test_compression_warning(compression_only):
+    df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                          [12.32112, 123123.2, 321321.2]],
+                   columns=['X', 'Y', 'Z'])
+    with tm.ensure_clean() as filename:
+        f, _handles = _get_handle(filename, 'w', compression=compression_only)
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        check_stacklevel=False):
+            with f:
+                df.to_csv(f, compression=compression_only)

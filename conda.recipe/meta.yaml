@@ -12,15 +12,18 @@ source:
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
+    - pip
     - cython
-    - {{ pin_compatible('numpy') }}
+    - numpy
     - setuptools >=3.3
     - python-dateutil >=2.5.0
     - pytz
-
   run:
-    - python
+    - python {{ python }}
     - {{ pin_compatible('numpy') }}
     - python-dateutil >=2.5.0
     - pytz

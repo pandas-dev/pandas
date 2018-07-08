@@ -115,17 +115,18 @@ Index: Index([], dtype='object') \\
         assert result == expected
 
     def test_to_latex_with_formatters(self):
-        df = DataFrame({'int': [1, 2, 3],
-                        'float': [1.0, 2.0, 3.0],
-                        'object': [(1, 2), True, False],
-                        'datetime64': [datetime(2016, 1, 1),
+        df = DataFrame({'datetime64': [datetime(2016, 1, 1),
                                        datetime(2016, 2, 5),
-                                       datetime(2016, 3, 3)]})
+                                       datetime(2016, 3, 3)],
+                        'float': [1.0, 2.0, 3.0],
+                        'int': [1, 2, 3],
+                        'object': [(1, 2), True, False],
+                        })
 
-        formatters = {'int': lambda x: '0x{x:x}'.format(x=x),
+        formatters = {'datetime64': lambda x: x.strftime('%Y-%m'),
                       'float': lambda x: '[{x: 4.1f}]'.format(x=x),
+                      'int': lambda x: '0x{x:x}'.format(x=x),
                       'object': lambda x: '-{x!s}-'.format(x=x),
-                      'datetime64': lambda x: x.strftime('%Y-%m'),
                       '__index__': lambda x: 'index: {x}'.format(x=x)}
         result = df.to_latex(formatters=dict(formatters))
 
@@ -347,10 +348,10 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         a = 'a'
         b = 'b'
 
-        test_dict = {u('co^l1'): {a: "a",
-                                  b: "b"},
-                     u('co$e^x$'): {a: "a",
-                                    b: "b"}}
+        test_dict = {u('co$e^x$'): {a: "a",
+                                    b: "b"},
+                     u('co^l1'): {a: "a",
+                                  b: "b"}}
 
         unescaped_result = DataFrame(test_dict).to_latex(escape=False)
         escaped_result = DataFrame(test_dict).to_latex(
@@ -368,7 +369,7 @@ b &       b &     b \\
 
         escaped_expected = r'''\begin{tabular}{lll}
 \toprule
-{} & co\$e\textasciicircumx\$ & co\textasciicircuml1 \\
+{} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
 \midrule
 a &       a &     a \\
 b &       b &     b \\
@@ -377,6 +378,22 @@ b &       b &     b \\
 '''
 
         assert unescaped_result == unescaped_expected
+        assert escaped_result == escaped_expected
+
+    def test_to_latex_special_escape(self):
+        df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
+
+        escaped_result = df.to_latex()
+        escaped_expected = r"""\begin{tabular}{ll}
+\toprule
+{} &       0 \\
+\midrule
+0 &   a\textbackslash b\textbackslash c \\
+1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
+2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+\bottomrule
+\end{tabular}
+"""
         assert escaped_result == escaped_expected
 
     def test_to_latex_longtable(self, frame):
@@ -446,9 +463,9 @@ b &       b &     b \\
 4 &  \_ \\
 5 &  \{ \\
 6 &  \} \\
-7 &  \textasciitilde \\
-8 &  \textasciicircum \\
-9 &  \textbackslash \\
+7 &  \textasciitilde  \\
+8 &  \textasciicircum  \\
+9 &  \textbackslash  \\
 \bottomrule
 \end{tabular}
 """
@@ -619,4 +636,75 @@ AA &  BB \\
 \bottomrule
 \end{tabular}
 """ % tuple(list(col_names) + [idx_names_row])
+        assert observed == expected
+
+    @pytest.mark.parametrize('one_row', [True, False])
+    def test_to_latex_multiindex_nans(self, one_row):
+        # GH 14249
+        df = pd.DataFrame({'a': [None, 1], 'b': [2, 3], 'c': [4, 5]})
+        if one_row:
+            df = df.iloc[[0]]
+        observed = df.set_index(['a', 'b']).to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+    &   &  c \\
+a & b &    \\
+\midrule
+NaN & 2 &  4 \\
+"""
+        if not one_row:
+            expected += r"""1.0 & 3 &  5 \\
+"""
+        expected += r"""\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
+
+    def test_to_latex_non_string_index(self):
+        # GH 19981
+        observed = pd.DataFrame([[1, 2, 3]] * 2).set_index([0, 1]).to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+  &   &  2 \\
+0 & 1 &    \\
+\midrule
+1 & 2 &  3 \\
+  & 2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
+
+    def test_to_latex_midrule_location(self):
+        # GH 18326
+        df = pd.DataFrame({'a': [1, 2]})
+        df.index.name = 'foo'
+        observed = df.to_latex(index_names=False)
+        expected = r"""\begin{tabular}{lr}
+\toprule
+{} &  a \\
+\midrule
+0 &  1 \\
+1 &  2 \\
+\bottomrule
+\end{tabular}
+"""
+
+        assert observed == expected
+
+    def test_to_latex_multiindex_empty_name(self):
+        # GH 18669
+        mi = pd.MultiIndex.from_product([[1, 2]], names=[''])
+        df = pd.DataFrame(-1, index=mi, columns=range(4))
+        observed = df.to_latex()
+        expected = r"""\begin{tabular}{lrrrr}
+\toprule
+  &  0 &  1 &  2 &  3 \\
+{} &    &    &    &    \\
+\midrule
+1 & -1 & -1 & -1 & -1 \\
+2 & -1 & -1 & -1 & -1 \\
+\bottomrule
+\end{tabular}
+"""
         assert observed == expected

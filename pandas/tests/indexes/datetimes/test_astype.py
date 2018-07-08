@@ -138,6 +138,30 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
 
+    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
+    def test_astype_object_tz(self, tz):
+        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
+                            name='idx', tz=tz)
+        expected_list = [Timestamp('2013-01-31', tz=tz),
+                         Timestamp('2013-02-28', tz=tz),
+                         Timestamp('2013-03-31', tz=tz),
+                         Timestamp('2013-04-30', tz=tz)]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        tm.assert_index_equal(result, expected)
+        assert idx.tolist() == expected_list
+
+    def test_astype_object_with_nat(self):
+        idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
+                             pd.NaT, datetime(2013, 1, 4)], name='idx')
+        expected_list = [Timestamp('2013-01-01'),
+                         Timestamp('2013-01-02'), pd.NaT,
+                         Timestamp('2013-01-04')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        tm.assert_index_equal(result, expected)
+        assert idx.tolist() == expected_list
+
     @pytest.mark.parametrize('dtype', [
         float, 'timedelta64', 'timedelta64[ns]', 'datetime64',
         'datetime64[D]'])
@@ -200,6 +224,16 @@ class TestDatetimeIndex(object):
         _check_rng(rng)
         _check_rng(rng_eastern)
         _check_rng(rng_utc)
+
+    @pytest.mark.parametrize('tz, dtype', [
+        ['US/Pacific', 'datetime64[ns, US/Pacific]'],
+        [None, 'datetime64[ns]']])
+    def test_integer_index_astype_datetime(self, tz, dtype):
+        # GH 20997, 20964
+        val = [pd.Timestamp('2018-01-01', tz=tz).value]
+        result = pd.Index(val).astype(dtype)
+        expected = pd.DatetimeIndex(['2018-01-01'], tz=tz)
+        tm.assert_index_equal(result, expected)
 
 
 class TestToPeriod(object):

@@ -18,9 +18,9 @@ UTC = pytz.utc
 
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, int64_t
-np.import_array()
+cnp.import_array()
 
 # ----------------------------------------------------------------------
 from util cimport is_string_object, is_integer_object, get_nat
@@ -275,7 +275,7 @@ cdef object get_dst_info(object tz):
 def infer_tzinfo(start, end):
     if start is not None and end is not None:
         tz = start.tzinfo
-        if not (get_timezone(tz) == get_timezone(end.tzinfo)):
+        if not tz_compare(tz, end.tzinfo):
             msg = 'Inputs must both have the same timezone, {tz1} != {tz2}'
             raise AssertionError(msg.format(tz1=tz, tz2=end.tzinfo))
     elif start is not None:
@@ -284,4 +284,71 @@ def infer_tzinfo(start, end):
         tz = end.tzinfo
     else:
         tz = None
+    return tz
+
+
+cpdef bint tz_compare(object start, object end):
+    """
+    Compare string representations of timezones
+
+    The same timezone can be represented as different instances of
+    timezones. For example
+    `<DstTzInfo 'Europe/Paris' LMT+0:09:00 STD>` and
+    `<DstTzInfo 'Europe/Paris' CET+1:00:00 STD>` are essentially same
+    timezones but aren't evaluated such, but the string representation
+    for both of these is `'Europe/Paris'`.
+
+    This exists only to add a notion of equality to pytz-style zones
+    that is compatible with the notion of equality expected of tzinfo
+    subclasses.
+
+    Parameters
+    ----------
+    start : tzinfo
+    end : tzinfo
+
+    Returns:
+    -------
+    compare : bint
+
+    """
+    # GH 18523
+    return get_timezone(start) == get_timezone(end)
+
+
+cpdef tz_standardize(object tz):
+    """
+    If the passed tz is a pytz timezone object, "normalize" it to the a
+    consistent version
+
+    Parameters
+    ----------
+    tz : tz object
+
+    Returns:
+    -------
+    tz object
+
+    Examples:
+    --------
+    >>> tz
+    <DstTzInfo 'US/Pacific' PST-1 day, 16:00:00 STD>
+
+    >>> tz_standardize(tz)
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+    >>> tz
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+    >>> tz_standardize(tz)
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+    >>> tz
+    dateutil.tz.tz.tzutc
+
+    >>> tz_standardize(tz)
+    dateutil.tz.tz.tzutc
+    """
+    if treat_tz_as_pytz(tz):
+        return pytz.timezone(str(tz))
     return tz

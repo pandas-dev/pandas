@@ -142,39 +142,35 @@ class TestHashing(object):
         tm.assert_numpy_array_equal(np.sort(result),
                                     np.sort(expected))
 
-    def test_hash_pandas_object(self):
-
-        for obj in [Series([1, 2, 3]),
-                    Series([1.0, 1.5, 3.2]),
-                    Series([1.0, 1.5, np.nan]),
-                    Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
-                    Series(['a', 'b', 'c']),
-                    Series(['a', np.nan, 'c']),
-                    Series(['a', None, 'c']),
-                    Series([True, False, True]),
-                    Series(),
-                    Index([1, 2, 3]),
-                    Index([True, False, True]),
-                    DataFrame({'x': ['a', 'b', 'c'], 'y': [1, 2, 3]}),
-                    DataFrame(),
-                    tm.makeMissingDataframe(),
-                    tm.makeMixedDataFrame(),
-                    tm.makeTimeDataFrame(),
-                    tm.makeTimeSeries(),
-                    tm.makeTimedeltaIndex(),
-                    tm.makePeriodIndex(),
-                    Series(tm.makePeriodIndex()),
-                    Series(pd.date_range('20130101',
-                                         periods=3, tz='US/Eastern')),
-                    MultiIndex.from_product(
-                        [range(5),
-                         ['foo', 'bar', 'baz'],
-                         pd.date_range('20130101', periods=2)]),
-                    MultiIndex.from_product(
-                        [pd.CategoricalIndex(list('aabc')),
-                         range(3)])]:
-            self.check_equal(obj)
-            self.check_not_equal_with_index(obj)
+    @pytest.mark.parametrize('obj', [
+        Series([1, 2, 3]),
+        Series([1.0, 1.5, 3.2]),
+        Series([1.0, 1.5, np.nan]),
+        Series([1.0, 1.5, 3.2], index=[1.5, 1.1, 3.3]),
+        Series(['a', 'b', 'c']),
+        Series(['a', np.nan, 'c']),
+        Series(['a', None, 'c']),
+        Series([True, False, True]),
+        Series(),
+        Index([1, 2, 3]),
+        Index([True, False, True]),
+        DataFrame({'x': ['a', 'b', 'c'], 'y': [1, 2, 3]}),
+        DataFrame(),
+        tm.makeMissingDataframe(),
+        tm.makeMixedDataFrame(),
+        tm.makeTimeDataFrame(),
+        tm.makeTimeSeries(),
+        tm.makeTimedeltaIndex(),
+        tm.makePeriodIndex(),
+        Series(tm.makePeriodIndex()),
+        Series(pd.date_range('20130101', periods=3, tz='US/Eastern')),
+        MultiIndex.from_product([range(5), ['foo', 'bar', 'baz'],
+                                 pd.date_range('20130101', periods=2)]),
+        MultiIndex.from_product([pd.CategoricalIndex(list('aabc')), range(3)])
+    ])
+    def test_hash_pandas_object(self, obj):
+        self.check_equal(obj)
+        self.check_not_equal_with_index(obj)
 
     def test_hash_pandas_object2(self):
         for name, s in self.df.iteritems():
@@ -290,18 +286,3 @@ class TestHashing(object):
         result = hash_array(np.asarray(L, dtype=object), 'utf8')
         tm.assert_numpy_array_equal(
             result, np.concatenate([expected1, expected2], axis=0))
-
-
-def test_deprecation():
-
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
-        from pandas.tools.hashing import hash_pandas_object
-        obj = Series(list('abc'))
-        hash_pandas_object(obj, hash_key='9876543210123456')
-
-    with tm.assert_produces_warning(DeprecationWarning,
-                                    check_stacklevel=False):
-        from pandas.tools.hashing import hash_array
-        obj = np.array([1, 2, 3])
-        hash_array(obj, hash_key='9876543210123456')

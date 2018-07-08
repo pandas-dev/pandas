@@ -7,6 +7,7 @@ test all other .agg behavior
 from __future__ import print_function
 
 import pytest
+from collections import OrderedDict
 
 import datetime as dt
 from functools import partial
@@ -17,7 +18,7 @@ import pandas as pd
 from pandas import (
     date_range, DataFrame, Index, MultiIndex, PeriodIndex, period_range, Series
 )
-from pandas.core.groupby import SpecificationError
+from pandas.core.groupby.groupby import SpecificationError
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
@@ -81,7 +82,7 @@ def test_agg_period_index():
     s1 = Series(np.random.rand(len(index)), index=index)
     s2 = Series(np.random.rand(len(index)), index=index)
     series = [('s1', s1), ('s2', s2)]
-    df = DataFrame.from_items(series)
+    df = DataFrame.from_dict(OrderedDict(series))
     grouped = df.groupby(df.index.month)
     list(grouped)
 
@@ -327,7 +328,7 @@ def test_series_agg_multi_pure_python():
          'F': np.random.randn(11)})
 
     def bad(x):
-        assert (len(x.base) > 0)
+        assert (len(x.values.base) > 0)
         return 'foo'
 
     result = data.groupby(['A', 'B']).agg(bad)
@@ -487,15 +488,17 @@ def test_agg_structs_series(structure, expected):
 
 
 @pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
-def test_agg_category_nansum():
+def test_agg_category_nansum(observed):
     categories = ['a', 'b', 'c']
     df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
                                            categories=categories),
                        'B': [1, 2, 3]})
-    result = df.groupby("A").B.agg(np.nansum)
+    result = df.groupby("A", observed=observed).B.agg(np.nansum)
     expected = pd.Series([3, 3, 0],
                          index=pd.CategoricalIndex(['a', 'b', 'c'],
                                                    categories=categories,
                                                    name='A'),
                          name='B')
+    if observed:
+        expected = expected[expected != 0]
     tm.assert_series_equal(result, expected)

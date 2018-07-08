@@ -1,13 +1,24 @@
-from string import ascii_letters, digits
+import warnings
+from string import ascii_letters
 from itertools import product
 from functools import partial
 
 import numpy as np
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    TimeGrouper, Categorical)
+                    TimeGrouper, Categorical, Timestamp)
 import pandas.util.testing as tm
 
 from .pandas_vb_common import setup  # noqa
+
+
+method_blacklist = {
+    'object': {'median', 'prod', 'sem', 'cumsum', 'sum', 'cummin', 'mean',
+               'max', 'skew', 'cumprod', 'cummax', 'rank', 'pct_change', 'min',
+               'var', 'mad', 'describe', 'std'},
+    'datetime': {'median', 'prod', 'sem', 'cumsum', 'sum', 'mean', 'skew',
+                 'cumprod', 'cummax', 'pct_change', 'var', 'mad', 'describe',
+                 'std'}
+}
 
 
 class ApplyDictReturn(object):
@@ -82,45 +93,6 @@ class Groups(object):
         self.ser.groupby(self.ser).groups
 
 
-class FirstLast(object):
-
-    goal_time = 0.2
-
-    param_names = ['dtype']
-    params = ['float32', 'float64', 'datetime', 'object']
-
-    def setup(self, dtype):
-        N = 10**5
-        # with datetimes (GH7555)
-        if dtype == 'datetime':
-            self.df = DataFrame({'values': date_range('1/1/2011',
-                                                      periods=N,
-                                                      freq='s'),
-                                 'key': range(N)})
-        elif dtype == 'object':
-            self.df = DataFrame({'values': ['foo'] * N,
-                                 'key': range(N)})
-        else:
-            labels = np.arange(N / 10).repeat(10)
-            data = Series(np.random.randn(len(labels)), dtype=dtype)
-            data[::3] = np.nan
-            data[1::3] = np.nan
-            labels = labels.take(np.random.permutation(len(labels)))
-            self.df = DataFrame({'values': data, 'key': labels})
-
-    def time_groupby_first(self, dtype):
-        self.df.groupby('key').first()
-
-    def time_groupby_last(self, dtype):
-        self.df.groupby('key').last()
-
-    def time_groupby_nth_all(self, dtype):
-        self.df.groupby('key').nth(0, dropna='all')
-
-    def time_groupby_nth_none(self, dtype):
-        self.df.groupby('key').nth(0)
-
-
 class GroupManyLabels(object):
 
     goal_time = 0.2
@@ -141,22 +113,40 @@ class Nth(object):
 
     goal_time = 0.2
 
-    def setup_cache(self):
-        df = DataFrame(np.random.randint(1, 100, (10000, 2)))
-        df.iloc[1, 1] = np.nan
-        return df
+    param_names = ['dtype']
+    params = ['float32', 'float64', 'datetime', 'object']
 
-    def time_frame_nth_any(self, df):
-        df.groupby(0).nth(0, dropna='any')
+    def setup(self, dtype):
+        N = 10**5
+        # with datetimes (GH7555)
+        if dtype == 'datetime':
+            values = date_range('1/1/2011', periods=N, freq='s')
+        elif dtype == 'object':
+            values = ['foo'] * N
+        else:
+            values = np.arange(N).astype(dtype)
 
-    def time_frame_nth(self, df):
-        df.groupby(0).nth(0)
+        key = np.arange(N)
+        self.df = DataFrame({'key': key, 'values': values})
+        self.df.iloc[1, 1] = np.nan  # insert missing data
 
-    def time_series_nth_any(self, df):
-        df[1].groupby(df[0]).nth(0, dropna='any')
+    def time_frame_nth_any(self, dtype):
+        self.df.groupby('key').nth(0, dropna='any')
 
-    def time_series_nth(self, df):
-        df[1].groupby(df[0]).nth(0)
+    def time_groupby_nth_all(self, dtype):
+        self.df.groupby('key').nth(0, dropna='all')
+
+    def time_frame_nth(self, dtype):
+        self.df.groupby('key').nth(0)
+
+    def time_series_nth_any(self, dtype):
+        self.df['values'].groupby(self.df['key']).nth(0, dropna='any')
+
+    def time_groupby_nth_all(self, dtype):
+        self.df['values'].groupby(self.df['key']).nth(0, dropna='all')
+
+    def time_series_nth(self, dtype):
+        self.df['values'].groupby(self.df['key']).nth(0)
 
 
 class DateAttributes(object):
@@ -218,7 +208,7 @@ class CountMultiDtype(object):
         df.groupby(['key1', 'key2']).count()
 
 
-class CountInt(object):
+class CountMultiInt(object):
 
     goal_time = 0.2
 
@@ -230,10 +220,10 @@ class CountInt(object):
                         'ints2': np.random.randint(0, 1000, size=n)})
         return df
 
-    def time_int_count(self, df):
+    def time_multi_int_count(self, df):
         df.groupby(['key1', 'key2']).count()
 
-    def time_int_nunique(self, df):
+    def time_multi_int_nunique(self, df):
         df.groupby(['key1', 'key2']).nunique()
 
 
@@ -241,7 +231,7 @@ class AggFunctions(object):
 
     goal_time = 0.2
 
-    def setup_cache(self):
+    def setup_cache():
         N = 10**5
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
         fac2 = np.array(['one', 'two'], dtype='O')
@@ -275,18 +265,12 @@ class GroupStrings(object):
 
     def setup(self):
         n = 2 * 10**5
-        alpha = list(map(''.join, product((ascii_letters + digits), repeat=4)))
-        self.df = DataFrame({'a': np.repeat(np.random.choice(alpha,
-                                                             (n // 11)), 11),
-                             'b': np.repeat(np.random.choice(alpha,
-                                                             (n // 7)), 7),
-                             'c': np.repeat(np.random.choice(alpha,
-                                                             (n // 5)), 5),
-                             'd': np.repeat(np.random.choice(alpha,
-                                                             (n // 1)), 1)})
+        alpha = list(map(''.join, product(ascii_letters, repeat=4)))
+        data = np.random.choice(alpha, (n // 5, 4), replace=False)
+        data = np.repeat(data, 5, axis=0)
+        self.df = DataFrame(data, columns=list('abcd'))
         self.df['joe'] = (np.random.randn(len(self.df)) * 10).round(3)
-        i = np.random.permutation(len(self.df))
-        self.df = self.df.iloc[i].reset_index(drop=True)
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
 
     def time_multi_columns(self):
         self.df.groupby(list('abcd')).max()
@@ -342,11 +326,9 @@ class Size(object):
     def time_multi_size(self):
         self.df.groupby(['key1', 'key2']).size()
 
-    def time_dt_size(self):
-        self.df.groupby(['dates']).size()
-
     def time_dt_timegrouper_size(self):
-        self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
+        with warnings.catch_warnings(record=True):
+            self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
 
     def time_category_size(self):
         self.draws.groupby(self.cats).size()
@@ -356,117 +338,70 @@ class GroupByMethods(object):
 
     goal_time = 0.2
 
-    param_names = ['dtype', 'ngroups']
-    params = [['int', 'float'], [100, 10000]]
+    param_names = ['dtype', 'method', 'application']
+    params = [['int', 'float', 'object', 'datetime'],
+              ['all', 'any', 'bfill', 'count', 'cumcount', 'cummax', 'cummin',
+               'cumprod', 'cumsum', 'describe', 'ffill', 'first', 'head',
+               'last', 'mad', 'max', 'min', 'median', 'mean', 'nunique',
+               'pct_change', 'prod', 'rank', 'sem', 'shift', 'size', 'skew',
+               'std', 'sum', 'tail', 'unique', 'value_counts', 'var'],
+              ['direct', 'transformation']]
 
-    def setup(self, dtype, ngroups):
+    def setup(self, dtype, method, application):
+        if method in method_blacklist.get(dtype, {}):
+            raise NotImplementedError  # skip benchmark
+        ngroups = 1000
         size = ngroups * 2
         rng = np.arange(ngroups)
         values = rng.take(np.random.randint(0, ngroups, size=size))
         if dtype == 'int':
             key = np.random.randint(0, size, size=size)
-        else:
+        elif dtype == 'float':
             key = np.concatenate([np.random.random(ngroups) * 0.1,
                                   np.random.random(ngroups) * 10.0])
+        elif dtype == 'object':
+            key = ['foo'] * size
+        elif dtype == 'datetime':
+            key = date_range('1/1/2011', periods=size, freq='s')
 
-        self.df = DataFrame({'values': values,
-                             'key': key})
+        df = DataFrame({'values': values, 'key': key})
 
-    def time_all(self, dtype, ngroups):
-        self.df.groupby('key')['values'].all()
+        if application == 'transform':
+            if method == 'describe':
+                raise NotImplementedError
 
-    def time_any(self, dtype, ngroups):
-        self.df.groupby('key')['values'].any()
+            self.as_group_method = lambda: df.groupby(
+                'key')['values'].transform(method)
+            self.as_field_method = lambda: df.groupby(
+                'values')['key'].transform(method)
+        else:
+            self.as_group_method = getattr(df.groupby('key')['values'], method)
+            self.as_field_method = getattr(df.groupby('values')['key'], method)
 
-    def time_count(self, dtype, ngroups):
-        self.df.groupby('key')['values'].count()
+    def time_dtype_as_group(self, dtype, method, application):
+        self.as_group_method()
 
-    def time_cumcount(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumcount()
+    def time_dtype_as_field(self, dtype, method, application):
+        self.as_field_method()
 
-    def time_cummax(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cummax()
 
-    def time_cummin(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cummin()
+class RankWithTies(object):
+    # GH 21237
+    goal_time = 0.2
+    param_names = ['dtype', 'tie_method']
+    params = [['float64', 'float32', 'int64', 'datetime64'],
+              ['first', 'average', 'dense', 'min', 'max']]
 
-    def time_cumprod(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumprod()
+    def setup(self, dtype, tie_method):
+        N = 10**4
+        if dtype == 'datetime64':
+            data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
+        else:
+            data = np.array([1] * N, dtype=dtype)
+        self.df = DataFrame({'values': data, 'key': ['foo'] * N})
 
-    def time_cumsum(self, dtype, ngroups):
-        self.df.groupby('key')['values'].cumsum()
-
-    def time_describe(self, dtype, ngroups):
-        self.df.groupby('key')['values'].describe()
-
-    def time_diff(self, dtype, ngroups):
-        self.df.groupby('key')['values'].diff()
-
-    def time_first(self, dtype, ngroups):
-        self.df.groupby('key')['values'].first()
-
-    def time_head(self, dtype, ngroups):
-        self.df.groupby('key')['values'].head()
-
-    def time_last(self, dtype, ngroups):
-        self.df.groupby('key')['values'].last()
-
-    def time_mad(self, dtype, ngroups):
-        self.df.groupby('key')['values'].mad()
-
-    def time_max(self, dtype, ngroups):
-        self.df.groupby('key')['values'].max()
-
-    def time_mean(self, dtype, ngroups):
-        self.df.groupby('key')['values'].mean()
-
-    def time_median(self, dtype, ngroups):
-        self.df.groupby('key')['values'].median()
-
-    def time_min(self, dtype, ngroups):
-        self.df.groupby('key')['values'].min()
-
-    def time_nunique(self, dtype, ngroups):
-        self.df.groupby('key')['values'].nunique()
-
-    def time_pct_change(self, dtype, ngroups):
-        self.df.groupby('key')['values'].pct_change()
-
-    def time_prod(self, dtype, ngroups):
-        self.df.groupby('key')['values'].prod()
-
-    def time_rank(self, dtype, ngroups):
-        self.df.groupby('key')['values'].rank()
-
-    def time_sem(self, dtype, ngroups):
-        self.df.groupby('key')['values'].sem()
-
-    def time_shift(self, dtype, ngroups):
-        self.df.groupby('key')['values'].shift()
-
-    def time_size(self, dtype, ngroups):
-        self.df.groupby('key')['values'].size()
-
-    def time_skew(self, dtype, ngroups):
-        self.df.groupby('key')['values'].skew()
-
-    def time_std(self, dtype, ngroups):
-        self.df.groupby('key')['values'].std()
-
-    def time_sum(self, dtype, ngroups):
-        self.df.groupby('key')['values'].sum()
-
-    def time_tail(self, dtype, ngroups):
-        self.df.groupby('key')['values'].tail()
-
-    def time_unique(self, dtype, ngroups):
-        self.df.groupby('key')['values'].unique()
-
-    def time_value_counts(self, dtype, ngroups):
-        self.df.groupby('key')['values'].value_counts()
-
-    def time_var(self, dtype, ngroups):
-        self.df.groupby('key')['values'].var()
+    def time_rank_ties(self, dtype, tie_method):
+        self.df.groupby('key').rank(method=tie_method)
 
 
 class Float32(object):
@@ -560,7 +495,7 @@ class SumMultiLevel(object):
 
     def setup(self):
         N = 50
-        self.df = DataFrame({'A': range(N) * 2,
+        self.df = DataFrame({'A': list(range(N)) * 2,
                              'B': range(N * 2),
                              'C': 1}).set_index(['A', 'B'])
 

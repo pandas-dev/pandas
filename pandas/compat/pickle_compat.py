@@ -38,9 +38,9 @@ def load_reduce(self):
 
         # try to re-encode the arguments
         if getattr(self, 'encoding', None) is not None:
-            args = tuple([arg.encode(self.encoding)
-                          if isinstance(arg, string_types)
-                          else arg for arg in args])
+            args = tuple(arg.encode(self.encoding)
+                         if isinstance(arg, string_types)
+                         else arg for arg in args)
             try:
                 stack[-1] = func(*args)
                 return
@@ -108,7 +108,17 @@ _class_locations_map = {
     ('pandas.tseries.index', 'DatetimeIndex'):
         ('pandas.core.indexes.datetimes', 'DatetimeIndex'),
     ('pandas.tseries.period', 'PeriodIndex'):
-        ('pandas.core.indexes.period', 'PeriodIndex')
+        ('pandas.core.indexes.period', 'PeriodIndex'),
+
+    # 19269, arrays moving
+    ('pandas.core.categorical', 'Categorical'):
+        ('pandas.core.arrays', 'Categorical'),
+
+    # 19939, add timedeltaindex, float64index compat from 15998 move
+    ('pandas.tseries.tdi', 'TimedeltaIndex'):
+        ('pandas.core.indexes.timedeltas', 'TimedeltaIndex'),
+    ('pandas.indexes.numeric', 'Float64Index'):
+        ('pandas.core.indexes.numeric', 'Float64Index'),
 }
 
 

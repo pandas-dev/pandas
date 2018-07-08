@@ -1,7 +1,10 @@
+import warnings
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (Series, DataFrame, MultiIndex, Int64Index, Float64Index,
-                    IntervalIndex, IndexSlice, concat, date_range)
+                    IntervalIndex, CategoricalIndex,
+                    IndexSlice, concat, date_range)
 from .pandas_vb_common import setup, Panel  # noqa
 
 
@@ -91,7 +94,8 @@ class NonNumericSeriesIndexing(object):
         self.s[:80000]
 
     def time_get_value(self, index):
-        self.s.get_value(self.lbl)
+        with warnings.catch_warnings(record=True):
+            self.s.get_value(self.lbl)
 
     def time_getitem_scalar(self, index):
         self.s[self.lbl]
@@ -112,7 +116,8 @@ class DataFrameStringIndexing(object):
         self.bool_obj_indexer = self.bool_indexer.astype(object)
 
     def time_get_value(self):
-        self.df.get_value(self.idx_scalar, self.col_scalar)
+        with warnings.catch_warnings(record=True):
+            self.df.get_value(self.idx_scalar, self.col_scalar)
 
     def time_ix(self):
         self.df.ix[self.idx_scalar, self.col_scalar]
@@ -226,16 +231,61 @@ class IntervalIndexing(object):
         monotonic.loc[80000:]
 
 
+class CategoricalIndexIndexing(object):
+
+    goal_time = 0.2
+    params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
+    param_names = ['index']
+
+    def setup(self, index):
+        N = 10**5
+        values = list('a' * N + 'b' * N + 'c' * N)
+        indices = {
+            'monotonic_incr': CategoricalIndex(values),
+            'monotonic_decr': CategoricalIndex(reversed(values)),
+            'non_monotonic': CategoricalIndex(list('abc' * N))}
+        self.data = indices[index]
+
+        self.int_scalar = 10000
+        self.int_list = list(range(10000))
+
+        self.cat_scalar = 'b'
+        self.cat_list = ['a', 'c']
+
+    def time_getitem_scalar(self, index):
+        self.data[self.int_scalar]
+
+    def time_getitem_slice(self, index):
+        self.data[:self.int_scalar]
+
+    def time_getitem_list_like(self, index):
+        self.data[[self.int_scalar]]
+
+    def time_getitem_list(self, index):
+        self.data[self.int_list]
+
+    def time_getitem_bool_array(self, index):
+        self.data[self.data == self.cat_scalar]
+
+    def time_get_loc_scalar(self, index):
+        self.data.get_loc(self.cat_scalar)
+
+    def time_get_indexer_list(self, index):
+        self.data.get_indexer(self.cat_list)
+
+
 class PanelIndexing(object):
 
     goal_time = 0.2
 
     def setup(self):
-        self.p = Panel(np.random.randn(100, 100, 100))
-        self.inds = range(0, 100, 10)
+        with warnings.catch_warnings(record=True):
+            self.p = Panel(np.random.randn(100, 100, 100))
+            self.inds = range(0, 100, 10)
 
     def time_subset(self):
-        self.p.ix[(self.inds, self.inds, self.inds)]
+        with warnings.catch_warnings(record=True):
+            self.p.ix[(self.inds, self.inds, self.inds)]
 
 
 class MethodLookup(object):
@@ -295,7 +345,8 @@ class InsertColumns(object):
     def time_insert(self):
         np.random.seed(1234)
         for i in range(100):
-            self.df.insert(0, i, np.random.randn(self.N))
+            self.df.insert(0, i, np.random.randn(self.N),
+                           allow_duplicates=True)
 
     def time_assign_with_setitem(self):
         np.random.seed(1234)

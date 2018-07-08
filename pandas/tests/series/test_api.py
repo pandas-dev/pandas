@@ -1,6 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
+import pydoc
 
 import pytest
 
@@ -384,7 +385,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        Series.index  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(Series.index)
 
     def test_numpy_unique(self):
         # it works!
@@ -511,7 +513,7 @@ class TestCategoricalSeries(object):
 
     def test_cat_accessor_api(self):
         # GH 9322
-        from pandas.core.categorical import CategoricalAccessor
+        from pandas.core.arrays.categorical import CategoricalAccessor
         assert Series.cat is CategoricalAccessor
         s = Series(list('aabbcde')).astype('category')
         assert isinstance(s.cat, CategoricalAccessor)

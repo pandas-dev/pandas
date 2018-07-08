@@ -3,7 +3,7 @@
 
 import pytest
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import sys
 import string
@@ -29,6 +29,18 @@ from .common import TestData
 
 class TestSeriesDtypes(TestData):
 
+    def test_dt64_series_astype_object(self):
+        dt64ser = Series(date_range('20130101', periods=3))
+        result = dt64ser.astype(object)
+        assert isinstance(result.iloc[0], datetime)
+        assert result.dtype == np.object_
+
+    def test_td64_series_astype_object(self):
+        tdser = Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
+        result = tdser.astype(object)
+        assert isinstance(result.iloc[0], timedelta)
+        assert result.dtype == np.object_
+
     @pytest.mark.parametrize("dtype", ["float32", "float64",
                                        "int64", "int32"])
     def test_astype(self, dtype):
@@ -52,8 +64,10 @@ class TestSeriesDtypes(TestData):
         assert self.ts.ftypes == 'float64:dense'
         tm.assert_series_equal(self.ts.get_dtype_counts(),
                                Series(1, ['float64']))
-        tm.assert_series_equal(self.ts.get_ftype_counts(),
-                               Series(1, ['float64:dense']))
+        # GH18243 - Assert .get_ftype_counts is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(self.ts.get_ftype_counts(),
+                                   Series(1, ['float64:dense']))
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])

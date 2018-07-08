@@ -210,7 +210,7 @@ def _hash_categorical(c, encoding, hash_key):
 
     # we have uint64, as we don't directly support missing values
     # we don't want to use take_nd which will coerce to float
-    # instead, directly construt the result with a
+    # instead, directly construct the result with a
     # max(np.uint64) as the missing value indicator
     #
     # TODO: GH 15362

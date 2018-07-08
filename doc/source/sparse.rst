@@ -17,11 +17,11 @@ Sparse data structures
 
 .. note:: The ``SparsePanel`` class has been removed in 0.19.0
 
-We have implemented "sparse" versions of Series and DataFrame. These are not sparse
+We have implemented "sparse" versions of ``Series`` and ``DataFrame``. These are not sparse
 in the typical "mostly 0". Rather, you can view these objects as being "compressed"
 where any data matching a specific value (``NaN`` / missing value, though any value
 can be chosen) is omitted. A special ``SparseIndex`` object tracks where data has been
-"sparsified". This will make much more sense in an example. All of the standard pandas
+"sparsified". This will make much more sense with an example. All of the standard pandas
 data structures have a ``to_sparse`` method:
 
 .. ipython:: python
@@ -32,7 +32,7 @@ data structures have a ``to_sparse`` method:
    sts
 
 The ``to_sparse`` method takes a ``kind`` argument (for the sparse index, see
-below) and a ``fill_value``. So if we had a mostly zero Series, we could
+below) and a ``fill_value``. So if we had a mostly zero ``Series``, we could
 convert it to sparse with ``fill_value=0``:
 
 .. ipython:: python
@@ -40,7 +40,7 @@ convert it to sparse with ``fill_value=0``:
    ts.fillna(0).to_sparse(fill_value=0)
 
 The sparse objects exist for memory efficiency reasons. Suppose you had a
-large, mostly NA DataFrame:
+large, mostly NA ``DataFrame``:
 
 .. ipython:: python
 
@@ -104,9 +104,9 @@ Sparse data should have the same dtype as its dense representation. Currently,
 ``float64``, ``int64`` and ``bool`` dtypes are supported. Depending on the original
 dtype, ``fill_value`` default changes:
 
-- ``float64``: ``np.nan``
-- ``int64``: ``0``
-- ``bool``: ``False``
+* ``float64``: ``np.nan``
+* ``int64``: ``0``
+* ``bool``: ``False``
 
 .. ipython:: python
 

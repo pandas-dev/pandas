@@ -17,6 +17,20 @@ class TestDatetimeIndexSetOps(object):
     tz = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/Asia/Singapore',
           'dateutil/US/Pacific']
 
+    # TODO: moved from test_datetimelike; dedup with version below
+    def test_union2(self):
+        everything = tm.makeDateIndex(10)
+        first = everything[:5]
+        second = everything[5:]
+        union = first.union(second)
+        assert tm.equalContents(union, everything)
+
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.union(case)
+            assert tm.equalContents(result, everything)
+
     @pytest.mark.parametrize("tz", tz)
     def test_union(self, tz):
         rng1 = pd.date_range('1/1/2000', freq='D', periods=5, tz=tz)
@@ -100,6 +114,24 @@ class TestDatetimeIndexSetOps(object):
         i2 = DatetimeIndex(start='2012-01-03 00:00:00', periods=10, freq='D')
         i1.union(i2)  # Works
         i2.union(i1)  # Fails with "AttributeError: can't set attribute"
+
+    # TODO: moved from test_datetimelike; de-duplicate with version below
+    def test_intersection2(self):
+        first = tm.makeDateIndex(10)
+        second = first[5:]
+        intersect = first.intersection(second)
+        assert tm.equalContents(intersect, second)
+
+        # GH 10149
+        cases = [klass(second.values) for klass in [np.array, Series, list]]
+        for case in cases:
+            result = first.intersection(case)
+            assert tm.equalContents(result, second)
+
+        third = Index(['a', 'b', 'c'])
+        result = first.intersection(third)
+        expected = pd.Index([], dtype=object)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [None, 'Asia/Tokyo', 'US/Eastern',
                                     'dateutil/US/Pacific'])
@@ -325,7 +357,7 @@ class TestBusinessDatetimeIndex(object):
         expected = rng[10:25]
         tm.assert_index_equal(the_int, expected)
         assert isinstance(the_int, DatetimeIndex)
-        assert the_int.offset == rng.offset
+        assert the_int.freq == rng.freq
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
         tm.assert_index_equal(the_int, expected)

@@ -8,7 +8,6 @@ from string import ascii_lowercase
 import numpy as np
 from pandas import DataFrame, Series, compat, date_range, Index, MultiIndex
 from pandas.util import testing as tm
-from pandas.compat import lrange, product
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                  'mad', 'std', 'var', 'sem']
@@ -88,6 +87,8 @@ s_whitelist = frozenset([
     'unique',
     'nlargest',
     'nsmallest',
+    'is_monotonic_increasing',
+    'is_monotonic_decreasing',
 ])
 
 
@@ -173,18 +174,17 @@ def raw_frame():
     return raw_frame
 
 
-@pytest.mark.parametrize(
-    "op, level, axis, skipna, sort",
-    product(AGG_FUNCTIONS,
-            lrange(2), lrange(2),
-            [True, False],
-            [True, False]))
+@pytest.mark.parametrize('op', AGG_FUNCTIONS)
+@pytest.mark.parametrize('level', [0, 1])
+@pytest.mark.parametrize('axis', [0, 1])
+@pytest.mark.parametrize('skipna', [True, False])
+@pytest.mark.parametrize('sort', [True, False])
 def test_regression_whitelist_methods(
         raw_frame, op, level,
         axis, skipna, sort):
     # GH6944
     # GH 17537
-    # explicitly test the whitelest methods
+    # explicitly test the whitelist methods
 
     if axis == 0:
         frame = raw_frame
@@ -249,7 +249,8 @@ def test_tab_completion(mframe):
         'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
         'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
         'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe'}
+        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe',
+    }
     assert results == expected
 
 

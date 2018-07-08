@@ -41,24 +41,6 @@ class DatabaseError(IOError):
 _SQLALCHEMY_INSTALLED = None
 
 
-def _validate_flavor_parameter(flavor):
-    """
-    Checks whether a database 'flavor' was specified.
-    If not None, produces FutureWarning if 'sqlite' and
-    raises a ValueError if anything else.
-    """
-    if flavor is not None:
-        if flavor == 'sqlite':
-            warnings.warn("the 'flavor' parameter is deprecated "
-                          "and will be removed in a future version, "
-                          "as 'sqlite' is the only supported option "
-                          "when SQLAlchemy is not installed.",
-                          FutureWarning, stacklevel=2)
-        else:
-            raise ValueError("database flavor {flavor} is not "
-                             "supported".format(flavor=flavor))
-
-
 def _is_sqlalchemy_connectable(con):
     global _SQLALCHEMY_INSTALLED
     if _SQLALCHEMY_INSTALLED is None:
@@ -415,14 +397,14 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
             chunksize=chunksize)
 
 
-def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
-           index=True, index_label=None, chunksize=None, dtype=None):
+def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
+           index_label=None, chunksize=None, dtype=None):
     """
     Write records stored in a DataFrame to a SQL database.
 
     Parameters
     ----------
-    frame : DataFrame
+    frame : DataFrame, Series
     name : string
         Name of SQL table.
     con : SQLAlchemy connectable(engine/connection) or database string URI
@@ -430,10 +412,6 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    flavor : 'sqlite', default None
-        .. deprecated:: 0.19.0
-           'sqlite' is the only supported option if SQLAlchemy is not
-           used.
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor
         supports this). If None, use default schema (default).
@@ -459,7 +437,7 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
-    pandas_sql = pandasSQL_builder(con, schema=schema, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con, schema=schema)
 
     if isinstance(frame, Series):
         frame = frame.to_frame()
@@ -472,7 +450,7 @@ def to_sql(frame, name, con, flavor=None, schema=None, if_exists='fail',
                       chunksize=chunksize, dtype=dtype)
 
 
-def has_table(table_name, con, flavor=None, schema=None):
+def has_table(table_name, con, schema=None):
     """
     Check if DataBase has named table.
 
@@ -484,10 +462,6 @@ def has_table(table_name, con, flavor=None, schema=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
-    flavor : 'sqlite', default None
-        .. deprecated:: 0.19.0
-           'sqlite' is the only supported option if SQLAlchemy is not
-           installed.
     schema : string, default None
         Name of SQL schema in database to write to (if database flavor supports
         this). If None, use default schema (default).
@@ -496,7 +470,7 @@ def has_table(table_name, con, flavor=None, schema=None):
     -------
     boolean
     """
-    pandas_sql = pandasSQL_builder(con, flavor=flavor, schema=schema)
+    pandas_sql = pandasSQL_builder(con, schema=schema)
     return pandas_sql.has_table(table_name)
 
 
@@ -521,14 +495,12 @@ def _engine_builder(con):
     return con
 
 
-def pandasSQL_builder(con, flavor=None, schema=None, meta=None,
+def pandasSQL_builder(con, schema=None, meta=None,
                       is_cursor=False):
     """
     Convenience function to return the correct PandasSQL subclass based on the
     provided parameters.
     """
-    _validate_flavor_parameter(flavor)
-
     # When support for DBAPI connections is removed,
     # is_cursor should not be necessary.
     con = _engine_builder(con)
@@ -1378,9 +1350,7 @@ class SQLiteDatabase(PandasSQL):
 
     """
 
-    def __init__(self, con, flavor=None, is_cursor=False):
-        _validate_flavor_parameter(flavor)
-
+    def __init__(self, con, is_cursor=False):
         self.is_cursor = is_cursor
         self.con = con
 
@@ -1534,7 +1504,7 @@ class SQLiteDatabase(PandasSQL):
         return str(table.sql_schema())
 
 
-def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
+def get_schema(frame, name, keys=None, con=None, dtype=None):
     """
     Get the SQL db table schema for the given frame.
 
@@ -1549,15 +1519,11 @@ def get_schema(frame, name, flavor=None, keys=None, con=None, dtype=None):
         Using SQLAlchemy makes it possible to use any DB supported by that
         library, default: None
         If a DBAPI2 object, only sqlite3 is supported.
-    flavor : 'sqlite', default None
-        .. deprecated:: 0.19.0
-           'sqlite' is the only supported option if SQLAlchemy is not
-           installed.
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
     """
 
-    pandas_sql = pandasSQL_builder(con=con, flavor=flavor)
+    pandas_sql = pandasSQL_builder(con=con)
     return pandas_sql._create_sql_schema(frame, name, keys=keys, dtype=dtype)

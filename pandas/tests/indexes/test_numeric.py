@@ -13,7 +13,7 @@ from pandas import (date_range, Series, Index, Float64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp, Timedelta
 
 from pandas.tests.indexes.common import Base
 
@@ -26,23 +26,65 @@ def full_like(array, value):
     return ret
 
 
+class TestIndexArithmeticWithTimedeltaScalar(object):
+
+    @pytest.mark.parametrize('index', [
+        Int64Index(range(1, 11)),
+        UInt64Index(range(1, 11)),
+        Float64Index(range(1, 11)),
+        RangeIndex(1, 11)])
+    @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
+                                           Timedelta(days=1).to_timedelta64(),
+                                           Timedelta(days=1).to_pytimedelta()])
+    def test_index_mul_timedelta(self, scalar_td, index):
+        # GH#19333
+        expected = pd.timedelta_range('1 days', '10 days')
+
+        result = index * scalar_td
+        tm.assert_index_equal(result, expected)
+        commute = scalar_td * index
+        tm.assert_index_equal(commute, expected)
+
+    @pytest.mark.parametrize('index', [Int64Index(range(1, 3)),
+                                       UInt64Index(range(1, 3)),
+                                       Float64Index(range(1, 3)),
+                                       RangeIndex(1, 3)])
+    @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
+                                           Timedelta(days=1).to_timedelta64(),
+                                           Timedelta(days=1).to_pytimedelta()])
+    def test_index_rdiv_timedelta(self, scalar_td, index):
+        expected = pd.TimedeltaIndex(['1 Day', '12 Hours'])
+
+        result = scalar_td / index
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index / scalar_td
+
+
 class Numeric(Base):
 
-    def test_numeric_compat(self):
-
+    def test_can_hold_identifiers(self):
         idx = self.create_index()
-        didx = idx * idx
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
+    def test_numeric_compat(self):
+        pass  # override Base method
+
+    def test_mul_int(self):
+        idx = self.create_index()
         result = idx * 1
         tm.assert_index_equal(result, idx)
+
+    def test_rmul_int(self):
+        idx = self.create_index()
 
         result = 1 * idx
         tm.assert_index_equal(result, idx)
 
-        # in general not true for RangeIndex
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+    def test_div_int(self):
+        idx = self.create_index()
 
         # truediv under PY3
         result = idx / 1
@@ -57,8 +99,15 @@ class Numeric(Base):
         expected = Index(idx.values / 2)
         tm.assert_index_equal(result, expected)
 
+    def test_floordiv_int(self):
+        idx = self.create_index()
+
         result = idx // 1
         tm.assert_index_equal(result, idx)
+
+    def test_mul_int_array(self):
+        idx = self.create_index()
+        didx = idx * idx
 
         result = idx * np.array(5, dtype='int64')
         tm.assert_index_equal(result, idx * 5)
@@ -67,19 +116,45 @@ class Numeric(Base):
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
+    def test_mul_int_series(self):
+        idx = self.create_index()
+        didx = idx * idx
+
+        arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
         result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_index_equal(result, didx)
+        tm.assert_series_equal(result, Series(didx))
 
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        expected = Float64Index(np.arange(5, dtype='float64') *
-                                (np.arange(5, dtype='float64') + 0.1))
-        tm.assert_index_equal(result, expected)
+    def test_mul_float_series(self):
+        idx = self.create_index()
+        rng5 = np.arange(5, dtype='float64')
 
-        # invalid
-        pytest.raises(TypeError,
-                      lambda: idx * date_range('20130101', periods=5))
-        pytest.raises(ValueError, lambda: idx * idx[0:3])
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
+        result = idx * Series(rng5 + 0.1)
+        expected = Series(rng5 * (rng5 + 0.1))
+        tm.assert_series_equal(result, expected)
+
+    def test_mul_index(self):
+        idx = self.create_index()
+
+        # in general not true for RangeIndex
+        if not isinstance(idx, RangeIndex):
+            result = idx * idx
+            tm.assert_index_equal(result, idx ** 2)
+
+    def test_mul_datelike_raises(self):
+        idx = self.create_index()
+        with pytest.raises(TypeError):
+            idx * date_range('20130101', periods=5)
+
+    def test_mul_size_mismatch_raises(self):
+        idx = self.create_index()
+
+        with pytest.raises(ValueError):
+            idx * idx[0:3]
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
+
+    def test_divmod(self):
+        idx = self.create_index()
 
         result = divmod(idx, 2)
         with np.errstate(all='ignore'):
@@ -95,24 +170,75 @@ class Numeric(Base):
         for r, e in zip(result, expected):
             tm.assert_index_equal(r, e)
 
-        result = divmod(idx, Series(full_like(idx.values, 2)))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(
-                idx.values,
-                full_like(idx.values, 2),
-            )
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
+    def test_pow_float(self):
         # test power calculations both ways, GH 14973
-        expected = pd.Float64Index(2.0**idx.values)
-        result = 2.0**idx
-        tm.assert_index_equal(result, expected)
+        idx = self.create_index()
 
         expected = pd.Float64Index(idx.values**2.0)
         result = idx**2.0
         tm.assert_index_equal(result, expected)
+
+    def test_rpow_float(self):
+        # test power calculations both ways, GH 14973
+        idx = self.create_index()
+
+        expected = pd.Float64Index(2.0**idx.values)
+        result = 2.0**idx
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__')
+    def test_divmod_series(self):
+        idx = self.create_index()
+
+        result = divmod(idx, Series(full_like(idx.values, 2)))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, full_like(idx.values, 2))
+            expected = Series(div), Series(mod)
+
+        for r, e in zip(result, expected):
+            tm.assert_series_equal(r, e)
+
+    def test_div_zero(self, zero):
+        idx = self.create_index()
+
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                         dtype=np.float64)
+        result = idx / zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_floordiv_zero(self, zero):
+        idx = self.create_index()
+        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                         dtype=np.float64)
+
+        result = idx // zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_mod_zero(self, zero):
+        idx = self.create_index()
+
+        expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                         dtype=np.float64)
+        result = idx % zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_divmod_zero(self, zero):
+        idx = self.create_index()
+
+        exleft = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                       dtype=np.float64)
+        exright = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                        dtype=np.float64)
+
+        result = divmod(idx, zero)
+        tm.assert_index_equal(result[0], exleft)
+        tm.assert_index_equal(result[1], exright)
 
     def test_explicit_conversions(self):
 
@@ -324,6 +450,18 @@ class TestFloat64Index(Numeric):
         for dtype in ['int16', 'int32', 'int64']:
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
+
+    def test_type_coercion_fail(self, any_int_dtype):
+        # see gh-15832
+        msg = "Trying to coerce float values to integers"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index([1, 2, 3.5], dtype=any_int_dtype)
+
+    def test_type_coercion_valid(self, float_dtype):
+        # There is no Float32Index, so we always
+        # generate Float64Index.
+        i = Index([1, 2, 3.5], dtype=float_dtype)
+        tm.assert_index_equal(i, Index([1, 2, 3.5]))
 
     def test_equals_numeric(self):
 
@@ -735,6 +873,14 @@ class TestInt64Index(NumericInt):
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
         with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
+
+    def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
+
+        # see gh-15832
+        msg = "Trying to coerce negative values to unsigned integers"
+
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([-1], dtype=uint_dtype)
 
     def test_coerce_list(self):
         # coerce things

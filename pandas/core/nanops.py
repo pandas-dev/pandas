@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 from pandas import compat
-from pandas._libs import tslib, algos, lib
+from pandas._libs import tslib, lib
 from pandas.core.dtypes.common import (
     _get_dtype,
     is_float, is_scalar,
@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 from pandas.core.config import get_option
-from pandas.core.common import _values_from_object
+import pandas.core.common as com
 
 _BOTTLENECK_INSTALLED = False
 _MIN_BOTTLENECK_VERSION = '1.0.0'
@@ -205,7 +205,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     if isfinite:
         mask = _isfinite(values)
     else:
@@ -268,7 +268,7 @@ def _wrap_results(result, dtype):
 
     if is_datetime64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-            result = lib.Timestamp(result)
+            result = tslib.Timestamp(result)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
@@ -278,7 +278,7 @@ def _wrap_results(result, dtype):
             if np.fabs(result) > _int64_max:
                 raise ValueError("overflow in timedelta operation")
 
-            result = lib.Timedelta(result, unit='ns')
+            result = tslib.Timedelta(result, unit='ns')
         else:
             result = result.astype('i8').view(dtype)
 
@@ -326,7 +326,6 @@ def nanall(values, axis=None, skipna=True):
 
 
 @disallow('M8')
-@bottleneck_switch()
 def nansum(values, axis=None, skipna=True, min_count=0):
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
     dtype_sum = dtype_max
@@ -370,14 +369,13 @@ def nanmean(values, axis=None, skipna=True):
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True):
 
-    values, mask, dtype, dtype_max = _get_values(values, skipna)
-
     def get_median(x):
         mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
-        return algos.median(_values_from_object(x[mask]))
+        return np.nanmedian(x[mask])
 
+    values, mask, dtype, dtype_max = _get_values(values, skipna)
     if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -389,10 +387,15 @@ def nanmedian(values, axis=None, skipna=True):
 
     # an array from a frame
     if values.ndim > 1:
+
         # there's a non-empty array to apply over otherwise numpy raises
         if notempty:
-            return _wrap_results(
-                np.apply_along_axis(get_median, axis, values), dtype)
+            if not skipna:
+                return _wrap_results(
+                    np.apply_along_axis(get_median, axis, values), dtype)
+
+            # fastpath for the skipna case
+            return _wrap_results(np.nanmedian(values, axis), dtype)
 
         # must return the correct shape, but median is not defined for the
         # empty set so return nans of shape "everything but the passed axis"
@@ -437,7 +440,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     dtype = values.dtype
     mask = isna(values)
     if is_any_int_dtype(values):
@@ -546,7 +549,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -604,7 +607,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
-    values = _values_from_object(values)
+    values = com._values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')

@@ -27,7 +27,7 @@ from pandas.api.types import is_list_like
 from pandas.compat import range
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
-from pandas.core.common import _any_not_none, sentinel_factory
+import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util._decorators import Appender
 try:
@@ -60,7 +60,7 @@ class Styler(object):
     table_styles: list-like, default None
         list of {selector: (attr, value)} dicts; see Notes
     uuid: str, default None
-        a unique identifier to avoid CSS collisons; generated automatically
+        a unique identifier to avoid CSS collisions; generated automatically
     caption: str, default None
         caption to attach to the table
 
@@ -79,7 +79,7 @@ class Styler(object):
 
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.render to get
-    the genterated HTML.
+    the generated HTML.
 
     CSS classes are attached to the generated HTML
 
@@ -120,7 +120,7 @@ class Styler(object):
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indicies.")
+            raise ValueError("style is not supported for non-unique indices.")
 
         self.data = data
         self.index = data.index
@@ -257,7 +257,8 @@ class Styler(object):
                     row_es.append(es)
                 head.append(row_es)
 
-        if (self.data.index.names and _any_not_none(*self.data.index.names) and
+        if (self.data.index.names and
+                com._any_not_none(*self.data.index.names) and
                 not hidden_index):
             index_header_row = []
 
@@ -324,9 +325,19 @@ class Styler(object):
                                   .format(row=r, col=c)})
             body.append(row_es)
 
+        table_attr = self.table_attributes
+        use_mathjax = get_option("display.html.use_mathjax")
+        if not use_mathjax:
+            table_attr = table_attr or ''
+            if 'class="' in table_attr:
+                table_attr = table_attr.replace('class="',
+                                                'class="tex2jax_ignore ')
+            else:
+                table_attr += ' class="tex2jax_ignore"'
+
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
                     precision=precision, table_styles=table_styles,
-                    caption=caption, table_attributes=self.table_attributes)
+                    caption=caption, table_attributes=table_attr)
 
     def format(self, formatter, subset=None):
         """
@@ -363,7 +374,7 @@ class Styler(object):
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
-        >>> df.style.format({'C': str.upper})
+        >>> df.style.format({'c': str.upper})
         """
         if subset is None:
             row_locs = range(len(self.data))
@@ -508,7 +519,9 @@ class Styler(object):
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
-            result = data.apply(func, axis=axis, **kwargs)
+            result = data.apply(func, axis=axis,
+                                result_type='expand', **kwargs)
+            result.columns = data.columns
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):
@@ -536,7 +549,7 @@ class Styler(object):
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wase,
+        Apply a function column-wise, row-wise, or table-wise,
         updating the HTML representation with the result.
 
         Parameters
@@ -850,7 +863,7 @@ class Styler(object):
         return self
 
     def background_gradient(self, cmap='PuBu', low=0, high=0, axis=0,
-                            subset=None):
+                            subset=None, text_color_threshold=0.408):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
@@ -866,6 +879,12 @@ class Styler(object):
             1 or 'columns' for columnwise, 0 or 'index' for rowwise
         subset: IndexSlice
             a valid slice for ``data`` to limit the style application to
+        text_color_threshold: float or int
+            luminance threshold for determining text color. Facilitates text
+            visibility across varying background colors. From 0 to 1.
+            0 = all text is dark colored, 1 = all text is light colored.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -873,19 +892,26 @@ class Styler(object):
 
         Notes
         -----
-        Tune ``low`` and ``high`` to keep the text legible by
-        not using the entire range of the color map. These extend
-        the range of the data by ``low * (x.max() - x.min())``
-        and ``high * (x.max() - x.min())`` before normalizing.
+        Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
+        text legible by not using the entire range of the color map. The range
+        of the data is extended by ``low * (x.max() - x.min())`` and ``high *
+        (x.max() - x.min())`` before normalizing.
+
+        Raises
+        ------
+        ValueError
+            If ``text_color_threshold`` is not a value from 0 to 1.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
         self.apply(self._background_gradient, cmap=cmap, subset=subset,
-                   axis=axis, low=low, high=high)
+                   axis=axis, low=low, high=high,
+                   text_color_threshold=text_color_threshold)
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap='PuBu', low=0, high=0):
+    def _background_gradient(s, cmap='PuBu', low=0, high=0,
+                             text_color_threshold=0.408):
         """Color background in a range according to the data."""
         with _mpl(Styler.background_gradient) as (plt, colors):
             rng = s.max() - s.min()
@@ -896,8 +922,39 @@ class Styler(object):
             # https://github.com/matplotlib/matplotlib/issues/5427
             normed = norm(s.values)
             c = [colors.rgb2hex(x) for x in plt.cm.get_cmap(cmap)(normed)]
-            return ['background-color: {color}'.format(color=color)
-                    for color in c]
+            if (not isinstance(text_color_threshold, (float, int)) or
+                    not 0 <= text_color_threshold <= 1):
+                msg = "`text_color_threshold` must be a value from 0 to 1."
+                raise ValueError(msg)
+
+            def relative_luminance(color):
+                """
+                Calculate relative luminance of a color.
+
+                The calculation adheres to the W3C standards
+                (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
+                Parameters
+                ----------
+                color : matplotlib color
+                    Hex code, rgb-tuple, or HTML color name.
+
+                Returns
+                -------
+                float
+                    The relative luminance as a value from 0 to 1
+                """
+                rgb = colors.colorConverter.to_rgba_array(color)[:, :3]
+                rgb = np.where(rgb <= .03928, rgb / 12.92,
+                               ((rgb + .055) / 1.055) ** 2.4)
+                lum = rgb.dot([.2126, .7152, .0722])
+                return lum.item()
+
+            text_colors = ['#f1f1f1' if relative_luminance(x) <
+                           text_color_threshold else '#000000' for x in c]
+
+            return ['background-color: {color};color: {tc}'.format(
+                    color=color, tc=tc) for color, tc in zip(c, text_colors)]
 
     def set_properties(self, subset=None, **kwargs):
         """
@@ -1038,7 +1095,8 @@ class Styler(object):
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
             align='left'):
         """
-        Color the background ``color`` proptional to the values in each column.
+        Color the background ``color`` proportional to the values in each
+        column.
         Excludes non-numeric data by default.
 
         Parameters
@@ -1207,7 +1265,7 @@ def _get_level_lengths(index, hidden_elements=None):
 
     Result is a dictionary of (level, inital_position): span
     """
-    sentinel = sentinel_factory()
+    sentinel = com.sentinel_factory()
     levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
     if hidden_elements is None:

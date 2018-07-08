@@ -75,7 +75,7 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`isna` and
 :func:`notna` functions, which are also methods on
-``Series`` and ``DataFrame`` objects:
+Series and DataFrame objects:
 
 .. ipython:: python
 
@@ -105,7 +105,7 @@ Datetimes
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
 sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
-pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
+pandas objects provide compatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python
 
@@ -170,9 +170,8 @@ The descriptive statistics and computational methods discussed in the
 account for missing data. For example:
 
 * When summing data, NA (missing) values will be treated as zero.
-* If the data are all NA, the result will be NA.
-* Methods like **cumsum** and **cumprod** ignore NA values, but preserve them
-  in the resulting arrays.
+* If the data are all NA, the result will be 0.
+* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
 
 .. ipython:: python
 
@@ -180,6 +179,7 @@ account for missing data. For example:
    df['one'].sum()
    df.mean(1)
    df.cumsum()
+   df.cumsum(skipna=False)
 
 
 .. _missing_data.numeric_sum:
@@ -189,33 +189,24 @@ Sum/Prod of Empties/Nans
 
 .. warning::
 
-   This behavior is now standard as of v0.21.0; previously sum/prod would give different
-   results if the ``bottleneck`` package was installed. 
-   See the :ref:`v0.21.0 whatsnew <whatsnew_0210.api_breaking.bottleneck>`.
+   This behavior is now standard as of v0.22.0 and is consistent with the default in ``numpy``; previously sum/prod of all-NA or empty Series/DataFrames would return NaN.
+   See :ref:`v0.22.0 whatsnew <whatsnew_0220>` for more.
 
-With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``.
-
-.. ipython:: python
-
-   s = pd.Series([np.nan])
-
-   s.sum()
-
-Summing over an empty ``Series`` will return ``NaN``:
+The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
 .. ipython:: python
 
+   pd.Series([np.nan]).sum()
+   
    pd.Series([]).sum()
 
-.. warning::
+The product of an empty or all-NA Series or column of a DataFrame is 1.
 
-   These behaviors differ from the default in ``numpy`` where an empty sum returns zero.
+.. ipython:: python
 
-   .. ipython:: python
-
-      np.nansum(np.array([np.nan]))
-      np.nansum(np.array([]))
-
+   pd.Series([np.nan]).prod()
+   
+   pd.Series([]).prod()
 
 
 NA values in GroupBy
@@ -242,7 +233,7 @@ with missing data.
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **fillna** function can "fill in" NA values with non-NA data in a couple
+:meth:`~DataFrame.fillna` can "fill in" NA values with non-NA data in a couple
 of ways, which we illustrate:
 
 **Replace NA with a scalar value**
@@ -292,8 +283,8 @@ To remind you, these are the available filling methods:
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
 
-The ``ffill()`` function is equivalent to ``fillna(method='ffill')``
-and ``bfill()`` is equivalent to ``fillna(method='bfill')``
+:meth:`~DataFrame.ffill` is equivalent to ``fillna(method='ffill')``
+and :meth:`~DataFrame.bfill` is equivalent to ``fillna(method='bfill')``
 
 .. _missing_data.PandasObject:
 
@@ -329,7 +320,7 @@ Dropping axis labels with missing data: dropna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may wish to simply exclude labels from a data set which refer to missing
-data. To do this, use the :meth:`~DataFrame.dropna` method:
+data. To do this, use :meth:`~DataFrame.dropna`:
 
 .. ipython:: python
    :suppress:
@@ -344,7 +335,7 @@ data. To do this, use the :meth:`~DataFrame.dropna` method:
    df.dropna(axis=1)
    df['one'].dropna()
 
-An equivalent :meth:`~Series.dropna` method is available for Series.
+An equivalent :meth:`~Series.dropna` is available for Series.
 DataFrame.dropna has considerably more options than Series.dropna, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
@@ -353,8 +344,12 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-Both Series and DataFrame objects have an :meth:`~DataFrame.interpolate` method 
-that, by default, performs linear interpolation at missing datapoints.
+.. versionadded:: 0.21.0
+
+  The ``limit_area`` keyword argument was added.
+
+Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
+that, by default, performs linear interpolation at missing data points.
 
 .. ipython:: python
    :suppress:
@@ -477,39 +472,61 @@ at the new values.
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
+.. _missing_data.interp_limits:
+
 Interpolation Limits
 ^^^^^^^^^^^^^^^^^^^^
 
-Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
-argument. Use this argument to limit the number of consecutive interpolations,
-keeping ``NaN`` values for interpolations that are too far from the last valid
-observation:
+Like other pandas fill methods, :meth:`~DataFrame.interpolate` accepts a ``limit`` keyword
+argument. Use this argument to limit the number of consecutive ``NaN`` values
+filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
-   ser.interpolate(limit=2)
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
 
-By default, ``limit`` applies in a forward direction, so that only ``NaN``
-values after a non-``NaN`` value can be filled. If you provide ``'backward'`` or
-``'both'`` for the ``limit_direction`` keyword argument, you can fill ``NaN``
-values before non-``NaN`` values, or both before and after non-``NaN`` values,
-respectively:
+   # fill all consecutive values in a forward direction
+   ser.interpolate()
+
+   # fill one consecutive value in a forward direction
+   ser.interpolate(limit=1)
+
+By default, ``NaN`` values are filled in a ``forward`` direction. Use
+``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
 
 .. ipython:: python
 
-   ser.interpolate(limit=1)  # limit_direction == 'forward'
-
+   # fill one consecutive value backwards
    ser.interpolate(limit=1, limit_direction='backward')
 
+   # fill one consecutive value in both directions
    ser.interpolate(limit=1, limit_direction='both')
+
+   # fill all consecutive values in both directions
+   ser.interpolate(limit_direction='both')
+
+By default, ``NaN`` values are filled whether they are inside (surrounded by)
+existing valid values, or outside existing valid values. Introduced in v0.23
+the ``limit_area`` parameter restricts filling to either inside or outside values.
+
+.. ipython:: python
+
+   # fill one consecutive inside value in both directions
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+   # fill all consecutive outside values backward
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+   # fill all consecutive outside values in both directions
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _missing_data.replace:
 
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Often times we want to replace arbitrary values with other values. The
-``replace`` method in Series/DataFrame provides an efficient yet
+Often times we want to replace arbitrary values with other values.
+
+:meth:`~Series.replace` in Series and :meth:`~DataFrame.replace` in DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another
@@ -649,7 +666,7 @@ want to use a regular expression.
 Numeric Replacement
 ~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~DataFrame.replace` method is similar to :meth:`~DataFrame.fillna`.
+:meth:`~DataFrame.replace` is similar to :meth:`~DataFrame.fillna`.
 
 .. ipython:: python
 
@@ -738,7 +755,7 @@ contains NAs, an exception will be generated:
    reindexed = s.reindex(list(range(8))).fillna(0)
    reindexed[crit]
 
-However, these can be filled in using **fillna** and it will work fine:
+However, these can be filled in using :meth:`~DataFrame.fillna` and it will work fine:
 
 .. ipython:: python
 

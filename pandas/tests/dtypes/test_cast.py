@@ -22,7 +22,9 @@ from pandas.core.dtypes.cast import (
     maybe_convert_string_to_object,
     maybe_convert_scalar,
     find_common_type,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike,
+    construct_1d_ndarray_preserving_na,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -34,7 +36,7 @@ from pandas.util import testing as tm
 
 class TestMaybeDowncast(object):
 
-    def test_downcast_conv(self):
+    def test_downcast(self):
         # test downcasting
 
         arr = np.array([8.5, 8.6, 8.7, 8.8, 8.9999999999995])
@@ -51,33 +53,34 @@ class TestMaybeDowncast(object):
         expected = np.array([8, 8, 8, 8, 9], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
-        # GH16875 coercing of bools
+        # see gh-16875: coercing of booleans.
         ser = Series([True, True, False])
         result = maybe_downcast_to_dtype(ser, np.dtype(np.float64))
         expected = ser
         tm.assert_series_equal(result, expected)
 
-        # conversions
-
+    @pytest.mark.parametrize("dtype", [np.float64, object, np.int64])
+    def test_downcast_conversion_no_nan(self, dtype):
         expected = np.array([1, 2])
-        for dtype in [np.float64, object, np.int64]:
-            arr = np.array([1.0, 2.0], dtype=dtype)
-            result = maybe_downcast_to_dtype(arr, 'infer')
-            tm.assert_almost_equal(result, expected, check_dtype=False)
+        arr = np.array([1.0, 2.0], dtype=dtype)
 
-        for dtype in [np.float64, object]:
-            expected = np.array([1.0, 2.0, np.nan], dtype=dtype)
-            arr = np.array([1.0, 2.0, np.nan], dtype=dtype)
-            result = maybe_downcast_to_dtype(arr, 'infer')
-            tm.assert_almost_equal(result, expected)
+        result = maybe_downcast_to_dtype(arr, "infer")
+        tm.assert_almost_equal(result, expected, check_dtype=False)
 
-        # empties
-        for dtype in [np.int32, np.float64, np.float32, np.bool_,
-                      np.int64, object]:
-            arr = np.array([], dtype=dtype)
-            result = maybe_downcast_to_dtype(arr, 'int64')
-            tm.assert_almost_equal(result, np.array([], dtype=np.int64))
-            assert result.dtype == np.int64
+    @pytest.mark.parametrize("dtype", [np.float64, object])
+    def test_downcast_conversion_nan(self, dtype):
+        expected = np.array([1.0, 2.0, np.nan], dtype=dtype)
+        arr = np.array([1.0, 2.0, np.nan], dtype=dtype)
+
+        result = maybe_downcast_to_dtype(arr, "infer")
+        tm.assert_almost_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [np.int32, np.float64, np.float32,
+                                       np.bool_, np.int64, object])
+    def test_downcast_conversion_empty(self, dtype):
+        arr = np.array([], dtype=dtype)
+        result = maybe_downcast_to_dtype(arr, "int64")
+        tm.assert_numpy_array_equal(result, np.array([], dtype=np.int64))
 
     def test_datetimelikes_nan(self):
         arr = np.array([1, 2, np.nan])
@@ -102,75 +105,81 @@ class TestMaybeDowncast(object):
 
 class TestInferDtype(object):
 
-    def testinfer_dtype_from_scalar(self):
-        # Test that infer_dtype_from_scalar is returning correct dtype for int
-        # and float.
+    def test_infer_dtype_from_int_scalar(self, any_int_dtype):
+        # Test that infer_dtype_from_scalar is
+        # returning correct dtype for int and float.
+        data = np.dtype(any_int_dtype).type(12)
+        dtype, val = infer_dtype_from_scalar(data)
+        assert dtype == type(data)
 
-        for dtypec in [np.uint8, np.int8, np.uint16, np.int16, np.uint32,
-                       np.int32, np.uint64, np.int64]:
-            data = dtypec(12)
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == type(data)
+    def test_infer_dtype_from_float_scalar(self, float_dtype):
+        float_dtype = np.dtype(float_dtype).type
+        data = float_dtype(12)
 
+        dtype, val = infer_dtype_from_scalar(data)
+        assert dtype == float_dtype
+
+    def test_infer_dtype_from_python_scalar(self):
         data = 12
         dtype, val = infer_dtype_from_scalar(data)
         assert dtype == np.int64
-
-        for dtypec in [np.float16, np.float32, np.float64]:
-            data = dtypec(12)
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == dtypec
 
         data = np.float(12)
         dtype, val = infer_dtype_from_scalar(data)
         assert dtype == np.float64
 
-        for data in [True, False]:
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == np.bool_
+    @pytest.mark.parametrize("bool_val", [True, False])
+    def test_infer_dtype_from_boolean(self, bool_val):
+        dtype, val = infer_dtype_from_scalar(bool_val)
+        assert dtype == np.bool_
 
-        for data in [np.complex64(1), np.complex128(1)]:
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == np.complex_
+    def test_infer_dtype_from_complex(self, complex_dtype):
+        data = np.dtype(complex_dtype).type(1)
+        dtype, val = infer_dtype_from_scalar(data)
+        assert dtype == np.complex_
 
-        for data in [np.datetime64(1, 'ns'), Timestamp(1),
-                     datetime(2000, 1, 1, 0, 0)]:
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == 'M8[ns]'
+    @pytest.mark.parametrize("data", [np.datetime64(1, "ns"), Timestamp(1),
+                                      datetime(2000, 1, 1, 0, 0)])
+    def test_infer_dtype_from_datetime(self, data):
+        dtype, val = infer_dtype_from_scalar(data)
+        assert dtype == "M8[ns]"
 
-        for data in [np.timedelta64(1, 'ns'), Timedelta(1),
-                     timedelta(1)]:
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == 'm8[ns]'
+    @pytest.mark.parametrize("data", [np.timedelta64(1, "ns"), Timedelta(1),
+                                      timedelta(1)])
+    def test_infer_dtype_from_timedelta(self, data):
+        dtype, val = infer_dtype_from_scalar(data)
+        assert dtype == "m8[ns]"
 
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
-            dt = Timestamp(1, tz=tz)
-            dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
-            assert dtype == 'datetime64[ns, {0}]'.format(tz)
-            assert val == dt.value
+    @pytest.mark.parametrize("freq", ["M", "D"])
+    def test_infer_dtype_from_period(self, freq):
+        p = Period("2011-01-01", freq=freq)
+        dtype, val = infer_dtype_from_scalar(p, pandas_dtype=True)
 
-            dtype, val = infer_dtype_from_scalar(dt)
-            assert dtype == np.object_
-            assert val == dt
+        assert dtype == "period[{0}]".format(freq)
+        assert val == p.ordinal
 
-        for freq in ['M', 'D']:
-            p = Period('2011-01-01', freq=freq)
-            dtype, val = infer_dtype_from_scalar(p, pandas_dtype=True)
-            assert dtype == 'period[{0}]'.format(freq)
-            assert val == p.ordinal
+        dtype, val = infer_dtype_from_scalar(p)
+        assert dtype == np.object_
+        assert val == p
 
-            dtype, val = infer_dtype_from_scalar(p)
-            dtype == np.object_
-            assert val == p
+    @pytest.mark.parametrize("data", [date(2000, 1, 1), "foo",
+                                      Timestamp(1, tz="US/Eastern")])
+    def test_infer_dtype_misc(self, data):
+        dtype, val = infer_dtype_from_scalar(data)
+        assert dtype == np.object_
 
-        # misc
-        for data in [date(2000, 1, 1),
-                     Timestamp(1, tz='US/Eastern'), 'foo']:
+    @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern', 'Asia/Tokyo'])
+    def test_infer_from_scalar_tz(self, tz):
+        dt = Timestamp(1, tz=tz)
+        dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
+        assert dtype == 'datetime64[ns, {0}]'.format(tz)
+        assert val == dt.value
 
-            dtype, val = infer_dtype_from_scalar(data)
-            assert dtype == np.object_
+        dtype, val = infer_dtype_from_scalar(dt)
+        assert dtype == np.object_
+        assert val == dt
 
-    def testinfer_dtype_from_scalar_errors(self):
+    def test_infer_dtype_from_scalar_errors(self):
         with pytest.raises(ValueError):
             infer_dtype_from_scalar(np.array([1]))
 
@@ -189,9 +198,9 @@ class TestInferDtype(object):
          (pd.Categorical(list('aabc')), 'category', True),
          (pd.Categorical([1, 2, 3]), 'category', True),
          (Timestamp('20160101'), np.object_, False),
-         (np.datetime64('2016-01-01'), np.dtype('<M8[D]'), False),
+         (np.datetime64('2016-01-01'), np.dtype('=M8[D]'), False),
          (pd.date_range('20160101', periods=3),
-          np.dtype('<M8[ns]'), False),
+          np.dtype('=M8[ns]'), False),
          (pd.date_range('20160101', periods=3, tz='US/Eastern'),
           'datetime64[ns, US/Eastern]', True),
          (pd.Series([1., 2, 3]), np.float64, False),
@@ -300,6 +309,10 @@ class TestMaybe(object):
                                      [NaT, 'b', 1]]))
         assert result.size == 6
 
+        # GH19671
+        result = Series(['M1701', Timestamp('20130101')])
+        assert result.dtype.kind == 'O'
+
 
 class TestConvert(object):
 
@@ -322,66 +335,63 @@ class TestConvert(object):
 
 class TestCommonTypes(object):
 
-    def test_numpy_dtypes(self):
-        # (source_types, destination_type)
-        testcases = (
-            # identity
-            ((np.int64,), np.int64),
-            ((np.uint64,), np.uint64),
-            ((np.float32,), np.float32),
-            ((np.object,), np.object),
+    @pytest.mark.parametrize("source_dtypes,expected_common_dtype", [
+        ((np.int64,), np.int64),
+        ((np.uint64,), np.uint64),
+        ((np.float32,), np.float32),
+        ((np.object,), np.object),
 
-            # into ints
-            ((np.int16, np.int64), np.int64),
-            ((np.int32, np.uint32), np.int64),
-            ((np.uint16, np.uint64), np.uint64),
+        # into ints
+        ((np.int16, np.int64), np.int64),
+        ((np.int32, np.uint32), np.int64),
+        ((np.uint16, np.uint64), np.uint64),
 
-            # into floats
-            ((np.float16, np.float32), np.float32),
-            ((np.float16, np.int16), np.float32),
-            ((np.float32, np.int16), np.float32),
-            ((np.uint64, np.int64), np.float64),
-            ((np.int16, np.float64), np.float64),
-            ((np.float16, np.int64), np.float64),
+        # into floats
+        ((np.float16, np.float32), np.float32),
+        ((np.float16, np.int16), np.float32),
+        ((np.float32, np.int16), np.float32),
+        ((np.uint64, np.int64), np.float64),
+        ((np.int16, np.float64), np.float64),
+        ((np.float16, np.int64), np.float64),
 
-            # into others
-            ((np.complex128, np.int32), np.complex128),
-            ((np.object, np.float32), np.object),
-            ((np.object, np.int16), np.object),
+        # into others
+        ((np.complex128, np.int32), np.complex128),
+        ((np.object, np.float32), np.object),
+        ((np.object, np.int16), np.object),
 
-            # bool with int
-            ((np.dtype('bool'), np.int64), np.object),
-            ((np.dtype('bool'), np.int32), np.object),
-            ((np.dtype('bool'), np.int16), np.object),
-            ((np.dtype('bool'), np.int8), np.object),
-            ((np.dtype('bool'), np.uint64), np.object),
-            ((np.dtype('bool'), np.uint32), np.object),
-            ((np.dtype('bool'), np.uint16), np.object),
-            ((np.dtype('bool'), np.uint8), np.object),
+        # bool with int
+        ((np.dtype('bool'), np.int64), np.object),
+        ((np.dtype('bool'), np.int32), np.object),
+        ((np.dtype('bool'), np.int16), np.object),
+        ((np.dtype('bool'), np.int8), np.object),
+        ((np.dtype('bool'), np.uint64), np.object),
+        ((np.dtype('bool'), np.uint32), np.object),
+        ((np.dtype('bool'), np.uint16), np.object),
+        ((np.dtype('bool'), np.uint8), np.object),
 
-            # bool with float
-            ((np.dtype('bool'), np.float64), np.object),
-            ((np.dtype('bool'), np.float32), np.object),
+        # bool with float
+        ((np.dtype('bool'), np.float64), np.object),
+        ((np.dtype('bool'), np.float32), np.object),
 
-            ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ns]')),
-             np.dtype('datetime64[ns]')),
-            ((np.dtype('timedelta64[ns]'), np.dtype('timedelta64[ns]')),
-             np.dtype('timedelta64[ns]')),
+        ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ns]')),
+         np.dtype('datetime64[ns]')),
+        ((np.dtype('timedelta64[ns]'), np.dtype('timedelta64[ns]')),
+         np.dtype('timedelta64[ns]')),
 
-            ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ms]')),
-             np.dtype('datetime64[ns]')),
-            ((np.dtype('timedelta64[ms]'), np.dtype('timedelta64[ns]')),
-             np.dtype('timedelta64[ns]')),
+        ((np.dtype('datetime64[ns]'), np.dtype('datetime64[ms]')),
+         np.dtype('datetime64[ns]')),
+        ((np.dtype('timedelta64[ms]'), np.dtype('timedelta64[ns]')),
+         np.dtype('timedelta64[ns]')),
 
-            ((np.dtype('datetime64[ns]'), np.dtype('timedelta64[ns]')),
-             np.object),
-            ((np.dtype('datetime64[ns]'), np.int64), np.object)
-        )
-        for src, common in testcases:
-            assert find_common_type(src) == common
+        ((np.dtype('datetime64[ns]'), np.dtype('timedelta64[ns]')),
+         np.object),
+        ((np.dtype('datetime64[ns]'), np.int64), np.object)
+    ])
+    def test_numpy_dtypes(self, source_dtypes, expected_common_dtype):
+        assert find_common_type(source_dtypes) == expected_common_dtype
 
+    def test_raises_empty_input(self):
         with pytest.raises(ValueError):
-            # empty
             find_common_type([])
 
     def test_categorical_dtype(self):
@@ -422,3 +432,27 @@ class TestCommonTypes(object):
     @pytest.mark.parametrize('val', [1, 2., None])
     def test_cast_1d_array_invalid_scalar(self, val):
         pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)
+
+    def test_cast_1d_arraylike_from_scalar_categorical(self):
+        # GH 19565 - Categorical result from scalar did not maintain categories
+        # and ordering of the passed dtype
+        cats = ['a', 'b', 'c']
+        cat_type = CategoricalDtype(categories=cats, ordered=False)
+        expected = pd.Categorical(['a', 'a'], categories=cats)
+        result = construct_1d_arraylike_from_scalar('a', len(expected),
+                                                    cat_type)
+        tm.assert_categorical_equal(result, expected,
+                                    check_category_order=True,
+                                    check_dtype=True)
+
+
+@pytest.mark.parametrize('values, dtype, expected', [
+    ([1, 2, 3], None, np.array([1, 2, 3])),
+    (np.array([1, 2, 3]), None, np.array([1, 2, 3])),
+    (['1', '2', None], None, np.array(['1', '2', None])),
+    (['1', '2', None], np.dtype('str'), np.array(['1', '2', None])),
+    ([1, 2, None], np.dtype('str'), np.array(['1', '2', None])),
+])
+def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
+    result = construct_1d_ndarray_preserving_na(values, dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)

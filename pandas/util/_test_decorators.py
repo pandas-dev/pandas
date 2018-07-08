@@ -23,13 +23,13 @@ def test_foo():
 
 For more information, refer to the ``pytest`` documentation on ``skipif``.
 """
-
 import pytest
 import locale
 from distutils.version import LooseVersion
 
 from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
                            import_lzma)
+from pandas.compat.numpy import _np_version_under1p15
 from pandas.core.computation.expressions import (_USE_NUMEXPR,
                                                  _NUMEXPR_INSTALLED)
 
@@ -57,7 +57,11 @@ def safe_import(mod_name, min_version=None):
         return mod
     else:
         import sys
-        version = getattr(sys.modules[mod_name], '__version__')
+        try:
+            version = getattr(sys.modules[mod_name], '__version__')
+        except AttributeError:
+            # xlrd uses a capitalized attribute name
+            version = getattr(sys.modules[mod_name], '__VERSION__')
         if version:
             from distutils.version import LooseVersion
             if LooseVersion(version) >= LooseVersion(min_version):
@@ -80,6 +84,17 @@ def _skip_if_mpl_1_5():
     if mod:
         v = mod.__version__
         if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
+            return True
+        else:
+            mod.use("Agg", warn=False)
+
+
+def _skip_if_mpl_2_2():
+    mod = safe_import("matplotlib")
+
+    if mod:
+        v = mod.__version__
+        if LooseVersion(v) > LooseVersion('2.1.2'):
             return True
         else:
             mod.use("Agg", warn=False)
@@ -145,8 +160,15 @@ def skip_if_no(package, min_version=None):
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
+
+skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
+                                       reason="NumPy 1.15 or greater required")
+skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
+                                 reason="matplotlib is present")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
                                      reason="matplotlib 1.5")
+xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
+                                     reason="matplotlib 2.2")
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
                                    reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(),
@@ -170,3 +192,28 @@ skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    "installed->{installed}".format(
                                        enabled=_USE_NUMEXPR,
                                        installed=_NUMEXPR_INSTALLED))
+
+
+def parametrize_fixture_doc(*args):
+    """
+    Intended for use as a decorator for parametrized fixture,
+    this function will wrap the decorated function with a pytest
+    ``parametrize_fixture_doc`` mark. That mark will format
+    initial fixture docstring by replacing placeholders {0}, {1} etc
+    with parameters passed as arguments.
+
+    Parameters:
+    ----------
+        args: iterable
+            Positional arguments for docstring.
+
+    Returns:
+    -------
+    documented_fixture: function
+        The decorated function wrapped within a pytest
+        ``parametrize_fixture_doc`` mark
+    """
+    def documented_fixture(fixture):
+        fixture.__doc__ = fixture.__doc__.format(*args)
+        return fixture
+    return documented_fixture

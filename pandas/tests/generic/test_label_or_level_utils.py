@@ -46,7 +46,7 @@ def df_duplabels(df):
 
 @pytest.fixture
 def panel():
-    with tm.assert_produces_warning(DeprecationWarning,
+    with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         return pd.Panel()
 
