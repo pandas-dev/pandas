@@ -1809,6 +1809,9 @@ def _get_dtype(arr_or_dtype):
     TypeError : The passed in object is None.
     """
 
+    # TODO(extension)
+    # replace with pandas_dtype
+
     if arr_or_dtype is None:
         raise TypeError("Cannot deduce dtype from null object")
     if isinstance(arr_or_dtype, np.dtype):
@@ -1856,6 +1859,8 @@ def _get_dtype_type(arr_or_dtype):
                passed in array or dtype object.
     """
 
+    # TODO(extension)
+    # replace with pandas_dtype
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
@@ -1988,13 +1993,19 @@ def pandas_dtype(dtype):
 
     """
 
+    # short-circuit
+    if isinstance(dtype, np.ndarray):
+        return dtype.dtype
+    elif isinstance(dtype, np.dtype):
+        return dtype
+
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
         return result
 
     # un-registered extension types
-    if isinstance(dtype, ExtensionDtype):
+    elif isinstance(dtype, ExtensionDtype):
         return dtype
 
     # try a numpy dtype
