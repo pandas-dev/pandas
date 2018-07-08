@@ -1906,7 +1906,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
             A string representing the compression to use in the output file,
             only used when the first argument is a filename.
 
