@@ -141,7 +141,7 @@ columns, the index will be passed on.
 
 Parameters
 ----------
-right : DataFrame or Series/dict-like object
+right : DataFrame, Series or dict
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     How to handle the operation of the two objects.
 
@@ -165,22 +165,22 @@ right_on : label or list, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
-left_index : boolean, default False
+left_index : boolean, default `False`
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
     or a number of columns) must match the number of levels.
-right_index : boolean, default False
+right_index : boolean, default `False`
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index.
-sort : boolean, default False
-    Sort the join keys lexicographically in the result DataFrame. If False,
+sort : boolean, default `False`
+    Sort the join keys lexicographically in the result DataFrame. If `False`,
     the order of the join keys depends on the join type (how keyword).
 suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
     side, respectively.
 copy : boolean, default True
-    If False, do not copy data unnecessarily.
-indicator : boolean or string, default False
+    If `False`, do not copy data unnecessarily.
+indicator : boolean or string, default `False`
     If True, adds a column to output DataFrame called "_merge" with
     information on the source of each row.
     If string, column with information on source of each row will be added to
@@ -201,7 +201,7 @@ validate : string, default None
       dataset.
     * "many_to_many" or "m:m": allowed, but does not result in checks.
 
-    .. versionadded:: 0.21.0.
+    .. versionadded:: 0.21.0
 
 Notes
 -----
@@ -249,8 +249,10 @@ merge_ordered
 merge_asof
 DataFrame.join
 """
+
 # -----------------------------------------------------------------------
 # DataFrame class
+
 
 class DataFrame(NDFrame):
     """ Two-dimensional size-mutable, potentially heterogeneous tabular data
@@ -2699,7 +2701,7 @@ class DataFrame(NDFrame):
                           allow_duplicates=allow_duplicates)
 
     def assign(self, **kwargs):
-        """
+        r"""
         Assign new columns to a DataFrame.
 
         Returns a new object with all original columns in addition to new ones.
@@ -2730,13 +2732,9 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionchanged :: 0.23.0.
+        .. versionchanged :: 0.23.0
 
-        Keyword argument order is maintained for Python 3.6 and later.
-
-        See Also
-        --------
-        DataFrame.assign: For column(s)-on-DataFrame operations
+           Keyword argument order is maintained for Python 3.6 and later.
 
         Examples
         --------
@@ -5068,9 +5066,9 @@ class DataFrame(NDFrame):
 
     def append(self, other, ignore_index=False, verify_integrity=False):
         """
-        Append rows of `other` to the end of `caller`, returning a new object.
+        Append rows of `other` to the end of caller, returning a new object.
 
-        Columns not in other are added as new columns.
+        Columns in `other` that are not in the caller are added as new columns.
 
         Parameters
         ----------
