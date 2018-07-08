@@ -1391,19 +1391,113 @@ class _Rolling_and_Expanding(_Rolling):
                                    _get_cov, pairwise=bool(pairwise))
 
     _shared_docs['corr'] = dedent("""
-    %(name)s sample correlation
+    Calculate %(name)s correlation.
 
     Parameters
     ----------
     other : Series, DataFrame, or ndarray, optional
-        if not supplied then will default to self and produce pairwise output
+        If not supplied then will default to self.
     pairwise : bool, default None
-        If False then only matching columns between self and other will be
-        used and the output will be a DataFrame.
-        If True then all pairwise combinations will be calculated and the
-        output will be a MultiIndex DataFrame in the case of DataFrame inputs.
-        In the case of missing elements, only complete pairwise observations
-        will be used.""")
+        Calculate pairwise combinations of columns within a
+        DataFrame. If `other` is not specified, defaults to `True`,
+        otherwise defaults to `False`.
+        Not relevant for :class:`~pandas.Series`.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the
+        %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.corr : Equivalent method for Series
+    DataFrame.corr : Equivalent method for DataFrame
+    %(name)s.cov : Similar method to calculate covariance
+    numpy.corrcoef : NumPy Pearson's correlation calculation
+
+    Notes
+    -----
+    This function uses Pearson's definition of correlation
+    (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
+
+    When `other` is not specified, the output will be self correlation (e.g.
+    all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
+    set to `True`.
+
+    Function will return `NaN`s for correlations of equal valued sequences;
+    this is the result of a 0/0 division error.
+
+    When `pairwise` is set to `False`, only matching columns between `self` and
+    `other` will be used.
+
+    When `pairwise` is set to `True`, the output will be a MultiIndex DataFrame
+    with the original index on the first level, and the `other` DataFrame
+    columns on the second level.
+
+    In the case of missing elements, only complete pairwise observations
+    will be used.
+
+    Examples
+    --------
+    The below example shows a rolling calculation with a window size of
+    four matching the equivalent function call using `numpy.corrcoef`.
+
+    >>> v1 = [3, 3, 3, 5, 8]
+    >>> v2 = [3, 4, 4, 4, 8]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> # numpy returns a 2X2 array, the correlation coefficient
+    >>> # is the number at entry [0][1]
+    >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
+    0.333333
+    >>> print(fmt.format(np.corrcoef(v1[1:], v2[1:])[0][1]))
+    0.916949
+    >>> s1 = pd.Series(v1)
+    >>> s2 = pd.Series(v2)
+    >>> s1.rolling(4).corr(s2)
+    0         NaN
+    1         NaN
+    2         NaN
+    3    0.333333
+    4    0.916949
+    dtype: float64
+
+    The below example shows a similar rolling calculation on a
+    DataFrame using the pairwise option.
+
+    >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
+    [46., 31.], [50., 36.]])
+    >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
+    [[1.         0.6263001]
+     [0.6263001  1.       ]]
+    >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
+    [[1.         0.5553681]
+     [0.5553681  1.        ]]
+    >>> df = pd.DataFrame(matrix, columns=['X','Y'])
+    >>> df
+          X     Y
+    0  51.0  35.0
+    1  49.0  30.0
+    2  47.0  32.0
+    3  46.0  31.0
+    4  50.0  36.0
+    >>> df.rolling(4).corr(pairwise=True)
+                X         Y
+    0 X       NaN       NaN
+      Y       NaN       NaN
+    1 X       NaN       NaN
+      Y       NaN       NaN
+    2 X       NaN       NaN
+      Y       NaN       NaN
+    3 X  1.000000  0.626300
+      Y  0.626300  1.000000
+    4 X  1.000000  0.555368
+      Y  0.555368  1.000000
+""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1672,7 +1766,6 @@ class Rolling(_Rolling_and_Expanding):
                                         ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Rolling, self).corr(other=other, pairwise=pairwise,
@@ -1932,7 +2025,6 @@ class Expanding(_Rolling_and_Expanding):
                                           ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Expanding, self).corr(other=other, pairwise=pairwise,
