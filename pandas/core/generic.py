@@ -8348,7 +8348,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generates descriptive statistics that summarize the central tendency,
+        Generate descriptive statistics that summarize the central tendency,
         dispersion and shape of a dataset's distribution, excluding
         ``NaN`` values.
 
@@ -8392,7 +8392,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        summary:  Series/DataFrame of summary statistics
+        Series or DataFrame
+            Summary statistics of the Series or Dataframe provided.
+
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the obersvations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
 
         Notes
         -----
@@ -8436,6 +8447,7 @@ class NDFrame(PandasObject, SelectionMixin):
         50%      2.0
         75%      2.5
         max      3.0
+        dtype: float64
 
         Describing a categorical ``Series``.
 
@@ -8466,9 +8478,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({ 'object': ['a', 'b', 'c'],
-        ...                     'numeric': [1, 2, 3],
-        ...                     'categorical': pd.Categorical(['d','e','f'])
+        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f']),
+        ...                    'numeric': [1, 2, 3],
+        ...                    'object': ['a', 'b', 'c']
         ...                   })
         >>> df.describe()
                numeric
@@ -8554,7 +8566,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-                categorical  numeric
+               categorical  numeric
         count            3      3.0
         unique           3      NaN
         top              f      NaN
@@ -8566,15 +8578,6 @@ class NDFrame(PandasObject, SelectionMixin):
         50%            NaN      2.0
         75%            NaN      2.5
         max            NaN      3.0
-
-        See Also
-        --------
-        DataFrame.count
-        DataFrame.max
-        DataFrame.min
-        DataFrame.mean
-        DataFrame.std
-        DataFrame.select_dtypes
         """
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel objects."
