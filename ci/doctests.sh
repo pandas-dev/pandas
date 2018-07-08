@@ -12,8 +12,7 @@ if [ "$DOCTEST" ]; then
 
     echo "Running doctests"
 
-    pytest --doctest-modules --ignore=pandas/tests -v pandas \
-        -k"-pandas.core.frame.DataFrame.cum"
+    pytest --doctest-modules --ignore=pandas/tests -v  pandas/core/frame.py
 
     if [ $? -ne "0" ]; then
         RET=1
