@@ -266,7 +266,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                         result = arg
 
         if result is None and (format is None or infer_datetime_format):
-            result = tslib.array_to_datetime(
+            result, tz_parsed = tslib.array_to_datetime(
                 arg,
                 errors=errors,
                 utc=tz == 'utc',
@@ -696,7 +696,7 @@ def _attempt_YYYYMMDD(arg, errors):
         parsed = parsing.try_parse_year_month_day(carg / 10000,
                                                   carg / 100 % 100,
                                                   carg % 100)
-        return tslib.array_to_datetime(parsed, errors=errors)
+        return tslib.array_to_datetime(parsed, errors=errors)[0]
 
     def calc_with_mask(carg, mask):
         result = np.empty(carg.shape, dtype='M8[ns]')

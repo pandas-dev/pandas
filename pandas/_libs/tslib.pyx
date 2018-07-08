@@ -676,7 +676,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         if seen_datetime_offset:
             # GH 17697
-            # 1) If all the offsets are equal, then return 1, pytz.FixedOffset for the
+            # 1) If all the offsets are equal, then return one pytz.FixedOffset for the
             #    parsed dates so it can behave nicely with DatetimeIndex
             # 2) If the offsets are different, then force the parsing down the object path
             #    where an array of datetimes (with individual datutil.tzoffsets) are returned

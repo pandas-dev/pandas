@@ -3,6 +3,7 @@ from datetime import datetime, date
 
 import numpy as np
 import pytest
+import pytz
 
 from pandas._libs import tslib
 from pandas.compat.numpy import np_array_datetime64_compat
@@ -52,7 +53,7 @@ class TestParseISO8601(object):
 class TestArrayToDatetime(object):
     def test_parsing_valid_dates(self):
         arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
-        result = tslib.array_to_datetime(arr)
+        result = tslib.array_to_datetime(arr)[0]
         expected = ['2013-01-01T00:00:00.000000000-0000',
                     '2013-01-02T00:00:00.000000000-0000']
         tm.assert_numpy_array_equal(
@@ -60,38 +61,42 @@ class TestArrayToDatetime(object):
             np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
         arr = np.array(['Mon Sep 16 2013', 'Tue Sep 17 2013'], dtype=object)
-        result = tslib.array_to_datetime(arr)
+        result = tslib.array_to_datetime(arr)[0]
         expected = ['2013-09-16T00:00:00.000000000-0000',
                     '2013-09-17T00:00:00.000000000-0000']
         tm.assert_numpy_array_equal(
             result,
             np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
-    @pytest.mark.parametrize('dt_string', [
-        '01-01-2013 08:00:00+08:00',
-        '2013-01-01T08:00:00.000000000+0800',
-        '2012-12-31T16:00:00.000000000-0800',
-        '12-31-2012 23:00:00-01:00'])
-    def test_parsing_timezone_offsets(self, dt_string):
+    @pytest.mark.parametrize('dt_string, expected_tz', [
+        ['01-01-2013 08:00:00+08:00', None],
+        ['2013-01-01T08:00:00.000000000+0800', pytz.FixedOffset(480)],
+        ['2012-12-31T16:00:00.000000000-0800', pytz.FixedOffset(-480)],
+        ['12-31-2012 23:00:00-01:00', None]])
+    def test_parsing_timezone_offsets(self, dt_string, expected_tz):
         # All of these datetime strings with offsets are equivalent
         # to the same datetime after the timezone offset is added
+
+        # TODO: Appears that the dateparser doesnt return offset info if string is non-ISO
+        # maybe something in the np_datetime_strings parser is not catching this?
         arr = np.array(['01-01-2013 00:00:00'], dtype=object)
-        expected = tslib.array_to_datetime(arr)
+        expected = tslib.array_to_datetime(arr)[0]
 
         arr = np.array([dt_string], dtype=object)
-        result = tslib.array_to_datetime(arr)
+        result, result_tz = tslib.array_to_datetime(arr)
         tm.assert_numpy_array_equal(result, expected)
+        assert result_tz is expected_tz
 
     def test_number_looking_strings_not_into_datetime(self):
         # GH#4601
         # These strings don't look like datetimes so they shouldn't be
         # attempted to be converted
         arr = np.array(['-352.737091', '183.575577'], dtype=object)
-        result = tslib.array_to_datetime(arr, errors='ignore')
+        result = tslib.array_to_datetime(arr, errors='ignore')[0]
         tm.assert_numpy_array_equal(result, arr)
 
         arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
-        result = tslib.array_to_datetime(arr, errors='ignore')
+        result = tslib.array_to_datetime(arr, errors='ignore')[0]
         tm.assert_numpy_array_equal(result, arr)
 
     @pytest.mark.parametrize('invalid_date', [
@@ -105,13 +110,13 @@ class TestArrayToDatetime(object):
         with pytest.raises(ValueError):
             tslib.array_to_datetime(arr, errors='raise')
 
-        result = tslib.array_to_datetime(arr, errors='coerce')
+        result = tslib.array_to_datetime(arr, errors='coerce')[0]
         expected = np.array([tslib.iNaT], dtype='M8[ns]')
         tm.assert_numpy_array_equal(result, expected)
 
     def test_coerce_outside_ns_bounds_one_valid(self):
         arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
-        result = tslib.array_to_datetime(arr, errors='coerce')
+        result = tslib.array_to_datetime(arr, errors='coerce')[0]
         expected = [tslib.iNaT,
                     '2000-01-01T00:00:00.000000000-0000']
         tm.assert_numpy_array_equal(
@@ -123,11 +128,11 @@ class TestArrayToDatetime(object):
 
         # Without coercing, the presence of any invalid dates prevents
         # any values from being converted
-        result = tslib.array_to_datetime(arr, errors='ignore')
+        result = tslib.array_to_datetime(arr, errors='ignore')[0]
         tm.assert_numpy_array_equal(result, arr)
 
         # With coercing, the invalid dates becomes iNaT
-        result = tslib.array_to_datetime(arr, errors='coerce')
+        result = tslib.array_to_datetime(arr, errors='coerce')[0]
         expected = ['2013-01-01T00:00:00.000000000-0000',
                     tslib.iNaT,
                     tslib.iNaT]
