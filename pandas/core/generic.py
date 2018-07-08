@@ -6568,7 +6568,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         clip : Return input copy with values below/above thresholds truncated.
-        clip_lower : Return input copy input with values below given thresholds.
+        clip_lower : Method to truncate values below given thresholds.
 
         Returns
         -------
