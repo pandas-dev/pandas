@@ -2013,6 +2013,9 @@ def pandas_dtype(dtype):
     try:
         npdtype = np.dtype(dtype)
     except Exception:
+        # we don't want to force a repr of the non-string
+        if not isinstance(dtype, string_types):
+            raise TypeError("data type not understood")
         raise TypeError("data type '{}' not understood".format(
             dtype))
 
