@@ -961,7 +961,7 @@ def str_extractall(arr, pat, flags=0):
     A pattern with one group will return a DataFrame with one column.
     Indices with no matches will not appear in the result.
 
-    >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
+    >>> s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
     >>> s.str.extractall(r"[ab](\d)")
              0
       match
@@ -1053,13 +1053,13 @@ def str_get_dummies(arr, sep='|'):
 
     Examples
     --------
-    >>> Series(['a|b', 'a', 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  1  0  0
     2  1  0  1
 
-    >>> Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  0  0  0
@@ -2367,6 +2367,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
+
 
     >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
     >>> s

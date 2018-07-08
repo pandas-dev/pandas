@@ -1868,7 +1868,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s = Series([1, 2, 3, 4])
+        >>> s = pd.Series([1, 2, 3, 4])
         >>> s.quantile(.5)
         2.5
         >>> s.quantile([.25, .5, .75])
@@ -2229,8 +2229,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s1 = Series([1, 2])
-        >>> s2 = Series([0, 3])
+        >>> s1 = pd.Series([1, 2])
+        >>> s2 = pd.Series([0, 3])
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
         0    0
         1    2
