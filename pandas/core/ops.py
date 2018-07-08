@@ -404,7 +404,7 @@ e  NaN  -2.0
 _mod_example_FRAME = """
 **Using a scalar argument**
 
->>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a","b","c","d"],
+>>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a", "b", "c", "d"],
 ...                   columns=['one'])
 >>> df
     one
