@@ -2003,7 +2003,7 @@ def pandas_dtype(dtype):
         npdtype = np.dtype(dtype)
     except Exception:
         raise TypeError("data type '{}' not understood".format(
-            type(dtype)))
+            dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
