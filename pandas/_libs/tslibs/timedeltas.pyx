@@ -834,7 +834,7 @@ cdef class _Timedelta(timedelta):
 
     @property
     def resolution(self):
-        """ 
+        """
         Return a string representing the lowest timedelta resolution.
 
         Each timedelta has a defined resolution that represents the lowest OR
