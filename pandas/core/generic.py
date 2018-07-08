@@ -7778,10 +7778,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return self._constructor(new_data).__finalize__(self)
 
     _shared_docs['where'] = ("""
-        Replace values that don't respect a `cond` condition.
-
-        Return an object of same shape as self with entries that
-        not satisfy a `cond` is %(cond)s are replaced by `other`.
+        Replace values where the condition is %(cond_rev)s.
 
         Parameters
         ----------
@@ -7825,7 +7822,8 @@ class NDFrame(PandasObject, SelectionMixin):
             strings).
 
             .. deprecated:: 0.21.0
-            Use `error`.
+
+               Use `errors`.
 
         Returns
         -------
