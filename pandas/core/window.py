@@ -1393,9 +1393,6 @@ class _Rolling_and_Expanding(_Rolling):
     _shared_docs['corr'] = dedent("""
     Calculate %(name)s correlation.
 
-    This function uses Pearson's definition of correlation 
-    (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
-
     Parameters
     ----------
     other : Series, DataFrame, or ndarray, optional
@@ -1425,6 +1422,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
+    This function uses Pearson's definition of correlation
+    (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
+
     When `other` is not specified, the output will be self correlation (e.g. 
     all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise` 
     set to `True`.
