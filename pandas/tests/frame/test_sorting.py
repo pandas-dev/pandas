@@ -550,18 +550,36 @@ class TestDataFrameSortIndexKinds(TestData):
         expected = frame.iloc[:, ::-1]
         assert_frame_equal(result, expected)
 
-    def test_sort_index_multiindex(self):
+    @pytest.mark.parametrize("level", ['A', 0])  # GH 21052
+    def test_sort_index_multiindex(self, level):
         # GH13496
 
         # sort rows by specified level of multi-index
-        mi = MultiIndex.from_tuples([[2, 1, 3], [1, 1, 1]], names=list('ABC'))
-        df = DataFrame([[1, 2], [3, 4]], mi)
+        mi = MultiIndex.from_tuples([
+            [2, 1, 3], [2, 1, 2], [1, 1, 1]], names=list('ABC'))
+        df = DataFrame([[1, 2], [3, 4], [5, 6]], index=mi)
 
-        # MI sort, but no level: sort_level has no effect
-        mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
-        df = DataFrame([[1, 2], [3, 4]], mi)
-        result = df.sort_index(sort_remaining=False)
-        expected = df.sort_index()
+        expected_mi = MultiIndex.from_tuples([
+            [1, 1, 1],
+            [2, 1, 2],
+            [2, 1, 3]], names=list('ABC'))
+        expected = pd.DataFrame([
+            [5, 6],
+            [3, 4],
+            [1, 2]], index=expected_mi)
+        result = df.sort_index(level=level)
+        assert_frame_equal(result, expected)
+
+        # sort_remaining=False
+        expected_mi = MultiIndex.from_tuples([
+            [1, 1, 1],
+            [2, 1, 3],
+            [2, 1, 2]], names=list('ABC'))
+        expected = pd.DataFrame([
+            [5, 6],
+            [1, 2],
+            [3, 4]], index=expected_mi)
+        result = df.sort_index(level=level, sort_remaining=False)
         assert_frame_equal(result, expected)
 
     def test_sort_index_intervalindex(self):
@@ -573,7 +591,7 @@ class TestDataFrameSortIndexKinds(TestData):
                     bins=[-3, -0.5, 0, 0.5, 3])
         model = pd.concat([y, x1, x2], axis=1, keys=['Y', 'X1', 'X2'])
 
-        result = model.groupby(['X1', 'X2']).mean().unstack()
+        result = model.groupby(['X1', 'X2'], observed=True).mean().unstack()
         expected = IntervalIndex.from_tuples(
             [(-3.0, -0.5), (-0.5, 0.0),
              (0.0, 0.5), (0.5, 3.0)],

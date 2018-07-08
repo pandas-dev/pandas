@@ -20,7 +20,6 @@ import pandas.util.testing as tm
 import pandas._libs.index as _index
 from pandas._libs import tslib
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 """
 Also test support for datetime64[ns] in Series / DataFrame
