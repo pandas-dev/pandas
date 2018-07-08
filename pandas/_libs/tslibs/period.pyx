@@ -1464,23 +1464,23 @@ cdef class _Period(object):
     @property
     def qyear(self):
         """
-        Get the fiscal year component of the Period.
+        Fiscal year the Period lies in according to its starting-quarter.
 
         The `year` and the `qyear` of the period will be the same if the fiscal
-        and the natural years are the same. When they are not, the fiscal year
-        can be different from the natural year of the period.
+        and calendar years are the same. When they are not, the fiscal year
+        can be different from the calendar year of the period.
 
         Returns
         -------
         int
+            The fiscal year of the period.
 
         See Also
         --------
-        Period.year : Return the natural year of the period.
+        Period.year : Return the calendar year of the period.
         
         Examples
         --------
-
         If the natural and fiscal year are the same, `qyear` and `year` will
         be the same.
 
@@ -1490,7 +1490,7 @@ cdef class _Period(object):
         >>> per.year
         2018
 
-        If the fiscal year starts in April (`Q-MAR`), the first qearter of
+        If the fiscal year starts in April (`Q-MAR`), the first quarter of
         2018 will start in April 2017. `year` will then be 2018, but `qyear`
         will be the fiscal year, 2018.
 
