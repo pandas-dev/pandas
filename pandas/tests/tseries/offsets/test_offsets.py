@@ -10,8 +10,9 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
-                                             _INVALID_FREQ_ERROR)
+                                             INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
@@ -32,7 +33,7 @@ from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import normalize_date, NaT, Timestamp
+from pandas._libs.tslib import NaT, Timestamp
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -56,11 +57,6 @@ def test_ole2datetime():
 
     with pytest.raises(ValueError):
         ole2datetime(60)
-
-
-def test_normalize_date():
-    actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
-    assert actual == datetime(2007, 10, 1)
 
 
 def test_to_m8():
@@ -319,7 +315,7 @@ class TestCommon(Base):
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
-            dt_tz = tslib._localize_pydatetime(dt, tz_obj)
+            dt_tz = conversion.localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
             assert isinstance(result, Timestamp)
@@ -2747,9 +2743,9 @@ class TestOffsetNames(object):
 
 
 def test_get_offset():
-    with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [
@@ -2767,7 +2763,7 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             get_offset(name)
 
 

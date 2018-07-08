@@ -2364,12 +2364,59 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof(self, label):
         """
-        For a sorted index, return the most recent label up to and including
-        the passed label. Return NaN if not found.
+        Return the label from the index, or, if not present, the previous one.
 
-        See also
+        Assuming that the index is sorted, return the passed index label if it
+        is in the index, or return the previous index label if the passed one
+        is not in the index.
+
+        Parameters
+        ----------
+        label : object
+            The label up to which the method returns the latest index label.
+
+        Returns
+        -------
+        object
+            The passed label if it is in the index. The previous label if the
+            passed label is not in the sorted index or `NaN` if there is no
+            such label.
+
+        See Also
         --------
-        get_loc : asof is a thin wrapper around get_loc with method='pad'
+        Series.asof : Return the latest value in a Series up to the
+            passed index.
+        merge_asof : Perform an asof merge (similar to left join but it
+            matches on nearest key rather than equal key).
+        Index.get_loc : `asof` is a thin wrapper around `get_loc`
+            with method='pad'.
+
+        Examples
+        --------
+        `Index.asof` returns the latest index label up to the passed label.
+
+        >>> idx = pd.Index(['2013-12-31', '2014-01-02', '2014-01-03'])
+        >>> idx.asof('2014-01-01')
+        '2013-12-31'
+
+        If the label is in the index, the method returns the passed label.
+
+        >>> idx.asof('2014-01-02')
+        '2014-01-02'
+
+        If all of the labels in the index are later than the passed label,
+        NaN is returned.
+
+        >>> idx.asof('1999-01-02')
+        nan
+
+        If the index is not sorted, an error is raised.
+
+        >>> idx_not_sorted = pd.Index(['2013-12-31', '2015-01-02',
+        ...                            '2014-01-03'])
+        >>> idx_not_sorted.asof('2013-12-31')
+        Traceback (most recent call last):
+        ValueError: index must be monotonic increasing or decreasing
         """
         try:
             loc = self.get_loc(label, method='pad')

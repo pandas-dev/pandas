@@ -11,6 +11,8 @@ from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_platform_int,
@@ -808,20 +810,16 @@ class MultiIndex(Index):
             return self._tuples
 
         values = []
-        for lev, lab in zip(self.levels, self.labels):
-            # Need to box timestamps, etc.
-            box = hasattr(lev, '_box_values')
-            # Try to minimize boxing.
-            if box and len(lev) > len(lab):
-                taken = lev._box_values(algos.take_1d(lev._ndarray_values,
-                                                      lab))
-            elif box:
-                taken = algos.take_1d(lev._box_values(lev._ndarray_values),
-                                      lab,
-                                      fill_value=lev._na_value)
-            else:
-                taken = algos.take_1d(np.asarray(lev._values), lab)
-            values.append(taken)
+
+        for i in range(self.nlevels):
+            vals = self._get_level_values(i)
+            if is_categorical_dtype(vals):
+                vals = vals.get_values()
+            if (isinstance(vals.dtype, (PandasExtensionDtype, ExtensionDtype))
+                    or hasattr(vals, '_box_values')):
+                vals = vals.astype(object)
+            vals = np.array(vals, copy=False)
+            values.append(vals)
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
@@ -1961,8 +1959,8 @@ class MultiIndex(Index):
                                                           tolerance=tolerance)
 
         if not self.is_unique:
-            raise Exception('Reindexing only valid with uniquely valued Index '
-                            'objects')
+            raise ValueError('Reindexing only valid with uniquely valued '
+                             'Index objects')
 
         if method == 'pad' or method == 'backfill':
             if tolerance is not None:
@@ -2026,7 +2024,7 @@ class MultiIndex(Index):
                                                limit=limit,
                                                tolerance=tolerance)
                 else:
-                    raise Exception("cannot handle a non-unique multi-index!")
+                    raise ValueError("cannot handle a non-unique multi-index!")
 
         if not isinstance(target, MultiIndex):
             if indexer is None:

@@ -79,6 +79,44 @@ cdef dict timedelta_abbrevs = { 'D': 'd',
 
 _no_input = object()
 
+
+# ----------------------------------------------------------------------
+# API
+
+def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
+    """
+    convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
+    True)
+
+    Parameters
+    ----------
+    arr : ndarray[int64_t]
+    box : bool, default False
+
+    Returns
+    -------
+    result : ndarray[object]
+        array of Timedelta or timedeltas objects
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t value
+        ndarray[object] result = np.empty(n, dtype=object)
+
+    for i in range(n):
+
+        value = arr[i]
+        if value == NPY_NAT:
+            result[i] = NaT
+        else:
+            if box:
+                result[i] = Timedelta(value)
+            else:
+                result[i] = timedelta(microseconds=int(value) / 1000)
+
+    return result
+
+
 # ----------------------------------------------------------------------
 
 cpdef int64_t delta_to_nanoseconds(delta) except? -1:
@@ -796,7 +834,46 @@ cdef class _Timedelta(timedelta):
 
     @property
     def resolution(self):
-        """ return a string representing the lowest resolution that we have """
+        """
+        Return a string representing the lowest timedelta resolution.
+
+        Each timedelta has a defined resolution that represents the lowest OR
+        most granular level of precision. Each level of resolution is
+        represented by a short string as defined below:
+
+        Resolution:     Return value
+
+        * Days:         'D'
+        * Hours:        'H'
+        * Minutes:      'T'
+        * Seconds:      'S'
+        * Milliseconds: 'L'
+        * Microseconds: 'U'
+        * Nanoseconds:  'N'
+
+        Returns
+        -------
+        str
+            Timedelta resolution.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.resolution
+        'N'
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us')
+        >>> td.resolution
+        'U'
+
+        >>> td = pd.Timedelta('2 min 3 s')
+        >>> td.resolution
+        'S'
+
+        >>> td = pd.Timedelta(36, unit='us')
+        >>> td.resolution
+        'U'
+        """
 
         self._ensure_components()
         if self._ns:

@@ -1215,6 +1215,8 @@ class DataFrame(NDFrame):
         coerce_float : boolean, default False
             Attempt to convert values of non-string, non-numeric objects (like
             decimal.Decimal) to floating point, useful for SQL result sets
+        nrows : int, default None
+            Number of rows to read if data is an iterator
 
         Returns
         -------
@@ -2670,68 +2672,80 @@ class DataFrame(NDFrame):
     def __getitem__(self, key):
         key = com._apply_if_callable(key, self)
 
-        # shortcut if we are an actual column
-        is_mi_columns = isinstance(self.columns, MultiIndex)
+        # shortcut if the key is in columns
         try:
-            if key in self.columns and not is_mi_columns:
-                return self._getitem_column(key)
-        except:
+            if self.columns.is_unique and key in self.columns:
+                if self.columns.nlevels > 1:
+                    return self._getitem_multilevel(key)
+                return self._get_item_cache(key)
+        except (TypeError, ValueError):
+            # The TypeError correctly catches non hashable "key" (e.g. list)
+            # The ValueError can be removed once GH #21729 is fixed
             pass
 
-        # see if we can slice the rows
+        # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
-            return self._getitem_slice(indexer)
+            return self._slice(indexer, axis=0)
 
-        if isinstance(key, (Series, np.ndarray, Index, list)):
-            # either boolean or fancy integer index
-            return self._getitem_array(key)
-        elif isinstance(key, DataFrame):
+        # Do we have a (boolean) DataFrame?
+        if isinstance(key, DataFrame):
             return self._getitem_frame(key)
-        elif is_mi_columns:
-            return self._getitem_multilevel(key)
-        else:
-            return self._getitem_column(key)
 
-    def _getitem_column(self, key):
-        """ return the actual column """
-
-        # get column
-        if self.columns.is_unique:
-            return self._get_item_cache(key)
-
-        # duplicate columns & possible reduce dimensionality
-        result = self._constructor(self._data.get(key))
-        if result.columns.is_unique:
-            result = result[key]
-
-        return result
-
-    def _getitem_slice(self, key):
-        return self._slice(key, axis=0)
-
-    def _getitem_array(self, key):
-        # also raises Exception if object array with NA values
+        # Do we have a (boolean) 1d indexer?
         if com.is_bool_indexer(key):
-            # warning here just in case -- previously __setitem__ was
-            # reindexing but __getitem__ was not; it seems more reasonable to
-            # go with the __setitem__ behavior since that is more consistent
-            # with all other indexing behavior
-            if isinstance(key, Series) and not key.index.equals(self.index):
-                warnings.warn("Boolean Series key will be reindexed to match "
-                              "DataFrame index.", UserWarning, stacklevel=3)
-            elif len(key) != len(self.index):
-                raise ValueError('Item wrong length %d instead of %d.' %
-                                 (len(key), len(self.index)))
-            # check_bool_indexer will throw exception if Series key cannot
-            # be reindexed to match DataFrame rows
-            key = check_bool_indexer(self.index, key)
-            indexer = key.nonzero()[0]
-            return self._take(indexer, axis=0)
+            return self._getitem_bool_array(key)
+
+        # We are left with two options: a single key, and a collection of keys,
+        # We interpret tuples as collections only for non-MultiIndex
+        is_single_key = isinstance(key, tuple) or not is_list_like(key)
+
+        if is_single_key:
+            if self.columns.nlevels > 1:
+                return self._getitem_multilevel(key)
+            indexer = self.columns.get_loc(key)
+            if is_integer(indexer):
+                indexer = [indexer]
         else:
+            if is_iterator(key):
+                key = list(key)
             indexer = self.loc._convert_to_indexer(key, axis=1,
                                                    raise_missing=True)
-            return self._take(indexer, axis=1)
+
+        # take() does not accept boolean indexers
+        if getattr(indexer, "dtype", None) == bool:
+            indexer = np.where(indexer)[0]
+
+        data = self._take(indexer, axis=1)
+
+        if is_single_key:
+            # What does looking for a single key in a non-unique index return?
+            # The behavior is inconsistent. It returns a Series, except when
+            # - the key itself is repeated (test on data.shape, #9519), or
+            # - we have a MultiIndex on columns (test on self.columns, #21309)
+            if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
+                data = data[key]
+
+        return data
+
+    def _getitem_bool_array(self, key):
+        # also raises Exception if object array with NA values
+        # warning here just in case -- previously __setitem__ was
+        # reindexing but __getitem__ was not; it seems more reasonable to
+        # go with the __setitem__ behavior since that is more consistent
+        # with all other indexing behavior
+        if isinstance(key, Series) and not key.index.equals(self.index):
+            warnings.warn("Boolean Series key will be reindexed to match "
+                          "DataFrame index.", UserWarning, stacklevel=3)
+        elif len(key) != len(self.index):
+            raise ValueError('Item wrong length %d instead of %d.' %
+                             (len(key), len(self.index)))
+
+        # check_bool_indexer will throw exception if Series key cannot
+        # be reindexed to match DataFrame rows
+        key = check_bool_indexer(self.index, key)
+        indexer = key.nonzero()[0]
+        return self._take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -2839,9 +2853,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> from numpy.random import randn
-        >>> from pandas import DataFrame
-        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=list('ab'))
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
@@ -4185,8 +4199,9 @@ class DataFrame(NDFrame):
             * 1, or 'columns' : Drop columns which contain missing value.
 
             .. deprecated:: 0.23.0
-                Pass tuple or list to drop on multiple axes.
-                Only a single axis is allowed.
+
+               Pass tuple or list to drop on multiple axes.
+               Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -4194,6 +4209,7 @@ class DataFrame(NDFrame):
 
             * 'any' : If any NA values are present, drop that row or column.
             * 'all' : If all values are NA, drop that row or column.
+
         thresh : int, optional
             Require that many non-NA values.
         subset : array-like, optional
@@ -4662,10 +4678,11 @@ class DataFrame(NDFrame):
             Column name or names to order by
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
+
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
             .. versionadded:: 0.24.0
 
@@ -4880,19 +4897,26 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Add two DataFrame objects and do not propagate NaN values, so if for a
-        (column, time) one frame is missing a value, it will default to the
-        other frame's value (which might be NaN as well)
+        Perform column-wise combine with another DataFrame based on a
+        passed function.
+
+        Combines a DataFrame with `other` DataFrame using `func`
+        to element-wise combine columns. The row and column indexes of the
+        resulting DataFrame will be the union of the two.
 
         Parameters
         ----------
         other : DataFrame
+            The DataFrame to merge column-wise.
         func : function
             Function that takes two series as inputs and return a Series or a
-            scalar
-        fill_value : scalar value
+            scalar. Used to merge the two dataframes column by columns.
+        fill_value : scalar value, default None
+            The value to fill NaNs with prior to passing any column to the
+            merge func.
         overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling frame
+            If True, columns in `self` that do not exist in `other` will be
+            overwritten with NaNs.
 
         Returns
         -------
@@ -4900,12 +4924,76 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
-        >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
+        Combine using a simple function that chooses the smaller column.
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df1.combine(df2, take_smaller)
            A  B
         0  0  3
         1  0  3
+
+        Example using a true element-wise combine function.
+
+        >>> df1 = pd.DataFrame({'A': [5, 0], 'B': [2, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, np.minimum)
+           A  B
+        0  1  2
+        1  0  3
+
+        Using `fill_value` fills Nones prior to passing the column to the
+        merge function.
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, take_smaller, fill_value=-5)
+           A    B
+        0  0 -5.0
+        1  0  4.0
+
+        However, if the same element in both dataframes is None, that None
+        is preserved
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [None, 3]})
+        >>> df1.combine(df2, take_smaller, fill_value=-5)
+           A    B
+        0  0  NaN
+        1  0  3.0
+
+        Example that demonstrates the use of `overwrite` and behavior when
+        the axis differ between the dataframes.
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
+        >>> df1.combine(df2, take_smaller)
+             A    B     C
+        0  NaN  NaN   NaN
+        1  NaN  3.0 -10.0
+        2  NaN  3.0   1.0
+
+        >>> df1.combine(df2, take_smaller, overwrite=False)
+             A    B     C
+        0  0.0  NaN   NaN
+        1  0.0  3.0 -10.0
+        2  NaN  3.0   1.0
+
+        Demonstrating the preference of the passed in dataframe.
+
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df2.combine(df1, take_smaller)
+           A    B   C
+        0  0.0  NaN NaN
+        1  0.0  3.0 NaN
+        2  NaN  3.0 NaN
+
+        >>> df2.combine(df1, take_smaller, overwrite=False)
+             A    B   C
+        0  0.0  NaN NaN
+        1  0.0  3.0 1.0
+        2  NaN  3.0 1.0
 
         See Also
         --------
@@ -4926,7 +5014,6 @@ class DataFrame(NDFrame):
         # sorts if possible
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
-
         result = {}
         for col in new_columns:
             series = this[col]
@@ -4978,13 +5065,16 @@ class DataFrame(NDFrame):
 
     def combine_first(self, other):
         """
-        Combine two DataFrame objects and default to non-null values in frame
-        calling the method. Result index columns will be the union of the
-        respective indexes and columns
+        Update null elements with value in the same location in `other`.
+
+        Combine two DataFrame objects by filling null values in one DataFrame
+        with non-null values from other DataFrame. The row and column indexes
+        of the resulting DataFrame will be the union of the two.
 
         Parameters
         ----------
         other : DataFrame
+            Provided DataFrame to use to fill null values.
 
         Returns
         -------
@@ -4992,13 +5082,24 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        df1's values prioritized, use values from df2 to fill holes:
 
-        >>> df1 = pd.DataFrame([[1, np.nan]])
-        >>> df2 = pd.DataFrame([[3, 4]])
+        >>> df1 = pd.DataFrame({'A': [None, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine_first(df2)
-           0    1
-        0  1  4.0
+             A    B
+        0  1.0  3.0
+        1  0.0  4.0
+
+        Null values still persist if the location of that null value
+        does not exist in `other`
+
+        >>> df1 = pd.DataFrame({'A': [None, 0], 'B': [4, None]})
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1]}, index=[1, 2])
+        >>> df1.combine_first(df2)
+             A    B    C
+        0  NaN  4.0  NaN
+        1  0.0  3.0  1.0
+        2  NaN  3.0  1.0
 
         See Also
         --------
@@ -5641,7 +5742,6 @@ class DataFrame(NDFrame):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
     ...                    'B': {0: 1, 1: 3, 2: 5},
     ...                    'C': {0: 2, 1: 4, 2: 6}})

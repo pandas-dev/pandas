@@ -32,7 +32,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_cython_ver = '0.24'
+min_cython_ver = '0.28.2'
 try:
     import Cython
     ver = Cython.__version__
@@ -531,17 +531,6 @@ ext_data = {
         'pyxfile': '_libs/ops',
         'pxdfiles': ['_libs/src/util',
                      '_libs/missing']},
-    '_libs.tslibs.period': {
-        'pyxfile': '_libs/tslibs/period',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/missing',
-                     '_libs/tslibs/ccalendar',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype',
-                     '_libs/tslibs/offsets'],
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
@@ -603,6 +592,16 @@ ext_data = {
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util']},
+    '_libs.tslibs.period': {
+        'pyxfile': '_libs/tslibs/period',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
+        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
+        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',

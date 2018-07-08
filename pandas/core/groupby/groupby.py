@@ -1297,9 +1297,48 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
-        Compute mean of groups, excluding missing values
+        Compute mean of groups, excluding missing values.
 
-        For multiple groupings, the result index will be a MultiIndex
+        Returns
+        -------
+        pandas.Series or pandas.DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
+        ...                    'B': [np.nan, 2, 3, 4, 5],
+        ...                    'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
+
+        Groupby one column and return the mean of the remaining columns in
+        each group.
+
+        >>> df.groupby('A').mean()
+        >>>
+             B         C
+        A
+        1  3.0  1.333333
+        2  4.0  1.500000
+
+        Groupby two columns and return the mean of the remaining column.
+
+        >>> df.groupby(['A', 'B']).mean()
+        >>>
+               C
+        A B
+        1 2.0  2
+          4.0  1
+        2 3.0  1
+          5.0  2
+
+        Groupby one column and return the mean of only particular column in
+        the group.
+
+        >>> df.groupby('A')['B'].mean()
+        >>>
+        A
+        1    3.0
+        2    4.0
+        Name: B, dtype: float64
         """
         nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
         try:
@@ -2994,9 +3033,9 @@ class Grouping(object):
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
 
-                self.all_grouper = self.grouper
-                self.grouper = self.grouper._codes_for_groupby(
-                    self.sort, observed)
+                from pandas.core.groupby.categorical import recode_for_groupby
+                self.grouper, self.all_grouper = recode_for_groupby(
+                    self.grouper, self.sort, observed)
                 categories = self.grouper.categories
 
                 # we make a CategoricalIndex out of the cat grouper
@@ -3073,17 +3112,9 @@ class Grouping(object):
     @cache_readonly
     def result_index(self):
         if self.all_grouper is not None:
-            all_categories = self.all_grouper.categories
-
-            # we re-order to the original category orderings
-            if self.sort:
-                return self.group_index.set_categories(all_categories)
-
-            # we are not sorting, so add unobserved to the end
-            categories = self.group_index.categories
-            return self.group_index.add_categories(
-                all_categories[~all_categories.isin(categories)])
-
+            from pandas.core.groupby.categorical import recode_from_groupby
+            return recode_from_groupby(self.all_grouper,
+                                       self.sort, self.group_index)
         return self.group_index
 
     @property
@@ -3557,13 +3588,11 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
-        if isinstance(list(compat.itervalues(results))[0],
-                      DataFrame):
-
+        if any(isinstance(x, DataFrame) for x in compat.itervalues(results)):
             # let higher level handle
             if _level:
                 return results
-            return list(compat.itervalues(results))[0]
+
         return DataFrame(results, columns=columns)
 
     def _wrap_output(self, output, index, names=None):
@@ -3704,7 +3733,6 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
         ...                           'foo', 'bar'],
         ...                    'B' : [1, 2, 3, 4, 5, 6],
@@ -4538,7 +4566,6 @@ class NDFrameGroupBy(GroupBy):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
         ...                           'foo', 'bar'],
         ...                    'B' : [1, 2, 3, 4, 5, 6],

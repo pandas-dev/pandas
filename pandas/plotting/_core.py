@@ -833,6 +833,32 @@ class PlanePlot(MPLPlot):
         ax.set_ylabel(pprint_thing(y))
         ax.set_xlabel(pprint_thing(x))
 
+    def _plot_colorbar(self, ax, **kwds):
+        # Addresses issues #10611 and #10678:
+        # When plotting scatterplots and hexbinplots in IPython
+        # inline backend the colorbar axis height tends not to
+        # exactly match the parent axis height.
+        # The difference is due to small fractional differences
+        # in floating points with similar representation.
+        # To deal with this, this method forces the colorbar
+        # height to take the height of the parent axes.
+        # For a more detailed description of the issue
+        # see the following link:
+        # https://github.com/ipython/ipython/issues/11215
+
+        img = ax.collections[0]
+        cbar = self.fig.colorbar(img, ax=ax, **kwds)
+        points = ax.get_position().get_points()
+        cbar_points = cbar.ax.get_position().get_points()
+        cbar.ax.set_position([cbar_points[0, 0],
+                              points[0, 1],
+                              cbar_points[1, 0] - cbar_points[0, 0],
+                              points[1, 1] - points[0, 1]])
+        # To see the discrepancy in axis heights uncomment
+        # the following two lines:
+        # print(points[1, 1] - points[0, 1])
+        # print(cbar_points[1, 1] - cbar_points[0, 1])
+
 
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
@@ -878,11 +904,9 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            img = ax.collections[0]
-            kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
-                kws['label'] = c if c_is_column else ''
-            self.fig.colorbar(img, **kws)
+                cbar_label = c if c_is_column else ''
+            self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
@@ -923,8 +947,7 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
-            img = ax.collections[0]
-            self.fig.colorbar(img, ax=ax)
+            self._plot_colorbar(ax)
 
     def _make_legend(self):
         pass
@@ -2586,14 +2609,11 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
     Examples
     --------
-    >>> import pandas
-    >>> import numpy as np
     >>> import itertools
-    >>>
     >>> tuples = [t for t in itertools.product(range(1000), range(4))]
-    >>> index = pandas.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+    >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
     >>> data = np.random.randn(len(index),4)
-    >>> df = pandas.DataFrame(data, columns=list('ABCD'), index=index)
+    >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
     >>>
     >>> grouped = df.groupby(level='lvl1')
     >>> boxplot_frame_groupby(grouped)

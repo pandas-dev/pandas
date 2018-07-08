@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_extension_type,
     is_extension_array_dtype,
+    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_object_dtype,
@@ -78,6 +79,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
+from pandas.core.tools.datetimes import to_datetime
 
 import pandas.plotting._core as gfx
 
@@ -1439,7 +1441,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Always returns Series even if only one value is returned.
 
         Parameters
-        -------
+        ----------
         dropna : boolean, default True
             Don't consider counts of NaN/NaT.
 
@@ -1655,7 +1657,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return super(Series, self).duplicated(keep=keep)
 
-    def idxmin(self, axis=None, skipna=True, *args, **kwargs):
+    def idxmin(self, axis=0, skipna=True, *args, **kwargs):
         """
         Return the row label of the minimum value.
 
@@ -1671,7 +1673,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
         *args, **kwargs
-            Additional keywors have no effect but might be accepted
+            Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
         Returns
@@ -1740,7 +1742,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             For compatibility with DataFrame.idxmax. Redundant for application
             on Series.
         *args, **kwargs
-            Additional keywors have no effect but might be accepted
+            Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
         Returns
@@ -1800,14 +1802,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         msg=dedent("""\
         'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
         will be corrected to return the positional minimum in the future.
-        Use 'series.values.argmin' to get the position of the minimum now.""")
+        Use 'series.values.argmin' to get the position of the minimum row.""")
     )
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
         msg=dedent("""\
         'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
         will be corrected to return the positional maximum in the future.
-        Use 'series.values.argmax' to get the position of the maximum now.""")
+        Use 'series.values.argmax' to get the position of the maximum row.""")
     )
 
     def round(self, decimals=0, *args, **kwargs):
@@ -2303,10 +2305,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
-        # TODO: do we need name?
-        name = ops.get_op_result_name(self, other)  # noqa
-        rs_vals = com._where_compat(isna(this), other._values, this._values)
-        return self._constructor(rs_vals, index=new_index).__finalize__(self)
+        if is_datetimelike(this) and not is_datetimelike(other):
+            other = to_datetime(other)
+
+        return this.where(notna(this), other)
 
     def update(self, other):
         """
@@ -2747,8 +2749,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> s = pd.Series(np.random.randn(10**6))
         >>> s.nlargest(10)  # only sorts up to the N requested
         219921    4.644710
@@ -2794,8 +2794,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> s = pd.Series(np.random.randn(10**6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
         288532   -4.954580
@@ -3046,7 +3044,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Examples
     --------
 
-    >>> s = Series(np.random.randn(10))
+    >>> s = pd.Series(np.random.randn(10))
 
     >>> s.agg('min')
     -1.3018049988556679
@@ -3125,8 +3123,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Create a series with typical summer temperatures for each city.
 
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> series = pd.Series([20, 21, 12], index=['London',
         ... 'New York','Helsinki'])
         >>> series
@@ -4092,11 +4088,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
             elif is_extension_array_dtype(dtype):
-                # We don't allow casting to third party dtypes, since we don't
-                # know what array belongs to which type.
-                msg = ("Cannot cast data to extension dtype '{}'. "
-                       "Pass the extension array directly.".format(dtype))
-                raise ValueError(msg)
+                # create an extension array from its dtype
+                array_type = dtype.construct_array_type()
+                subarr = array_type(subarr, copy=copy)
 
             elif dtype is not None and raise_cast_failure:
                 raise

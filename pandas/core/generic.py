@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_numeric_dtype,
-    is_datetime64_dtype,
+    is_datetime64_any_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_list_like,
@@ -768,18 +768,108 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def squeeze(self, axis=None):
         """
-        Squeeze length 1 dimensions.
+        Squeeze 1 dimensional axis objects into scalars.
+
+        Series or DataFrames with a single element are squeezed to a scalar.
+        DataFrames with a single column or a single row are squeezed to a
+        Series. Otherwise the object is unchanged.
+
+        This method is most useful when you don't know if your
+        object is a Series or DataFrame, but you do know it has just a single
+        column. In that case you can safely call `squeeze` to ensure you have a
+        Series.
 
         Parameters
         ----------
-        axis : None, integer or string axis name, optional
-            The axis to squeeze if 1-sized.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            A specific axis to squeeze. By default, all length-1 axes are
+            squeezed.
 
             .. versionadded:: 0.20.0
 
         Returns
         -------
-        scalar if 1-sized, else original object
+        DataFrame, Series, or scalar
+            The projection after squeezing `axis` or all the axes.
+
+        See Also
+        --------
+        Series.iloc : Integer-location based indexing for selecting scalars
+        DataFrame.iloc : Integer-location based indexing for selecting Series
+        Series.to_frame : Inverse of DataFrame.squeeze for a
+            single-column DataFrame.
+
+        Examples
+        --------
+        >>> primes = pd.Series([2, 3, 5, 7])
+
+        Slicing might produce a Series with a single value:
+
+        >>> even_primes = primes[primes % 2 == 0]
+        >>> even_primes
+        0    2
+        dtype: int64
+
+        >>> even_primes.squeeze()
+        2
+
+        Squeezing objects with more than one value in every axis does nothing:
+
+        >>> odd_primes = primes[primes % 2 == 1]
+        >>> odd_primes
+        1    3
+        2    5
+        3    7
+        dtype: int64
+
+        >>> odd_primes.squeeze()
+        1    3
+        2    5
+        3    7
+        dtype: int64
+
+        Squeezing is even more effective when used with DataFrames.
+
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
+        >>> df
+           a  b
+        0  1  2
+        1  3  4
+
+        Slicing a single column will produce a DataFrame with the columns
+        having only one value:
+
+        >>> df_a = df[['a']]
+        >>> df_a
+           a
+        0  1
+        1  3
+
+        So the columns can be squeezed down, resulting in a Series:
+
+        >>> df_a.squeeze('columns')
+        0    1
+        1    3
+        Name: a, dtype: int64
+
+        Slicing a single row from a single column will produce a single
+        scalar DataFrame:
+
+        >>> df_0a = df.loc[df.index < 1, ['a']]
+        >>> df_0a
+           a
+        0  1
+
+        Squeezing the rows produces a single scalar Series:
+
+        >>> df_0a.squeeze('rows')
+        a    1
+        Name: 0, dtype: int64
+
+        Squeezing all axes wil project directly into a scalar:
+
+        >>> df_0a.squeeze()
+        1
         """
         axis = (self._AXIS_NAMES if axis is None else
                 (self._get_axis_number(axis),))
@@ -3834,14 +3924,14 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         items : list-like
-            List of info axis to restrict to (must not all be present)
+            List of axis to restrict to (must not all be present).
         like : string
-            Keep info axis where "arg in col == True"
+            Keep axis where "arg in col == True".
         regex : string (regular expression)
-            Keep info axis with re.search(regex, col) == True
+            Keep axis with re.search(regex, col) == True.
         axis : int or string axis name
             The axis to filter on.  By default this is the info axis,
-            'index' for Series, 'columns' for DataFrame
+            'index' for Series, 'columns' for DataFrame.
 
         Returns
         -------
@@ -3849,26 +3939,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df
-        one  two  three
-        mouse     1    2      3
-        rabbit    4    5      6
+        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6])),
+        ...                   index=['mouse', 'rabbit'],
+        ...                   columns=['one', 'two', 'three'])
 
         >>> # select columns by name
         >>> df.filter(items=['one', 'three'])
-        one  three
+                 one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select columns by regular expression
         >>> df.filter(regex='e$', axis=1)
-        one  three
+                 one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select rows containing 'bbi'
         >>> df.filter(like='bbi', axis=0)
-        one  two  three
+                 one  two  three
         rabbit    4    5      6
 
         See Also
@@ -4824,7 +4913,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> import numpy as np
         >>> arr = np.random.RandomState(0).randn(100, 4)
         >>> arr[arr < .8] = np.nan
         >>> pd.DataFrame(arr).ftypes
@@ -7156,7 +7244,6 @@ class NDFrame(PandasObject, SelectionMixin):
         at_time : Select values at a particular time of the day
         between_time : Select values between particular times of the day
         """
-        from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
@@ -7220,7 +7307,6 @@ class NDFrame(PandasObject, SelectionMixin):
         at_time : Select values at a particular time of the day
         between_time : Select values between particular times of the day
         """
-        from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
@@ -8262,7 +8348,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generates descriptive statistics that summarize the central tendency,
+        Generate descriptive statistics that summarize the central tendency,
         dispersion and shape of a dataset's distribution, excluding
         ``NaN`` values.
 
@@ -8306,7 +8392,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        summary:  Series/DataFrame of summary statistics
+        Series or DataFrame
+            Summary statistics of the Series or Dataframe provided.
+
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the obersvations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
 
         Notes
         -----
@@ -8350,6 +8447,7 @@ class NDFrame(PandasObject, SelectionMixin):
         50%      2.0
         75%      2.5
         max      3.0
+        dtype: float64
 
         Describing a categorical ``Series``.
 
@@ -8380,9 +8478,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({ 'object': ['a', 'b', 'c'],
-        ...                     'numeric': [1, 2, 3],
-        ...                     'categorical': pd.Categorical(['d','e','f'])
+        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f']),
+        ...                    'numeric': [1, 2, 3],
+        ...                    'object': ['a', 'b', 'c']
         ...                   })
         >>> df.describe()
                numeric
@@ -8468,7 +8566,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-                categorical  numeric
+               categorical  numeric
         count            3      3.0
         unique           3      NaN
         top              f      NaN
@@ -8480,15 +8578,6 @@ class NDFrame(PandasObject, SelectionMixin):
         50%            NaN      2.0
         75%            NaN      2.5
         max            NaN      3.0
-
-        See Also
-        --------
-        DataFrame.count
-        DataFrame.max
-        DataFrame.min
-        DataFrame.mean
-        DataFrame.std
-        DataFrame.select_dtypes
         """
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel objects."
@@ -8533,12 +8622,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
-                if is_datetime64_dtype(data):
+                if is_datetime64_any_dtype(data):
+                    tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [tslib.Timestamp(top), freq,
-                               tslib.Timestamp(asint.min()),
-                               tslib.Timestamp(asint.max())]
+                    result += [tslib.Timestamp(top, tz=tz), freq,
+                               tslib.Timestamp(asint.min(), tz=tz),
+                               tslib.Timestamp(asint.max(), tz=tz)]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
@@ -8878,13 +8968,21 @@ class NDFrame(PandasObject, SelectionMixin):
         def nanptp(values, axis=0, skipna=True):
             nmax = nanops.nanmax(values, axis, skipna)
             nmin = nanops.nanmin(values, axis, skipna)
+            warnings.warn("Method .ptp is deprecated and will be removed "
+                          "in a future version. Use numpy.ptp instead.",
+                          FutureWarning, stacklevel=4)
             return nmax - nmin
 
         cls.ptp = _make_stat_function(
             cls, 'ptp', name, name2, axis_descr,
-            """Returns the difference between the maximum value and the
+            """
+            Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
-            ``numpy.ndarray`` method ``ptp``.""",
+            ``numpy.ndarray`` method ``ptp``.
+
+            .. deprecated:: 0.24.0
+                Use numpy.ptp instead
+            """,
             nanptp)
 
     @classmethod
