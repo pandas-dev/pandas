@@ -171,7 +171,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
     >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
     0      a
     1      b

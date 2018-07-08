@@ -425,7 +425,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> monotonic_index.get_loc('b')
         slice(1, 3, None)
 
-        >>> non_monotonic_index = p.dCategoricalIndex(list('abcb'))
+        >>> non_monotonic_index = pd.CategoricalIndex(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """

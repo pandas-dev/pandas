@@ -306,8 +306,8 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(Series([pd.Timestamp('20160101'),
-    ...                   pd.Timestamp('20160101')]))
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
+    ...                     pd.Timestamp('20160101')]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
@@ -326,20 +326,20 @@ def unique(values):
     An unordered Categorical will return categories in the
     order of appearance.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
     An ordered Categorical preserves the category ordering.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'),
-    ...                                 ordered=True)))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'),
+    ...                                    ordered=True)))
     [b, a, c]
     Categories (3, object): [a < b < c]
 

@@ -49,7 +49,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     Examples
     --------
-    >>> df = DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
+    >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
     """
 

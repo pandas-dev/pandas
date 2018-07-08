@@ -1825,7 +1825,7 @@ class Expanding(_Rolling_and_Expanding):
     Examples
     --------
 
-    >>> df = DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
          B
     0  0.0
     1  1.0
@@ -2109,7 +2109,7 @@ class EWM(_Rolling):
     Examples
     --------
 
-    >>> df = DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
          B
     0  0.0
     1  1.0
