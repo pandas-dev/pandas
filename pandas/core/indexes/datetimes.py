@@ -12,7 +12,6 @@ from pandas.core.base import _shared_docs
 from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
-    is_object_dtype,
     is_datetime64_dtype,
     is_datetimetz,
     is_dtype_equal,
@@ -556,7 +555,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                                         ambiguous=ambiguous)
 
                     index = DatetimeIndex(arr)
-
 
                     # index is localized datetime64 array -> have to convert
                     # start/end as well to compare

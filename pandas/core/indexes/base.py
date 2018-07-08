@@ -41,7 +41,6 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     is_integer_dtype, is_float_dtype,
-    is_datetime64_dtype,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
