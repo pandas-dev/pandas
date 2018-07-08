@@ -181,6 +181,10 @@ class _Window(PandasObject, SelectionMixin):
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
+    def __iter__(self):
+        url = 'https://github.com/pandas-dev/pandas/issues/11704'
+        raise NotImplementedError('See issue #11704 {url}'.format(url=url))
+
     def _get_index(self, index=None):
         """
         Return index as ndarrays
@@ -314,16 +318,129 @@ class _Window(PandasObject, SelectionMixin):
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
-            return self.apply(arg, args=args, kwargs=kwargs)
+            return self.apply(arg, raw=False, args=args, kwargs=kwargs)
         return result
 
     agg = aggregate
 
     _shared_docs['sum'] = dedent("""
-    %(name)s sum""")
+    Calculate %(name)s sum of given DataFrame or Series.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed value.
+
+    Returns
+    -------
+    Series or DataFrame
+        Same type as the input, with the same index, containing the
+        %(name)s sum.
+
+    See Also
+    --------
+    Series.sum : Reducing sum for Series.
+    DataFrame.sum : Reducing sum for DataFrame.
+
+    Examples
+    --------
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s
+    0    1
+    1    2
+    2    3
+    3    4
+    4    5
+    dtype: int64
+
+    >>> s.rolling(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3     9.0
+    4    12.0
+    dtype: float64
+
+    >>> s.expanding(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3    10.0
+    4    15.0
+    dtype: float64
+
+    >>> s.rolling(3, center=True).sum()
+    0     NaN
+    1     6.0
+    2     9.0
+    3    12.0
+    4     NaN
+    dtype: float64
+
+    For DataFrame, each %(name)s sum is computed column-wise.
+
+    >>> df = pd.DataFrame({"A": s, "B": s ** 2})
+    >>> df
+       A   B
+    0  1   1
+    1  2   4
+    2  3   9
+    3  4  16
+    4  5  25
+
+    >>> df.rolling(3).sum()
+          A     B
+    0   NaN   NaN
+    1   NaN   NaN
+    2   6.0  14.0
+    3   9.0  29.0
+    4  12.0  50.0
+    """)
 
     _shared_docs['mean'] = dedent("""
-    %(name)s mean""")
+    Calculate the %(name)s mean of the values.
+
+    Parameters
+    ----------
+    *args
+        Under Review.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.mean : Equivalent method for Series
+    DataFrame.mean : Equivalent method for DataFrame
+
+    Examples
+    --------
+    The below examples will show rolling mean calculations with window sizes of
+    two and three, respectively.
+
+    >>> s = pd.Series([1, 2, 3, 4])
+    >>> s.rolling(2).mean()
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    >>> s.rolling(3).mean()
+    0    NaN
+    1    NaN
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
 
 class Window(_Window):
@@ -485,8 +602,8 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
-            if window < 0:
-                raise ValueError("window must be non-negative")
+            if window <= 0:
+                raise ValueError("window must be > 0 ")
             try:
                 import scipy.signal as sig
             except ImportError:
@@ -548,7 +665,7 @@ class Window(_Window):
 
         Returns
         -------
-        y : type of input argument
+        y : same type as input argument
 
         """
         window = self._prep_window(**kwargs)
@@ -640,14 +757,12 @@ class Window(_Window):
     agg = aggregate
 
     @Substitution(name='window')
-    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_window_func('sum', args, kwargs)
         return self._apply_window(mean=False, **kwargs)
 
     @Substitution(name='window')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_window_func('mean', args, kwargs)
@@ -726,11 +841,7 @@ class _Rolling(_Window):
         index, indexi = self._get_index(index=index)
         results = []
         for b in blocks:
-            try:
-                values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+            values = self._prep_values(b.values)
 
             if values.size == 0:
                 results.append(values.copy())
@@ -781,8 +892,43 @@ class _Rolling(_Window):
 
 class _Rolling_and_Expanding(_Rolling):
 
-    _shared_docs['count'] = """%(name)s count of number of non-NaN
-    observations inside provided window."""
+    _shared_docs['count'] = dedent(r"""
+    The %(name)s count of any non-NaN observations inside the window.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    pandas.Series.%(name)s : Calling object with Series data
+    pandas.DataFrame.%(name)s : Calling object with DataFrames
+    pandas.DataFrame.count : Count of the full DataFrame
+
+    Examples
+    --------
+    >>> s = pd.Series([2, 3, np.nan, 10])
+    >>> s.rolling(2).count()
+    0    1.0
+    1    2.0
+    2    1.0
+    3    1.0
+    dtype: float64
+    >>> s.rolling(3).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    2.0
+    dtype: float64
+    >>> s.rolling(4).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
     def count(self):
 
@@ -808,23 +954,53 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     func : function
-        Must produce a single value from an ndarray input
-        \*args and \*\*kwargs are passed to the function""")
+        Must produce a single value from an ndarray input if ``raw=True``
+        or a Series if ``raw=False``
+    raw : bool, default None
+        * ``False`` : passes each row or column as a Series to the
+          function.
+        * ``True`` or ``None`` : the passed function will receive ndarray
+          objects instead.
+          If you are just applying a NumPy reduction function this will
+          achieve much better performance.
 
-    def apply(self, func, args=(), kwargs={}):
+        The `raw` parameter is required and will show a FutureWarning if
+        not passed. In the future `raw` will default to False.
+
+        .. versionadded:: 0.23.0
+
+    \*args and \*\*kwargs are passed to the function""")
+
+    def apply(self, func, raw=None, args=(), kwargs={}):
+        from pandas import Series
+
         # TODO: _level is unused?
         _level = kwargs.pop('_level', None)  # noqa
         window = self._get_window()
         offset = _offset(window, self.center)
         index, indexi = self._get_index()
 
+        # TODO: default is for backward compat
+        # change to False in the future
+        if raw is None:
+            warnings.warn(
+                "Currently, 'apply' passes the values as ndarrays to the "
+                "applied function. In the future, this will change to passing "
+                "it as Series objects. You need to specify 'raw=True' to keep "
+                "the current behaviour, and you can pass 'raw=False' to "
+                "silence this warning", FutureWarning, stacklevel=3)
+            raw = True
+
         def f(arg, window, min_periods, closed):
             minp = _use_window(min_periods, window)
-            return _window.roll_generic(arg, window, minp, indexi, closed,
-                                        offset, func, args, kwargs)
+            if not raw:
+                arg = Series(arg, index=self.obj.index)
+            return _window.roll_generic(
+                arg, window, minp, indexi,
+                closed, offset, func, raw, args, kwargs)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
-                           center=False)
+                           center=False, raw=raw)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func('sum', args, kwargs)
@@ -839,7 +1015,38 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_max', 'max', **kwargs)
 
     _shared_docs['min'] = dedent("""
-    %(name)s minimum
+    Calculate the %(name)s minimum.
+
+    Parameters
+    ----------
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with a Series
+    DataFrame.%(name)s : Calling object with a DataFrame
+    Series.min : Similar method for Series
+    DataFrame.min : Similar method for DataFrame
+
+    Examples
+    --------
+    Performing a rolling minimum with a window size of 3.
+
+    >>> s = pd.Series([4, 3, 5, 2, 6])
+    >>> s.rolling(3).min()
+    0    NaN
+    1    NaN
+    2    3.0
+    3    2.0
+    4    2.0
+    dtype: float64
     """)
 
     def min(self, *args, **kwargs):
@@ -1064,14 +1271,60 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(4), **kwargs)
 
     _shared_docs['quantile'] = dedent("""
-    %(name)s quantile
+    %(name)s quantile.
 
     Parameters
     ----------
     quantile : float
-        0 <= quantile <= 1""")
+        Quantile to compute. 0 <= quantile <= 1.
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        .. versionadded:: 0.23.0
 
-    def quantile(self, quantile, **kwargs):
+        This optional parameter specifies the interpolation method to use,
+        when the desired quantile lies between two data points `i` and `j`:
+
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
+    **kwargs:
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([1, 2, 3, 4])
+    >>> s.rolling(2).quantile(.4, interpolation='lower')
+    0    NaN
+    1    1.0
+    2    2.0
+    3    3.0
+    dtype: float64
+
+    >>> s.rolling(2).quantile(.4, interpolation='midpoint')
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    See Also
+    --------
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
+    """)
+
+    def quantile(self, quantile, interpolation='linear', **kwargs):
         window = self._get_window()
         index, indexi = self._get_index()
 
@@ -1085,7 +1338,8 @@ class _Rolling_and_Expanding(_Rolling):
                                         self.closed)
             else:
                 return _window.roll_quantile(arg, window, minp, indexi,
-                                             self.closed, quantile)
+                                             self.closed, quantile,
+                                             interpolation)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -1137,19 +1391,113 @@ class _Rolling_and_Expanding(_Rolling):
                                    _get_cov, pairwise=bool(pairwise))
 
     _shared_docs['corr'] = dedent("""
-    %(name)s sample correlation
+    Calculate %(name)s correlation.
 
     Parameters
     ----------
     other : Series, DataFrame, or ndarray, optional
-        if not supplied then will default to self and produce pairwise output
+        If not supplied then will default to self.
     pairwise : bool, default None
-        If False then only matching columns between self and other will be
-        used and the output will be a DataFrame.
-        If True then all pairwise combinations will be calculated and the
-        output will be a MultiIndex DataFrame in the case of DataFrame inputs.
-        In the case of missing elements, only complete pairwise observations
-        will be used.""")
+        Calculate pairwise combinations of columns within a
+        DataFrame. If `other` is not specified, defaults to `True`,
+        otherwise defaults to `False`.
+        Not relevant for :class:`~pandas.Series`.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the
+        %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.corr : Equivalent method for Series
+    DataFrame.corr : Equivalent method for DataFrame
+    %(name)s.cov : Similar method to calculate covariance
+    numpy.corrcoef : NumPy Pearson's correlation calculation
+
+    Notes
+    -----
+    This function uses Pearson's definition of correlation
+    (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
+
+    When `other` is not specified, the output will be self correlation (e.g.
+    all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
+    set to `True`.
+
+    Function will return `NaN`s for correlations of equal valued sequences;
+    this is the result of a 0/0 division error.
+
+    When `pairwise` is set to `False`, only matching columns between `self` and
+    `other` will be used.
+
+    When `pairwise` is set to `True`, the output will be a MultiIndex DataFrame
+    with the original index on the first level, and the `other` DataFrame
+    columns on the second level.
+
+    In the case of missing elements, only complete pairwise observations
+    will be used.
+
+    Examples
+    --------
+    The below example shows a rolling calculation with a window size of
+    four matching the equivalent function call using `numpy.corrcoef`.
+
+    >>> v1 = [3, 3, 3, 5, 8]
+    >>> v2 = [3, 4, 4, 4, 8]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> # numpy returns a 2X2 array, the correlation coefficient
+    >>> # is the number at entry [0][1]
+    >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
+    0.333333
+    >>> print(fmt.format(np.corrcoef(v1[1:], v2[1:])[0][1]))
+    0.916949
+    >>> s1 = pd.Series(v1)
+    >>> s2 = pd.Series(v2)
+    >>> s1.rolling(4).corr(s2)
+    0         NaN
+    1         NaN
+    2         NaN
+    3    0.333333
+    4    0.916949
+    dtype: float64
+
+    The below example shows a similar rolling calculation on a
+    DataFrame using the pairwise option.
+
+    >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
+    [46., 31.], [50., 36.]])
+    >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
+    [[1.         0.6263001]
+     [0.6263001  1.       ]]
+    >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
+    [[1.         0.5553681]
+     [0.5553681  1.        ]]
+    >>> df = pd.DataFrame(matrix, columns=['X','Y'])
+    >>> df
+          X     Y
+    0  51.0  35.0
+    1  49.0  30.0
+    2  47.0  32.0
+    3  46.0  31.0
+    4  50.0  36.0
+    >>> df.rolling(4).corr(pairwise=True)
+                X         Y
+    0 X       NaN       NaN
+      Y       NaN       NaN
+    1 X       NaN       NaN
+      Y       NaN       NaN
+    2 X       NaN       NaN
+      Y       NaN       NaN
+    3 X  1.000000  0.626300
+      Y  0.626300  1.000000
+    4 X  1.000000  0.555368
+      Y  0.555368  1.000000
+""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1309,7 +1657,6 @@ class Rolling(_Rolling_and_Expanding):
     agg = aggregate
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self):
 
@@ -1322,11 +1669,11 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
-    def apply(self, func, args=(), kwargs={}):
-        return super(Rolling, self).apply(func, args=args, kwargs=kwargs)
+    def apply(self, func, raw=None, args=(), kwargs={}):
+        return super(Rolling, self).apply(
+            func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_rolling_func('sum', args, kwargs)
@@ -1340,14 +1687,12 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).max(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_rolling_func('min', args, kwargs)
         return super(Rolling, self).min(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_rolling_func('mean', args, kwargs)
@@ -1407,10 +1752,11 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).kurt(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, **kwargs):
-        return super(Rolling, self).quantile(quantile=quantile, **kwargs)
+    def quantile(self, quantile, interpolation='linear', **kwargs):
+        return super(Rolling, self).quantile(quantile=quantile,
+                                             interpolation=interpolation,
+                                             **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -1420,7 +1766,6 @@ class Rolling(_Rolling_and_Expanding):
                                         ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Rolling, self).corr(other=other, pairwise=pairwise,
@@ -1576,7 +1921,6 @@ class Expanding(_Rolling_and_Expanding):
     agg = aggregate
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self, **kwargs):
         return super(Expanding, self).count(**kwargs)
@@ -1584,11 +1928,11 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
-    def apply(self, func, args=(), kwargs={}):
-        return super(Expanding, self).apply(func, args=args, kwargs=kwargs)
+    def apply(self, func, raw=None, args=(), kwargs={}):
+        return super(Expanding, self).apply(
+            func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_expanding_func('sum', args, kwargs)
@@ -1602,14 +1946,12 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).max(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_expanding_func('min', args, kwargs)
         return super(Expanding, self).min(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_expanding_func('mean', args, kwargs)
@@ -1669,10 +2011,11 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).kurt(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, **kwargs):
-        return super(Expanding, self).quantile(quantile=quantile, **kwargs)
+    def quantile(self, quantile, interpolation='linear', **kwargs):
+        return super(Expanding, self).quantile(quantile=quantile,
+                                               interpolation=interpolation,
+                                               **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
@@ -1682,7 +2025,6 @@ class Expanding(_Rolling_and_Expanding):
                                           ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Expanding, self).corr(other=other, pairwise=pairwise,
@@ -1889,7 +2231,7 @@ class EWM(_Rolling):
 
         Returns
         -------
-        y : type of input argument
+        y : same type as input argument
 
         """
         blocks, obj, index = self._create_blocks()

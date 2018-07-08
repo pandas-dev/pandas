@@ -15,7 +15,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import NoNewAttributesMixin, PandasObject
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas._libs.tslibs.period import IncompatibleFrequency  # noqa
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.algorithms import take_1d
@@ -200,6 +199,39 @@ class TimedeltaProperties(Properties):
     """
 
     def to_pytimedelta(self):
+        """
+        Return an array of native `datetime.timedelta` objects.
+
+        Python's standard `datetime` library uses a different representation
+        timedelta's. This method converts a Series of pandas Timedeltas
+        to `datetime.timedelta` format with the same length as the original
+        Series.
+
+        Returns
+        -------
+        a : numpy.ndarray
+            1D array containing data with `datetime.timedelta` type.
+
+        Examples
+        --------
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
+        >>> s
+        0   0 days
+        1   1 days
+        2   2 days
+        3   3 days
+        4   4 days
+        dtype: timedelta64[ns]
+
+        >>> s.dt.to_pytimedelta()
+        array([datetime.timedelta(0), datetime.timedelta(1),
+               datetime.timedelta(2), datetime.timedelta(3),
+               datetime.timedelta(4)], dtype=object)
+
+        See Also
+        --------
+        datetime.timedelta
+        """
         return self._get_values().to_pytimedelta()
 
     @property

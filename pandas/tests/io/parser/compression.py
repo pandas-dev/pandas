@@ -12,6 +12,13 @@ import pandas.compat as compat
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
+import gzip
+import bz2
+try:
+    lzma = compat.import_lzma()
+except ImportError:
+    lzma = None
+
 
 class CompressionTests(object):
 
@@ -64,83 +71,36 @@ class CompressionTests(object):
                 pytest.raises(zipfile.BadZipfile, self.read_csv,
                               f, compression='zip')
 
-    def test_gzip(self):
-        import gzip
+    @pytest.mark.parametrize('compress_type, compress_method, ext', [
+        ('gzip', gzip.GzipFile, 'gz'),
+        ('bz2', bz2.BZ2File, 'bz2'),
+        pytest.param('xz', getattr(lzma, 'LZMAFile', None), 'xz',
+                     marks=td.skip_if_no_lzma)
+    ])
+    def test_other_compression(self, compress_type, compress_method, ext):
 
         with open(self.csv1, 'rb') as data_file:
             data = data_file.read()
             expected = self.read_csv(self.csv1)
 
         with tm.ensure_clean() as path:
-            tmp = gzip.GzipFile(path, mode='wb')
+            tmp = compress_method(path, mode='wb')
             tmp.write(data)
             tmp.close()
 
-            result = self.read_csv(path, compression='gzip')
+            result = self.read_csv(path, compression=compress_type)
             tm.assert_frame_equal(result, expected)
 
-            with open(path, 'rb') as f:
-                result = self.read_csv(f, compression='gzip')
-                tm.assert_frame_equal(result, expected)
-
-        with tm.ensure_clean('test.gz') as path:
-            tmp = gzip.GzipFile(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-            result = self.read_csv(path, compression='infer')
-            tm.assert_frame_equal(result, expected)
-
-    def test_bz2(self):
-        import bz2
-
-        with open(self.csv1, 'rb') as data_file:
-            data = data_file.read()
-            expected = self.read_csv(self.csv1)
-
-        with tm.ensure_clean() as path:
-            tmp = bz2.BZ2File(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-
-            result = self.read_csv(path, compression='bz2')
-            tm.assert_frame_equal(result, expected)
-
-            pytest.raises(ValueError, self.read_csv,
-                          path, compression='bz3')
+            if compress_type == 'bz2':
+                pytest.raises(ValueError, self.read_csv,
+                              path, compression='bz3')
 
             with open(path, 'rb') as fin:
-                result = self.read_csv(fin, compression='bz2')
+                result = self.read_csv(fin, compression=compress_type)
                 tm.assert_frame_equal(result, expected)
 
-        with tm.ensure_clean('test.bz2') as path:
-            tmp = bz2.BZ2File(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-            result = self.read_csv(path, compression='infer')
-            tm.assert_frame_equal(result, expected)
-
-    @td.skip_if_no_lzma
-    def test_xz(self):
-        lzma = compat.import_lzma()
-
-        with open(self.csv1, 'rb') as data_file:
-            data = data_file.read()
-            expected = self.read_csv(self.csv1)
-
-        with tm.ensure_clean() as path:
-            tmp = lzma.LZMAFile(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
-
-            result = self.read_csv(path, compression='xz')
-            tm.assert_frame_equal(result, expected)
-
-            with open(path, 'rb') as f:
-                result = self.read_csv(f, compression='xz')
-                tm.assert_frame_equal(result, expected)
-
-        with tm.ensure_clean('test.xz') as path:
-            tmp = lzma.LZMAFile(path, mode='wb')
+        with tm.ensure_clean('test.{}'.format(ext)) as path:
+            tmp = compress_method(path, mode='wb')
             tmp.write(data)
             tmp.close()
             result = self.read_csv(path, compression='infer')
@@ -150,20 +110,19 @@ class CompressionTests(object):
         # see gh-9770
         expected = self.read_csv(self.csv1, index_col=0, parse_dates=True)
 
-        inputs = [self.csv1, self.csv1 + '.gz',
-                  self.csv1 + '.bz2', open(self.csv1)]
+        with open(self.csv1) as f:
+            inputs = [self.csv1, self.csv1 + '.gz',
+                      self.csv1 + '.bz2', f]
 
-        for f in inputs:
-            df = self.read_csv(f, index_col=0, parse_dates=True,
-                               compression='infer')
+            for inp in inputs:
+                df = self.read_csv(inp, index_col=0, parse_dates=True,
+                                   compression='infer')
 
-            tm.assert_frame_equal(expected, df)
+                tm.assert_frame_equal(expected, df)
 
-        inputs[3].close()
-
-    def test_read_csv_compressed_utf16_example(self):
+    def test_read_csv_compressed_utf16_example(self, datapath):
         # GH18071
-        path = tm.get_data_path('utf16_ex_small.zip')
+        path = datapath('io', 'parser', 'data', 'utf16_ex_small.zip')
 
         result = self.read_csv(path, encoding='utf-16',
                                compression='zip', sep='\t')

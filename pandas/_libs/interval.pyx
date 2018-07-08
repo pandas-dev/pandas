@@ -20,28 +20,60 @@ cdef class IntervalMixin(object):
     @property
     def closed_left(self):
         """
-        Return True if the Interval is closed on the left-side, else False
+        Check if the interval is closed on the left side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return self.closed in ('left', 'both')
 
     @property
     def closed_right(self):
         """
-        Return True if the Interval is closed on the right-side, else False
+        Check if the interval is closed on the right side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return self.closed in ('right', 'both')
 
     @property
     def open_left(self):
         """
-        Return True if the Interval is open on the left-side, else False
+        Check if the interval is open on the left side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return not self.closed_left
 
     @property
     def open_right(self):
         """
-        Return True if the Interval is open on the right-side, else False
+        Check if the interval is open on the right side.
+
+        For the meaning of `closed` and `open` see :class:`~pandas.Interval`.
+
+        Returns
+        -------
+        bool
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return not self.closed_right
 
@@ -88,11 +120,24 @@ cdef class Interval(IntervalMixin):
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither.
+    closed : {'right', 'left', 'both', 'neither'}, default 'right'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
 
     Notes
     -----
     The parameters `left` and `right` must be from the same type, you must be
     able to compare them and they must satisfy ``left <= right``.
+
+    A closed interval (in mathematics denoted by square brackets) contains
+    its endpoints, i.e. the closed interval ``[0, 5]`` is characterized by the
+    conditions ``0 <= x <= 5``. This is what ``closed='both'`` stands for.
+    An open interval (in mathematics denoted by parentheses) does not contain
+    its endpoints, i.e. the open interval ``(0, 5)`` is characterized by the
+    conditions ``0 < x < 5``. This is what ``closed='neither'`` stands for.
+    Intervals can also be half-open or half-closed, i.e. ``[0, 5)`` is
+    described by ``0 <= x < 5`` (``closed='left'``) and ``(0, 5]`` is
+    described by ``0 < x <= 5`` (``closed='right'``).
 
     Examples
     --------
@@ -107,11 +152,13 @@ cdef class Interval(IntervalMixin):
     >>> 2.5 in iv
     True
 
-    You can test the bounds
+    You can test the bounds (``closed='right'``, so ``0 < x <= 5``):
 
     >>> 0 in iv
     False
     >>> 5 in iv
+    True
+    >>> 0.0001 in iv
     True
 
     Calculate its length
@@ -150,9 +197,10 @@ cdef class Interval(IntervalMixin):
     --------
     IntervalIndex : An Index of Interval objects that are all closed on the
         same side.
-    cut : Bin values into discrete intervals.
-    qcut : Discretize values into equal-sized buckets based on rank or
-           based on sample quantiles.
+    cut : Convert continuous data into discrete bins (Categorical
+        of Interval objects).
+    qcut : Convert continuous data into bins (Categorical of Interval objects)
+        based on quantiles.
     Period : Represents a period of time.
     """
     _typ = "interval"
@@ -287,11 +335,17 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals):
+cpdef intervals_to_interval_bounds(ndarray intervals,
+                                   bint validate_closed=True):
     """
     Parameters
     ----------
-    intervals: ndarray object array of Intervals / nulls
+    intervals : ndarray
+        object array of Intervals / nulls
+
+    validate_closed: boolean, default True
+        boolean indicating if all intervals must be closed on the same side.
+        Mismatching closed will raise if True, else return None for closed.
 
     Returns
     -------
@@ -305,6 +359,7 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         object closed = None, interval
         int64_t n = len(intervals)
         ndarray left, right
+        bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
@@ -322,10 +377,14 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
 
         left[i] = interval.left
         right[i] = interval.right
-        if closed is None:
+        if not seen_closed:
+            seen_closed = True
             closed = interval.closed
         elif closed != interval.closed:
-            raise ValueError('intervals must all be closed on the same side')
+            closed = None
+            if validate_closed:
+                msg = 'intervals must all be closed on the same side'
+                raise ValueError(msg)
 
     return left, right, closed
 
