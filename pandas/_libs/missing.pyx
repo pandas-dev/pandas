@@ -15,27 +15,12 @@ cimport util
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 from tslibs.nattype import NaT
+from tslibs.nattype cimport is_null_datetimelike
 
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
 
 cdef int64_t NPY_NAT = util.get_nat()
-
-
-cdef inline bint is_null_datetimelike(object val):
-    # determine if we have a null for a timedelta/datetime (or integer
-    # versions)
-    if util._checknull(val):
-        return True
-    elif val is NaT:
-        return True
-    elif util.is_timedelta64_object(val):
-        return val.view('int64') == NPY_NAT
-    elif util.is_datetime64_object(val):
-        return val.view('int64') == NPY_NAT
-    elif util.is_integer_object(val):
-        return val == NPY_NAT
-    return False
 
 
 cdef inline bint _check_all_nulls(object val):
@@ -308,3 +293,37 @@ cpdef bint isneginf_scalar(object val):
         return True
     else:
         return False
+
+
+cdef inline bint is_null_datetime64(v):
+    # determine if we have a null for a datetime (or integer versions),
+    # excluding np.timedelta64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
+    elif util.is_datetime64_object(v):
+        return v.view('int64') == NPY_NAT
+    return False
+
+
+cdef inline bint is_null_timedelta64(v):
+    # determine if we have a null for a timedelta (or integer versions),
+    # excluding np.datetime64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
+    elif util.is_timedelta64_object(v):
+        return v.view('int64') == NPY_NAT
+    return False
+
+
+cdef inline bint is_null_period(v):
+    # determine if we have a null for a Period (or integer versions),
+    # excluding np.datetime64('nat') and np.timedelta64('nat')
+    if util._checknull(v):
+        return True
+    elif v is NaT:
+        return True
+    return False

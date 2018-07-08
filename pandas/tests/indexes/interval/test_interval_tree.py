@@ -7,41 +7,37 @@ from pandas._libs.interval import IntervalTree
 import pandas.util.testing as tm
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
+@pytest.fixture(
+    scope='class', params=['int32', 'int64', 'float32', 'float64', 'uint64'])
+def dtype(request):
     return request.param
 
 
+@pytest.fixture(scope='class')
+def tree(dtype):
+    left = np.arange(5, dtype=dtype)
+    return IntervalTree(left, left + 2)
+
+
 class TestIntervalTree(object):
-    def setup_method(self, method):
-        def gentree(dtype):
-            left = np.arange(5, dtype=dtype)
-            right = left + 2
-            return IntervalTree(left, right)
 
-        self.tree = gentree('int64')
-        self.trees = {dtype: gentree(dtype)
-                      for dtype in ['int32', 'int64', 'float32', 'float64']}
+    def test_get_loc(self, tree):
+        tm.assert_numpy_array_equal(tree.get_loc(1),
+                                    np.array([0], dtype='int64'))
+        tm.assert_numpy_array_equal(np.sort(tree.get_loc(2)),
+                                    np.array([0, 1], dtype='int64'))
+        with pytest.raises(KeyError):
+            tree.get_loc(-1)
 
-    def test_get_loc(self):
-        for dtype, tree in self.trees.items():
-            tm.assert_numpy_array_equal(tree.get_loc(1),
-                                        np.array([0], dtype='int64'))
-            tm.assert_numpy_array_equal(np.sort(tree.get_loc(2)),
-                                        np.array([0, 1], dtype='int64'))
-            with pytest.raises(KeyError):
-                tree.get_loc(-1)
+    def test_get_indexer(self, tree):
+        tm.assert_numpy_array_equal(
+            tree.get_indexer(np.array([1.0, 5.5, 6.5])),
+            np.array([0, 4, -1], dtype='int64'))
+        with pytest.raises(KeyError):
+            tree.get_indexer(np.array([3.0]))
 
-    def test_get_indexer(self):
-        for dtype, tree in self.trees.items():
-            tm.assert_numpy_array_equal(
-                tree.get_indexer(np.array([1.0, 5.5, 6.5])),
-                np.array([0, 4, -1], dtype='int64'))
-            with pytest.raises(KeyError):
-                tree.get_indexer(np.array([3.0]))
-
-    def test_get_indexer_non_unique(self):
-        indexer, missing = self.tree.get_indexer_non_unique(
+    def test_get_indexer_non_unique(self, tree):
+        indexer, missing = tree.get_indexer_non_unique(
             np.array([1.0, 2.0, 6.5]))
         tm.assert_numpy_array_equal(indexer[:1],
                                     np.array([0], dtype='int64'))
@@ -51,8 +47,9 @@ class TestIntervalTree(object):
                                     np.array([-1], dtype='int64'))
         tm.assert_numpy_array_equal(missing, np.array([2], dtype='int64'))
 
-    def test_duplicates(self):
-        tree = IntervalTree([0, 0, 0], [1, 1, 1])
+    def test_duplicates(self, dtype):
+        left = np.array([0, 0, 0], dtype=dtype)
+        tree = IntervalTree(left, left + 1)
         tm.assert_numpy_array_equal(np.sort(tree.get_loc(0.5)),
                                     np.array([0, 1, 2], dtype='int64'))
 

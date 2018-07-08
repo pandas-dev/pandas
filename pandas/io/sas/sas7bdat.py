@@ -321,7 +321,7 @@ class SAS7BDATReader(BaseIterator):
                   (compression == 0))
             f2 = (ptype == const.compressed_subheader_type)
             if (self.compression != "") and f1 and f2:
-                index = const.index.dataSubheaderIndex
+                index = const.SASIndex.data_subheader_index
             else:
                 self.close()
                 raise ValueError("Unknown subheader signature")
@@ -360,23 +360,23 @@ class SAS7BDATReader(BaseIterator):
         offset = pointer.offset
         length = pointer.length
 
-        if subheader_index == const.index.rowSizeIndex:
+        if subheader_index == const.SASIndex.row_size_index:
             processor = self._process_rowsize_subheader
-        elif subheader_index == const.index.columnSizeIndex:
+        elif subheader_index == const.SASIndex.column_size_index:
             processor = self._process_columnsize_subheader
-        elif subheader_index == const.index.columnTextIndex:
+        elif subheader_index == const.SASIndex.column_text_index:
             processor = self._process_columntext_subheader
-        elif subheader_index == const.index.columnNameIndex:
+        elif subheader_index == const.SASIndex.column_name_index:
             processor = self._process_columnname_subheader
-        elif subheader_index == const.index.columnAttributesIndex:
+        elif subheader_index == const.SASIndex.column_attributes_index:
             processor = self._process_columnattributes_subheader
-        elif subheader_index == const.index.formatAndLabelIndex:
+        elif subheader_index == const.SASIndex.format_and_label_index:
             processor = self._process_format_subheader
-        elif subheader_index == const.index.columnListIndex:
+        elif subheader_index == const.SASIndex.column_list_index:
             processor = self._process_columnlist_subheader
-        elif subheader_index == const.index.subheaderCountsIndex:
+        elif subheader_index == const.SASIndex.subheader_counts_index:
             processor = self._process_subheader_counts
-        elif subheader_index == const.index.dataSubheaderIndex:
+        elif subheader_index == const.SASIndex.data_subheader_index:
             self._current_page_data_subheader_pointers.append(pointer)
             return
         else:
