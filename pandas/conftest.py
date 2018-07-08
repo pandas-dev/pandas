@@ -226,7 +226,8 @@ def nulls_fixture(request):
 nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 
 
-TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific']
+TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
+             'dateutil/Asia/Singapore']
 
 
 @td.parametrize_fixture_doc(str(TIMEZONES))
