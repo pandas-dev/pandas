@@ -16,8 +16,6 @@ cimport numpy as cnp
 from numpy cimport ndarray, uint8_t
 cnp.import_array()
 
-cimport util
-
 
 ctypedef fused pandas_string:
     str

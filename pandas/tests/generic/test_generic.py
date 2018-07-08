@@ -199,11 +199,11 @@ class Generic(object):
         self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
-        # GH 5191
-        # compound dtypes should raise not-implementederror
+        # see gh-5191
+        # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return self._construct(shape=3, dtype=dtype)
+            return self._construct(shape=3, value=1, dtype=dtype)
 
         pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
                                                ("B", "str"),
@@ -534,14 +534,14 @@ class Generic(object):
 
         # small
         shape = [int(2e3)] + ([1] * (self._ndim - 1))
-        small = self._construct(shape, dtype='int8')
+        small = self._construct(shape, dtype='int8', value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
         shape = [int(2e6)] + ([1] * (self._ndim - 1))
-        big = self._construct(shape, dtype='int8')
+        big = self._construct(shape, dtype='int8', value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)

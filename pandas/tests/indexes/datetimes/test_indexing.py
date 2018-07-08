@@ -53,10 +53,10 @@ class TestGetItem(object):
         exp = DatetimeIndex(rng.view(np.ndarray)[:5])
         tm.assert_index_equal(smaller, exp)
 
-        assert smaller.offset == rng.offset
+        assert smaller.freq == rng.freq
 
         sliced = rng[::5]
-        assert sliced.offset == BDay() * 5
+        assert sliced.freq == BDay() * 5
 
         fancy_indexed = rng[[4, 3, 2, 1, 0]]
         assert len(fancy_indexed) == 5
@@ -77,10 +77,10 @@ class TestGetItem(object):
         smaller = rng[:5]
         exp = DatetimeIndex(rng.view(np.ndarray)[:5])
         tm.assert_index_equal(smaller, exp)
-        assert smaller.offset == rng.offset
+        assert smaller.freq == rng.freq
 
         sliced = rng[::5]
-        assert sliced.offset == CDay() * 5
+        assert sliced.freq == CDay() * 5
 
         fancy_indexed = rng[[4, 3, 2, 1, 0]]
         assert len(fancy_indexed) == 5
@@ -583,7 +583,6 @@ class TestDatetimeIndex(object):
     def test_reasonable_keyerror(self):
         # GH#1062
         index = DatetimeIndex(['1/3/2000'])
-        try:
+        with pytest.raises(KeyError) as excinfo:
             index.get_loc('1/1/2000')
-        except KeyError as e:
-            assert '2000' in str(e)
+        assert '2000' in str(excinfo.value)

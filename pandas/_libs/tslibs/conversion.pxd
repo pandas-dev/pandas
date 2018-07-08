@@ -31,3 +31,5 @@ cpdef int64_t pydt_to_i8(object pydt) except? -1
 cdef maybe_datetimelike_to_i8(object val)
 
 cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz)
+
+cpdef datetime localize_pydatetime(datetime dt, object tz)

@@ -165,7 +165,23 @@ if [ "$LINT" ]; then
         RET=1
     fi
     echo "Check for deprecated messages without sphinx directive DONE"
+
+    echo "Check for old-style classes"
+    grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for old-style classes DONE"
     
+    echo "Check for backticks incorrectly rendering because of missing spaces"
+    grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for backticks incorrectly rendering because of missing spaces DONE"
+
 else
     echo "NOT Linting"
 fi
