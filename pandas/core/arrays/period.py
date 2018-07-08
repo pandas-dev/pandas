@@ -5,15 +5,17 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslib import NaT
+from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
     get_period_field_arr)
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
 
+from pandas import compat
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.common import is_integer_dtype, is_float_dtype
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas.tseries import frequencies
@@ -31,6 +33,47 @@ def _field_accessor(name, alias, docstring=None):
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
+
+
+def _period_array_cmp(opname, cls):
+    """
+    Wrap comparison operations to convert Period-like to PeriodDtype
+    """
+    nat_result = True if opname == '__ne__' else False
+
+    def wrapper(self, other):
+        op = getattr(self._ndarray_values, opname)
+        if isinstance(other, Period):
+            if other.freq != self.freq:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+                raise IncompatibleFrequency(msg)
+
+            result = op(other.ordinal)
+        elif isinstance(other, PeriodArrayMixin):
+            if other.freq != self.freq:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+                raise IncompatibleFrequency(msg)
+
+            result = op(other._ndarray_values)
+
+            mask = self._isnan | other._isnan
+            if mask.any():
+                result[mask] = nat_result
+
+            return result
+        elif other is NaT:
+            result = np.empty(len(self._ndarray_values), dtype=bool)
+            result.fill(nat_result)
+        else:
+            other = Period(other, freq=self.freq)
+            result = op(other.ordinal)
+
+        if self.hasnans:
+            result[self._isnan] = nat_result
+
+        return result
+
+    return compat.set_function_name(wrapper, opname, cls)
 
 
 class PeriodArrayMixin(DatetimeLikeArrayMixin):
@@ -59,11 +102,49 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
     @freq.setter
     def freq(self, value):
         msg = ('Setting {cls}.freq has been deprecated and will be '
-               'removed in a future version; use PeriodIndex.asfreq instead. '
+               'removed in a future version; use {cls}.asfreq instead. '
                'The {cls}.freq setter is not guaranteed to work.')
         warnings.warn(msg.format(cls=type(self).__name__),
                       FutureWarning, stacklevel=2)
         self._freq = value
+
+    # --------------------------------------------------------------------
+    # Constructors
+
+    _attributes = ["freq"]
+
+    @classmethod
+    def _simple_new(cls, values, freq=None, **kwargs):
+        """
+        Values can be any type that can be coerced to Periods.
+        Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
+        """
+        if not is_integer_dtype(values):
+            values = np.array(values, copy=False)
+            if len(values) > 0 and is_float_dtype(values):
+                raise TypeError("{cls} can't take floats"
+                                .format(cls=cls.__name__))
+            return cls(values, freq=freq)
+
+        return cls._from_ordinals(values, freq)
+
+    __new__ = _simple_new  # For now...
+
+    @classmethod
+    def _from_ordinals(cls, values, freq=None):
+        """
+        Values should be int ordinals
+        `__new__` & `_simple_new` cooerce to ordinals and call this method
+        """
+
+        values = np.array(values, dtype='int64', copy=False)
+
+        result = object.__new__(cls)
+        result._data = values
+        if freq is None:
+            raise ValueError('freq is not specified and cannot be inferred')
+        result._freq = Period._maybe_convert_freq(freq)
+        return result
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -115,6 +196,52 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
         return new_data
 
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        base = frequencies.get_base_alias(other.rule_code)
+        if base != self.freq.rule_code:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        return self.shift(other.n)
+
+    def _add_delta_td(self, other):
+        assert isinstance(other, (timedelta, np.timedelta64, Tick))
+        nanos = delta_to_nanoseconds(other)
+        own_offset = frequencies.to_offset(self.freq.rule_code)
+
+        if isinstance(own_offset, Tick):
+            offset_nanos = delta_to_nanoseconds(own_offset)
+            if np.all(nanos % offset_nanos == 0):
+                return self.shift(nanos // offset_nanos)
+
+        # raise when input doesn't have freq
+        raise IncompatibleFrequency("Input has different freq from "
+                                    "{cls}(freq={freqstr})"
+                                    .format(cls=type(self).__name__,
+                                            freqstr=self.freqstr))
+
+    def _add_delta(self, other):
+        ordinal_delta = self._maybe_convert_timedelta(other)
+        return self.shift(ordinal_delta)
+
+    def shift(self, n):
+        """
+        Specialized shift which produces an Period Array/Index
+
+        Parameters
+        ----------
+        n : int
+            Periods to shift by
+
+        Returns
+        -------
+        shifted : Period Array/Index
+        """
+        values = self._ndarray_values + n * self.freq.n
+        if self.hasnans:
+            values[self._isnan] = iNaT
+        return self._shallow_copy(values=values)
+
     def _maybe_convert_timedelta(self, other):
         """
         Convert timedelta-like input to an integer multiple of self.freq
@@ -161,3 +288,16 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         msg = "Input has different freq from {cls}(freq={freqstr})"
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
+
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        cls.__eq__ = _period_array_cmp('__eq__', cls)
+        cls.__ne__ = _period_array_cmp('__ne__', cls)
+        cls.__lt__ = _period_array_cmp('__lt__', cls)
+        cls.__gt__ = _period_array_cmp('__gt__', cls)
+        cls.__le__ = _period_array_cmp('__le__', cls)
+        cls.__ge__ = _period_array_cmp('__ge__', cls)
+
+
+PeriodArrayMixin._add_comparison_methods()

@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - Cython
+  - Cython>=0.28.2
   - NumPy
   - flake8
   - moto

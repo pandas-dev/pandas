@@ -6,14 +6,16 @@ import numpy as np
 from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 from pandas import compat
 
-from pandas.core.dtypes.common import _TD_DTYPE
+from pandas.core.dtypes.common import _TD_DTYPE, _ensure_int64
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
-from pandas.tseries.offsets import Tick
+from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.frequencies import to_offset
 
 from .datetimelike import DatetimeLikeArrayMixin
 
@@ -45,6 +47,36 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
     @property
     def dtype(self):
         return _TD_DTYPE
+
+    # ----------------------------------------------------------------
+    # Constructors
+    _attributes = ["freq"]
+
+    @classmethod
+    def _simple_new(cls, values, freq=None, **kwargs):
+        values = np.array(values, copy=False)
+        if values.dtype == np.object_:
+            values = array_to_timedelta64(values)
+        if values.dtype != _TD_DTYPE:
+            values = _ensure_int64(values).view(_TD_DTYPE)
+
+        result = object.__new__(cls)
+        result._data = values
+        result._freq = freq
+        return result
+
+    def __new__(cls, values, freq=None):
+        if (freq is not None and not isinstance(freq, DateOffset) and
+                freq != 'infer'):
+            freq = to_offset(freq)
+
+        result = cls._simple_new(values, freq=freq)
+        if freq == 'infer':
+            inferred = result.inferred_freq
+            if inferred:
+                result._freq = to_offset(inferred)
+
+        return result
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -98,7 +130,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
 
         Returns
         -------
-        seconds : ndarray, Float64Index, or Series
+        seconds : [ndarray, Float64Index, Series]
             When the calling object is a TimedeltaArray, the return type
             is ndarray.  When the calling object is a TimedeltaIndex,
             the return type is a Float64Index. When the calling object

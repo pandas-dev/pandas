@@ -781,7 +781,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        axis : axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             A specific axis to squeeze. By default, all length-1 axes are
             squeezed.
 
@@ -1906,7 +1906,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
             A string representing the compression to use in the output file,
             only used when the first argument is a filename.
 
@@ -3924,14 +3924,14 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         items : list-like
-            List of info axis to restrict to (must not all be present)
+            List of axis to restrict to (must not all be present).
         like : string
-            Keep info axis where "arg in col == True"
+            Keep axis where "arg in col == True".
         regex : string (regular expression)
-            Keep info axis with re.search(regex, col) == True
+            Keep axis with re.search(regex, col) == True.
         axis : int or string axis name
             The axis to filter on.  By default this is the info axis,
-            'index' for Series, 'columns' for DataFrame
+            'index' for Series, 'columns' for DataFrame.
 
         Returns
         -------
@@ -3939,26 +3939,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df
-        one  two  three
-        mouse     1    2      3
-        rabbit    4    5      6
+        >>> df = pd.DataFrame(np.array(([1,2,3], [4,5,6])),
+        ...                   index=['mouse', 'rabbit'],
+        ...                   columns=['one', 'two', 'three'])
 
         >>> # select columns by name
         >>> df.filter(items=['one', 'three'])
-        one  three
+                 one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select columns by regular expression
         >>> df.filter(regex='e$', axis=1)
-        one  three
+                 one  three
         mouse     1      3
         rabbit    4      6
 
         >>> # select rows containing 'bbi'
         >>> df.filter(like='bbi', axis=0)
-        one  two  three
+                 one  two  three
         rabbit    4    5      6
 
         See Also
@@ -4914,7 +4913,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> import numpy as np
         >>> arr = np.random.RandomState(0).randn(100, 4)
         >>> arr[arr < .8] = np.nan
         >>> pd.DataFrame(arr).ftypes
@@ -8350,7 +8348,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generates descriptive statistics that summarize the central tendency,
+        Generate descriptive statistics that summarize the central tendency,
         dispersion and shape of a dataset's distribution, excluding
         ``NaN`` values.
 
@@ -8394,7 +8392,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        summary:  Series/DataFrame of summary statistics
+        Series or DataFrame
+            Summary statistics of the Series or Dataframe provided.
+
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the obersvations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
 
         Notes
         -----
@@ -8438,6 +8447,7 @@ class NDFrame(PandasObject, SelectionMixin):
         50%      2.0
         75%      2.5
         max      3.0
+        dtype: float64
 
         Describing a categorical ``Series``.
 
@@ -8468,9 +8478,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({ 'object': ['a', 'b', 'c'],
-        ...                     'numeric': [1, 2, 3],
-        ...                     'categorical': pd.Categorical(['d','e','f'])
+        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f']),
+        ...                    'numeric': [1, 2, 3],
+        ...                    'object': ['a', 'b', 'c']
         ...                   })
         >>> df.describe()
                numeric
@@ -8556,7 +8566,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-                categorical  numeric
+               categorical  numeric
         count            3      3.0
         unique           3      NaN
         top              f      NaN
@@ -8568,15 +8578,6 @@ class NDFrame(PandasObject, SelectionMixin):
         50%            NaN      2.0
         75%            NaN      2.5
         max            NaN      3.0
-
-        See Also
-        --------
-        DataFrame.count
-        DataFrame.max
-        DataFrame.min
-        DataFrame.mean
-        DataFrame.std
-        DataFrame.select_dtypes
         """
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel objects."

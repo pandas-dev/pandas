@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas import Categorical, Index, CategoricalIndex, PeriodIndex
-from pandas.tests.categorical.common import TestCategorical
+from pandas.tests.arrays.categorical.common import TestCategorical
 
 
 class TestCategoricalIndexingWithFactor(TestCategorical):
