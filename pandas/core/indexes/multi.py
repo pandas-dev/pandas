@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
+    is_integer,
     is_iterator,
     is_list_like,
     pandas_dtype,
@@ -757,14 +758,14 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
+        count = self.names.count(level)
+        if (count > 1) and not is_integer(level):
+            raise ValueError('The name %s occurs multiple times, use a '
+                             'level number' % level)
         try:
-            count = self.names.count(level)
-            if count > 1:
-                raise ValueError('The name %s occurs multiple times, use a '
-                                 'level number' % level)
             level = self.names.index(level)
         except ValueError:
-            if not isinstance(level, int):
+            if not is_integer(level):
                 raise KeyError('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
@@ -2878,13 +2879,6 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
-
-    def _reference_duplicate_name(self, name):
-        """
-        Returns True if the name refered to in self.names is duplicated.
-        """
-        # count the times name equals an element in self.names.
-        return sum(name == n for n in self.names) > 1
 
 
 MultiIndex._add_numeric_methods_disabled()

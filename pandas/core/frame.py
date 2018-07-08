@@ -145,8 +145,11 @@ columns, the index will be passed on.
 
 Parameters
 ----------%s
-right : DataFrame
+right : DataFrame, Series or dict
+    Object to merge with.
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
+    Type of merge to be performed.
+
     * left: use only keys from left frame, similar to a SQL left outer join;
       preserve key order
     * right: use only keys from right frame, similar to a SQL right outer join;
@@ -170,18 +173,18 @@ right_on : label or list, or array-like
 left_index : boolean, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
-    or a number of columns) must match the number of levels
+    or a number of columns) must match the number of levels.
 right_index : boolean, default False
     Use the index from the right DataFrame as the join key. Same caveats as
-    left_index
+    left_index.
 sort : boolean, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
-    the order of the join keys depends on the join type (how keyword)
+    the order of the join keys depends on the join type (how keyword).
 suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
-    side, respectively
+    side, respectively.
 copy : boolean, default True
-    If False, do not copy data unnecessarily
+    If False, avoid copy if possible.
 indicator : boolean or string, default False
     If True, adds a column to output DataFrame called "_merge" with
     information on the source of each row.
@@ -205,41 +208,49 @@ validate : string, default None
 
     .. versionadded:: 0.21.0
 
+Returns
+-------
+DataFrame
+
 Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
 `right_on` parameters was added in version 0.23.0
 
+See Also
+--------
+merge_ordered : merge with optional filling/interpolation.
+merge_asof : merge on nearest keys.
+DataFrame.join : similar method using indices.
+
 Examples
 --------
 
->>> A              >>> B
-    lkey value         rkey value
-0   foo  1         0   foo  5
-1   bar  2         1   bar  6
-2   baz  3         2   qux  7
-3   foo  4         3   bar  8
+>>> A = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
+...                   'value': [1, 2, 3, 5]})
+>>> B = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
+...                   'value': [5, 6, 7, 8]})
+>>> A
+    lkey value
+0   foo      1
+1   bar      2
+2   baz      3
+3   foo      5
+>>> B
+    rkey value
+0   foo      5
+1   bar      6
+2   baz      7
+3   foo      8
 
 >>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
-   lkey  value_x  rkey  value_y
-0  foo   1        foo   5
-1  foo   4        foo   5
-2  bar   2        bar   6
-3  bar   2        bar   8
-4  baz   3        NaN   NaN
-5  NaN   NaN      qux   7
-
-Returns
--------
-merged : DataFrame
-    The output type will the be same as 'left', if it is a subclass
-    of DataFrame.
-
-See also
---------
-merge_ordered
-merge_asof
-DataFrame.join
+  lkey  value_x rkey  value_y
+0  foo        1  foo        5
+1  foo        1  foo        8
+2  foo        5  foo        5
+3  foo        5  foo        8
+4  bar        2  bar        6
+5  baz        3  baz        7
 """
 
 # -----------------------------------------------------------------------
@@ -1695,10 +1706,10 @@ class DataFrame(NDFrame):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : string, optional
-            A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
+            If 'infer' and `path_or_buf` is path-like, then detect compression
+            from the following extensions: '.gz', '.bz2' or '.xz'
+            (otherwise no compression).
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -3242,14 +3253,15 @@ class DataFrame(NDFrame):
 
     def assign(self, **kwargs):
         r"""
-        Assign new columns to a DataFrame, returning a new object
-        (a copy) with the new columns added to the original ones.
+        Assign new columns to a DataFrame.
+
+        Returns a new object with all original columns in addition to new ones.
         Existing columns that are re-assigned will be overwritten.
 
         Parameters
         ----------
         kwargs : keyword, value pairs
-            keywords are the column names. If the values are
+            The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
@@ -3274,7 +3286,7 @@ class DataFrame(NDFrame):
 
         .. versionchanged :: 0.23.0
 
-            Keyword argument order is maintained for Python 3.6 and later.
+           Keyword argument order is maintained for Python 3.6 and later.
 
         Examples
         --------
@@ -4197,8 +4209,9 @@ class DataFrame(NDFrame):
             * 1, or 'columns' : Drop columns which contain missing value.
 
             .. deprecated:: 0.23.0
-                Pass tuple or list to drop on multiple axes.
-                Only a single axis is allowed.
+
+               Pass tuple or list to drop on multiple axes.
+               Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -4206,6 +4219,7 @@ class DataFrame(NDFrame):
 
             * 'any' : If any NA values are present, drop that row or column.
             * 'all' : If all values are NA, drop that row or column.
+
         thresh : int, optional
             Require that many non-NA values.
         subset : array-like, optional
@@ -4674,10 +4688,11 @@ class DataFrame(NDFrame):
             Column name or names to order by
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
+
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
             .. versionadded:: 0.24.0
 
@@ -6245,8 +6260,9 @@ class DataFrame(NDFrame):
     def append(self, other, ignore_index=False,
                verify_integrity=False, sort=None):
         """
-        Append rows of `other` to the end of this frame, returning a new
-        object. Columns not in this frame are added as new columns.
+        Append rows of `other` to the end of caller, returning a new object.
+
+        Columns in `other` that are not in the caller are added as new columns.
 
         Parameters
         ----------
@@ -6336,7 +6352,6 @@ class DataFrame(NDFrame):
         2  2
         3  3
         4  4
-
         """
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
@@ -6606,7 +6621,6 @@ class DataFrame(NDFrame):
         --------
         numpy.around
         Series.round
-
         """
         from pandas.core.reshape.concat import concat
 
