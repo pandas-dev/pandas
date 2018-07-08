@@ -2001,9 +2001,7 @@ def pandas_dtype(dtype):
     # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except TypeError:
-        raise
-    except ValueError:
+    except Exception:
         raise TypeError("data type '{}' not understood".format(
             type(dtype)))
 

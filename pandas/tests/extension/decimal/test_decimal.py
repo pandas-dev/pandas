@@ -178,35 +178,28 @@ def test_series_constructor_coerce_data_to_extension_dtype_raises():
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
-def test_series_constructor_with_same_dtype_ok():
+def test_series_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
     result = pd.Series(arr, dtype=DecimalDtype())
     expected = pd.Series(arr)
     tm.assert_series_equal(result, expected)
 
-
-def test_series_constructor_coerce_extension_array_to_dtype_raises():
-    arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
-
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.Series(arr, dtype='int64')
+    result = pd.Series(arr, dtype='int64')
+    expected = pd.Series([10])
+    tm.assert_series_equal(result, expected)
 
 
-def test_dataframe_constructor_with_same_dtype_ok():
+def test_dataframe_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
 
     result = pd.DataFrame({"A": arr}, dtype=DecimalDtype())
     expected = pd.DataFrame({"A": arr})
     tm.assert_frame_equal(result, expected)
 
-
-def test_dataframe_constructor_with_different_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
-
-    xpr = "Cannot coerce extension array to dtype 'int64'. "
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.DataFrame({"A": arr}, dtype='int64')
+    result = pd.DataFrame({"A": arr}, dtype='int64')
+    expected = pd.DataFrame({"A": [10]})
+    tm.assert_frame_equal(result, expected)
 
 
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
