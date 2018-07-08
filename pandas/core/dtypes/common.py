@@ -1714,6 +1714,11 @@ def is_extension_array_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
         arr_or_dtype = arr_or_dtype._values
 
+    try:
+        arr_or_dtype = pandas_dtype(arr_or_dtype)
+    except TypeError:
+        pass
+
     return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
 
 
@@ -1976,6 +1981,11 @@ def pandas_dtype(dtype):
     Returns
     -------
     np.dtype or a pandas dtype
+
+    Raises
+    ------
+    TypeError if not a dtype
+
     """
 
     # registered extension types
@@ -1987,10 +1997,15 @@ def pandas_dtype(dtype):
     if isinstance(dtype, ExtensionDtype):
         return dtype
 
+    # try a numpy dtype
+    # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except (TypeError, ValueError):
+    except TypeError:
         raise
+    except ValueError:
+        raise TypeError("data type '{}' not understood".format(
+            type(dtype)))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
@@ -2000,6 +2015,6 @@ def pandas_dtype(dtype):
     if dtype in [object, np.object_, 'object', 'O']:
         return npdtype
     elif npdtype.kind == 'O':
-        raise TypeError('dtype {dtype} not understood'.format(dtype=dtype))
+        raise TypeError("dtype '{}' not understood".format(dtype))
 
     return npdtype

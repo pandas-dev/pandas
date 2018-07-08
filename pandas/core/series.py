@@ -234,13 +234,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`index` argument.  `copy` must '
                                          'be False.')
 
-            elif is_extension_array_dtype(data) and dtype is not None:
-                if not data.dtype.is_dtype(dtype):
-                    raise ValueError("Cannot specify a dtype '{}' with an "
-                                     "extension array of a different "
-                                     "dtype ('{}').".format(dtype,
-                                                            data.dtype))
-
+            elif is_extension_array_dtype(data):
+                pass
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
@@ -4131,10 +4126,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = data
 
         if dtype is not None and not data.dtype.is_dtype(dtype):
-            msg = ("Cannot coerce extension array to dtype '{typ}'. "
-                   "Do the coercion before passing to the constructor "
-                   "instead.".format(typ=dtype))
-            raise ValueError(msg)
+            subarr = data.astype(dtype)
 
         if copy:
             subarr = data.copy()

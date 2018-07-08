@@ -511,6 +511,67 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         expected = idx.astype(object).astype(dtype)
         self.assert_index_equal(result, expected)
 
+    def test_astype(self, all_data):
+        all_data = all_data[:10]
+
+        ints = all_data[~all_data.isna()]
+        mixed = all_data
+        dtype = Int8Dtype()
+
+        # coerce to same type - ints
+        s = pd.Series(ints)
+        result = s.astype(all_data.dtype)
+        expected = pd.Series(ints)
+        self.assert_series_equal(result, expected)
+
+        # coerce to same other - ints
+        s = pd.Series(ints)
+        result = s.astype(dtype)
+        expected = pd.Series(ints, dtype=dtype)
+        self.assert_series_equal(result, expected)
+
+        # coerce to same numpy_dtype - ints
+        s = pd.Series(ints)
+        result = s.astype(all_data.dtype.numpy_dtype)
+        expected = pd.Series(ints._data.astype(
+            all_data.dtype.numpy_dtype))
+        tm.assert_series_equal(result, expected)
+
+        # coerce to same type - mixed
+        s = pd.Series(mixed)
+        result = s.astype(all_data.dtype)
+        expected = pd.Series(mixed)
+        self.assert_series_equal(result, expected)
+
+        # coerce to same other - mixed
+        s = pd.Series(mixed)
+        result = s.astype(dtype)
+        expected = pd.Series(mixed, dtype=dtype)
+        self.assert_series_equal(result, expected)
+
+        # coerce to same numpy_dtype - mixed
+        s = pd.Series(mixed)
+        with pytest.raises(ValueError):
+            s.astype(all_data.dtype.numpy_dtype)
+
+        # coerce to object
+        s = pd.Series(mixed)
+        result = s.astype('object')
+        expected = pd.Series(np.asarray(mixed))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [Int8Dtype(), 'Int8'])
+    def test_astype_specific_casting(self, dtype):
+        s = pd.Series([1, 2, 3], dtype='Int64')
+        result = s.astype(dtype)
+        expected = pd.Series([1, 2, 3], dtype='Int8')
+        self.assert_series_equal(result, expected)
+
+        s = pd.Series([1, 2, 3, None], dtype='Int64')
+        result = s.astype(dtype)
+        expected = pd.Series([1, 2, 3, None], dtype='Int8')
+        self.assert_series_equal(result, expected)
+
 
 class TestGroupby(BaseInteger, base.BaseGroupbyTests):
 
