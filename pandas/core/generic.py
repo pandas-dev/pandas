@@ -6689,6 +6689,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
 
+        Parameters
         ----------
         by : mapping, function, label, or list of labels
             Used to determine the groups for the groupby.
