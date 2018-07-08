@@ -3,8 +3,8 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas._libs import tslib
-from pandas._libs.tslib import Timedelta, NaT
+from pandas._libs import tslibs
+from pandas._libs.tslibs import Timedelta, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
@@ -148,7 +148,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         -------
         datetimes : ndarray
         """
-        return tslib.ints_to_pytimedelta(self.asi8)
+        return tslibs.ints_to_pytimedelta(self.asi8)
 
     days = _field_accessor("days", "days",
                            " Number of days for each element. ")

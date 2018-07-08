@@ -53,7 +53,7 @@ import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex, tslibs, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
@@ -494,14 +494,14 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if start is not None:
             if normalize:
-                start = libts.normalize_date(start)
+                start = tslibs.normalize_date(start)
                 _normalized = True
             else:
                 _normalized = _normalized and start.time() == _midnight
 
         if end is not None:
             if normalize:
-                end = libts.normalize_date(end)
+                end = tslibs.normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
@@ -796,10 +796,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                 .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
-            assert other is not libts.NaT
+            assert other is not tslibs.NaT
             other = Timestamp(other)
-            if other is libts.NaT:
-                return self - libts.NaT
+            if other is tslibs.NaT:
+                return self - tslibs.NaT
             # require tz compat
             elif not self._has_same_tz(other):
                 raise TypeError("Timestamp subtraction must have the same "
@@ -809,7 +809,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 result = checked_add_with_arr(i8, -other.value,
                                               arr_mask=self._isnan)
                 result = self._maybe_mask_results(result,
-                                                  fill_value=libts.iNaT)
+                                                  fill_value=tslibs.iNaT)
         else:
             raise TypeError("cannot subtract {cls} and {typ}"
                             .format(cls=type(self).__name__,
