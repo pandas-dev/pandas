@@ -239,14 +239,9 @@ class TimedeltaProperties(Properties):
         """
         Return a Dataframe of the components of the Timedeltas.
 
-        Provides a dataframe with the components of each of the timedeltas with
-        the same length and index as the original Series, and columns:
-
-        (days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds)
-
         Returns
         -------
-        a : pandas.DataFrame
+        DataFrame
 
         Examples
         --------
