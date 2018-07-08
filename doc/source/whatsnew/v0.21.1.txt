@@ -81,7 +81,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - ``pandas.tseries.register`` has been renamed to
-  :func:`pandas.plotting.register_matplotlib_converters`` (:issue:`18301`)
+  :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18301`)
 
 .. _whatsnew_0211.performance:
 
@@ -101,7 +101,7 @@ Conversion
 - Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
 - Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
 - Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
-- Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising``TypeError` (:issue:`18372`)
+- Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising ``TypeError`` (:issue:`18372`)
 - Bug in :class:`DateTimeIndex` and :meth:`date_range` where mismatching tz-aware ``start`` and ``end`` timezones would not raise an err if ``end.tzinfo`` is None (:issue:`18431`)
 - Bug in :meth:`Series.fillna` which raised when passed a long integer on Python 2 (:issue:`18159`).
 
@@ -124,9 +124,9 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the ``numpy.bool_`` datatype (:issue:`18390`)
-- Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
+- Bug in :func:`read_json` not decoding when reading line delimited JSON from S3 (:issue:`17200`)
 - Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
-- Bug in :func:`to_latex` where repeated multi-index values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
+- Bug in :func:`to_latex` where repeated MultiIndex values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
 - Bug when reading NaN-only categorical columns in :class:`HDFStore` (:issue:`18413`)
 - Bug in :meth:`DataFrame.to_latex` with ``longtable=True`` where a latex multicolumn always spanned over three columns (:issue:`17959`)
 
@@ -139,7 +139,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
-- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequecy is 12h or higher (:issue:`15549`)
+- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequency is 12h or higher (:issue:`15549`)
 - Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
 - Bug in ``rolling.var`` where calculation is inaccurate with a zero-valued array (:issue:`18430`)
 

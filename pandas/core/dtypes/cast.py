@@ -11,13 +11,16 @@ from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
-                     is_extension_type, is_object_dtype,
+                     is_extension_type,
+                     is_extension_array_dtype,
+                     is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
                      is_timedelta64_dtype, is_timedelta64_ns_dtype,
                      is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype,
+                     is_unsigned_integer_dtype,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      is_string_dtype, _string_dtypes,
@@ -26,7 +29,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
-from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
+from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
+                     PeriodDtype)
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
 from .missing import isna, notna
@@ -252,7 +256,6 @@ def maybe_upcast_putmask(result, mask, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
-
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
@@ -291,6 +294,8 @@ def maybe_promote(dtype, fill_value=np.nan):
     elif is_datetimetz(dtype):
         if isna(fill_value):
             fill_value = iNaT
+    elif is_extension_array_dtype(dtype) and isna(fill_value):
+        fill_value = dtype.na_value
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -327,7 +332,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if is_categorical_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetimetz(dtype):
         pass
@@ -643,6 +648,11 @@ def coerce_to_dtypes(result, dtypes):
 def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
+
+    # dispatch on extension dtype if needed
+    if is_extension_array_dtype(dtype):
+        return dtype.array_type._from_sequence(arr, copy=copy)
+
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
 
@@ -1114,7 +1124,8 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, ExtensionDtype) for t in types):
+    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
+           for t in types):
         return np.object
 
     # take lowest unit
@@ -1222,3 +1233,116 @@ def construct_1d_object_array_from_listlike(values):
     result = np.empty(len(values), dtype='object')
     result[:] = values
     return result
+
+
+def construct_1d_ndarray_preserving_na(values, dtype=None, copy=False):
+    """
+    Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
+
+    Parameters
+    ----------
+    values : Sequence
+    dtype : numpy.dtype, optional
+    copy : bool, default False
+        Note that copies may still be made with ``copy=False`` if casting
+        is required.
+
+    Returns
+    -------
+    arr : ndarray[dtype]
+
+    Examples
+    --------
+    >>> np.array([1.0, 2.0, None], dtype='str')
+    array(['1.0', '2.0', 'None'], dtype='<U4')
+
+    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype='str')
+
+
+    """
+    subarr = np.array(values, dtype=dtype, copy=copy)
+
+    if dtype is not None and dtype.kind in ("U", "S"):
+        # GH-21083
+        # We can't just return np.array(subarr, dtype='str') since
+        # NumPy will convert the non-string objects into strings
+        # Including NA values. Se we have to go
+        # string -> object -> update NA, which requires an
+        # additional pass over the data.
+        na_values = isna(values)
+        subarr2 = subarr.astype(object)
+        subarr2[na_values] = np.asarray(values, dtype=object)[na_values]
+        subarr = subarr2
+
+    return subarr
+
+
+def maybe_cast_to_integer_array(arr, dtype, copy=False):
+    """
+    Takes any dtype and returns the casted version, raising for when data is
+    incompatible with integer/unsigned integer dtypes.
+
+    .. versionadded:: 0.24.0
+
+    Parameters
+    ----------
+    arr : array-like
+        The array to cast.
+    dtype : str, np.dtype
+        The integer dtype to cast the array to.
+    copy: boolean, default False
+        Whether to make a copy of the array before returning.
+
+    Returns
+    -------
+    int_arr : ndarray
+        An array of integer or unsigned integer dtype
+
+    Raises
+    ------
+    OverflowError : the dtype is incompatible with the data
+    ValueError : loss of precision has occurred during casting
+
+    Examples
+    --------
+    If you try to coerce negative values to unsigned integers, it raises:
+
+    >>> Series([-1], dtype="uint64")
+    Traceback (most recent call last):
+        ...
+    OverflowError: Trying to coerce negative values to unsigned integers
+
+    Also, if you try to coerce float values to integers, it raises:
+
+    >>> Series([1, 2, 3.5], dtype="int64")
+    Traceback (most recent call last):
+        ...
+    ValueError: Trying to coerce float values to integers
+    """
+
+    try:
+        if not hasattr(arr, "astype"):
+            casted = np.array(arr, dtype=dtype, copy=copy)
+        else:
+            casted = arr.astype(dtype, copy=copy)
+    except OverflowError:
+        raise OverflowError("The elements provided in the data cannot all be "
+                            "casted to the dtype {dtype}".format(dtype=dtype))
+
+    if np.array_equal(arr, casted):
+        return casted
+
+    # We do this casting to allow for proper
+    # data and dtype checking.
+    #
+    # We didn't do this earlier because NumPy
+    # doesn't handle `uint64` correctly.
+    arr = np.asarray(arr)
+
+    if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
+        raise OverflowError("Trying to coerce negative values "
+                            "to unsigned integers")
+
+    if is_integer_dtype(dtype) and (is_float_dtype(arr) or
+                                    is_object_dtype(arr)):
+        raise ValueError("Trying to coerce float values to integers")

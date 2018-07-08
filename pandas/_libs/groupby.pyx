@@ -243,7 +243,7 @@ def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
         label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
         with nogil:
             for i in range(N):
-                ## reverse iterator if shifting backwards
+                # reverse iterator if shifting backwards
                 ii = offset + sign * i
                 lab = labels[ii]
 
@@ -297,7 +297,8 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
     # Make sure all arrays are the same size
     assert N == len(labels) == len(mask)
 
-    sorted_labels = np.argsort(labels).astype(np.int64, copy=False)
+    sorted_labels = np.argsort(labels, kind='mergesort').astype(
+        np.int64, copy=False)
     if direction == 'bfill':
         sorted_labels = sorted_labels[::-1]
 
