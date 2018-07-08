@@ -457,6 +457,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError is encountered
 
     Also returns a pytz.FixedOffset if an array of strings with the same timezone offset if passed
+    and utc=True is not passed
 
     Handles datetime.date, datetime.datetime, np.datetime64 objects, numeric, strings
 
@@ -674,7 +675,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             else:
                 raise TypeError
 
-        if seen_datetime_offset:
+        if seen_datetime_offset and not utc_convert:
             # GH 17697
             # 1) If all the offsets are equal, then return one pytz.FixedOffset for the
             #    parsed dates so it can behave nicely with DatetimeIndex
