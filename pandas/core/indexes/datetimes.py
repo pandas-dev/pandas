@@ -610,14 +610,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                            dtype=dtype, **kwargs)
             values = np.array(values, copy=False)
 
+        if not is_datetime64_dtype(values):
+            values = _ensure_int64(values).view(_NS_DTYPE)
+
         assert isinstance(values, np.ndarray), "values is not an np.ndarray"
         assert is_datetime64_dtype(values)
-
-        if is_object_dtype(values):
-            return cls(values, name=name, freq=freq, tz=tz,
-                       dtype=dtype, **kwargs).values
-        elif not is_datetime64_dtype(values):
-            values = _ensure_int64(values).view(_NS_DTYPE)
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
                                                        **kwargs)
@@ -1862,9 +1859,7 @@ def _generate_regular_range(start, end, periods, freq):
                              "if a 'period' is given.")
 
         data = np.arange(b, e, stride, dtype=np.int64)
-
-        # _simple_new is getting an array of int64 here
-        data = DatetimeIndex._simple_new(data, None, tz=tz)
+        data = DatetimeIndex._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         if isinstance(start, Timestamp):
             start = start.to_pydatetime()

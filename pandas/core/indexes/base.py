@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_signed_integer_dtype,
     is_unsigned_integer_dtype,
     is_integer_dtype, is_float_dtype,
+    is_datetime64_dtype,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
@@ -509,6 +510,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         # _simple_new expects an ndarray
         values = getattr(values, 'values', values)
+
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
