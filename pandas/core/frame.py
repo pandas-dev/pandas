@@ -144,10 +144,11 @@ ignored*. Otherwise if joining indexes on indexes or indexes on a column or
 columns, the index will be passed on.
 
 Parameters
-----------
+----------%s
 right : DataFrame, Series or dict
+    Object to merge with.
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
-    How to handle the operation of the two objects.
+    Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
       preserve key order
@@ -169,22 +170,22 @@ right_on : label or list, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
-left_index : boolean, default `False`
+left_index : boolean, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
     or a number of columns) must match the number of levels.
-right_index : boolean, default `False`
+right_index : boolean, default False
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index.
-sort : boolean, default `False`
-    Sort the join keys lexicographically in the result DataFrame. If `False`,
+sort : boolean, default False
+    Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
 suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
     side, respectively.
 copy : boolean, default True
-    If `False`, do not copy data unnecessarily.
-indicator : boolean or string, default `False`
+    If False, do not copy data unnecessarily.
+indicator : boolean or string, default False
     If True, adds a column to output DataFrame called "_merge" with
     information on the source of each row.
     If string, column with information on source of each row will be added to
@@ -207,10 +208,20 @@ validate : string, default None
 
     .. versionadded:: 0.21.0
 
+Returns
+-------
+DataFrame
+
 Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
 `right_on` parameters was added in version 0.23.0
+
+See Also
+--------
+merge_ordered : merge with optional filling/interpolation.
+merge_asof : merge on nearest keys.
+DataFrame.join : similar method using indices.
 
 Examples
 --------
@@ -221,16 +232,16 @@ Examples
 ...                   'value': [5, 6, 7, 8]})
 >>> A
     lkey value
-0   foo  1
-1   bar  2
-2   baz  3
-3   foo  4
+0   foo      1
+1   bar      2
+2   baz      3
+3   foo      5
 >>> B
     rkey value
-0   foo  5
-1   bar  6
-2   baz  7
-3   foo  8
+0   foo      5
+1   bar      6
+2   baz      7
+3   foo      8
 
 >>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
   lkey  value_x rkey  value_y
@@ -240,18 +251,6 @@ Examples
 3  foo        5  foo        8
 4  bar        2  bar        6
 5  baz        3  baz        7
-
-Returns
--------
-merged : DataFrame
-    The output type will the be same as 'left', if it is a subclass
-    of DataFrame.
-
-See also
---------
-merge_ordered
-merge_asof
-DataFrame.join
 """
 
 # -----------------------------------------------------------------------
