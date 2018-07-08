@@ -231,8 +231,9 @@ class TestFactorize(object):
 
         pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
 
-    def test_uint64_factorize(self):
+    def test_uint64_factorize(self, writable):
         data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+        data.setflags(write=writable)
         exp_labels = np.array([0, 1, 0], dtype=np.intp)
         exp_uniques = np.array([2**63, 1], dtype=np.uint64)
 
