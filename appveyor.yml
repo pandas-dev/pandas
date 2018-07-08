@@ -29,7 +29,7 @@ environment:
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "37"
-      CONDA_NPY: "113"
+      CONDA_NPY: "114"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "2.7"
