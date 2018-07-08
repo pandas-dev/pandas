@@ -19,13 +19,6 @@ from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 
 
-@pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
-                        'US/Eastern', 'dateutil/Asia/Singapore',
-                        'dateutil/US/Pacific'])
-def tz(request):
-    return request.param
-
-
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
                         np.timedelta64(2, 'h'), Timedelta(hours=2)],
                 ids=str)
@@ -50,7 +43,8 @@ class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
                                        Timestamp('2016-01-01'),
                                        np.datetime64('2016-01-01')])
-    def test_dti_cmp_datetimelike(self, other, tz):
+    def test_dti_cmp_datetimelike(self, other, tz_naive_fixture):
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
         if tz is not None:
             if isinstance(other, np.datetime64):
@@ -78,9 +72,10 @@ class TestDatetimeIndexComparisons(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-    def dti_cmp_non_datetime(self, tz):
+    def dti_cmp_non_datetime(self, tz_naive_fixture):
         # GH#19301 by convention datetime.date is not considered comparable
         # to Timestamp or DatetimeIndex.  This may change in the future.
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
 
         other = datetime(2016, 1, 1).date()
@@ -96,20 +91,23 @@ class TestDatetimeIndexComparisons(object):
             dti >= other
 
     @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
-    def test_dti_eq_null_scalar(self, other, tz):
+    def test_dti_eq_null_scalar(self, other, tz_naive_fixture):
         # GH#19301
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
         assert not (dti == other).any()
 
     @pytest.mark.parametrize('other', [None, np.nan, pd.NaT])
-    def test_dti_ne_null_scalar(self, other, tz):
+    def test_dti_ne_null_scalar(self, other, tz_naive_fixture):
         # GH#19301
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
         assert (dti != other).all()
 
     @pytest.mark.parametrize('other', [None, np.nan])
-    def test_dti_cmp_null_scalar_inequality(self, tz, other):
+    def test_dti_cmp_null_scalar_inequality(self, tz_naive_fixture, other):
         # GH#19301
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=2, tz=tz)
 
         with pytest.raises(TypeError):
@@ -335,8 +333,9 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and int
 
-    def test_dti_add_int(self, tz, one):
+    def test_dti_add_int(self, tz_naive_fixture, one):
         # Variants of `one` for #19012
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         result = rng + one
@@ -344,7 +343,8 @@ class TestDatetimeIndexArithmetic(object):
                                  periods=10, tz=tz)
         tm.assert_index_equal(result, expected)
 
-    def test_dti_iadd_int(self, tz, one):
+    def test_dti_iadd_int(self, tz_naive_fixture, one):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         expected = pd.date_range('2000-01-01 10:00', freq='H',
@@ -352,7 +352,8 @@ class TestDatetimeIndexArithmetic(object):
         rng += one
         tm.assert_index_equal(rng, expected)
 
-    def test_dti_sub_int(self, tz, one):
+    def test_dti_sub_int(self, tz_naive_fixture, one):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         result = rng - one
@@ -360,7 +361,8 @@ class TestDatetimeIndexArithmetic(object):
                                  periods=10, tz=tz)
         tm.assert_index_equal(result, expected)
 
-    def test_dti_isub_int(self, tz, one):
+    def test_dti_isub_int(self, tz_naive_fixture, one):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01 09:00', freq='H',
                             periods=10, tz=tz)
         expected = pd.date_range('2000-01-01 08:00', freq='H',
@@ -414,8 +416,9 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # DatetimeIndex.shift is used in integer addition
 
-    def test_dti_shift_tzaware(self, tz):
+    def test_dti_shift_tzaware(self, tz_naive_fixture):
         # GH#9903
+        tz = tz_naive_fixture
         idx = pd.DatetimeIndex([], name='xxx', tz=tz)
         tm.assert_index_equal(idx.shift(0, freq='H'), idx)
         tm.assert_index_equal(idx.shift(3, freq='H'), idx)
@@ -502,28 +505,32 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
 
-    def test_dti_add_timedeltalike(self, tz, delta):
+    def test_dti_add_timedeltalike(self, tz_naive_fixture, delta):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         result = rng + delta
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
         tm.assert_index_equal(result, expected)
 
-    def test_dti_iadd_timedeltalike(self, tz, delta):
+    def test_dti_iadd_timedeltalike(self, tz_naive_fixture, delta):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
         rng += delta
         tm.assert_index_equal(rng, expected)
 
-    def test_dti_sub_timedeltalike(self, tz, delta):
+    def test_dti_sub_timedeltalike(self, tz_naive_fixture, delta):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
         result = rng - delta
         tm.assert_index_equal(result, expected)
 
-    def test_dti_isub_timedeltalike(self, tz, delta):
+    def test_dti_isub_timedeltalike(self, tz_naive_fixture, delta):
+        tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
@@ -532,8 +539,9 @@ class TestDatetimeIndexArithmetic(object):
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and TimedeltaIndex/array
-    def test_dti_add_tdi(self, tz):
+    def test_dti_add_tdi(self, tz_naive_fixture):
         # GH 17558
+        tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
         tdi = pd.timedelta_range('0 days', periods=10)
         expected = pd.date_range('2017-01-01', periods=10, tz=tz)
@@ -552,8 +560,9 @@ class TestDatetimeIndexArithmetic(object):
         result = tdi.values + dti
         tm.assert_index_equal(result, expected)
 
-    def test_dti_iadd_tdi(self, tz):
+    def test_dti_iadd_tdi(self, tz_naive_fixture):
         # GH 17558
+        tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
         tdi = pd.timedelta_range('0 days', periods=10)
         expected = pd.date_range('2017-01-01', periods=10, tz=tz)
@@ -576,8 +585,9 @@ class TestDatetimeIndexArithmetic(object):
         result += dti
         tm.assert_index_equal(result, expected)
 
-    def test_dti_sub_tdi(self, tz):
+    def test_dti_sub_tdi(self, tz_naive_fixture):
         # GH 17558
+        tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
         tdi = pd.timedelta_range('0 days', periods=10)
         expected = pd.date_range('2017-01-01', periods=10, tz=tz, freq='-1D')
@@ -598,8 +608,9 @@ class TestDatetimeIndexArithmetic(object):
         with tm.assert_raises_regex(TypeError, msg):
             tdi.values - dti
 
-    def test_dti_isub_tdi(self, tz):
+    def test_dti_isub_tdi(self, tz_naive_fixture):
         # GH 17558
+        tz = tz_naive_fixture
         dti = DatetimeIndex([Timestamp('2017-01-01', tz=tz)] * 10)
         tdi = pd.timedelta_range('0 days', periods=10)
         expected = pd.date_range('2017-01-01', periods=10, tz=tz, freq='-1D')
@@ -653,7 +664,8 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
 
-    def test_dti_add_dt64_array_raises(self, tz):
+    def test_dti_add_dt64_array_raises(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         dtarr = dti.values
 
@@ -672,7 +684,8 @@ class TestDatetimeIndexArithmetic(object):
         result = dtarr - dti
         tm.assert_index_equal(result, expected)
 
-    def test_dti_sub_dt64_array_aware_raises(self, tz):
+    def test_dti_sub_dt64_array_aware_raises(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         if tz is None:
             return
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
@@ -683,7 +696,8 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             dtarr - dti
 
-    def test_dti_add_td64_array(self, tz):
+    def test_dti_add_td64_array(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         tdi = dti - dti.shift(1)
         tdarr = tdi.values
@@ -694,7 +708,8 @@ class TestDatetimeIndexArithmetic(object):
         result = tdarr + dti
         tm.assert_index_equal(result, expected)
 
-    def test_dti_sub_td64_array(self, tz):
+    def test_dti_sub_td64_array(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
         tdi = dti - dti.shift(1)
         tdarr = tdi.values
@@ -867,8 +882,9 @@ class TestDatetimeIndexArithmetic(object):
         result4 = index + ser.values
         tm.assert_index_equal(result4, expected)
 
-    def test_dti_add_offset_array(self, tz):
+    def test_dti_add_offset_array(self, tz_naive_fixture):
         # GH#18849
+        tz = tz_naive_fixture
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
@@ -885,8 +901,9 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_dti_add_offset_index(self, tz, names):
+    def test_dti_add_offset_index(self, tz_naive_fixture, names):
         # GH#18849, GH#19744
+        tz = tz_naive_fixture
         dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
         other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                          name=names[1])
@@ -901,8 +918,9 @@ class TestDatetimeIndexArithmetic(object):
             res2 = other + dti
         tm.assert_index_equal(res2, expected)
 
-    def test_dti_sub_offset_array(self, tz):
+    def test_dti_sub_offset_array(self, tz_naive_fixture):
         # GH#18824
+        tz = tz_naive_fixture
         dti = pd.date_range('2017-01-01', periods=2, tz=tz)
         other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
@@ -915,8 +933,9 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_dti_sub_offset_index(self, tz, names):
+    def test_dti_sub_offset_index(self, tz_naive_fixture, names):
         # GH#18824, GH#19744
+        tz = tz_naive_fixture
         dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
         other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                          name=names[1])
@@ -930,8 +949,9 @@ class TestDatetimeIndexArithmetic(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_dti_with_offset_series(self, tz, names):
+    def test_dti_with_offset_series(self, tz_naive_fixture, names):
         # GH#18849
+        tz = tz_naive_fixture
         dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
         other = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
                        name=names[1])

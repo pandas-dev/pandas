@@ -13,13 +13,6 @@ import pandas as pd
 from pandas import date_range, Timestamp, DatetimeIndex
 
 
-@pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
-                        'US/Eastern', 'dateutil/Asia/Singapore',
-                        'dateutil/US/Pacific'])
-def tz(request):
-    return request.param
-
-
 class TestDatetimeIndexOps(object):
     def test_dti_time(self):
         rng = date_range('1/1/2000', freq='12min', periods=10)
@@ -84,7 +77,8 @@ class TestDatetimeIndexOps(object):
         for freq in ['Y', 'M', 'foobar']:
             pytest.raises(ValueError, lambda: dti.round(freq))
 
-    def test_round(self, tz):
+    def test_round(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         rng = date_range(start='2016-01-01', periods=5,
                          freq='30Min', tz=tz)
         elt = rng[1]
@@ -134,8 +128,9 @@ class TestDatetimeIndexOps(object):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
-    def test_no_rounding_occurs(self, tz):
+    def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
+        tz = tz_naive_fixture
         rng = date_range(start='2016-01-01', periods=5,
                          freq='2Min', tz=tz)
 
@@ -167,7 +162,7 @@ class TestDatetimeIndexOps(object):
         (('NaT', '1823-01-01 00:00:01'), 'ceil', '1s',
          ('NaT', '1823-01-01 00:00:01'))
     ])
-    def test_ceil_floor_edge(self, tz, test_input, rounder, freq, expected):
+    def test_ceil_floor_edge(self, test_input, rounder, freq, expected):
         dt = DatetimeIndex(list(test_input))
         func = getattr(dt, rounder)
         result = func(freq)
