@@ -78,8 +78,9 @@ class TestArrayToDatetime(object):
         # All of these datetime strings with offsets are equivalent
         # to the same datetime after the timezone offset is added
 
-        # TODO: Appears that the dateparser doesnt return offset info if string is non-ISO
-        # maybe something in the np_datetime_strings parser is not catching this?
+        # TODO: Appears that parsing non-ISO strings adjust the date to UTC
+        # but don't return the offset. Not sure if this is the intended
+        # behavior of non-iso strings in np_datetime_strings
         arr = np.array(['01-01-2013 00:00:00'], dtype=object)
         expected = tslib.array_to_datetime(arr)[0]
 
@@ -89,11 +90,14 @@ class TestArrayToDatetime(object):
         assert result_tz is expected_tz
 
     def test_parsing_different_timezone_offsets(self):
-        #GH 17697
+        # GH 17697
         data = ["2015-11-18 15:30:00+05:30", "2015-11-18 15:30:00+06:30"]
-        result, result_tz = tslib.array_to_datetime(np.array(data, dtype=object))
-        expected = np.array([datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 19800)),
-                             datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 23400))],
+        data = np.array(data, dtype=object)
+        result, result_tz = tslib.array_to_datetime(data)
+        expected = np.array([datetime(2015, 11, 18, 15, 30,
+                                      tzinfo=tzoffset(None, 19800)),
+                             datetime(2015, 11, 18, 15, 30,
+                                      tzinfo=tzoffset(None, 23400))],
                             dtype=object)
         tm.assert_numpy_array_equal(result, expected)
         assert result_tz is None

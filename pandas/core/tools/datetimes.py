@@ -275,7 +275,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 require_iso8601=require_iso8601
             )
             if tz_parsed is not None:
-                return DatetimeIndex._simple_new(result, name=name, tz=tz_parsed)
+                return DatetimeIndex._simple_new(result, name=name,
+                                                 tz=tz_parsed)
 
         if is_datetime64_dtype(result) and box:
             result = DatetimeIndex(result, tz=tz, name=name)
