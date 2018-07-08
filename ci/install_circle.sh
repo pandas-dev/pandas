@@ -47,6 +47,8 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     sed -i -e 's/# $LOCALE_OVERRIDE UTF-8/$LOCAL_OVERRIDE UTF-8/' /etc/locale.gen && \
         locale-gen
 
+    python -c 'import locale; locale.setlocale(locale.LC_ALL, "$LOCALE_OVERRIDE")'
+
     echo "[Adding locale to the first line of pandas/__init__.py]"
     rm -f pandas/__init__.pyc
     sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
