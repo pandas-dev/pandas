@@ -7,6 +7,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
+from dateutil.tz.tz import tzoffset
 from datetime import datetime, time
 from distutils.version import LooseVersion
 
@@ -576,6 +577,36 @@ class TestToDatetime(object):
         msg = "Cannot use '%W' or '%U' without day and year"
         with tm.assert_raises_regex(ValueError, msg):
             pd.to_datetime(date, format=format)
+
+    def test_ts_strings_with_same_offset(self):
+        # GH 17697, 11736
+        ts_str = "2015-11-18 15:30:00+05:30"
+        result = to_datetime(ts_str)
+        expected = Timestamp(ts_str)
+        assert result == expected
+
+        expected = DatetimeIndex([Timestamp(ts_str)] * 2)
+        result = to_datetime([ts_str] * 2)
+        tm.assert_index_equal(result, expected)
+
+        result = DatetimeIndex([ts_str] * 2)
+        tm.assert_index_equal(result, expected)
+
+    def test_ts_strings_with_different_offsets(self):
+        # GH 17697, 11736
+        ts_strings = ["2015-11-18 15:30:00+05:30",
+                      "2015-11-18 16:30:00+06:30"]
+        result = to_datetime(ts_strings)
+        expected = np.array([datetime(2015, 11, 18, 15, 30,
+                                      tzinfo=tzoffset(None, 19800)),
+                             datetime(2015, 11, 18, 16, 30,
+                                      tzinfo=tzoffset(None, 23400))],
+                            dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = to_datetime(ts_strings, utc=True)
+        expected = DatetimeIndex([Timestamp(2015, 11, 18, 10)] * 2, tz='UTC')
+        tm.assert_index_equal(result, expected)
 
 
 class TestToDatetimeUnit(object):
