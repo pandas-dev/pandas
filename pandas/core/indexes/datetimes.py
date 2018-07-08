@@ -317,6 +317,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _is_numeric_dtype = False
     _infer_as_myclass = True
     _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
+    is_normalized = cache_readonly(DatetimeArrayMixin.is_normalized.fget)
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
@@ -1707,13 +1708,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return True
 
     @cache_readonly
-    def is_normalized(self):
-        """
-        Returns True if all of the dates are at midnight ("no time")
-        """
-        return conversion.is_date_array_normalized(self.asi8, self.tz)
-
-    @cache_readonly
     def _resolution(self):
         return libresolution.resolution(self.asi8, self.tz)
 
@@ -1885,6 +1879,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             remove the time zone information preserving local time.
         ambiguous : str {'infer', 'NaT', 'raise'} or bool array,
             default 'raise'
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False signifies a
@@ -1893,10 +1888,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+
         errors : {'raise', 'coerce'}, default 'raise'
+
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified time zone (e.g. due to a transition from
-               or to DST time)
+              valid in the specified time zone (e.g. due to a transition from
+              or to DST time)
             - 'coerce' will return NaT if the timestamp can not be converted
               to the specified time zone
 
