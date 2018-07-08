@@ -6921,7 +6921,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
-        asof :
 
         Returns
         -------
