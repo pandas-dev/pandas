@@ -230,8 +230,8 @@ Other API Changes
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 - Accessing a level of a ``MultiIndex`` with a duplicate name (e.g. in
-  :meth:~MultiIndex.get_level_values) now raises a ValueError instead of
-  a KeyError (:issue:`21678`).
+  :meth:~MultiIndex.get_level_values) now raises a ``ValueError`` instead of
+  a ``KeyError`` (:issue:`21678`).
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 - Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
 -
