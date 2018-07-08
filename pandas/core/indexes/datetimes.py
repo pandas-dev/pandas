@@ -56,8 +56,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 ccalendar,
-                                 resolution as libresolution)
+                                 ccalendar)
 
 # -------- some conversion wrapper functions
 
@@ -266,6 +265,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     PeriodIndex : Index of Period data
     pandas.to_datetime : Convert argument to datetime
     """
+    _resolution = cache_readonly(DatetimeArrayMixin._resolution.fget)
 
     _typ = 'datetimeindex'
     _join_precedence = 10
@@ -614,12 +614,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         elif not is_datetime64_dtype(values):
             values = _ensure_int64(values).view(_NS_DTYPE)
 
-        result = object.__new__(cls)
-        result._data = values
+        result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
+                                                       **kwargs)
         result.name = name
-        result._freq = freq
-        result._tz = timezones.maybe_get_tz(tz)
-        result._tz = timezones.tz_standardize(result._tz)
         result._reset_identity()
         return result
 
@@ -1707,10 +1704,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     def is_all_dates(self):
         return True
 
-    @cache_readonly
-    def _resolution(self):
-        return libresolution.resolution(self.asi8, self.tz)
-
     def insert(self, loc, item):
         """
         Make new Index inserting new item at location
@@ -1787,169 +1780,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                     freq = self.freq
 
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
-
-    def tz_convert(self, tz):
-        """
-        Convert tz-aware DatetimeIndex from one time zone to another.
-
-        Parameters
-        ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time. Corresponding timestamps would be converted
-            to this time zone of the DatetimeIndex. A `tz` of None will
-            convert to UTC and remove the timezone information.
-
-        Returns
-        -------
-        normalized : DatetimeIndex
-
-        Raises
-        ------
-        TypeError
-            If DatetimeIndex is tz-naive.
-
-        See Also
-        --------
-        DatetimeIndex.tz : A timezone that has a variable offset from UTC
-        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
-            given time zone, or remove timezone from a tz-aware DatetimeIndex.
-
-        Examples
-        --------
-        With the `tz` parameter, we can change the DatetimeIndex
-        to other time zones:
-
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
-        ...                        freq='H', periods=3, tz='Europe/Berlin')
-
-        >>> dti
-        DatetimeIndex(['2014-08-01 09:00:00+02:00',
-                       '2014-08-01 10:00:00+02:00',
-                       '2014-08-01 11:00:00+02:00'],
-                      dtype='datetime64[ns, Europe/Berlin]', freq='H')
-
-        >>> dti.tz_convert('US/Central')
-        DatetimeIndex(['2014-08-01 02:00:00-05:00',
-                       '2014-08-01 03:00:00-05:00',
-                       '2014-08-01 04:00:00-05:00'],
-                      dtype='datetime64[ns, US/Central]', freq='H')
-
-        With the ``tz=None``, we can remove the timezone (after converting
-        to UTC if necessary):
-
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',freq='H',
-        ...                        periods=3, tz='Europe/Berlin')
-
-        >>> dti
-        DatetimeIndex(['2014-08-01 09:00:00+02:00',
-                       '2014-08-01 10:00:00+02:00',
-                       '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
-
-        >>> dti.tz_convert(None)
-        DatetimeIndex(['2014-08-01 07:00:00',
-                       '2014-08-01 08:00:00',
-                       '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='H')
-        """
-        tz = timezones.maybe_get_tz(tz)
-
-        if self.tz is None:
-            # tz naive, use tz_localize
-            raise TypeError('Cannot convert tz-naive timestamps, use '
-                            'tz_localize to localize')
-
-        # No conversion since timestamps are all UTC to begin with
-        return self._shallow_copy(tz=tz)
-
-    def tz_localize(self, tz, ambiguous='raise', errors='raise'):
-        """
-        Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
-
-        This method takes a time zone (tz) naive DatetimeIndex object and
-        makes this time zone aware. It does not move the time to another
-        time zone.
-        Time zone localization helps to switch from time zone aware to time
-        zone unaware objects.
-
-        Parameters
-        ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone to convert timestamps to. Passing ``None`` will
-            remove the time zone information preserving local time.
-        ambiguous : str {'infer', 'NaT', 'raise'} or bool array,
-            default 'raise'
-            - 'infer' will attempt to infer fall dst-transition hours based on
-              order
-            - bool-ndarray where True signifies a DST time, False signifies a
-              non-DST time (note that this flag is only applicable for
-              ambiguous times)
-            - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
-              times
-        errors : {'raise', 'coerce'}, default 'raise'
-            - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified time zone (e.g. due to a transition from
-               or to DST time)
-            - 'coerce' will return NaT if the timestamp can not be converted
-              to the specified time zone
-
-            .. versionadded:: 0.19.0
-
-        Returns
-        -------
-        DatetimeIndex
-            Index converted to the specified time zone.
-
-        Raises
-        ------
-        TypeError
-            If the DatetimeIndex is tz-aware and tz is not None.
-
-        See Also
-        --------
-        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
-            one time zone to another.
-
-        Examples
-        --------
-        >>> tz_naive = pd.date_range('2018-03-01 09:00', periods=3)
-        >>> tz_naive
-        DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
-                       '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
-
-        Localize DatetimeIndex in US/Eastern time zone:
-
-        >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
-        >>> tz_aware
-        DatetimeIndex(['2018-03-01 09:00:00-05:00',
-                       '2018-03-02 09:00:00-05:00',
-                       '2018-03-03 09:00:00-05:00'],
-                      dtype='datetime64[ns, US/Eastern]', freq='D')
-
-        With the ``tz=None``, we can remove the time zone information
-        while keeping the local time (not converted to UTC):
-
-        >>> tz_aware.tz_localize(None)
-        DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
-                       '2018-03-03 09:00:00'],
-                      dtype='datetime64[ns]', freq='D')
-        """
-        if self.tz is not None:
-            if tz is None:
-                new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
-            else:
-                raise TypeError("Already tz-aware, use tz_convert to convert.")
-        else:
-            tz = timezones.maybe_get_tz(tz)
-            # Convert to UTC
-
-            new_dates = conversion.tz_localize_to_utc(self.asi8, tz,
-                                                      ambiguous=ambiguous,
-                                                      errors=errors)
-        new_dates = new_dates.view(_NS_DTYPE)
-        return self._shallow_copy(new_dates, tz=tz)
 
     def indexer_at_time(self, time, asof=False):
         """

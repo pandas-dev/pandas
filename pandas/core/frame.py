@@ -1695,10 +1695,10 @@ class DataFrame(NDFrame):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : string, optional
-            A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
+            If 'infer' and `path_or_buf` is path-like, then detect compression
+            from the following extensions: '.gz', '.bz2' or '.xz'
+            (otherwise no compression).
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -4199,8 +4199,9 @@ class DataFrame(NDFrame):
             * 1, or 'columns' : Drop columns which contain missing value.
 
             .. deprecated:: 0.23.0
-                Pass tuple or list to drop on multiple axes.
-                Only a single axis is allowed.
+
+               Pass tuple or list to drop on multiple axes.
+               Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -4208,6 +4209,7 @@ class DataFrame(NDFrame):
 
             * 'any' : If any NA values are present, drop that row or column.
             * 'all' : If all values are NA, drop that row or column.
+
         thresh : int, optional
             Require that many non-NA values.
         subset : array-like, optional
@@ -4676,10 +4678,11 @@ class DataFrame(NDFrame):
             Column name or names to order by
         keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
+
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
             - ``all`` : do not drop any duplicates, even it means
-                        selecting more than `n` items.
+              selecting more than `n` items.
 
             .. versionadded:: 0.24.0
 

@@ -81,8 +81,9 @@ Other Enhancements
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
 - :func:`read_html` copies cell data across ``colspan``s and ``rowspan``s, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
-- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
+- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep`` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
+- :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
 -
 
 .. _whatsnew_0240.api_breaking:
@@ -100,27 +101,33 @@ Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
 `normalize=True` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
-.. ipython:: python
-
-    ts = pd.Timestamp('2018-06-11 18:01:14')
-    ts
-    tic = pd.offsets.Hour(n=2, normalize=True)
-    tic
-
-Previous Behavior:
+*Previous Behavior*:
 
 .. code-block:: ipython
 
-    In [4]: ts + tic
-    Out [4]: Timestamp('2018-06-11 00:00:00')
 
-    In [5]: ts + tic + tic + tic == ts + (tic + tic + tic)
-    Out [5]: False
+   In [2]: ts = pd.Timestamp('2018-06-11 18:01:14')
 
-Current Behavior:
+   In [3]: ts
+   Out[3]: Timestamp('2018-06-11 18:01:14')
+
+   In [4]: tic = pd.offsets.Hour(n=2, normalize=True)
+      ...:
+
+   In [5]: tic
+   Out[5]: <2 * Hours>
+
+   In [6]: ts + tic
+   Out[6]: Timestamp('2018-06-11 00:00:00')
+
+   In [7]: ts + tic + tic + tic == ts + (tic + tic + tic)
+   Out[7]: False
+
+*Current Behavior*:
 
 .. ipython:: python
 
+    ts = pd.Timestamp('2018-06-11 18:01:14')
     tic = pd.offsets.Hour(n=2)
     ts + tic + tic + tic == ts + (tic + tic + tic)
 
@@ -183,14 +190,7 @@ ExtensionType Changes
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 -
 
-.. _whatsnew_0240.api.other:
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
 .. _whatsnew_0240.api.incompatibilities:
-
-- Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
 
 Series and Index Data-Dtype Incompatibilities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -230,8 +230,11 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
+- Accessing a level of a ``MultiIndex`` with a duplicate name (e.g. in
+  :meth:~MultiIndex.get_level_values) now raises a ``ValueError`` instead of
+  a ``KeyError`` (:issue:`21678`).
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
--
+- Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
 -
 
 .. _whatsnew_0240.deprecations:
@@ -331,6 +334,7 @@ Numeric
 ^^^^^^^
 
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
+- Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
 -
 -
 
