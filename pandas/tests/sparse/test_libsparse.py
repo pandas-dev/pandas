@@ -596,22 +596,9 @@ class TestSparseOperators(object):
 
         check_cases(_check_case)
 
-
-# too cute? oh but how I abhor code duplication
-check_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv']
-
-
-def make_optestf(op):
-    def f(self):
-        sparse_op = getattr(splib, 'sparse_%s_float64' % op)
-        python_op = getattr(operator, op)
+    @pytest.mark.parametrize('opname',
+                             ['add', 'sub', 'mul', 'truediv', 'floordiv'])
+    def test_op(self, opname):
+        sparse_op = getattr(splib, 'sparse_%s_float64' % opname)
+        python_op = getattr(operator, opname)
         self._op_tests(sparse_op, python_op)
-
-    f.__name__ = 'test_%s' % op
-    return f
-
-
-for op in check_ops:
-    g = make_optestf(op)
-    setattr(TestSparseOperators, g.__name__, g)
-    del g

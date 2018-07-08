@@ -16,8 +16,6 @@ from pandas.tseries.offsets import BDay
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
-
 
 def test_getitem_boolean(test_data):
     s = test_data.series
@@ -551,6 +549,18 @@ def test_where_datetime_conversion():
     rs = s.where(Series([False, True]))
     expected = Series([pd.NaT, s[1]])
     assert_series_equal(rs, expected)
+
+
+def test_where_dt_tz_values(tz_naive_fixture):
+    ser1 = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20150103'],
+                                      tz=tz_naive_fixture))
+    ser2 = pd.Series(pd.DatetimeIndex(['20160514', '20160515', '20160516'],
+                                      tz=tz_naive_fixture))
+    mask = pd.Series([True, True, False])
+    result = ser1.where(mask, ser2)
+    exp = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20160516'],
+                                     tz=tz_naive_fixture))
+    assert_series_equal(exp, result)
 
 
 def test_mask():
