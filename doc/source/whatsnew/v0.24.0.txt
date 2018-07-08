@@ -331,6 +331,7 @@ Numeric
 ^^^^^^^
 
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
+- Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
 -
 -
 
