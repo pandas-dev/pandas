@@ -4,6 +4,7 @@ from datetime import datetime, date
 import numpy as np
 import pytest
 import pytz
+from dateutil.tz.tz import tzoffset
 
 from pandas._libs import tslib
 from pandas.compat.numpy import np_array_datetime64_compat
@@ -86,6 +87,16 @@ class TestArrayToDatetime(object):
         result, result_tz = tslib.array_to_datetime(arr)
         tm.assert_numpy_array_equal(result, expected)
         assert result_tz is expected_tz
+
+    def test_parsing_different_timezone_offsets(self):
+        #GH 17697
+        data = ["2015-11-18 15:30:00+05:30", "2015-11-18 15:30:00+06:30"]
+        result, result_tz = tslib.array_to_datetime(np.array(data, dtype=object))
+        expected = np.array([datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 19800)),
+                             datetime(2015, 11, 18, 15, 30, tzinfo=tzoffset(None, 23400))],
+                            dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+        assert result_tz is None
 
     def test_number_looking_strings_not_into_datetime(self):
         # GH#4601

@@ -1031,7 +1031,7 @@ class TestToDatetimeMisc(object):
             else:
                 expected[i] = parse_date(val)
 
-        result = tslib.array_to_datetime(strings)
+        result = tslib.array_to_datetime(strings)[0]
         tm.assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings, cache=cache)

@@ -322,7 +322,7 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     if unit == 'ns':
         if issubclass(values.dtype.type, np.integer):
             return values.astype('M8[ns]')
-        return array_to_datetime(values.astype(object), errors=errors)
+        return array_to_datetime(values.astype(object), errors=errors)[0]
 
     m = cast_from_unit(None, unit)
 
@@ -686,6 +686,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             if not is_same_offsets:
                 raise TypeError
             else:
+                # Open question: should this return dateutil offset or pytz offset?
                 tz_out = pytz.FixedOffset(out_tzoffset_values[0])
 
         return result, tz_out
