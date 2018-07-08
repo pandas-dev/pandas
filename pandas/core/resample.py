@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
-from pandas._libs import lib, tslib
+from pandas._libs import lib
 from pandas._libs.tslibs import Timestamp, NaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
