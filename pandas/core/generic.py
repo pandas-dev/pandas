@@ -5650,7 +5650,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Align object with threshold along the given axis.
         inplace : bool, default False
             Whether to perform the operation in place on the data.
-                .. versionadded:: 0.21.0.
+                .. versionadded:: 0.21.0
 
         See Also
         --------
@@ -5698,8 +5698,6 @@ class NDFrame(PandasObject, SelectionMixin):
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
         Return copy of the input with values below given value(s) truncated.
-
-
 
         Parameters
         ----------
@@ -5897,7 +5895,6 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
-        asof :
 
         Returns
         -------
