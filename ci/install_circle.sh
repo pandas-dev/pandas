@@ -6,14 +6,7 @@ echo "[home_dir: $home_dir]"
 echo "[ls -ltr]"
 ls -ltr
 
-echo "[Using clean Miniconda install]"
-rm -rf "$MINICONDA_DIR"
-
-# install miniconda
-wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
-bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
-
-export PATH="$MINICONDA_DIR/bin:$PATH"
+apt-get update -y && apt-get install build-essential -y
 
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
@@ -48,6 +41,12 @@ source $ENVS_FILE
 
 # edit the locale override if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
+
+    apt-get update && apt-get install locales -y
+
+    sed -i -e 's/# $LOCALE_OVERRIDE UTF-8/$LOCAL_OVERRIDE UTF-8/' /etc/locale.gen && \
+        locale-gen
+
     echo "[Adding locale to the first line of pandas/__init__.py]"
     rm -f pandas/__init__.pyc
     sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
