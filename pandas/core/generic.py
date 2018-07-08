@@ -6568,7 +6568,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Align object with `threshold` along the given axis.
-
         inplace : boolean, default False
             Whether to perform the operation in place on the data.
 
