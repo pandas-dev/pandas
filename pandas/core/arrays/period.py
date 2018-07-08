@@ -113,20 +113,8 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     _attributes = ["freq"]
 
-    def _get_attributes_dict(self):
-        """return an attributes dict for my class"""
-        return {k: getattr(self, k, None) for k in self._attributes}
-
-    # TODO: share docstring?
-    def _shallow_copy(self, values=None, **kwargs):
-        if values is None:
-            values = self._ndarray_values
-        attributes = self._get_attributes_dict()
-        attributes.update(kwargs)
-        return self._simple_new(values, **attributes)
-
     @classmethod
-    def _simple_new(cls, values, freq=None):
+    def _simple_new(cls, values, freq=None, **kwargs):
         """
         Values can be any type that can be coerced to Periods.
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
