@@ -245,7 +245,7 @@ need to be:
 
 .. ipython:: python
 
-   result = df1.append(df4)
+   result = df1.append(df4, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -285,7 +285,7 @@ do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
-   result = pd.concat([df1, df4], ignore_index=True)
+   result = pd.concat([df1, df4], ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -299,7 +299,7 @@ This is also a valid argument to :meth:`DataFrame.append`:
 
 .. ipython:: python
 
-   result = df1.append(df4, ignore_index=True)
+   result = df1.append(df4, ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
