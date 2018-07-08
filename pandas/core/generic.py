@@ -1906,7 +1906,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
             A string representing the compression to use in the output file,
             only used when the first argument is a filename.
 
@@ -6610,7 +6610,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
-        Return copy of the input with values below a threshold truncated.
+        Trim values below a given threshold.
+
+        Elements below the `threshold` will be changed to match the
+        `threshold` value(s).
 
         Parameters
         ----------
@@ -6635,17 +6638,22 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.clip : Return copy of input with values below and above
-            thresholds truncated.
-        Series.clip_upper : Return copy of input with values above
-            threshold truncated.
+        DataFrame.clip : General purpose method to trim `DataFrame` values to
+            given threshold(s)
+        DataFrame.clip_upper : Trim `DataFrame` values above given
+            threshold(s)
+        Series.clip : General purpose method to trim `Series` values to given
+            threshold(s)
+        Series.clip_upper : Trim `Series` values above given threshold(s)
 
         Returns
         -------
-        clipped : same type as input
+        clipped
+            Original data with values trimmed.
 
         Examples
         --------
+
         Series single threshold clipping:
 
         >>> s = pd.Series([5, 6, 7, 8, 9])
@@ -6697,17 +6705,18 @@ class NDFrame(PandasObject, SelectionMixin):
         `threshold` should be the same length as the axis specified by
         `axis`.
 
-        >>> df.clip_lower(np.array([3, 3, 5]), axis='index')
+        >>> df.clip_lower([3, 3, 5], axis='index')
            A  B
         0  3  3
         1  3  4
         2  5  6
 
-        >>> df.clip_lower(np.array([4, 5]), axis='columns')
+        >>> df.clip_lower([4, 5], axis='columns')
            A  B
         0  4  5
         1  4  5
         2  5  6
+
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
