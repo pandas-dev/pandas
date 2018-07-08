@@ -451,9 +451,22 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         dayfirst=False, yearfirst=False,
                         format=None, utc=None,
                         require_iso8601=False):
+    """
+    Converts a 1D array of date-like values to a numpy array of either:
+        1) datetime64[ns] data
+        2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError is encountered
+
+    Also returns a pytz.FixedOffset if an array of strings with the same timezone offset if passed
+
+    Handles datetime.date, datetime.datetime, np.datetime64 objects, numeric, strings
+
+    Returns
+    -------
+    (ndarray, timezone offset) 
+    """
     cdef:
         Py_ssize_t i, n = len(values)
-        object val, py_dt
+        object val, py_dt, tz, tz_out = None
         ndarray[int64_t] iresult
         ndarray[object] oresult
         pandas_datetimestruct dts
@@ -461,20 +474,23 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint seen_integer = 0
         bint seen_string = 0
         bint seen_datetime = 0
+        bint seen_datetime_offset = 0
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         _TSObject _ts
-        #int out_local=0, out_tzoffset=0
-        ndarray[int] out_local
-        ndarray[int] out_tzoffset
+        int out_local=0, out_tzoffset=0
+        # Can't directly create a ndarray[int] out_local, since most np.array constructors expect
+        # a long dtype, while _string_to_dts expectes purely int, maybe something I am missing?
+        ndarray[int64_t] out_local_values
+        ndarray[int64_t] out_tzoffset_values
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
     try:
-        out_local = np.zeros(n, dtype=np.int64)
-        out_tzoffset = np.empty(n, dtype=int)
+        out_local_values = np.empty(n, dtype=np.int64)
+        out_tzoffset_values = np.empty(n, dtype=np.int64)
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
         for i in range(n):
@@ -566,7 +582,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     val = val.encode('utf-8')
 
                 try:
-                    _string_to_dts(val, &dts, &out_local[i], &out_tzoffset[i])
+                    _string_to_dts(val, &dts, &out_local, &out_tzoffset)
                 except ValueError:
                     # A ValueError at this point is a _parsing_ error
                     # specifically _not_ OutOfBoundsDatetime
@@ -582,7 +598,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                             raise ValueError("time data {val} doesn't match "
                                              "format specified"
                                              .format(val=val))
-                        return values
+                        return values, tz_out
 
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
@@ -610,9 +626,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 else:
                     # No error raised by string_to_dts, pick back up
                     # where we left off
+                    out_tzoffset_values[i] = out_tzoffset
+                    out_local_values[i] = out_local
                     value = dtstruct_to_dt64(&dts)
-                    if out_local[i] == 1:
-                        tz = pytz.FixedOffset(out_tzoffset[i])
+                    if out_local == 1:
+                        seen_datetime_offset = 1
+                        tz = pytz.FixedOffset(out_tzoffset)
                         value = tz_convert_single(value, tz, 'UTC')
                     iresult[i] = value
                     try:
@@ -629,7 +648,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                                 raise ValueError("time data {val} doesn't "
                                                  "match format specified"
                                                  .format(val=val))
-                            return values
+                            return values, tz_out
                         raise
 
             else:
@@ -655,12 +674,21 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             else:
                 raise TypeError
 
-        if not (out_tzoffset[0] == out_tzoffset).all():
+        if seen_datetime_offset:
             # GH 17697
-            # If the user passed datetime strings with different UTC offsets, then force down
-            # the path where we return an array of objects
-            raise ValueError
-        return result
+            # 1) If all the offsets are equal, then return 1, pytz.FixedOffset for the
+            #    parsed dates so it can behave nicely with DatetimeIndex
+            # 2) If the offsets are different, then force the parsing down the object path
+            #    where an array of datetimes (with individual datutil.tzoffsets) are returned
+
+            # Faster to compare integers than to compare objects
+            is_same_offsets = (out_tzoffset_values[0] == out_tzoffset_values).all()
+            if not is_same_offsets:
+                raise TypeError
+            else:
+                tz_out = pytz.FixedOffset(out_tzoffset_values[0])
+
+        return result, tz_out
     except OutOfBoundsDatetime:
         if is_raise:
             raise
@@ -682,7 +710,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     oresult[i] = val.item()
             else:
                 oresult[i] = val
-        return oresult
+        return oresult, tz_out
     except TypeError:
         oresult = np.empty(n, dtype=object)
 
@@ -704,14 +732,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 except Exception:
                     if is_raise:
                         raise
-                    return values
-                    # oresult[i] = val
+                    return values, tz_out
             else:
                 if is_raise:
                     raise
-                return values
+                return values, tz_out
 
-        return oresult
+        return oresult, tz_out
 
 
 cdef inline bint _parse_today_now(str val, int64_t* iresult):
