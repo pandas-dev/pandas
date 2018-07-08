@@ -597,14 +597,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
-    def _sub_period(self, other):
-        # If the operation is well-defined, we return an object-Index
-        # of DateOffsets.  Null entries are filled with pd.NaT
-        new_data = PeriodArrayMixin._sub_period(self, other)
-
-        # TODO: Should name=self.name be passed here?
-        return Index(new_data)
-
     @property
     def inferred_type(self):
         # b/c data is represented as ints make sure we can't have ambiguous

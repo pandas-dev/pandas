@@ -36,7 +36,6 @@ from pandas.core.tools.timedeltas import (
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 
 def _wrap_field_accessor(name):
@@ -312,16 +311,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        values = np.array(values, copy=False)
-        if values.dtype == np.object_:
-            values = array_to_timedelta64(values)
-        if values.dtype != _TD_DTYPE:
-            values = _ensure_int64(values).view(_TD_DTYPE)
-
-        result = object.__new__(cls)
-        result._data = values
+        result = super(TimedeltaIndex, cls)._simple_new(values, freq, **kwargs)
         result.name = name
-        result._freq = freq
         result._reset_identity()
         return result
 
