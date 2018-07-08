@@ -143,14 +143,6 @@ compatible with non-HTML Jupyter output formats.)
 See :ref:`Options and Settings <options>` and :ref:`<options.available>`
 for pandas ``display.`` settings.
 
-`PyCharm <https://www.jetbrains.com/pycharm/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-PyCharm is a full-featured Python IDE.
-`PyCharm supports Jupyter Notebook
-<https://www.jetbrains.com/help/pycharm/ipython-jupyter-notebook-support.html>`__
-, recognizes ``*.ipynb files``,
-and allows you to edit them.
-
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -164,19 +156,6 @@ Spyder is a cross-platform Qt-based open-source Python IDE with
 editing, testing, debugging, and introspection features.
 Spyder can now introspect and display Pandas DataFrames and show
 both "column wise min/max and global min/max coloring."
-
-Spyder can also execute ``.py`` files containing IPython prompts
-cell by cell:
-
-.. code:: python
-
-   # In[0]:
-   subprocess.call('jupyter convert --to python notebook.ipynb')
-
-   # In[1]:
-   print('Ctrl-Return -- Run cell')
-   print('Shift-Return -- Run cell and advance')
-
 
 .. _ecosystem.api:
 
