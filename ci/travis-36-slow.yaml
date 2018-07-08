@@ -1,0 +1,30 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - beautifulsoup4
+  - cython>=0.28.2
+  - html5lib
+  - lxml
+  - matplotlib
+  - numexpr
+  - numpy
+  - openpyxl
+  - patsy
+  - psycopg2
+  - pymysql
+  - pytables
+  - python-dateutil
+  - python=3.6*
+  - pytz
+  - s3fs
+  - scipy
+  - sqlalchemy
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest
+  - pytest-xdist
+  - moto

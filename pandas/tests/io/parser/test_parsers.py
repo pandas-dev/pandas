@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import pytest
 import pandas.util.testing as tm
 
 from pandas import read_csv, read_table, DataFrame
@@ -45,8 +46,9 @@ class BaseParser(CommentTests, CompressionTests,
     def float_precision_choices(self):
         raise com.AbstractMethodError(self)
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath('io', 'parser', 'data')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')

@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_int_or_datetime_dtype,
     is_dtype_equal,
     is_bool,
+    is_bool_dtype,
     is_list_like,
     is_datetimelike,
     _ensure_int64,
@@ -319,7 +320,7 @@ def merge_asof(left, right, on=None,
         - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
-          (i.e., stricly less-than / strictly greater-than)
+          (i.e., strictly less-than / strictly greater-than)
 
     direction : 'backward' (default), 'forward', or 'nearest'
         Whether to search for prior, subsequent, or closest matches.
@@ -705,8 +706,7 @@ class _MergeOperation(object):
                                 take_right = self.right[name]._values
 
             elif left_indexer is not None \
-                    and isinstance(self.left_join_keys[i], np.ndarray):
-
+                    and is_array_like(self.left_join_keys[i]):
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
 
@@ -956,14 +956,14 @@ class _MergeOperation(object):
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
-                    if not (lk == lk.astype(rk.dtype)).all():
+                    if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
-                    if not (rk == rk.astype(lk.dtype)).all():
+                    if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
@@ -975,9 +975,14 @@ class _MergeOperation(object):
 
             # Check if we are trying to merge on obviously
             # incompatible dtypes GH 9780, GH 15800
-            elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
+
+            # boolean values are considered as numeric, but are still allowed
+            # to be merged on object boolean values
+            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
+                    and not is_numeric_dtype(rk)):
                 raise ValueError(msg)
-            elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
+            elif (not is_numeric_dtype(lk)
+                    and (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
                 raise ValueError(msg)
