@@ -1400,8 +1400,8 @@ class _Rolling_and_Expanding(_Rolling):
     pairwise : bool, default None
         Calculate pairwise combinations of columns within a
         DataFrame. If `other` is not specified, defaults to `True`,
-        otherwise defaults to `False`. Not relevant for :class:`~pandas.Series`.
-        See notes.
+        otherwise defaults to `False`.
+        Not relevant for :class:`~pandas.Series`.
     **kwargs
         Under Review.
 
@@ -1425,8 +1425,8 @@ class _Rolling_and_Expanding(_Rolling):
     This function uses Pearson's definition of correlation
     (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
 
-    When `other` is not specified, the output will be self correlation (e.g. 
-    all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise` 
+    When `other` is not specified, the output will be self correlation (e.g.
+    all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
     set to `True`.
 
     Function will return `NaN`s for correlations of equal valued sequences;
