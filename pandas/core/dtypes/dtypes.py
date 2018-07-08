@@ -751,6 +751,17 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
             return u
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import IntervalArray
+        return IntervalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         """
         attempt to construct this type from a string, raise a TypeError

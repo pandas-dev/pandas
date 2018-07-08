@@ -49,6 +49,15 @@ def data_missing():
 
 
 @pytest.fixture
+def data_repeated():
+    """Return different versions of data for count times"""
+    def gen(count):
+        for _ in range(count):
+            yield IntervalArray(make_data())
+    yield gen
+
+
+@pytest.fixture
 def data_for_sorting():
     return IntervalArray.from_tuples([(1, 2), (2, 3), (0, 1)])
 
@@ -76,7 +85,9 @@ class BaseInterval(object):
 
 
 class TestDtype(BaseInterval, base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type() is IntervalArray
 
 
 class TestCasting(BaseInterval, base.BaseCastingTests):
@@ -124,6 +135,10 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
         result = array.set_closed(new_closed)
         expected = IntervalArray.from_breaks(range(10), closed=new_closed)
         tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.skip(reason='addition is not defined for intervals')
+    def test_combine_add(self, data_repeated):
+        pass
 
 
 class TestMissing(BaseInterval, base.BaseMissingTests):

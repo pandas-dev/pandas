@@ -342,7 +342,9 @@ class IntervalIndex(IntervalMixin, Index):
             msg = "invalid option for 'closed': {closed}"
             raise ValueError(msg.format(closed=closed))
 
-        return self._shallow_copy(closed=closed)
+        # return self._shallow_copy(closed=closed)
+        array = self._data.set_closed(closed)
+        return self._simple_new(array, self.name)
 
     @property
     def length(self):

@@ -196,10 +196,6 @@ def _isna_ndarraylike(obj):
         else:
             values = obj
         result = values.isna()
-    elif is_interval_dtype(values):
-        # TODO(IntervalArray): remove this if block
-        from pandas import IntervalIndex
-        result = IntervalIndex(obj).isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
