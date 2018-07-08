@@ -6547,25 +6547,63 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def clip_upper(self, threshold, axis=None, inplace=False):
         """
-        Return copy of input with values above given value(s) truncated.
+        Return copy of the input with values above given value(s) truncated.
+
+        It truncates values above a certain threshold. Threshold can be a
+        single value or an array, in the latter case it performs the truncation
+        element-wise.
 
         Parameters
         ----------
-        threshold : float or array_like
+        threshold : float or array-like
+            Maximum value allowed. All values above threshold will be set to
+            this value.
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
+            Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
 
         See Also
         --------
-        clip
+        clip : Return input copy with values below/above thresholds truncated.
+        clip_lower : Method to truncate values below given thresholds.
 
         Returns
         -------
         clipped : same type as input
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5])
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        dtype: int64
+
+        >>> s.clip_upper(3)
+        0    1
+        1    2
+        2    3
+        3    3
+        4    3
+        dtype: int64
+
+        >>> t = [5, 4, 3, 2, 1]
+        >>> t
+        [5, 4, 3, 2, 1]
+
+        >>> s.clip_upper(t)
+        0    1
+        1    2
+        2    3
+        3    2
+        4    1
+        dtype: int64
         """
         return self._clip_with_one_bound(threshold, method=self.le,
                                          axis=axis, inplace=inplace)
