@@ -20,7 +20,7 @@ import pandas.core.dtypes.concat as _concat
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False,
-           copy=True):
+           sort=None, copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -60,6 +60,19 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     verify_integrity : boolean, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
+    sort : boolean, default None
+        Sort non-concatenation axis if it is not already aligned when `join`
+        is 'outer'. The current default of sorting is deprecated and will
+        change to not-sorting in a future version of pandas.
+
+        Explicitly pass ``sort=True`` to silence the warning and sort.
+        Explicitly pass ``sort=False`` to silence the warning and not sort.
+
+        This has no effect when ``join='inner'``, which already preserves
+        the order of the non-concatenation axis.
+
+        .. versionadded:: 0.23.0
+
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
@@ -209,7 +222,7 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
                        ignore_index=ignore_index, join=join,
                        keys=keys, levels=levels, names=names,
                        verify_integrity=verify_integrity,
-                       copy=copy)
+                       copy=copy, sort=sort)
     return op.get_result()
 
 
@@ -220,7 +233,8 @@ class _Concatenator(object):
 
     def __init__(self, objs, axis=0, join='outer', join_axes=None,
                  keys=None, levels=None, names=None,
-                 ignore_index=False, verify_integrity=False, copy=True):
+                 ignore_index=False, verify_integrity=False, copy=True,
+                 sort=False):
         if isinstance(objs, (NDFrame, compat.string_types)):
             raise TypeError('first argument must be an iterable of pandas '
                             'objects, you passed an object of type '
@@ -355,6 +369,7 @@ class _Concatenator(object):
         self.keys = keys
         self.names = names or getattr(keys, 'names', None)
         self.levels = levels
+        self.sort = sort
 
         self.ignore_index = ignore_index
         self.verify_integrity = verify_integrity
@@ -447,7 +462,8 @@ class _Concatenator(object):
         data_axis = self.objs[0]._get_block_manager_axis(i)
         try:
             return _get_objs_combined_axis(self.objs, axis=data_axis,
-                                           intersect=self.intersect)
+                                           intersect=self.intersect,
+                                           sort=self.sort)
         except IndexError:
             types = [type(x).__name__ for x in self.objs]
             raise TypeError("Cannot concatenate list of {types}"
@@ -504,7 +520,7 @@ class _Concatenator(object):
     def _maybe_check_integrity(self, concat_index):
         if self.verify_integrity:
             if not concat_index.is_unique:
-                overlap = concat_index.get_duplicates()
+                overlap = concat_index[concat_index.duplicated()].unique()
                 raise ValueError('Indexes have overlapping values: '
                                  '{overlap!s}'.format(overlap=overlap))
 

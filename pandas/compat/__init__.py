@@ -26,6 +26,7 @@ Other items:
 # pylint disable=W0611
 # flake8: noqa
 
+import re
 import functools
 import itertools
 from distutils.version import LooseVersion
@@ -39,10 +40,11 @@ import inspect
 from collections import namedtuple
 
 PY2 = sys.version_info[0] == 2
-PY3 = (sys.version_info[0] >= 3)
-PY35 = (sys.version_info >= (3, 5))
-PY36 = (sys.version_info >= (3, 6))
-PYPY = (platform.python_implementation() == 'PyPy')
+PY3 = sys.version_info[0] >= 3
+PY35 = sys.version_info >= (3, 5)
+PY36 = sys.version_info >= (3, 6)
+PY37 = sys.version_info >= (3, 7)
+PYPY = platform.python_implementation() == 'PyPy'
 
 try:
     import __builtin__ as builtins
@@ -136,7 +138,6 @@ if PY3:
 
 else:
     # Python 2
-    import re
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
     FileNotFoundError = IOError
@@ -369,7 +370,7 @@ except NameError:
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
-if sys.version_info[0] < 3:
+if PY2:
     # In PY2 functools.wraps doesn't provide metadata pytest needs to generate
     # decorated tests using parametrization. See pytest GH issue #2782
     def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
@@ -422,6 +423,14 @@ if LooseVersion(dateutil.__version__) < LooseVersion('2.5'):
 from dateutil import parser as _date_parser
 parse_date = _date_parser.parse
 
+
+# In Python 3.7, the private re._pattern_type is removed.
+# Python 3.5+ have typing.re.Pattern
+if PY36:
+    import typing
+    re_type = typing.re.Pattern
+else:
+    re_type = type(re.compile(''))
 
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():

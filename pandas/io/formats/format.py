@@ -514,7 +514,6 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a list of columns (as lists of strings).
         """
         frame = self.tr_frame
-
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)
@@ -625,7 +624,8 @@ class DataFrameFormatter(TableFormatter):
                 max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
-                adj_dif = dif
+                # '+ 1' to avoid too wide repr (GH PR #17023)
+                adj_dif = dif + 1
                 col_lens = Series([Series(ele).apply(len).max()
                                    for ele in strcols])
                 n_cols = len(col_lens)
@@ -635,10 +635,14 @@ class DataFrameFormatter(TableFormatter):
                     mid = int(round(n_cols / 2.))
                     mid_ix = col_lens.index[mid]
                     col_len = col_lens[mid_ix]
-                    adj_dif -= (col_len + 1)  # adjoin adds one
+                    # adjoin adds one
+                    adj_dif -= (col_len + 1)
                     col_lens = col_lens.drop(mid_ix)
                     n_cols = len(col_lens)
-                max_cols_adj = n_cols - self.index  # subtract index column
+                # subtract index column
+                max_cols_adj = n_cols - self.index
+                # GH-21180. Ensure that we print at least two.
+                max_cols_adj = max(max_cols_adj, 2)
                 self.max_cols_adj = max_cols_adj
 
                 # Call again _chk_truncate to cut frame appropriately
@@ -777,7 +781,7 @@ class DataFrameFormatter(TableFormatter):
 
             str_columns = list(zip(*[[space_format(x, y) for y in x]
                                      for x in fmt_columns]))
-            if self.sparsify:
+            if self.sparsify and len(str_columns):
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
