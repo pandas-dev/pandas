@@ -260,7 +260,7 @@ class TimedeltaProperties(Properties):
         2     0      0        0        2             0             0            0
         3     0      0        0        3             0             0            0
         4     0      0        0        4             0             0            0
-        """
+        """  # noqa: E501
         return self._get_values().components.set_index(self.index)
 
     @property
