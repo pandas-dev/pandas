@@ -613,6 +613,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if not is_datetime64_dtype(values):
             values = _ensure_int64(values).view(_NS_DTYPE)
 
+        values = getattr(values, 'values', values)
+
         assert isinstance(values, np.ndarray), "values is not an np.ndarray"
         assert is_datetime64_dtype(values)
 
