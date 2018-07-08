@@ -402,38 +402,43 @@ e  NaN  -2.0
 """
 
 _mod_example_FRAME = """
->>> a = pd.DataFrame([2, 4, np.nan, 6.2], index=["a","b","c","d"],
-...                  columns=['one'])
->>> a
+**Using a scalar argument**
+
+>>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a","b","c","d"],
+...                   columns=['one'])
+>>> df
     one
 a   2.0
 b   4.0
 c   NaN
 d   6.2
->>> a.mod(3, fill_value=-1)
+>>> df.mod(3, fill_value=-1)
     one
 a   2.0
 b   1.0
 c   2.0
 d   0.2
->>> b = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
-...                  index=['a', 'b', 'c', 'd'])
->>> b
+
+**Using a DataFrame argument**
+
+>>> df = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
+...                   index=['a', 'b', 'c', 'd'])
+>>> df
     one   two
 a   NaN   NaN
 b   2.0   1.0
 c   3.0   1.0
 d   14.0  3.0
->>> c = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
-...                       three=[np.nan, 10, np.nan, -7]),
-...                  index=['a', 'b', 'd', 'e'])
->>> c
+>>> other = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
+...                           three=[np.nan, 10, np.nan, -7]),
+...                      index=['a', 'b', 'd', 'e'])
+>>> other
     one three
 a   NaN NaN
 b   NaN 10.0
 d   6.0 NaN
 e   NaN -7.0
->>> b.mod(c, fill_value=3)
+>>> df.mod(other, fill_value=3)
     one   three two
 a   NaN   NaN   NaN
 b   2.0   3.0   1.0
