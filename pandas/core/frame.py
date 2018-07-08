@@ -184,7 +184,7 @@ suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
     side, respectively.
 copy : boolean, default True
-    If False, do not copy data unnecessarily.
+    If False, avoid copy if possible.
 indicator : boolean or string, default False
     If True, adds a column to output DataFrame called "_merge" with
     information on the source of each row.
