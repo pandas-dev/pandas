@@ -6939,14 +6939,6 @@ class DataFrame(NDFrame):
         3    3
         4    3
         dtype: int64
-
-        Counts for one level of a `MultiIndex`:
-
-        >>> df.set_index(["Person", "Single"]).count(level="Person")
-                Age
-        Person
-        John      2
-        Myla      1
         """
         axis = self._get_axis_number(axis)
         if level is not None:
