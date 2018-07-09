@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar, is_iterator,
@@ -632,7 +633,19 @@ class Categorical(ExtensionArray, PandasObject):
         """
         codes = np.asarray(codes)
         if not is_integer_dtype(codes):
-            raise ValueError("codes need to be array-like integers")
+            err = True
+            if is_float_dtype(codes):
+                icodes = codes.astype('i8')
+                if (icodes == codes).all():
+                    err = False
+                    codes = icodes
+                    warn("float codes will be disallowed in the future",
+                         FutureWarning)
+                else:
+                    err = True
+            if err:
+                raise ValueError("codes need to be array-like integers")
+
         try:
             codes = coerce_indexer_dtype(codes, categories)
         except (ValueError, TypeError):
