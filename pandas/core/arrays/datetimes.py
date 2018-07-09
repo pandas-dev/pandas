@@ -617,8 +617,41 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
     weekofyear = _field_accessor('weekofyear', 'woy',
                                  "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow',
-                                "The day of the week with Monday=0, Sunday=6")
+    _dayofweek_doc = """
+    The day of the week with Monday=0, Sunday=6.
+
+    Return the day of the week. It is assumed the week starts on
+    Monday, which is denoted by 0 and ends on Sunday which is denoted
+    by 6. This method is available on both Series with datetime
+    values (using the `dt` accessor) or DatetimeIndex.
+
+    See Also
+    --------
+    Series.dt.dayofweek : Alias.
+    Series.dt.weekday : Alias.
+    Series.dt.day_name : Returns the name of the day of the week.
+
+    Returns
+    -------
+    Series or Index
+        Containing integers indicating the day number.
+
+    Examples
+    --------
+    >>> s = pd.date_range('2016-12-31', '2017-01-08', freq='D').to_series()
+    >>> s.dt.dayofweek
+    2016-12-31    5
+    2017-01-01    6
+    2017-01-02    0
+    2017-01-03    1
+    2017-01-04    2
+    2017-01-05    3
+    2017-01-06    4
+    2017-01-07    5
+    2017-01-08    6
+    Freq: D, dtype: int64
+    """
+    dayofweek = _field_accessor('dayofweek', 'dow', _dayofweek_doc)
     weekday = dayofweek
 
     weekday_name = _field_accessor(
