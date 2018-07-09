@@ -572,6 +572,23 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         expected = pd.Series([1, 2, 3, None], dtype='Int8')
         self.assert_series_equal(result, expected)
 
+    def test_construct_cast_invalid(self, dtype):
+
+        msg = "cannot safely"
+        arr = [1.2, 2.3, 3.7]
+        with tm.assert_raises_regex(TypeError, msg):
+            IntegerArray(arr, dtype=dtype)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            pd.Series(arr).astype(dtype)
+
+        arr = [1.2, 2.3, 3.7, np.nan]
+        with tm.assert_raises_regex(TypeError, msg):
+            IntegerArray(arr, dtype=dtype)
+
+        with tm.assert_raises_regex(TypeError, msg):
+            pd.Series(arr).astype(dtype)
+
 
 class TestGroupby(BaseInteger, base.BaseGroupbyTests):
 

@@ -92,6 +92,26 @@ def to_integer_array(values, dtype=None):
     return IntegerArray(values, dtype=dtype, copy=False)
 
 
+def safe_cast(values, dtype, copy):
+    """
+    Safely cast the values to the dtype if they
+    are equivalent, meaning floats must be equivalent to the
+    ints.
+
+    """
+
+    try:
+        return values.astype(dtype, casting='safe', copy=copy)
+    except TypeError:
+
+        casted = values.astype(dtype, copy=copy)
+        if (casted == values).all():
+            return casted
+
+        raise TypeError("cannot safely cast non-equivalent {} to {}".format(
+            values.dtype, np.dtype(dtype)))
+
+
 def coerce_to_array(values, dtype, mask=None, copy=False):
     """
     Coerce the input values array to numpy arrays with a mask
@@ -156,14 +176,16 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     else:
         dtype = dtype.type
 
+    # if we are float, let's make sure that we can
+    # safely cast
+
     # we copy as need to coerce here
     if mask.any():
         values = values.copy()
         values[mask] = 1
-
-        values = values.astype(dtype)
+        values = safe_cast(values, dtype, copy=False)
     else:
-        values = values.astype(dtype, copy=False)
+        values = safe_cast(values, dtype, copy=False)
 
     return values, mask
 
