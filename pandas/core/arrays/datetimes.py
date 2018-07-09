@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
 import warnings
 
 import numpy as np
@@ -11,15 +12,18 @@ from pandas._libs.tslibs import (
     resolution as libresolution)
 
 from pandas.util._decorators import cache_readonly
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
+    is_timedelta64_dtype,
     _ensure_int64)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 from pandas.tseries.frequencies import to_offset, DateOffset
+from pandas.tseries.offsets import Tick
 
 from .datetimelike import DatetimeLikeArrayMixin
 
@@ -104,6 +108,10 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, tz=None):
+        if tz is None and hasattr(values, 'tz'):
+            # e.g. DatetimeIndex
+            tz = values.tz
+
         if (freq is not None and not isinstance(freq, DateOffset) and
                 freq != 'infer'):
             freq = to_offset(freq)
@@ -130,6 +138,17 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
         if self.tz is None:
             return _NS_DTYPE
         return DatetimeTZDtype('ns', self.tz)
+
+    @property
+    def tz(self):
+        # GH 18595
+        return self._tz
+
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
 
     @property
     def tzinfo(self):
@@ -243,6 +262,60 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
+
+    def _add_offset(self, offset):
+        assert not isinstance(offset, Tick)
+        try:
+            if self.tz is not None:
+                values = self.tz_localize(None)
+            else:
+                values = self
+            result = offset.apply_index(values)
+            if self.tz is not None:
+                result = result.tz_localize(self.tz)
+
+        except NotImplementedError:
+            warnings.warn("Non-vectorized DateOffset being applied to Series "
+                          "or DatetimeIndex", PerformanceWarning)
+            result = self.astype('O') + offset
+
+        return type(self)(result, freq='infer')
+
+    def _add_delta(self, delta):
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : same type as self
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
+        from pandas.core.arrays.timedelta import TimedeltaArrayMixin
+
+        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_delta_td(delta)
+        elif is_timedelta64_dtype(delta):
+            if not isinstance(delta, TimedeltaArrayMixin):
+                delta = TimedeltaArrayMixin(delta)
+            new_values = self._add_delta_tdi(delta)
+        else:
+            new_values = self.astype('O') + delta
+
+        tz = 'UTC' if self.tz is not None else None
+        result = type(self)(new_values, tz=tz, freq='infer')
+        if self.tz is not None and self.tz is not utc:
+            result = result.tz_convert(self.tz)
+        return result
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
