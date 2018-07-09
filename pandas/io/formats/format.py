@@ -7,6 +7,17 @@ and latex files. This module also applies to display formatting.
 from __future__ import print_function
 # pylint: disable=W0141
 
+from functools import partial
+
+import numpy as np
+
+from pandas._libs import lib
+from pandas._libs.tslibs import iNaT, Timestamp, Timedelta
+from pandas._libs.tslib import format_array_from_datetime
+
+from pandas import compat
+from pandas.compat import StringIO, lzip, map, zip, u
+
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -26,23 +37,16 @@ from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas import compat
-from pandas.compat import (StringIO, lzip, map, zip, u)
-
-from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
-from pandas.io.common import (_expand_user, _stringify_path)
-from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas._libs import lib
-
-from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
-                                format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-import pandas as pd
-import numpy as np
 
-from functools import partial
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.io.common import (_expand_user, _stringify_path)
+from pandas.io.formats.printing import adjoin, justify, pprint_thing
+
+import pandas as pd
+
 
 common_docstring = """
     Parameters
@@ -514,7 +518,6 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a list of columns (as lists of strings).
         """
         frame = self.tr_frame
-
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)
@@ -636,10 +639,14 @@ class DataFrameFormatter(TableFormatter):
                     mid = int(round(n_cols / 2.))
                     mid_ix = col_lens.index[mid]
                     col_len = col_lens[mid_ix]
-                    adj_dif -= (col_len + 1)  # adjoin adds one
+                    # adjoin adds one
+                    adj_dif -= (col_len + 1)
                     col_lens = col_lens.drop(mid_ix)
                     n_cols = len(col_lens)
-                max_cols_adj = n_cols - self.index  # subtract index column
+                # subtract index column
+                max_cols_adj = n_cols - self.index
+                # GH-21180. Ensure that we print at least two.
+                max_cols_adj = max(max_cols_adj, 2)
                 self.max_cols_adj = max_cols_adj
 
                 # Call again _chk_truncate to cut frame appropriately
@@ -778,7 +785,7 @@ class DataFrameFormatter(TableFormatter):
 
             str_columns = list(zip(*[[space_format(x, y) for y in x]
                                      for x in fmt_columns]))
-            if self.sparsify:
+            if self.sparsify and len(str_columns):
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]

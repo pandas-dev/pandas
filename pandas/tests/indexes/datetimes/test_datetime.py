@@ -1,3 +1,4 @@
+import warnings
 
 import pytest
 
@@ -152,6 +153,17 @@ class TestDatetimeIndex(object):
             assert result._repr_base == expected._repr_base
             assert result == expected
 
+    @pytest.mark.parametrize('periods', [0, 9999, 10000, 10001])
+    def test_iteration_over_chunksize(self, periods):
+        # GH21012
+
+        index = date_range('2000-01-01 00:00:00', periods=periods, freq='min')
+        num = 0
+        for stamp in index:
+            assert index[num] == stamp
+            num += 1
+        assert num == len(index)
+
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
@@ -178,7 +190,10 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
                              '2000-01-03', '2000-01-03', '2000-01-04'])
 
-        result = idx.get_duplicates()
+        with warnings.catch_warnings(record=True):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = DatetimeIndex(['2000-01-02', '2000-01-03'])
         tm.assert_index_equal(result, ex)
 

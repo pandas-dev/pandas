@@ -3,7 +3,7 @@ missing types & inference
 """
 import numpy as np
 from pandas._libs import lib, missing as libmissing
-from pandas._libs.tslib import NaT, iNaT
+from pandas._libs.tslibs import NaT, iNaT
 from .generic import (ABCMultiIndex, ABCSeries,
                       ABCIndexClass, ABCGeneric,
                       ABCExtensionArray)
@@ -33,7 +33,7 @@ def isna(obj):
     """
     Detect missing values for an array-like object.
 
-    This function takes a scalar or array-like object and indictates
+    This function takes a scalar or array-like object and indicates
     whether values are missing (``NaN`` in numeric arrays, ``None`` or ``NaN``
     in object arrays, ``NaT`` in datetimelike).
 
@@ -52,7 +52,7 @@ def isna(obj):
     See Also
     --------
     notna : boolean inverse of pandas.isna.
-    Series.isna : Detetct missing values in a Series.
+    Series.isna : Detect missing values in a Series.
     DataFrame.isna : Detect missing values in a DataFrame.
     Index.isna : Detect missing values in an Index.
 
@@ -120,7 +120,9 @@ def _isna_new(obj):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike(np.asarray(obj))
     else:
         return obj is None
@@ -146,7 +148,9 @@ def _isna_old(obj):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
@@ -256,7 +260,7 @@ def notna(obj):
     """
     Detect non-missing values for an array-like object.
 
-    This function takes a scalar or array-like object and indictates
+    This function takes a scalar or array-like object and indicates
     whether values are valid (not missing, which is ``NaN`` in numeric
     arrays, ``None`` or ``NaN`` in object arrays, ``NaT`` in datetimelike).
 
@@ -275,7 +279,7 @@ def notna(obj):
     See Also
     --------
     isna : boolean inverse of pandas.notna.
-    Series.notna : Detetct valid values in a Series.
+    Series.notna : Detect valid values in a Series.
     DataFrame.notna : Detect valid values in a DataFrame.
     Index.notna : Detect valid values in an Index.
 
@@ -502,6 +506,8 @@ def na_value_for_dtype(dtype, compat=True):
     """
     dtype = pandas_dtype(dtype)
 
+    if is_extension_array_dtype(dtype):
+        return dtype.na_value
     if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
             is_timedelta64_dtype(dtype) or is_period_dtype(dtype)):
         return NaT

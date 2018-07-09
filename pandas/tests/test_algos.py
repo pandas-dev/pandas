@@ -231,8 +231,9 @@ class TestFactorize(object):
 
         pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
 
-    def test_uint64_factorize(self):
+    def test_uint64_factorize(self, writable):
         data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+        data.setflags(write=writable)
         exp_labels = np.array([0, 1, 0], dtype=np.intp)
         exp_uniques = np.array([2**63, 1], dtype=np.uint64)
 
@@ -490,6 +491,14 @@ class TestUnique(object):
         # see GH 17108
         result = pd.unique(arg)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_obj_none_preservation(self):
+        # GH 20866
+        arr = np.array(['foo', None], dtype=object)
+        result = pd.unique(arr)
+        expected = np.array(['foo', None], dtype=object)
+
+        tm.assert_numpy_array_equal(result, expected, strict_nan=True)
 
 
 class TestIsin(object):
@@ -1069,15 +1078,19 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 class TestHashTable(object):
 
-    def test_lookup_nan(self):
+    def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
+        # GH 21688 ensure we can deal with readonly memory views
+        xs.setflags(write=writable)
         m = ht.Float64HashTable()
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
                                                             dtype=np.int64))
 
-    def test_lookup_overflow(self):
+    def test_lookup_overflow(self, writable):
         xs = np.array([1, 2, 2**63], dtype=np.uint64)
+        # GH 21688 ensure we can deal with readonly memory views
+        xs.setflags(write=writable)
         m = ht.UInt64HashTable()
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
@@ -1088,12 +1101,14 @@ class TestHashTable(object):
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(s.unique(), exp)
 
-    def test_vector_resize(self):
+    def test_vector_resize(self, writable):
         # Test for memory errors after internal vector
         # reallocations (pull request #7157)
 
         def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
             vals = np.array(np.random.randn(1000), dtype=dtype)
+            # GH 21688 ensure we can deal with readonly memory views
+            vals.setflags(write=writable)
             # get_labels may append to uniques
             htable.get_labels(vals[:nvals], uniques, 0, -1)
             # to_array() set an external_view_exists flag on uniques.

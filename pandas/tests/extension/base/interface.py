@@ -21,7 +21,8 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert data.ndim == 1
 
     def test_can_hold_na_valid(self, data):
-        assert data._can_hold_na in {True, False}
+        # GH-20761
+        assert data._can_hold_na is True
 
     def test_memory_usage(self, data):
         s = pd.Series(data)
@@ -39,6 +40,16 @@ class BaseInterfaceTests(BaseExtensionTests):
         df = pd.DataFrame({"A": data})
         repr(df)
 
+    def test_repr_array(self, data):
+        # some arrays may be able to assert
+        # attributes in the repr
+        repr(data)
+
+    def test_repr_array_long(self, data):
+        # some arrays may be able to assert a ... in the repr
+        with pd.option_context('display.max_seq_items', 1):
+            repr(data)
+
     def test_dtype_name_in_info(self, data):
         buf = StringIO()
         pd.DataFrame({"A": data}).info(buf=buf)
@@ -50,3 +61,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert is_extension_array_dtype(data.dtype)
         assert is_extension_array_dtype(pd.Series(data))
         assert isinstance(data.dtype, ExtensionDtype)
+
+    def test_no_values_attribute(self, data):
+        # GH-20735: EA's with .values attribute give problems with internal
+        # code, disallowing this for now until solved
+        assert not hasattr(data, 'values')
+        assert not hasattr(data, '_values')

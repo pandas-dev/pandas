@@ -151,6 +151,17 @@ class TestDataFrameConstructors(TestData):
         assert a.dtype == df.a.dtype
         assert b.dtype == df.b.dtype
 
+    def test_constructor_dtype_str_na_values(self, string_dtype):
+        # https://github.com/pandas-dev/pandas/issues/21083
+        df = DataFrame({'A': ['x', None]}, dtype=string_dtype)
+        result = df.isna()
+        expected = DataFrame({"A": [False, True]})
+        tm.assert_frame_equal(result, expected)
+        assert df.iloc[1, 0] is None
+
+        df = DataFrame({'A': ['x', np.nan]}, dtype=string_dtype)
+        assert np.isnan(df.iloc[1, 0])
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
@@ -490,9 +501,11 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
-        check = lambda result, expected: tm.assert_frame_equal(
-            result, expected, check_dtype=True, check_index_type=True,
-            check_column_type=True, check_names=True)
+        def check(result, expected):
+            return tm.assert_frame_equal(result, expected, check_dtype=True,
+                                         check_index_type=True,
+                                         check_column_type=True,
+                                         check_names=True)
         d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
              ('b', 'a'): {('i', 'i'): 6, ('i', 'j'): 5, ('j', 'i'): 4},
              ('b', 'c'): {('i', 'i'): 7, ('i', 'j'): 8, ('j', 'i'): 9}}
@@ -1071,6 +1084,17 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame.from_dict(sdict, orient='index')
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_of_series_aligned_index(self):
+        series = [pd.Series(i, index=['b', 'a', 'c'], name=str(i))
+                  for i in range(3)]
+        result = pd.DataFrame(series)
+        expected = pd.DataFrame({'b': [0, 1, 2],
+                                 'a': [0, 1, 2],
+                                 'c': [0, 1, 2]},
+                                columns=['b', 'a', 'c'],
+                                index=['0', '1', '2'])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_derived_dicts(self):
         class CustomDict(dict):
             pass
@@ -1627,25 +1651,27 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_with_nas(self):
         # GH 5016
-        # na's in indicies
+        # na's in indices
 
         def check(df):
             for i in range(len(df.columns)):
                 df.iloc[:, i]
 
-            # allow single nans to succeed
             indexer = np.arange(len(df.columns))[isna(df.columns)]
 
-            if len(indexer) == 1:
-                tm.assert_series_equal(df.iloc[:, indexer[0]],
-                                       df.loc[:, np.nan])
-
-            # multiple nans should fail
-            else:
-
+            # No NaN found -> error
+            if len(indexer) == 0:
                 def f():
                     df.loc[:, np.nan]
                 pytest.raises(TypeError, f)
+            # single nan should result in Series
+            elif len(indexer) == 1:
+                tm.assert_series_equal(df.iloc[:, indexer[0]],
+                                       df.loc[:, np.nan])
+            # multiple nans should result in DataFrame
+            else:
+                tm.assert_frame_equal(df.iloc[:, indexer],
+                                      df.loc[:, np.nan])
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
         check(df)
@@ -1659,6 +1685,11 @@ class TestDataFrameConstructors(TestData):
 
         df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
                        columns=[np.nan, 1.1, 2.2, np.nan])
+        check(df)
+
+        # GH 21428 (non-unique columns)
+        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
+                       columns=[np.nan, 1, 2, 2])
         check(df)
 
     def test_constructor_lists_to_object_dtype(self):
