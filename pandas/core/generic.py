@@ -6547,32 +6547,46 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def clip_upper(self, threshold, axis=None, inplace=False):
         """
-        Return copy of the input with values above given value(s) truncated.
+        Trim values above a given threshold.
 
-        It truncates values above a certain threshold. Threshold can be a
-        single value or an array, in the latter case it performs the truncation
-        element-wise.
+        Elements above the `threshold` will be changed to match the
+        `threshold` value(s). Threshold can be a single value or an array,
+        in the latter case it performs the truncation element-wise.
 
         Parameters
         ----------
-        threshold : float or array-like
+        threshold : numeric or array-like
             Maximum value allowed. All values above threshold will be set to
             this value.
-        axis : int or string axis name, optional
-            Align object with threshold along the given axis.
+
+            * float : every value is compared to `threshold`.
+            * array-like : The shape of `threshold` should match the object
+              it's compared to. When `self` is a Series, `threshold` should be
+              the length. When `self` is a DataFrame, `threshold` should 2-D
+              and the same shape as `self` for ``axis=None``, or 1-D and the
+              same length as the axis being compared.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Align object with `threshold` along the given axis.
         inplace : boolean, default False
             Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
 
-        See Also
-        --------
-        clip : Return input copy with values below/above thresholds truncated.
-        clip_lower : Method to truncate values below given thresholds.
-
         Returns
         -------
-        clipped : same type as input
+        clipped
+            Original data with values trimmed.
+
+        See Also
+        --------
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s)
+        DataFrame.clip_lower : Trim DataFrame values below given
+            threshold(s)
+        Series.clip : General purpose method to trim Series values to given
+            threshold(s)
+        Series.clip_lower : Trim Series values below given threshold(s)
 
         Examples
         --------
@@ -6613,7 +6627,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Trim values below a given threshold.
 
         Elements below the `threshold` will be changed to match the
-        `threshold` value(s).
+        `threshold` value(s). Threshold can be a single value or an array,
+        in the latter case it performs the truncation element-wise.
 
         Parameters
         ----------
@@ -6636,20 +6651,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
 
-        See Also
-        --------
-        DataFrame.clip : General purpose method to trim `DataFrame` values to
-            given threshold(s)
-        DataFrame.clip_upper : Trim `DataFrame` values above given
-            threshold(s)
-        Series.clip : General purpose method to trim `Series` values to given
-            threshold(s)
-        Series.clip_upper : Trim `Series` values above given threshold(s)
-
         Returns
         -------
         clipped
             Original data with values trimmed.
+
+        See Also
+        --------
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s)
+        DataFrame.clip_upper : Trim DataFrame values above given
+            threshold(s)
+        Series.clip : General purpose method to trim Series values to given
+            threshold(s)
+        Series.clip_upper : Trim Series values above given threshold(s)
 
         Examples
         --------
@@ -6716,7 +6731,6 @@ class NDFrame(PandasObject, SelectionMixin):
         0  4  5
         1  4  5
         2  5  6
-
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
@@ -7764,9 +7778,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return self._constructor(new_data).__finalize__(self)
 
     _shared_docs['where'] = ("""
-        Return an object of same shape as self and whose corresponding
-        entries are from self where `cond` is %(cond)s and otherwise are from
-        `other`.
+        Replace values where the condition is %(cond_rev)s.
 
         Parameters
         ----------
@@ -7791,23 +7803,27 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as other.
 
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        axis : alignment axis if needed, default None
-        level : alignment level if needed, default None
-        errors : str, {'raise', 'ignore'}, default 'raise'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
-
+            Whether to perform the operation in place on the data.
+        axis : int, default None
+            Alignment axis if needed.
+        level : int, default None
+            Alignment level if needed.
+        errors : str, {'raise', 'ignore'}, default `raise`
             Note that currently this parameter won't affect
             the results and will always coerce to a suitable dtype.
 
+            - `raise` : allow exceptions to be raised.
+            - `ignore` : suppress exceptions. On error return original object.
+
         try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
+            Try to cast the result back to the input type (if possible).
         raise_on_error : boolean, default True
             Whether to raise on invalid data types (e.g. trying to where on
-            strings)
+            strings).
 
             .. deprecated:: 0.21.0
+
+               Use `errors`.
 
         Returns
         -------
@@ -7827,6 +7843,11 @@ class NDFrame(PandasObject, SelectionMixin):
         For further details and examples see the ``%(name)s`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
+        See Also
+        --------
+        :func:`DataFrame.%(name_other)s` : Return an object of same shape as
+            self
+
         Examples
         --------
         >>> s = pd.Series(range(5))
@@ -7836,6 +7857,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2.0
         3    3.0
         4    4.0
+        dtype: float64
 
         >>> s.mask(s > 0)
         0    0.0
@@ -7843,13 +7865,15 @@ class NDFrame(PandasObject, SelectionMixin):
         2    NaN
         3    NaN
         4    NaN
+        dtype: float64
 
         >>> s.where(s > 1, 10)
-        0    10.0
-        1    10.0
-        2    2.0
-        3    3.0
-        4    4.0
+        0    10
+        1    10
+        2    2
+        3    3
+        4    4
+        dtype: int64
 
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
         >>> m = df %% 3 == 0
@@ -7874,10 +7898,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2  True  True
         3  True  True
         4  True  True
-
-        See Also
-        --------
-        :func:`DataFrame.%(name_other)s`
         """)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",

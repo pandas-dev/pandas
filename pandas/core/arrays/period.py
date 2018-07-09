@@ -8,14 +8,16 @@ from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
-    get_period_field_arr)
+    get_period_field_arr, period_asfreq_arr)
+from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas import compat
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import is_integer_dtype, is_float_dtype
+from pandas.core.dtypes.common import (
+    is_integer_dtype, is_float_dtype, is_period_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
 
 from pandas.tseries import frequencies
@@ -113,12 +115,23 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     _attributes = ["freq"]
 
+    def __new__(cls, values, freq=None, **kwargs):
+        if is_period_dtype(values):
+            # PeriodArray, PeriodIndex
+            if freq is not None and values.freq != freq:
+                raise IncompatibleFrequency(freq, values.freq)
+            freq = values.freq
+            values = values.asi8
+
+        return cls._simple_new(values, freq, **kwargs)
+
     @classmethod
     def _simple_new(cls, values, freq=None, **kwargs):
         """
         Values can be any type that can be coerced to Periods.
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
         """
+
         if not is_integer_dtype(values):
             values = np.array(values, copy=False)
             if len(values) > 0 and is_float_dtype(values):
@@ -127,8 +140,6 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             return cls(values, freq=freq)
 
         return cls._from_ordinals(values, freq)
-
-    __new__ = _simple_new  # For now...
 
     @classmethod
     def _from_ordinals(cls, values, freq=None):
@@ -172,6 +183,65 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
     def is_leap_year(self):
         """ Logical indicating if the date belongs to a leap year """
         return isleapyear_arr(np.asarray(self.year))
+
+    def asfreq(self, freq=None, how='E'):
+        """
+        Convert the Period Array/Index to the specified frequency `freq`.
+
+        Parameters
+        ----------
+        freq : str
+            a frequency
+        how : str {'E', 'S'}
+            'E', 'END', or 'FINISH' for end,
+            'S', 'START', or 'BEGIN' for start.
+            Whether the elements should be aligned to the end
+            or start within pa period. January 31st ('END') vs.
+            January 1st ('START') for example.
+
+        Returns
+        -------
+        new : Period Array/Index with the new frequency
+
+        Examples
+        --------
+        >>> pidx = pd.period_range('2010-01-01', '2015-01-01', freq='A')
+        >>> pidx
+        <class 'pandas.core.indexes.period.PeriodIndex'>
+        [2010, ..., 2015]
+        Length: 6, Freq: A-DEC
+
+        >>> pidx.asfreq('M')
+        <class 'pandas.core.indexes.period.PeriodIndex'>
+        [2010-12, ..., 2015-12]
+        Length: 6, Freq: M
+
+        >>> pidx.asfreq('M', how='S')
+        <class 'pandas.core.indexes.period.PeriodIndex'>
+        [2010-01, ..., 2015-01]
+        Length: 6, Freq: M
+        """
+        how = libperiod._validate_end_alias(how)
+
+        freq = Period._maybe_convert_freq(freq)
+
+        base1, mult1 = frequencies.get_freq_code(self.freq)
+        base2, mult2 = frequencies.get_freq_code(freq)
+
+        asi8 = self.asi8
+        # mult1 can't be negative or 0
+        end = how == 'E'
+        if end:
+            ordinal = asi8 + mult1 - 1
+        else:
+            ordinal = asi8
+
+        new_data = period_asfreq_arr(ordinal, base1, base2, end)
+
+        if self.hasnans:
+            new_data[self._isnan] = iNaT
+
+        return self._simple_new(new_data, self.name, freq=freq)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
