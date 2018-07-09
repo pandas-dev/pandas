@@ -16,44 +16,46 @@ class TestPandasDtype(object):
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
-    def test_invalid_dtype_error(self):
-        msg = 'not understood'
-        invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
-        for dtype in invalid_list:
-            with tm.assert_raises_regex(TypeError, msg):
-                com.pandas_dtype(dtype)
+    @pytest.mark.parametrize('box', [pd.Timestamp, 'pd.Timestamp', list])
+    def test_invalid_dtype_error(self, box):
+        with tm.assert_raises_regex(TypeError, 'not understood'):
+            com.pandas_dtype(box)
 
-        valid_list = [object, 'float64', np.object_, np.dtype('object'), 'O',
-                      np.float64, float, np.dtype('float64')]
-        for dtype in valid_list:
-            com.pandas_dtype(dtype)
+    @pytest.mark.parametrize('dtype', [
+        object, 'float64', np.object_, np.dtype('object'), 'O',
+        np.float64, float, np.dtype('float64')])
+    def test_pandas_dtype_valid(self, dtype):
+        assert com.pandas_dtype(dtype) == dtype
 
-    def test_numpy_dtype(self):
-        for dtype in ['M8[ns]', 'm8[ns]', 'object', 'float64', 'int64']:
-            assert com.pandas_dtype(dtype) == np.dtype(dtype)
+    @pytest.mark.parametrize('dtype', [
+        'M8[ns]', 'm8[ns]', 'object', 'float64', 'int64'])
+    def test_numpy_dtype(self, dtype):
+        assert com.pandas_dtype(dtype) == np.dtype(dtype)
 
     def test_numpy_string_dtype(self):
         # do not parse freq-like string as period dtype
         assert com.pandas_dtype('U') == np.dtype('U')
         assert com.pandas_dtype('S') == np.dtype('S')
 
-    def test_datetimetz_dtype(self):
-        for dtype in ['datetime64[ns, US/Eastern]',
-                      'datetime64[ns, Asia/Tokyo]',
-                      'datetime64[ns, UTC]']:
-            assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
-            assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
-            assert com.pandas_dtype(dtype) == dtype
+    @pytest.mark.parametrize('dtype', [
+        'datetime64[ns, US/Eastern]',
+        'datetime64[ns, Asia/Tokyo]',
+        'datetime64[ns, UTC]'])
+    def test_datetimetz_dtype(self, dtype):
+        assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
+        assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
+        assert com.pandas_dtype(dtype) == dtype
 
     def test_categorical_dtype(self):
         assert com.pandas_dtype('category') == CategoricalDtype()
 
-    def test_period_dtype(self):
-        for dtype in ['period[D]', 'period[3M]', 'period[U]',
-                      'Period[D]', 'Period[3M]', 'Period[U]']:
-            assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
-            assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
-            assert com.pandas_dtype(dtype) == dtype
+    @pytest.mark.parametrize('dtype', [
+        'period[D]', 'period[3M]', 'period[U]',
+        'Period[D]', 'Period[3M]', 'Period[U]'])
+    def test_period_dtype(self, dtype):
+        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) == dtype
 
 
 dtypes = dict(datetime_tz=com.pandas_dtype('datetime64[ns, US/Eastern]'),
@@ -568,8 +570,8 @@ def test_is_offsetlike():
     (pd.CategoricalIndex(['a', 'b']), CategoricalDtype(['a', 'b'])),
     (CategoricalDtype(), CategoricalDtype()),
     (CategoricalDtype(['a', 'b']), CategoricalDtype()),
-    (pd.DatetimeIndex([1, 2]), np.dtype('<M8[ns]')),
-    (pd.DatetimeIndex([1, 2]).dtype, np.dtype('<M8[ns]')),
+    (pd.DatetimeIndex([1, 2]), np.dtype('=M8[ns]')),
+    (pd.DatetimeIndex([1, 2]).dtype, np.dtype('=M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),
     ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
     (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),

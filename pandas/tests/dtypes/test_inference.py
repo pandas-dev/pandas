@@ -20,7 +20,7 @@ from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna, Interval,
                     DateOffset)
-from pandas.compat import u, PY2, PY3, StringIO, lrange
+from pandas.compat import u, PY2, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
@@ -128,7 +128,7 @@ def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
 
-def test_is_file_like():
+def test_is_file_like(mock):
     class MockFile(object):
         pass
 
@@ -166,10 +166,7 @@ def test_is_file_like():
     # Iterator but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
-
-    if PY3:
-        from unittest import mock
-        assert not is_file(mock.Mock())
+    assert not is_file(mock.Mock())
 
 
 @pytest.mark.parametrize(

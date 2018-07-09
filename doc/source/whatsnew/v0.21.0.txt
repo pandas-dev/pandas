@@ -895,7 +895,7 @@ nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
 must explicitly register these methods:
 
 Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
-converters on first-use (:issue:17710).
+converters on first-use (:issue:`17710`).
 
 .. note::
 
@@ -935,7 +935,7 @@ Deprecations
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 - :func:`read_excel()` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with :func:`read_csv` (:issue:`4988`)
 - :func:`read_csv()` has deprecated the ``tupleize_cols`` argument. Column tuples will always be converted to a ``MultiIndex`` (:issue:`17060`)
-- :meth:`DataFrame.to_csv` has deprecated the ``tupleize_cols`` argument. Multi-index columns will be always written as rows in the CSV file (:issue:`17060`)
+- :meth:`DataFrame.to_csv` has deprecated the ``tupleize_cols`` argument. MultiIndex columns will be always written as rows in the CSV file (:issue:`17060`)
 - The ``convert`` parameter has been deprecated in the ``.take()`` method, as it was not being respected (:issue:`16948`)
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
@@ -1047,7 +1047,7 @@ Conversion
 - Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
 - Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
 - Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
-- Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (`DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
+- Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (``DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
 - Bug in :meth:`to_numeric` in which elements were not always being coerced to numeric when ``errors='coerce'`` (:issue:`17007`, :issue:`17125`)
 - Bug in ``DataFrame`` and ``Series`` constructors where ``range`` objects are converted to ``int32`` dtype on Windows instead of ``int64`` (:issue:`16804`)
 
