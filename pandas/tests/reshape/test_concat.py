@@ -2351,6 +2351,15 @@ bar2,12,13,14,15
 
         tm.assert_frame_equal(result, expected)
 
+        # GH 13783: Concat after resample
+        with catch_warnings(record=True):
+            result = pd.concat([df1.resample('H').mean(),
+                                df2.resample('H').mean()])
+            expected = pd.DataFrame({'a': [1, 2, 3] + [np.nan] * 3,
+                                     'b': [np.nan] * 3 + [1, 2, 3]},
+                                    index=idx1.append(idx1))
+            tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['float'])

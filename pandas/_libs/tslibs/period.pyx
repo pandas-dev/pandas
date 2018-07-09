@@ -15,8 +15,6 @@ from libc.stdlib cimport free, malloc
 from libc.time cimport strftime, tm
 from libc.string cimport strlen, memset
 
-from pandas.compat import PY2
-
 cimport cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
@@ -38,8 +36,6 @@ cdef extern from "../src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from pandas._libs.missing cimport is_null_datetimelike
-
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
@@ -54,10 +50,11 @@ from frequencies cimport (get_freq_code, get_base_alias,
 from parsing import parse_time_string, NAT_SENTINEL
 from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
-from nattype cimport _nat_scalar_rules, NPY_NAT
+from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
+from offsets cimport to_offset
+from offsets import _Tick
 
-from pandas.tseries import offsets
-from pandas.tseries import frequencies
+cdef bint PY2 = str == bytes
 
 
 cdef extern from "period_helper.h":
@@ -898,7 +895,7 @@ def extract_ordinals(ndarray[object] values, freq):
                 ordinals[i] = p.ordinal
 
                 if p.freqstr != freqstr:
-                    msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    msg = DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
@@ -988,8 +985,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
 
 
 _DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
-_DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
-                         "from PeriodIndex(freq={0})")
+DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
+                        "from PeriodIndex(freq={0})")
 
 
 class IncompatibleFrequency(ValueError):
@@ -1015,7 +1012,7 @@ cdef class _Period(object):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
 
-        freq = frequencies.to_offset(freq)
+        freq = to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
@@ -1062,9 +1059,9 @@ cdef class _Period(object):
             int64_t nanos, offset_nanos
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                isinstance(other, offsets.Tick)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+                isinstance(other, _Tick)):
+            offset = to_offset(self.freq.rule_code)
+            if isinstance(offset, _Tick):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:
@@ -1466,6 +1463,45 @@ cdef class _Period(object):
 
     @property
     def qyear(self):
+        """
+        Fiscal year the Period lies in according to its starting-quarter.
+
+        The `year` and the `qyear` of the period will be the same if the fiscal
+        and calendar years are the same. When they are not, the fiscal year
+        can be different from the calendar year of the period.
+
+        Returns
+        -------
+        int
+            The fiscal year of the period.
+
+        See Also
+        --------
+        Period.year : Return the calendar year of the period.
+        
+        Examples
+        --------
+        If the natural and fiscal year are the same, `qyear` and `year` will
+        be the same.
+
+        >>> per = pd.Period('2018Q1', freq='Q')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2018
+
+        If the fiscal year starts in April (`Q-MAR`), the first quarter of
+        2018 will start in April 2017. `year` will then be 2018, but `qyear`
+        will be the fiscal year, 2018.
+
+        >>> per = pd.Period('2018Q1', freq='Q-MAR')
+        >>> per.start_time
+        Timestamp('2017-04-01 00:00:00')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2017
+        """
         base, mult = get_freq_code(self.freq)
         return pqyear(self.ordinal, base)
 

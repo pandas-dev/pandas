@@ -92,45 +92,46 @@ class TestDataFrameIndexing(TestData):
             result = df.get(None)
             assert result is None
 
-    def test_getitem_iterator(self):
+    def test_loc_iterable(self):
         idx = iter(['A', 'B', 'C'])
         result = self.frame.loc[:, idx]
         expected = self.frame.loc[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
-        idx = iter(['A', 'B', 'C'])
-        result = self.frame.loc[:, idx]
-        expected = self.frame.loc[:, ['A', 'B', 'C']]
+    @pytest.mark.parametrize(
+        "idx_type",
+        [list, iter, Index, set,
+         lambda l: dict(zip(l, range(len(l)))),
+         lambda l: dict(zip(l, range(len(l)))).keys()],
+        ids=["list", "iter", "Index", "set", "dict", "dict_keys"])
+    @pytest.mark.parametrize("levels", [1, 2])
+    def test_getitem_listlike(self, idx_type, levels):
+        # GH 21294
+
+        if levels == 1:
+            frame, missing = self.frame, 'food'
+        else:
+            # MultiIndex columns
+            frame = DataFrame(randn(8, 3),
+                              columns=Index([('foo', 'bar'), ('baz', 'qux'),
+                                             ('peek', 'aboo')],
+                                            name=('sth', 'sth2')))
+            missing = ('good', 'food')
+
+        keys = [frame.columns[1], frame.columns[0]]
+        idx = idx_type(keys)
+        idx_check = list(idx_type(keys))
+
+        result = frame[idx]
+
+        expected = frame.loc[:, idx_check]
+        expected.columns.names = frame.columns.names
+
         assert_frame_equal(result, expected)
 
-    def test_getitem_list(self):
-        self.frame.columns.name = 'foo'
-
-        result = self.frame[['B', 'A']]
-        result2 = self.frame[Index(['B', 'A'])]
-
-        expected = self.frame.loc[:, ['B', 'A']]
-        expected.columns.name = 'foo'
-
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result2, expected)
-
-        assert result.columns.name == 'foo'
-
+        idx = idx_type(keys + [missing])
         with tm.assert_raises_regex(KeyError, 'not in index'):
-            self.frame[['B', 'A', 'food']]
-        with tm.assert_raises_regex(KeyError, 'not in index'):
-            self.frame[Index(['B', 'A', 'foo'])]
-
-        # tuples
-        df = DataFrame(randn(8, 3),
-                       columns=Index([('foo', 'bar'), ('baz', 'qux'),
-                                      ('peek', 'aboo')], name=('sth', 'sth2')))
-
-        result = df[[('foo', 'bar'), ('baz', 'qux')]]
-        expected = df.iloc[:, :2]
-        assert_frame_equal(result, expected)
-        assert result.columns.names == ('sth', 'sth2')
+            frame[idx]
 
     def test_getitem_callable(self):
         # GH 12533
@@ -223,7 +224,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_setitem_other_callable(self):
         # GH 13299
-        inc = lambda x: x + 1
+        def inc(x):
+            return x + 1
 
         df = pd.DataFrame([[-1, 1], [1, -1]])
         df[df > 0] = inc
@@ -2082,7 +2084,8 @@ class TestDataFrameIndexing(TestData):
         icol = ['jim', 'joe', 'jolie']
 
         def verify_first_level(df, level, idx, check_index_type=True):
-            f = lambda val: np.nonzero(df[level] == val)[0]
+            def f(val):
+                return np.nonzero(df[level] == val)[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
@@ -2935,6 +2938,20 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result,
                               (df + 2).where((df + 2) > 8, (df + 2) + 10))
+
+    def test_where_tz_values(self, tz_naive_fixture):
+        df1 = DataFrame(DatetimeIndex(['20150101', '20150102', '20150103'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        df2 = DataFrame(DatetimeIndex(['20150103', '20150104', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        mask = DataFrame([True, True, False], columns=['date'])
+        exp = DataFrame(DatetimeIndex(['20150101', '20150102', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        result = df1.where(mask, df2)
+        assert_frame_equal(exp, result)
 
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
