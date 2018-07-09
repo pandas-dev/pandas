@@ -96,7 +96,7 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-        dtype : Dtype, optional
+        dtype : dtype, optional
             construct for this particular dtype. This should be a Dtype
             compatible with the ExtensionArray.
         copy : boolean, default False

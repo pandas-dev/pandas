@@ -3,7 +3,7 @@ import warnings
 import copy
 import numpy as np
 
-from pandas.compat import u
+from pandas.compat import u, range
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.util._decorators import cache_readonly
 from pandas.compat import set_function_name

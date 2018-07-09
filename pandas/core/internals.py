@@ -633,10 +633,7 @@ class Block(PandasObject):
             return self.make_block(Categorical(self.values, dtype=dtype))
 
         # convert dtypes if needed
-        try:
-            dtype = pandas_dtype(dtype)
-        except TypeError:
-            pass
+        dtype = pandas_dtype(dtype)
 
         # astype processing
         if is_dtype_equal(self.dtype, dtype):
