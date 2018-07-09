@@ -21,7 +21,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    INT64_MAX)
 
 cimport ccalendar
-from conversion import tz_localize_to_utc, date_normalize
+from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
 from fields import get_start_end_field, get_date_name_field
@@ -30,6 +30,7 @@ from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           pandas_datetimestruct, dt64_to_dtstruct)
+from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -59,7 +60,6 @@ cdef inline object create_timestamp_from_ts(int64_t value,
 
 
 def round_ns(values, rounder, freq):
-
     """
     Applies rounding function at given frequency
 
@@ -73,8 +73,6 @@ def round_ns(values, rounder, freq):
     -------
     :obj:`ndarray`
     """
-
-    from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
 
     # GH21262 If the Timestamp is multiple of the freq str
@@ -647,7 +645,6 @@ class Timestamp(_Timestamp):
             return NaT
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
@@ -1086,7 +1083,7 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        normalized_value = date_normalize(
+        normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
 

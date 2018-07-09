@@ -8,13 +8,13 @@ import inspect
 import collections
 
 import numpy as np
-from pandas._libs import lib, tslib
+from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import long, zip, iteritems, PY36, OrderedDict
 from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.common import _NS_DTYPE, is_integer
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -87,9 +87,9 @@ def _maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
     if isinstance(value, (np.datetime64, datetime)):
-        value = tslib.Timestamp(value)
+        value = tslibs.Timestamp(value)
     elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslib.Timedelta(value)
+        value = tslibs.Timedelta(value)
 
     return value
 
@@ -408,19 +408,6 @@ def _apply_if_callable(maybe_callable, obj, **kwargs):
         return maybe_callable(obj, **kwargs)
 
     return maybe_callable
-
-
-def _where_compat(mask, arr1, arr2):
-    if arr1.dtype == _NS_DTYPE and arr2.dtype == _NS_DTYPE:
-        new_vals = np.where(mask, arr1.view('i8'), arr2.view('i8'))
-        return new_vals.view(_NS_DTYPE)
-
-    if arr1.dtype == _NS_DTYPE:
-        arr1 = tslib.ints_to_pydatetime(arr1.view('i8'))
-    if arr2.dtype == _NS_DTYPE:
-        arr2 = tslib.ints_to_pydatetime(arr2.view('i8'))
-
-    return np.where(mask, arr1, arr2)
 
 
 def _dict_compat(d):

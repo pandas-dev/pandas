@@ -17,10 +17,11 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays.timedelta import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
-from pandas.compat import u
+
 from pandas.tseries.frequencies import to_offset
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
@@ -33,23 +34,19 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
-from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._libs.tslibs.fields import get_timedelta_field
 
 
-def _field_accessor(name, alias, docstring=None):
+def _wrap_field_accessor(name):
+    fget = getattr(TimedeltaArrayMixin, name).fget
+
     def f(self):
-        values = self.asi8
-        result = get_timedelta_field(values, alias)
-        if self.hasnans:
-            result = self._maybe_mask_results(result, convert='float64')
-
+        result = fget(self)
         return Index(result, name=self.name)
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = fget.__doc__
     return property(f)
 
 
@@ -96,7 +93,8 @@ def _td_index_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
+class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
+                     TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -311,22 +309,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         return index
 
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit='ns')
-
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        values = np.array(values, copy=False)
-        if values.dtype == np.object_:
-            values = array_to_timedelta64(values)
-        if values.dtype != _TD_DTYPE:
-            values = _ensure_int64(values).view(_TD_DTYPE)
-
-        result = object.__new__(cls)
-        result._data = values
+        result = super(TimedeltaIndex, cls)._simple_new(values, freq, **kwargs)
         result.name = name
-        result._freq = freq
         result._reset_identity()
         return result
 
@@ -351,69 +337,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             attrs['freq'] = 'infer'
         return attrs
 
-    def _add_offset(self, other):
-        assert not isinstance(other, Tick)
-        raise TypeError("cannot add the type {typ} to a {cls}"
-                        .format(typ=type(other).__name__,
-                                cls=type(self).__name__))
-
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, Tick, or TimedeltaIndex-like object
-        to self.
-
-        Parameters
-        ----------
-        delta : {timedelta, np.timedelta64, Tick, TimedeltaIndex}
-
-        Returns
-        -------
-        result : TimedeltaIndex
-
-        Notes
-        -----
-        The result's name is set outside of _add_delta by the calling
-        method (__add__ or __sub__)
-        """
-        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(delta)
-        elif isinstance(delta, TimedeltaIndex):
-            new_values = self._add_delta_tdi(delta)
-        elif is_timedelta64_dtype(delta):
-            # ndarray[timedelta64] --> wrap in TimedeltaIndex
-            delta = TimedeltaIndex(delta)
-            new_values = self._add_delta_tdi(delta)
-        else:
-            raise TypeError("cannot add the type {0} to a TimedeltaIndex"
-                            .format(type(delta)))
-
-        return TimedeltaIndex(new_values, freq='infer')
-
     def _evaluate_with_timedelta_like(self, other, op):
-        if isinstance(other, ABCSeries):
-            # GH#19042
+        result = TimedeltaArrayMixin._evaluate_with_timedelta_like(self, other,
+                                                                   op)
+        if result is NotImplemented:
             return NotImplemented
-
-        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
-        # allow division by a timedelta
-        if opstr in ['__div__', '__truediv__', '__floordiv__']:
-            if _is_convertible_to_td(other):
-                other = Timedelta(other)
-                if isna(other):
-                    raise NotImplementedError(
-                        "division by pd.NaT not implemented")
-
-                i8 = self.asi8
-                left, right = i8, other.value
-
-                if opstr in ['__floordiv__']:
-                    result = op(left, right)
-                else:
-                    result = op(left, np.float64(right))
-                result = self._maybe_mask_results(result, convert='float64')
-                return Index(result, name=self.name, copy=False)
-
-        return NotImplemented
+        return Index(result, name=self.name, copy=False)
 
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
@@ -432,11 +361,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = self._maybe_mask_results(result, fill_value=iNaT)
             return DatetimeIndex(result)
 
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        raise TypeError("cannot subtract a datelike from a {cls}"
-                        .format(cls=type(self).__name__))
-
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
         try:
@@ -448,24 +372,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
                             .format(cls=type(self).__name__))
 
-    def _format_native_types(self, na_rep=u('NaT'),
-                             date_format=None, **kwargs):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    days = _field_accessor("days", "days",
-                           " Number of days for each element. ")
-    seconds = _field_accessor("seconds", "seconds",
-                              " Number of seconds (>= 0 and less than 1 day) "
-                              "for each element. ")
-    microseconds = _field_accessor("microseconds", "microseconds",
-                                   "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each\nelement. ")
-    nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
-                                  "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each\nelement.\n")
+    days = _wrap_field_accessor("days")
+    seconds = _wrap_field_accessor("seconds")
+    microseconds = _wrap_field_accessor("microseconds")
+    nanoseconds = _wrap_field_accessor("nanoseconds")
 
     @property
     def components(self):
@@ -551,18 +467,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
                      dtype='float64')
         """
-        return Index(self._maybe_mask_results(1e-9 * self.asi8),
-                     name=self.name)
-
-    def to_pytimedelta(self):
-        """
-        Return TimedeltaIndex as object ndarray of datetime.timedelta objects
-
-        Returns
-        -------
-        datetimes : ndarray
-        """
-        return libts.ints_to_pytimedelta(self.asi8)
+        result = TimedeltaArrayMixin.total_seconds(self)
+        return Index(result, name=self.name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -905,10 +811,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @property
     def inferred_type(self):
         return 'timedelta64'
-
-    @property
-    def dtype(self):
-        return _TD_DTYPE
 
     @property
     def is_all_dates(self):

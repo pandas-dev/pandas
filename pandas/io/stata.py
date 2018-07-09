@@ -18,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from dateutil.relativedelta import relativedelta
 from pandas._libs.lib import infer_dtype
-from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
 
 import pandas as pd
@@ -102,7 +102,6 @@ Examples
 --------
 Read a Stata dta file:
 
->>> import pandas as pd
 >>> df = pd.read_stata('filename.dta')
 
 Read a Stata dta file in 10,000 line chunks:
@@ -216,7 +215,6 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> dates = pd.Series([52])
     >>> _stata_elapsed_date_to_datetime_vec(dates , "%tw")
     0   1961-01-01
@@ -1946,7 +1944,6 @@ class StataWriter(StataParser):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> data = pd.DataFrame([[1.0, 1]], columns=['a', 'b'])
     >>> writer = StataWriter('./data_file.dta', data)
     >>> writer.write_file()
@@ -2709,7 +2706,6 @@ class StataWriter117(StataWriter):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> from pandas.io.stata import StataWriter117
     >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b', 'c'])
     >>> writer = StataWriter117('./data_file.dta', data)

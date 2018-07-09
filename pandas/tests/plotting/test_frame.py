@@ -1090,6 +1090,69 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @pytest.mark.slow
+    def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
+        # addressing issue #10611, to ensure colobar does not
+        # interfere with x-axis label and ticklabels with
+        # ipython inline backend.
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        ax1 = df.plot.scatter(x='A label', y='B label')
+        ax2 = df.plot.scatter(x='A label', y='B label', c='C label')
+
+        vis1 = [vis.get_visible() for vis in
+                ax1.xaxis.get_minorticklabels()]
+        vis2 = [vis.get_visible() for vis in
+                ax2.xaxis.get_minorticklabels()]
+        assert vis1 == vis2
+
+        vis1 = [vis.get_visible() for vis in
+                ax1.xaxis.get_majorticklabels()]
+        vis2 = [vis.get_visible() for vis in
+                ax2.xaxis.get_majorticklabels()]
+        assert vis1 == vis2
+
+        assert (ax1.xaxis.get_label().get_visible() ==
+                ax2.xaxis.get_label().get_visible())
+
+    @pytest.mark.slow
+    def test_if_hexbin_xaxis_label_is_visible(self):
+        # addressing issue #10678, to ensure colobar does not
+        # interfere with x-axis label and ticklabels with
+        # ipython inline backend.
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        ax = df.plot.hexbin('A label', 'B label', gridsize=12)
+        assert all([vis.get_visible() for vis in
+                    ax.xaxis.get_minorticklabels()])
+        assert all([vis.get_visible() for vis in
+                    ax.xaxis.get_majorticklabels()])
+        assert ax.xaxis.get_label().get_visible()
+
+    @pytest.mark.slow
+    def test_if_scatterplot_colorbars_are_next_to_parent_axes(self):
+        import matplotlib.pyplot as plt
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        fig, axes = plt.subplots(1, 2)
+        df.plot.scatter('A label', 'B label', c='C label', ax=axes[0])
+        df.plot.scatter('A label', 'B label', c='C label', ax=axes[1])
+        plt.tight_layout()
+
+        points = np.array([ax.get_position().get_points()
+                           for ax in fig.axes])
+        axes_x_coords = points[:, :, 0]
+        parent_distance = axes_x_coords[1, :] - axes_x_coords[0, :]
+        colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
+        assert np.isclose(parent_distance,
+                          colorbar_distance, atol=1e-7).all()
+
+    @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self):
         # GH 16199
         df = pd.DataFrame({'x': [1, 2, 3, 4],

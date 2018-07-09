@@ -15,20 +15,18 @@ from pandas._libs.khash cimport (khiter_t,
                                  kh_init_int64, kh_int64_t,
                                  kh_resize_int64, kh_get_int64)
 
-from cpython.datetime cimport datetime
-
 from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
 from timezones cimport (is_utc, is_tzlocal,
-                        maybe_get_tz, get_dst_info, get_utcoffset)
+                        maybe_get_tz, get_dst_info)
 from fields import build_field_sarray
 from conversion import tz_convert
 from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar import MONTH_ALIASES, int_to_weekday
 from ccalendar cimport get_days_in_month
+from timestamps import Timestamp
 
 from pandas._libs.properties import cache_readonly
-from pandas._libs.tslib import Timestamp
 
 from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 

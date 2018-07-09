@@ -92,15 +92,15 @@ Enhancements
   ``offsets.apply``, ``rollforward`` and ``rollback`` resets the time (hour,
   minute, etc) or not (default ``False``, preserves time) (:issue:`7156`):
 
-  .. ipython:: python
+  .. code-block:: python
 
-   import pandas.tseries.offsets as offsets
+     import pandas.tseries.offsets as offsets
 
-   day = offsets.Day()
-   day.apply(Timestamp('2014-01-01 09:00'))
+     day = offsets.Day()
+     day.apply(Timestamp('2014-01-01 09:00'))
 
-   day = offsets.Day(normalize=True)
-   day.apply(Timestamp('2014-01-01 09:00'))
+     day = offsets.Day(normalize=True)
+     day.apply(Timestamp('2014-01-01 09:00'))
 
 - ``PeriodIndex`` is represented as the same format as ``DatetimeIndex`` (:issue:`7601`)
 - ``StringMethods`` now work on empty Series (:issue:`7242`)
