@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 from cpython cimport (
     PyUnicode_Check,
@@ -34,7 +34,7 @@ cdef extern from "../src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from pandas._libs.tslib import Timedelta
+from pandas._libs.tslibs.timedeltas import Timedelta
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
