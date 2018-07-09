@@ -1,5 +1,5 @@
 """
-Provide classe to perform the groupby aggregate operations.
+Provide classes to perform the groupby aggregate operations.
 
 These are not exposed to the user and provide implementations of the grouping
 operations, primarily in cython. These classes (BaseGrouper and BinGrouper)
