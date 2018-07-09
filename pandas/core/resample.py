@@ -10,8 +10,7 @@ from pandas.core.groupby.ops import BinGrouper, Grouper
 from pandas.core.groupby.groupby import (
     _GroupBy, GroupBy, groupby, _pipe_template
 )
-from pandas.core.groupby.series import SeriesGroupBy
-from pandas.core.groupby.panel import PanelGroupBy
+from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range

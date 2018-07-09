@@ -1,24 +1,27 @@
 """
-perform the groupby operations. These are not exposed
-to the top-level interace in groupby.py
+Perform the groupby aggregate operations. These are not exposed
+to the user and provide implementations of the grouping
+operations. These are generally called via the *GroupBy objects.
 """
+
 import copy
 import collections
 import warnings
 import numpy as np
 
+from pandas._libs import lib, reduction, NaT, iNaT, groupby as libgroupby
+from pandas.util._decorators import cache_readonly
+
+from pandas import compat
 from pandas.compat import (
     zip, range, lzip,
     callable,
 )
 
-from pandas import compat
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.base import SelectionMixin
 from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.dtypes.missing import isna, _maybe_fill
-from pandas._libs import lib, reduction, NaT, iNaT, groupby as libgroupby
-from pandas.util._decorators import cache_readonly
 from pandas.core.index import (
     Index, MultiIndex, CategoricalIndex, _ensure_index)
 from pandas.core.dtypes.common import (
@@ -39,7 +42,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_categorical_dtype,
     is_scalar)
-from pandas.io.formats.printing import pprint_thing
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
@@ -49,6 +51,7 @@ from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
 import pandas.core.algorithms as algorithms
+from pandas.io.formats.printing import pprint_thing
 
 
 class Grouper(object):
