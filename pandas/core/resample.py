@@ -6,10 +6,11 @@ from textwrap import dedent
 
 import pandas as pd
 from pandas.core.groupby.base import GroupByMixin
-from pandas.core.groupby.ops import BinGrouper, Grouper
+from pandas.core.groupby.ops import BinGrouper
 from pandas.core.groupby.groupby import (
     _GroupBy, GroupBy, groupby, _pipe_template
 )
+from pandas.core.groupby.grouper import Grouper
 from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
