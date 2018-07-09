@@ -6,7 +6,7 @@ http://specs.frictionlessdata.io/json-table-schema/
 import warnings
 
 import pandas._libs.json as json
-from pandas import DataFrame
+from pandas import DataFrame, Timedelta
 from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
 from pandas.core.dtypes.common import (
@@ -163,7 +163,7 @@ def convert_json_field_to_pandas_type(field):
     elif typ == 'boolean':
         return 'bool'
     elif typ == 'duration':
-        return 'timedelta64'
+        return 'timedelta64[ns]'
     elif typ == 'datetime':
         if field.get('tz'):
             return 'datetime64[ns, {tz}]'.format(tz=field['tz'])
@@ -306,10 +306,9 @@ def parse_table_schema(json, precise_float):
         raise NotImplementedError('table="orient" can not yet read timezone '
                                   'data')
 
-    # No ISO constructor for Timedelta as of yet, so need to raise
-    if 'timedelta64' in dtypes.values():
-        raise NotImplementedError('table="orient" can not yet read '
-                                  'ISO-formatted Timedelta data')
+    for col, dtype in dtypes.items():
+        if dtype == 'timedelta64[ns]':
+            df[col] = df[col].apply(Timedelta)
 
     df = df.astype(dtypes)
 
