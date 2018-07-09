@@ -1,5 +1,7 @@
 """
-base components for groupby
+Provide basic components for groupby. These defintiions
+hold the whitelist of methods that are exposed on the
+SeriesGroupBy and the DataFrameGroupBy objects.
 """
 
 import types

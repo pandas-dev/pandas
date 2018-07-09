@@ -1,3 +1,12 @@
+"""
+Provide the groupby split-apply-combine paradigm. Define the GroupBy
+class providing the base-class of operations.
+
+The SeriesGroupBy and DataFrameGroupBy sub-class
+(defined in pandas.core.groupby.generic)
+expose these user-facing objects to provide specific functionailty.
+"""
+
 import types
 from functools import wraps, partial
 import datetime
