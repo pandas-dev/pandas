@@ -46,10 +46,6 @@ echo "[environmental variable file]"
 cat $ENVS_FILE
 source $ENVS_FILE
 
-export REQ_BUILD=ci/requirements-${JOB}.build
-export REQ_RUN=ci/requirements-${JOB}.run
-export REQ_PIP=ci/requirements-${JOB}.pip
-
 # edit the locale override if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
     echo "[Adding locale to the first line of pandas/__init__.py]"
@@ -62,25 +58,23 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
 fi
 
 # create envbuild deps
-echo "[create env: ${REQ_BUILD}]"
-time conda create -n pandas -q --file=${REQ_BUILD} || exit 1
-time conda install -n pandas pytest>=3.1.0 || exit 1
+echo "[create env]"
+time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
 
 source activate pandas
-time pip install moto || exit 1
+
+# remove any installed pandas package
+# w/o removing anything else
+echo
+echo "[removing installed pandas]"
+conda remove pandas -y --force
+pip uninstall -y pandas
 
 # build but don't install
 echo "[build em]"
 time python setup.py build_ext --inplace || exit 1
 
-# we may have run installations
-echo "[conda installs: ${REQ_RUN}]"
-if [ -e ${REQ_RUN} ]; then
-    time conda install -q --file=${REQ_RUN} || exit 1
-fi
+echo
+echo "[show environment]"
 
-# we may have additional pip installs
-echo "[pip installs: ${REQ_PIP}]"
-if [ -e ${REQ_PIP} ]; then
-   pip install -r $REQ_PIP
-fi
+conda list

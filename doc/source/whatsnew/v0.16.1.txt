@@ -26,7 +26,7 @@ Highlights include:
 
 .. warning::
 
-   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package. See :ref:`here for details <remote_data.pandas_datareader>` (:issue:`8961`)
+   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package (:issue:`8961`).
 
 Enhancements
 ~~~~~~~~~~~~
@@ -237,7 +237,7 @@ enhancements make string operations easier and more consistent with standard pyt
      idx.str.startswith('a')
      s[s.index.str.startswith('a')]
 
-- The following new methods are accesible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
+- The following new methods are accessible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
 
   ================  ===============  ===============  ===============  ================
   ..                ..               Methods          ..               ..
@@ -348,7 +348,7 @@ Deprecations
 Index Representation
 ~~~~~~~~~~~~~~~~~~~~
 
-The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanges (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
+The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
 
 Previous Behavior
 
@@ -437,8 +437,8 @@ Bug Fixes
 - Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
 - Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
 - Bug causing an exception in slice assignments because ``length_of_indexer`` returns wrong results (:issue:`9995`)
-- Bug in csv parser causing lines with initial whitespace plus one non-space character to be skipped. (:issue:`9710`)
-- Bug in C csv parser causing spurious NaNs when data started with newline followed by whitespace. (:issue:`10022`)
+- Bug in csv parser causing lines with initial white space plus one non-space character to be skipped. (:issue:`9710`)
+- Bug in C csv parser causing spurious NaNs when data started with newline followed by white space. (:issue:`10022`)
 - Bug causing elements with a null group to spill into the final group when grouping by a ``Categorical`` (:issue:`9603`)
 - Bug where .iloc and .loc behavior is not consistent on empty dataframes (:issue:`9964`)
 - Bug in invalid attribute access on a ``TimedeltaIndex`` incorrectly raised ``ValueError`` instead of ``AttributeError`` (:issue:`9680`)
@@ -455,7 +455,7 @@ Bug Fixes
 - Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
 - Bug causing extra index point when resample BM/BQ (:issue:`9756`)
 - Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
-- Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+- Fixed latex output for MultiIndexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
 - Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
 - Bug in ``transform`` and ``filter`` when grouping on a categorical variable (:issue:`9921`)
