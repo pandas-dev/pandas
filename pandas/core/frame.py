@@ -2121,9 +2121,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
         Data columns (total 3 columns):
-        int_col      5 non-null int64
-        text_col     5 non-null object
-        float_col    5 non-null float64
+         #.  Column       Non-Null Count
+        ---  ------       --------------
+         0   int_col      5 non-null int64
+         1   text_col     5 non-null object
+         2   float_col    5 non-null float64
         dtypes: float64(1), int64(1), object(1)
         memory usage: 200.0+ bytes
 
@@ -2161,9 +2163,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-        column_1    1000000 non-null object
-        column_2    1000000 non-null object
-        column_3    1000000 non-null object
+         #.  Column      Non-Null Count
+        ---  ------      --------------
+         0   column_1    1000000 non-null object
+         1   column_2    1000000 non-null object
+         2   column_3    1000000 non-null object
         dtypes: object(3)
         memory usage: 22.9+ MB
 
@@ -2171,9 +2175,11 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-        column_1    1000000 non-null object
-        column_2    1000000 non-null object
-        column_3    1000000 non-null object
+         #.  Column      Non-Null Count
+        ---  ------      --------------
+         0   column_1    1000000 non-null object
+         1   column_2    1000000 non-null object
+         2   column_3    1000000 non-null object
         dtypes: object(3)
         memory usage: 188.8 MB
         """
@@ -2210,14 +2216,15 @@ class DataFrame(NDFrame):
         def _verbose_repr():
             lines.append('Data columns (total '
                          '{count} columns):'.format(count=cols_count))
-            space = max([len(pprint_thing(k)) for k in cols])
-            space = max(space, len(pprint_thing('Column'))) + 4
+            space = max(len(pprint_thing(k)) for k in cols)
+            len_column = len(pprint_thing('Column'))
+            space = max(space, len_column) + 4
             space_num = len(pprint_thing(cols_count))
-            space_num = max(space_num, len(pprint_thing('Index'))) + 2
+            len_id = len(pprint_thing(' #.'))
+            space_num = max(space_num, len_id) + 2
             counts = None
 
-            header = _put_str('Index', space_num) + _put_str('Column', space)
-            tmpl = '{count}{dtype}'
+            header = _put_str(' #.', space_num) + _put_str('Column', space)
             if show_counts:
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
@@ -2225,10 +2232,17 @@ class DataFrame(NDFrame):
                         'Columns must equal counts '
                         '({cols_count} != {count})'.format(
                             cols_count=cols_count, count=len(counts)))
-                header += 'Non-Null Count'
+                col_header = 'Non-Null Count'
                 tmpl = '{count} non-null {dtype}'
+            else:
+                col_header = 'dtype'
+                tmpl = '{count}{dtype}'
+            header += col_header
 
             lines.append(header)
+            lines.append(_put_str('-' * len_id, space_num) +
+                         _put_str('-' * len_column, space) +
+                         '-' * len(pprint_thing(col_header)))
             dtypes = self.dtypes
             for i, col in enumerate(cols):
                 dtype = dtypes.iloc[i]

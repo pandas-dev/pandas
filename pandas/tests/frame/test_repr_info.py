@@ -217,7 +217,9 @@ class TestDataFrameReprInfoEtc(TestData):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
-        a    2 non-null int64
+         #.  Column    Non-Null Count
+        ---  ------    --------------
+         0   a         2 non-null int64
         dtypes: int64(1)
         memory usage: {} bytes
         """.format(bytes))
@@ -259,8 +261,8 @@ class TestDataFrameReprInfoEtc(TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        assert ' 0     a         1 non-null int64\n' == lines[4]
-        assert ' 1     a         1 non-null float64\n' == lines[5]
+        assert ' 0   a         1 non-null int64\n' == lines[5]
+        assert ' 1   a         1 non-null float64\n' == lines[6]
 
     def test_info_shows_column_dtypes(self):
         dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
@@ -280,7 +282,7 @@ class TestDataFrameReprInfoEtc(TestData):
 
     def test_info_max_cols(self):
         df = DataFrame(np.random.randn(10, 5))
-        for len_, verbose in [(5, None), (5, False), (11, True)]:
+        for len_, verbose in [(5, None), (5, False), (12, True)]:
             # For verbose always      ^ setting  ^ summarize ^ full output
             with option_context('max_info_columns', 4):
                 buf = StringIO()
@@ -288,8 +290,7 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split('\n')) == len_
 
-        for len_, verbose in [(11, None), (5, False), (11, True)]:
-
+        for len_, verbose in [(12, None), (5, False), (12, True)]:
             # max_cols no exceeded
             with option_context('max_info_columns', 5):
                 buf = StringIO()
@@ -297,7 +298,7 @@ class TestDataFrameReprInfoEtc(TestData):
                 res = buf.getvalue()
                 assert len(res.strip().split('\n')) == len_
 
-        for len_, max_cols in [(11, 5), (5, 4)]:
+        for len_, max_cols in [(12, 5), (5, 4)]:
             # setting truncates
             with option_context('max_info_columns', 4):
                 buf = StringIO()
