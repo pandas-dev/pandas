@@ -41,7 +41,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 
-from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas.errors import NullFrequencyError
 import pandas.io.formats.printing as printing
 
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -598,34 +598,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return (super(DatetimeIndexOpsMixin, self)
                 ._convert_scalar_indexer(key, kind=kind))
-
-    def _addsub_offset_array(self, other, op):
-        """
-        Add or subtract array-like of DateOffset objects
-
-        Parameters
-        ----------
-        other : Index, np.ndarray
-            object-dtype containing pd.DateOffset objects
-        op : {operator.add, operator.sub}
-
-        Returns
-        -------
-        result : same class as self
-        """
-        assert op in [operator.add, operator.sub]
-        if len(other) == 1:
-            return op(self, other[0])
-
-        warnings.warn("Adding/subtracting array of DateOffsets to "
-                      "{cls} not vectorized"
-                      .format(cls=type(self).__name__), PerformanceWarning)
-
-        res_values = op(self.astype('O').values, np.array(other))
-        kwargs = {}
-        if not is_period_dtype(self):
-            kwargs['freq'] = 'infer'
-        return type(self)(res_values, **kwargs)
 
     @classmethod
     def _add_datetimelike_methods(cls):

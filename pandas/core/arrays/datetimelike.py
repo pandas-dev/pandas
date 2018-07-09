@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import operator
+import warnings
 
 import numpy as np
 
@@ -8,12 +9,16 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import NullFrequencyError
+from pandas.errors import NullFrequencyError, PerformanceWarning
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick
 
-from pandas.core.dtypes.common import is_period_dtype, is_timedelta64_dtype
+from pandas.core.dtypes.common import (
+    is_period_dtype,
+    is_timedelta64_dtype,
+    is_object_dtype)
+
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -108,38 +113,43 @@ class DatetimeLikeArrayMixin(AttributesMixin):
         if is_int:
             val = getitem(key)
             return self._box_func(val)
-        else:
-            if com.is_bool_indexer(key):
-                key = np.asarray(key)
-                if key.all():
-                    key = slice(0, None, None)
-                else:
-                    key = lib.maybe_booleans_to_slice(key.view(np.uint8))
 
-            attribs = self._get_attributes_dict()
-
-            is_period = is_period_dtype(self)
-            if is_period:
-                freq = self.freq
+        if com.is_bool_indexer(key):
+            key = np.asarray(key)
+            if key.all():
+                key = slice(0, None, None)
             else:
-                freq = None
-                if isinstance(key, slice):
-                    if self.freq is not None and key.step is not None:
-                        freq = key.step * self.freq
-                    else:
-                        freq = self.freq
+                key = lib.maybe_booleans_to_slice(key.view(np.uint8))
 
-            attribs['freq'] = freq
+        attribs = self._get_attributes_dict()
 
-            result = getitem(key)
-            if result.ndim > 1:
-                # To support MPL which performs slicing with 2 dim
-                # even though it only has 1 dim by definition
-                if is_period:
-                    return self._simple_new(result, **attribs)
-                return result
+        is_period = is_period_dtype(self)
+        if is_period:
+            freq = self.freq
+        else:
+            freq = None
+            if isinstance(key, slice):
+                if self.freq is not None and key.step is not None:
+                    freq = key.step * self.freq
+                else:
+                    freq = self.freq
 
-            return self._simple_new(result, **attribs)
+        attribs['freq'] = freq
+
+        result = getitem(key)
+        if result.ndim > 1:
+            # To support MPL which performs slicing with 2 dim
+            # even though it only has 1 dim by definition
+            if is_period:
+                return self._simple_new(result, **attribs)
+            return result
+
+        return self._simple_new(result, **attribs)
+
+    def astype(self, dtype, copy=True):
+        if is_object_dtype(dtype):
+            return self._box_values(self.asi8)
+        return super(DatetimeLikeArrayMixin, self).astype(dtype, copy)
 
     # ------------------------------------------------------------------
     # Null Handling
@@ -397,3 +407,31 @@ class DatetimeLikeArrayMixin(AttributesMixin):
         # to _addsub_offset_array
         assert not is_timedelta64_dtype(self)
         return op(self, np.array(other) * self.freq)
+
+    def _addsub_offset_array(self, other, op):
+        """
+        Add or subtract array-like of DateOffset objects
+
+        Parameters
+        ----------
+        other : Index, np.ndarray
+            object-dtype containing pd.DateOffset objects
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : same class as self
+        """
+        assert op in [operator.add, operator.sub]
+        if len(other) == 1:
+            return op(self, other[0])
+
+        warnings.warn("Adding/subtracting array of DateOffsets to "
+                      "{cls} not vectorized"
+                      .format(cls=type(self).__name__), PerformanceWarning)
+
+        res_values = op(self.astype('O').values, np.array(other))
+        kwargs = {}
+        if not is_period_dtype(self):
+            kwargs['freq'] = 'infer'
+        return type(self)(res_values, **kwargs)
