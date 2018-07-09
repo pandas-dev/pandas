@@ -17,8 +17,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 import pandas.core.common as com
-from pandas._libs import lib
-from pandas._libs.tslib import NaT
+from pandas._libs import lib, NaT
 
 _sort_msg = textwrap.dedent("""\
 Sorting because non-concatenation axis is not aligned. A future version

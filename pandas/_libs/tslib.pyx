@@ -38,14 +38,12 @@ import pytz
 
 
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timedeltas import Timedelta, ints_to_pytimedelta  # noqa:F841
 from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                                treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
                                 tz_convert_utc_to_tzlocal)
-from tslibs.conversion import tz_convert_single, normalize_date  # noqa:F841
 
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT

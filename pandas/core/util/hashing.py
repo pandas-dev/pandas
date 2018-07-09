@@ -4,7 +4,7 @@ data hash pandas / numpy objects
 import itertools
 
 import numpy as np
-from pandas._libs import hashing, tslib
+from pandas._libs import hashing, tslibs
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCIndexClass,
@@ -321,8 +321,8 @@ def _hash_scalar(val, encoding='utf8', hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslib.Timestamp):
-            val = tslib.Timestamp(val)
+        if not isinstance(val, tslibs.Timestamp):
+            val = tslibs.Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)

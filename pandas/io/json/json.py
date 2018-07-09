@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import pandas._libs.json as json
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs import iNaT
 from pandas.compat import StringIO, long, u, to_str
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex

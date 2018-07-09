@@ -18,7 +18,7 @@ from collections import OrderedDict
 import numpy as np
 from dateutil.relativedelta import relativedelta
 from pandas._libs.lib import infer_dtype
-from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
 
 import pandas as pd

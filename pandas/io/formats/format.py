@@ -7,6 +7,17 @@ and latex files. This module also applies to display formatting.
 from __future__ import print_function
 # pylint: disable=W0141
 
+from functools import partial
+
+import numpy as np
+
+from pandas._libs import lib
+from pandas._libs.tslibs import iNaT, Timestamp, Timedelta
+from pandas._libs.tslib import format_array_from_datetime
+
+from pandas import compat
+from pandas.compat import StringIO, lzip, map, zip, u
+
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -26,23 +37,16 @@ from pandas.core.dtypes.generic import ABCSparseArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas import compat
-from pandas.compat import (StringIO, lzip, map, zip, u)
-
-from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
-from pandas.io.common import (_expand_user, _stringify_path)
-from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas._libs import lib
-
-from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
-                                format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-import pandas as pd
-import numpy as np
 
-from functools import partial
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.io.common import (_expand_user, _stringify_path)
+from pandas.io.formats.printing import adjoin, justify, pprint_thing
+
+import pandas as pd
+
 
 common_docstring = """
     Parameters

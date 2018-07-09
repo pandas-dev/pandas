@@ -23,7 +23,7 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.compat import lrange
 import pandas.compat as compat
-from pandas._libs import tslib
+from pandas._libs import tslibs
 import pandas.core.common as com
 from pandas.core.index import Index
 
@@ -52,7 +52,7 @@ _mpl_units = {}  # Cache for units overwritten by us
 
 def get_pairs():
     pairs = [
-        (tslib.Timestamp, DatetimeConverter),
+        (tslibs.Timestamp, DatetimeConverter),
         (Period, PeriodConverter),
         (pydt.datetime, DatetimeConverter),
         (pydt.date, DatetimeConverter),
@@ -312,7 +312,7 @@ class DatetimeConverter(dates.DateConverter):
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
         elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(tslib.Timestamp(values))
+            return _dt_to_float_ordinal(tslibs.Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (is_integer(values) or is_float(values)):

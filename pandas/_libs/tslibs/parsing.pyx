@@ -6,10 +6,6 @@ Parsing functions for datetime and datetime-like strings.
 import sys
 import re
 
-from cpython cimport PyString_Check, PyUnicode_Check
-
-from libc.stdlib cimport free
-
 cimport cython
 from cython cimport Py_ssize_t
 
@@ -34,7 +30,6 @@ else:
 # dateutil compat
 from dateutil.tz import (tzoffset,
                          tzlocal as _dateutil_tzlocal,
-                         tzfile as _dateutil_tzfile,
                          tzutc as _dateutil_tzutc,
                          tzstr as _dateutil_tzstr)
 from dateutil.relativedelta import relativedelta

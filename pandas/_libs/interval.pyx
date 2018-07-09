@@ -5,7 +5,7 @@ cimport util
 cimport cython
 import cython
 from numpy cimport ndarray
-from tslib import Timestamp
+from tslibs import Timestamp
 from tslibs.timezones cimport tz_compare
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,

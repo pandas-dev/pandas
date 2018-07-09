@@ -4,7 +4,7 @@ timedelta support tools
 
 import numpy as np
 import pandas as pd
-import pandas._libs.tslib as tslib
+from pandas._libs import tslibs
 from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
                                             array_to_timedelta64)
 
@@ -153,7 +153,7 @@ def _coerce_scalar_to_timedelta_type(r, unit='ns', box=True, errors='raise'):
         result = pd.NaT
 
     if box:
-        result = tslib.Timedelta(result)
+        result = tslibs.Timedelta(result)
     return result
 
 

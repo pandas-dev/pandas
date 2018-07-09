@@ -31,7 +31,6 @@ import numpy as np
 from numpy cimport ndarray, int64_t
 
 from datetime import date as datetime_date
-from cpython.datetime cimport datetime
 
 from np_datetime cimport (check_dts_bounds,
                           dtstruct_to_dt64, pandas_datetimestruct)

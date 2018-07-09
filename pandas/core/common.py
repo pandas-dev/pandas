@@ -8,7 +8,7 @@ import inspect
 import collections
 
 import numpy as np
-from pandas._libs import lib, tslib
+from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import long, zip, iteritems, PY36, OrderedDict
@@ -87,9 +87,9 @@ def _maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
     if isinstance(value, (np.datetime64, datetime)):
-        value = tslib.Timestamp(value)
+        value = tslibs.Timestamp(value)
     elif isinstance(value, (np.timedelta64, timedelta)):
-        value = tslib.Timedelta(value)
+        value = tslibs.Timedelta(value)
 
     return value
 

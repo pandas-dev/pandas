@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # flake8: noqa
 
-from .tslib import iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime
+from .tslibs import iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime
 
 # TODO
 # period is directly dependent on tslib and imports python

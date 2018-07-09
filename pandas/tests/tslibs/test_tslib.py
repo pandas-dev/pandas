@@ -3,21 +3,21 @@
 
 from datetime import datetime, date
 
-from pandas._libs import tslib
+from pandas._libs import tslibs
 
 
 def test_normalize_date():
     value = date(2012, 9, 7)
 
-    result = tslib.normalize_date(value)
+    result = tslibs.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
     value = datetime(2012, 9, 7, 12)
 
-    result = tslib.normalize_date(value)
+    result = tslibs.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
 
     value = datetime(2007, 10, 1, 1, 12, 5, 10)
 
-    actual = tslib.normalize_date(value)
+    actual = tslibs.normalize_date(value)
     assert actual == datetime(2007, 10, 1)
