@@ -163,7 +163,8 @@ class IntervalIndex(IntervalMixin, Index):
 
     @classmethod
     def _simple_new(cls, array, name, closed=None):
-        """Construct from an IntervalArray
+        """
+        Construct from an IntervalArray
 
         Parameters
         ----------
@@ -256,16 +257,18 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
     def from_breaks(cls, breaks, closed='right', name=None, copy=False,
                     dtype=None):
-        array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
-                                          dtype=dtype)
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
+                                              dtype=dtype)
         return cls._simple_new(array, name=name)
 
     @classmethod
     @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
     def from_arrays(cls, left, right, closed='right', name=None, copy=False,
                     dtype=None):
-        array = IntervalArray.from_arrays(left, right, closed, copy=copy,
-                                          dtype=dtype)
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_arrays(left, right, closed, copy=copy,
+                                              dtype=dtype)
         return cls._simple_new(array, name=name)
 
     @classmethod

@@ -240,7 +240,6 @@ class BaseGetitemTests(BaseExtensionTests):
         na = data_missing[0]
 
         array = data_missing._from_sequence([na, valid])
-        print(array)
         ser = pd.Series(array)
         result = ser.reindex([0, 1, 2], fill_value=valid)
         expected = pd.Series(data_missing._from_sequence([na, valid, valid]))

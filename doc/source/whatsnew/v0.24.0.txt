@@ -72,8 +72,8 @@ Current Behavior:
 Storing Interval Data in Series and DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Interval data may now be stored in a Series or DataFrame, in addition to an
-:class:`IntervalIndex` like before (:issue:`19453`).
+Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
+:class:`IntervalIndex` like previously (:issue:`19453`).
 
 .. ipython:: python
 
@@ -81,23 +81,16 @@ Interval data may now be stored in a Series or DataFrame, in addition to an
    ser
    ser.dtype
 
-Previously, these would be cast to a NumPy array of Interval objects. In general,
+Previously, these would be cast to a NumPy array of ``Interval`` objects. In general,
 this should result in better performance when storing an array of intervals in
-a Series.
+a :class:`Series`.
 
-Note that the ``.values`` of a Series containing intervals is no longer a NumPy
-array. Rather, it's an ``ExtensionArray``, composed of two arrays ``left`` and
-``right``.
+Note that the ``.values`` of a ``Series`` containing intervals is no longer a NumPy
+array, but rather an ``ExtensionArray``:
 
 .. ipython:: python
 
    ser.values
-
-To recover the NumPy array of Interval objects, use :func:`numpy.asarray`:
-
-.. ipython:: python
-
-   np.asarray(ser.values)
 
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
@@ -133,9 +126,8 @@ Backwards incompatible API changes
 ``IntervalIndex.values`` is now an ``IntervalArray``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``.values`` attribute of an :class:`IntervalIndex` now returns an
-``IntervalArray``, rather than a NumPy array of :class:`Interval` objects
-(:issue:`19453`).
+The :attr:`~Interval.values` attribute of an :class:`IntervalIndex` now returns an
+``IntervalArray``, rather than a NumPy array of :class:`Interval` objects (:issue:`19453`).
 
 Previous Behavior:
 
@@ -158,11 +150,12 @@ New Behavior:
 
 This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.
 
-For situations where you need an ``ndarray`` of Interval objects, use
+For situations where you need an ``ndarray`` of ``Interval`` objects, use
 :meth:`numpy.asarray` or ``idx.astype(object)``.
 
 .. ipython:: python
-
+  
+   np.asarray(idx)
    idx.values.astype(object)
 
 
@@ -421,7 +414,7 @@ Interval
 ^^^^^^^^
 
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
-- Bug in the ``IntervalIndex`` repr missing a trailing comma at the end of the "data" section (:issue`20611`)
+- Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue`20611`)
 -
 -
 

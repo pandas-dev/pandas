@@ -121,7 +121,7 @@ class TestMethods(BaseInterval, base.BaseMethodsTests):
 
     @pytest.mark.parametrize('bad_repeats, msg', [
         (-1, 'negative dimensions are not allowed'),
-        ('foo', r'invalid literal for int\(\) with base 10')])
+        ('foo', r'invalid literal for (int|long)\(\) with base 10')])
     def test_repeat_errors(self, bad_repeats, msg):
         array = IntervalArray.from_breaks(range(4))
         with tm.assert_raises_regex(ValueError, msg):

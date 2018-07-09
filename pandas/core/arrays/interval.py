@@ -172,7 +172,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         elif is_categorical_dtype(left.dtype) or is_string_dtype(left.dtype):
             # GH 19016
             msg = ('category, object, and string subtypes are not supported '
-                   'for IntervalIndex')
+                   'for IntervalArray')
             raise TypeError(msg)
         elif isinstance(left, ABCPeriodIndex):
             msg = 'Period dtypes are not supported, use a PeriodIndex instead'
@@ -586,6 +586,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return cls._simple_new(left, right, closed=closed, copy=False)
 
     def _shallow_copy(self, left=None, right=None, closed=None):
+        """
+        Return a new IntervalArray with the replacement attributes
+
+        Parameters
+        ----------
+        left : array-like
+            Values to be used for the left-side of the the intervals.
+            If None, the existing left and right values will be used.
+
+        right : array-like
+            Values to be used for the right-side of the the intervals.
+            If None and left is IntervalArray-like, the left and right
+            of the IntervalArray-like will be used.
+
+        closed : {'left', 'right', 'both', 'neither'}, optional
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.  If None, the existing closed will be used.
+        """
         if left is None:
 
             # no values passed
