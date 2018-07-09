@@ -65,8 +65,8 @@ class RangeIndex(Int64Index):
     _typ = 'rangeindex'
     _engine_type = libindex.Int64Engine
 
-    def __new__(cls, start=None, stop=None, step=None, name=None, dtype=None,
-                fastpath=False, copy=False, **kwargs):
+    def __new__(cls, start=None, stop=None, step=None,
+                dtype=None, copy=False, name=None, fastpath=False):
 
         if fastpath:
             return cls._simple_new(start, stop, step, name=name)
@@ -554,7 +554,7 @@ class RangeIndex(Int64Index):
             stop = self._start + self._step * stop
             step = self._step * step
 
-            return RangeIndex(start, stop, step, self.name, fastpath=True)
+            return RangeIndex(start, stop, step, name=self.name, fastpath=True)
 
         # fall back to Int64Index
         return super_getitem(key)
