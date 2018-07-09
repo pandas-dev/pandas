@@ -390,7 +390,7 @@ class TestTableOrient(object):
         ({'type': 'integer'}, 'int64'),
         ({'type': 'number'}, 'float64'),
         ({'type': 'boolean'}, 'bool'),
-        ({'type': 'duration'}, 'timedelta64'),
+        ({'type': 'duration'}, 'timedelta64[ns]'),
         ({'type': 'datetime'}, 'datetime64[ns]'),
         ({'type': 'datetime', 'tz': 'US/Hawaii'}, 'datetime64[ns, US/Hawaii]'),
         ({'type': 'any'}, 'object'),
@@ -499,6 +499,7 @@ class TestTableOrientReader(object):
         'level_0'])
     @pytest.mark.parametrize("vals", [
         {'ints': [1, 2, 3, 4]},
+        {'timedeltas': pd.timedelta_range('1H', periods=4, freq='T')},
         {'objects': ['a', 'b', 'c', 'd']},
         {'date_ranges': pd.date_range('2016-01-01', freq='d', periods=4)},
         {'categoricals': pd.Series(pd.Categorical(['a', 'b', 'c', 'c']))},
@@ -516,7 +517,6 @@ class TestTableOrientReader(object):
     @pytest.mark.parametrize("index_nm", [
         None, "idx", "index"])
     @pytest.mark.parametrize("vals", [
-        {'timedeltas': pd.timedelta_range('1H', periods=4, freq='T')},
         {'timezones': pd.date_range('2016-01-01', freq='d', periods=4,
                                     tz='US/Central')}])
     def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
@@ -530,7 +530,7 @@ class TestTableOrientReader(object):
             {'A': [1, 2, 3, 4],
              'B': ['a', 'b', 'c', 'c'],
              'C': pd.date_range('2016-01-01', freq='d', periods=4),
-             # 'D': pd.timedelta_range('1H', periods=4, freq='T'),
+             'D': pd.timedelta_range('1H', periods=4, freq='T'),
              'E': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'])),
              'F': pd.Series(pd.Categorical(['a', 'b', 'c', 'c'],
                                            ordered=True)),
