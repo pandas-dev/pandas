@@ -2,7 +2,6 @@
 
 import pytest
 from datetime import datetime
-import warnings
 
 import numpy as np
 
@@ -478,12 +477,15 @@ class TestCategoricalConstructors(object):
 
     def test_from_codes_with_float(self):
         # GH21767
-        codes = [1.0, 2.0, 0]
+        codes = [1.0, 2.0, 0]  # integer, but in float dtype
         categories = ['a', 'b', 'c']
-        with warnings.catch_warnings(record=True) as w:
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             Categorical.from_codes(codes, categories)
 
-        assert len(w) == 1
+        codes = [1.1, 2.0, 0]  # non-integer
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, categories)
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
