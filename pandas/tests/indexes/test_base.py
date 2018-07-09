@@ -885,7 +885,7 @@ class TestIndex(Base):
     @pytest.mark.parametrize("first_list", [list('ab'), list()])
     @pytest.mark.parametrize("second_list", [list('ab'), list()])
     @pytest.mark.parametrize("first_name, second_name, expected_name", [
-        ('A', 'B', None), (None, 'B', 'B'), ('A', None, 'A')])
+        ('A', 'B', None), (None, 'B', None), ('A', None, None)])
     def test_union_name_preservation(self, first_list, second_list, first_name,
                                      second_name, expected_name):
         first = Index(first_list, name=first_name)
