@@ -363,7 +363,34 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
    pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
                      np.timedelta64(2,'D'), datetime.timedelta(days=2,seconds=2)])
 
-Similarly to ``date_range``, you can construct regular ranges of a ``TimedeltaIndex``:
+The string 'infer' can be passed in order to set the frequency of the index as the
+inferred frequency upon creation:
+
+.. ipython:: python
+
+   pd.TimedeltaIndex(['0 days', '10 days', '20 days'], freq='infer')
+
+Generating Ranges of Time Deltas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex``
+using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is 
+calendar day:
+
+.. ipython:: python
+
+   pd.timedelta_range(start='1 days', periods=5)
+
+Various combinations of ``start``, ``end``, and ``periods`` can be used with
+``timedelta_range``:
+
+.. ipython:: python
+
+   pd.timedelta_range(start='1 days', end='5 days')
+
+   pd.timedelta_range(end='10 days', periods=4)
+
+The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseries.offset_aliases>`:
 
 .. ipython:: python
 

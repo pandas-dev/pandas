@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas import Categorical, Series, DataFrame, date_range
-from pandas.tests.categorical.common import TestCategorical
+from pandas.tests.arrays.categorical.common import TestCategorical
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):
@@ -291,3 +291,20 @@ class TestCategoricalOps(object):
 
         # invalid ufunc
         pytest.raises(TypeError, lambda: np.log(s))
+
+    def test_contains(self):
+        # GH21508
+        c = pd.Categorical(list('aabbca'), categories=list('cab'))
+
+        assert 'b' in c
+        assert 'z' not in c
+        assert np.nan not in c
+        with pytest.raises(TypeError):
+            assert [1] in c
+
+        # assert codes NOT in index
+        assert 0 not in c
+        assert 1 not in c
+
+        c = pd.Categorical(list('aabbca') + [np.nan], categories=list('cab'))
+        assert np.nan in c

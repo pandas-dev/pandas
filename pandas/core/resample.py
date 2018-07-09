@@ -188,9 +188,8 @@ one pass, you can do
 
     Examples
     --------
-    >>> s = Series([1,2,3,4,5],
-                    index=pd.date_range('20130101',
-                                        periods=5,freq='s'))
+    >>> s = pd.Series([1,2,3,4,5],
+                      index=pd.date_range('20130101', periods=5,freq='s'))
     2013-01-01 00:00:00    1
     2013-01-01 00:00:01    2
     2013-01-01 00:00:02    3
@@ -425,7 +424,7 @@ one pass, you can do
         appear (e.g., when the resampling frequency is higher than the original
         frequency). The backward fill will replace NaN values that appeared in
         the resampled data with the next value in the original sequence.
-        Missing values that existed in the orginal data will not be modified.
+        Missing values that existed in the original data will not be modified.
 
         Parameters
         ----------
@@ -529,7 +528,7 @@ one pass, you can do
         appear (e.g., when the resampling frequency is higher than the original
         frequency).
 
-        Missing values that existed in the orginal data will
+        Missing values that existed in the original data will
         not be modified.
 
         Parameters

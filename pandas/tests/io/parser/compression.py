@@ -121,9 +121,9 @@ class CompressionTests(object):
 
         inputs[3].close()
 
-    def test_read_csv_compressed_utf16_example(self):
+    def test_read_csv_compressed_utf16_example(self, datapath):
         # GH18071
-        path = tm.get_data_path('utf16_ex_small.zip')
+        path = datapath('io', 'parser', 'data', 'utf16_ex_small.zip')
 
         result = self.read_csv(path, encoding='utf-16',
                                compression='zip', sep='\t')

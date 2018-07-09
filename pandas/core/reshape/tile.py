@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     _ensure_int64)
 
 import pandas.core.algorithms as algos
@@ -18,7 +19,7 @@ import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
 from pandas import (to_timedelta, to_datetime,
                     Categorical, Timestamp, Timedelta,
-                    Series, Interval, IntervalIndex)
+                    Series, Index, Interval, IntervalIndex)
 
 import numpy as np
 
@@ -234,7 +235,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                               duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
@@ -306,7 +307,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
                               dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
@@ -428,6 +429,26 @@ def _convert_bin_to_numeric_type(bins, dtype):
     return bins
 
 
+def _convert_bin_to_datelike_type(bins, dtype):
+    """
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    datelike
+
+    Parameters
+    ----------
+    bins : list-like of bins
+    dtype : dtype of data
+
+    Returns
+    -------
+    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
+           datelike
+    """
+    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+        bins = Index(bins.astype(np.int64), dtype=dtype)
+    return bins
+
+
 def _format_labels(bins, precision, right=True,
                    include_lowest=False, dtype=None):
     """ based on the dtype, return our labels """
@@ -488,7 +509,7 @@ def _preprocess_for_cut(x):
 
 
 def _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                         series_index, name):
+                         series_index, name, dtype):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -499,6 +520,8 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series,
 
     if not retbins:
         return fac
+
+    bins = _convert_bin_to_datelike_type(bins, dtype)
 
     return fac, bins
 

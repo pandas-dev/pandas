@@ -6,14 +6,15 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - dateutil
+  - gcsfs
   - html5lib
   - jinja2=2.8
   - lxml
   - matplotlib
   - numexpr
-  - numpy=1.10*
+  - numpy=1.12*
   - openpyxl
-  - pytables==3.2.2
+  - pytables
   - python=2.7.*
   - pytz
   - s3fs
@@ -23,7 +24,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - cython
+  - cython>=0.28.2
   - pytest
   - pytest-xdist
   - moto

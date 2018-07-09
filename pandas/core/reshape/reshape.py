@@ -58,7 +58,6 @@ class _Unstacker(object):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
@@ -725,7 +724,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     ----------
     data : array-like, Series, or DataFrame
     prefix : string, list of strings, or dict of strings, default None
-        String to append DataFrame column names
+        String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
@@ -759,7 +758,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)

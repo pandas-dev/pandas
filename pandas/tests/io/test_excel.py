@@ -39,8 +39,9 @@ _mixed_frame['foo'] = 'bar'
 @td.skip_if_no('xlrd', '0.9')
 class SharedItems(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "data")
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.tsframe = _tsframe.copy()
@@ -49,7 +50,6 @@ class SharedItems(object):
     def get_csv_refdf(self, basename):
         """
         Obtain the reference data from read_csv with the Python engine.
-        Test data path is defined by pandas.util.testing.get_data_path()
 
         Parameters
         ----------
@@ -68,8 +68,7 @@ class SharedItems(object):
 
     def get_excelfile(self, basename, ext):
         """
-        Return test data ExcelFile instance. Test data path is defined by
-        pandas.util.testing.get_data_path()
+        Return test data ExcelFile instance.
 
         Parameters
         ----------
@@ -86,8 +85,7 @@ class SharedItems(object):
 
     def get_exceldf(self, basename, ext, *args, **kwds):
         """
-        Return test data DataFrame. Test data path is defined by
-        pandas.util.testing.get_data_path()
+        Return test data DataFrame.
 
         Parameters
         ----------
@@ -220,6 +218,16 @@ class ReadingTestsBase(SharedItems):
         expected = DataFrame([[np.nan], [1], [np.nan], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
+
+    def test_deprecated_sheetname(self, ext):
+        # gh-17964
+        excel = self.get_excelfile('test1', ext)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            read_excel(excel, sheetname='Sheet1')
+
+        with pytest.raises(TypeError):
+            read_excel(excel, sheet='Sheet1')
 
     def test_excel_table_sheet_by_index(self, ext):
 
@@ -2006,6 +2014,31 @@ class TestOpenpyxlTests(_WriterBase):
             assert xcell_b1.font == openpyxl_sty_merged
             assert xcell_a2.font == openpyxl_sty_merged
 
+    @pytest.mark.parametrize("mode,expected", [
+        ('w', ['baz']), ('a', ['foo', 'bar', 'baz'])])
+    def test_write_append_mode(self, merge_cells, ext, engine, mode, expected):
+        import openpyxl
+        df = DataFrame([1], columns=['baz'])
+
+        with ensure_clean(ext) as f:
+            wb = openpyxl.Workbook()
+            wb.worksheets[0].title = 'foo'
+            wb.worksheets[0]['A1'].value = 'foo'
+            wb.create_sheet('bar')
+            wb.worksheets[1]['A1'].value = 'bar'
+            wb.save(f)
+
+            writer = ExcelWriter(f, engine=engine, mode=mode)
+            df.to_excel(writer, sheet_name='baz', index=False)
+            writer.save()
+
+            wb2 = openpyxl.load_workbook(f)
+            result = [sheet.title for sheet in wb2.worksheets]
+            assert result == expected
+
+            for index, cell_value in enumerate(expected):
+                assert wb2.worksheets[index]['A1'].value == cell_value
+
 
 @td.skip_if_no('xlwt')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2060,6 +2093,13 @@ class TestXlwtTests(_WriterBase):
         assert xlwt.Alignment.HORZ_CENTER == xls_style.alignment.horz
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
+    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+        msg = "Append mode is not supported with xlwt!"
+
+        with ensure_clean(ext) as f:
+            with tm.assert_raises_regex(ValueError, msg):
+                ExcelWriter(f, engine=engine, mode='a')
+
 
 @td.skip_if_no('xlsxwriter')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2110,6 +2150,13 @@ class TestXlsxWriterTests(_WriterBase):
                 read_num_format = cell.style.number_format._format_code
 
             assert read_num_format == num_format
+
+    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+        msg = "Append mode is not supported with xlsxwriter!"
+
+        with ensure_clean(ext) as f:
+            with tm.assert_raises_regex(ValueError, msg):
+                ExcelWriter(f, engine=engine, mode='a')
 
 
 class TestExcelWriterEngineTests(object):

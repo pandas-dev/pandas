@@ -112,6 +112,10 @@ def maybe_convert_platform_interval(values):
     -------
     array
     """
+    if is_categorical_dtype(values):
+        # GH 21243/21253
+        values = np.array(values)
+
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not
@@ -156,7 +160,7 @@ class IntervalIndex(IntervalMixin, Index):
     dtype : dtype or None, default None
         If None, dtype will be inferred
 
-        ..versionadded:: 0.23.0
+        .. versionadded:: 0.23.0
 
     Attributes
     ----------
@@ -176,6 +180,7 @@ class IntervalIndex(IntervalMixin, Index):
     from_tuples
     get_indexer
     get_loc
+    set_closed
 
     Examples
     ---------
@@ -229,7 +234,7 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(data, IntervalIndex):
             left = data.left
             right = data.right
-            closed = data.closed
+            closed = closed or data.closed
         else:
 
             # don't allow scalars
@@ -237,16 +242,8 @@ class IntervalIndex(IntervalMixin, Index):
                 cls._scalar_data_error(data)
 
             data = maybe_convert_platform_interval(data)
-            left, right, infer_closed = intervals_to_interval_bounds(data)
-
-            if (com._all_not_none(closed, infer_closed) and
-                    closed != infer_closed):
-                # GH 18421
-                msg = ("conflicting values for closed: constructor got "
-                       "'{closed}', inferred from data '{infer_closed}'"
-                       .format(closed=closed, infer_closed=infer_closed))
-                raise ValueError(msg)
-
+            left, right, infer_closed = intervals_to_interval_bounds(
+                data, validate_closed=closed is None)
             closed = closed or infer_closed
 
         return cls._simple_new(left, right, closed, name, copy=copy,
@@ -434,7 +431,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -564,7 +561,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -615,7 +612,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -667,7 +664,7 @@ class IntervalIndex(IntervalMixin, Index):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -711,6 +708,41 @@ class IntervalIndex(IntervalMixin, Index):
         neither
         """
         return self._closed
+
+    def set_closed(self, closed):
+        """
+        Return an IntervalIndex identical to the current one, but closed on the
+        specified side
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        new_index : IntervalIndex
+
+        Examples
+        --------
+        >>>  index = pd.interval_range(0, 3)
+        >>>  index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+              closed='right',
+              dtype='interval[int64]')
+        >>>  index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]]
+              closed='both',
+              dtype='interval[int64]')
+        """
+        if closed not in _VALID_CLOSED:
+            msg = "invalid option for 'closed': {closed}"
+            raise ValueError(msg.format(closed=closed))
+
+        return self._shallow_copy(closed=closed)
 
     @property
     def length(self):
@@ -800,7 +832,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def dtype(self):
         """Return the dtype object of the underlying data"""
-        return IntervalDtype.construct_from_string(str(self.left.dtype))
+        return IntervalDtype(self.left.dtype.name)
 
     @property
     def inferred_type(self):

@@ -12,11 +12,6 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(scope='class', params=[None, 'foo'])
 def name(request):
     return request.param
@@ -982,3 +977,20 @@ class TestIntervalIndex(Base):
             assert all(isna(x) for x in result_na)
         else:
             assert isna(result_na)
+
+    @pytest.mark.parametrize('new_closed', [
+        'left', 'right', 'both', 'neither'])
+    def test_set_closed(self, name, closed, new_closed):
+        # GH 21670
+        index = interval_range(0, 5, closed=closed, name=name)
+        result = index.set_closed(new_closed)
+        expected = interval_range(0, 5, closed=new_closed, name=name)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('bad_closed', ['foo', 10, 'LEFT', True, False])
+    def test_set_closed_errors(self, bad_closed):
+        # GH 21670
+        index = interval_range(0, 5)
+        msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
+        with tm.assert_raises_regex(ValueError, msg):
+            index.set_closed(bad_closed)
