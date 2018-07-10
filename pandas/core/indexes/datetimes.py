@@ -31,7 +31,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
-from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays.datetimes import DatetimeArrayMixin
 
 from pandas.core.indexes.base import Index, _index_shared_docs
@@ -785,38 +784,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
-
-    def _sub_datelike(self, other):
-        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
-        if isinstance(other, (DatetimeIndex, np.ndarray)):
-            # if other is an ndarray, we assume it is datetime64-dtype
-            other = DatetimeIndex(other)
-            # require tz compat
-            if not self._has_same_tz(other):
-                raise TypeError("{cls} subtraction must have the same "
-                                "timezones or no timezones"
-                                .format(cls=type(self).__name__))
-            result = self._sub_datelike_dti(other)
-        elif isinstance(other, (datetime, np.datetime64)):
-            assert other is not tslibs.NaT
-            other = Timestamp(other)
-            if other is tslibs.NaT:
-                return self - tslibs.NaT
-            # require tz compat
-            elif not self._has_same_tz(other):
-                raise TypeError("Timestamp subtraction must have the same "
-                                "timezones or no timezones")
-            else:
-                i8 = self.asi8
-                result = checked_add_with_arr(i8, -other.value,
-                                              arr_mask=self._isnan)
-                result = self._maybe_mask_results(result,
-                                                  fill_value=tslibs.iNaT)
-        else:
-            raise TypeError("cannot subtract {cls} and {typ}"
-                            .format(cls=type(self).__name__,
-                                    typ=type(other).__name__))
-        return result.view('timedelta64[ns]')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -1585,48 +1552,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     is_year_end = _wrap_field_accessor('is_year_end')
     is_leap_year = _wrap_field_accessor('is_leap_year')
 
+    @Appender(DatetimeArrayMixin.normalize.__doc__)
     def normalize(self):
-        """
-        Convert times to midnight.
-
-        The time component of the date-time is converted to midnight i.e.
-        00:00:00. This is useful in cases, when the time does not matter.
-        Length is unaltered. The timezones are unaffected.
-
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        Returns
-        -------
-        DatetimeIndex or Series
-            The same type as the original data. Series will have the same
-            name and index. DatetimeIndex will have the same name.
-
-        See Also
-        --------
-        floor : Floor the datetimes to the specified freq.
-        ceil : Ceil the datetimes to the specified freq.
-        round : Round the datetimes to the specified freq.
-
-        Examples
-        --------
-        >>> idx = pd.DatetimeIndex(start='2014-08-01 10:00', freq='H',
-        ...                        periods=3, tz='Asia/Calcutta')
-        >>> idx
-        DatetimeIndex(['2014-08-01 10:00:00+05:30',
-                       '2014-08-01 11:00:00+05:30',
-                       '2014-08-01 12:00:00+05:30'],
-                        dtype='datetime64[ns, Asia/Calcutta]', freq='H')
-        >>> idx.normalize()
-        DatetimeIndex(['2014-08-01 00:00:00+05:30',
-                       '2014-08-01 00:00:00+05:30',
-                       '2014-08-01 00:00:00+05:30'],
-                       dtype='datetime64[ns, Asia/Calcutta]', freq=None)
-        """
-        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
-        return DatetimeIndex(new_values,
-                             freq='infer',
-                             name=self.name).tz_localize(self.tz)
+        result = DatetimeArrayMixin.normalize(self)
+        result.name = self.name
+        return result
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
