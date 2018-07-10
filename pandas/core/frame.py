@@ -5823,7 +5823,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Time series-related
 
-    def diff(self, periods=1, axis=0):
+    def diff(self, periods=1, axis=0, suffix=None):
         """
         First discrete difference of element.
 
@@ -5911,8 +5911,27 @@ class DataFrame(NDFrame):
         5  NaN  NaN   NaN
         """
         bm_axis = self._get_block_manager_axis(axis)
-        new_data = self._data.diff(n=periods, axis=bm_axis)
-        return self._constructor(new_data)
+
+        def _diff(x):
+            new_data = self._data.diff(n=x, axis=bm_axis)
+            return self._constructor(new_data)
+
+        if isinstance(periods, int):
+            return _diff(periods)
+        elif isinstance(periods, list):
+            if axis == 1:
+                raise ValueError('cannot do multi period diffs with axis == 1')
+            if len(periods) == 0:
+                raise ValueError('Must provide non empty list to periods')
+            else:
+                result = _diff(periods[0]).add_suffix('{}{}'.format(suffix, periods[0]))  # this needs to be smarter
+                for period in periods[1:]:
+                    next_addition = _diff(period).add_suffix('{}{}'.format(suffix, period))
+                    result = result.join(next_addition)
+                return result
+        else:
+            raise TypeError('`periods` must be an integer or a list')
+
 
     # ----------------------------------------------------------------------
     # Function application
