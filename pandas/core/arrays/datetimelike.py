@@ -403,7 +403,7 @@ class DatetimeLikeArrayMixin(AttributesMixin):
             td = Timedelta(self.freq)
             return op(self, td * other)
 
-        # We should only get here with DatetimeIndex; dispatch
+        # We should only get here with Datetime Array/Index; dispatch
         # to _addsub_offset_array
         assert not is_timedelta64_dtype(self)
         return op(self, np.array(other) * self.freq)

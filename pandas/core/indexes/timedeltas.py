@@ -23,7 +23,6 @@ from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 
 from pandas.tseries.frequencies import to_offset
-from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
@@ -35,7 +34,7 @@ from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex,
-                          join as libjoin, Timedelta, NaT, iNaT)
+                          join as libjoin, Timedelta, NaT)
 
 
 def _wrap_field_accessor(name):
@@ -344,23 +343,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             return NotImplemented
         return Index(result, name=self.name, copy=False)
 
-    def _add_datelike(self, other):
-        # adding a timedeltaindex to a datetimelike
-        from pandas import Timestamp, DatetimeIndex
-        if isinstance(other, (DatetimeIndex, np.ndarray)):
-            # if other is an ndarray, we assume it is datetime64-dtype
-            # defer to implementation in DatetimeIndex
-            other = DatetimeIndex(other)
-            return other + self
-        else:
-            assert other is not NaT
-            other = Timestamp(other)
-            i8 = self.asi8
-            result = checked_add_with_arr(i8, other.value,
-                                          arr_mask=self._isnan)
-            result = self._maybe_mask_results(result, fill_value=iNaT)
-            return DatetimeIndex(result)
-
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
         try:
@@ -382,36 +364,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     seconds = _wrap_field_accessor("seconds")
     microseconds = _wrap_field_accessor("microseconds")
     nanoseconds = _wrap_field_accessor("nanoseconds")
-
-    @property
-    def components(self):
-        """
-        Return a dataframe of the components (days, hours, minutes,
-        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
-
-        Returns
-        -------
-        a DataFrame
-        """
-        from pandas import DataFrame
-
-        columns = ['days', 'hours', 'minutes', 'seconds',
-                   'milliseconds', 'microseconds', 'nanoseconds']
-        hasnans = self.hasnans
-        if hasnans:
-            def f(x):
-                if isna(x):
-                    return [np.nan] * len(columns)
-                return x.components
-        else:
-            def f(x):
-                return x.components
-
-        result = DataFrame([f(x) for x in self])
-        result.columns = columns
-        if not hasnans:
-            result = result.astype('int64')
-        return result
 
     def total_seconds(self):
         """
