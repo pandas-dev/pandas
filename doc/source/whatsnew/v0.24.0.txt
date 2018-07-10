@@ -71,7 +71,7 @@ Current Behavior:
 Output Formatting Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- `df.info()` now shows line numbers for the columns summary (:issue:`17304`)
+- :func:`DataFrame.info` now shows line numbers for the columns summary (:issue:`17304`)
 
 .. ipython:: python
 

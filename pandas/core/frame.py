@@ -2121,8 +2121,8 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
         Data columns (total 3 columns):
-         #.  Column       Non-Null Count
-        ---  ------       --------------
+         #.  Column       Non-Null Count & Dtype
+        ---  ------       ----------------------
          0   int_col      5 non-null int64
          1   text_col     5 non-null object
          2   float_col    5 non-null float64
@@ -2163,8 +2163,8 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-         #.  Column      Non-Null Count
-        ---  ------      --------------
+         #.  Column      Non-Null Count & Dtype
+        ---  ------      ----------------------
          0   column_1    1000000 non-null object
          1   column_2    1000000 non-null object
          2   column_3    1000000 non-null object
@@ -2175,8 +2175,8 @@ class DataFrame(NDFrame):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
         Data columns (total 3 columns):
-         #.  Column      Non-Null Count
-        ---  ------      --------------
+         #.  Column      Non-Null Count & Dtype
+        ---  ------      ----------------------
          0   column_1    1000000 non-null object
          1   column_2    1000000 non-null object
          2   column_3    1000000 non-null object
@@ -2232,10 +2232,10 @@ class DataFrame(NDFrame):
                         'Columns must equal counts '
                         '({cols_count} != {count})'.format(
                             cols_count=cols_count, count=len(counts)))
-                col_header = 'Non-Null Count'
+                col_header = 'Non-Null Count & Dtype'
                 tmpl = '{count} non-null {dtype}'
             else:
-                col_header = 'dtype'
+                col_header = 'Dtype'
                 tmpl = '{count}{dtype}'
             header += col_header
 

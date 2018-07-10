@@ -217,13 +217,31 @@ class TestDataFrameReprInfoEtc(TestData):
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 2 entries, 0 to 1
         Data columns (total 1 columns):
-         #.  Column    Non-Null Count
-        ---  ------    --------------
+         #.  Column    Non-Null Count & Dtype
+        ---  ------    ----------------------
          0   a         2 non-null int64
         dtypes: int64(1)
         memory usage: {} bytes
         """.format(bytes))
 
+        assert result == expected
+
+    def test_info_without_null_counts(self):
+        df = pd.DataFrame({'a': [1, 2]})
+        buf = StringIO()
+        df.info(buf=buf, null_counts=False)
+        buf.seek(0)
+        lines = buf.readlines()
+        result = ''.join(lines[:-1])
+        expected = textwrap.dedent('''\
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 2 entries, 0 to 1
+        Data columns (total 1 columns):
+         #.  Column    Dtype
+        ---  ------    -----
+         0   a         int64
+        dtypes: int64(1)
+        ''')
         assert result == expected
 
     def test_info_wide(self):
