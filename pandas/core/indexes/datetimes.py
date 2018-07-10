@@ -12,7 +12,6 @@ from pandas.core.base import _shared_docs
 from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
-    is_object_dtype,
     is_datetime64_dtype,
     is_datetimetz,
     is_dtype_equal,
@@ -551,10 +550,11 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                     index = _generate_regular_range(start, end, periods, freq)
 
                 if tz is not None and getattr(index, 'tz', None) is None:
-                    index = conversion.tz_localize_to_utc(_ensure_int64(index),
-                                                          tz,
-                                                          ambiguous=ambiguous)
-                    index = index.view(_NS_DTYPE)
+                    arr = conversion.tz_localize_to_utc(_ensure_int64(index),
+                                                        tz,
+                                                        ambiguous=ambiguous)
+
+                    index = DatetimeIndex(arr)
 
                     # index is localized datetime64 array -> have to convert
                     # start/end as well to compare
@@ -575,7 +575,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
-        index = cls._simple_new(index, name=name, freq=freq, tz=tz)
+
+        index = cls._simple_new(index.values, name=name, freq=freq, tz=tz)
+
         return index
 
     def _convert_for_op(self, value):
@@ -606,11 +608,13 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                            dtype=dtype, **kwargs)
             values = np.array(values, copy=False)
 
-        if is_object_dtype(values):
-            return cls(values, name=name, freq=freq, tz=tz,
-                       dtype=dtype, **kwargs).values
-        elif not is_datetime64_dtype(values):
+        if not is_datetime64_dtype(values):
             values = _ensure_int64(values).view(_NS_DTYPE)
+
+        values = getattr(values, 'values', values)
+
+        assert isinstance(values, np.ndarray), "values is not an np.ndarray"
+        assert is_datetime64_dtype(values)
 
         result = super(DatetimeIndex, cls)._simple_new(values, freq, tz,
                                                        **kwargs)
@@ -1000,7 +1004,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             naive = self
         result = super(DatetimeIndex, naive).unique(level=level)
-        return self._simple_new(result, name=self.name, tz=self.tz,
+        return self._simple_new(result.values, name=self.name, tz=self.tz,
                                 freq=self.freq)
 
     def union(self, other):
@@ -1855,7 +1859,7 @@ def _generate_regular_range(start, end, periods, freq):
                              "if a 'period' is given.")
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = DatetimeIndex._simple_new(data, None, tz=tz)
+        data = DatetimeIndex._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         if isinstance(start, Timestamp):
             start = start.to_pydatetime()
