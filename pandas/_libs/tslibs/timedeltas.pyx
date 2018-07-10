@@ -830,17 +830,17 @@ cdef class _Timedelta(timedelta):
     @property
     def asm8(self):
         """
-        Return a numpy timedelta64 array view.
+        Return a numpy timedelta64 array scalar view.
 
-        Provides access to the array view associated with the
-        numpy.timedelta64().view() including a 64-bit integer
-        representation of the timedelta in nanoseconds (Python int
-        compatible).
+        Provides access to the array scalar view (i.e. a combination of the
+        value and the units) associated with the numpy.timedelta64().view(),
+        including a 64-bit integer representation of the timedelta in
+        nanoseconds (Python int compatible).
 
         Returns
         -------
-        numpy timedelta64 array view
-            Array view of the timedelta in nanoseconds.
+        numpy timedelta64 array scalar view
+            Array scalar view of the timedelta in nanoseconds.
 
         Examples
         --------
