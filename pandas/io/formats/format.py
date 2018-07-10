@@ -12,7 +12,7 @@ from functools import partial
 import numpy as np
 
 from pandas._libs import lib
-from pandas._libs.tslibs import iNaT, Timestamp, Timedelta
+from pandas._libs.tslibs import NaT, iNaT, Timestamp, Timedelta
 from pandas._libs.tslib import format_array_from_datetime
 
 from pandas import compat
@@ -33,19 +33,17 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_list_like)
-from pandas.core.dtypes.generic import ABCSparseArray
+from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, _ensure_index
 from pandas.core.config import get_option, set_option
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.io.common import (_expand_user, _stringify_path)
+from pandas.io.common import _expand_user, _stringify_path
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-
-import pandas as pd
 
 
 common_docstring = """
@@ -248,7 +246,7 @@ class SeriesFormatter(object):
 
     def _get_formatted_index(self):
         index = self.tr_series.index
-        is_multi = isinstance(index, MultiIndex)
+        is_multi = isinstance(index, ABCMultiIndex)
 
         if is_multi:
             have_header = any(name for name in index.names)
@@ -768,7 +766,7 @@ class DataFrameFormatter(TableFormatter):
 
         columns = frame.columns
 
-        if isinstance(columns, MultiIndex):
+        if isinstance(columns, ABCMultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes._values
@@ -824,7 +822,7 @@ class DataFrameFormatter(TableFormatter):
 
         fmt = self._get_formatter('__index__')
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, ABCMultiIndex):
             fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
                                      names=show_index_names, formatter=fmt)
         else:
@@ -850,7 +848,7 @@ class DataFrameFormatter(TableFormatter):
     def _get_column_name_list(self):
         names = []
         columns = self.frame.columns
-        if isinstance(columns, MultiIndex):
+        if isinstance(columns, ABCMultiIndex):
             names.extend('' if name is None else name
                          for name in columns.names)
         else:
@@ -937,7 +935,7 @@ class GenericArrayFormatter(object):
             if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
-                elif x is pd.NaT:
+                elif x is NaT:
                     return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):
@@ -1415,7 +1413,7 @@ def _trim_zeros(str_floats, na_rep='NaN'):
 
 
 def _has_names(index):
-    if isinstance(index, MultiIndex):
+    if isinstance(index, ABCMultiIndex):
         return com._any_not_none(*index.names)
     else:
         return index.name is not None
