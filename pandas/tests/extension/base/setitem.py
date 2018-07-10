@@ -9,7 +9,6 @@ from .base import BaseExtensionTests
 
 
 class BaseSetitemTests(BaseExtensionTests):
-
     def test_setitem_scalar_series(self, data):
         arr = pd.Series(data)
         arr[0] = data[1]
