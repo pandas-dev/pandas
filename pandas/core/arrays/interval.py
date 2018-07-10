@@ -454,11 +454,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def __setitem__(self, key, value):
         # na value: need special casing to set directly on numpy arrays
-        _needs_float_conversion = False
+        needs_float_conversion = False
         if is_scalar(value) and isna(value):
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
-                _needs_float_conversion = True
+                needs_float_conversion = True
             elif is_datetime64_any_dtype(self.dtype.subtype):
                 # need proper NaT to set directly on the numpy array
                 value = np.datetime64('NaT')
@@ -485,13 +485,13 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
-        if _needs_float_conversion:
+        if needs_float_conversion:
             left = left.astype('float')
         left.values[key] = value_left
         self._left = left
 
         right = self.right.copy(deep=True)
-        if _needs_float_conversion:
+        if needs_float_conversion:
             right = right.astype('float')
         right.values[key] = value_right
         self._right = right
@@ -505,7 +505,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if not isinstance(value, ABCInterval):
             msg = ("'IntervalArray.fillna' only supports filling with a "
-                   "'scalar pandas.Interval'. Got a '{}' instead."
+                   "scalar 'pandas.Interval'. Got a '{}' instead."
                    .format(type(value).__name__))
             raise TypeError(msg)
 
@@ -580,7 +580,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed.pop()
 
-        # TODO: avoid intermediate list
         left = np.concatenate([interval.left for interval in to_concat])
         right = np.concatenate([interval.right for interval in to_concat])
         return cls._simple_new(left, right, closed=closed, copy=False)
