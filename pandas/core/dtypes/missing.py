@@ -3,7 +3,7 @@ missing types & inference
 """
 import numpy as np
 from pandas._libs import lib, missing as libmissing
-from pandas._libs.tslib import NaT, iNaT
+from pandas._libs.tslibs import NaT, iNaT
 from .generic import (ABCMultiIndex, ABCSeries,
                       ABCIndexClass, ABCGeneric,
                       ABCExtensionArray)

@@ -4,7 +4,7 @@ import operator
 from textwrap import dedent
 
 import numpy as np
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex, tslibs,
                           algos as libalgos, join as libjoin,
                           Timedelta)
 from pandas._libs.lib import is_datetime_array
@@ -407,7 +407,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except libts.OutOfBoundsDatetime:
+                            except tslibs.OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):

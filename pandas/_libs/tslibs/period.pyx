@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 from cpython cimport (
     PyUnicode_Check,
@@ -37,7 +37,7 @@ cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
 from timestamps import Timestamp
-from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
+from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 cimport ccalendar
