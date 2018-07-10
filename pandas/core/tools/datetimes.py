@@ -98,13 +98,13 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            return Index(result)
+            return Index(result, name=name)
         else:
             return DatetimeIndex(result, name=name)
     return result.values
 
 
-def _return_parsed_timezone_results(result, timezones, box, tz):
+def _return_parsed_timezone_results(result, timezones, tz):
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -114,28 +114,21 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
         int64 date representations of the dates
     timezones : ndarray
         pytz timezone objects
-    box : boolean
-        True boxes result as an Index-like, False returns an ndarray
     tz : object
         None or pytz timezone object
+
     Returns
     -------
     tz_result : ndarray of parsed dates with timezone
-        Returns:
-
-        - Index-like if box=True
-        - ndarray of Timestamps if box=False
-
     """
     if tz is not None:
         raise ValueError("Cannot pass a tz argument when "
                          "parsing strings with timezone "
                          "information.")
-    tz_results = np.array([Timestamp(res).tz_localize(zone) for res, zone
-                           in zip(result, timezones)])
-    if box:
-        from pandas import Index
-        return Index(tz_results)
+    tz_results = np.array([
+        Timestamp(res).tz_localize(zone)
+        for res, zone in zip(result, timezones)
+    ])
     return tz_results
 
 
@@ -208,9 +201,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if box:
             if errors == 'ignore':
                 from pandas import Index
-                return Index(result)
-
-            return DatetimeIndex(result, tz=tz, name=name)
+                return Index(result, name=name)
+            else:
+                return DatetimeIndex(result, tz=tz, name=name)
         return result
     elif getattr(arg, 'ndim', 1) > 1:
         raise TypeError('arg must be a string, datetime, list, tuple, '
@@ -250,8 +243,11 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                     result, timezones = array_strptime(
                         arg, format, exact=exact, errors=errors)
                     if '%Z' in format or '%z' in format:
-                        return _return_parsed_timezone_results(
-                            result, timezones, box, tz)
+                        tz_results = _return_parsed_timezone_results(
+                            result, timezones, tz)
+                        if box:
+                            from pandas import Index
+                            return Index(tz_results, name=name)
                 except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise
