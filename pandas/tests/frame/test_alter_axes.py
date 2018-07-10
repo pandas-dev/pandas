@@ -1056,6 +1056,28 @@ class TestDataFrameAlterAxes(TestData):
                               "limit", "copy", "level", "method",
                               "fill_value", "tolerance"}
 
+    def test_droplevel(self):
+        df = pd.DataFrame([
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12]
+        ])
+        df = df.set_index([0, 1]).rename_axis(['a', 'b'])
+        df.columns = pd.MultiIndex.from_tuples([('c', 'e'), ('d', 'f')],
+                                               names=['level_1', 'level_2'])
+
+        # test that dropping of a level in the index works
+        expected_df_no_level_a_in_index = df.reset_index('a', drop=True)
+        actual_df_no_level_a_in_index = df.droplevel('a')
+        assert_frame_equal(expected_df_no_level_a_in_index, actual_df_no_level_a_in_index)
+
+        # test that dropping of a level in the index works
+        expected_df_no_level_2_in_columns = df.copy()
+        expected_df_no_level_2_in_columns.columns = pd.Index(['c', 'd'], name='level_1')
+        actual_df_no_level_2_in_columns = df.droplevel('level_2', axis=1)
+        assert_frame_equal(expected_df_no_level_2_in_columns,
+                           actual_df_no_level_2_in_columns)
+
 
 class TestIntervalIndex(object):
 
