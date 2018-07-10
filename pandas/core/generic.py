@@ -7847,6 +7847,8 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         :func:`DataFrame.%(name_other)s` : Return an object of same shape as
             self
+        :func:`Series.%(name_other)s` : Return an object of same shape as
+            self
 
         Examples
         --------
