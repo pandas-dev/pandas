@@ -248,6 +248,8 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                         if box:
                             from pandas import Index
                             return Index(tz_results, name=name)
+                        else:
+                            return tz_results
                 except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise
