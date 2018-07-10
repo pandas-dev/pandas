@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 
 from pandas._libs import tslibs
-from pandas._libs.tslibs import Timedelta, NaT
+from pandas._libs.tslibs import Timestamp, Timedelta, NaT, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
@@ -14,6 +14,8 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE, _ensure_int64, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
+
+from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas.tseries.frequencies import to_offset
@@ -91,6 +93,24 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         raise TypeError("cannot add the type {typ} to a {cls}"
                         .format(typ=type(other).__name__,
                                 cls=type(self).__name__))
+
+    def _add_datelike(self, other):
+        # adding a timedeltaindex to a datetimelike
+        from .datetimes import DatetimeArrayMixin
+        if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            # defer to implementation in DatetimeIndex
+            if isinstance(other, np.ndarray):
+                other = DatetimeArrayMixin(other)
+            return other + self
+        else:
+            assert other is not NaT
+            other = Timestamp(other)
+            i8 = self.asi8
+            result = checked_add_with_arr(i8, other.value,
+                                          arr_mask=self._isnan)
+            result = self._maybe_mask_results(result, fill_value=iNaT)
+            return DatetimeArrayMixin(result)
 
     def _sub_datelike(self, other):
         assert other is not NaT
@@ -198,3 +218,33 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
     nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
                                   "\nNumber of nanoseconds (>= 0 and less "
                                   "than 1 microsecond) for each\nelement.\n")
+
+    @property
+    def components(self):
+        """
+        Return a dataframe of the components (days, hours, minutes,
+        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+
+        Returns
+        -------
+        a DataFrame
+        """
+        from pandas import DataFrame
+
+        columns = ['days', 'hours', 'minutes', 'seconds',
+                   'milliseconds', 'microseconds', 'nanoseconds']
+        hasnans = self.hasnans
+        if hasnans:
+            def f(x):
+                if isna(x):
+                    return [np.nan] * len(columns)
+                return x.components
+        else:
+            def f(x):
+                return x.components
+
+        result = DataFrame([f(x) for x in self])
+        result.columns = columns
+        if not hasnans:
+            result = result.astype('int64')
+        return result
