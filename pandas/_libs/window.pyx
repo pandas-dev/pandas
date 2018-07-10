@@ -653,16 +653,21 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
-
+    nobs[0] = nobs[0] + 1
     # Not NaN
     if val == val:
-        nobs[0] = nobs[0] + 1
-
         # a part of Welford's method for the online variance-calculation
         # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
         delta = val - mean_x[0]
         mean_x[0] = mean_x[0] + delta / nobs[0]
         ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
+    else:
+        # XXX
+        # `nobs[0] = nobs[0] + 1` should be in the if branch
+        # but something goes wrong with MSVC 2017 causing the whole
+        # path to optimize out, uncoditionally adding and
+        # backing out as a hack to fix
+        nobs[0] = nobs[0] - 1
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
@@ -682,7 +687,6 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
         else:
             mean_x[0] = 0
             ssqdm_x[0] = 0
-
 
 def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed, int ddof=1):
