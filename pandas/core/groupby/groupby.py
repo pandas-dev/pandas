@@ -1863,7 +1863,7 @@ class GroupBy(_GroupBy):
 
         Essentially this is equivalent to
 
-        >>> self.apply(lambda x: Series(np.arange(len(x)), x.index))
+        >>> self.apply(lambda x: pd.Series(np.arange(len(x)), x.index))
 
         Parameters
         ----------
@@ -2133,8 +2133,8 @@ class GroupBy(_GroupBy):
         Examples
         --------
 
-        >>> df = DataFrame([[1, 2], [1, 4], [5, 6]],
-                           columns=['A', 'B'])
+        >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],
+                              columns=['A', 'B'])
         >>> df.groupby('A', as_index=False).head(1)
            A  B
         0  1  2
@@ -2160,8 +2160,8 @@ class GroupBy(_GroupBy):
         Examples
         --------
 
-        >>> df = DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
-                           columns=['A', 'B'])
+        >>> df = pd.DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
+                              columns=['A', 'B'])
         >>> df.groupby('A').tail(1)
            A  B
         1  a  2
@@ -3461,7 +3461,7 @@ class SeriesGroupBy(GroupBy):
     Examples
     --------
 
-    >>> s = Series([1, 2, 3, 4])
+    >>> s = pd.Series([1, 2, 3, 4])
 
     >>> s
     0    1

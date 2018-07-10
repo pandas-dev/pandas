@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 from cpython cimport (
     PyUnicode_Check,
@@ -37,7 +37,7 @@ cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
 from timestamps import Timestamp
-from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
+from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 cimport ccalendar
@@ -1463,6 +1463,45 @@ cdef class _Period(object):
 
     @property
     def qyear(self):
+        """
+        Fiscal year the Period lies in according to its starting-quarter.
+
+        The `year` and the `qyear` of the period will be the same if the fiscal
+        and calendar years are the same. When they are not, the fiscal year
+        can be different from the calendar year of the period.
+
+        Returns
+        -------
+        int
+            The fiscal year of the period.
+
+        See Also
+        --------
+        Period.year : Return the calendar year of the period.
+        
+        Examples
+        --------
+        If the natural and fiscal year are the same, `qyear` and `year` will
+        be the same.
+
+        >>> per = pd.Period('2018Q1', freq='Q')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2018
+
+        If the fiscal year starts in April (`Q-MAR`), the first quarter of
+        2018 will start in April 2017. `year` will then be 2018, but `qyear`
+        will be the fiscal year, 2018.
+
+        >>> per = pd.Period('2018Q1', freq='Q-MAR')
+        >>> per.start_time
+        Timestamp('2017-04-01 00:00:00')
+        >>> per.qyear
+        2018
+        >>> per.year
+        2017
+        """
         base, mult = get_freq_code(self.freq)
         return pqyear(self.ordinal, base)
 

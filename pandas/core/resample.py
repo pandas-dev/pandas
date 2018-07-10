@@ -24,8 +24,8 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
-from pandas._libs import lib, tslib
-from pandas._libs.tslib import Timestamp
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, NaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.util._decorators import Appender, Substitution
@@ -188,9 +188,8 @@ one pass, you can do
 
     Examples
     --------
-    >>> s = Series([1,2,3,4,5],
-                    index=pd.date_range('20130101',
-                                        periods=5,freq='s'))
+    >>> s = pd.Series([1,2,3,4,5],
+                      index=pd.date_range('20130101', periods=5,freq='s'))
     2013-01-01 00:00:00    1
     2013-01-01 00:00:01    2
     2013-01-01 00:00:02    3
@@ -1345,8 +1344,8 @@ class TimeGrouper(Grouper):
                 labels = labels[:-1]
 
         if ax.hasnans:
-            binner = binner.insert(0, tslib.NaT)
-            labels = labels.insert(0, tslib.NaT)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
 
         # if we end up with more labels than bins
         # adjust the labels
@@ -1461,8 +1460,8 @@ class TimeGrouper(Grouper):
             # shift bins by the number of NaT
             bins += nat_count
             bins = np.insert(bins, 0, nat_count)
-            binner = binner.insert(0, tslib.NaT)
-            labels = labels.insert(0, tslib.NaT)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
 
         return binner, bins, labels
 

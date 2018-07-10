@@ -4,9 +4,9 @@ from collections import MutableMapping
 
 import numpy as np
 
-from pandas._libs import tslib
+from pandas._libs import tslib, tslibs
 from pandas._libs.tslibs.strptime import array_strptime
-from pandas._libs.tslibs import parsing, conversion
+from pandas._libs.tslibs import parsing, conversion, Timestamp
 from pandas._libs.tslibs.parsing import (  # noqa
     parse_time_string,
     DateParseError,
@@ -131,7 +131,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
         raise ValueError("Cannot pass a tz argument when "
                          "parsing strings with timezone "
                          "information.")
-    tz_results = np.array([tslib.Timestamp(res).tz_localize(zone) for res, zone
+    tz_results = np.array([Timestamp(res).tz_localize(zone) for res, zone
                            in zip(result, timezones)])
     if box:
         from pandas import Index
@@ -252,7 +252,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                     if '%Z' in format or '%z' in format:
                         return _return_parsed_timezone_results(
                             result, timezones, box, tz)
-                except tslib.OutOfBoundsDatetime:
+                except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise
                     result = arg
@@ -310,7 +310,7 @@ def _adjust_to_origin(arg, origin, unit):
     """
     if origin == 'julian':
         original = arg
-        j0 = tslib.Timestamp(0).to_julian_date()
+        j0 = Timestamp(0).to_julian_date()
         if unit != 'D':
             raise ValueError("unit must be 'D' for origin='julian'")
         try:
@@ -320,10 +320,10 @@ def _adjust_to_origin(arg, origin, unit):
                              "'origin'='julian'")
 
         # premptively check this for a nice range
-        j_max = tslib.Timestamp.max.to_julian_date() - j0
-        j_min = tslib.Timestamp.min.to_julian_date() - j0
+        j_max = Timestamp.max.to_julian_date() - j0
+        j_min = Timestamp.min.to_julian_date() - j0
         if np.any(arg > j_max) or np.any(arg < j_min):
-            raise tslib.OutOfBoundsDatetime(
+            raise tslibs.OutOfBoundsDatetime(
                 "{original} is Out of Bounds for "
                 "origin='julian'".format(original=original))
     else:
@@ -338,9 +338,9 @@ def _adjust_to_origin(arg, origin, unit):
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = tslib.Timestamp(origin)
-        except tslib.OutOfBoundsDatetime:
-            raise tslib.OutOfBoundsDatetime(
+            offset = Timestamp(origin)
+        except tslibs.OutOfBoundsDatetime:
+            raise tslibs.OutOfBoundsDatetime(
                 "origin {origin} is Out of Bounds".format(origin=origin))
         except ValueError:
             raise ValueError("origin {origin} cannot be converted "
@@ -349,11 +349,11 @@ def _adjust_to_origin(arg, origin, unit):
         if offset.tz is not None:
             raise ValueError(
                 "origin offset {} must be tz-naive".format(offset))
-        offset -= tslib.Timestamp(0)
+        offset -= Timestamp(0)
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
-        offset = offset // tslib.Timedelta(1, unit=unit)
+        offset = offset // tslibs.Timedelta(1, unit=unit)
 
         # scalars & ndarray-like can handle the addition
         if is_list_like(arg) and not isinstance(
@@ -541,7 +541,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                                errors=errors, exact=exact,
                                infer_datetime_format=infer_datetime_format)
 
-    if isinstance(arg, tslib.Timestamp):
+    if isinstance(arg, Timestamp):
         result = arg
     elif isinstance(arg, ABCSeries):
         cache_array = _maybe_cache(arg, format, cache, convert_listlike)
@@ -704,7 +704,7 @@ def _attempt_YYYYMMDD(arg, errors):
     def calc_with_mask(carg, mask):
         result = np.empty(carg.shape, dtype='M8[ns]')
         iresult = result.view('i8')
-        iresult[~mask] = tslib.iNaT
+        iresult[~mask] = tslibs.iNaT
         result[mask] = calc(carg[mask].astype(np.float64).astype(np.int64)). \
             astype('M8[ns]')
         return result

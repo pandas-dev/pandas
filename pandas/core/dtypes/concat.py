@@ -3,7 +3,7 @@ Utility functions related to concat
 """
 
 import numpy as np
-import pandas._libs.tslib as tslib
+from pandas._libs import tslib, tslibs
 from pandas import compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -486,7 +486,7 @@ def _convert_datetimelike_to_object(x):
 
     elif x.dtype == _TD_DTYPE:
         shape = x.shape
-        x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
+        x = tslibs.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
         x = x.reshape(shape)
 
     return x

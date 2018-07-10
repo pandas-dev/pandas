@@ -2,7 +2,7 @@
 from __future__ import division
 import operator
 import warnings
-from datetime import time, datetime, timedelta
+from datetime import time, datetime
 
 import numpy as np
 from pytz import utc
@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_datetimetz,
     is_dtype_equal,
-    is_timedelta64_dtype,
     is_integer,
     is_float,
     is_integer_dtype,
@@ -33,7 +32,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
-from pandas.errors import PerformanceWarning
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.arrays.datetimes import DatetimeArrayMixin
 
@@ -53,7 +51,7 @@ import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex, tslibs, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
@@ -494,14 +492,14 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if start is not None:
             if normalize:
-                start = libts.normalize_date(start)
+                start = tslibs.normalize_date(start)
                 _normalized = True
             else:
                 _normalized = _normalized and start.time() == _midnight
 
         if end is not None:
             if normalize:
-                end = libts.normalize_date(end)
+                end = tslibs.normalize_date(end)
                 _normalized = True
             else:
                 _normalized = _normalized and end.time() == _midnight
@@ -796,10 +794,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                 .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
-            assert other is not libts.NaT
+            assert other is not tslibs.NaT
             other = Timestamp(other)
-            if other is libts.NaT:
-                return self - libts.NaT
+            if other is tslibs.NaT:
+                return self - tslibs.NaT
             # require tz compat
             elif not self._has_same_tz(other):
                 raise TypeError("Timestamp subtraction must have the same "
@@ -809,7 +807,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 result = checked_add_with_arr(i8, -other.value,
                                               arr_mask=self._isnan)
                 result = self._maybe_mask_results(result,
-                                                  fill_value=libts.iNaT)
+                                                  fill_value=tslibs.iNaT)
         else:
             raise TypeError("cannot subtract {cls} and {typ}"
                             .format(cls=type(self).__name__,
@@ -823,60 +821,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             # no need to infer if freq is None
             attrs['freq'] = 'infer'
         return attrs
-
-    def _add_delta(self, delta):
-        """
-        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
-        to self.
-
-        Parameters
-        ----------
-        delta : {timedelta, np.timedelta64, DateOffset,
-                 TimedelaIndex, ndarray[timedelta64]}
-
-        Returns
-        -------
-        result : DatetimeIndex
-
-        Notes
-        -----
-        The result's name is set outside of _add_delta by the calling
-        method (__add__ or __sub__)
-        """
-        from pandas import TimedeltaIndex
-
-        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
-            new_values = self._add_delta_td(delta)
-        elif is_timedelta64_dtype(delta):
-            if not isinstance(delta, TimedeltaIndex):
-                delta = TimedeltaIndex(delta)
-            new_values = self._add_delta_tdi(delta)
-        else:
-            new_values = self.astype('O') + delta
-
-        tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, freq='infer')
-        if self.tz is not None and self.tz is not utc:
-            result = result.tz_convert(self.tz)
-        return result
-
-    def _add_offset(self, offset):
-        assert not isinstance(offset, Tick)
-        try:
-            if self.tz is not None:
-                values = self.tz_localize(None)
-            else:
-                values = self
-            result = offset.apply_index(values)
-            if self.tz is not None:
-                result = result.tz_localize(self.tz)
-
-        except NotImplementedError:
-            warnings.warn("Non-vectorized DateOffset being applied to Series "
-                          "or DatetimeIndex", PerformanceWarning)
-            result = self.astype('O') + offset
-
-        return DatetimeIndex(result, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
