@@ -2748,7 +2748,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     def _wrap_setop_result(self, other, result):
-        return self.__class__(result, name=get_op_result_name(self, other))
+        return self._constructor(result, name=get_op_result_name(self, other))
 
     def intersection(self, other):
         """

@@ -713,7 +713,10 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("itm", [101, 'no_int'])
     def test_getitem_error(self, indices, itm):
-        with pytest.raises(IndexError):
+        error_type = IndexError
+        if isinstance(indices, RangeIndex) and (itm == 'no_int'):
+            error_type = ValueError
+        with pytest.raises(error_type):
             indices[itm]
 
     def test_intersection(self):
@@ -793,43 +796,41 @@ class TestIndex(Base):
             (None, 'B', None),
             (None, None, None),
         ])
-    def test_corner_union(self, fname, sname, expected_name):
+    def test_corner_union(self, indices, fname, sname, expected_name):
         # GH 9943 9862
         # Test unions with various name combinations
-        # Do not test MultiIndex
+        # Do not test MultiIndex or repeats
 
-        skip_index_keys = ['tuples', 'repeats']
-        for key, id in self.indices.items():
-            if key in skip_index_keys:
-                continue
+        if isinstance(indices, MultiIndex) or not indices.is_unique:
+            pytest.skip("Not for MultiIndex or repeated indices")
 
-            # Test copy.union(copy)
-            first = id.copy().set_names(fname)
-            second = id.copy().set_names(sname)
-            union = first.union(second)
-            expected = id.copy().set_names(expected_name)
-            tm.assert_index_equal(union, expected)
+        # Test copy.union(copy)
+        first = indices.copy().set_names(fname)
+        second = indices.copy().set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
 
-            # Test copy.union(empty)
-            first = id.copy().set_names(fname)
-            second = id.drop(id).set_names(sname)
-            union = first.union(second)
-            expected = id.copy().set_names(expected_name)
-            tm.assert_index_equal(union, expected)
+        # Test copy.union(empty)
+        first = indices.copy().set_names(fname)
+        second = indices.drop(indices).set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
 
-            # Test empty.union(copy)
-            first = id.drop(id).set_names(fname)
-            second = id.copy().set_names(sname)
-            union = first.union(second)
-            expected = id.copy().set_names(expected_name)
-            tm.assert_index_equal(union, expected)
+        # Test empty.union(copy)
+        first = indices.drop(indices).set_names(fname)
+        second = indices.copy().set_names(sname)
+        union = first.union(second)
+        expected = indices.copy().set_names(expected_name)
+        tm.assert_index_equal(union, expected)
 
-            # Test empty.union(empty)
-            first = id.drop(id).set_names(fname)
-            second = id.drop(id).set_names(sname)
-            union = first.union(second)
-            expected = id.drop(id).set_names(expected_name)
-            tm.assert_index_equal(union, expected)
+        # Test empty.union(empty)
+        first = indices.drop(indices).set_names(fname)
+        second = indices.drop(indices).set_names(sname)
+        union = first.union(second)
+        expected = indices.drop(indices).set_names(expected_name)
+        tm.assert_index_equal(union, expected)
 
     def test_chained_union(self):
         # Chained unions handles names correctly
@@ -2533,6 +2534,10 @@ def test_generated_op_names(opname, indices):
         # pd.Index.__rsub__ does not exist; though the method does exist
         # for subclasses.  see GH#19723
         return
+    if (isinstance(index, RangeIndex) and
+        opname in ['add', 'radd', 'sub', 'rsub',
+                   'mul', 'rmul', 'truediv', 'rtruediv']):
+        pytest.skip("RangeIndex does operators differently")
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
     assert method.__name__ == opname
