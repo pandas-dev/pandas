@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
+from pandas.util import testing as tm
 
 from .base import BaseExtensionTests
 
@@ -54,3 +55,26 @@ class BaseDtypeTests(BaseExtensionTests):
     def test_array_type_with_arg(self, data, dtype):
         with pytest.raises(NotImplementedError):
             dtype.construct_array_type('foo')
+
+    def test_check_dtype(self, data, dtype):
+        # check equivalency for using .dtypes
+        df = pd.DataFrame({'A': pd.Series(data, dtype=dtype),
+                           'B': data,
+                           'C': 'foo', 'D': 1})
+
+        # np.dtype('int64') == 'Int64' == 'int64'
+        # so can't distinguish
+        if dtype.name == 'Int64':
+            expected = pd.Series([True, True, False, True],
+                                 index=list('ABCD'))
+        else:
+            expected = pd.Series([True, True, False, False],
+                                 index=list('ABCD'))
+
+        result = df.dtypes == dtype.name
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([True, True, False, False],
+                             index=list('ABCD'))
+        result = df.dtypes.apply(str) == dtype.name
+        tm.assert_series_equal(result, expected)

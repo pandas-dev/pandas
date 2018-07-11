@@ -1356,7 +1356,7 @@ def _comp_method_SERIES(cls, op, special):
 
         elif (is_extension_array_dtype(self) or
               (is_extension_array_dtype(other) and
-               not is_categorical_dtype(other))):
+               not is_scalar(other))):
             return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
