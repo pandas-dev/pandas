@@ -576,8 +576,7 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
     def time(self):
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
-        Time returned is in local time, and contains associated timezone
-        information.
+        Time returned is in local time with associated timezone information.
         """
         return tslib.ints_to_pydatetime(self.asi8, self.tz, box="time")
 
