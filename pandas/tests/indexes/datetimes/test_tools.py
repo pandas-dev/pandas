@@ -485,7 +485,9 @@ class TestToDatetime(object):
         # dtype coercion
         i = pd.DatetimeIndex([
             '2000-01-01 08:00:00+00:00'
-        ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
+        ])
+        i = i.tz_convert(psycopg2.tz.FixedOffsetTimezone(offset=-300,
+                                                         name=None))
         assert is_datetime64_ns_dtype(i)
 
         # tz coerceion
@@ -602,7 +604,9 @@ class TestToDatetime(object):
                              datetime(2015, 11, 18, 16, 30,
                                       tzinfo=tzoffset(None, 23400))],
                             dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
+        # GH 21864
+        expected = Index(expected)
+        tm.assert_index_equal(result, expected)
 
         result = to_datetime(ts_strings, utc=True)
         expected = DatetimeIndex([Timestamp(2015, 11, 18, 10)] * 2, tz='UTC')
@@ -1009,14 +1013,19 @@ class TestToDatetimeMisc(object):
         # assert result == expected
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_to_datetime_unprocessable_input(self, cache):
+    @pytest.mark.parametrize('box, klass, assert_method', [
+        [True, Index, 'assert_index_equal'],
+        [False, np.array, 'assert_numpy_array_equal']
+    ])
+    def test_to_datetime_unprocessable_input(self, cache, box, klass,
+                                             assert_method):
         # GH 4928
-        tm.assert_numpy_array_equal(
-            to_datetime([1, '1'], errors='ignore', cache=cache),
-            np.array([1, '1'], dtype='O')
-        )
+        # GH 21864
+        result = to_datetime([1, '1'], errors='ignore', cache=cache, box=box)
+        expected = klass(np.array([1, '1'], dtype='O'))
+        getattr(tm, assert_method)(result, expected)
         pytest.raises(TypeError, to_datetime, [1, '1'], errors='raise',
-                      cache=cache)
+                      cache=cache, box=box)
 
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
@@ -1077,7 +1086,9 @@ class TestToDatetimeMisc(object):
                                           cache=cache))
 
         result = to_datetime(malformed, errors='ignore', cache=cache)
-        tm.assert_numpy_array_equal(result, malformed)
+        # GH 21864
+        expected = Index(malformed)
+        tm.assert_index_equal(result, expected)
 
         pytest.raises(ValueError, to_datetime, malformed, errors='raise',
                       cache=cache)

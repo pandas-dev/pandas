@@ -179,7 +179,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - Index-like if box=True
         - ndarray of Timestamps if box=False
     """
-    from pandas import Index, DatetimeIndex
+    from pandas import DatetimeIndex
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
 
@@ -275,7 +275,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 yearfirst=yearfirst,
                 require_iso8601=require_iso8601
             )
-            if tz_parsed is not None:
+            if tz_parsed is not None and box:
                 return DatetimeIndex._simple_new(result, name=name,
                                                  tz=tz_parsed)
 
@@ -283,6 +283,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
             if is_datetime64_dtype(result):
                 return DatetimeIndex(result, tz=tz, name=name)
             elif is_object_dtype(result):
+                from pandas import Index
                 return Index(result, name=name)
         return result
 
