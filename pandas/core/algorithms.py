@@ -419,9 +419,9 @@ def isin(comps, values):
     
     is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x) or isinstance(x, Timestamp))
     
-    is_int = lambda x: ((x == np.int64) or (x == int))
+    ##is_int = lambda x: ((x == np.int64) or (x == int))
     
-    is_float = lambda x: ((x == np.float64) or (x == float))
+    ##is_float = lambda x: ((x == np.float64) or (x == float))
     
     f = lambda x, y: htable.ismember_object(x.astype(object), y.astype(object))
     
@@ -437,20 +437,29 @@ def isin(comps, values):
     # faster for larger cases to use np.in1d
     if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
-
-    if not is_time_like(dtype_comps) and isinstance(comps, ABCGeneric):
+    print('i am outside')
+    ##if not is_time_like(dtype_comps) and isinstance(comps, ABCGeneric):
+    if not is_time_like(dtype_comps):
+        print('i am inside')
         comps_types = set([type(v) for v in comps])
         values_types = set([type(v) for v in values])
         if len(comps_types) == len(values_types) == 1:
+            print('i am single')
             comps_types = comps_types.pop()
             values_types = values_types.pop()
-            if (is_int(comps_types) and is_int(values_types)):
+            ##if (is_int(comps_types) and is_int(values_types)):
+            if (is_integer_dtype(comps) and is_integer_dtype(values)):
+                print('i am an int')
                 values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
-                #if isinstance(comps, ABCGeneric):
+                values = values.astype('int64', copy=False) #new
+                comps = comps.astype('int64', copy=False) #new
                 f = lambda x, y: htable.ismember_int64(x, y)
-            if (is_float(comps_types) and is_float(values_types)):
+            ##if (is_float(comps_types) and is_float(values_types)):
+            if (is_float_dtype(comps) and is_float_dtype(values)):
+                print('i am floating')
                 values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
-                #if isinstance(comps, ABCGeneric):
+                values = values.astype('float64', copy=False) #new
+                comps = comps.astype('float64', copy=False) #new
                 checknull = isna(values).any()
                 f = lambda x, y: htable.ismember_float64(x, y, checknull)
 
