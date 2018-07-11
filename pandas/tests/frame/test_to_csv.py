@@ -154,7 +154,7 @@ class TestDataFrameToCSV(TestData):
             self.tzframe.to_csv(path)
             result = pd.read_csv(path, index_col=0, parse_dates=['A'])
 
-            converter = lambda c: to_datetime(result[c]).dt.tz_localize(
+            converter = lambda c: to_datetime(result[c]).dt.tz_convert(
                 'UTC').dt.tz_convert(self.tzframe[c].dt.tz)
             result['B'] = converter('B')
             result['C'] = converter('C')
