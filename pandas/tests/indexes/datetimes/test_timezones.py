@@ -724,6 +724,7 @@ class TestDatetimeIndexTimezones(object):
     ])
     def test_time_accessor(self, tz):
         # Regression test for GH#21267
+        # Changed test to account for GH#21358
         expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
 
         index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], tz=tz)
