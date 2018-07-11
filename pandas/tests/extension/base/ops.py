@@ -52,13 +52,20 @@ class BaseOpsUtil(BaseExtensionTests):
 class BaseArithmeticOpsTests(BaseOpsUtil):
     """Various Series and DataFrame arithmetic ops methods."""
 
-    def test_arith_scalar(self, data, all_arithmetic_operators):
-        # scalar
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+        # series & scalar
         op_name = all_arithmetic_operators
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=TypeError)
 
-    def test_arith_array(self, data, all_arithmetic_operators):
+    @pytest.mark.xfail(reason="_reduce needs implementation")
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        op_name = all_arithmetic_operators
+        df = pd.DataFrame({'A': data})
+        self.check_opname(df, op_name, data[0], exc=TypeError)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         s = pd.Series(data)

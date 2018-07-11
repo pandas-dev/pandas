@@ -247,14 +247,22 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
 
         self._check_op(s, op, rhs)
 
-    def test_arith_scalar(self, data, all_arithmetic_operators):
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # scalar
         op = all_arithmetic_operators
 
         s = pd.Series(data)
         self._check_op(s, op, 1, exc=TypeError)
 
-    def test_arith_array(self, data, all_arithmetic_operators):
+    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        op = all_arithmetic_operators
+
+        df = pd.DataFrame({'A': data})
+        self._check_op(df, op, 1, exc=TypeError)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op = all_arithmetic_operators
 

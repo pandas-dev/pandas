@@ -207,7 +207,7 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         super(TestArithmeticOps, self).check_opname(s, op_name,
                                                     other, exc=None)
 
-    def test_arith_array(self, data, all_arithmetic_operators):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
         s = pd.Series(data)
 
