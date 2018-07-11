@@ -790,6 +790,6 @@ def test_transform_with_all_nan():
                     'values': [1, 2, 3]})
 
     grouped = df.groupby('groups')
-    summed = grouped['values'].transform('sum')
+    result = grouped['values'].transform('sum')
     expected = Series([np.nan, np.nan, np.nan], name='values')
-    tm.assert_series_equal(summed, expected)
+    tm.assert_series_equal(result, expected)
