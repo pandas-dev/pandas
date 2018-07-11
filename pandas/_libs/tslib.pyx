@@ -452,16 +452,18 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
     """
     Converts a 1D array of date-like values to a numpy array of either:
         1) datetime64[ns] data
-        2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError is encountered
+        2) datetime.datetime objects, if OutOfBoundsDatetime or TypeError
+           is encountered
 
-    Also returns a pytz.FixedOffset if an array of strings with the same timezone offset if passed
-    and utc=True is not passed
+    Also returns a pytz.FixedOffset if an array of strings with the same
+    timezone offset if passed and utc=True is not passed
 
-    Handles datetime.date, datetime.datetime, np.datetime64 objects, numeric, strings
+    Handles datetime.date, datetime.datetime, np.datetime64 objects, numeric,
+    strings
 
     Returns
     -------
-    (ndarray, timezone offset) 
+    (ndarray, timezone offset)
     """
     cdef:
         Py_ssize_t i, n = len(values)
@@ -479,17 +481,19 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint is_coerce = errors=='coerce'
         _TSObject _ts
         int out_local=0, out_tzoffset=0
-        # Can't directly create a ndarray[int] out_local, since most np.array constructors expect
-        # a long dtype, while _string_to_dts expectes purely int, maybe something I am missing?
+        # Can't directly create a ndarray[int] out_local,
+        # since most np.array constructors expect a long dtype
+        # while _string_to_dts expects purely int
+        # maybe something I am missing?
         ndarray[int64_t] out_local_values
-        ndarray[int64_t] out_tzoffset_values
+        ndarray[int64_t] out_tzoffset_vals
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
     try:
         out_local_values = np.empty(n, dtype=np.int64)
-        out_tzoffset_values = np.empty(n, dtype=np.int64)
+        out_tzoffset_vals = np.empty(n, dtype=np.int64)
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
         for i in range(n):
@@ -625,7 +629,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 else:
                     # No error raised by string_to_dts, pick back up
                     # where we left off
-                    out_tzoffset_values[i] = out_tzoffset
+                    out_tzoffset_vals[i] = out_tzoffset
                     out_local_values[i] = out_local
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
@@ -675,18 +679,18 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         if seen_datetime_offset and not utc_convert:
             # GH 17697
-            # 1) If all the offsets are equal, then return one pytz.FixedOffset for the
-            #    parsed dates so it can behave nicely with DatetimeIndex
-            # 2) If the offsets are different, then force the parsing down the object path
-            #    where an array of datetimes (with individual datutil.tzoffsets) are returned
+            # 1) If all the offsets are equal, return one pytz.FixedOffset for
+            #    the parsed dates to (maybe) pass to DatetimeIndex
+            # 2) If the offsets are different, then force the parsing down the
+            #    object path where an array of datetimes
+            #    (with individual datutil.tzoffsets) are returned
 
             # Faster to compare integers than to compare objects
-            is_same_offsets = (out_tzoffset_values[0] == out_tzoffset_values).all()
+            is_same_offsets = (out_tzoffset_vals[0] == out_tzoffset_vals).all()
             if not is_same_offsets:
                 raise TypeError
             else:
-                # Open question: should this return dateutil offset or pytz offset?
-                tz_out = pytz.FixedOffset(out_tzoffset_values[0])
+                tz_out = pytz.FixedOffset(out_tzoffset_vals[0])
 
         return result, tz_out
     except OutOfBoundsDatetime:
