@@ -1,4 +1,5 @@
 # pylint: disable=W0223
+from copy import deepcopy
 import textwrap
 import warnings
 import numpy as np
@@ -2586,6 +2587,7 @@ def maybe_convert_indices(indices, n):
     IndexError : one of the converted indices either exceeded the number
         of elements (specified by `n`) OR was still negative.
     """
+    indices = deepcopy(indices)
 
     if isinstance(indices, list):
         indices = np.array(indices)
