@@ -24,14 +24,6 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
-def is_platform_linux():
-    return sys.platform == 'linux2'
-
-
-def is_platform_mac():
-    return sys.platform == 'darwin'
-
-
 min_cython_ver = '0.28.2'
 try:
     import Cython
@@ -53,24 +45,26 @@ setuptools_kwargs = {
 }
 
 
+# The import of Extension must be after the import of Cython, otherwise
+# we do not get the appropriately patched class.
+# TODO: reference as to why?
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
-from distutils.command.build_ext import build_ext as _build_ext  # noqa:E402
 
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
     try:
-        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext  # noqa:F811,E501
+        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
     except ImportError:
         # Pre 0.25
+        # TODO: Can we remove this branch since 0.28 is now required?
         from Cython.Distutils import build_ext as _build_ext
     cython = True
 except ImportError:
+    from distutils.command.build_ext import build_ext as _build_ext
     cython = False
-
-
-if cython:
+else:
     try:
         try:
             from Cython import Tempita as tempita
@@ -103,27 +97,30 @@ for module, files in _pxi_dep_template.items():
 
 
 class build_ext(_build_ext):
-    def build_extensions(self):
+    @classmethod
+    def render_templates(cls, pxifiles):
+        for pxifile in pxifiles:
+            # build pxifiles first, template extension must be .pxi.in
+            assert pxifile.endswith('.pxi.in')
+            outfile = pxifile[:-3]
 
-        # if builing from c files, don't need to
+            if (os.path.exists(outfile) and
+                    os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                # if .pxi.in is not updated, no need to output .pxi
+                continue
+
+            with open(pxifile, "r") as f:
+                tmpl = f.read()
+            pyxcontent = tempita.sub(tmpl)
+
+            with open(outfile, "w") as f:
+                f.write(pyxcontent)
+
+    def build_extensions(self):
+        # if building from c files, don't need to
         # generate template output
         if cython:
-            for pxifile in _pxifiles:
-                # build pxifiles first, template extension must be .pxi.in
-                assert pxifile.endswith('.pxi.in')
-                outfile = pxifile[:-3]
-
-                if (os.path.exists(outfile) and
-                        os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
-                    # if .pxi.in is not updated, no need to output .pxi
-                    continue
-
-                with open(pxifile, "r") as f:
-                    tmpl = f.read()
-                pyxcontent = tempita.sub(tmpl)
-
-                with open(outfile, "w") as f:
-                    f.write(pyxcontent)
+            self.render_templates(_pxifiles)
 
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
@@ -360,7 +357,6 @@ class CheckSDist(sdist_class):
 class CheckingBuildExt(build_ext):
     """
     Subclass build_ext to get clearer report if Cython is necessary.
-
     """
 
     def check_cython_extensions(self, extensions):
@@ -379,9 +375,11 @@ class CheckingBuildExt(build_ext):
 
 
 class CythonCommand(build_ext):
-    """Custom distutils command subclassed from Cython.Distutils.build_ext
+    """
+    Custom distutils command subclassed from Cython.Distutils.build_ext
     to compile pyx->c, and stop there. All this does is override the
-    C-compile method build_extension() with a no-op."""
+    C-compile method build_extension() with a no-op.
+    """
     def build_extension(self, ext):
         pass
 
@@ -445,7 +443,6 @@ if suffix == '.pyx':
     lib_depends.append('pandas/_libs/src/util.pxd')
 else:
     lib_depends = []
-    plib_depends = []
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
@@ -471,8 +468,6 @@ np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
 
 tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
-# some linux distros require it
-libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = {
     '_libs.algos': {
