@@ -7832,12 +7832,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         The %(name)s method is an application of the if-then idiom. For each
-        element in the calling DataFrame, if ``cond`` is ``%(cond)s`` the
-        element is used; otherwise the corresponding element from the DataFrame
+        element in the caller, if ``cond`` is ``%(cond)s`` the
+        element is used; otherwise the corresponding element from
         ``other`` is used.
 
-        The signature for :func:`DataFrame.where` differs from
-        :func:`numpy.where`. Roughly ``df1.where(m, df2)`` is equivalent to
+        The signature for :func:`DataFrame.where` or
+        :func:`DataFrame.where` differs from :func:`numpy.where`.s
+        Roughly ``df1.where(m, df2)`` is equivalent to
         ``np.where(m, df1, df2)``.
 
         For further details and examples see the ``%(name)s`` documentation in
@@ -7846,9 +7847,9 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         :func:`DataFrame.%(name_other)s` : Return an object of same shape as
-            self
+            caller
         :func:`Series.%(name_other)s` : Return an object of same shape as
-            self
+            caller
 
         Examples
         --------
