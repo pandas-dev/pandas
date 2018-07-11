@@ -7,6 +7,7 @@ from numpy cimport int64_t, int32_t
 
 from np_datetime cimport pandas_datetimestruct
 
+
 cdef class _TSObject:
     cdef:
         pandas_datetimestruct dts      # pandas_datetimestruct
