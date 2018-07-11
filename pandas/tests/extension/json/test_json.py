@@ -15,7 +15,6 @@ from .array import JSONArray, JSONDtype
 pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
 
 
-@pytest.fixture
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
     return [collections.UserDict([

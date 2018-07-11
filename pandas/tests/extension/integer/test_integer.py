@@ -15,7 +15,6 @@ from pandas.core.arrays.integer import (
     UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
 
 
-@pytest.fixture
 def make_data():
     return (list(range(8)) +
             [np.nan] +

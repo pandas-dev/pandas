@@ -29,12 +29,13 @@ ways of adding operator support.
 
 .. _whatsnew_0240.enhancements.intna:
 
-Integer NA Support
-^^^^^^^^^^^^^^^^^^
+Optional Integer NA Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled thru the use of ``ExtensionTypes`` . Here is an example of the usage.
+Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+Here is an example of the usage.
 
-We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying an list or array using the traditional missing value
+We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
 marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`)
 
 .. ipython:: python
@@ -57,12 +58,12 @@ Operations on these dtypes will propagate ``NaN`` as other pandas operations.
    s.iloc[1:3]
 
    # operate with other dtypes
-   s + s.iloc[1:3]
+   s + s.iloc[1:3].astype('Int8')
 
    # coerce when needed
    s + 0.01
 
-These dtypes can operate as part of ``DataFrames``.
+These dtypes can operate as part of of ``DataFrame``.
 
 .. ipython:: python
 
@@ -80,7 +81,7 @@ These dtypes can be merged & reshaped & casted.
 
 .. warning::
 
-   The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This maybe changed at a future date.
+   The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
 
 .. _whatsnew_0240.enhancements.read_html:
 

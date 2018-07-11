@@ -54,7 +54,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls(scalars, copy=copy)
+        return cls(scalars)
 
     @classmethod
     def _from_factorized(cls, values, original):

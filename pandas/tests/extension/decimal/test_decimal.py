@@ -11,7 +11,6 @@ from pandas.tests.extension import base
 from .array import DecimalDtype, DecimalArray
 
 
-@pytest.fixture
 def make_data():
     return [decimal.Decimal(random.random()) for _ in range(100)]
 

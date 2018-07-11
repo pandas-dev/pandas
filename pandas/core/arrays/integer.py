@@ -3,15 +3,18 @@ import warnings
 import copy
 import numpy as np
 
-from pandas.compat import u, range
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
+from pandas._libs.lib import infer_dtype
 from pandas.util._decorators import cache_readonly
+from pandas.compat import u, range
 from pandas.compat import set_function_name
-from pandas.api.types import (is_integer, is_scalar, is_float,
-                              is_float_dtype, is_integer_dtype,
-                              is_object_dtype,
-                              is_list_like,
-                              infer_dtype)
+
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
+from pandas.core.dtypes.common import (
+    is_integer, is_scalar, is_float,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_list_like)
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import registry
@@ -75,6 +78,8 @@ class _IntegerDtype(ExtensionDtype):
 
 def to_integer_array(values, dtype=None):
     """
+    Infer and return an integer array of the values.
+
     Parameters
     ----------
     values : 1D list-like
@@ -83,7 +88,7 @@ def to_integer_array(values, dtype=None):
 
     Returns
     -------
-    infer and return an integer array
+    IntegerArray
 
     Raises
     ------
@@ -235,7 +240,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                           dtype=self.dtype)
 
     def _coerce_to_ndarray(self):
-        """ coerce to an ndarary, preserving my scalar types """
+        """
+        coerce to an ndarary of object dtype
+        """
 
         # TODO(jreback) make this better
         data = self._data.astype(object)
