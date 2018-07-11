@@ -19,16 +19,16 @@ cdef extern from "../src/datetime/np_datetime.h":
     int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
                                   pandas_datetimestruct *b)
 
-    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
+    npy_datetime pandas_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                                    pandas_datetimestruct *d
                                                    ) nogil
 
     void pandas_datetime_to_datetimestruct(npy_datetime val,
-                                           PANDAS_DATETIMEUNIT fr,
+                                           NPY_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
 
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
-                                             PANDAS_DATETIMEUNIT fr,
+                                             NPY_DATETIMEUNIT fr,
                                              pandas_timedeltastruct *result
                                             ) nogil
 
@@ -59,11 +59,11 @@ cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
     return (<PyTimedeltaScalarObject*>obj).obval
 
 
-cdef inline PANDAS_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
-    return <PANDAS_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
+    return <NPY_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
 
 # ----------------------------------------------------------------------
 # Comparison
@@ -127,22 +127,22 @@ cdef inline check_dts_bounds(pandas_datetimestruct *dts):
 
 cdef inline int64_t dtstruct_to_dt64(pandas_datetimestruct* dts) nogil:
     """Convenience function to call pandas_datetimestruct_to_datetime
-    with the by-far-most-common frequency PANDAS_FR_ns"""
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+    with the by-far-most-common frequency NPY_FR_ns"""
+    return pandas_datetimestruct_to_datetime(NPY_FR_ns, dts)
 
 
 cdef inline void dt64_to_dtstruct(int64_t dt64,
                                   pandas_datetimestruct* out) nogil:
     """Convenience function to call pandas_datetime_to_datetimestruct
-    with the by-far-most-common frequency PANDAS_FR_ns"""
-    pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
+    with the by-far-most-common frequency NPY_FR_ns"""
+    pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
     return
 
 cdef inline void td64_to_tdstruct(int64_t td64,
                                   pandas_timedeltastruct* out) nogil:
     """Convenience function to call pandas_timedelta_to_timedeltastruct
-    with the by-far-most-common frequency PANDAS_FR_ns"""
-    pandas_timedelta_to_timedeltastruct(td64, PANDAS_FR_ns, out)
+    with the by-far-most-common frequency NPY_FR_ns"""
+    pandas_timedelta_to_timedeltastruct(td64, NPY_FR_ns, out)
     return
 
 

@@ -21,7 +21,6 @@ PyDateTime_IMPORT
 from np_datetime cimport (check_dts_bounds,
                           pandas_datetimestruct,
                           pandas_datetime_to_datetimestruct, _string_to_dts,
-                          PANDAS_DATETIMEUNIT, PANDAS_FR_ns,
                           npy_datetime,
                           dt64_to_dtstruct, dtstruct_to_dt64,
                           get_datetime64_unit, get_datetime64_value,
@@ -62,13 +61,13 @@ cdef inline int64_t get_datetime64_nanos(object val) except? -1:
     """
     cdef:
         pandas_datetimestruct dts
-        PANDAS_DATETIMEUNIT unit
+        NPY_DATETIMEUNIT unit
         npy_datetime ival
 
     unit = get_datetime64_unit(val)
     ival = get_datetime64_value(val)
 
-    if unit != PANDAS_FR_ns:
+    if unit != NPY_FR_ns:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
         check_dts_bounds(&dts)
         ival = dtstruct_to_dt64(&dts)
@@ -93,7 +92,7 @@ def ensure_datetime64ns(ndarray arr, copy=True):
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[int64_t] ivalues, iresult
-        PANDAS_DATETIMEUNIT unit
+        NPY_DATETIMEUNIT unit
         pandas_datetimestruct dts
 
     shape = (<object> arr).shape
@@ -107,7 +106,7 @@ def ensure_datetime64ns(ndarray arr, copy=True):
         return result
 
     unit = get_datetime64_unit(arr.flat[0])
-    if unit == PANDAS_FR_ns:
+    if unit == NPY_FR_ns:
         if copy:
             arr = arr.copy()
         result = arr
