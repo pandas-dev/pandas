@@ -27,7 +27,7 @@ This file implements string parsing and creation for NumPy datetime.
 #include <time.h>
 
 #include <numpy/arrayobject.h>
-#include "numpy/arrayscalars.h"
+#include <numpy/arrayscalars.h>
 #include <numpy/ndarraytypes.h>
 
 #include "np_datetime.h"
