@@ -718,15 +718,15 @@ class TestDatetimeIndexTimezones(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype", [
-        None, 'datetime64[ns, CET]',
-        'datetime64[ns, EST]', 'datetime64[ns, UTC]'
+    @pytest.mark.parametrize("tz", [
+        None, pytz.timezone('CET'), pytz.timezone('EST'), 
+        pytz.timezone('UTC')
     ])
-    def test_time_accessor(self, dtype):
+    def test_time_accessor(self, tz):
         # Regression test for GH#21267
-        expected = np.array([time(10, 20, 30), pd.NaT])
+        expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
 
-        index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], dtype=dtype)
+        index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], tz=tz)
         result = index.time
 
         tm.assert_numpy_array_equal(result, expected)
