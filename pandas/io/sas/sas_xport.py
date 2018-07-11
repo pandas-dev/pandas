@@ -9,13 +9,16 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
-import pandas as pd
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas import compat
 import struct
-import numpy as np
-from pandas.util._decorators import Appender
 import warnings
+
+import numpy as np
+
+from pandas.util._decorators import Appender
+from pandas import compat
+
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
+import pandas as pd
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")

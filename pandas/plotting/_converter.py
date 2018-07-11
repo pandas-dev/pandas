@@ -11,6 +11,9 @@ import matplotlib.dates as dates
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
 
+from pandas._libs import tslibs
+from pandas._libs.tslibs import resolution
+
 from pandas.core.dtypes.common import (
     is_float, is_integer,
     is_integer_dtype,
@@ -23,13 +26,11 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.compat import lrange
 import pandas.compat as compat
-from pandas._libs import tslibs
 import pandas.core.common as com
 from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
-from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
