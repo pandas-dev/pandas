@@ -32,21 +32,3 @@ cdef maybe_datetimelike_to_i8(object val)
 cdef int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz)
 
 cpdef datetime localize_pydatetime(datetime dt, object tz)
-
-cdef extern from "numpy/ndarraytypes.h":
-    ctypedef enum NPY_DATETIMEUNIT:
-        NPY_FR_ERROR
-        NPY_FR_Y
-        NPY_FR_M
-        NPY_FR_W
-        NPY_FR_D
-        NPY_FR_h
-        NPY_FR_m
-        NPY_FR_s
-        NPY_FR_ms
-        NPY_FR_us
-        NPY_FR_ns
-        NPY_FR_ps
-        NPY_FR_fs
-        NPY_FR_as
-        NPY_FR_GENERIC

@@ -24,25 +24,8 @@ PyDateTime_IMPORT
 
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
                           dt64_to_dtstruct,
-                          pandas_datetime_to_datetimestruct)
-
-cdef extern from "numpy/ndarraytypes.h":
-    ctypedef enum NPY_DATETIMEUNIT:
-        NPY_FR_ERROR
-        NPY_FR_Y
-        NPY_FR_M
-        NPY_FR_W
-        NPY_FR_D
-        NPY_FR_h
-        NPY_FR_m
-        NPY_FR_s
-        NPY_FR_ms
-        NPY_FR_us
-        NPY_FR_ns
-        NPY_FR_ps
-        NPY_FR_fs
-        NPY_FR_as
-        NPY_FR_GENERIC
+                          pandas_datetime_to_datetimestruct,
+                          NPY_DATETIMEUNIT, NPY_FR_D)
 
 cdef extern from "../src/datetime/np_datetime.h":
     int64_t pandas_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,

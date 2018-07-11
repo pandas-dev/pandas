@@ -24,7 +24,7 @@ from np_datetime cimport (check_dts_bounds,
                           npy_datetime,
                           dt64_to_dtstruct, dtstruct_to_dt64,
                           get_datetime64_unit, get_datetime64_value,
-                          pydatetime_to_dt64)
+                          pydatetime_to_dt64, NPY_DATETIMEUNIT, NPY_FR_ns)
 from np_datetime import OutOfBoundsDatetime
 
 from util cimport (is_string_object,
