@@ -719,7 +719,7 @@ class TestDatetimeIndexTimezones(object):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("tz", [
-        None, pytz.timezone('CET'), pytz.timezone('EST'), 
+        None, pytz.timezone('CET'), pytz.timezone('EST'),
         pytz.timezone('UTC')
     ])
     def test_time_accessor(self, tz):
