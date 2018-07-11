@@ -2349,11 +2349,7 @@ class BaseGrouper(object):
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
-            out = ids
-        # Covers the edge case where only a null group exists
-        if self.result_index.shape[0] == 0:
             out = []
-
         return Series(out,
                       index=self.result_index,
                       dtype='int64')
