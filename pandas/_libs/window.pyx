@@ -688,6 +688,7 @@ cdef inline void remove_var(double val, double *nobs, double *mean_x,
             mean_x[0] = 0
             ssqdm_x[0] = 0
 
+
 def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed, int ddof=1):
     """
