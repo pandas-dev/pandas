@@ -2598,8 +2598,7 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
-        # indices is np.array, so we don't use deepcopy
-        indices = np.copy(indices)
+        indices = indices.copy()
         indices[mask] += n
 
     mask = (indices >= n) | (indices < 0)

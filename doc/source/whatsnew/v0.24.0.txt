@@ -362,8 +362,7 @@ Indexing
 - ``DataFrame.__getitem__`` now accepts dictionaries and dictionary keys as list-likes of labels, consistently with ``Series.__getitem__`` (:issue:`21294`)
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
-
--
+- Bug when indexing with a numpy array containing negative values, fixed so the array is not mutated (:issue:`21867`)
 
 Missing
 ^^^^^^^
