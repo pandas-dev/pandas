@@ -172,6 +172,11 @@ class TestTimestampProperties(object):
                                2005, 1, 1), (2005, 1, 2)]])
         assert (result == [52, 52, 53, 53]).all()
 
+    def test_resolution(self):
+        # GH#21336, GH#21365
+        dt = Timestamp('2100-01-01 00:00:00')
+        assert dt.resolution == Timedelta(nanoseconds=1)
+
 
 class TestTimestampConstructors(object):
 
