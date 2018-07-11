@@ -12,7 +12,7 @@ from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
-    ABCIndexClass)
+    ABCIndexClass, ABCGeneric)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_unsigned_integer_dtype, is_signed_integer_dtype,
@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
-    is_datetimetz,
+    is_datetimetz, is_datetime_or_timedelta_dtype,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
@@ -38,6 +38,8 @@ from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
 from pandas.util._decorators import (Appender, Substitution,
                                      deprecate_kwarg)
+
+from pandas._libs.tslibs.timestamps import Timestamp
 
 _shared_docs = {}
 
@@ -413,35 +415,44 @@ def isin(comps, values):
         return comps._values.isin(values)
 
     comps = com._values_from_object(comps)
-
-    comps, dtype, _ = _ensure_data(comps)
-    values, _, _ = _ensure_data(values, dtype=dtype)
-
-    # faster for larger cases to use np.in1d
-    f = lambda x, y: htable.ismember_object(x, values)
-
+    comps, dtype_comps, _ = _ensure_data(comps)
+    
+    is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x) or isinstance(x, Timestamp))
+    
+    is_int = lambda x: ((x == np.int64) or (x == int))
+    
+    is_float = lambda x: ((x == np.float64) or (x == float))
+    
+    f = lambda x, y: htable.ismember_object(x.astype(object), y.astype(object))
+    
+    values_copy = values
+    
+    if is_time_like(dtype_comps):
+        values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
+    else:
+        values, dtype_values, _ = _ensure_data(values_copy)
+    
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    # faster for larger cases to use np.in1d
     if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
-    elif is_integer_dtype(comps):
-        try:
-            values = values.astype('int64', copy=False)
-            comps = comps.astype('int64', copy=False)
-            f = lambda x, y: htable.ismember_int64(x, y)
-        except (TypeError, ValueError):
-            values = values.astype(object)
-            comps = comps.astype(object)
 
-    elif is_float_dtype(comps):
-        try:
-            values = values.astype('float64', copy=False)
-            comps = comps.astype('float64', copy=False)
-            checknull = isna(values).any()
-            f = lambda x, y: htable.ismember_float64(x, y, checknull)
-        except (TypeError, ValueError):
-            values = values.astype(object)
-            comps = comps.astype(object)
+    if not is_time_like(dtype_comps) and isinstance(comps, ABCGeneric):
+        comps_types = set([type(v) for v in comps])
+        values_types = set([type(v) for v in values])
+        if len(comps_types) == len(values_types) == 1:
+            comps_types = comps_types.pop()
+            values_types = values_types.pop()
+            if (is_int(comps_types) and is_int(values_types)):
+                values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
+                #if isinstance(comps, ABCGeneric):
+                f = lambda x, y: htable.ismember_int64(x, y)
+            if (is_float(comps_types) and is_float(values_types)):
+                values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
+                #if isinstance(comps, ABCGeneric):
+                checknull = isna(values).any()
+                f = lambda x, y: htable.ismember_float64(x, y, checknull)
 
     return f(comps, values)
 
