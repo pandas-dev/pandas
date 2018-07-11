@@ -1,10 +1,10 @@
 # cython: profile=False
 
 cdef class _NDFrameIndexerBase:
-    '''
+    """
     A base class for _NDFrameIndexer for fast instantiation and attribute
     access.
-    '''
+    """
     cdef public object obj, name, _ndim
 
     def __init__(self, name, obj):
