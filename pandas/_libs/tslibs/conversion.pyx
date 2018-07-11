@@ -556,6 +556,9 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
         elif treat_tz_as_dateutil(tz):
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
         else:
+            # TODO: this case is never reached in the tests, but get_dst_info
+            #   has a path that returns typ = None and empty deltas.
+            #   --> Is this path possible?
             pass
 
     obj.tzinfo = tz
@@ -1145,10 +1148,7 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
+        pos = trans.searchsorted(stamps, side='right') - 1
 
         # statictzinfo
         if typ not in ['pytz', 'dateutil']:
