@@ -90,8 +90,8 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                 raise ValueError('Must provide freq argument if no data is '
                                  'supplied')
             else:
-                return cls._generate_range(start, end, periods, freq,
-                                           closed=closed)
+                return cls._generate(start, end, periods, freq,
+                                     closed=closed)
 
         result = cls._simple_new(values, freq=freq)
         if freq == 'infer':
@@ -102,7 +102,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         return result
 
     @classmethod
-    def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
+    def _generate(cls, start, end, periods, freq, closed=None, **kwargs):
         # **kwargs are for compat with TimedeltaIndex, which includes `name`
         if com._count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
