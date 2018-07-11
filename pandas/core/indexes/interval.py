@@ -25,7 +25,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     pandas_dtype)
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
+    Index, ensure_index,
     default_pprint, _index_shared_docs)
 
 from pandas._libs import Timestamp, Timedelta
@@ -255,8 +255,8 @@ class IntervalIndex(IntervalMixin, Index):
         result = IntervalMixin.__new__(cls)
 
         closed = closed or 'right'
-        left = _ensure_index(left, copy=copy)
-        right = _ensure_index(right, copy=copy)
+        left = ensure_index(left, copy=copy)
+        right = ensure_index(right, copy=copy)
 
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
@@ -1119,7 +1119,7 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
         target = self._maybe_cast_indexed(target)
 
         if self.equals(target):
@@ -1218,7 +1218,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = self._maybe_cast_indexed(_ensure_index(target))
+        target = self._maybe_cast_indexed(ensure_index(target))
         return super(IntervalIndex, self).get_indexer_non_unique(target)
 
     @Appender(_index_shared_docs['where'])
@@ -1274,7 +1274,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _as_like_interval_index(self, other):
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
+        other = ensure_index(other)
         if not isinstance(other, IntervalIndex):
             msg = ('the other index needs to be an IntervalIndex too, but '
                    'was type {}').format(other.__class__.__name__)

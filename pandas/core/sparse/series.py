@@ -11,7 +11,7 @@ import warnings
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, _ensure_index, InvalidIndexError
+from pandas.core.index import Index, ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
@@ -150,7 +150,7 @@ class SparseSeries(Series):
 
             if index is None:
                 index = com._default_index(sparse_index.length)
-            index = _ensure_index(index)
+            index = ensure_index(index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):

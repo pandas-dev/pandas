@@ -265,7 +265,7 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import _ensure_index
+        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -286,7 +286,7 @@ class _Window(PandasObject, SelectionMixin):
 
             if self._selection is not None:
 
-                selection = _ensure_index(self._selection)
+                selection = ensure_index(self._selection)
 
                 # need to reorder to include original location of
                 # the on column (if its not already there)

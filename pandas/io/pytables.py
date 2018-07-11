@@ -44,7 +44,7 @@ from pandas.core.arrays.categorical import (Categorical,
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
-from pandas.core.index import _ensure_index
+from pandas.core.index import ensure_index
 from pandas.core.computation.pytables import Expr, maybe_expression
 
 from pandas.io.common import _stringify_path
@@ -3725,8 +3725,8 @@ class Table(Fixed):
                         elif field in axis_values:
 
                             # we need to filter on this dimension
-                            values = _ensure_index(getattr(obj, field).values)
-                            filt = _ensure_index(filt)
+                            values = ensure_index(getattr(obj, field).values)
+                            filt = ensure_index(filt)
 
                             # hack until we support reversed dim flags
                             if isinstance(obj, DataFrame):
@@ -4236,7 +4236,7 @@ class AppendableFrameTable(AppendableTable):
         for a in self.values_axes:
 
             # we could have a multi-index constructor here
-            # _ensure_index doesn't recognized our list-of-tuples here
+            # ensure_index doesn't recognized our list-of-tuples here
             if info.get('type') == 'MultiIndex':
                 cols = MultiIndex.from_tuples(a.values)
             else:
@@ -4437,18 +4437,18 @@ class AppendablePanelTable(AppendableTable):
 
 def _reindex_axis(obj, axis, labels, other=None):
     ax = obj._get_axis(axis)
-    labels = _ensure_index(labels)
+    labels = ensure_index(labels)
 
     # try not to reindex even if other is provided
     # if it equals our current index
     if other is not None:
-        other = _ensure_index(other)
+        other = ensure_index(other)
     if (other is None or labels.equals(other)) and labels.equals(ax):
         return obj
 
-    labels = _ensure_index(labels.unique())
+    labels = ensure_index(labels.unique())
     if other is not None:
-        labels = _ensure_index(other.unique()) & labels
+        labels = ensure_index(other.unique()) & labels
     if not labels.equals(ax):
         slicer = [slice(None, None)] * obj.ndim
         slicer[axis] = labels

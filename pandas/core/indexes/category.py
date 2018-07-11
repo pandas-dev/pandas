@@ -489,7 +489,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             raise NotImplementedError("argument limit is not implemented for "
                                       "CategoricalIndex.reindex")
 
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if not is_categorical_dtype(target) and not target.is_unique:
             raise ValueError("cannot reindex with a non-unique indexer")
@@ -554,7 +554,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         from pandas.core.arrays.categorical import _recode_for_categories
 
         method = missing.clean_reindex_fill_method(method)
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
@@ -587,7 +587,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
             # Indexing on codes is more efficient if categories are the same:

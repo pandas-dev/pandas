@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
+from pandas.core.index import (Index, MultiIndex, ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -3889,7 +3889,7 @@ class NDFrame(PandasObject, SelectionMixin):
             if index is None:
                 continue
 
-            index = _ensure_index(index)
+            index = ensure_index(index)
             if indexer is not None:
                 indexer = _ensure_int64(indexer)
 

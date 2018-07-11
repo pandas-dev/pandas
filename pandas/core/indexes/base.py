@@ -2684,7 +2684,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
+        other = ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
             return self._get_consensus_name(other)
@@ -2784,7 +2784,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
+        other = ensure_index(other)
 
         if self.equals(other):
             return self._get_consensus_name(other)
@@ -3239,7 +3239,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
@@ -3380,7 +3380,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = _ensure_index(target)
+        target = ensure_index(target)
         if is_categorical(target):
             target = target.astype(target.dtype.categories.dtype)
         pself, ptarget = self._maybe_promote(target)
@@ -3624,7 +3624,7 @@ class Index(IndexOpsMixin, PandasObject):
             attrs.pop('freq', None)  # don't preserve freq
             target = self._simple_new(None, dtype=self.dtype, **attrs)
         else:
-            target = _ensure_index(target)
+            target = ensure_index(target)
 
         if level is not None:
             if method is not None:
@@ -3672,7 +3672,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
 
-        target = _ensure_index(target)
+        target = ensure_index(target)
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
         new_labels = self.take(indexer[check])
@@ -3759,7 +3759,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_level(other, level, how=how,
                                     return_indexers=return_indexers)
 
-        other = _ensure_index(other)
+        other = ensure_index(other)
 
         if len(other) == 0 and how in ('left', 'outer'):
             join_index = self._shallow_copy()
@@ -4891,7 +4891,7 @@ Index._add_logical_methods()
 Index._add_comparison_methods()
 
 
-def _ensure_index_from_sequences(sequences, names=None):
+def ensure_index_from_sequences(sequences, names=None):
     """Construct an index from sequences of data.
 
     A single sequence returns an Index. Many sequences returns a
@@ -4908,18 +4908,18 @@ def _ensure_index_from_sequences(sequences, names=None):
 
     Examples
     --------
-    >>> _ensure_index_from_sequences([[1, 2, 3]], names=['name'])
+    >>> ensure_index_from_sequences([[1, 2, 3]], names=['name'])
     Int64Index([1, 2, 3], dtype='int64', name='name')
 
-    >>> _ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
-                                     names=['L1', 'L2'])
+    >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
+                                    names=['L1', 'L2'])
     MultiIndex(levels=[['a'], ['a', 'b']],
                labels=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
 
     See Also
     --------
-    _ensure_index
+    ensure_index
     """
     from .multi import MultiIndex
 
@@ -4931,7 +4931,7 @@ def _ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def _ensure_index(index_like, copy=False):
+def ensure_index(index_like, copy=False):
     """
     Ensure that we have an index from some index-like object
 
@@ -4947,19 +4947,19 @@ def _ensure_index(index_like, copy=False):
 
     Examples
     --------
-    >>> _ensure_index(['a', 'b'])
+    >>> ensure_index(['a', 'b'])
     Index(['a', 'b'], dtype='object')
 
-    >>> _ensure_index([('a', 'a'),  ('b', 'c')])
+    >>> ensure_index([('a', 'a'),  ('b', 'c')])
     Index([('a', 'a'), ('b', 'c')], dtype='object')
 
-    >>> _ensure_index([['a', 'a'], ['b', 'c']])
+    >>> ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex(levels=[['a'], ['b', 'c']],
                labels=[[0, 0], [0, 1]])
 
     See Also
     --------
-    _ensure_index_from_sequences
+    ensure_index_from_sequences
     """
     if isinstance(index_like, Index):
         if copy:

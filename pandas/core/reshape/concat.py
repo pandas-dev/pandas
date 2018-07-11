@@ -5,7 +5,7 @@ concat routines
 import numpy as np
 from pandas import compat, DataFrame, Series, Index, MultiIndex
 from pandas.core.index import (_get_objs_combined_axis,
-                               _ensure_index, _get_consensus_names,
+                               ensure_index, _get_consensus_names,
                                _all_indexes_same)
 from pandas.core.arrays.categorical import (_factorize_from_iterable,
                                             _factorize_from_iterables)
@@ -499,7 +499,7 @@ class _Concatenator(object):
                 else:
                     return com._default_index(len(self.objs))
             else:
-                return _ensure_index(self.keys)
+                return ensure_index(self.keys)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
@@ -540,16 +540,16 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
         if levels is None:
             _, levels = _factorize_from_iterables(zipped)
         else:
-            levels = [_ensure_index(x) for x in levels]
+            levels = [ensure_index(x) for x in levels]
     else:
         zipped = [keys]
         if names is None:
             names = [None]
 
         if levels is None:
-            levels = [_ensure_index(keys)]
+            levels = [ensure_index(keys)]
         else:
-            levels = [_ensure_index(x) for x in levels]
+            levels = [ensure_index(x) for x in levels]
 
     if not _all_indexes_same(indexes):
         label_list = []
@@ -608,7 +608,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None):
     # do something a bit more speedy
 
     for hlevel, level in zip(zipped, levels):
-        hlevel = _ensure_index(hlevel)
+        hlevel = ensure_index(hlevel)
         mapped = level.get_indexer(hlevel)
 
         mask = mapped == -1

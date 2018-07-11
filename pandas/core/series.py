@@ -51,7 +51,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               Float64Index, _ensure_index)
+                               Float64Index, ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
@@ -183,7 +183,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
 
             if index is not None:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if data is None:
                 data = {}
@@ -369,7 +369,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ override generic, we want to set the _typ here """
 
         if not fastpath:
-            labels = _ensure_index(labels)
+            labels = ensure_index(labels)
 
         is_all_dates = labels.is_all_dates
         if is_all_dates:

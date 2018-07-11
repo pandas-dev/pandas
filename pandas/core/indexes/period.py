@@ -34,7 +34,7 @@ from pandas._libs.tslibs import resolution, period
 
 from pandas.core.arrays.period import PeriodArrayMixin
 from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs, _ensure_index
+from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
 from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
@@ -588,7 +588,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        target = _ensure_index(target)
+        target = ensure_index(target)
 
         if hasattr(target, 'freq') and target.freq != self.freq:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)

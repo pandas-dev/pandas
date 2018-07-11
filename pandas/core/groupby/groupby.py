@@ -44,7 +44,7 @@ from pandas.core.dtypes.missing import isna, isnull, notna, _maybe_fill
 from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.index import (Index, MultiIndex,
-                               CategoricalIndex, _ensure_index)
+                               CategoricalIndex, ensure_index)
 from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
@@ -2838,7 +2838,7 @@ class BinGrouper(BaseGrouper):
     def __init__(self, bins, binlabels, filter_empty=False, mutated=False,
                  indexer=None):
         self.bins = _ensure_int64(bins)
-        self.binlabels = _ensure_index(binlabels)
+        self.binlabels = ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
         self.mutated = mutated
         self.indexer = indexer

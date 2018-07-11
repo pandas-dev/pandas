@@ -15,7 +15,7 @@ from pandas.core.dtypes.cast import maybe_upcast, find_common_type
 from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
 
 from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame, extract_index, _prep_ndarray
 import pandas.core.algorithms as algos
@@ -111,7 +111,7 @@ class SparseDataFrame(DataFrame):
             if index is None:
                 index = Index([])
             else:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if columns is None:
                 columns = Index([])
@@ -139,7 +139,7 @@ class SparseDataFrame(DataFrame):
     def _init_dict(self, data, index, columns, dtype=None):
         # pre-filter out columns if we passed it
         if columns is not None:
-            columns = _ensure_index(columns)
+            columns = ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
             keys = com._dict_keys_to_ordered_list(data)
@@ -926,7 +926,7 @@ def to_manager(sdf, columns, index):
     """
 
     # from BlockManager perspective
-    axes = [_ensure_index(columns), _ensure_index(index)]
+    axes = [ensure_index(columns), ensure_index(index)]
 
     return create_block_manager_from_arrays(
         [sdf[c] for c in columns], columns, axes)

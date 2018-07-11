@@ -36,7 +36,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.config import get_option
 
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
+    Index, ensure_index,
     InvalidIndexError,
     _index_shared_docs)
 from pandas.core.indexes.frozen import (
@@ -302,13 +302,13 @@ class MultiIndex(Index):
 
         if level is None:
             new_levels = FrozenList(
-                _ensure_index(lev, copy=copy)._shallow_copy()
+                ensure_index(lev, copy=copy)._shallow_copy()
                 for lev in levels)
         else:
             level = [self._get_level_number(l) for l in level]
             new_levels = list(self._levels)
             for l, v in zip(level, levels):
-                new_levels[l] = _ensure_index(v, copy=copy)._shallow_copy()
+                new_levels[l] = ensure_index(v, copy=copy)._shallow_copy()
             new_levels = FrozenList(new_levels)
 
         if verify_integrity:
@@ -1940,7 +1940,7 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
 
         # empty indexer
         if is_list_like(target) and not len(target):
@@ -2010,12 +2010,12 @@ class MultiIndex(Index):
                 target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype),
                                                **attrs)
             else:
-                target = _ensure_index(target)
+                target = ensure_index(target)
             target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True,
                                                   keep_order=False)
         else:
-            target = _ensure_index(target)
+            target = ensure_index(target)
             if self.equals(target):
                 indexer = None
             else:
@@ -2628,7 +2628,7 @@ class MultiIndex(Index):
             return False
 
         if not isinstance(other, MultiIndex):
-            other_vals = com._values_from_object(_ensure_index(other))
+            other_vals = com._values_from_object(ensure_index(other))
             return array_equivalent(self._ndarray_values, other_vals)
 
         if self.nlevels != other.nlevels:
