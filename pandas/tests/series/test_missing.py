@@ -1317,3 +1317,23 @@ class TestSeriesInterpolateData(TestData):
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    def test_series_interpolate_nat(self):
+        # GH 11701
+        for tz in [None, 'UTC', 'Europe/Paris']:
+            expected = pd.Series(pd.date_range('2015-01-01',
+                                               '2015-01-30', tz=tz))
+            result = expected.copy()
+            result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+            result = result.interpolate()
+            tm.assert_series_equal(result, expected)
+
+    def test_series_interpolate_nat_inplace(self):
+        # GH 11701
+        for tz in [None, 'UTC', 'Europe/Paris']:
+            expected = pd.Series(pd.date_range('2015-01-01',
+                                               '2015-01-30', tz=tz))
+            result = expected.copy()
+            result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+            result.interpolate(inplace=True)
+            tm.assert_series_equal(result, expected)

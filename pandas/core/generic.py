@@ -6112,6 +6112,14 @@ class NDFrame(PandasObject, SelectionMixin):
             raise NotImplementedError("Interpolation with NaNs in the index "
                                       "has not been implemented. Try filling "
                                       "those NaNs before interpolating.")
+        is_datetime = False
+        datetime_timezone = None
+        if is_datetime64_any_dtype(_maybe_transposed_self):
+            _datetime_nat_values = _maybe_transposed_self.isnull()
+            datetime_timezone = _maybe_transposed_self.dt.tz
+            _maybe_transposed_self = _maybe_transposed_self.astype('int')
+            _maybe_transposed_self[_datetime_nat_values] = np.nan
+            is_datetime = True
         data = _maybe_transposed_self._data
         new_data = data.interpolate(method=method, axis=ax, index=index,
                                     values=_maybe_transposed_self, limit=limit,
@@ -6119,6 +6127,11 @@ class NDFrame(PandasObject, SelectionMixin):
                                     limit_area=limit_area,
                                     inplace=inplace, downcast=downcast,
                                     **kwargs)
+
+        if is_datetime:
+            new_data = self._constructor(new_data)
+            new_data = pd.to_datetime(new_data, utc=True).dt.tz_convert(
+                datetime_timezone)
 
         if inplace:
             if axis == 1:
