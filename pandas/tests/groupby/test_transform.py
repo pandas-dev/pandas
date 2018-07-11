@@ -782,3 +782,14 @@ def test_any_all_np_func(func):
 
     res = df.groupby('key')['val'].transform(func)
     tm.assert_series_equal(res, exp)
+
+
+def test_transform_with_all_nan():
+    # GH 21624
+    df = DataFrame({'groups': [np.nan, np.nan, np.nan],
+                    'values': [1, 2, 3]})
+
+    grouped = df.groupby('groups')
+    summed = grouped['values'].transform('sum')
+    expected = Series([np.nan, np.nan, np.nan], name='values')
+    tm.assert_series_equal(summed, expected)
