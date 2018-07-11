@@ -230,8 +230,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 msg = 'Must provide freq argument if no data is supplied'
                 raise ValueError(msg)
             else:
-                return cls._generate(start, end, periods, name, freq,
-                                     closed=closed)
+                return cls._generate_range(start, end, periods, name, freq,
+                                           closed=closed)
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -266,11 +266,13 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return cls._simple_new(data, name=name, freq=freq)
 
     @classmethod
-    def _generate(cls, start, end, periods, name, freq, closed=None):
+    def _generate_range(cls, start, end, periods, name, freq, closed=None):
         # TimedeltaArray gets `name` via **kwargs, so we need to explicitly
         # override it if name is passed as a positional argument
-        return super(TimedeltaIndex, cls)._generate(start, end, periods, freq,
-                                                    name=name, closed=closed)
+        return super(TimedeltaIndex, cls)._generate_range(start, end,
+                                                          periods, freq,
+                                                          name=name,
+                                                          closed=closed)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
