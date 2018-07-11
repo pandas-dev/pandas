@@ -30,8 +30,8 @@ from pandas.core.dtypes.common import (
     _ensure_float64,
     is_scalar)
 
-from pandas.core.base import (PandasObject, SelectionMixin,
-                              GroupByMixin)
+from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.groupby.base import GroupByMixin
 import pandas.core.common as com
 import pandas._libs.window as _window
 

@@ -911,7 +911,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby.groupby import PanelGroupBy
+        from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
