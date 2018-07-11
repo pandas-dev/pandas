@@ -23,7 +23,8 @@ from pandas.core.dtypes.common import (
     is_float,
     is_list_like,
     is_scalar,
-    is_numeric_dtype)
+    is_numeric_dtype,
+    is_object_dtype)
 from pandas.core.dtypes.generic import (
     ABCIndexClass, ABCSeries,
     ABCDataFrame)
@@ -178,7 +179,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - Index-like if box=True
         - ndarray of Timestamps if box=False
     """
-    from pandas import DatetimeIndex
+    from pandas import Index, DatetimeIndex
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
 
@@ -278,8 +279,11 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 return DatetimeIndex._simple_new(result, name=name,
                                                  tz=tz_parsed)
 
-        if is_datetime64_dtype(result) and box:
-            result = DatetimeIndex(result, tz=tz, name=name)
+        if box:
+            if is_datetime64_dtype(result):
+                return DatetimeIndex(result, tz=tz, name=name)
+            elif is_object_dtype(result):
+                return Index(result, name=name)
         return result
 
     except ValueError as e:
@@ -407,7 +411,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime.datetime objects as well).
     box : boolean, default True
 
-        - If True returns a DatetimeIndex
+        - If True returns a DatetimeIndex or Index
         - If False returns ndarray of values.
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse
