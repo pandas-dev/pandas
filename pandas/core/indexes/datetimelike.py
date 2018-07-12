@@ -223,7 +223,7 @@ class TimelikeOps(object):
         if index.empty or inferred == freq.freqstr:
             return None
 
-        on_freq = cls._generate(
+        on_freq = cls._generate_range(
             index[0], None, len(index), None, freq, **kwargs)
         if not np.array_equal(index.asi8, on_freq.asi8):
             msg = ('Inferred frequency {infer} from passed values does not '
