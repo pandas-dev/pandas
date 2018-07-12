@@ -319,9 +319,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 msg = 'Must provide freq argument if no data is supplied'
                 raise ValueError(msg)
             else:
-                return cls._generate(start, end, periods, name, freq, tz=tz,
-                                     normalize=normalize, closed=closed,
-                                     ambiguous=ambiguous)
+                return cls._generate_range(start, end, periods, name, freq,
+                                           tz=tz, normalize=normalize,
+                                           closed=closed, ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if is_scalar(data):
@@ -393,8 +393,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-    def _generate(cls, start, end, periods, name, freq,
-                  tz=None, normalize=False, ambiguous='raise', closed=None):
+    def _generate_range(cls, start, end, periods, name, freq, tz=None,
+                        normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
