@@ -527,6 +527,23 @@ DatetimeLikeArrayMixin._add_comparison_methods()
 # Shared Constructor Helpers
 
 def validate_periods(periods):
+    """
+    If a `periods` argument is passed to the Datetime/Timedelta Array/Index
+    constructor, cast it to an integer.
+
+    Parameters
+    ----------
+    periods : None, float, int
+
+    Returns
+    -------
+    periods : None or int
+
+    Raises
+    ------
+    TypeError
+        if periods is None, float, or int
+    """
     if periods is not None:
         if lib.is_float(periods):
             periods = int(periods)
