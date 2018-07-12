@@ -2242,6 +2242,9 @@ class TestStringMethods(object):
         expected = Series(['00001', np.nan, '00aaa', np.nan, '45678', np.nan])
         tm.assert_series_equal(result, expected)
 
+        with tm.assert_raises_regex(TypeError, "width must be of integer"):
+            values.str.zfill('5')
+
     def test_split(self):
         values = Series(['a_b_c', 'c_d_e', NA, 'f_g_h'])
 
