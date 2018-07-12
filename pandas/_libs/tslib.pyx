@@ -711,7 +711,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 oresult[i] = val
         return oresult, tz_out
     except TypeError:
-        return array_to_datetime(values, is_raise, dayfirst, yearfirst)
+        return array_to_datetime_object(values, is_raise, dayfirst, yearfirst)
 
 
 cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
