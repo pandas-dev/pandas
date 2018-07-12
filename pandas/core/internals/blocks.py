@@ -1497,11 +1497,6 @@ class Block(PandasObject):
             raise ValueError("where must have a condition that is ndarray "
                              "like")
 
-        # For SparseBlock, self.values is always 1D. If cond was a frame,
-        # it's 2D values would incorrectly broadcast later on.
-        if values.ndim == 1 and any(ax == 1 for ax in cond.shape):
-            cond = cond.ravel()
-
         # our where function
         def func(cond, values, other):
             if cond.ravel().all():
@@ -1851,11 +1846,6 @@ class NonConsolidatableMixIn(object):
         # .values may be an Index which does shallow copy by default
         new_values = self.values if inplace else self.copy().values
         new_values, _, new, _ = self._try_coerce_args(new_values, new)
-
-        if is_sparse(new_values):
-            indexer = mask.to_dense().values.ravel().nonzero()[0]
-            block = self.setitem(indexer, new)
-            return [block]
 
         if isinstance(new, np.ndarray) and len(new) == len(mask):
             new = new[mask]
@@ -3269,6 +3259,63 @@ class SparseBlock(NonConsolidatableMixIn, Block):
             values.sp_values.astype('float64'), values.fill_value, new_index)
         return self.make_block_same_class(values, sparse_index=new_index,
                                           placement=self.mgr_locs)
+
+    def where(self, other, cond, align=True, errors='raise',
+              try_cast=False, axis=0, transpose=False, mgr=None):
+        """
+        evaluate the block; return result block(s) from the result
+
+        Parameters
+        ----------
+        other : a ndarray/object
+        cond  : the condition to respect
+        align : boolean, perform alignment on other/cond
+        errors : str, {'raise', 'ignore'}, default 'raise'
+            - ``raise`` : allow exceptions to be raised
+            - ``ignore`` : suppress exceptions. On error return original object
+
+        axis : int
+        transpose : boolean
+            Set to True if self is stored with axes reversed
+
+        Returns
+        -------
+        a new sparse block(s), the result of the func
+        """
+        cond = getattr(cond, 'values', cond)
+        # For SparseBlock, self.values is always 1D.
+        # If cond was a frame, its 2D values would incorrectly broadcast
+        # later on.
+        if self.values.ndim == 1 and any(ax == 1 for ax in cond.shape):
+            cond = cond.ravel()
+
+        return super(self, SparseBlock).where(
+            other, cond, align=align, errors=errors, try_cast=try_cast,
+            axis=axis, transpose=transpose, mgr=mgr)
+
+    def putmask(self, mask, new, align=True, inplace=False, axis=0,
+                transpose=False, mgr=None):
+        """
+        putmask the data to the block; we must be a single block and not
+        generate other blocks
+
+        return the resulting block
+
+        Parameters
+        ----------
+        mask  : the condition to respect
+        new : a ndarray/object
+        align : boolean, perform alignment on other/cond, default is True
+        inplace : perform inplace modification, default is False
+
+        Returns
+        -------
+        a new block, the result of the putmask
+        """
+        _, _, new, _ = self._try_coerce_args(self.values, new)
+        indexer = mask.to_dense().values.ravel().nonzero()[0]
+        block = self.setitem(indexer, new)
+        return [block]
 
 
 # -----------------------------------------------------------------
