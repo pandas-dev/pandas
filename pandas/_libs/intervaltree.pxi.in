@@ -13,6 +13,9 @@ import numpy as np
 cimport cython
 from cython cimport Py_ssize_t
 
+cimport numpy as cnp
+cnp.import_array()
+
 from hashtable cimport Int64Vector, Int64VectorData
 
 

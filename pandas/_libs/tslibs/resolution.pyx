@@ -339,10 +339,6 @@ class Resolution(object):
 # ----------------------------------------------------------------------
 # Frequency Inference
 
-
-# TODO: this is non performant logic here (and duplicative) and this
-# simply should call unique_1d directly
-# plus no reason to depend on khash directly
 cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
