@@ -329,7 +329,7 @@ class TestIndex(Base):
     ])
     def test_constructor_simple_new(self, vals, dtype):
         index = Index(vals, name=dtype)
-        result = index._simple_new(index, dtype)
+        result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("vals", [

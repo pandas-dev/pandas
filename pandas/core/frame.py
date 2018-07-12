@@ -1599,16 +1599,57 @@ class DataFrame(NDFrame):
 
     def to_sparse(self, fill_value=None, kind='block'):
         """
-        Convert to SparseDataFrame
+        Convert to SparseDataFrame.
+
+        Implement the sparse version of the DataFrame meaning that any data
+        matching a specific value it's omitted in the representation.
+        The sparse DataFrame allows for a more efficient storage.
 
         Parameters
         ----------
-        fill_value : float, default NaN
-        kind : {'block', 'integer'}
+        fill_value : float, default None
+            The specific value that should be omitted in the representation.
+        kind : {'block', 'integer'}, default 'block'
+            The kind of the SparseIndex tracking where data is not equal to
+            the fill value:
+
+            - 'block' tracks only the locations and sizes of blocks of data.
+            - 'integer' keeps an array with all the locations of the data.
+
+            In most cases 'block' is recommended, since it's more memory
+            efficient.
 
         Returns
         -------
-        y : SparseDataFrame
+        SparseDataFrame
+            The sparse representation of the DataFrame.
+
+        See Also
+        --------
+        DataFrame.to_dense :
+            Converts the DataFrame back to the its dense form.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([(np.nan, np.nan),
+        ...                    (1., np.nan),
+        ...                    (np.nan, 1.)])
+        >>> df
+             0    1
+        0  NaN  NaN
+        1  1.0  NaN
+        2  NaN  1.0
+        >>> type(df)
+        <class 'pandas.core.frame.DataFrame'>
+
+        >>> sdf = df.to_sparse()
+        >>> sdf
+             0    1
+        0  NaN  NaN
+        1  1.0  NaN
+        2  NaN  1.0
+        >>> type(sdf)
+        <class 'pandas.core.sparse.frame.SparseDataFrame'>
         """
         from pandas.core.sparse.frame import SparseDataFrame
         return SparseDataFrame(self._series, index=self.index,
@@ -1966,7 +2007,8 @@ class DataFrame(NDFrame):
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
                          'column names')
-    @Appender(fmt.docstring_to_string, indents=1)
+    @Substitution(shared_params=fmt.common_docstring,
+                  returns=fmt.return_docstring)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
@@ -1974,6 +2016,26 @@ class DataFrame(NDFrame):
                   show_dimensions=False):
         """
         Render a DataFrame to a console-friendly tabular output.
+
+        %(shared_params)s
+        line_width : int, optional
+            Width to wrap a line in characters.
+
+        %(returns)s
+
+        See Also
+        --------
+        to_html : Convert DataFrame to HTML.
+
+        Examples
+        --------
+        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
+        >>> df = pd.DataFrame(d)
+        >>> print(df.to_string())
+           col1  col2
+        0     1     4
+        1     2     5
+        2     3     6
         """
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
@@ -1994,7 +2056,8 @@ class DataFrame(NDFrame):
             return result
 
     @Substitution(header='whether to print column labels, default True')
-    @Appender(fmt.docstring_to_string, indents=1)
+    @Substitution(shared_params=fmt.common_docstring,
+                  returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
                 sparsify=None, index_names=True, justify=None, bold_rows=True,
@@ -2004,20 +2067,15 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame as an HTML table.
 
-        `to_html`-specific options:
-
+        %(shared_params)s
         bold_rows : boolean, default True
             Make the row labels bold in the output
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
-        max_rows : int, optional
-            Maximum number of rows to show before truncating. If None, show
-            all.
-        max_cols : int, optional
-            Maximum number of columns to show before truncating. If None, show
-            all.
+        notebook : {True, False}, default False
+            Whether the generated HTML is for IPython Notebook.
         decimal : string, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe
 
@@ -2034,6 +2092,11 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.23.0
 
+        %(returns)s
+
+        See Also
+        --------
+        to_string : Convert DataFrame to a string.
         """
 
         if (justify is not None and
@@ -7615,6 +7678,9 @@ def _prep_ndarray(values, copy=True):
         # and platform dtype preservation
         try:
             if is_list_like(values[0]) or hasattr(values[0], 'len'):
+                values = np.array([convert(v) for v in values])
+            elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+                # GH#21861
                 values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)

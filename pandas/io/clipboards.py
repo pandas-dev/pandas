@@ -1,7 +1,10 @@
 """ io on the clipboard """
-from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO, PY2, PY3
 import warnings
+
+from pandas.compat import StringIO, PY2, PY3
+
+from pandas.core.dtypes.generic import ABCDataFrame
+from pandas import compat, get_option, option_context
 
 
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
@@ -131,7 +134,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     elif sep is not None:
         warnings.warn('to_clipboard with excel=False ignores the sep argument')
 
-    if isinstance(obj, DataFrame):
+    if isinstance(obj, ABCDataFrame):
         # str(df) has various unhelpful defaults, like truncation
         with option_context('display.max_colwidth', 999999):
             objstr = obj.to_string(**kwargs)
