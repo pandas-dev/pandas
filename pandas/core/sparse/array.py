@@ -14,6 +14,7 @@ from pandas import compat
 from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
 
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
@@ -127,7 +128,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
                        fill_value=fill_value, dtype=dtype)
 
 
-class SparseArray(PandasObject, np.ndarray):
+class SparseArray(PandasObject, np.ndarray, ExtensionArray):
     """Data structure for labeled, sparse floating point 1-D data
 
     Parameters
@@ -196,6 +197,10 @@ class SparseArray(PandasObject, np.ndarray):
             subarr = np.asarray(values, dtype=dtype)
         # Change the class of the array to be the subclass type.
         return cls._simple_new(subarr, sparse_index, fill_value)
+
+    @classmethod
+    def _from_sequence(cls, scalars, copy=False):
+        return cls(scalars, copy=copy)
 
     @classmethod
     def _simple_new(cls, data, sp_index, fill_value):
