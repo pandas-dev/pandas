@@ -208,8 +208,8 @@ def get_offset(name):
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
         # cache
         _offset_map[name] = offset
-    # do not return cache because it's mutable
-    return _offset_map[name].copy()
+
+    return _offset_map[name]
 
 
 getOffset = get_offset
