@@ -924,7 +924,7 @@ cdef class TextReader:
             status = tokenize_nrows(self.parser, nrows)
 
         if self.parser.warn_msg != NULL:
-            print(self.parser.warn_msg)
+            print >> sys.stderr, self.parser.warn_msg
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 
@@ -952,7 +952,7 @@ cdef class TextReader:
                 status = tokenize_all_rows(self.parser)
 
             if self.parser.warn_msg != NULL:
-                print(self.parser.warn_msg)
+                print >> sys.stderr, self.parser.warn_msg
                 free(self.parser.warn_msg)
                 self.parser.warn_msg = NULL
 
