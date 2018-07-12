@@ -67,13 +67,14 @@ def test_is_sequence():
     [
         [], [1], (1, ), (1, 2), {'a': 1},
         set([1, 'a']), Series([1]),
-        Series([]), Series(['a']).str])
+        Series([]), Series(['a']).str,
+        np.array([2])])
 def test_is_list_like_passes(ll):
     assert inference.is_list_like(ll)
 
 
 @pytest.mark.parametrize(
-    "ll", [1, '2', object(), str])
+    "ll", [1, '2', object(), str, np.array(2)])
 def test_is_list_like_fails(ll):
     assert not inference.is_list_like(ll)
 
