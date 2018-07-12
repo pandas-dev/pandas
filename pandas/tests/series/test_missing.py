@@ -1318,22 +1318,15 @@ class TestSeriesInterpolateData(TestData):
 
         tm.assert_numpy_array_equal(result.values, exp.values)
 
-    def test_series_interpolate_nat(self):
+    @pytest.mark.parametrize("inplace", [True, False])
+    def test_series_interpolate_nat(self, tz_naive_fixture, inplace):
         # GH 11701
-        for tz in [None, 'UTC', 'Europe/Paris']:
-            expected = pd.Series(pd.date_range('2015-01-01',
-                                               '2015-01-30', tz=tz))
-            result = expected.copy()
-            result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+        expected = pd.Series(pd.date_range('2015-01-01',
+                                           '2015-01-30', tz=tz_naive_fixture))
+        result = expected.copy()
+        result[[3, 4, 5, 13, 14, 15]] = pd.NaT
+        if inplace:
+            result.interpolate(inplace=inplace)
+        else:
             result = result.interpolate()
-            tm.assert_series_equal(result, expected)
-
-    def test_series_interpolate_nat_inplace(self):
-        # GH 11701
-        for tz in [None, 'UTC', 'Europe/Paris']:
-            expected = pd.Series(pd.date_range('2015-01-01',
-                                               '2015-01-30', tz=tz))
-            result = expected.copy()
-            result[[3, 4, 5, 13, 14, 15]] = pd.NaT
-            result.interpolate(inplace=True)
-            tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
