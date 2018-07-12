@@ -20,7 +20,7 @@ import pandas.core.common as com
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas.tseries.frequencies import to_offset
 
-import pandas.core.arrays.datetimelike as dtl
+from . import datetimelike as dtl
 
 
 def _to_m8(key):
