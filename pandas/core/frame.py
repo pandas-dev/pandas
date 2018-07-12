@@ -404,9 +404,9 @@ class DataFrame(NDFrame):
                         if isinstance(data[0], Series):
                             index = _get_names_from_index(data)
                         elif isinstance(data[0], Categorical):
-                            index = com._default_index(len(data[0]))
+                            index = com.default_index(len(data[0]))
                         else:
-                            index = com._default_index(len(data))
+                            index = com.default_index(len(data))
 
                     mgr = _arrays_to_mgr(arrays, columns, index, columns,
                                          dtype=dtype)
@@ -491,12 +491,12 @@ class DataFrame(NDFrame):
             # return axes or defaults
 
             if index is None:
-                index = com._default_index(N)
+                index = com.default_index(N)
             else:
                 index = ensure_index(index)
 
             if columns is None:
-                columns = com._default_index(K)
+                columns = com.default_index(K)
             else:
                 columns = ensure_index(columns)
             return index, columns
@@ -4188,7 +4188,7 @@ class DataFrame(NDFrame):
                             values, mask, np.nan)
             return values
 
-        new_index = com._default_index(len(new_obj))
+        new_index = com.default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
                 level = [level]
@@ -7660,7 +7660,7 @@ def extract_index(data):
                            (lengths[0], len(index)))
                     raise ValueError(msg)
             else:
-                index = com._default_index(lengths[0])
+                index = com.default_index(lengths[0])
 
     return ensure_index(index)
 
@@ -7731,7 +7731,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
                                          dtype=dtype)
     elif isinstance(data[0], Categorical):
         if columns is None:
-            columns = com._default_index(len(data))
+            columns = com.default_index(len(data))
         return data, columns
     elif (isinstance(data, (np.ndarray, Series, Index)) and
           data.dtype.names is not None):
@@ -7755,7 +7755,7 @@ def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if index is None:
         index = _get_names_from_index(fdata)
         if index is None:
-            index = com._default_index(len(data))
+            index = com.default_index(len(data))
     index = ensure_index(index)
 
     if columns is not None:
@@ -7815,7 +7815,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     for s in data:
         index = getattr(s, 'index', None)
         if index is None:
-            index = com._default_index(len(s))
+            index = com.default_index(len(s))
 
         if id(index) in indexer_cache:
             indexer = indexer_cache[id(index)]
@@ -7852,7 +7852,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = com._default_index(len(content))
+        columns = com.default_index(len(content))
     else:
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
@@ -7875,7 +7875,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 def _get_names_from_index(data):
     has_some_name = any(getattr(s, 'name', None) is not None for s in data)
     if not has_some_name:
-        return com._default_index(len(data))
+        return com.default_index(len(data))
 
     index = lrange(len(data))
     count = 0

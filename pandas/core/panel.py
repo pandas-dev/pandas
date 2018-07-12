@@ -319,7 +319,7 @@ class Panel(NDFrame):
         fixed_axes = []
         for i, ax in enumerate(axes):
             if ax is None:
-                ax = com._default_index(shape[i])
+                ax = com.default_index(shape[i])
             else:
                 ax = ensure_index(ax)
             fixed_axes.append(ax)

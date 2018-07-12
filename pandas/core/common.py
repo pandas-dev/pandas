@@ -120,7 +120,7 @@ def is_bool_indexer(key):
     return False
 
 
-def _default_index(n):
+def default_index(n):
     from pandas.core.index import RangeIndex
     return RangeIndex(0, n, name=None)
 

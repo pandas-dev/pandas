@@ -149,7 +149,7 @@ class SparseSeries(Series):
                     data.fill(v)
 
             if index is None:
-                index = com._default_index(sparse_index.length)
+                index = com.default_index(sparse_index.length)
             index = ensure_index(index)
 
             # create/copy the manager

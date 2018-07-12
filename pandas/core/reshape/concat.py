@@ -477,7 +477,7 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = com._default_index(len(self.objs))
+                idx = com.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names = [None] * len(self.objs)
@@ -497,14 +497,14 @@ class _Concatenator(object):
                 if has_names:
                     return Index(names)
                 else:
-                    return com._default_index(len(self.objs))
+                    return com.default_index(len(self.objs))
             else:
                 return ensure_index(self.keys)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = com._default_index(sum(len(i) for i in indexes))
+            idx = com.default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:

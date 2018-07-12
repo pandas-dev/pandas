@@ -219,9 +219,9 @@ class SparseDataFrame(DataFrame):
     def _prep_index(self, data, index, columns):
         N, K = data.shape
         if index is None:
-            index = com._default_index(N)
+            index = com.default_index(N)
         if columns is None:
-            columns = com._default_index(K)
+            columns = com.default_index(K)
 
         if len(columns) != K:
             raise ValueError('Column length mismatch: {columns} vs. {K}'

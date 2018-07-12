@@ -252,7 +252,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = com._default_index(len(data))
+                index = com.default_index(len(data))
             elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't
@@ -1198,7 +1198,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
-            new_index = com._default_index(len(self))
+            new_index = com.default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -2496,7 +2496,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bad = isna(arr)
 
         good = ~bad
-        idx = com._default_index(len(self))
+        idx = com.default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
 
