@@ -1,7 +1,6 @@
 import pytest
 import numpy as np
 import pandas as pd
-from pandas.util import testing as tm
 
 from .base import BaseExtensionTests
 
@@ -72,9 +71,9 @@ class BaseDtypeTests(BaseExtensionTests):
                                  index=list('ABCD'))
 
         result = df.dtypes == dtype.name
-        tm.assert_series_equal(result, expected)
+        self.assert_series_equal(result, expected)
 
         expected = pd.Series([True, True, False, False],
                              index=list('ABCD'))
         result = df.dtypes.apply(str) == dtype.name
-        tm.assert_series_equal(result, expected)
+        self.assert_series_equal(result, expected)
