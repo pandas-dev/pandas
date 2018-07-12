@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas._libs import tslibs
+from pandas._libs import tslibs, lib
 from pandas._libs.tslibs import Timedelta, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
@@ -14,6 +14,8 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE, _ensure_int64, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
+
+import pandas.core.common as com
 
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas.tseries.frequencies import to_offset
@@ -70,10 +72,26 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         result._freq = freq
         return result
 
-    def __new__(cls, values, freq=None):
+    def __new__(cls, values, freq=None, start=None, end=None, periods=None,
+                closed=None):
         if (freq is not None and not isinstance(freq, DateOffset) and
                 freq != 'infer'):
             freq = to_offset(freq)
+
+        if periods is not None:
+            if lib.is_float(periods):
+                periods = int(periods)
+            elif not lib.is_integer(periods):
+                raise TypeError('`periods` must be a number, got {periods}'
+                                .format(periods=periods))
+
+        if values is None:
+            if freq is None and com._any_none(periods, start, end):
+                raise ValueError('Must provide freq argument if no data is '
+                                 'supplied')
+            else:
+                return cls._generate(start, end, periods, freq,
+                                     closed=closed)
 
         result = cls._simple_new(values, freq=freq)
         if freq == 'infer':
@@ -82,6 +100,52 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                 result._freq = to_offset(inferred)
 
         return result
+
+    @classmethod
+    def _generate(cls, start, end, periods, freq, closed=None, **kwargs):
+        # **kwargs are for compat with TimedeltaIndex, which includes `name`
+        if com._count_not_none(start, end, periods, freq) != 3:
+            raise ValueError('Of the four parameters: start, end, periods, '
+                             'and freq, exactly three must be specified')
+
+        if start is not None:
+            start = Timedelta(start)
+
+        if end is not None:
+            end = Timedelta(end)
+
+        left_closed = False
+        right_closed = False
+
+        if start is None and end is None:
+            if closed is not None:
+                raise ValueError("Closed has to be None if not both of start"
+                                 "and end are defined")
+
+        if closed is None:
+            left_closed = True
+            right_closed = True
+        elif closed == "left":
+            left_closed = True
+        elif closed == "right":
+            right_closed = True
+        else:
+            raise ValueError("Closed has to be either 'left', 'right' or None")
+
+        if freq is not None:
+            index = _generate_regular_range(start, end, periods, freq)
+            index = cls._simple_new(index, freq=freq, **kwargs)
+        else:
+            index = np.linspace(start.value, end.value, periods).astype('i8')
+            # TODO: shouldn't we pass `name` here?  (via **kwargs)
+            index = cls._simple_new(index, freq=freq)
+
+        if not left_closed:
+            index = index[1:]
+        if not right_closed:
+            index = index[:-1]
+
+        return index
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
@@ -173,6 +237,45 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
             the return type is a Float64Index. When the calling object
             is a Series, the return type is Series of type `float64` whose
             index is the same as the original.
+
+        See Also
+        --------
+        datetime.timedelta.total_seconds : Standard library version
+            of this method.
+        TimedeltaIndex.components : Return a DataFrame with components of
+            each Timedelta.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
+        >>> s
+        0   0 days
+        1   1 days
+        2   2 days
+        3   3 days
+        4   4 days
+        dtype: timedelta64[ns]
+
+        >>> s.dt.total_seconds()
+        0         0.0
+        1     86400.0
+        2    172800.0
+        3    259200.0
+        4    345600.0
+        dtype: float64
+
+        **TimedeltaIndex**
+
+        >>> idx = pd.to_timedelta(np.arange(5), unit='d')
+        >>> idx
+        TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                       dtype='timedelta64[ns]', freq=None)
+
+        >>> idx.total_seconds()
+        Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
+                     dtype='float64')
         """
         return self._maybe_mask_results(1e-9 * self.asi8)
 
@@ -198,3 +301,55 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
     nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
                                   "\nNumber of nanoseconds (>= 0 and less "
                                   "than 1 microsecond) for each\nelement.\n")
+
+    @property
+    def components(self):
+        """
+        Return a dataframe of the components (days, hours, minutes,
+        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
+
+        Returns
+        -------
+        a DataFrame
+        """
+        from pandas import DataFrame
+
+        columns = ['days', 'hours', 'minutes', 'seconds',
+                   'milliseconds', 'microseconds', 'nanoseconds']
+        hasnans = self.hasnans
+        if hasnans:
+            def f(x):
+                if isna(x):
+                    return [np.nan] * len(columns)
+                return x.components
+        else:
+            def f(x):
+                return x.components
+
+        result = DataFrame([f(x) for x in self], columns=columns)
+        if not hasnans:
+            result = result.astype('int64')
+        return result
+
+
+# ---------------------------------------------------------------------
+# Constructor Helpers
+
+def _generate_regular_range(start, end, periods, offset):
+    stride = offset.nanos
+    if periods is None:
+        b = Timedelta(start).value
+        e = Timedelta(end).value
+        e += stride - e % stride
+    elif start is not None:
+        b = Timedelta(start).value
+        e = b + periods * stride
+    elif end is not None:
+        e = Timedelta(end).value + stride
+        b = e - periods * stride
+    else:
+        raise ValueError("at least 'start' or 'end' should be specified "
+                         "if a 'period' is given.")
+
+    data = np.arange(b, e, stride, dtype=np.int64)
+    return data

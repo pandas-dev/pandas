@@ -9,7 +9,7 @@ from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series, CategoricalIndex)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.core.groupby.groupby import Grouping
+from pandas.core.groupby.grouper import Grouping
 from pandas.compat import lrange, long
 
 from pandas import compat
