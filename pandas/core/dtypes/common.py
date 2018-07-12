@@ -59,7 +59,7 @@ def ensure_float(arr):
     return arr
 
 
-_ensure_uint64 = algos.ensure_uint64
+ensure_uint64 = algos.ensure_uint64
 ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16

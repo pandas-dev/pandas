@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
     ensure_platform_int, ensure_object,
-    ensure_float64, _ensure_uint64,
+    ensure_float64, ensure_uint64,
     ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
@@ -82,7 +82,7 @@ def _ensure_data(values, dtype=None):
             return ensure_int64(values), 'int64', 'int64'
         elif (is_unsigned_integer_dtype(values) or
               is_unsigned_integer_dtype(dtype)):
-            return _ensure_uint64(values), 'uint64', 'uint64'
+            return ensure_uint64(values), 'uint64', 'uint64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
             return ensure_float64(values), 'float64', 'float64'
         elif is_object_dtype(values) and dtype is None:
