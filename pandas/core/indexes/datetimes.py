@@ -476,7 +476,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 index = cls._cached_range(start, end, periods=periods,
                                           freq=freq, name=name)
             else:
-                index = _generate_regular_range(start, end, periods, freq)
+                index = _generate_regular_range(cls, start, end, periods, freq)
 
         else:
 
@@ -500,14 +500,15 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                     index = cls._cached_range(start, end, periods=periods,
                                               freq=freq, name=name)
                 else:
-                    index = _generate_regular_range(start, end, periods, freq)
+                    index = _generate_regular_range(cls, start, end,
+                                                    periods, freq)
 
                 if tz is not None and getattr(index, 'tz', None) is None:
                     arr = conversion.tz_localize_to_utc(_ensure_int64(index),
                                                         tz,
                                                         ambiguous=ambiguous)
 
-                    index = DatetimeIndex(arr)
+                    index = cls(arr)
 
                     # index is localized datetime64 array -> have to convert
                     # start/end as well to compare
@@ -1719,7 +1720,7 @@ DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
 
 
-def _generate_regular_range(start, end, periods, freq):
+def _generate_regular_range(cls, start, end, periods, freq):
     if isinstance(freq, Tick):
         stride = freq.nanos
         if periods is None:
@@ -1743,7 +1744,8 @@ def _generate_regular_range(start, end, periods, freq):
                              "if a 'period' is given.")
 
         data = np.arange(b, e, stride, dtype=np.int64)
-        data = DatetimeIndex._simple_new(data.view(_NS_DTYPE), None, tz=tz)
+        # TODO: Do we need to use _simple_new here?  just return data.view?
+        data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         if isinstance(start, Timestamp):
             start = start.to_pydatetime()

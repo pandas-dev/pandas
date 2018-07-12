@@ -45,7 +45,6 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_hashable,
-    needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
 
