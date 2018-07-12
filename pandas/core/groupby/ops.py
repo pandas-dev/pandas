@@ -235,7 +235,7 @@ class BaseGrouper(object):
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
-            out = ids
+            out = []
         return Series(out,
                       index=self.result_index,
                       dtype='int64')
