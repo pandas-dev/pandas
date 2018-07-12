@@ -16,7 +16,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import (
-    TimedeltaArrayMixin, _is_convertible_to_td)
+    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -53,39 +53,10 @@ def _td_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
-    nat_result = True if opname == '__ne__' else False
-
     def wrapper(self, other):
-        msg = "cannot compare a {cls} with type {typ}"
-        func = getattr(super(TimedeltaIndex, self), opname)
-        if _is_convertible_to_td(other) or other is NaT:
-            try:
-                other = _to_m8(other)
-            except ValueError:
-                # failed to parse as timedelta
-                raise TypeError(msg.format(cls=type(self).__name__,
-                                           typ=type(other).__name__))
-            result = func(other)
-            if isna(other):
-                result.fill(nat_result)
-
-        elif not is_list_like(other):
-            raise TypeError(msg.format(cls=type(self).__name__,
-                                       typ=type(other).__name__))
-        else:
-            other = TimedeltaIndex(other).values
-            result = func(other)
-            result = com._values_from_object(result)
-
-            o_mask = np.array(isna(other))
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self.hasnans:
-            result[self._isnan] = nat_result
-
-        # support of bool dtype indexers
+        result = getattr(TimedeltaArrayMixin, opname)(self, other)
         if is_bool_dtype(result):
+            # support of bool dtype indexers
             return result
         return Index(result)
 
@@ -795,18 +766,6 @@ def _is_convertible_to_index(other):
                                       'mixed-integer-float', 'mixed')):
         return True
     return False
-
-
-def _to_m8(key):
-    """
-    Timedelta-like => dt64
-    """
-    if not isinstance(key, Timedelta):
-        # this also converts strings
-        key = Timedelta(key)
-
-    # return an type that can be compared
-    return np.int64(key.value).view(_TD_DTYPE)
 
 
 def timedelta_range(start=None, end=None, periods=None, freq=None,

@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_integer_dtype,
-    is_datetime64_ns_dtype, is_datetimelike,
+    is_datetime64_ns_dtype,
     is_period_dtype,
     is_bool_dtype,
     is_string_like,
@@ -31,7 +31,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.dtypes.concat as _concat
-from pandas.core.arrays.datetimes import DatetimeArrayMixin
+from pandas.core.arrays.datetimes import DatetimeArrayMixin, _to_m8
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index, Float64Index
@@ -87,49 +87,8 @@ def _dt_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
-    nat_result = True if opname == '__ne__' else False
-
     def wrapper(self, other):
-        func = getattr(super(DatetimeIndex, self), opname)
-
-        if isinstance(other, (datetime, np.datetime64, compat.string_types)):
-            if isinstance(other, datetime):
-                # GH#18435 strings get a pass from tzawareness compat
-                self._assert_tzawareness_compat(other)
-
-            other = _to_m8(other, tz=self.tz)
-            result = func(other)
-            if isna(other):
-                result.fill(nat_result)
-        else:
-            if isinstance(other, list):
-                other = DatetimeIndex(other)
-            elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
-                # Following Timestamp convention, __eq__ is all-False
-                # and __ne__ is all True, others raise TypeError.
-                if opname == '__eq__':
-                    return np.zeros(shape=self.shape, dtype=bool)
-                elif opname == '__ne__':
-                    return np.ones(shape=self.shape, dtype=bool)
-                raise TypeError('%s type object %s' %
-                                (type(other), str(other)))
-
-            if is_datetimelike(other):
-                self._assert_tzawareness_compat(other)
-
-            result = func(np.asarray(other))
-            result = com._values_from_object(result)
-
-            # Make sure to pass an array to result[...]; indexing with
-            # Series breaks with older version of numpy
-            o_mask = np.array(isna(other))
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self.hasnans:
-            result[self._isnan] = nat_result
-
-        # support of bool dtype indexers
+        result = getattr(DatetimeArrayMixin, opname)(self, other)
         if is_bool_dtype(result):
             return result
         return Index(result)
@@ -2086,17 +2045,6 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
     return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
                          tz=tz, normalize=normalize, name=name,
                          closed=closed, **kwargs)
-
-
-def _to_m8(key, tz=None):
-    """
-    Timestamp-like => dt64
-    """
-    if not isinstance(key, Timestamp):
-        # this also converts strings
-        key = Timestamp(key, tz=tz)
-
-    return np.int64(conversion.pydt_to_i8(key)).view(_NS_DTYPE)
 
 
 _CACHE_START = Timestamp(datetime(1950, 1, 1))
