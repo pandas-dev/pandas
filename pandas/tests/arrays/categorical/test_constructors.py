@@ -480,7 +480,7 @@ class TestCategoricalConstructors(object):
         codes = [1.0, 2.0, 0]  # integer, but in float dtype
         categories = ['a', 'b', 'c']
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning):
             Categorical.from_codes(codes, categories)
 
         codes = [1.1, 2.0, 0]  # non-integer

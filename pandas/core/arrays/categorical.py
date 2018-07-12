@@ -640,7 +640,7 @@ class Categorical(ExtensionArray, PandasObject):
                     err = False
                     codes = icodes
                     warn("float codes will be disallowed in the future",
-                         FutureWarning)
+                         FutureWarning, stacklevel=2)
                 else:
                     err = True
             if err:
