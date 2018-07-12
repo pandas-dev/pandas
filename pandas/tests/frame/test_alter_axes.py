@@ -1063,22 +1063,28 @@ class TestDataFrameAlterAxes(TestData):
             [9, 10, 11, 12]
         ])
         df = df.set_index([0, 1]).rename_axis(['a', 'b'])
+        ser = df.iloc[:, 0]
         df.columns = pd.MultiIndex.from_tuples([('c', 'e'), ('d', 'f')],
                                                names=['level_1', 'level_2'])
 
-        # test that dropping of a level in the index works
+        # test that dropping of a level in DataFrame index works
         expected_df_no_level_a_in_index = df.reset_index('a', drop=True)
         actual_df_no_level_a_in_index = df.droplevel('a')
         assert_frame_equal(expected_df_no_level_a_in_index,
                            actual_df_no_level_a_in_index)
 
-        # test that dropping of a level in the index works
+        # test that dropping of a level in DataFrame columns works
         expected_df_no_level_2_in_columns = df.copy()
         expected_df_no_level_2_in_columns.columns = pd.Index(['c', 'd'],
                                                              name='level_1')
         actual_df_no_level_2_in_columns = df.droplevel('level_2', axis=1)
         assert_frame_equal(expected_df_no_level_2_in_columns,
                            actual_df_no_level_2_in_columns)
+
+        # test that dropping of a level in Series index works
+        expected_ser_no_level_b_in_index = ser.reset_index('b', drop=True)
+        actual_ser_no_level_b_in_index = ser.droplevel('b')
+        assert_series_equal(expected_ser_no_level_b_in_index, actual_ser_no_level_b_in_index)
 
 
 class TestIntervalIndex(object):

@@ -74,6 +74,7 @@ Other Enhancements
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
+- :meth:`Series.droplevel` and `DataFrame.droplevel` are now implemented
 - Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
 - :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
   reflect changes from the `Pandas-GBQ library version 0.5.0
