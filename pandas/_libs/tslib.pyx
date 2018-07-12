@@ -464,7 +464,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
     Returns
     -------
-    tuple (ndarray, timezone offset)
+    tuple (ndarray, tzoffset)
     """
     cdef:
         Py_ssize_t i, n = len(values)
@@ -669,7 +669,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 raise ValueError(
                     "mixed datetimes and integers in passed array")
             else:
-                raise TypeError
+                result, tz_out = array_to_datetime_object(values, is_raise,
+                                                          dayfirst, yearfirst)
 
         if seen_datetime_offset and not utc_convert:
             # GH 17697
@@ -677,12 +678,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             #    the parsed dates to (maybe) pass to DatetimeIndex
             # 2) If the offsets are different, then force the parsing down the
             #    object path where an array of datetimes
-            #    (with individual datutil.tzoffsets) are returned
+            #    (with individual dateutil.tzoffsets) are returned
 
             # Faster to compare integers than to compare pytz objects
             is_same_offsets = (out_tzoffset_vals[0] == out_tzoffset_vals).all()
             if not is_same_offsets:
-                raise TypeError
+                result, tz_out = array_to_datetime_object(values, is_raise,
+                                                          dayfirst, yearfirst)
             else:
                 tz_out = pytz.FixedOffset(out_tzoffset)
 
@@ -709,34 +711,46 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             else:
                 oresult[i] = val
         return oresult, tz_out
-    except TypeError:
-        oresult = np.empty(n, dtype=object)
 
-        for i in range(n):
-            val = values[i]
-            if checknull_with_nat(val):
-                oresult[i] = val
-            elif is_string_object(val):
 
-                if len(val) == 0 or val in nat_strings:
-                    oresult[i] = 'NaT'
-                    continue
+cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
+                              dayfirst=False, yearfirst=False):
+    """
+    Fall back function for array_to_datetime
 
-                try:
-                    oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
-                                                       yearfirst=yearfirst)
-                    pydatetime_to_dt64(oresult[i], &dts)
-                    check_dts_bounds(&dts)
-                except Exception:
-                    if is_raise:
-                        raise
-                    return values, tz_out
-            else:
+    Attempts to parse datetime strings with dateutil to return an array
+    of datetime objects
+    """
+    cdef:
+        Py_ssize_t i, n = len(values)
+        object val,
+        ndarray[object] oresult
+        pandas_datetimestruct dts
+
+    oresult = np.empty(n, dtype=object)
+
+    for i in range(n):
+        val = values[i]
+        if checknull_with_nat(val):
+            oresult[i] = val
+        elif is_string_object(val):
+            if len(val) == 0 or val in nat_strings:
+                oresult[i] = 'NaT'
+                continue
+            try:
+                oresult[i] = parse_datetime_string(val, dayfirst=dayfirst,
+                                                   yearfirst=yearfirst)
+                pydatetime_to_dt64(oresult[i], &dts)
+                check_dts_bounds(&dts)
+            except Exception:
                 if is_raise:
                     raise
-                return values, tz_out
-
-        return oresult, tz_out
+                return values, None
+        else:
+            if is_raise:
+                raise
+            return values, None
+    return oresult, None
 
 
 cdef inline bint _parse_today_now(str val, int64_t* iresult):
