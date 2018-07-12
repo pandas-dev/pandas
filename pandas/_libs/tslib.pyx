@@ -669,8 +669,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 raise ValueError(
                     "mixed datetimes and integers in passed array")
             else:
-                result, tz_out = array_to_datetime_object(values, is_raise,
-                                                          dayfirst, yearfirst)
+                raise ValueError
 
         if seen_datetime_offset and not utc_convert:
             # GH 17697
@@ -711,6 +710,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             else:
                 oresult[i] = val
         return oresult, tz_out
+    except TypeError:
+        return array_to_datetime(values, is_raise, dayfirst, yearfirst)
 
 
 cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
