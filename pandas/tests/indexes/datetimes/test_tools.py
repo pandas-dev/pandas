@@ -484,10 +484,8 @@ class TestToDatetime(object):
 
         # dtype coercion
         i = pd.DatetimeIndex([
-            '2000-01-01 08:00:00+00:00'
-        ])
-        i = i.tz_convert(psycopg2.tz.FixedOffsetTimezone(offset=-300,
-                                                         name=None))
+            '2000-01-01 08:00:00'
+        ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
         assert is_datetime64_ns_dtype(i)
 
         # tz coerceion
@@ -495,7 +493,7 @@ class TestToDatetime(object):
         tm.assert_index_equal(result, i)
 
         result = pd.to_datetime(i, errors='coerce', utc=True, cache=cache)
-        expected = pd.DatetimeIndex(['2000-01-01 08:00:00'],
+        expected = pd.DatetimeIndex(['2000-01-01 13:00:00'],
                                     dtype='datetime64[ns, UTC]')
         tm.assert_index_equal(result, expected)
 
