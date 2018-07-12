@@ -32,7 +32,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.tseries.frequencies import to_offset, DateOffset
 from pandas.tseries.offsets import Tick
 
-from .datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
 def _to_m8(key, tz=None):

@@ -20,8 +20,7 @@ import pandas.core.common as com
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas.tseries.frequencies import to_offset
 
-from .datetimelike import DatetimeLikeArrayMixin
-from . import datetimelike as dtl
+import pandas.core.arrays.datetimelike as dtl
 
 
 def _to_m8(key):
@@ -63,7 +62,7 @@ def _td_array_cmp(opname, cls):
 
     def wrapper(self, other):
         msg = "cannot compare a {cls} with type {typ}"
-        meth = getattr(DatetimeLikeArrayMixin, opname)
+        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
@@ -95,7 +94,7 @@ def _td_array_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
+class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')

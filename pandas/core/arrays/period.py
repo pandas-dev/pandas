@@ -26,7 +26,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
-from .datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
 def _field_accessor(name, alias, docstring=None):
