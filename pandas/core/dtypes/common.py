@@ -64,7 +64,7 @@ ensure_int64 = algos.ensure_int64
 ensure_int32 = algos.ensure_int32
 ensure_int16 = algos.ensure_int16
 ensure_int8 = algos.ensure_int8
-_ensure_platform_int = algos.ensure_platform_int
+ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 

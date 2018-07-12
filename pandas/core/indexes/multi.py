@@ -15,7 +15,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     ensure_int64,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
@@ -1594,7 +1594,7 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -1895,7 +1895,7 @@ class MultiIndex(Index):
             if not ascending:
                 indexer = indexer[::-1]
 
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
@@ -1944,7 +1944,7 @@ class MultiIndex(Index):
 
         # empty indexer
         if is_list_like(target) and not len(target):
-            return _ensure_platform_int(np.array([]))
+            return ensure_platform_int(np.array([]))
 
         if not isinstance(target, MultiIndex):
             try:
@@ -1973,7 +1973,7 @@ class MultiIndex(Index):
         else:
             indexer = self._engine.get_indexer(target)
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -2399,7 +2399,7 @@ class MultiIndex(Index):
                 # selected
                 from pandas import Series
                 mapper = Series(indexer)
-                indexer = labels.take(_ensure_platform_int(indexer))
+                indexer = labels.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)._ndarray_values
 

@@ -53,7 +53,7 @@ from pandas.core.dtypes.common import (
     _get_dtype_from_object,
     ensure_float64,
     ensure_int64,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_nested_list_like,
     is_iterator,
@@ -4509,7 +4509,7 @@ class DataFrame(NDFrame):
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
-            indexer = _ensure_platform_int(indexer)
+            indexer = ensure_platform_int(indexer)
         else:
             from pandas.core.sorting import nargsort
 

@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.cast import maybe_upcast, find_common_type
-from pandas.core.dtypes.common import _ensure_platform_int, is_scipy_sparse
+from pandas.core.dtypes.common import ensure_platform_int, is_scipy_sparse
 
 from pandas.compat.numpy import function as nv
 from pandas.core.index import Index, MultiIndex, ensure_index
@@ -650,7 +650,7 @@ class SparseDataFrame(DataFrame):
                 index=index, columns=self.columns).__finalize__(self)
 
         indexer = self.index.get_indexer(index, method, limit=limit)
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         mask = indexer == -1
         need_mask = mask.any()
 

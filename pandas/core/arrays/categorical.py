@@ -19,7 +19,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_dtype_equal,
     is_datetimelike,
     is_datetime64_dtype,
@@ -1220,7 +1220,7 @@ class Categorical(ExtensionArray, PandasObject):
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, _ensure_platform_int(periods), axis=0)
+            codes = np.roll(codes, ensure_platform_int(periods), axis=0)
             if periods > 0:
                 codes[:periods] = -1
             else:

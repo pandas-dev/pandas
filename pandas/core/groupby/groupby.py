@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_hashable,
     needs_i8_conversion,
     ensure_float64,
-    _ensure_platform_int,
+    ensure_platform_int,
     ensure_int64,
     ensure_object,
     _ensure_categorical,
@@ -2345,7 +2345,7 @@ class BaseGrouper(object):
 
         """
         ids, _, ngroup = self.group_info
-        ids = _ensure_platform_int(ids)
+        ids = ensure_platform_int(ids)
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
@@ -2426,7 +2426,7 @@ class BaseGrouper(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, self.recons_labels):
-            labels = _ensure_platform_int(labels)
+            labels = ensure_platform_int(labels)
             levels = ping.result_index.take(labels)
 
             name_list.append(levels)
@@ -2903,7 +2903,7 @@ class BinGrouper(BaseGrouper):
         obs_group_ids = np.arange(ngroups)
         rep = np.diff(np.r_[0, self.bins])
 
-        rep = _ensure_platform_int(rep)
+        rep = ensure_platform_int(rep)
         if ngroups == len(self.bins):
             comp_ids = np.repeat(np.arange(ngroups), rep)
         else:
@@ -3957,7 +3957,7 @@ class SeriesGroupBy(GroupBy):
         val = self.obj.get_values()
 
         mask = (ids != -1) & ~isna(val)
-        ids = _ensure_platform_int(ids)
+        ids = ensure_platform_int(ids)
         out = np.bincount(ids[mask], minlength=ngroups or 0)
 
         return Series(out,

@@ -9,7 +9,7 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, find_common_type, maybe_downcast_to_dtype)
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
@@ -1143,7 +1143,7 @@ class IntervalIndex(IntervalMixin, Index):
         else:
             indexer = np.concatenate([self.get_loc(i) for i in target])
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     def _get_reindexer(self, target):
         """
@@ -1300,7 +1300,7 @@ class IntervalIndex(IntervalMixin, Index):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         left, right = self.left, self.right
 
         if fill_value is None:

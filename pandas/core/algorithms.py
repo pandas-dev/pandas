@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
-    _ensure_platform_int, ensure_object,
+    ensure_platform_int, ensure_object,
     ensure_float64, _ensure_uint64,
     ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
@@ -475,7 +475,7 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     labels = table.get_labels(values, uniques, 0, na_sentinel,
                               na_value=na_value)
 
-    labels = _ensure_platform_int(labels)
+    labels = ensure_platform_int(labels)
     uniques = uniques.to_array()
     return labels, uniques
 
@@ -1309,7 +1309,7 @@ def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask

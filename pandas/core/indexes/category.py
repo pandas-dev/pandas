@@ -9,7 +9,7 @@ from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_interval_dtype,
     is_scalar)
@@ -583,7 +583,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -594,12 +594,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if target.categories is self.categories:
                 target = target.codes
                 indexer, missing = self._engine.get_indexer_non_unique(target)
-                return _ensure_platform_int(indexer), missing
+                return ensure_platform_int(indexer), missing
             target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -644,7 +644,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.codes, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,

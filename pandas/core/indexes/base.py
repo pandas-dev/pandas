@@ -26,7 +26,7 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
     _ensure_categorical,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_integer,
     is_float,
     is_dtype_equal,
@@ -2076,7 +2076,7 @@ class Index(IndexOpsMixin, PandasObject):
              fill_value=None, **kwargs):
         if kwargs:
             nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(self.values, indices,
                                                allow_fill=allow_fill,
@@ -2092,7 +2092,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _assert_take_fillable(self, values, indices, allow_fill=True,
                               fill_value=None, na_value=np.nan):
         """ Internal method to handle NA filling of take """
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
 
         # only fill if we are passing a non-None fill_value
         if allow_fill and fill_value is not None:
@@ -3247,7 +3247,7 @@ class Index(IndexOpsMixin, PandasObject):
         # this fix False and True would be treated as 0 and 1 respectively.
         # (GH #16877)
         if target.is_boolean() and self.is_numeric():
-            return _ensure_platform_int(np.repeat(-1, target.size))
+            return ensure_platform_int(np.repeat(-1, target.size))
 
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
@@ -3278,7 +3278,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target._ndarray_values)
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     def _convert_tolerance(self, tolerance, target):
         # override this method on subclasses
@@ -3394,7 +3394,7 @@ class Index(IndexOpsMixin, PandasObject):
             tgt_values = target._ndarray_values
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return _ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), missing
 
     def get_indexer_for(self, target, **kwargs):
         """
@@ -3681,7 +3681,7 @@ class Index(IndexOpsMixin, PandasObject):
         if len(missing):
             length = np.arange(len(indexer))
 
-            missing = _ensure_platform_int(missing)
+            missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
             missing_indexer = ensure_int64(length[~check])
             cur_labels = self.take(indexer[check]).values
@@ -3886,8 +3886,8 @@ class Index(IndexOpsMixin, PandasObject):
                                                  how=how,
                                                  sort=True)
 
-        left_idx = _ensure_platform_int(left_idx)
-        right_idx = _ensure_platform_int(right_idx)
+        left_idx = ensure_platform_int(left_idx)
+        right_idx = ensure_platform_int(right_idx)
 
         join_index = np.asarray(self._ndarray_values.take(left_idx))
         mask = left_idx == -1
@@ -4023,9 +4023,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if return_indexers:
             left_indexer = (None if left_indexer is None
-                            else _ensure_platform_int(left_indexer))
+                            else ensure_platform_int(left_indexer))
             right_indexer = (None if right_indexer is None
-                             else _ensure_platform_int(right_indexer))
+                             else ensure_platform_int(right_indexer))
             return join_index, left_indexer, right_indexer
         else:
             return join_index
@@ -4069,8 +4069,8 @@ class Index(IndexOpsMixin, PandasObject):
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:
-            lidx = None if lidx is None else _ensure_platform_int(lidx)
-            ridx = None if ridx is None else _ensure_platform_int(ridx)
+            lidx = None if lidx is None else ensure_platform_int(lidx)
+            ridx = None if ridx is None else ensure_platform_int(ridx)
             return join_index, lidx, ridx
         else:
             return join_index

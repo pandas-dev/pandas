@@ -3,7 +3,7 @@
 import numpy as np
 from pandas.compat import long, string_types, PY3
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     ensure_int64,
     is_list_like,
     is_categorical_dtype)
@@ -340,7 +340,7 @@ def get_group_index_sorter(group_index, ngroups):
     if do_groupsort:
         sorter, _ = algos.groupsort_indexer(ensure_int64(group_index),
                                             ngroups)
-        return _ensure_platform_int(sorter)
+        return ensure_platform_int(sorter)
     else:
         return group_index.argsort(kind='mergesort')
 
@@ -462,7 +462,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if not is_list_like(labels):
         raise TypeError("Only list-like objects or None are allowed to be"
                         "passed to safe_sort as labels")
-    labels = _ensure_platform_int(np.asarray(labels))
+    labels = ensure_platform_int(np.asarray(labels))
 
     from pandas import Index
     if not assume_unique and not Index(values).is_unique:
@@ -474,7 +474,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
             values, algorithms._hashtables)
         t = hash_klass(len(values))
         t.map_locations(values)
-        sorter = _ensure_platform_int(t.lookup(ordered))
+        sorter = ensure_platform_int(t.lookup(ordered))
 
     reverse_indexer = np.empty(len(sorter), dtype=np.int_)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -487,4 +487,4 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     new_labels = reverse_indexer.take(labels, mode='wrap')
     np.putmask(new_labels, mask, na_sentinel)
 
-    return ordered, _ensure_platform_int(new_labels)
+    return ordered, ensure_platform_int(new_labels)

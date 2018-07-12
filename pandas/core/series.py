@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_scalar,
     _is_unorderable_exception,
-    _ensure_platform_int,
+    ensure_platform_int,
     pandas_dtype)
 from pandas.core.dtypes.generic import (
     ABCSparseArray, ABCDataFrame, ABCIndexClass)
@@ -2075,7 +2075,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
-            sorter = _ensure_platform_int(sorter)
+            sorter = ensure_platform_int(sorter)
         return self._values.searchsorted(Series(value)._values,
                                          side=side, sorter=sorter)
 
@@ -2672,7 +2672,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             indexer = nargsort(index, kind=kind, ascending=ascending,
                                na_position=na_position)
 
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         new_index = index.take(indexer)
         new_index = new_index._sort_levels_monotonic()
 
@@ -3533,7 +3533,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(generic._shared_docs['_take'])
     def _take(self, indices, axis=0, is_copy=False):
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
 
         if is_categorical_dtype(self):

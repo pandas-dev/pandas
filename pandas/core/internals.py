@@ -21,7 +21,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
-    ensure_int64, _ensure_platform_int,
+    ensure_int64, ensure_platform_int,
     is_integer,
     is_dtype_equal,
     is_timedelta64_dtype,
@@ -1297,7 +1297,7 @@ class Block(PandasObject):
             axis = new_values.ndim - axis - 1
 
         if np.prod(new_values.shape):
-            new_values = np.roll(new_values, _ensure_platform_int(periods),
+            new_values = np.roll(new_values, ensure_platform_int(periods),
                                  axis=axis)
 
         axis_indexer = [slice(None)] * self.ndim
@@ -5209,7 +5209,7 @@ def _factor_indexer(shape, labels):
     expanded label indexer
     """
     mult = np.array(shape)[::-1].cumprod()[::-1]
-    return _ensure_platform_int(
+    return ensure_platform_int(
         np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
 
 

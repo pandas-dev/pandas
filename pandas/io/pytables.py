@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     ensure_object,
     ensure_int64,
-    _ensure_platform_int)
+    ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
 
 from pandas.core import config
@@ -3893,7 +3893,7 @@ class LegacyTable(Table):
 
             sorter, _ = algos.groupsort_indexer(
                 ensure_int64(key), np.prod(N))
-            sorter = _ensure_platform_int(sorter)
+            sorter = ensure_platform_int(sorter)
 
             # create the objs
             for c in self.values_axes:
@@ -3938,7 +3938,7 @@ class LegacyTable(Table):
                 unique_tuples = com._asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
-                indexer = _ensure_platform_int(indexer)
+                indexer = ensure_platform_int(indexer)
 
                 new_index = long_index.take(indexer)
                 new_values = lp.values.take(indexer, axis=0)
