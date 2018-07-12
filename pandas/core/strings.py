@@ -2557,20 +2557,26 @@ class StringMethods(NoNewAttributesMixin):
 
         Note that ``10`` and ``NaN`` are not strings, therefore they are
         converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
-        regular character and the zero is added to the left of it
+        special character and the zero is added to the right of it
         (:meth:`str.zfill` would have moved it to the left). ``1000``
         remains unchanged as it is longer than `width`.
 
         >>> s.str.zfill(3)
-        0     0-1
+        0     -01
         1     001
         2    1000
         3     NaN
         4     NaN
         dtype: object
         """
-        result = str_pad(self._data, width, side='left', fillchar='0')
-        return self._wrap_result(result)
+
+        if not is_integer(width):
+            msg = 'width must be of integer type, not {0}'
+            raise TypeError(msg.format(type(width).__name__))
+
+        f = lambda x: x.zfill(width)
+
+        return self._wrap_result(_na_map(f, self._data))
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=None):
