@@ -278,10 +278,15 @@ def is_list_like(obj):
     False
     >>> is_list_like(1)
     False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
     """
 
     return (isinstance(obj, Iterable) and
-            not isinstance(obj, string_and_binary_types))
+            not isinstance(obj, string_and_binary_types) and
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
 
 
 def is_array_like(obj):

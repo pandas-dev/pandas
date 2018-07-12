@@ -11,7 +11,6 @@ from cpython.datetime cimport (PyDateTime_IMPORT, PyDateTime_CheckExact,
 PyDateTime_IMPORT
 
 from dateutil.relativedelta import relativedelta
-from pytz import UTC
 
 import numpy as np
 cimport numpy as cnp
@@ -24,7 +23,6 @@ from util cimport is_string_object, is_integer_object
 from ccalendar import MONTHS, DAYS
 from ccalendar cimport get_days_in_month, dayofweek
 from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
-from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
                           dtstruct_to_dt64, dt64_to_dtstruct)

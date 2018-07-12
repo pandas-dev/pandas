@@ -25,8 +25,7 @@ from tslibs.conversion cimport maybe_datetimelike_to_i8
 from hashtable cimport HashTable
 
 from pandas._libs import algos, hashtable as _hash
-from pandas._libs.tslibs import period as periodlib
-from pandas._libs.tslib import Timestamp, Timedelta
+from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
 cdef int64_t iNaT = util.get_nat()
@@ -44,9 +43,9 @@ cdef inline bint is_definitely_invalid_key(object val):
             or PyList_Check(val) or hasattr(val, '_data'))
 
 
-def get_value_at(ndarray arr, object loc):
+cpdef get_value_at(ndarray arr, object loc, object tz=None):
     if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_at(arr, loc))
+        return Timestamp(util.get_value_at(arr, loc), tz=tz)
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
@@ -69,12 +68,7 @@ cpdef object get_value_box(ndarray arr, object loc):
     if i >= sz or sz == 0 or i < 0:
         raise IndexError('index out of bounds')
 
-    if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_1d(arr, i))
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(util.get_value_1d(arr, i))
-    else:
-        return util.get_value_1d(arr, i)
+    return get_value_at(arr, i, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -115,11 +109,7 @@ cdef class IndexEngine:
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             return arr[loc]
         else:
-            if arr.descr.type_num == NPY_DATETIME:
-                return Timestamp(util.get_value_at(arr, loc), tz=tz)
-            elif arr.descr.type_num == NPY_TIMEDELTA:
-                return Timedelta(util.get_value_at(arr, loc))
-            return util.get_value_at(arr, loc)
+            return get_value_at(arr, loc, tz=tz)
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """

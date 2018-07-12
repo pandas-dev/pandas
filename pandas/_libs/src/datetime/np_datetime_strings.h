@@ -60,7 +60,7 @@ parse_iso_8601_datetime(char *str, int len,
  * objects with the given local and unit settings.
  */
 int
-get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
+get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
 
 /*
  * Converts an pandas_datetimestruct to an (almost) ISO 8601
@@ -74,6 +74,6 @@ get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
  */
 int
 make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
-                       PANDAS_DATETIMEUNIT base);
+                       NPY_DATETIMEUNIT base);
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

@@ -11,6 +11,16 @@ import copy
 import itertools
 import warnings
 import os
+from distutils.version import LooseVersion
+
+import numpy as np
+
+from pandas._libs import algos, lib, writers as libwriters
+from pandas._libs.tslibs import timezones
+
+from pandas.errors import PerformanceWarning
+from pandas import compat
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -23,17 +33,10 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
 
-import numpy as np
-from pandas import (Series, DataFrame, Panel, Index,
-                    MultiIndex, Int64Index, isna, concat, to_datetime,
-                    SparseSeries, SparseDataFrame, PeriodIndex,
-                    DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
-from pandas.io.common import _stringify_path
+from pandas.core.config import get_option
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
-from pandas.io.formats.printing import adjoin, pprint_thing
-from pandas.errors import PerformanceWarning
 import pandas.core.common as com
 from pandas.core.algorithms import match, unique
 from pandas.core.arrays.categorical import (Categorical,
@@ -42,15 +45,15 @@ from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
 from pandas.core.index import _ensure_index
-from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
-from pandas.core.config import get_option
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import algos, lib, writers as libwriters
-from pandas._libs.tslibs import timezones
+from pandas.io.common import _stringify_path
+from pandas.io.formats.printing import adjoin, pprint_thing
 
-from distutils.version import LooseVersion
+from pandas import (Series, DataFrame, Panel, Index,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
+                    SparseSeries, SparseDataFrame, PeriodIndex,
+                    DatetimeIndex, TimedeltaIndex)
 
 # versioning attribute
 _version = '0.15.2'
@@ -455,7 +458,7 @@ class HDFStore(StringMixin):
     Examples
     --------
     >>> bar = pd.DataFrame(np.random.randn(10, 4))
-    >>> store = HDFStore('test.h5')
+    >>> store = pd.HDFStore('test.h5')
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve
     >>> store.close()
@@ -2472,7 +2475,8 @@ class GenericFixed(Fixed):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values, None, freq=freq)
+                result = DatetimeIndex._simple_new(values.values, None,
+                                                   freq=freq)
                 if tz is not None:
                     result = result.tz_localize('UTC').tz_convert(tz)
                 return result

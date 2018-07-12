@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
+    is_integer,
     is_iterator,
     is_list_like,
     pandas_dtype,
@@ -345,9 +346,9 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
         MultiIndex(levels=[[u'a', u'b'], [1, 2]],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -441,9 +442,9 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
@@ -757,14 +758,14 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
+        count = self.names.count(level)
+        if (count > 1) and not is_integer(level):
+            raise ValueError('The name %s occurs multiple times, use a '
+                             'level number' % level)
         try:
-            count = self.names.count(level)
-            if count > 1:
-                raise ValueError('The name %s occurs multiple times, use a '
-                                 'level number' % level)
             level = self.names.index(level)
         except ValueError:
-            if not isinstance(level, int):
+            if not is_integer(level):
                 raise KeyError('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
@@ -1191,8 +1192,8 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')])
         >>> idx.to_hierarchical(3)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
@@ -1254,7 +1255,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-        >>> MultiIndex.from_arrays(arrays, names=('number', 'color'))
+        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
 
         See Also
         --------
@@ -1303,7 +1304,7 @@ class MultiIndex(Index):
         --------
         >>> tuples = [(1, u'red'), (1, u'blue'),
                       (2, u'red'), (2, u'blue')]
-        >>> MultiIndex.from_tuples(tuples, names=('number', 'color'))
+        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
 
         See Also
         --------
@@ -1356,8 +1357,8 @@ class MultiIndex(Index):
         --------
         >>> numbers = [0, 1, 2]
         >>> colors = [u'green', u'purple']
-        >>> MultiIndex.from_product([numbers, colors],
-                                     names=['number', 'color'])
+        >>> pd.MultiIndex.from_product([numbers, colors],
+                                       names=['number', 'color'])
         MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
                    names=[u'number', u'color'])
@@ -2878,13 +2879,6 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
-
-    def _reference_duplicate_name(self, name):
-        """
-        Returns True if the name refered to in self.names is duplicated.
-        """
-        # count the times name equals an element in self.names.
-        return sum(name == n for n in self.names) > 1
 
 
 MultiIndex._add_numeric_methods_disabled()
