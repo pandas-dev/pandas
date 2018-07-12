@@ -91,7 +91,7 @@ def test_group_ohlc():
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
         labels = ensure_int64(np.repeat(np.arange(3),
-                                         np.diff(np.r_[0, bins])))
+                                        np.diff(np.r_[0, bins])))
 
         func = getattr(groupby, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)
