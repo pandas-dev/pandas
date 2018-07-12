@@ -4635,7 +4635,10 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int
+        level : int, str, or list-like
+            If a string is given, must be the name of a level
+            If list-like, elements must be names or indexes of levels.
+
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
         .. versionadded:: 0.24.0
