@@ -24,15 +24,6 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
-min_cython_ver = '0.28.2'
-try:
-    import Cython
-    ver = Cython.__version__
-    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
-except ImportError:
-    _CYTHON_INSTALLED = False
-
-
 min_numpy_ver = '1.9.0'
 setuptools_kwargs = {
     'install_requires': [
@@ -45,21 +36,24 @@ setuptools_kwargs = {
 }
 
 
+min_cython_ver = '0.28.2'
+try:
+    import Cython
+    ver = Cython.__version__
+    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
+except ImportError:
+    _CYTHON_INSTALLED = False
+
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
-# TODO: reference as to why?
+# See https://cython.readthedocs.io/en/latest/src/reference/compilation.html
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
 
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
-    try:
-        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
-    except ImportError:
-        # Pre 0.25
-        # TODO: Can we remove this branch since 0.28 is now required?
-        from Cython.Distutils import build_ext as _build_ext
+    from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
     cython = True
 except ImportError:
     from distutils.command.build_ext import build_ext as _build_ext
