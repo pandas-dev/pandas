@@ -1860,13 +1860,33 @@ cdef int64_t _ordinal_from_fields(year, month, quarter, day,
                                   hour, minute, second, freq):
     base, mult = get_freq_code(freq)
     if quarter is not None:
-        year, month = _quarter_to_myear(year, quarter, freq)
+        year, month = quarter_to_myear(year, quarter, freq)
 
     return period_ordinal(year, month, day, hour,
                           minute, second, 0, 0, base)
 
 
-def _quarter_to_myear(year, quarter, freq):
+def quarter_to_myear(year, quarter, freq):
+    """
+    A quarterly frequency defines a "year" which may not coincide with
+    the calendar-year.  Find the calendar-year and calendar-month associated
+    with the given year and quarter under the `freq`-derived calendar.
+
+    Parameters
+    ----------
+    year : int
+    quarter : int
+    freq : DateOffset
+
+    Returns
+    -------
+    year : int
+    month : int
+
+    See Also
+    --------
+    Period.qyear
+    """
     if quarter is not None:
         if quarter <= 0 or quarter > 4:
             raise ValueError('Quarter must be 1 <= q <= 4')
@@ -1877,6 +1897,8 @@ def _quarter_to_myear(year, quarter, freq):
             year -= 1
 
     return year, month
+    # FIXME: if quarter is None then `month` won't be defined here.
+    #   just disallow quarter == None?
 
 
 def _validate_end_alias(how):
