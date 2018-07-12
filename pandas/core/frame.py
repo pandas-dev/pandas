@@ -7679,6 +7679,9 @@ def _prep_ndarray(values, copy=True):
         try:
             if is_list_like(values[0]) or hasattr(values[0], 'len'):
                 values = np.array([convert(v) for v in values])
+            elif isinstance(values[0], np.ndarray) and values[0].ndim == 0:
+                # GH#21861
+                values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)
         except:

@@ -85,7 +85,7 @@ def to_timedelta(arg, unit='ns', box=True, errors='raise'):
     elif isinstance(arg, ABCIndexClass):
         return _convert_listlike(arg, unit=unit, box=box,
                                  errors=errors, name=arg.name)
-    elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 0:
+    elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
         arg = arg.item()
     elif is_list_like(arg) and getattr(arg, 'ndim', 1) == 1:

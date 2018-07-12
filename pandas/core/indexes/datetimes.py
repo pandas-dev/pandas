@@ -93,7 +93,7 @@ def _dt_index_cmp(opname, cls):
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
 
-        if isinstance(other, (datetime, compat.string_types)):
+        if isinstance(other, (datetime, np.datetime64, compat.string_types)):
             if isinstance(other, datetime):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
@@ -105,8 +105,7 @@ def _dt_index_cmp(opname, cls):
         else:
             if isinstance(other, list):
                 other = DatetimeIndex(other)
-            elif not isinstance(other, (np.datetime64, np.ndarray,
-                                        Index, ABCSeries)):
+            elif not isinstance(other, (np.ndarray, Index, ABCSeries)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 if opname == '__eq__':

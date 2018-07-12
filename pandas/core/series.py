@@ -166,6 +166,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
 
+    # Override cache_readonly bc Series is mutable
+    hasnans = property(base.IndexOpsMixin.hasnans.func,
+                       doc=base.IndexOpsMixin.hasnans.__doc__)
+
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
 

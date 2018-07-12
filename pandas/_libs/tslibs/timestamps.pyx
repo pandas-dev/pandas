@@ -407,6 +407,15 @@ cdef class _Timestamp(datetime):
     def asm8(self):
         return np.datetime64(self.value, 'ns')
 
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
+
     def timestamp(self):
         """Return POSIX timestamp as float."""
         # py27 compat, see GH#17329
