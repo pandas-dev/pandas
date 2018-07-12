@@ -1567,7 +1567,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results = concat(results, axis=1)
 
         if not self.as_index:
-            results.index = com._default_index(len(results))
+            results.index = com.default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby
