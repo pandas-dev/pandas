@@ -17,7 +17,7 @@ from pandas.core.dtypes.cast import (
     coerce_indexer_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     ensure_object,
     _ensure_platform_int,
     is_dtype_equal,
@@ -2131,7 +2131,7 @@ class Categorical(ExtensionArray, PandasObject):
         if dropna:
             good = self._codes != -1
             values = self._codes[good]
-        values = sorted(htable.mode_int64(_ensure_int64(values), dropna))
+        values = sorted(htable.mode_int64(ensure_int64(values), dropna))
         result = self._constructor(values=values, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result

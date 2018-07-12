@@ -25,8 +25,8 @@ from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_bool_dtype, is_scalar,
                      is_string_dtype, _string_dtypes,
                      pandas_dtype,
-                     _ensure_int8, _ensure_int16,
-                     _ensure_int32, _ensure_int64,
+                     ensure_int8, ensure_int16,
+                     ensure_int32, ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
 from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
@@ -602,12 +602,12 @@ def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
     length = len(categories)
     if length < _int8_max:
-        return _ensure_int8(indexer)
+        return ensure_int8(indexer)
     elif length < _int16_max:
-        return _ensure_int16(indexer)
+        return ensure_int16(indexer)
     elif length < _int32_max:
-        return _ensure_int32(indexer)
-    return _ensure_int64(indexer)
+        return ensure_int32(indexer)
+    return ensure_int64(indexer)
 
 
 def coerce_to_dtypes(result, dtypes):

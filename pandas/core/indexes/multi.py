@@ -14,7 +14,7 @@ from pandas import compat
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     _ensure_platform_int,
     is_categorical_dtype,
     is_object_dtype,
@@ -1227,7 +1227,7 @@ class MultiIndex(Index):
             else:
                 return 0
 
-        int64_labels = [_ensure_int64(lab) for lab in self.labels]
+        int64_labels = [ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_labels[:k]):
                 return k
@@ -1431,7 +1431,7 @@ class MultiIndex(Index):
                     lev = lev.take(indexer)
 
                     # indexer to reorder the labels
-                    indexer = _ensure_int64(indexer)
+                    indexer = ensure_int64(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
                     lab = algos.take_1d(ri, lab)
 
@@ -2826,7 +2826,7 @@ class MultiIndex(Index):
                 lev_loc = level.get_loc(k)
 
             new_levels.append(level)
-            new_labels.append(np.insert(_ensure_int64(labels), loc, lev_loc))
+            new_labels.append(np.insert(ensure_int64(labels), loc, lev_loc))
 
         return MultiIndex(levels=new_levels, labels=new_labels,
                           names=self.names, verify_integrity=False)

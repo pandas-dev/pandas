@@ -12,7 +12,7 @@ import pandas as pd
 
 from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     ensure_object,
     is_scalar,
     is_number,
@@ -3891,7 +3891,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             index = ensure_index(index)
             if indexer is not None:
-                indexer = _ensure_int64(indexer)
+                indexer = ensure_int64(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(index, indexer, axis=baxis,

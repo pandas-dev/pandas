@@ -21,7 +21,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
-    _ensure_int64, _ensure_platform_int,
+    ensure_int64, _ensure_platform_int,
     is_integer,
     is_dtype_equal,
     is_timedelta64_dtype,
@@ -5229,7 +5229,7 @@ def _get_blkno_placements(blknos, blk_count, group=True):
 
     """
 
-    blknos = _ensure_int64(blknos)
+    blknos = ensure_int64(blknos)
 
     # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in libinternals.get_blkno_indexers(blknos, group):

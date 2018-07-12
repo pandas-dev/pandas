@@ -4,7 +4,7 @@ import numpy as np
 from pandas.compat import long, string_types, PY3
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
-    _ensure_int64,
+    ensure_int64,
     is_list_like,
     is_categorical_dtype)
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -57,7 +57,7 @@ def get_group_index(labels, shape, sort, xnull):
         # so that all output values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
-    labels = map(_ensure_int64, labels)
+    labels = map(ensure_int64, labels)
     if not xnull:
         labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
 
@@ -338,7 +338,7 @@ def get_group_index_sorter(group_index, ngroups):
     do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
                                    (count * np.log(count))))
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(_ensure_int64(group_index),
+        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index),
                                             ngroups)
         return _ensure_platform_int(sorter)
     else:
@@ -355,7 +355,7 @@ def compress_group_index(group_index, sort=True):
     size_hint = min(len(group_index), hashtable._SIZE_HINT_LIMIT)
     table = hashtable.Int64HashTable(size_hint)
 
-    group_index = _ensure_int64(group_index)
+    group_index = ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)

@@ -23,7 +23,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     ensure_object,
     _ensure_categorical,
     _ensure_platform_int,
@@ -3683,9 +3683,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             missing = _ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = _ensure_int64(length[~check])
+            missing_indexer = ensure_int64(length[~check])
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = _ensure_int64(length[check])
+            cur_indexer = ensure_int64(length[check])
 
             new_labels = np.empty(tuple([len(indexer)]), dtype=object)
             new_labels[cur_indexer] = cur_labels
@@ -3920,7 +3920,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.empty(0, dtype='int64')
 
             if len(labels) == 1:
-                lab = _ensure_int64(labels[0])
+                lab = ensure_int64(labels[0])
                 sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
                 return sorter
 
@@ -3931,8 +3931,8 @@ class Index(IndexOpsMixin, PandasObject):
                 tic |= lab[:-1] != lab[1:]
 
             starts = np.hstack(([True], tic, [True])).nonzero()[0]
-            lab = _ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, _ensure_int64(starts))
+            lab = ensure_int64(labels[-1])
+            return lib.get_level_sorter(lab, ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
@@ -3964,7 +3964,7 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index = left[left_indexer]
 
         else:
-            left_lev_indexer = _ensure_int64(left_lev_indexer)
+            left_lev_indexer = ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 

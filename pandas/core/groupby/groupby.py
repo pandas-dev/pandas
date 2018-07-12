@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     ensure_float64,
     _ensure_platform_int,
-    _ensure_int64,
+    ensure_int64,
     ensure_object,
     _ensure_categorical,
     ensure_float)
@@ -2374,7 +2374,7 @@ class BaseGrouper(object):
         comp_ids, obs_group_ids = self._get_compressed_labels()
 
         ngroups = len(obs_group_ids)
-        comp_ids = _ensure_int64(comp_ids)
+        comp_ids = ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
@@ -2837,7 +2837,7 @@ class BinGrouper(BaseGrouper):
 
     def __init__(self, bins, binlabels, filter_empty=False, mutated=False,
                  indexer=None):
-        self.bins = _ensure_int64(bins)
+        self.bins = ensure_int64(bins)
         self.binlabels = ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
         self.mutated = mutated
@@ -3917,7 +3917,7 @@ class SeriesGroupBy(GroupBy):
                             verify_integrity=False)
 
             if is_integer_dtype(out):
-                out = _ensure_int64(out)
+                out = ensure_int64(out)
             return Series(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
@@ -3948,7 +3948,7 @@ class SeriesGroupBy(GroupBy):
                         verify_integrity=False)
 
         if is_integer_dtype(out):
-            out = _ensure_int64(out)
+            out = ensure_int64(out)
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
@@ -5049,7 +5049,7 @@ class DataSplitter(object):
 
     def __init__(self, data, labels, ngroups, axis=0):
         self.data = data
-        self.labels = _ensure_int64(labels)
+        self.labels = ensure_int64(labels)
         self.ngroups = ngroups
 
         self.axis = axis

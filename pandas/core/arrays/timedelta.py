@@ -11,7 +11,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, _ensure_int64, is_timedelta64_dtype)
+    _TD_DTYPE, ensure_int64, is_timedelta64_dtype)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -63,7 +63,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                 # non-nano unit
                 values = values.astype(_TD_DTYPE)
             else:
-                values = _ensure_int64(values).view(_TD_DTYPE)
+                values = ensure_int64(values).view(_TD_DTYPE)
 
         result = object.__new__(cls)
         result._data = values

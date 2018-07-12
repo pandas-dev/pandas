@@ -29,7 +29,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype, is_scalar, is_list_like,
     _ensure_platform_int, ensure_object,
     ensure_float64, _ensure_uint64,
-    _ensure_int64)
+    ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -79,7 +79,7 @@ def _ensure_data(values, dtype=None):
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            return _ensure_int64(values), 'int64', 'int64'
+            return ensure_int64(values), 'int64', 'int64'
         elif (is_unsigned_integer_dtype(values) or
               is_unsigned_integer_dtype(dtype)):
             return _ensure_uint64(values), 'uint64', 'uint64'
@@ -129,7 +129,7 @@ def _ensure_data(values, dtype=None):
 
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
-        values = _ensure_int64(values)
+        values = ensure_int64(values)
 
         return values, dtype, 'int64'
 
@@ -1450,7 +1450,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             return func
 
     def func(arr, indexer, out, fill_value=np.nan):
-        indexer = _ensure_int64(indexer)
+        indexer = ensure_int64(indexer)
         _take_nd_object(arr, indexer, out, axis=axis, fill_value=fill_value,
                         mask_info=mask_info)
 
@@ -1609,7 +1609,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = _ensure_int64(indexer, copy=False)
+        indexer = ensure_int64(indexer, copy=False)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False
@@ -1687,11 +1687,11 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         if row_idx is None:
             row_idx = np.arange(arr.shape[0], dtype=np.int64)
         else:
-            row_idx = _ensure_int64(row_idx)
+            row_idx = ensure_int64(row_idx)
         if col_idx is None:
             col_idx = np.arange(arr.shape[1], dtype=np.int64)
         else:
-            col_idx = _ensure_int64(col_idx)
+            col_idx = ensure_int64(col_idx)
         indexer = row_idx, col_idx
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()

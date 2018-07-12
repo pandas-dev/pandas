@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_datetimelike,
-    _ensure_int64,
+    ensure_int64,
     ensure_float64,
     ensure_object,
     _get_dtype)
@@ -1212,7 +1212,7 @@ def _asof_by_function(direction, on_type, by_type):
 
 
 _type_casters = {
-    'int64_t': _ensure_int64,
+    'int64_t': ensure_int64,
     'double': ensure_float64,
     'object': ensure_object,
 }
@@ -1490,8 +1490,8 @@ def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = libjoin.left_outer_join(
-        _ensure_int64(left_key),
-        _ensure_int64(right_key),
+        ensure_int64(left_key),
+        ensure_int64(right_key),
         count, sort=sort)
 
     return left_indexer, right_indexer
@@ -1553,12 +1553,12 @@ def _factorize_keys(lk, rk, sort=True):
             # Same categories in different orders -> recode
             rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
 
-        lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk)
+        lk = ensure_int64(lk.codes)
+        rk = ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
-        lk = _ensure_int64(com._values_from_object(lk))
-        rk = _ensure_int64(com._values_from_object(rk))
+        lk = ensure_int64(com._values_from_object(lk))
+        rk = ensure_int64(com._values_from_object(rk))
     else:
         klass = libhashtable.Factorizer
         lk = ensure_object(lk)
@@ -1600,7 +1600,7 @@ def _sort_labels(uniques, left, right):
     labels = np.concatenate([left, right])
 
     _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
-    new_labels = _ensure_int64(new_labels)
+    new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

@@ -52,7 +52,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     _get_dtype_from_object,
     ensure_float64,
-    _ensure_int64,
+    ensure_int64,
     _ensure_platform_int,
     is_list_like,
     is_nested_list_like,
@@ -7076,7 +7076,7 @@ class DataFrame(NDFrame):
             level = count_axis._get_level_number(level)
 
         level_index = count_axis.levels[level]
-        labels = _ensure_int64(count_axis.labels[level])
+        labels = ensure_int64(count_axis.labels[level])
         counts = lib.count_level_2d(mask, labels, len(level_index), axis=0)
 
         result = DataFrame(counts, index=level_index, columns=agg_axis)
