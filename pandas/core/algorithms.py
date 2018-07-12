@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
     _ensure_platform_int, ensure_object,
-    _ensure_float64, _ensure_uint64,
+    ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
@@ -84,7 +84,7 @@ def _ensure_data(values, dtype=None):
               is_unsigned_integer_dtype(dtype)):
             return _ensure_uint64(values), 'uint64', 'uint64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
-            return _ensure_float64(values), 'float64', 'float64'
+            return ensure_float64(values), 'float64', 'float64'
         elif is_object_dtype(values) and dtype is None:
             return ensure_object(np.asarray(values)), 'object', 'object'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
@@ -92,7 +92,7 @@ def _ensure_data(values, dtype=None):
             # ignore the fact that we are casting to float
             # which discards complex parts
             with catch_warnings(record=True):
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             return values, 'float64', 'float64'
 
     except (TypeError, ValueError):

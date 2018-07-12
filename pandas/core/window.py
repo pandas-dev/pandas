@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_timedelta64_dtype,
     is_list_like,
-    _ensure_float64,
+    ensure_float64,
     is_scalar)
 
 from pandas.core.base import (PandasObject, SelectionMixin,
@@ -208,9 +208,9 @@ class _Window(PandasObject, SelectionMixin):
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
         if is_float_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif is_integer_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError("ops for {action} for this "
                                       "dtype {dtype} are not "
@@ -219,7 +219,7 @@ class _Window(PandasObject, SelectionMixin):
                                           dtype=values.dtype))
         else:
             try:
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -857,7 +857,7 @@ class _Rolling(_Window):
                 def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
                     # ensure we are only rolling on floats
-                    arg = _ensure_float64(arg)
+                    arg = ensure_float64(arg)
                     return cfunc(arg,
                                  window, minp, indexi, closed, **kwargs)
 

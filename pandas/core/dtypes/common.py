@@ -32,14 +32,14 @@ _INT64_DTYPE = np.dtype(np.int64)
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
-_ensure_float64 = algos.ensure_float64
-_ensure_float32 = algos.ensure_float32
+ensure_float64 = algos.ensure_float64
+ensure_float32 = algos.ensure_float32
 
 _ensure_datetime64ns = conversion.ensure_datetime64ns
 _ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
-def _ensure_float(arr):
+def ensure_float(arr):
     """
     Ensure that an array object has a float dtype if possible.
 

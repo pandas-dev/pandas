@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_datetimelike,
     _ensure_int64,
-    _ensure_float64,
+    ensure_float64,
     ensure_object,
     _get_dtype)
 from pandas.core.dtypes.missing import na_value_for_dtype
@@ -1213,7 +1213,7 @@ def _asof_by_function(direction, on_type, by_type):
 
 _type_casters = {
     'int64_t': _ensure_int64,
-    'double': _ensure_float64,
+    'double': ensure_float64,
     'object': ensure_object,
 }
 

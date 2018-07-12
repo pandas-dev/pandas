@@ -31,12 +31,12 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_hashable,
     needs_i8_conversion,
-    _ensure_float64,
+    ensure_float64,
     _ensure_platform_int,
     _ensure_int64,
     ensure_object,
     _ensure_categorical,
-    _ensure_float)
+    ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna, isnull, notna, _maybe_fill
@@ -1081,7 +1081,7 @@ b  2""")
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
-                    values = _ensure_float(values)
+                    values = ensure_float(values)
 
                 output[name] = self._try_cast(values[mask], result)
 
@@ -2578,16 +2578,16 @@ class BaseGrouper(object):
             values = values.view('int64')
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
             if (values == iNaT).any():
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             else:
                 values = values.astype('int64', copy=False)
         elif is_numeric and not is_complex_dtype(values):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         else:
             values = values.astype(object)
 
@@ -2596,7 +2596,7 @@ class BaseGrouper(object):
                 kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
                 func = self._get_cython_function(
                     kind, how, values, is_numeric)
             else:

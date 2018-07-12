@@ -51,7 +51,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     needs_i8_conversion,
     _get_dtype_from_object,
-    _ensure_float64,
+    ensure_float64,
     _ensure_int64,
     _ensure_platform_int,
     is_list_like,
@@ -6749,14 +6749,14 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = libalgos.nancorr(_ensure_float64(mat), minp=min_periods)
+            correl = libalgos.nancorr(ensure_float64(mat), minp=min_periods)
         elif method == 'spearman':
-            correl = libalgos.nancorr_spearman(_ensure_float64(mat),
+            correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
-            mat = _ensure_float64(mat).T
+            mat = ensure_float64(mat).T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
             correl = np.empty((K, K), dtype=float)
@@ -6886,7 +6886,7 @@ class DataFrame(NDFrame):
                 baseCov = np.cov(mat.T)
             baseCov = baseCov.reshape((len(cols), len(cols)))
         else:
-            baseCov = libalgos.nancorr(_ensure_float64(mat), cov=True,
+            baseCov = libalgos.nancorr(ensure_float64(mat), cov=True,
                                        minp=min_periods)
 
         return self._constructor(baseCov, index=idx, columns=cols)
