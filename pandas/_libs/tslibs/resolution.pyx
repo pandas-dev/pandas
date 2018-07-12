@@ -367,6 +367,50 @@ cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     return result
 
 
+cdef object month_position_check(fields, weekdays):
+    cdef:
+        int32_t daysinmonth, y, m, d
+        bint calendar_end = True
+        bint business_end = True
+        bint calendar_start = True
+        bint business_start = True
+        bint cal
+        int32_t[:] years
+        int32_t[:] months
+        int32_t[:] days
+
+    years = fields['Y']
+    months = fields['M']
+    days = fields['D']
+
+    for y, m, d, wd in zip(years, months, days, weekdays):
+        if calendar_start:
+            calendar_start &= d == 1
+        if business_start:
+            business_start &= d == 1 or (d <= 3 and wd == 0)
+
+        if calendar_end or business_end:
+            daysinmonth = get_days_in_month(y, m)
+            cal = d == daysinmonth
+            if calendar_end:
+                calendar_end &= cal
+            if business_end:
+                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+        elif not calendar_start and not business_start:
+            break
+
+    if calendar_end:
+        return 'ce'
+    elif business_end:
+        return 'be'
+    elif calendar_start:
+        return 'cs'
+    elif business_start:
+        return 'bs'
+    else:
+        return None
+
+
 cdef inline bint _is_multiple(int64_t us, int64_t mult):
     return us % mult == 0
 
@@ -475,52 +519,8 @@ cdef class _FrequencyInferer(object):
     def rep_stamp(self):
         return Timestamp(self.values[0])
 
-    cdef month_position_check(self):
-        # TODO: cythonize this, very slow
-        cdef:
-            int32_t daysinmonth, y, m, d
-            bint calendar_end = True
-            bint business_end = True
-            bint calendar_start = True
-            bint business_start = True
-            bint cal
-            int32_t[:] years
-            int32_t[:] months
-            int32_t[:] days
-
-        fields = self.fields
-        years = fields['Y']
-        months = fields['M']
-        days = fields['D']
-        weekdays = self.index.dayofweek
-
-        for y, m, d, wd in zip(years, months, days, weekdays):
-
-            if calendar_start:
-                calendar_start &= d == 1
-            if business_start:
-                business_start &= d == 1 or (d <= 3 and wd == 0)
-
-            if calendar_end or business_end:
-                daysinmonth = get_days_in_month(y, m)
-                cal = d == daysinmonth
-                if calendar_end:
-                    calendar_end &= cal
-                if business_end:
-                    business_end &= cal or (daysinmonth - d < 3 and wd == 4)
-            elif not calendar_start and not business_start:
-                break
-
-        if calendar_end:
-            return 'ce'
-        elif business_end:
-            return 'be'
-        elif calendar_start:
-            return 'cs'
-        elif business_start:
-            return 'bs'
-        else:
-            return None
+    cdef object month_position_check(self):
+        return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
     def mdiffs(self):

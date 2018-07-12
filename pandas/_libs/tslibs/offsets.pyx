@@ -334,8 +334,6 @@ class _BaseOffset(object):
             # other is not a DateOffset object
             return False
 
-        return self._params == other._params
-
     def __ne__(self, other):
         return not self == other
 
