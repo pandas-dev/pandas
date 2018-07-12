@@ -13,7 +13,7 @@ import pandas as pd
 from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
     _ensure_int64,
-    _ensure_object,
+    ensure_object,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -3235,7 +3235,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Case for non-unique axis
         else:
-            labels = _ensure_object(com._index_labels_to_array(labels))
+            labels = ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')

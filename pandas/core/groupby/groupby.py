@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64,
     _ensure_platform_int,
     _ensure_int64,
-    _ensure_object,
+    ensure_object,
     _ensure_categorical,
     _ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
@@ -2642,7 +2642,7 @@ class BaseGrouper(object):
                         result, (counts > 0).view(np.uint8))
                 except ValueError:
                     result = lib.row_bool_subset_object(
-                        _ensure_object(result),
+                        ensure_object(result),
                         (counts > 0).view(np.uint8))
             else:
                 result = result[counts > 0]

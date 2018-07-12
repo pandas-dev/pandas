@@ -65,7 +65,7 @@ _ensure_int32 = algos.ensure_int32
 _ensure_int16 = algos.ensure_int16
 _ensure_int8 = algos.ensure_int8
 _ensure_platform_int = algos.ensure_platform_int
-_ensure_object = algos.ensure_object
+ensure_object = algos.ensure_object
 
 
 def _ensure_categorical(arr):

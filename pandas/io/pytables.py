@@ -28,7 +28,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
-    _ensure_object,
+    ensure_object,
     _ensure_int64,
     _ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
@@ -4656,7 +4656,7 @@ def _convert_string_array(data, encoding, errors, itemsize=None):
 
     # create the sized dtype
     if itemsize is None:
-        ensured = _ensure_object(data.ravel())
+        ensured = ensure_object(data.ravel())
         itemsize = libwriters.max_len_string_array(ensured)
 
     data = np.asarray(data, dtype="S%d" % itemsize)
@@ -4688,7 +4688,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None,
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        itemsize = libwriters.max_len_string_array(_ensure_object(data))
+        itemsize = libwriters.max_len_string_array(ensure_object(data))
         if compat.PY3:
             dtype = "U{0}".format(itemsize)
         else:

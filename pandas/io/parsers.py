@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
-    is_integer, _ensure_object,
+    is_integer, ensure_object,
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
@@ -3005,7 +3005,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools.to_datetime(
-                    _ensure_object(strs),
+                    ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,

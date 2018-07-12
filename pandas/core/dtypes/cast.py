@@ -8,7 +8,7 @@ import warnings
 from pandas._libs import tslib, lib, tslibs
 from pandas._libs.tslibs import iNaT
 from pandas.compat import string_types, text_type, PY3
-from .common import (_ensure_object, is_bool, is_integer, is_float,
+from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
                      is_extension_type,
@@ -85,7 +85,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, string_types):
         if dtype == 'infer':
-            inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
+            inferred_type = lib.infer_dtype(ensure_object(result.ravel()))
             if inferred_type == 'boolean':
                 dtype = 'bool'
             elif inferred_type == 'integer':
@@ -948,7 +948,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         except Exception:
             return v.reshape(shape)
 
-    inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
+    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == 'date' and convert_dates:
         value = try_datetime(v)

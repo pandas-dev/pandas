@@ -24,7 +24,7 @@ from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     _ensure_int64,
-    _ensure_object,
+    ensure_object,
     _ensure_categorical,
     _ensure_platform_int,
     is_integer,
@@ -1872,7 +1872,7 @@ class Index(IndexOpsMixin, PandasObject):
     def is_all_dates(self):
         if self._data is None:
             return False
-        return is_datetime_array(_ensure_object(self.values))
+        return is_datetime_array(ensure_object(self.values))
 
     def __reduce__(self):
         d = dict(data=self._data)

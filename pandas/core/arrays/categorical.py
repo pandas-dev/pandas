@@ -18,7 +18,7 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     _ensure_int64,
-    _ensure_object,
+    ensure_object,
     _ensure_platform_int,
     is_dtype_equal,
     is_datetimelike,
@@ -2425,8 +2425,8 @@ def _get_codes_for_values(values, categories):
 
     from pandas.core.algorithms import _get_data_algo, _hashtables
     if not is_dtype_equal(values.dtype, categories.dtype):
-        values = _ensure_object(values)
-        categories = _ensure_object(categories)
+        values = ensure_object(values)
+        categories = ensure_object(categories)
 
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
     (_, _), cats = _get_data_algo(categories, _hashtables)

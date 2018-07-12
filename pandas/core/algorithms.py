@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
-    _ensure_platform_int, _ensure_object,
+    _ensure_platform_int, ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
@@ -73,7 +73,7 @@ def _ensure_data(values, dtype=None):
     # we check some simple dtypes first
     try:
         if is_object_dtype(dtype):
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
@@ -86,7 +86,7 @@ def _ensure_data(values, dtype=None):
         elif is_float_dtype(values) or is_float_dtype(dtype):
             return _ensure_float64(values), 'float64', 'float64'
         elif is_object_dtype(values) and dtype is None:
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
 
             # ignore the fact that we are casting to float
@@ -98,7 +98,7 @@ def _ensure_data(values, dtype=None):
     except (TypeError, ValueError):
         # if we are trying to coerce to a dtype
         # and it is incompat this will fall thru to here
-        return _ensure_object(values), 'object', 'object'
+        return ensure_object(values), 'object', 'object'
 
     # datetimelike
     if (needs_i8_conversion(values) or
@@ -135,7 +135,7 @@ def _ensure_data(values, dtype=None):
 
     # we have failed, return object
     values = np.asarray(values)
-    return _ensure_object(values), 'object', 'object'
+    return ensure_object(values), 'object', 'object'
 
 
 def _reconstruct_data(values, dtype, original):

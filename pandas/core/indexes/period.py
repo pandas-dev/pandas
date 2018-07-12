@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
-    _ensure_object)
+    ensure_object)
 from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
@@ -257,7 +257,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                             "floating point in construction")
 
         # anything else, likely an array of strings or periods
-        data = _ensure_object(data)
+        data = ensure_object(data)
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
         return cls._from_ordinals(data, name=name, freq=freq)
