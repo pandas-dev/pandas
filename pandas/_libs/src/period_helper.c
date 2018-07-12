@@ -54,7 +54,7 @@ npy_int64 unix_date_from_ymd(int year, int month, int day) {
     dts.year = year;
     dts.month = month;
     dts.day = day;
-    unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, &dts);
+    unix_date = pandas_datetimestruct_to_datetime(NPY_FR_D, &dts);
     return unix_date;
 }
 
@@ -151,7 +151,7 @@ static npy_int64 DtoB(pandas_datetimestruct *dts,
 static npy_int64 asfreq_DTtoA(npy_int64 ordinal, asfreq_info *af_info) {
     pandas_datetimestruct dts;
     ordinal = downsample_daytime(ordinal, af_info);
-    pandas_datetime_to_datetimestruct(ordinal, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts);
     if (dts.month > af_info->to_end) {
         return (npy_int64)(dts.year + 1 - 1970);
     } else {
@@ -163,7 +163,7 @@ static int DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year) {
     pandas_datetimestruct dts;
     int quarter;
 
-    pandas_datetime_to_datetimestruct(ordinal, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts);
     if (af_info->to_end != 12) {
         dts.month -= af_info->to_end;
         if (dts.month <= 0) {
@@ -192,7 +192,7 @@ static npy_int64 asfreq_DTtoM(npy_int64 ordinal, asfreq_info *af_info) {
 
     ordinal = downsample_daytime(ordinal, af_info);
 
-    pandas_datetime_to_datetimestruct(ordinal, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts);
     return (npy_int64)((dts.year - 1970) * 12 + dts.month - 1);
 }
 
@@ -205,7 +205,7 @@ static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back;
     pandas_datetimestruct dts;
     npy_int64 unix_date = downsample_daytime(ordinal, af_info);
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
 
     // This usage defines roll_back the opposite way from the others
     roll_back = 1 - af_info->is_end;
@@ -265,7 +265,7 @@ static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_WtoDT(ordinal, af_info);
 
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
     roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
@@ -305,7 +305,7 @@ static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_MtoDT(ordinal, af_info);
 
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
     roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
@@ -360,7 +360,7 @@ static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_QtoDT(ordinal, af_info);
 
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
     roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
@@ -417,7 +417,7 @@ static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
     pandas_datetimestruct dts;
     npy_int64 unix_date = asfreq_AtoDT(ordinal, af_info);
 
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
     roll_back = af_info->is_end;
     return DtoB(&dts, roll_back, unix_date);
 }
