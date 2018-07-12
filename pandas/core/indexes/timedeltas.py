@@ -17,6 +17,8 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
+from pandas.core.arrays import datetimelike as dtl
+
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -189,12 +191,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 freq_infer = True
                 freq = None
 
-        if periods is not None:
-            if is_float(periods):
-                periods = int(periods)
-            elif not is_integer(periods):
-                msg = 'periods must be a number, got {periods}'
-                raise TypeError(msg.format(periods=periods))
+        periods = dtl.validate_periods(periods)
 
         if data is None:
             if freq is None and com._any_none(periods, start, end):
@@ -219,22 +216,19 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         elif copy:
             data = np.array(data, copy=True)
 
+        subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
-        if verify_integrity and len(data) > 0:
+        if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
-                index = cls._simple_new(data, name=name)
-                cls._validate_frequency(index, freq)
-                index.freq = freq
-                return index
+                cls._validate_frequency(subarr, freq)
 
         if freq_infer:
-            index = cls._simple_new(data, name=name)
-            inferred = index.inferred_freq
+            inferred = subarr.inferred_freq
             if inferred:
-                index.freq = to_offset(inferred)
-            return index
+                subarr.freq = to_offset(inferred)
+            return subarr
 
-        return cls._simple_new(data, name=name, freq=freq)
+        return subarr
 
     @classmethod
     def _generate(cls, start, end, periods, name, freq, closed=None):

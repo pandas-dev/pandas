@@ -521,3 +521,15 @@ class DatetimeLikeArrayMixin(AttributesMixin):
 
 
 DatetimeLikeArrayMixin._add_comparison_methods()
+
+# -------------------------------------------------------------------
+# Shared Constructor Helpers
+
+def validate_periods(periods):
+    if periods is not None:
+        if lib.is_float(periods):
+            periods = int(periods)
+        elif not lib.is_integer(periods):
+            raise TypeError('periods must be a number, got {periods}'
+                            .format(periods=periods))
+    return periods

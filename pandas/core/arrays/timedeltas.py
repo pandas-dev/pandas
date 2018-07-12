@@ -21,6 +21,7 @@ from pandas.tseries.offsets import Tick, DateOffset
 from pandas.tseries.frequencies import to_offset
 
 from .datetimelike import DatetimeLikeArrayMixin
+from . import datetimelike as dtl
 
 
 def _to_m8(key):
@@ -130,12 +131,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                 freq != 'infer'):
             freq = to_offset(freq)
 
-        if periods is not None:
-            if lib.is_float(periods):
-                periods = int(periods)
-            elif not lib.is_integer(periods):
-                raise TypeError('`periods` must be a number, got {periods}'
-                                .format(periods=periods))
+        periods = dtl.validate_periods(periods)
 
         if values is None:
             if freq is None and com._any_none(periods, start, end):
