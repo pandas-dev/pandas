@@ -669,7 +669,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 raise ValueError(
                     "mixed datetimes and integers in passed array")
             else:
-                raise ValueError
+                raise TypeError
 
         if seen_datetime_offset and not utc_convert:
             # GH 17697
