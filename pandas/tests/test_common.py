@@ -2,6 +2,7 @@
 
 import pytest
 import os
+import warnings
 import collections
 from functools import partial
 
@@ -13,6 +14,14 @@ import pandas.core.common as com
 from pandas.core import ops
 from pandas.io.common import _get_handle
 import pandas.util.testing as tm
+
+
+def catch_to_csv_depr():
+    # Catching warnings because Series.to_csv has
+    # been deprecated. Remove this context when
+    # Series.to_csv has been aligned.
+
+    return warnings.catch_warnings(record=True)
 
 
 def test_mut_exclusive():
@@ -219,11 +228,12 @@ def test_standardize_mapping():
 def test_compression_size(obj, method, compression_only):
 
     with tm.ensure_clean() as filename:
-        getattr(obj, method)(filename, compression=compression_only)
-        compressed = os.path.getsize(filename)
-        getattr(obj, method)(filename, compression=None)
-        uncompressed = os.path.getsize(filename)
-        assert uncompressed > compressed
+        with catch_to_csv_depr():
+            getattr(obj, method)(filename, compression=compression_only)
+            compressed = os.path.getsize(filename)
+            getattr(obj, method)(filename, compression=None)
+            uncompressed = os.path.getsize(filename)
+            assert uncompressed > compressed
 
 
 @pytest.mark.parametrize('obj', [
@@ -236,16 +246,22 @@ def test_compression_size_fh(obj, method, compression_only):
 
     with tm.ensure_clean() as filename:
         f, _handles = _get_handle(filename, 'w', compression=compression_only)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
+
+        with catch_to_csv_depr():
+            with f:
+                getattr(obj, method)(f)
+                assert not f.closed
         assert f.closed
         compressed = os.path.getsize(filename)
+
     with tm.ensure_clean() as filename:
         f, _handles = _get_handle(filename, 'w', compression=None)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
+
+        with catch_to_csv_depr():
+            with f:
+                getattr(obj, method)(f)
+                assert not f.closed
+
         assert f.closed
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
