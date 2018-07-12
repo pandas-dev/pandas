@@ -412,7 +412,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         datetime.datetime objects as well).
     box : boolean, default True
 
-        - If True returns a DatetimeIndex or Index
+        - If True returns a DatetimeIndex or Index-like object
         - If False returns ndarray of values.
     format : string, default None
         strftime to parse time, eg "%d/%m/%Y", note that "%f" will parse

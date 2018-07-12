@@ -456,14 +456,15 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
            is encountered
 
     Also returns a pytz.FixedOffset if an array of strings with the same
-    timezone offset if passed and utc=True is not passed
+    timezone offset is passed and utc=True is not passed. Otherwise, None
+    is returned
 
     Handles datetime.date, datetime.datetime, np.datetime64 objects, numeric,
     strings
 
     Returns
     -------
-    (ndarray, timezone offset)
+    tuple (ndarray, timezone offset)
     """
     cdef:
         Py_ssize_t i, n = len(values)
@@ -481,18 +482,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint is_coerce = errors=='coerce'
         _TSObject _ts
         int out_local=0, out_tzoffset=0
-        # Can't directly create a ndarray[int] out_local,
-        # since most np.array constructors expect a long dtype
-        # while _string_to_dts expects purely int
-        # maybe something I am missing?
-        ndarray[int64_t] out_local_values
         ndarray[int64_t] out_tzoffset_vals
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
     try:
-        out_local_values = np.empty(n, dtype=np.int64)
         out_tzoffset_vals = np.empty(n, dtype=np.int64)
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
@@ -630,7 +625,6 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     # No error raised by string_to_dts, pick back up
                     # where we left off
                     out_tzoffset_vals[i] = out_tzoffset
-                    out_local_values[i] = out_local
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
                         seen_datetime_offset = 1
@@ -685,12 +679,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             #    object path where an array of datetimes
             #    (with individual datutil.tzoffsets) are returned
 
-            # Faster to compare integers than to compare objects
+            # Faster to compare integers than to compare pytz objects
             is_same_offsets = (out_tzoffset_vals[0] == out_tzoffset_vals).all()
             if not is_same_offsets:
                 raise TypeError
             else:
-                tz_out = pytz.FixedOffset(out_tzoffset_vals[0])
+                tz_out = pytz.FixedOffset(out_tzoffset)
 
         return result, tz_out
     except OutOfBoundsDatetime:

@@ -580,7 +580,7 @@ class TestToDatetime(object):
         with tm.assert_raises_regex(ValueError, msg):
             pd.to_datetime(date, format=format)
 
-    def test_ts_strings_with_same_offset(self):
+    def test_iso_8601_strings_with_same_offset(self):
         # GH 17697, 11736
         ts_str = "2015-11-18 15:30:00+05:30"
         result = to_datetime(ts_str)
@@ -594,7 +594,7 @@ class TestToDatetime(object):
         result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
-    def test_ts_strings_with_different_offsets(self):
+    def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736
         ts_strings = ["2015-11-18 15:30:00+05:30",
                       "2015-11-18 16:30:00+06:30"]

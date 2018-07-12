@@ -78,9 +78,8 @@ class TestArrayToDatetime(object):
         # All of these datetime strings with offsets are equivalent
         # to the same datetime after the timezone offset is added
 
-        # TODO: Appears that parsing non-ISO strings adjust the date to UTC
-        # but don't return the offset. Not sure if this is the intended
-        # behavior of non-iso strings in np_datetime_strings
+        # Non-ISO 8601 datetime strings will not return a timezone offset
+        # as a limitation of the C parser
         arr = np.array(['01-01-2013 00:00:00'], dtype=object)
         expected = tslib.array_to_datetime(arr)[0]
 
