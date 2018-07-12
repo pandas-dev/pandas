@@ -633,18 +633,16 @@ class Categorical(ExtensionArray, PandasObject):
         """
         codes = np.asarray(codes)
         if not is_integer_dtype(codes):
-            err = True
+            msg = "codes need to be array-like integers"
             if is_float_dtype(codes):
                 icodes = codes.astype('i8')
                 if (icodes == codes).all():
-                    err = False
+                    msg = None
                     codes = icodes
-                    warn("float codes will be disallowed in the future",
-                         FutureWarning, stacklevel=2)
-                else:
-                    err = True
-            if err:
-                raise ValueError("codes need to be array-like integers")
+                    warn(("float codes will be disallowed in the future and "
+                          "raise a ValueError"), FutureWarning, stacklevel=2)
+            if msg:
+                raise ValueError(msg)
 
         try:
             codes = coerce_indexer_dtype(codes, categories)
