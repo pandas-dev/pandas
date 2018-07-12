@@ -68,7 +68,7 @@ ensure_platform_int = algos.ensure_platform_int
 ensure_object = algos.ensure_object
 
 
-def _ensure_categorical(arr):
+def ensure_categorical(arr):
     """
     Ensure that an array-like object is a Categorical (if not already).
 

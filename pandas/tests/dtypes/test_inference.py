@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_scipy_sparse,
     ensure_int32,
-    _ensure_categorical)
+    ensure_categorical)
 from pandas.util import testing as tm
 import pandas.util._test_decorators as td
 
@@ -1227,9 +1227,9 @@ def test_ensure_int32():
 
 def test_ensure_categorical():
     values = np.arange(10, dtype=np.int32)
-    result = _ensure_categorical(values)
+    result = ensure_categorical(values)
     assert (result.dtype == 'category')
 
     values = Categorical(values)
-    result = _ensure_categorical(values)
+    result = ensure_categorical(values)
     tm.assert_categorical_equal(result, values)

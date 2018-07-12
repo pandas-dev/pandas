@@ -25,7 +25,7 @@ from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_object,
-    _ensure_categorical,
+    ensure_categorical,
     ensure_platform_int,
     is_integer,
     is_float,
@@ -3436,7 +3436,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .multi import MultiIndex
         if isinstance(values, MultiIndex):
             values = values.values
-        values = _ensure_categorical(values)
+        values = ensure_categorical(values)
         result = values._reverse_indexer()
 
         # map to the label
