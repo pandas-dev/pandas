@@ -128,8 +128,7 @@ class TestiLoc(Base):
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
-        # Test for issue 21867. Assert that iloc does not modify index array if
-        # the array contains negative integers
+        # GH 21867.
         array_with_neg_numbers = np.array([1, 2, -1])
         array_copy = array_with_neg_numbers.copy()
         df = pd.DataFrame({
@@ -138,10 +137,10 @@ class TestiLoc(Base):
             'C': [106, 107, 108]},
             index=[1, 2, 3])
         df.iloc[array_with_neg_numbers]
-        assert np.all(array_with_neg_numbers == array_copy)
+        tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
 
         df.iloc[:, array_with_neg_numbers]
-        assert np.all(array_with_neg_numbers == array_copy)
+        tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
 
 
     def test_iloc_getitem_list_int(self):
