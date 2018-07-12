@@ -32,7 +32,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.tseries.frequencies import to_offset, DateOffset
 from pandas.tseries.offsets import Tick
 
-from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays import datetimelike as dtl
 
 
 def _to_m8(key, tz=None):
@@ -91,7 +91,7 @@ def _dt_array_cmp(opname, cls):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        meth = getattr(DatetimeLikeArrayMixin, opname)
+        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
             if isinstance(other, datetime):
@@ -135,7 +135,7 @@ def _dt_array_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class DatetimeArrayMixin(DatetimeLikeArrayMixin):
+class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
