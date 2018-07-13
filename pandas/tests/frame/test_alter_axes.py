@@ -1085,7 +1085,8 @@ class TestDataFrameAlterAxes(TestData):
         # test that dropping of a level in Series index works
         expected_ser_no_level_b_in_index = ser.reset_index('b', drop=True)
         actual_ser_no_level_b_in_index = ser.droplevel('b')
-        assert_series_equal(expected_ser_no_level_b_in_index, actual_ser_no_level_b_in_index)
+        assert_series_equal(expected_ser_no_level_b_in_index,
+                            actual_ser_no_level_b_in_index)
 
 
 class TestIntervalIndex(object):
