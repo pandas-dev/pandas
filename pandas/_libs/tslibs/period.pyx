@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 from cpython cimport (
     PyUnicode_Check,
@@ -24,12 +24,11 @@ PyDateTime_IMPORT
 
 from np_datetime cimport (pandas_datetimestruct, dtstruct_to_dt64,
                           dt64_to_dtstruct,
-                          PANDAS_FR_D,
                           pandas_datetime_to_datetimestruct,
-                          PANDAS_DATETIMEUNIT)
+                          NPY_DATETIMEUNIT, NPY_FR_D)
 
 cdef extern from "../src/datetime/np_datetime.h":
-    int64_t pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
+    int64_t pandas_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                               pandas_datetimestruct *d
                                               ) nogil
 
@@ -37,7 +36,7 @@ cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
 from timestamps import Timestamp
-from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
+from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 cimport ccalendar
@@ -188,7 +187,7 @@ cdef int64_t get_period_ordinal(pandas_datetimestruct *dts, int freq) nogil:
     elif freq == FR_MTH:
         return (dts.year - 1970) * 12 + dts.month - 1
 
-    unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, dts)
+    unix_date = pandas_datetimestruct_to_datetime(NPY_FR_D, dts)
 
     if freq >= FR_SEC:
         seconds = unix_date * 86400 + dts.hour * 3600 + dts.min * 60 + dts.sec
@@ -315,7 +314,7 @@ cdef void date_info_from_days_and_time(pandas_datetimestruct *dts,
     # abstime >= 0.0 and abstime <= 86400
 
     # Calculate the date
-    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, dts)
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, dts)
 
     # Calculate the time
     inttime = <int>abstime
@@ -960,10 +959,7 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
+        pos = trans.searchsorted(stamps, side='right') - 1
 
         # statictzinfo
         if typ not in ['pytz', 'dateutil']:

@@ -76,7 +76,7 @@ from pandas.util._decorators import (
     Appender, deprecate, deprecate_kwarg, Substitution)
 from pandas.util._validators import validate_bool_kwarg
 
-from pandas._libs import index as libindex, tslib as libts, lib, iNaT
+from pandas._libs import index as libindex, tslibs, lib, iNaT
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
 from pandas.core.tools.datetimes import to_datetime
@@ -165,6 +165,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
+
+    # Override cache_readonly bc Series is mutable
+    hasnans = property(base.IndexOpsMixin.hasnans.func,
+                       doc=base.IndexOpsMixin.hasnans.__doc__)
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -380,7 +384,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     # need to set here because we changed the index
                     if fastpath:
                         self._data.set_axis(axis, labels)
-                except (libts.OutOfBoundsDatetime, ValueError):
+                except (tslibs.OutOfBoundsDatetime, ValueError):
                     # labels may exceeds datetime bounds,
                     # or not be a DatetimeIndex
                     pass
