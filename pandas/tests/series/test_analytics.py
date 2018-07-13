@@ -956,94 +956,56 @@ class TestSeriesAnalytics(TestData):
                                     check_dtype=False)
 
     @pytest.mark.parametrize(
-        "tc1, tc2",
+        'keep, expected',
         [
-            (
-                Series([1, 2, 3, 3], dtype=np.dtype('int_')),
-                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('int_'))
-            ),
-            (
-                Series([1, 2, 3, 3], dtype=np.dtype('uint')),
-                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('uint'))
-            ),
-            (
-                Series([1, 2, 3, 3], dtype=np.dtype('float_')),
-                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('float_'))
-            ),
-            (
-                Series([1, 2, 3, 3], dtype=np.dtype('unicode_')),
-                Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype('unicode_'))
-            )
-        ]
-    )
-    def test_drop_duplicates_non_bool(self, tc1, tc2):
-        # Test case 1
-        expected = Series([False, False, False, True])
-        assert_series_equal(tc1.duplicated(), expected)
-        assert_series_equal(tc1.drop_duplicates(), tc1[~expected])
-        sc = tc1.copy()
-        sc.drop_duplicates(inplace=True)
-        assert_series_equal(sc, tc1[~expected])
+            ('first', Series([False, False, False, False, True, True, False])),
+            ('last', Series([False, True, True, False, False, False, False])),
+            (False, Series([False, True, True, False, True, True, False]))
+        ])
+    @pytest.mark.parametrize('npdtype', ['int_', 'uint', 'float_', 'unicode_'])
+    def test_drop_duplicates_non_bool(self, npdtype, keep, expected):
+        tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(npdtype))
 
-        expected = Series([False, False, True, False])
-        assert_series_equal(tc1.duplicated(keep='last'), expected)
-        assert_series_equal(tc1.drop_duplicates(keep='last'), tc1[~expected])
-        sc = tc1.copy()
-        sc.drop_duplicates(keep='last', inplace=True)
-        assert_series_equal(sc, tc1[~expected])
+        assert_series_equal(tc.duplicated(keep=keep), expected)
+        assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
+        sc = tc.copy()
+        sc.drop_duplicates(keep=keep, inplace=True)
+        assert_series_equal(sc, tc[~expected])
 
-        expected = Series([False, False, True, True])
-        assert_series_equal(tc1.duplicated(keep=False), expected)
-        assert_series_equal(tc1.drop_duplicates(keep=False), tc1[~expected])
-        sc = tc1.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
-        assert_series_equal(sc, tc1[~expected])
-
-        # Test case 2
-        expected = Series([False, False, False, False, True, True, False])
-        assert_series_equal(tc2.duplicated(), expected)
-        assert_series_equal(tc2.drop_duplicates(), tc2[~expected])
-        sc = tc2.copy()
-        sc.drop_duplicates(inplace=True)
-        assert_series_equal(sc, tc2[~expected])
-
-        expected = Series([False, True, True, False, False, False, False])
-        assert_series_equal(tc2.duplicated(keep='last'), expected)
-        assert_series_equal(tc2.drop_duplicates(keep='last'), tc2[~expected])
-        sc = tc2.copy()
-        sc.drop_duplicates(keep='last', inplace=True)
-        assert_series_equal(sc, tc2[~expected])
-
-        expected = Series([False, True, True, False, True, True, False])
-        assert_series_equal(tc2.duplicated(keep=False), expected)
-        assert_series_equal(tc2.drop_duplicates(keep=False), tc2[~expected])
-        sc = tc2.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
-        assert_series_equal(sc, tc2[~expected])
-
-    def test_drop_duplicates_bool(self):
+    @pytest.mark.parametrize('keep, expected',
+                             [('first', Series([False, False, True, True])),
+                              ('last', Series([True, True, False, False])),
+                              (False, Series([True, True, True, True]))])
+    def test_drop_duplicates_bool(self, keep, expected):
         tc = Series([True, False, True, False])
 
-        expected = Series([False, False, True, True])
-        assert_series_equal(tc.duplicated(), expected)
-        assert_series_equal(tc.drop_duplicates(), tc[~expected])
+        assert_series_equal(tc.duplicated(keep=keep), expected)
+        assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
         sc = tc.copy()
-        sc.drop_duplicates(inplace=True)
+        sc.drop_duplicates(keep=keep, inplace=True)
         assert_series_equal(sc, tc[~expected])
 
-        expected = Series([True, True, False, False])
-        assert_series_equal(tc.duplicated(keep='last'), expected)
-        assert_series_equal(tc.drop_duplicates(keep='last'), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(keep='last', inplace=True)
-        assert_series_equal(sc, tc[~expected])
+    @pytest.mark.parametrize('keep, expected', [
+        ('first', Series([False, False, True, False, True], name='name')),
+        ('last', Series([True, True, False, False, False], name='name')),
+        (False, Series([True, True, True, False, True], name='name'))
+    ])
+    def test_duplicated_keep(self, keep, expected):
+        s = Series(['a', 'b', 'b', 'c', 'a'], name='name')
 
-        expected = Series([True, True, True, True])
-        assert_series_equal(tc.duplicated(keep=False), expected)
-        assert_series_equal(tc.drop_duplicates(keep=False), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(keep=False, inplace=True)
-        assert_series_equal(sc, tc[~expected])
+        result = s.duplicated(keep=keep)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('keep, expected', [
+        ('first', Series([False, False, True, False, True])),
+        ('last', Series([True, True, False, False, False])),
+        (False, Series([True, True, True, False, True]))
+    ])
+    def test_duplicated_nan_none(self, keep, expected):
+        s = Series([np.nan, 3, 3, None, np.nan], dtype=object)
+
+        result = s.duplicated(keep=keep)
+        tm.assert_series_equal(result, expected)
 
     def test_clip(self):
         val = self.ts.median()
@@ -1416,7 +1378,8 @@ class TestSeriesAnalytics(TestData):
         N = 1000
         arr = np.random.randn(N)
         ser = Series(arr)
-        assert np.ptp(ser) == np.ptp(arr)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            assert np.ptp(ser) == np.ptp(arr)
 
         # GH11163
         s = Series([3, 5, np.nan, -3, 10])
