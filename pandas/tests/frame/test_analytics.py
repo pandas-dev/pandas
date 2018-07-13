@@ -12,7 +12,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange, PY35
+from pandas.compat import lrange, PY35, string_types
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
                     _np_version_under1p12,
@@ -1545,6 +1545,77 @@ class TestDataFrameAnalytics(TestData):
     # ----------------------------------------------------------------------
     # Row deduplication
 
+    @pytest.mark.parametrize('subset', ['a', ['a'], ['a', 'B']])
+    def test_duplicated_with_misspelled_column_name(self, subset):
+        # GH 19730
+        df = pd.DataFrame({'A': [0, 0, 1],
+                           'B': [0, 0, 1],
+                           'C': [0, 0, 1]})
+
+        with pytest.raises(KeyError):
+            df.duplicated(subset)
+
+        with pytest.raises(KeyError):
+            df.drop_duplicates(subset)
+
+    @pytest.mark.slow
+    def test_duplicated_do_not_fail_on_wide_dataframes(self):
+        # gh-21524
+        # Given the wide dataframe with a lot of columns
+        # with different (important!) values
+        data = {'col_{0:02d}'.format(i): np.random.randint(0, 1000, 30000)
+                for i in range(100)}
+        df = pd.DataFrame(data).T
+        result = df.duplicated()
+
+        # Then duplicates produce the bool pd.Series as a result
+        # and don't fail during calculation.
+        # Actual values doesn't matter here, though usually
+        # it's all False in this case
+        assert isinstance(result, pd.Series)
+        assert result.dtype == np.bool
+
+    @pytest.mark.parametrize('keep, expected', [
+        ('first', Series([False, False, True, False, True])),
+        ('last', Series([True, True, False, False, False])),
+        (False, Series([True, True, True, False, True]))
+    ])
+    def test_duplicated_keep(self, keep, expected):
+        df = DataFrame({'A': [0, 1, 1, 2, 0], 'B': ['a', 'b', 'b', 'c', 'a']})
+
+        result = df.duplicated(keep=keep)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(reason="GH21720; nan/None falsely considered equal")
+    @pytest.mark.parametrize('keep, expected', [
+        ('first', Series([False, False, True, False, True])),
+        ('last', Series([True, True, False, False, False])),
+        (False, Series([True, True, True, False, True]))
+    ])
+    def test_duplicated_nan_none(self, keep, expected):
+        df = DataFrame({'C': [np.nan, 3, 3, None, np.nan]}, dtype=object)
+
+        result = df.duplicated(keep=keep)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('keep', ['first', 'last', False])
+    @pytest.mark.parametrize('subset', [None, ['A', 'B'], 'A'])
+    def test_duplicated_subset(self, subset, keep):
+        df = DataFrame({'A': [0, 1, 1, 2, 0],
+                        'B': ['a', 'b', 'b', 'c', 'a'],
+                        'C': [np.nan, 3, 3, None, np.nan]})
+
+        if subset is None:
+            subset = list(df.columns)
+        elif isinstance(subset, string_types):
+            # need to have a DataFrame, not a Series
+            # -> select columns with singleton list, not string
+            subset = [subset]
+
+        expected = df[subset].duplicated(keep=keep)
+        result = df.duplicated(keep=keep, subset=subset)
+        tm.assert_series_equal(result, expected)
+
     def test_drop_duplicates(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
                                 'foo', 'bar', 'bar', 'foo'],
@@ -1639,36 +1710,6 @@ class TestDataFrameAnalytics(TestData):
 
         for keep in ['first', 'last', False]:
             assert df.duplicated(keep=keep).sum() == 0
-
-    @pytest.mark.parametrize('subset', ['a', ['a'], ['a', 'B']])
-    def test_duplicated_with_misspelled_column_name(self, subset):
-        # GH 19730
-        df = pd.DataFrame({'A': [0, 0, 1],
-                           'B': [0, 0, 1],
-                           'C': [0, 0, 1]})
-
-        with pytest.raises(KeyError):
-            df.duplicated(subset)
-
-        with pytest.raises(KeyError):
-            df.drop_duplicates(subset)
-
-    @pytest.mark.slow
-    def test_duplicated_do_not_fail_on_wide_dataframes(self):
-        # gh-21524
-        # Given the wide dataframe with a lot of columns
-        # with different (important!) values
-        data = {'col_{0:02d}'.format(i): np.random.randint(0, 1000, 30000)
-                for i in range(100)}
-        df = pd.DataFrame(data).T
-        result = df.duplicated()
-
-        # Then duplicates produce the bool pd.Series as a result
-        # and don't fail during calculation.
-        # Actual values doesn't matter here, though usually
-        # it's all False in this case
-        assert isinstance(result, pd.Series)
-        assert result.dtype == np.bool
 
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836
