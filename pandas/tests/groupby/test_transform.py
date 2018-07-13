@@ -793,3 +793,12 @@ def test_transform_with_all_nan():
     result = grouped['values'].transform('sum')
     expected = Series([np.nan, np.nan, np.nan], name='values')
     tm.assert_series_equal(result, expected)
+
+    # Make sure the standard case still works too
+    df = DataFrame({'groups': [np.nan, 'A', 'A', 'B', 'B'],
+                    'values': range(5)})
+
+    grouped = df.groupby('groups')
+    result = grouped['values'].transform('sum')
+    expected = Series([np.nan, 3, 3, 7, 7], name='values')
+    tm.assert_series_equal(result, expected)
