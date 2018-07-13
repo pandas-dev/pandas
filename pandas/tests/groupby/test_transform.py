@@ -784,21 +784,14 @@ def test_any_all_np_func(func):
     tm.assert_series_equal(res, exp)
 
 
-def test_transform_with_all_nan():
+@pytest.mark.parametrize("input_df, expected", [
+    (DataFrame({'groups': [np.nan, np.nan, np.nan], 'values': [1, 2, 3]}),
+     Series([np.nan, np.nan, np.nan], name='values')),
+    (DataFrame({'groups': [np.nan, 'A', 'A', 'B', 'B'], 'values': range(5)}),
+     Series([np.nan, 3, 3, 7, 7], name='values'))
+])
+def test_transform_with_all_nan(input_df, expected):
     # GH 21624
-    df = DataFrame({'groups': [np.nan, np.nan, np.nan],
-                    'values': [1, 2, 3]})
-
-    grouped = df.groupby('groups')
+    grouped = input_df.groupby('groups')
     result = grouped['values'].transform('sum')
-    expected = Series([np.nan, np.nan, np.nan], name='values')
-    tm.assert_series_equal(result, expected)
-
-    # Make sure the standard case still works too
-    df = DataFrame({'groups': [np.nan, 'A', 'A', 'B', 'B'],
-                    'values': range(5)})
-
-    grouped = df.groupby('groups')
-    result = grouped['values'].transform('sum')
-    expected = Series([np.nan, 3, 3, 7, 7], name='values')
     tm.assert_series_equal(result, expected)
