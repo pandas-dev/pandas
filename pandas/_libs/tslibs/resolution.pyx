@@ -15,12 +15,10 @@ from pandas._libs.khash cimport (khiter_t,
                                  kh_init_int64, kh_int64_t,
                                  kh_resize_int64, kh_get_int64)
 
-from cpython.datetime cimport datetime
-
 from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
 from timezones cimport (is_utc, is_tzlocal,
-                        maybe_get_tz, get_dst_info, get_utcoffset)
+                        maybe_get_tz, get_dst_info)
 from fields import build_field_sarray
 from conversion import tz_convert
 from conversion cimport tz_convert_utc_to_tzlocal
@@ -29,8 +27,6 @@ from ccalendar cimport get_days_in_month
 from timestamps import Timestamp
 
 from pandas._libs.properties import cache_readonly
-
-from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 
 # ----------------------------------------------------------------------
 # Constants
@@ -103,10 +99,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
+        pos = trans.searchsorted(stamps, side='right') - 1
 
         # statictzinfo
         if typ not in ['pytz', 'dateutil']:
@@ -579,6 +572,10 @@ cdef class _FrequencyInferer(object):
         if len(self.ydiffs) > 1:
             return None
 
+        # lazy import to prevent circularity
+        # TODO: Avoid non-cython dependency
+        from pandas.core.algorithms import unique
+
         if len(unique(self.fields['M'])) > 1:
             return None
 
@@ -622,6 +619,10 @@ cdef class _FrequencyInferer(object):
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
         #         return None
+
+        # lazy import to prevent circularity
+        # TODO: Avoid non-cython dependency
+        from pandas.core.algorithms import unique
 
         weekdays = unique(self.index.weekday)
         if len(weekdays) > 1:
