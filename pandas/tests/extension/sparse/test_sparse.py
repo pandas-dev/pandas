@@ -74,8 +74,7 @@ class TestInterface(base.BaseInterfaceTests):
 
 
 class TestConstructors(base.BaseConstructorsTests):
-    def test_series_constructor(self, data):
-        pytest.skip("TODO: SparseBlock")
+    pass
 
 
 class TestReshaping(base.BaseReshapingTests):

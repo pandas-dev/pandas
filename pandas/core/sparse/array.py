@@ -298,6 +298,16 @@ class SparseArray(PandasObject, ExtensionArray):
         sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
         return type(self)(new_values, sp_index, fill_value=self.fill_value)
 
+    def copy(self, deep=False):
+        if deep:
+            values = self.sp_values.copy()
+            index = self.sp_index.copy()
+        else:
+            values = self.sp_values
+            index = self.sp_index
+
+        return type(self)(values, sp_index=index)
+
     @classmethod
     def _concat_same_type(cls, to_concat):
         # TODO: validate same fill_type
