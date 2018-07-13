@@ -436,8 +436,8 @@ def isin(comps, values):
         values, _, _ = _ensure_data(values, dtype=dtype_comps)
     else:
         values, dtype_values, _ = _ensure_data(values)
-        comps_types = set([type(v) for v in comps])
-        values_types = set([type(v) for v in values])
+        comps_types = set(type(v) for v in comps)
+        values_types = set(type(v) for v in values)
         if len(comps_types) == len(values_types) == 1:
             comps_types = comps_types.pop()
             values_types = values_types.pop()
