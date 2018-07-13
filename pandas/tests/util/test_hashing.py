@@ -13,17 +13,17 @@ import pandas.util.testing as tm
 
 class TestHashing(object):
 
-    def setup_method(self, method):
-        self.df = DataFrame(
-            {'i32': np.array([1, 2, 3] * 3, dtype='int32'),
-             'f32': np.array([None, 2.5, 3.5] * 3, dtype='float32'),
-             'cat': Series(['a', 'b', 'c'] * 3).astype('category'),
-             'obj': Series(['d', 'e', 'f'] * 3),
-             'bool': np.array([True, False, True] * 3),
-             'dt': Series(pd.date_range('20130101', periods=9)),
-             'dt_tz': Series(pd.date_range('20130101', periods=9,
-                                           tz='US/Eastern')),
-             'td': Series(pd.timedelta_range('2000', periods=9))})
+    @pytest.fixture(params=[
+        Series([1, 2, 3] * 3, dtype='int32'),
+        Series([None, 2.5, 3.5] * 3, dtype='float32'),
+        Series(['a', 'b', 'c'] * 3, dtype='category'),
+        Series(['d', 'e', 'f'] * 3),
+        Series([True, False, True] * 3),
+        Series(pd.date_range('20130101', periods=9)),
+        Series(pd.date_range('20130101', periods=9, tz='US/Eastern')),
+        Series(pd.timedelta_range('2000', periods=9))])
+    def series(self, request):
+        return request.param
 
     def test_consistency(self):
         # check that our hash doesn't change because of a mistake
@@ -34,10 +34,9 @@ class TestHashing(object):
                           index=['foo', 'bar', 'baz'])
         tm.assert_series_equal(result, expected)
 
-    def test_hash_array(self):
-        for name, s in self.df.iteritems():
-            a = s.values
-            tm.assert_numpy_array_equal(hash_array(a), hash_array(a))
+    def test_hash_array(self, series):
+        a = series.values
+        tm.assert_numpy_array_equal(hash_array(a), hash_array(a))
 
     def test_hash_array_mixed(self):
         result1 = hash_array(np.array([3, 4, 'All']))
@@ -46,10 +45,11 @@ class TestHashing(object):
         tm.assert_numpy_array_equal(result1, result2)
         tm.assert_numpy_array_equal(result1, result3)
 
-    def test_hash_array_errors(self):
-
-        for val in [5, 'foo', pd.Timestamp('20130101')]:
-            pytest.raises(TypeError, hash_array, val)
+    @pytest.mark.parametrize('val', [5, 'foo', pd.Timestamp('20130101')])
+    def test_hash_array_errors(self, val):
+        msg = 'must pass a ndarray-like'
+        with tm.assert_raises_regex(TypeError, msg):
+            hash_array(val)
 
     def check_equal(self, obj, **kwargs):
         a = hash_pandas_object(obj, **kwargs)
@@ -80,31 +80,33 @@ class TestHashing(object):
         result = hash_tuples(tups[0])
         assert result == expected[0]
 
-    def test_hash_tuple(self):
+    @pytest.mark.parametrize('tup', [
+        (1, 'one'), (1, np.nan), (1.0, pd.NaT, 'A'),
+        ('A', pd.Timestamp("2012-01-01"))])
+    def test_hash_tuple(self, tup):
         # test equivalence between hash_tuples and hash_tuple
-        for tup in [(1, 'one'), (1, np.nan), (1.0, pd.NaT, 'A'),
-                    ('A', pd.Timestamp("2012-01-01"))]:
-            result = hash_tuple(tup)
-            expected = hash_tuples([tup])[0]
-            assert result == expected
+        result = hash_tuple(tup)
+        expected = hash_tuples([tup])[0]
+        assert result == expected
 
-    def test_hash_scalar(self):
-        for val in [1, 1.4, 'A', b'A', u'A', pd.Timestamp("2012-01-01"),
-                    pd.Timestamp("2012-01-01", tz='Europe/Brussels'),
-                    datetime.datetime(2012, 1, 1),
-                    pd.Timestamp("2012-01-01", tz='EST').to_pydatetime(),
-                    pd.Timedelta('1 days'), datetime.timedelta(1),
-                    pd.Period('2012-01-01', freq='D'), pd.Interval(0, 1),
-                    np.nan, pd.NaT, None]:
-            result = _hash_scalar(val)
-            expected = hash_array(np.array([val], dtype=object),
-                                  categorize=True)
-            assert result[0] == expected[0]
+    @pytest.mark.parametrize('val', [
+        1, 1.4, 'A', b'A', u'A', pd.Timestamp("2012-01-01"),
+        pd.Timestamp("2012-01-01", tz='Europe/Brussels'),
+        datetime.datetime(2012, 1, 1),
+        pd.Timestamp("2012-01-01", tz='EST').to_pydatetime(),
+        pd.Timedelta('1 days'), datetime.timedelta(1),
+        pd.Period('2012-01-01', freq='D'), pd.Interval(0, 1),
+        np.nan, pd.NaT, None])
+    def test_hash_scalar(self, val):
+        result = _hash_scalar(val)
+        expected = hash_array(np.array([val], dtype=object), categorize=True)
+        assert result[0] == expected[0]
 
-    def test_hash_tuples_err(self):
-
-        for val in [5, 'foo', pd.Timestamp('20130101')]:
-            pytest.raises(TypeError, hash_tuples, val)
+    @pytest.mark.parametrize('val', [5, 'foo', pd.Timestamp('20130101')])
+    def test_hash_tuples_err(self, val):
+        msg = 'must be convertible to a list-of-tuples'
+        with tm.assert_raises_regex(TypeError, msg):
+            hash_tuples(val)
 
     def test_multiindex_unique(self):
         mi = MultiIndex.from_tuples([(118, 472), (236, 118),
@@ -172,36 +174,35 @@ class TestHashing(object):
         self.check_equal(obj)
         self.check_not_equal_with_index(obj)
 
-    def test_hash_pandas_object2(self):
-        for name, s in self.df.iteritems():
-            self.check_equal(s)
-            self.check_not_equal_with_index(s)
+    def test_hash_pandas_object2(self, series):
+        self.check_equal(series)
+        self.check_not_equal_with_index(series)
 
-    def test_hash_pandas_empty_object(self):
-        for obj in [Series([], dtype='float64'),
-                    Series([], dtype='object'),
-                    Index([])]:
-            self.check_equal(obj)
+    @pytest.mark.parametrize('obj', [
+        Series([], dtype='float64'), Series([], dtype='object'), Index([])])
+    def test_hash_pandas_empty_object(self, obj):
+        # these are by-definition the same with
+        # or w/o the index as the data is empty
+        self.check_equal(obj)
 
-            # these are by-definition the same with
-            # or w/o the index as the data is empty
-
-    def test_categorical_consistency(self):
+    @pytest.mark.parametrize('s1', [
+        Series(['a', 'b', 'c', 'd']),
+        Series([1000, 2000, 3000, 4000]),
+        Series(pd.date_range(0, periods=4))])
+    @pytest.mark.parametrize('categorize', [True, False])
+    def test_categorical_consistency(self, s1, categorize):
         # GH15143
         # Check that categoricals hash consistent with their values, not codes
         # This should work for categoricals of any dtype
-        for s1 in [Series(['a', 'b', 'c', 'd']),
-                   Series([1000, 2000, 3000, 4000]),
-                   Series(pd.date_range(0, periods=4))]:
-            s2 = s1.astype('category').cat.set_categories(s1)
-            s3 = s2.cat.set_categories(list(reversed(s1)))
-            for categorize in [True, False]:
-                # These should all hash identically
-                h1 = hash_pandas_object(s1, categorize=categorize)
-                h2 = hash_pandas_object(s2, categorize=categorize)
-                h3 = hash_pandas_object(s3, categorize=categorize)
-                tm.assert_series_equal(h1, h2)
-                tm.assert_series_equal(h1, h3)
+        s2 = s1.astype('category').cat.set_categories(s1)
+        s3 = s2.cat.set_categories(list(reversed(s1)))
+
+        # These should all hash identically
+        h1 = hash_pandas_object(s1, categorize=categorize)
+        h2 = hash_pandas_object(s2, categorize=categorize)
+        h3 = hash_pandas_object(s3, categorize=categorize)
+        tm.assert_series_equal(h1, h2)
+        tm.assert_series_equal(h1, h3)
 
     def test_categorical_with_nan_consistency(self):
         c = pd.Categorical.from_codes(
@@ -216,13 +217,12 @@ class TestHashing(object):
         assert result[1] in expected
 
     def test_pandas_errors(self):
-
-        for obj in [pd.Timestamp('20130101')]:
-            with pytest.raises(TypeError):
-                hash_pandas_object(obj)
+        with pytest.raises(TypeError):
+            hash_pandas_object(pd.Timestamp('20130101'))
 
         with catch_warnings(record=True):
             obj = tm.makePanel()
+
         with pytest.raises(TypeError):
             hash_pandas_object(obj)
 
@@ -238,9 +238,9 @@ class TestHashing(object):
 
     def test_invalid_key(self):
         # this only matters for object dtypes
-        def f():
+        msg = 'key should be a 16-byte string encoded'
+        with tm.assert_raises_regex(ValueError, msg):
             hash_pandas_object(Series(list('abc')), hash_key='foo')
-        pytest.raises(ValueError, f)
 
     def test_alread_encoded(self):
         # if already encoded then ok
@@ -253,19 +253,13 @@ class TestHashing(object):
         obj = Series(list('abc'))
         self.check_equal(obj, encoding='ascii')
 
-    def test_same_len_hash_collisions(self):
-
-        for l in range(8):
-            length = 2**(l + 8) + 1
-            s = tm.rands_array(length, 2)
-            result = hash_array(s, 'utf8')
-            assert not result[0] == result[1]
-
-        for l in range(8):
-            length = 2**(l + 8)
-            s = tm.rands_array(length, 2)
-            result = hash_array(s, 'utf8')
-            assert not result[0] == result[1]
+    @pytest.mark.parametrize('l_exp', range(8))
+    @pytest.mark.parametrize('l_add', [0, 1])
+    def test_same_len_hash_collisions(self, l_exp, l_add):
+        length = 2**(l_exp + 8) + l_add
+        s = tm.rands_array(length, 2)
+        result = hash_array(s, 'utf8')
+        assert not result[0] == result[1]
 
     def test_hash_collisions(self):
 
