@@ -8,7 +8,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
-    get_period_field_arr, period_asfreq_arr)
+    get_period_field_arr, period_asfreq_arr, _quarter_to_myear)
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -19,6 +19,9 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype)
 from pandas.core.dtypes.dtypes import PeriodDtype
+from pandas.core.dtypes.generic import ABCSeries
+
+import pandas.core.common as com
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
@@ -156,6 +159,25 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             raise ValueError('freq is not specified and cannot be inferred')
         result._freq = Period._maybe_convert_freq(freq)
         return result
+
+    @classmethod
+    def _generate_range(cls, start, end, periods, freq, fields):
+        if freq is not None:
+            freq = Period._maybe_convert_freq(freq)
+
+        field_count = len(fields)
+        if com._count_not_none(start, end) > 0:
+            if field_count > 0:
+                raise ValueError('Can either instantiate from fields '
+                                 'or endpoints, but not both')
+            subarr, freq = _get_ordinal_range(start, end, periods, freq)
+        elif field_count > 0:
+            subarr, freq = _range_from_fields(freq=freq, **fields)
+        else:
+            raise ValueError('Not enough parameters to construct '
+                             'Period range')
+
+        return subarr, freq
 
     # --------------------------------------------------------------------
     # Vectorized analogues of Period properties
@@ -371,3 +393,102 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
 
 PeriodArrayMixin._add_comparison_methods()
+
+
+# -------------------------------------------------------------------
+# Constructor Helpers
+
+def _get_ordinal_range(start, end, periods, freq, mult=1):
+    if com._count_not_none(start, end, periods) != 2:
+        raise ValueError('Of the three parameters: start, end, and periods, '
+                         'exactly two must be specified')
+
+    if freq is not None:
+        _, mult = frequencies.get_freq_code(freq)
+
+    if start is not None:
+        start = Period(start, freq)
+    if end is not None:
+        end = Period(end, freq)
+
+    is_start_per = isinstance(start, Period)
+    is_end_per = isinstance(end, Period)
+
+    if is_start_per and is_end_per and start.freq != end.freq:
+        raise ValueError('start and end must have same freq')
+    if (start is NaT or end is NaT):
+        raise ValueError('start and end must not be NaT')
+
+    if freq is None:
+        if is_start_per:
+            freq = start.freq
+        elif is_end_per:
+            freq = end.freq
+        else:  # pragma: no cover
+            raise ValueError('Could not infer freq from start/end')
+
+    if periods is not None:
+        periods = periods * mult
+        if start is None:
+            data = np.arange(end.ordinal - periods + mult,
+                             end.ordinal + 1, mult,
+                             dtype=np.int64)
+        else:
+            data = np.arange(start.ordinal, start.ordinal + periods, mult,
+                             dtype=np.int64)
+    else:
+        data = np.arange(start.ordinal, end.ordinal + 1, mult, dtype=np.int64)
+
+    return data, freq
+
+
+def _range_from_fields(year=None, month=None, quarter=None, day=None,
+                       hour=None, minute=None, second=None, freq=None):
+    if hour is None:
+        hour = 0
+    if minute is None:
+        minute = 0
+    if second is None:
+        second = 0
+    if day is None:
+        day = 1
+
+    ordinals = []
+
+    if quarter is not None:
+        if freq is None:
+            freq = 'Q'
+            base = frequencies.FreqGroup.FR_QTR
+        else:
+            base, mult = frequencies.get_freq_code(freq)
+            if base != frequencies.FreqGroup.FR_QTR:
+                raise AssertionError("base must equal FR_QTR")
+
+        year, quarter = _make_field_arrays(year, quarter)
+        for y, q in compat.zip(year, quarter):
+            y, m = _quarter_to_myear(y, q, freq)
+            val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
+            ordinals.append(val)
+    else:
+        base, mult = frequencies.get_freq_code(freq)
+        arrays = _make_field_arrays(year, month, day, hour, minute, second)
+        for y, mth, d, h, mn, s in compat.zip(*arrays):
+            ordinals.append(libperiod.period_ordinal(
+                y, mth, d, h, mn, s, 0, 0, base))
+
+    return np.array(ordinals, dtype=np.int64), freq
+
+
+def _make_field_arrays(*fields):
+    length = None
+    for x in fields:
+        if isinstance(x, (list, np.ndarray, ABCSeries)):
+            if length is not None and len(x) != length:
+                raise ValueError('Mismatched Period array lengths')
+            elif length is None:
+                length = len(x)
+
+    arrays = [np.asarray(x) if isinstance(x, (np.ndarray, list, ABCSeries))
+              else np.repeat(x, length) for x in fields]
+
+    return arrays

@@ -24,6 +24,8 @@ def test_namespace():
     api = ['NaT',
            'iNaT',
            'OutOfBoundsDatetime',
+           'Period',
+           'IncompatibleFrequency',
            'Timedelta',
            'Timestamp',
            'delta_to_nanoseconds',
