@@ -37,7 +37,7 @@ class Base(object):
     def test_pickle_compat_construction(self):
         # this is testing for pickle compat
         if self._holder is None:
-            return
+            pytest.skip('Skip check for uncertain type')
 
         # need an object to create with
         pytest.raises(TypeError, self._holder)
@@ -236,7 +236,7 @@ class Base(object):
 
         # don't tests a MultiIndex here (as its tested separated)
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
         original_name = indices.name
         new_ind = indices.set_names([new_name])
         assert new_ind.name == new_name
@@ -333,7 +333,8 @@ class Base(object):
         from copy import copy, deepcopy
 
         if isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for MultiIndex')
+
         for func in (copy, deepcopy):
             idx_copy = func(indices)
             assert idx_copy is not indices
@@ -344,18 +345,46 @@ class Base(object):
 
     def test_duplicates(self, indices):
         if type(indices) is not self._holder:
-            return
+            pytest.skip('Can only check if we have the correct type')
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
         idx = self._holder([indices[0]] * 5)
         assert not idx.is_unique
         assert idx.has_duplicates
+
+    @pytest.mark.parametrize('keep', ['first', 'last', False])
+    def test_duplicated(self, indices, keep):
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we know the index type')
+        if not len(indices) or isinstance(indices, MultiIndex):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
+        idx = self._holder(indices)
+        if idx.has_duplicates:
+            # We need to be able to control creation of duplicates here
+            # This is slightly circular, as drop_duplicates depends on
+            # duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated
+            idx = idx.drop_duplicates()
+
+        n, k = len(idx), 10
+        duplicated_selection = np.random.choice(n, k * n)
+        expected = pd.Series(duplicated_selection).duplicated(keep=keep).values
+        idx = self._holder(idx.values[duplicated_selection])
+
+        result = idx.duplicated(keep=keep)
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_unique(self, indices):
         # don't test a MultiIndex here (as its tested separated)
         # don't test a CategoricalIndex because categories change (GH 18291)
         if isinstance(indices, (MultiIndex, CategoricalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/CategoricalIndex')
 
         # GH 17896
         expected = indices.drop_duplicates()
@@ -375,7 +404,7 @@ class Base(object):
     def test_get_unique_index(self, indices):
         # MultiIndex tested separately
         if not len(indices) or isinstance(indices, MultiIndex):
-            return
+            pytest.skip('Skip check for empty Index and MultiIndex')
 
         idx = indices[[0] * 5]
         idx_unique = indices[[0]]
@@ -394,7 +423,7 @@ class Base(object):
 
         # nans:
         if not indices._can_hold_na:
-            return
+            pytest.skip('Skip na-check if index cannot hold na')
 
         if needs_i8_conversion(indices):
             vals = indices.asi8[[0] * 5]
@@ -423,7 +452,7 @@ class Base(object):
 
     def test_mutability(self, indices):
         if not len(indices):
-            return
+            pytest.skip('Skip check for empty Index')
         pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
 
     def test_view(self, indices):
@@ -761,7 +790,7 @@ class Base(object):
         # GH9947, GH10637
         index_a = self.create_index()
         if isinstance(index_a, PeriodIndex):
-            return
+            pytest.skip('Skip check for PeriodIndex')
 
         n = len(index_a)
         index_b = index_a[0:-1]
@@ -989,11 +1018,11 @@ class Base(object):
         # not implemented for tuple searches in MultiIndex
         # or Intervals searches in IntervalIndex
         if isinstance(indices, (MultiIndex, IntervalIndex)):
-            return
+            pytest.skip('Skip check for MultiIndex/IntervalIndex')
 
         # nothing to test if the index is empty
         if indices.empty:
-            return
+            pytest.skip('Skip check for empty Index')
         value = indices[0]
 
         # determine the expected results (handle dupes for 'right')
