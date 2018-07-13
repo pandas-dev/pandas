@@ -523,7 +523,7 @@ class TestIsin(object):
         (Series(['a', 'b']), set(['a']), [True, False]),
         (['a', 'b'], [1], [False, False])
     ])
-    def test_basic(self, comps, values, expected):	
+    def test_basic(self, comps, values, expected):
         result = algos.isin(comps, values)
         expected = np.array(expected)
         tm.assert_numpy_array_equal(result, expected)

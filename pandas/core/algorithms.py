@@ -416,13 +416,14 @@ def isin(comps, values):
 
     comps = com._values_from_object(comps)
     comps, dtype_comps, _ = _ensure_data(comps)
-    
-    is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x) or isinstance(x, Timestamp))
-    
+
+    is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x)
+                              or isinstance(x, Timestamp))
+
     is_int = lambda x: ((x == np.int64) or (x == int))
-    
+
     is_float = lambda x: ((x == np.float64) or (x == float))
-    
+
     f = lambda x, y: htable.ismember_object(x.astype(object), y.astype(object))
 
     # GH16012
