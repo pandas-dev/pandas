@@ -115,3 +115,9 @@ def test_names(idx, index_names):
     ind_names = list(index.names)
     level_names = [level.name for level in index.levels]
     assert ind_names == level_names
+
+
+def test_duplicate_level_names_access_raises(idx):
+    idx.names = ['foo', 'foo']
+    tm.assert_raises_regex(ValueError, 'name foo occurs multiple times',
+                           idx._get_level_number, 'foo')
