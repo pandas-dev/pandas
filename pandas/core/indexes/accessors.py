@@ -27,14 +27,14 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             raise TypeError("cannot convert an object of type {0} to a "
                             "datetimelike index".format(type(data)))
 
-        self.values = data
+        self._parent = data
         self.orig = orig
         self.name = getattr(data, 'name', None)
         self.index = getattr(data, 'index', None)
         self._freeze()
 
     def _get_values(self):
-        data = self.values
+        data = self._parent
         if is_datetime64_dtype(data.dtype):
             return DatetimeIndex(data, copy=False, name=self.name)
 
