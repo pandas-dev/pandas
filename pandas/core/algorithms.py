@@ -424,11 +424,7 @@ def isin(comps, values):
     is_float = lambda x: ((x == np.float64) or (x == float))
     
     f = lambda x, y: htable.ismember_object(x.astype(object), y.astype(object))
-    
-    values_copy = values
-    
-    values, dtype_values, _ = _ensure_data(values_copy)
-    
+
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     # faster for larger cases to use np.in1d
@@ -436,20 +432,19 @@ def isin(comps, values):
         f = lambda x, y: np.in1d(x, y)
 
     if is_time_like(dtype_comps):
-        values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
+        values, _, _ = _ensure_data(values, dtype=dtype_comps)
     else:
+        values, dtype_values, _ = _ensure_data(values)
         comps_types = set([type(v) for v in comps])
         values_types = set([type(v) for v in values])
         if len(comps_types) == len(values_types) == 1:
             comps_types = comps_types.pop()
             values_types = values_types.pop()
             if (is_int(comps_types) and is_int(values_types)):
-                values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
                 values = values.astype('int64', copy=False)
                 comps = comps.astype('int64', copy=False)
                 f = lambda x, y: htable.ismember_int64(x, y)
             elif (is_float(comps_types) and is_float(values_types)):
-                values, _, _ = _ensure_data(values_copy, dtype=dtype_comps)
                 values = values.astype('float64', copy=False)
                 comps = comps.astype('float64', copy=False)
                 checknull = isna(values).any()
