@@ -3169,8 +3169,8 @@ def get_block_type(values, dtype=None):
     dtype = dtype or values.dtype
     vtype = dtype.type
 
-    if is_sparse(values):
-        cls = SparseBlock
+    if is_extension_array_dtype(values):
+        cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock
     elif issubclass(vtype, np.timedelta64):
@@ -3180,8 +3180,6 @@ def get_block_type(values, dtype=None):
         cls = ComplexBlock
     elif is_categorical(values):
         cls = CategoricalBlock
-    elif is_extension_array_dtype(values):
-        cls = ExtensionBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetimetz(values)
         cls = DatetimeBlock

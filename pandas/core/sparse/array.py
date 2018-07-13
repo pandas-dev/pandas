@@ -130,26 +130,34 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
                        fill_value=fill_value, dtype=dtype)
 
 
-class SparseArray(ExtensionArray):
-    def __init__(self, data, fill_value=np.nan):
+class SparseArray(PandasObject, ExtensionArray):
+    def __init__(self, data, sp_index=None, fill_value=np.nan, kind='block'):
 
-        # TODO: sparse `data`
-        data = np.asarray(data)
-
-        # converting dense to sparse
-        if np.isnan(fill_value):
-            sparse_index = ~np.isnan(data)
-
+        if sp_index is None:
+            sparse_values, sparse_index, fill_value = make_sparse(
+                data, kind=kind, fill_value=fill_value
+            )
         else:
-            sparse_index = ~(data == fill_value)
-
-        sparse_values = data[sparse_index]
+            # TODO: validate
+            sparse_values = np.asarray(data)
+            sparse_index = sp_index
 
         self._sparse_index = sparse_index
         self._sparse_values = sparse_values
         self._dtype = SparseDtype(sparse_values.dtype)
-        self._length = len(data)
+        self.fill_value = fill_value
 
+    @classmethod
+    def _from_sequence(cls, scalars, copy=False):
+        return cls(scalars)
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls(values)
+
+    # ------------------------------------------------------------------------
+    # Data
+    # ------------------------------------------------------------------------
     @property
     def sp_index(self):
         return self._sparse_index
@@ -163,13 +171,164 @@ class SparseArray(ExtensionArray):
         return self._dtype
 
     def __len__(self):
-        return self._length
+        return self.sp_index.length
 
+    @property
     def nbytes(self):
+        # TODO: move to sp_index
         return self.sp_values.nbytes + self.sp_index.nbytes
 
-    def __getitem__(self, item):
-        pass
+    @property
+    def values(self):
+        """
+        Dense values
+        """
+        output = np.empty(len(self), dtype=self.dtype)
+        int_index = self.sp_index.to_int_index()
+        output.fill(self.fill_value)
+        output.put(int_index.indices, self)
+        return output
+
+    def isna(self):
+        if isna(self.fill_value):
+            # Then just the sparse values
+            mask = np.zeros(len(self), dtype=bool)
+            # TODO: avoid to_int_index
+            mask[self.sp_index.to_int_index().indices] = True
+        else:
+            # This is inevitable expensive?
+            mask = pd.isna(np.asarray(self))
+        return mask
+
+    def unique(self):
+        return pd.unique(self.sp_values)
+
+    def factorize(self, na_sentinel=-1):
+        return pd.factorize(self.sp_values)
+
+    # --------
+    # Indexing
+    # --------
+
+    def __getitem__(self, key):
+         if is_integer(key):
+             return self._get_val_at(key)
+         elif isinstance(key, tuple):
+             data_slice = self.values[key]
+         else:
+             if isinstance(key, SparseArray):
+                 if is_bool_dtype(key):
+                     key = key.to_dense()
+                 else:
+                     key = np.asarray(key)
+
+             if hasattr(key, '__len__') and len(self) != len(key):
+                 return self.take(key)
+             else:
+                 data_slice = self.values[key]
+
+         return self._constructor(data_slice)
+
+    def _get_val_at(self, loc):
+        n = len(self)
+        if loc < 0:
+            loc += n
+
+        if loc >= n or loc < 0:
+            raise IndexError('Out of bounds access')
+
+        sp_loc = self.sp_index.lookup(loc)
+        if sp_loc == -1:
+            return self.fill_value
+        else:
+            return libindex.get_value_at(self.sp_values, sp_loc)
+
+    @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
+    def take(self, indices, axis=0, allow_fill=True,
+             fill_value=None, **kwargs):
+        """
+        Sparse-compatible version of ndarray.take
+
+        Returns
+        -------
+        taken : ndarray
+        """
+        nv.validate_take(tuple(), kwargs)
+
+        if axis:
+            raise ValueError("axis must be 0, input was {axis}"
+                             .format(axis=axis))
+
+        if is_integer(indices):
+            # return scalar
+            return self[indices]
+
+        indices = _ensure_platform_int(indices)
+        n = len(self)
+        if allow_fill and fill_value is not None:
+            # allow -1 to indicate self.fill_value,
+            # self.fill_value may not be NaN
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            elif (n <= indices).any():
+                msg = 'index is out of bounds for size {size}'.format(size=n)
+                raise IndexError(msg)
+        else:
+            if ((indices < -n) | (n <= indices)).any():
+                msg = 'index is out of bounds for size {size}'.format(size=n)
+                raise IndexError(msg)
+
+        indices = indices.astype(np.int32)
+        if not (allow_fill and fill_value is not None):
+            indices = indices.copy()
+            indices[indices < 0] += n
+
+        locs = self.sp_index.lookup_array(indices)
+        indexer = np.arange(len(locs), dtype=np.int32)
+        mask = locs != -1
+        if mask.any():
+            indexer = indexer[mask]
+            new_values = self.sp_values.take(locs[mask])
+        else:
+            indexer = np.empty(shape=(0, ), dtype=np.int32)
+            new_values = np.empty(shape=(0, ), dtype=self.sp_values.dtype)
+
+        sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
+        return type(self)(new_values, sp_index, fill_value=self.fill_value)
+
+    @classmethod
+    def _concat_same_type(cls, to_concat):
+        # TODO: validate same fill_type
+        # The basic idea is to
+        values = []
+        indices = []
+        length = 0
+
+        for arr in to_concat:
+            # TODO: avoid to_int_index? Is that expensive?
+            idx = arr.sp_index.to_int_index().indices
+            idx += length  # TODO: wraparound
+            length += arr.sp_index.length
+
+            values.append(arr.sp_values)
+            indices.append(idx)
+
+        data = np.concatenate(values)
+        indices = np.concatenate(indices)
+        sp_index = IntIndex(length, indices)
+
+        return cls(data, sp_index=sp_index)
+
+    # --------
+    # Formatting
+    # -----------
+    def __unicode__(self):
+        return '{self}\nFill: {fill}\n{index}'.format(
+             self=printing.pprint_thing(self),
+             fill=printing.pprint_thing(self.fill_value),
+             index=printing.pprint_thing(self.sp_index))
 
 # class SparseArray(PandasObject, np.ndarray, ExtensionArray):
 #     """Data structure for labeled, sparse floating point 1-D data
@@ -485,20 +644,7 @@ class SparseArray(ExtensionArray):
 #         slobj = slice(i, j)
 #         return self.__getitem__(slobj)
 #
-#     def _get_val_at(self, loc):
-#         n = len(self)
-#         if loc < 0:
-#             loc += n
-#
-#         if loc >= n or loc < 0:
-#             raise IndexError('Out of bounds access')
-#
-#         sp_loc = self.sp_index.lookup(loc)
-#         if sp_loc == -1:
-#             return self.fill_value
-#         else:
-#             return libindex.get_value_at(self, sp_loc)
-#
+
 #     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
 #     def take(self, indices, axis=0, allow_fill=True,
 #              fill_value=None, **kwargs):

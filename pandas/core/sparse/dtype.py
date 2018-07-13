@@ -1,6 +1,7 @@
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas import compat
 
 
 class SparseDtype(ExtensionDtype):
@@ -22,7 +23,10 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def name(self):
-        return 'sparse'
+        return 'Sparse[{}]'.format(self.dtype.name)
+
+    def __repr__(self):
+        return self.name
 
     @classmethod
     def construct_array_type(cls):
@@ -31,15 +35,30 @@ class SparseDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
-        if string == 'sparse':
-            string = 'float64'
+        if string.startswith("Sparse"):
+            sub_type = cls._parse_subtype(string)
+        else:
+            sub_type = string
         try:
-            return SparseDtype(string)
+            return SparseDtype(sub_type)
         except:
             raise TypeError
+
+    @staticmethod
+    def _parse_subtype(dtype):
+        if dtype.startswith("Sparse["):
+            sub_type = dtype[7:-1]
+        elif dtype == "Sparse":
+            sub_type = 'float64'
+        else:
+            raise ValueError
+        return sub_type
 
     @classmethod
     def is_dtype(cls, dtype):
         dtype = getattr(dtype, 'dtype', dtype)
-        return isinstance(dtype, np.dtype) or dtype == 'sparse'
-
+        if isinstance(dtype, compat.string_types) and dtype.startswith("Sparse"):
+            dtype = np.dtype(cls._parse_subtype(dtype))
+        elif isinstance(dtype, cls):
+            return True
+        return isinstance(dtype, np.dtype) or dtype == 'Sparse'
