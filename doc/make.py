@@ -165,8 +165,8 @@ class DocBuilder:
 
         if os.path.exists(fname):
             try:
-                # copying to make sure sphinx always thinks it is new
-                # and needs to be re-generated (to pick source code changes)
+                """copying to make sure sphinx always thinks it is new
+                and needs to be re-generated (to pick source code changes)"""
                 shutil.copy(fname, temp_dir)
             except:  # noqa
                 pass
