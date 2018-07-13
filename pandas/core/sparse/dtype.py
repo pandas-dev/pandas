@@ -17,6 +17,10 @@ class SparseDtype(ExtensionDtype):
         return self._dtype
 
     @property
+    def type(self):
+        return self.dtype.type
+
+    @property
     def name(self):
         return 'sparse'
 
@@ -33,4 +37,9 @@ class SparseDtype(ExtensionDtype):
             return SparseDtype(string)
         except:
             raise TypeError
+
+    @classmethod
+    def is_dtype(cls, dtype):
+        dtype = getattr(dtype, 'dtype', dtype)
+        return isinstance(dtype, np.dtype) or dtype == 'sparse'
 
