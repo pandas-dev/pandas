@@ -355,10 +355,10 @@ def main():
         raise ValueError('Unknown command {}. Available options: {}'.format(
             args.command, ', '.join(cmds)))
 
-    # Below we update both os.environ and sys.path. The former is used by
-    # external libraries (namely Sphinx) to compile this module and resolve
-    # the import of `python_path` correctly. The latter is used to resolve
-    # the import within the module, injecting it into the global namespace
+    """Below we update both os.environ and sys.path. The former is used by
+    external libraries (namely Sphinx) to compile this module and resolve
+    the import of `python_path` correctly. The latter is used to resolve
+    the import within the module, injecting it into the global namespace"""
     os.environ['PYTHONPATH'] = args.python_path
     sys.path.append(args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
