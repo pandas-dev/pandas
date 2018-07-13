@@ -182,6 +182,7 @@ Other Enhancements
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
+- :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
 - :func:`between_time` and :func:`at_time` now support an axis parameter (:issue: `8839`)
 -
 
