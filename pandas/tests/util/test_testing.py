@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import textwrap
 import os
 import pandas as pd
 import pytest
@@ -818,6 +819,21 @@ Attribute "ordered" are different
         b = pd.Categorical([1, 2, 3, 4], ordered=True)
         with tm.assert_raises_regex(AssertionError, expected):
             tm.assert_categorical_equal(a, b)
+
+
+class TestAssertIntervalArrayEqual(object):
+    def test_interval_array_equal_message(self):
+        a = pd.interval_range(0, periods=4).values
+        b = pd.interval_range(1, periods=4).values
+
+        msg = textwrap.dedent("""\
+            IntervalArray.left are different
+
+            IntervalArray.left values are different \\(100.0 %\\)
+            \\[left\\]:  Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)
+            \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)""")
+        with tm.assert_raises_regex(AssertionError, msg):
+            tm.assert_interval_array_equal(a, b)
 
 
 class TestRNGContext(object):

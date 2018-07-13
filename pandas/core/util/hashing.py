@@ -205,7 +205,9 @@ def _hash_categorical(c, encoding, hash_key):
     -------
     ndarray of hashed values array, same size as len(c)
     """
-    hashed = hash_array(c.categories.values, encoding, hash_key,
+    # Convert ExtensionArrays to ndarrays
+    values = np.asarray(c.categories.values)
+    hashed = hash_array(values, encoding, hash_key,
                         categorize=False)
 
     # we have uint64, as we don't directly support missing values

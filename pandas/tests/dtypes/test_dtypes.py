@@ -552,10 +552,8 @@ class TestIntervalDtype(Base):
 
         s = Series(ii, name='A')
 
-        # dtypes
-        # series results in object dtype currently,
-        assert not is_interval_dtype(s.dtype)
-        assert not is_interval_dtype(s)
+        assert is_interval_dtype(s.dtype)
+        assert is_interval_dtype(s)
 
     def test_basic_dtype(self):
         assert is_interval_dtype('interval[int64]')

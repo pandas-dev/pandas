@@ -98,6 +98,26 @@ cdef class IntervalMixin(object):
             msg = 'cannot compute length between {left!r} and {right!r}'
             raise TypeError(msg.format(left=self.left, right=self.right))
 
+    def _check_closed_matches(self, other, name='other'):
+        """Check if the closed attribute of `other` matches.
+
+        Note that 'left' and 'right' are considered different from 'both'.
+
+        Parameters
+        ----------
+        other : Interval, IntervalIndex, IntervalArray
+        name : str
+            Name to use for 'other' in the error message.
+
+        Raises
+        ------
+        ValueError
+            When `other` is not closed exactly the same as self.
+        """
+        if self.closed != other.closed:
+            msg = "'{}.closed' is '{}', expected '{}'."
+            raise ValueError(msg.format(name, other.closed, self.closed))
+
 
 cdef _interval_like(other):
     return (hasattr(other, 'left')
