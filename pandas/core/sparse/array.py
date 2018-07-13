@@ -186,7 +186,7 @@ class SparseArray(PandasObject, ExtensionArray):
         output = np.empty(len(self), dtype=self.dtype)
         int_index = self.sp_index.to_int_index()
         output.fill(self.fill_value)
-        output.put(int_index.indices, self)
+        output.put(int_index.indices, self.sp_values)
         return output
 
     def isna(self):
@@ -211,23 +211,24 @@ class SparseArray(PandasObject, ExtensionArray):
     # --------
 
     def __getitem__(self, key):
-         if is_integer(key):
-             return self._get_val_at(key)
-         elif isinstance(key, tuple):
-             data_slice = self.values[key]
-         else:
-             if isinstance(key, SparseArray):
-                 if is_bool_dtype(key):
-                     key = key.to_dense()
-                 else:
-                     key = np.asarray(key)
+        if is_integer(key):
+            return self._get_val_at(key)
+        elif isinstance(key, tuple):
+            data_slice = self.values[key]
+        else:
+            if isinstance(key, SparseArray):
+                if is_bool_dtype(key):
+                    key = key.to_dense()
+                else:
+                    key = np.asarray(key)
 
-             if hasattr(key, '__len__') and len(self) != len(key):
-                 return self.take(key)
-             else:
-                 data_slice = self.values[key]
+            if hasattr(key, '__len__') and len(self) != len(key):
+                return self.take(key)
+            else:
+                # TODO: this densifies!
+                data_slice = self.values[key]
 
-         return self._constructor(data_slice)
+        return self._constructor(data_slice)
 
     def _get_val_at(self, loc):
         n = len(self)
@@ -243,60 +244,101 @@ class SparseArray(PandasObject, ExtensionArray):
         else:
             return libindex.get_value_at(self.sp_values, sp_loc)
 
-    @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
-    def take(self, indices, axis=0, allow_fill=True,
-             fill_value=None, **kwargs):
-        """
-        Sparse-compatible version of ndarray.take
+    def take(self, indices, allow_fill=False, fill_value=None):
+        from pandas.core.algorithms import take
+        indices = np.asarray(indices)
 
-        Returns
-        -------
-        taken : ndarray
-        """
-        nv.validate_take(tuple(), kwargs)
+        if allow_fill and fill_value is None:
+            fill_value = self.fill_value
 
-        if axis:
-            raise ValueError("axis must be 0, input was {axis}"
-                             .format(axis=axis))
+        if not len(self):
+            taken = super().take(indices, allow_fill, fill_value)
+            return self._from_sequence(taken)
 
-        if is_integer(indices):
-            # return scalar
-            return self[indices]
+        # TODO: be efficient for mostly na `indices`.
+        idx = self.sp_index.to_int_index()
+        valid_idx = pd.Index(indices, copy=False) & pd.Index(idx.indices,
+                                                             copy=False)
+        sp_indices = idx.lookup_array(np.asarray(valid_idx).astype('i4'))
+        out = np.empty(len(self), dtype=self.dtype)
+        out.fill(fill_value)
+        out[valid_idx] = self.sp_values[sp_indices]
 
-        indices = _ensure_platform_int(indices)
-        n = len(self)
-        if allow_fill and fill_value is not None:
-            # allow -1 to indicate self.fill_value,
-            # self.fill_value may not be NaN
-            if (indices < -1).any():
-                msg = ('When allow_fill=True and fill_value is not None, '
-                       'all indices must be >= -1')
-                raise ValueError(msg)
-            elif (n <= indices).any():
-                msg = 'index is out of bounds for size {size}'.format(size=n)
-                raise IndexError(msg)
-        else:
-            if ((indices < -n) | (n <= indices)).any():
-                msg = 'index is out of bounds for size {size}'.format(size=n)
-                raise IndexError(msg)
+        return type(self)(out, fill_value=fill_value)
 
-        indices = indices.astype(np.int32)
-        if not (allow_fill and fill_value is not None):
-            indices = indices.copy()
-            indices[indices < 0] += n
+    # @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
+    # def take(self, indices, axis=0, allow_fill=False,
+    #          fill_value=None, **kwargs):
+    #     """
+    #     Sparse-compatible version of ndarray.take
+    #
+    #     Returns
+    #     -------
+    #     taken : ndarray
+    #     """
+    #     # XXX: change default allow_fill
+    #     nv.validate_take(tuple(), kwargs)
+    #
+    #     if axis:
+    #         raise ValueError("axis must be 0, input was {axis}"
+    #                          .format(axis=axis))
+    #
+    #     if is_integer(indices):
+    #         # return scalar
+    #         return self[indices]
+    #
+    #     indices = _ensure_platform_int(indices)
+    #     n = len(self)
+    #
+    #     # Handle empty take
+    #     if n == 0 and not allow_fill:
+    #         if len(indices):
+    #             raise IndexError("cannot do a non-empty take")
+    #         else:
+    #             return self.copy()
+    #     elif n == 0:
+    #         if (indices > -1).any():
+    #             raise IndexError("cannot do a non-empty take")
+    #         else:
+    #             out = np.empty_like(indices, dtype=self.dtype.dtype)
+    #             out[:] = self.fill_value if fill_value is None else fill_value
+    #             # TODO: this is wrong.
+    #             return out
+    #
+    #     if allow_fill and fill_value is not None:
+    #         # allow -1 to indicate self.fill_value,
+    #         # self.fill_value may not be NaN
+    #         if (indices < -1).any():
+    #             msg = ('When allow_fill=True and fill_value is not None, '
+    #                    'all indices must be >= -1')
+    #             raise ValueError(msg)
+    #         elif (n <= indices).any():
+    #             msg = 'index is out of bounds for size {size}'.format(size=n)
+    #             raise IndexError(msg)
+    #     else:
+    #         if ((indices < -n) | (n <= indices)).any():
+    #             msg = 'index is out of bounds for size {size}'.format(size=n)
+    #             raise IndexError(msg)
+    #
+    #     indices = indices.astype(np.int32)
+    #     if not (allow_fill and fill_value is not None):
+    #         indices = indices.copy()
+    #         indices[indices < 0] += n
+    #
+    #     locs = self.sp_index.lookup_array(indices)
+    #     indexer = np.arange(len(locs), dtype=np.int32)
+    #     mask = locs != -1
+    #
+    #     if mask.any():
+    #         indexer = indexer[mask]
+    #         new_values = self.sp_values.take(locs[mask])
+    #         sp_index = _make_index(len(indices), indexer, kind='integer')
+    #     else:
+    #         indexer = np.empty(shape=(0, ), dtype=np.int32)
+    #         new_values = np.empty(shape=(0, ), dtype=self.sp_values.dtype)
+    #         sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
+    #     return type(self)(new_values, sp_index, fill_value=self.fill_value)
 
-        locs = self.sp_index.lookup_array(indices)
-        indexer = np.arange(len(locs), dtype=np.int32)
-        mask = locs != -1
-        if mask.any():
-            indexer = indexer[mask]
-            new_values = self.sp_values.take(locs[mask])
-        else:
-            indexer = np.empty(shape=(0, ), dtype=np.int32)
-            new_values = np.empty(shape=(0, ), dtype=self.sp_values.dtype)
-
-        sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
-        return type(self)(new_values, sp_index, fill_value=self.fill_value)
 
     def copy(self, deep=False):
         if deep:

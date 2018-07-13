@@ -11,7 +11,7 @@ from pandas.tests.extension import base
 
 def make_data():
     data = np.random.uniform(size=100)
-    data[1::3] = np.nan
+    data[2::3] = np.nan
     return data
 
 
@@ -58,6 +58,11 @@ def na_value():
 
 
 @pytest.fixture
+def na_cmp():
+    return lambda left, right: pd.isna(left) and pd.isna(right)
+
+
+@pytest.fixture
 def data_for_grouping():
     return SparseArray([1, 1, np.nan, np.nan, 2, 2, 1, 3])
 
@@ -82,7 +87,10 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestGetitem(base.BaseGetitemTests):
-    pass
+
+    @pytest.mark.skip(reason="Need to think about it.")
+    def test_take_non_na_fill_value(self, data_missing):
+        pass
 
 
 class TestSetitem(base.BaseSetitemTests):
@@ -107,3 +115,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
     pass
+
+
+def test_slice():
+    import pandas.util.testing as tm
+
+    arr = pd.SparseArray([1, None, 2])
+    result = arr[:]
+    tm.assert_sp_array_equal(arr, result)
