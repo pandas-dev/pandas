@@ -245,25 +245,6 @@ class TestIndex(Base):
         result = Index(data, dtype='float')
         tm.assert_index_equal(result, expected)
 
-    def test_droplevel(self, indices):
-        # GH 21115
-        if isinstance(indices, MultiIndex):
-            # Tested separately in test_multi.py
-            return
-
-        assert indices.droplevel([]).equals(indices)
-
-        for level in indices.name, [indices.name]:
-            if isinstance(indices.name, tuple) and level is indices.name:
-                # GH 21121 : droplevel with tuple name
-                continue
-            with pytest.raises(ValueError):
-                indices.droplevel(level)
-
-        for level in 'wrong', ['wrong']:
-            with pytest.raises(KeyError):
-                indices.droplevel(level)
-
     @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
     def test_constructor_int_dtype_nan_raises(self, dtype):
         # see gh-15187
@@ -2130,17 +2111,6 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         index = pd.Index([1, 2, 3])
         with tm.assert_produces_warning(FutureWarning):
             index.get_duplicates()
-
-    def test_tab_complete_warning(self, ip):
-        # https://github.com/pandas-dev/pandas/issues/16409
-        pytest.importorskip('IPython', minversion="6.0.0")
-        from IPython.core.completer import provisionalcompleter
-
-        code = "import pandas as pd; idx = pd.Index([1, 2])"
-        ip.run_code(code)
-        with tm.assert_produces_warning(None):
-            with provisionalcompleter('ignore'):
-                list(ip.Completer.completions('idx.', 4))
 
 
 class TestMixedIntIndex(Base):

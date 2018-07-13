@@ -1459,6 +1459,7 @@ Modifying and Computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
+   Index.is_lexsorted_for_tuple
    Index.is_mixed
    Index.is_numeric
    Index.is_object
@@ -1470,18 +1471,10 @@ Modifying and Computations
    Index.where
    Index.take
    Index.putmask
+   Index.set_names
    Index.unique
    Index.nunique
    Index.value_counts
-
-Compatibility with MultiIndex
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autosummary::
-   :toctree: generated/
-
-   Index.set_names
-   Index.is_lexsorted_for_tuple
-   Index.droplevel
 
 Missing Values
 ~~~~~~~~~~~~~~

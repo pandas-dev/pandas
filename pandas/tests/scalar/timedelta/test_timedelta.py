@@ -106,16 +106,6 @@ class TestTimedeltaComparison(object):
 
 class TestTimedeltas(object):
 
-    @pytest.mark.parametrize("unit, value, expected", [
-        ('us', 9.999, 9999), ('ms', 9.999999, 9999999),
-        ('s', 9.999999999, 9999999999)])
-    def test_rounding_on_int_unit_construction(self, unit, value, expected):
-        # GH 12690
-        result = Timedelta(value, unit=unit)
-        assert result.value == expected
-        result = Timedelta(str(value) + unit)
-        assert result.value == expected
-
     def test_total_seconds_scalar(self):
         # see gh-10939
         rng = Timedelta('1 days, 10:11:12.100123456')

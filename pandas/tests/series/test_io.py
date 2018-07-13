@@ -76,8 +76,9 @@ class TestSeriesToCSV(TestData):
             series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
-            with open(path, "w") as outfile:
-                outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
+            outfile = open(path, "w")
+            outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
+            outfile.close()
 
             series = self.read_csv(path, sep="|")
             check_series = Series({datetime(1998, 1, 1): 1.0,
