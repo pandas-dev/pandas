@@ -138,10 +138,8 @@ class TestiLoc(Base):
             index=[1, 2, 3])
         df.iloc[array_with_neg_numbers]
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
-
         df.iloc[:, array_with_neg_numbers]
         tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
-
 
     def test_iloc_getitem_list_int(self):
 
