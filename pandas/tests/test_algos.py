@@ -509,42 +509,23 @@ class TestIsin(object):
         pytest.raises(TypeError, lambda: algos.isin(1, [1]))
         pytest.raises(TypeError, lambda: algos.isin([1], 1))
 
-    def test_basic(self):
-
-        result = algos.isin([1, 2], [1])
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(np.array([1, 2]), [1])
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(Series([1, 2]), [1])
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(Series([1, 2]), Series([1]))
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(Series([1, 2]), set([1]))
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(['a', 'b'], ['a'])
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(Series(['a', 'b']), Series(['a']))
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(Series(['a', 'b']), set(['a']))
-        expected = np.array([True, False])
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = algos.isin(['a', 'b'], [1])
-        expected = np.array([False, False])
+    @pytest.mark.parametrize("comps,values,expected", [
+        ([1, 2], [1], [True, False]),
+        ([1, 0], [1, 0.5], [True, False]),
+        ([1.0, 0], [1, 0.5], [True, False]),
+        ([1.0, 0.0], [1, 0], [True, True]),
+        (np.array([1, 2]), [1], [True, False]),
+        (Series([1, 2]), [1], [True, False]),
+        (Series([1, 2]), Series([1]), [True, False]),
+        (Series([1, 2]), set([1]), [True, False]),
+        (['a', 'b'], ['a'], [True, False]),
+        (Series(['a', 'b']), Series(['a']), [True, False]),
+        (Series(['a', 'b']), set(['a']), [True, False]),
+        (['a', 'b'], [1], [False, False])
+    ])
+    def test_basic(self, comps, values, expected):
+        result = algos.isin(comps, values)
+        expected = np.array(expected)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_i8(self):

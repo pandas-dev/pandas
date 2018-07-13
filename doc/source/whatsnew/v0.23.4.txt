@@ -31,7 +31,7 @@ Bug Fixes
 
 **Conversion**
 
--
+- Unwanted casting of float to int in :func:`isin` (:issue:`21804`)
 -
 
 **Indexing**
