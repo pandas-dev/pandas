@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, timedelta
 import warnings
 
 import numpy as np
@@ -11,15 +12,20 @@ from pandas._libs.tslibs import (
     resolution as libresolution)
 
 from pandas.util._decorators import cache_readonly
+from pandas.errors import PerformanceWarning
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
+    is_timedelta64_dtype,
     _ensure_int64)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
+from pandas.core.algorithms import checked_add_with_arr
+
 from pandas.tseries.frequencies import to_offset, DateOffset
+from pandas.tseries.offsets import Tick
 
 from .datetimelike import DatetimeLikeArrayMixin
 
@@ -104,6 +110,10 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
         return result
 
     def __new__(cls, values, freq=None, tz=None):
+        if tz is None and hasattr(values, 'tz'):
+            # e.g. DatetimeIndex
+            tz = values.tz
+
         if (freq is not None and not isinstance(freq, DateOffset) and
                 freq != 'infer'):
             freq = to_offset(freq)
@@ -130,6 +140,17 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
         if self.tz is None:
             return _NS_DTYPE
         return DatetimeTZDtype('ns', self.tz)
+
+    @property
+    def tz(self):
+        # GH 18595
+        return self._tz
+
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
 
     @property
     def tzinfo(self):
@@ -243,6 +264,93 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
+
+    def _add_offset(self, offset):
+        assert not isinstance(offset, Tick)
+        try:
+            if self.tz is not None:
+                values = self.tz_localize(None)
+            else:
+                values = self
+            result = offset.apply_index(values)
+            if self.tz is not None:
+                result = result.tz_localize(self.tz)
+
+        except NotImplementedError:
+            warnings.warn("Non-vectorized DateOffset being applied to Series "
+                          "or DatetimeIndex", PerformanceWarning)
+            result = self.astype('O') + offset
+
+        return type(self)(result, freq='infer')
+
+    def _sub_datelike(self, other):
+        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
+        if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
+            if isinstance(other, np.ndarray):
+                # if other is an ndarray, we assume it is datetime64-dtype
+                other = type(self)(other)
+            if not self._has_same_tz(other):
+                # require tz compat
+                raise TypeError("{cls} subtraction must have the same "
+                                "timezones or no timezones"
+                                .format(cls=type(self).__name__))
+            result = self._sub_datelike_dti(other)
+        elif isinstance(other, (datetime, np.datetime64)):
+            assert other is not NaT
+            other = Timestamp(other)
+            if other is NaT:
+                return self - NaT
+            # require tz compat
+            elif not self._has_same_tz(other):
+                raise TypeError("Timestamp subtraction must have the same "
+                                "timezones or no timezones")
+            else:
+                i8 = self.asi8
+                result = checked_add_with_arr(i8, -other.value,
+                                              arr_mask=self._isnan)
+                result = self._maybe_mask_results(result,
+                                                  fill_value=iNaT)
+        else:
+            raise TypeError("cannot subtract {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+        return result.view('timedelta64[ns]')
+
+    def _add_delta(self, delta):
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
+
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : same type as self
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
+        from pandas.core.arrays.timedelta import TimedeltaArrayMixin
+
+        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
+            new_values = self._add_delta_td(delta)
+        elif is_timedelta64_dtype(delta):
+            if not isinstance(delta, TimedeltaArrayMixin):
+                delta = TimedeltaArrayMixin(delta)
+            new_values = self._add_delta_tdi(delta)
+        else:
+            new_values = self.astype('O') + delta
+
+        tz = 'UTC' if self.tz is not None else None
+        result = type(self)(new_values, tz=tz, freq='infer')
+        if self.tz is not None and self.tz is not utc:
+            result = result.tz_convert(self.tz)
+        return result
 
     # -----------------------------------------------------------------
     # Timezone Conversion and Localization Methods
@@ -444,6 +552,47 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
         """
         return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)
 
+    def normalize(self):
+        """
+        Convert times to midnight.
+
+        The time component of the date-time is converted to midnight i.e.
+        00:00:00. This is useful in cases, when the time does not matter.
+        Length is unaltered. The timezones are unaffected.
+
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on Datetime Array/Index.
+
+        Returns
+        -------
+        DatetimeArray, DatetimeIndex or Series
+            The same type as the original data. Series will have the same
+            name and index. DatetimeIndex will have the same name.
+
+        See Also
+        --------
+        floor : Floor the datetimes to the specified freq.
+        ceil : Ceil the datetimes to the specified freq.
+        round : Round the datetimes to the specified freq.
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(start='2014-08-01 10:00', freq='H',
+        ...                        periods=3, tz='Asia/Calcutta')
+        >>> idx
+        DatetimeIndex(['2014-08-01 10:00:00+05:30',
+                       '2014-08-01 11:00:00+05:30',
+                       '2014-08-01 12:00:00+05:30'],
+                        dtype='datetime64[ns, Asia/Calcutta]', freq='H')
+        >>> idx.normalize()
+        DatetimeIndex(['2014-08-01 00:00:00+05:30',
+                       '2014-08-01 00:00:00+05:30',
+                       '2014-08-01 00:00:00+05:30'],
+                       dtype='datetime64[ns, Asia/Calcutta]', freq=None)
+        """
+        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        return type(self)(new_values, freq='infer').tz_localize(self.tz)
+
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods
 
@@ -544,8 +693,41 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
     weekofyear = _field_accessor('weekofyear', 'woy',
                                  "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow',
-                                "The day of the week with Monday=0, Sunday=6")
+    _dayofweek_doc = """
+    The day of the week with Monday=0, Sunday=6.
+
+    Return the day of the week. It is assumed the week starts on
+    Monday, which is denoted by 0 and ends on Sunday which is denoted
+    by 6. This method is available on both Series with datetime
+    values (using the `dt` accessor) or DatetimeIndex.
+
+    See Also
+    --------
+    Series.dt.dayofweek : Alias.
+    Series.dt.weekday : Alias.
+    Series.dt.day_name : Returns the name of the day of the week.
+
+    Returns
+    -------
+    Series or Index
+        Containing integers indicating the day number.
+
+    Examples
+    --------
+    >>> s = pd.date_range('2016-12-31', '2017-01-08', freq='D').to_series()
+    >>> s.dt.dayofweek
+    2016-12-31    5
+    2017-01-01    6
+    2017-01-02    0
+    2017-01-03    1
+    2017-01-04    2
+    2017-01-05    3
+    2017-01-06    4
+    2017-01-07    5
+    2017-01-08    6
+    Freq: D, dtype: int64
+    """
+    dayofweek = _field_accessor('dayofweek', 'dow', _dayofweek_doc)
     weekday = dayofweek
 
     weekday_name = _field_accessor(

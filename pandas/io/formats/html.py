@@ -8,12 +8,14 @@ from distutils.version import LooseVersion
 
 from textwrap import dedent
 
-import pandas.core.common as com
-from pandas.core.index import MultiIndex
 from pandas import compat
 from pandas.compat import (lzip, range, map, zip, u,
                            OrderedDict, unichr)
+
+import pandas.core.common as com
+from pandas.core.dtypes.generic import ABCMultiIndex
 from pandas.core.config import get_option
+
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.formats.format import (get_level_lengths,
                                       buffer_put_lines)
@@ -117,7 +119,7 @@ class HTMLFormatter(TableFormatter):
                          ('tbody tr th',
                           'vertical-align',
                           'top')]
-        if isinstance(self.columns, MultiIndex):
+        if isinstance(self.columns, ABCMultiIndex):
             element_props.append(('thead tr th',
                                   'text-align',
                                   'left'))
@@ -205,7 +207,7 @@ class HTMLFormatter(TableFormatter):
             else:
                 row = []
 
-            if isinstance(self.columns, MultiIndex):
+            if isinstance(self.columns, ABCMultiIndex):
                 if self.fmt.has_column_names and self.fmt.index:
                     row.append(single_column_table(self.columns.names))
                 else:
@@ -224,7 +226,7 @@ class HTMLFormatter(TableFormatter):
 
         indent += self.indent_delta
 
-        if isinstance(self.columns, MultiIndex):
+        if isinstance(self.columns, ABCMultiIndex):
             template = 'colspan="{span:d}" halign="left"'
 
             if self.fmt.sparsify:
@@ -337,7 +339,7 @@ class HTMLFormatter(TableFormatter):
 
         # write values
         if self.fmt.index:
-            if isinstance(self.frame.index, MultiIndex):
+            if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
             else:
                 self._write_regular_rows(fmt_values, indent)

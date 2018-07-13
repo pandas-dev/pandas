@@ -13,7 +13,7 @@ import pandas.core.common as com
 
 # import after tools, dateutil check
 from dateutil.easter import easter
-from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs import tslibs, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
 from pandas._libs.tslibs import (
@@ -60,8 +60,8 @@ def as_timestamp(obj):
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
-        if other is tslib.NaT:
-            return tslib.NaT
+        if other is tslibs.NaT:
+            return tslibs.NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
             # timedelta path
             return func(self, other)
@@ -89,7 +89,7 @@ def apply_wraps(func):
                 if not isinstance(self, Nano) and result.nanosecond != nano:
                     if result.tz is not None:
                         # convert to UTC
-                        value = tslib.tz_convert_single(
+                        value = conversion.tz_convert_single(
                             result.value, 'UTC', result.tz)
                     else:
                         value = result.value
@@ -103,7 +103,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
+                result = tslibs.normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
