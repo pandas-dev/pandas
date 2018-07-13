@@ -826,6 +826,7 @@ class TestTimeSeries(TestData):
             assert len(ts.between_time(*time_string)) == expected_length
 
     def test_between_time_axis(self):
+        # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
         ts = Series(np.random.randn(len(rng)), index=rng)
         stime, etime = ('08:00:00', '09:00:00')

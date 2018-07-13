@@ -7027,6 +7027,9 @@ class NDFrame(PandasObject, SelectionMixin):
         time : datetime.time or string
         axis : int or string axis name, optional
 
+            .. versionadded:: 0.24.0
+
+
         Returns
         -------
         values_at_time : same type as caller
@@ -7086,6 +7089,8 @@ class NDFrame(PandasObject, SelectionMixin):
         include_start : boolean, default True
         include_end : boolean, default True
         axis : int or string axis name, optional
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
