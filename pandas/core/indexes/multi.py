@@ -11,12 +11,15 @@ from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_platform_int,
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
+    is_integer,
     is_iterator,
     is_list_like,
     pandas_dtype,
@@ -189,7 +192,6 @@ class MultiIndex(Index):
     from_product
     set_levels
     set_labels
-    to_hierarchical
     to_frame
     is_lexsorted
     sortlevel
@@ -344,9 +346,9 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
         MultiIndex(levels=[[u'a', u'b'], [1, 2]],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -440,9 +442,9 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
@@ -672,30 +674,18 @@ class MultiIndex(Index):
 
         if level is None:
             level = range(self.nlevels)
-            used = {}
         else:
             level = [self._get_level_number(l) for l in level]
-            used = {self.levels[l].name: l
-                    for l in set(range(self.nlevels)) - set(level)}
 
         # set the name
         for l, name in zip(level, names):
             if name is not None:
-
                 # GH 20527
                 # All items in 'names' need to be hashable:
                 if not is_hashable(name):
                     raise TypeError('{}.name must be a hashable type'
                                     .format(self.__class__.__name__))
-
-                if name in used:
-                    raise ValueError(
-                        'Duplicated level name: "{}", assigned to '
-                        'level {}, is already used for level '
-                        '{}.'.format(name, l, used[name]))
-
             self.levels[l].rename(name, inplace=True)
-            used[name] = l
 
     names = property(fset=_set_names, fget=_get_names,
                      doc="Names of levels in MultiIndex")
@@ -768,14 +758,14 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
+        count = self.names.count(level)
+        if (count > 1) and not is_integer(level):
+            raise ValueError('The name %s occurs multiple times, use a '
+                             'level number' % level)
         try:
-            count = self.names.count(level)
-            if count > 1:
-                raise ValueError('The name %s occurs multiple times, use a '
-                                 'level number' % level)
             level = self.names.index(level)
         except ValueError:
-            if not isinstance(level, int):
+            if not is_integer(level):
                 raise KeyError('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
@@ -820,20 +810,16 @@ class MultiIndex(Index):
             return self._tuples
 
         values = []
-        for lev, lab in zip(self.levels, self.labels):
-            # Need to box timestamps, etc.
-            box = hasattr(lev, '_box_values')
-            # Try to minimize boxing.
-            if box and len(lev) > len(lab):
-                taken = lev._box_values(algos.take_1d(lev._ndarray_values,
-                                                      lab))
-            elif box:
-                taken = algos.take_1d(lev._box_values(lev._ndarray_values),
-                                      lab,
-                                      fill_value=lev._na_value)
-            else:
-                taken = algos.take_1d(np.asarray(lev._values), lab)
-            values.append(taken)
+
+        for i in range(self.nlevels):
+            vals = self._get_level_values(i)
+            if is_categorical_dtype(vals):
+                vals = vals.get_values()
+            if (isinstance(vals.dtype, (PandasExtensionDtype, ExtensionDtype))
+                    or hasattr(vals, '_box_values')):
+                vals = vals.astype(object)
+            vals = np.array(vals, copy=False)
+            values.append(vals)
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
@@ -1182,6 +1168,8 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
+        .. deprecated:: 0.24.0
+
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
@@ -1204,8 +1192,8 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')])
         >>> idx.to_hierarchical(3)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
@@ -1216,6 +1204,9 @@ class MultiIndex(Index):
         # Assumes that each label is divisible by n_shuffle
         labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
+        warnings.warn("Method .to_hierarchical is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
         return MultiIndex(levels=levels, labels=labels, names=names)
 
     @property
@@ -1264,7 +1255,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-        >>> MultiIndex.from_arrays(arrays, names=('number', 'color'))
+        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
 
         See Also
         --------
@@ -1313,7 +1304,7 @@ class MultiIndex(Index):
         --------
         >>> tuples = [(1, u'red'), (1, u'blue'),
                       (2, u'red'), (2, u'blue')]
-        >>> MultiIndex.from_tuples(tuples, names=('number', 'color'))
+        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
 
         See Also
         --------
@@ -1366,8 +1357,8 @@ class MultiIndex(Index):
         --------
         >>> numbers = [0, 1, 2]
         >>> colors = [u'green', u'purple']
-        >>> MultiIndex.from_product([numbers, colors],
-                                     names=['number', 'color'])
+        >>> pd.MultiIndex.from_product([numbers, colors],
+                                       names=['number', 'color'])
         MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
                    names=[u'number', u'color'])
@@ -1968,8 +1959,8 @@ class MultiIndex(Index):
                                                           tolerance=tolerance)
 
         if not self.is_unique:
-            raise Exception('Reindexing only valid with uniquely valued Index '
-                            'objects')
+            raise ValueError('Reindexing only valid with uniquely valued '
+                             'Index objects')
 
         if method == 'pad' or method == 'backfill':
             if tolerance is not None:
@@ -2033,7 +2024,7 @@ class MultiIndex(Index):
                                                limit=limit,
                                                tolerance=tolerance)
                 else:
-                    raise Exception("cannot handle a non-unique multi-index!")
+                    raise ValueError("cannot handle a non-unique multi-index!")
 
         if not isinstance(target, MultiIndex):
             if indexer is None:

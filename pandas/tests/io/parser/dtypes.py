@@ -125,9 +125,9 @@ one,two
             np.sort(actual.a.cat.categories), ordered=True)
         tm.assert_frame_equal(actual, expected)
 
-    def test_categorical_dtype_encoding(self):
+    def test_categorical_dtype_encoding(self, datapath):
         # GH 10153
-        pth = tm.get_data_path('unicode_series.csv')
+        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
         encoding = 'latin-1'
         expected = self.read_csv(pth, header=None, encoding=encoding)
         expected[1] = Categorical(expected[1])
@@ -135,7 +135,7 @@ one,two
                                dtype={1: 'category'})
         tm.assert_frame_equal(actual, expected)
 
-        pth = tm.get_data_path('utf16_ex.txt')
+        pth = datapath('io', 'parser', 'data', 'utf16_ex.txt')
         encoding = 'utf-16'
         expected = self.read_table(pth, encoding=encoding)
         expected = expected.apply(Categorical)

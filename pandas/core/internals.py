@@ -74,10 +74,9 @@ from pandas.io.formats.printing import pprint_thing
 
 import pandas.core.missing as missing
 from pandas.core.sparse.array import _maybe_to_sparse, SparseArray
-from pandas._libs import lib, tslib
-from pandas._libs.tslib import Timedelta
+from pandas._libs import lib, tslib, tslibs
+from pandas._libs.tslibs import conversion, Timedelta
 from pandas._libs.internals import BlockPlacement
-from pandas._libs.tslibs import conversion
 
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
@@ -633,8 +632,9 @@ class Block(PandasObject):
             return self.make_block(Categorical(self.values, dtype=dtype))
 
         # astype processing
-        dtype = np.dtype(dtype)
-        if self.dtype == dtype:
+        if not is_extension_array_dtype(dtype):
+            dtype = np.dtype(dtype)
+        if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
             return self
@@ -662,7 +662,13 @@ class Block(PandasObject):
 
                 # _astype_nansafe works fine with 1-d only
                 values = astype_nansafe(values.ravel(), dtype, copy=True)
-                values = values.reshape(self.shape)
+
+                # TODO(extension)
+                # should we make this attribute?
+                try:
+                    values = values.reshape(self.shape)
+                except AttributeError:
+                    pass
 
             newb = make_block(values, placement=self.mgr_locs,
                               klass=klass)
@@ -1476,7 +1482,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        other = getattr(other, 'values', other)
+        other = getattr(other, '_values', getattr(other, 'values', other))
         cond = getattr(cond, 'values', cond)
 
         # If the default broadcasting would go in the wrong direction, then
@@ -1484,6 +1490,8 @@ class Block(PandasObject):
         if getattr(other, 'ndim', 0) >= 1:
             if values.ndim - 1 == other.ndim and axis == 1:
                 other = other.reshape(tuple(other.shape + (1, )))
+            elif transpose and values.ndim == self.ndim - 1:
+                cond = cond.T
 
         if not hasattr(cond, 'shape'):
             raise ValueError("where must have a condition that is ndarray "
@@ -2131,11 +2139,11 @@ class DatetimeLikeBlockMixin(object):
 
     @property
     def _na_value(self):
-        return tslib.NaT
+        return tslibs.NaT
 
     @property
     def fill_value(self):
-        return tslib.iNaT
+        return tslibs.iNaT
 
     def get_values(self, dtype=None):
         """
@@ -2166,7 +2174,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
     @property
     def _box_func(self):
-        return lambda x: tslib.Timedelta(x, unit='ns')
+        return lambda x: Timedelta(x, unit='ns')
 
     def _can_hold_element(self, element):
         tipo = maybe_infer_dtype_type(element)
@@ -2205,7 +2213,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         if isinstance(other, bool):
             raise TypeError
         elif is_null_datelike_scalar(other):
-            other = tslib.iNaT
+            other = tslibs.iNaT
             other_mask = True
         elif isinstance(other, Timedelta):
             other_mask = isna(other)
@@ -2231,7 +2239,7 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
             mask = isna(result)
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('m8[ns]')
-            result[mask] = tslib.iNaT
+            result[mask] = tslibs.iNaT
         elif isinstance(result, (np.integer, np.float)):
             result = self._box_func(result)
         return result
@@ -2705,7 +2713,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         if isinstance(other, bool):
             raise TypeError
         elif is_null_datelike_scalar(other):
-            other = tslib.iNaT
+            other = tslibs.iNaT
             other_mask = True
         elif isinstance(other, (datetime, np.datetime64, date)):
             other = self._box_func(other)
@@ -2738,7 +2746,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     @property
     def _box_func(self):
-        return tslib.Timestamp
+        return tslibs.Timestamp
 
     def to_native_types(self, slicer=None, na_rep=None, date_format=None,
                         quoting=None, **kwargs):
@@ -2883,15 +2891,15 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             raise TypeError
         elif (is_null_datelike_scalar(other) or
               (is_scalar(other) and isna(other))):
-            other = tslib.iNaT
+            other = tslibs.iNaT
             other_mask = True
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
-            other = other.asi8
-            other_mask = isna(other)
+            other_mask = _block_shape(isna(other), ndim=self.ndim)
+            other = _block_shape(other.asi8, ndim=self.ndim)
         elif isinstance(other, (np.datetime64, datetime, date)):
-            other = tslib.Timestamp(other)
+            other = tslibs.Timestamp(other)
             tz = getattr(other, 'tz', None)
 
             # test we can have an equal time zone
@@ -2910,7 +2918,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = tslib.Timestamp(result, tz=self.values.tz)
+            result = tslibs.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
             # allow passing of > 1dim if its trivial
             if result.ndim > 1:
@@ -2921,7 +2929,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     @property
     def _box_func(self):
-        return lambda x: tslib.Timestamp(x, tz=self.dtype.tz)
+        return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
     def shift(self, periods, axis=0, mgr=None):
         """ shift the block by periods """
@@ -2939,9 +2947,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         new_values = self.values.asi8.take(indexer)
 
         if periods > 0:
-            new_values[:periods] = tslib.iNaT
+            new_values[:periods] = tslibs.iNaT
         else:
-            new_values[periods:] = tslib.iNaT
+            new_values[periods:] = tslibs.iNaT
 
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
@@ -3170,6 +3178,10 @@ def get_block_type(values, dtype=None):
         cls = TimeDeltaBlock
     elif issubclass(vtype, np.complexfloating):
         cls = ComplexBlock
+    elif is_categorical(values):
+        cls = CategoricalBlock
+    elif is_extension_array_dtype(values):
+        cls = ExtensionBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetimetz(values)
         cls = DatetimeBlock
@@ -3179,10 +3191,6 @@ def get_block_type(values, dtype=None):
         cls = IntBlock
     elif dtype == np.bool_:
         cls = BoolBlock
-    elif is_categorical(values):
-        cls = CategoricalBlock
-    elif is_extension_array_dtype(values):
-        cls = ExtensionBlock
     else:
         cls = ObjectBlock
     return cls
@@ -5531,11 +5539,11 @@ def get_empty_dtype_and_na(join_units):
         return np.dtype(np.object_), np.nan
     elif 'datetimetz' in upcast_classes:
         dtype = upcast_classes['datetimetz']
-        return dtype[0], tslib.iNaT
+        return dtype[0], tslibs.iNaT
     elif 'datetime' in upcast_classes:
-        return np.dtype('M8[ns]'), tslib.iNaT
+        return np.dtype('M8[ns]'), tslibs.iNaT
     elif 'timedelta' in upcast_classes:
-        return np.dtype('m8[ns]'), tslib.iNaT
+        return np.dtype('m8[ns]'), tslibs.iNaT
     else:  # pragma
         g = np.find_common_type(upcast_classes, [])
         if is_float_dtype(g):

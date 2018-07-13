@@ -169,7 +169,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 data = data.set_categories(categories, ordered=ordered)
             elif ordered is not None and ordered != data.ordered:
                 data = data.set_ordered(ordered)
-            if isinstance(dtype, CategoricalDtype):
+            if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
                 # we want to silently ignore dtype='category'
                 data = data._set_dtype(dtype)
         return data
@@ -236,7 +236,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if not is_list_like(values):
                 values = [values]
             other = CategoricalIndex(self._create_categorical(
-                other, categories=self.categories, ordered=self.ordered))
+                other, dtype=self.dtype))
             if not other.isin(values).all():
                 raise TypeError("cannot append a non-category item to a "
                                 "CategoricalIndex")
@@ -425,7 +425,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> monotonic_index.get_loc('b')
         slice(1, 3, None)
 
-        >>> non_monotonic_index = p.dCategoricalIndex(list('abcb'))
+        >>> non_monotonic_index = pd.CategoricalIndex(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
@@ -798,8 +798,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                     other = other._values
                 elif isinstance(other, Index):
                     other = self._create_categorical(
-                        other._values, categories=self.categories,
-                        ordered=self.ordered)
+                        other._values, dtype=self.dtype)
 
                 if isinstance(other, (ABCCategorical, np.ndarray,
                                       ABCSeries)):

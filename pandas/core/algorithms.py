@@ -154,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     """
     from pandas import Index
     if is_extension_array_dtype(dtype):
-        pass
+        values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
@@ -306,8 +306,8 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(Series([pd.Timestamp('20160101'),
-    ...                   pd.Timestamp('20160101')]))
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
+    ...                     pd.Timestamp('20160101')]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
@@ -326,20 +326,20 @@ def unique(values):
     An unordered Categorical will return categories in the
     order of appearance.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
     An ordered Categorical preserves the category ordering.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'),
-    ...                                 ordered=True)))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'),
+    ...                                    ordered=True)))
     [b, a, c]
     Categories (3, object): [a < b < c]
 
@@ -705,7 +705,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -1076,8 +1076,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1148,7 +1148,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds

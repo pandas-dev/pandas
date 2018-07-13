@@ -4,7 +4,7 @@ import operator
 from textwrap import dedent
 
 import numpy as np
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex, tslibs,
                           algos as libalgos, join as libjoin,
                           Timedelta)
 from pandas._libs.lib import is_datetime_array
@@ -407,7 +407,7 @@ class Index(IndexOpsMixin, PandasObject):
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
-                            except libts.OutOfBoundsDatetime:
+                            except tslibs.OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
@@ -506,6 +506,10 @@ class Index(IndexOpsMixin, PandasObject):
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
+
+        # _simple_new expects an ndarray
+        values = getattr(values, 'values', values)
+
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
@@ -1272,13 +1276,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> Index([1, 2, 3, 4]).set_names('foo')
+        >>> pd.Index([1, 2, 3, 4]).set_names('foo')
         Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> Index([1, 2, 3, 4]).set_names(['foo'])
+        >>> pd.Index([1, 2, 3, 4]).set_names(['foo'])
         Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_names(['baz', 'quz'])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -2364,12 +2368,59 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof(self, label):
         """
-        For a sorted index, return the most recent label up to and including
-        the passed label. Return NaN if not found.
+        Return the label from the index, or, if not present, the previous one.
 
-        See also
+        Assuming that the index is sorted, return the passed index label if it
+        is in the index, or return the previous index label if the passed one
+        is not in the index.
+
+        Parameters
+        ----------
+        label : object
+            The label up to which the method returns the latest index label.
+
+        Returns
+        -------
+        object
+            The passed label if it is in the index. The previous label if the
+            passed label is not in the sorted index or `NaN` if there is no
+            such label.
+
+        See Also
         --------
-        get_loc : asof is a thin wrapper around get_loc with method='pad'
+        Series.asof : Return the latest value in a Series up to the
+            passed index.
+        merge_asof : Perform an asof merge (similar to left join but it
+            matches on nearest key rather than equal key).
+        Index.get_loc : `asof` is a thin wrapper around `get_loc`
+            with method='pad'.
+
+        Examples
+        --------
+        `Index.asof` returns the latest index label up to the passed label.
+
+        >>> idx = pd.Index(['2013-12-31', '2014-01-02', '2014-01-03'])
+        >>> idx.asof('2014-01-01')
+        '2013-12-31'
+
+        If the label is in the index, the method returns the passed label.
+
+        >>> idx.asof('2014-01-02')
+        '2014-01-02'
+
+        If all of the labels in the index are later than the passed label,
+        NaN is returned.
+
+        >>> idx.asof('1999-01-02')
+        nan
+
+        If the index is not sorted, an error is raised.
+
+        >>> idx_not_sorted = pd.Index(['2013-12-31', '2015-01-02',
+        ...                            '2014-01-03'])
+        >>> idx_not_sorted.asof('2013-12-31')
+        Traceback (most recent call last):
+        ValueError: index must be monotonic increasing or decreasing
         """
         try:
             loc = self.get_loc(label, method='pad')
@@ -2844,8 +2895,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx1 = Index([1, 2, 3, 4])
-        >>> idx2 = Index([2, 3, 4, 5])
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([2, 3, 4, 5])
         >>> idx1.symmetric_difference(idx2)
         Int64Index([1, 5], dtype='int64')
 
@@ -2988,16 +3039,20 @@ class Index(IndexOpsMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
         if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
-            # GH 20825
+            # GH 20882, 21257
             # Unify Index and ExtensionArray treatment
             # First try to convert the key to a location
-            # If that fails, see if key is an integer, and
+            # If that fails, raise a KeyError if an integer
+            # index, otherwise, see if key is an integer, and
             # try that
             try:
                 iloc = self.get_loc(key)
                 return s[iloc]
             except KeyError:
-                if is_integer(key):
+                if (len(self) > 0 and
+                        self.inferred_type in ['integer', 'boolean']):
+                    raise
+                elif is_integer(key):
                     return s[key]
 
         s = com._values_from_object(series)
@@ -3039,26 +3094,41 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _get_level_values(self, level):
         """
-        Return an Index of values for requested level, equal to the length
-        of the index.
+        Return an Index of values for requested level.
+
+        This is primarily useful to get an individual level of values from a
+        MultiIndex, but is provided on Index as well for compatability.
 
         Parameters
         ----------
         level : int or str
-            ``level`` is either the integer position of the level in the
-            MultiIndex, or the name of the level.
+            It is either the integer position or the name of the level.
 
         Returns
         -------
         values : Index
-            ``self``, as there is only one level in the Index.
+            Calling object, as there is only one level in the Index.
 
         See also
-        ---------
-        pandas.MultiIndex.get_level_values : get values for a level of a
-                                             MultiIndex
-        """
+        --------
+        MultiIndex.get_level_values : get values for a level of a MultiIndex
 
+        Notes
+        -----
+        For Index, level should be 0, since there are no multiple levels.
+
+        Examples
+        --------
+
+        >>> idx = pd.Index(list('abc'))
+        >>> idx
+        Index(['a', 'b', 'c'], dtype='object')
+
+        Get level values by supplying `level` as integer:
+
+        >>> idx.get_level_values(0)
+        Index(['a', 'b', 'c'], dtype='object')
+        """
         self._validate_index_level(level)
         return self
 

@@ -6,7 +6,6 @@ import string
 import sys
 import tempfile
 import warnings
-import inspect
 import os
 import subprocess
 import locale
@@ -30,7 +29,8 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,
     is_sequence,
-    is_list_like)
+    is_list_like,
+    is_extension_array_dtype)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 import pandas.core.common as com
@@ -209,24 +209,26 @@ def decompress_file(path, compression):
     f.close()
 
 
-def assert_almost_equal(left, right, check_exact=False,
-                        check_dtype='equiv', check_less_precise=False,
-                        **kwargs):
+def assert_almost_equal(left, right, check_dtype="equiv",
+                        check_less_precise=False, **kwargs):
     """
     Check that the left and right objects are approximately equal.
+
+    By approximately equal, we refer to objects that are numbers or that
+    contain numbers which may be equivalent to specific levels of precision.
 
     Parameters
     ----------
     left : object
     right : object
-    check_exact : bool, default False
-        Whether to compare number exactly.
-    check_dtype: bool, default True
-        check dtype if both a and b are the same type
+    check_dtype : bool / string {'equiv'}, default False
+        Check dtype if both a and b are the same type. If 'equiv' is passed in,
+        then `RangeIndex` and `Int64Index` are also considered equivalent
+        when doing type checking.
     check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when `check_exact` is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare.
+        Specify comparison precision. 5 digits (False) or 3 digits (True)
+        after decimal points are compared. If int, then specify the number
+        of digits to compare.
 
         When comparing two numbers, if the first number has magnitude less
         than 1e-5, we compare the two numbers directly and check whether
@@ -234,39 +236,43 @@ def assert_almost_equal(left, right, check_exact=False,
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
     """
+
     if isinstance(left, pd.Index):
-        return assert_index_equal(left, right, check_exact=check_exact,
+        return assert_index_equal(left, right,
+                                  check_exact=False,
                                   exact=check_dtype,
                                   check_less_precise=check_less_precise,
                                   **kwargs)
 
     elif isinstance(left, pd.Series):
-        return assert_series_equal(left, right, check_exact=check_exact,
+        return assert_series_equal(left, right,
+                                   check_exact=False,
                                    check_dtype=check_dtype,
                                    check_less_precise=check_less_precise,
                                    **kwargs)
 
     elif isinstance(left, pd.DataFrame):
-        return assert_frame_equal(left, right, check_exact=check_exact,
+        return assert_frame_equal(left, right,
+                                  check_exact=False,
                                   check_dtype=check_dtype,
                                   check_less_precise=check_less_precise,
                                   **kwargs)
 
     else:
-        # other sequences
+        # Other sequences.
         if check_dtype:
             if is_number(left) and is_number(right):
-                # do not compare numeric classes, like np.float64 and float
+                # Do not compare numeric classes, like np.float64 and float.
                 pass
             elif is_bool(left) and is_bool(right):
-                # do not compare bool classes, like np.bool_ and bool
+                # Do not compare bool classes, like np.bool_ and bool.
                 pass
             else:
                 if (isinstance(left, np.ndarray) or
                         isinstance(right, np.ndarray)):
-                    obj = 'numpy array'
+                    obj = "numpy array"
                 else:
-                    obj = 'Input'
+                    obj = "Input"
                 assert_class_equal(left, right, obj=obj)
         return _testing.assert_almost_equal(
             left, right,
@@ -485,6 +491,8 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         A string of the form <language_country>.<encoding>. For example to set
         the current locale to US English with a UTF8 encoding, you would pass
         "en_US.UTF-8".
+    lc_var : int, default `locale.LC_ALL`
+        The category of the locale being set.
 
     Notes
     -----
@@ -510,21 +518,25 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         locale.setlocale(lc_var, current_locale)
 
 
-def _can_set_locale(lc):
-    """Check to see if we can set a locale without throwing an exception.
+def can_set_locale(lc, lc_var=locale.LC_ALL):
+    """
+    Check to see if we can set a locale without raising an Exception.
 
     Parameters
     ----------
     lc : str
         The locale to attempt to set.
+    lc_var : int, default `locale.LC_ALL`
+        The category of the locale being set.
 
     Returns
     -------
-    isvalid : bool
+    is_valid : bool
         Whether the passed locale can be set
     """
+
     try:
-        with set_locale(lc):
+        with set_locale(lc, lc_var=lc_var):
             pass
     except locale.Error:  # horrible name for a Exception subclass
         return False
@@ -553,7 +565,7 @@ def _valid_locales(locales, normalize):
     else:
         normalizer = lambda x: x.strip()
 
-    return list(filter(_can_set_locale, map(normalizer, locales)))
+    return list(filter(can_set_locale, map(normalizer, locales)))
 
 # -----------------------------------------------------------------------------
 # Stdout / stderr decorators
@@ -756,15 +768,6 @@ def ensure_clean(filename=None, return_filelike=False):
             except Exception as e:
                 print("Exception on removing file: {error}".format(error=e))
 
-
-def get_data_path(f=''):
-    """Return the path of a data file, these are relative to the current test
-    directory.
-    """
-    # get our callers file
-    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
-    base_dir = os.path.abspath(os.path.dirname(filename))
-    return os.path.join(base_dir, 'data', f)
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -1253,6 +1256,10 @@ def assert_series_equal(left, right, check_dtype=True,
         right = pd.IntervalIndex(right)
         assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
 
+    elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
+          is_extension_array_dtype(right) and not is_categorical_dtype(right)):
+        return assert_extension_array_equal(left.values, right.values)
+
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
                                      check_less_precise=check_less_precise,
@@ -1303,7 +1310,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare
     check_names : bool, default True
-        Whether to check the Index names attribute.
+        Whether to check that the `names` attribute for both the `index`
+        and `column` attributes of the DataFrame is identical, i.e.
+
+        * left.index.names == right.index.names
+        * left.columns.names == right.columns.names
+
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -2511,7 +2523,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                     message=actual_warning.message)
                     assert actual_warning.filename == caller.filename, msg
             else:
-                extra_warnings.append(actual_warning.category.__name__)
+                extra_warnings.append((actual_warning.category.__name__,
+                                       actual_warning.message,
+                                       actual_warning.filename,
+                                       actual_warning.lineno))
         if expected_warning:
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)

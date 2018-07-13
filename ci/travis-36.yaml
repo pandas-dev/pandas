@@ -4,10 +4,11 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython
+  - cython>=0.28.2
   - dask
   - fastparquet
   - feather-format
+  - gcsfs
   - geopandas
   - html5lib
   - ipython

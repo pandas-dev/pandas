@@ -100,6 +100,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.select
    HDFStore.info
    HDFStore.keys
+   HDFStore.walk
 
 Feather
 ~~~~~~~
@@ -434,7 +435,6 @@ Computations / Descriptive Stats
    Series.value_counts
    Series.compound
    Series.nonzero
-   Series.ptp
 
 
 Reindexing / Selection / Label manipulation
@@ -1641,6 +1641,7 @@ IntervalIndex Components
    IntervalIndex.is_non_overlapping_monotonic
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
+   IntervalIndex.set_closed
 
 
 .. _api.multiindex:

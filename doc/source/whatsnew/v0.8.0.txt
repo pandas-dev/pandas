@@ -178,7 +178,7 @@ types. For example, ``'kde'`` is a new option:
    s = Series(np.concatenate((np.random.randn(1000),
                               np.random.randn(1000) * 0.5 + 3)))
    plt.figure()
-   s.hist(normed=True, alpha=0.2)
+   s.hist(density=True, alpha=0.2)
    s.plot(kind='kde')
 
 See :ref:`the plotting page <visualization.other>` for much more.

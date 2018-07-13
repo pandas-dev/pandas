@@ -16,6 +16,7 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+cimport util
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
                    is_datetime64_object, is_timedelta64_object)
@@ -587,3 +588,28 @@ cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return val is None or (
         PyFloat_Check(val) and val != val) or val is NaT
+
+
+cdef inline bint is_null_datetimelike(object val):
+    """
+    Determine if we have a null for a timedelta/datetime (or integer versions)
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    null_datetimelike : bool
+    """
+    if util._checknull(val):
+        return True
+    elif val is NaT:
+        return True
+    elif util.is_timedelta64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_integer_object(val):
+        return val == NPY_NAT
+    return False
