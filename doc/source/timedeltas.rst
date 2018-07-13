@@ -352,8 +352,8 @@ You can convert a ``Timedelta`` to an `ISO 8601 Duration`_ string with the
 TimedeltaIndex
 --------------
 
-To generate an index with time delta, you can use either the ``TimedeltaIndex`` or
-the ``timedelta_range`` constructor.
+To generate an index with time delta, you can use either the :class:`TimedeltaIndex` or
+the :func:`timedelta_range` constructor.
 
 Using ``TimedeltaIndex`` you can pass string-like, ``Timedelta``, ``timedelta``,
 or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent missing values.
@@ -394,8 +394,22 @@ The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseri
 
 .. ipython:: python
 
-   pd.timedelta_range(start='1 days', periods=5, freq='D')
    pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+
+   pd.timedelta_range(start='1 days', periods=5, freq='2D5H')
+
+
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+timedeltas from ``start`` to ``end`` inclusively, with ``periods`` number of elements
+in the resulting ``TimedeltaIndex``:
+
+.. ipython:: python
+
+   pd.timedelta_range('0 days', '4 days', periods=5)
+
+   pd.timedelta_range('0 days', '4 days', periods=10)
 
 Using the TimedeltaIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~

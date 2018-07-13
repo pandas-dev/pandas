@@ -2497,3 +2497,14 @@ def test_concat_aligned_sort_does_not_raise():
                             columns=[1, 'a'])
     result = pd.concat([df, df], ignore_index=True, sort=True)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("s1name,s2name", [
+    (np.int64(190), (43, 0)), (190, (43, 0))])
+def test_concat_series_name_npscalar_tuple(s1name, s2name):
+    # GH21015
+    s1 = pd.Series({'a': 1, 'b': 2}, name=s1name)
+    s2 = pd.Series({'c': 5, 'd': 6}, name=s2name)
+    result = pd.concat([s1, s2])
+    expected = pd.Series({'a': 1, 'b': 2, 'c': 5, 'd': 6})
+    tm.assert_series_equal(result, expected)

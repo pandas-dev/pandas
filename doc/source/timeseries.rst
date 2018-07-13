@@ -406,6 +406,18 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
+resulting ``DatetimeIndex``:
+
+.. ipython:: python
+
+   pd.date_range('2018-01-01', '2018-01-05', periods=5)
+
+   pd.date_range('2018-01-01', '2018-01-05', periods=10)
+
 .. _timeseries.custom-freq-ranges:
 
 Custom Frequency Ranges

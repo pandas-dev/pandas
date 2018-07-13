@@ -704,6 +704,14 @@ class TestToDatetimeUnit(object):
             pd.to_datetime(arr, errors='raise', cache=cache)
 
     @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_rounding(self, cache):
+        # GH 14156: argument will incur floating point errors but no
+        # premature rounding
+        result = pd.to_datetime(1434743731.8770001, unit='s', cache=cache)
+        expected = pd.Timestamp('2015-06-19 19:55:31.877000093')
+        assert result == expected
+
+    @pytest.mark.parametrize('cache', [True, False])
     def test_dataframe(self, cache):
 
         df = DataFrame({'year': [2015, 2016],

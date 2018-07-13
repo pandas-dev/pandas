@@ -504,6 +504,25 @@ Attribute "names" are different
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2)
 
+    def test_categorical_index_equality(self):
+        expected = """Index are different
+
+Attribute "dtype" are different
+\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
+                               pd.Index(pd.Categorical(['a', 'b'],
+                                        categories=['a', 'b', 'c'])))
+
+    def test_categorical_index_equality_relax_categories_check(self):
+        assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
+                           pd.Index(pd.Categorical(['a', 'b'],
+                                    categories=['a', 'b', 'c'])),
+                           check_categorical=False)
+
 
 class TestAssertSeriesEqual(object):
 
@@ -600,6 +619,25 @@ Series values are different \\(33\\.33333 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 4]),
                                 check_less_precise=True)
+
+    def test_categorical_series_equality(self):
+        expected = """Attributes are different
+
+Attribute "dtype" are different
+\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
+                                pd.Series(pd.Categorical(['a', 'b'],
+                                          categories=['a', 'b', 'c'])))
+
+    def test_categorical_series_equality_relax_categories_check(self):
+        assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
+                            pd.Series(pd.Categorical(['a', 'b'],
+                                      categories=['a', 'b', 'c'])),
+                            check_categorical=False)
 
 
 class TestAssertFrameEqual(object):

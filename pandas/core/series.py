@@ -1207,9 +1207,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not isinstance(level, (tuple, list)):
                     level = [level]
                 level = [self.index._get_level_number(lev) for lev in level]
-                if isinstance(self.index, MultiIndex):
-                    if len(level) < self.index.nlevels:
-                        new_index = self.index.droplevel(level)
+                if len(level) < self.index.nlevels:
+                    new_index = self.index.droplevel(level)
 
             if inplace:
                 self.index = new_index
@@ -2653,7 +2652,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis = self._get_axis_number(axis)
         index = self.index
 
-        if level:
+        if level is not None:
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
@@ -3207,7 +3206,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # handle ufuncs and lambdas
         if kwds or args and not isinstance(func, np.ufunc):
-            f = lambda x: func(x, *args, **kwds)
+            def f(x):
+                return func(x, *args, **kwds)
         else:
             f = func
 

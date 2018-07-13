@@ -399,11 +399,13 @@ class TestDataFrameIndexing(TestData):
 
         df = DataFrame(np.random.randn(8, 4))
         # ix does label-based indexing when having an integer index
-        with pytest.raises(KeyError):
-            df.ix[[-1]]
+        with catch_warnings(record=True):
+            with pytest.raises(KeyError):
+                df.ix[[-1]]
 
-        with pytest.raises(KeyError):
-            df.ix[:, [-1]]
+        with catch_warnings(record=True):
+            with pytest.raises(KeyError):
+                df.ix[:, [-1]]
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
