@@ -1057,6 +1057,7 @@ class TestDataFrameAlterAxes(TestData):
                               "fill_value", "tolerance"}
 
     def test_droplevel(self):
+        # GH20342
         df = pd.DataFrame([
             [1, 2, 3, 4],
             [5, 6, 7, 8],
