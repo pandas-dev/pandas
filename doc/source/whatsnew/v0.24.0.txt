@@ -66,6 +66,36 @@ Current Behavior:
 
     result
 
+
+.. _whatsnew_0240.enhancements.interval:
+
+Storing Interval Data in Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
+:class:`IntervalIndex` like previously (:issue:`19453`).
+
+.. ipython:: python
+
+   ser = pd.Series(pd.interval_range(0, 5))
+   ser
+   ser.dtype
+
+Previously, these would be cast to a NumPy array of ``Interval`` objects. In general,
+this should result in better performance when storing an array of intervals in
+a :class:`Series`.
+
+Note that the ``.values`` of a ``Series`` containing intervals is no longer a NumPy
+array, but rather an ``ExtensionArray``:
+
+.. ipython:: python
+
+   ser.values
+
+This is the same behavior as ``Series.values`` for categorical data. See
+:ref:`whatsnew_0240.api_breaking.interval_values` for more.
+
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -90,6 +120,45 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _whatsnew_0240.api_breaking.interval_values:
+
+``IntervalIndex.values`` is now an ``IntervalArray``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :attr:`~Interval.values` attribute of an :class:`IntervalIndex` now returns an
+``IntervalArray``, rather than a NumPy array of :class:`Interval` objects (:issue:`19453`).
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: idx = pd.interval_range(0, 4)
+
+   In [2]: idx.values
+   Out[2]:
+   array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+          Interval(2, 3, closed='right'), Interval(3, 4, closed='right')],
+         dtype=object)
+
+New Behavior:
+
+.. ipython:: python
+
+   idx = pd.interval_range(0, 4)
+   idx.values
+
+This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.
+
+For situations where you need an ``ndarray`` of ``Interval`` objects, use
+:meth:`numpy.asarray` or ``idx.astype(object)``.
+
+.. ipython:: python
+  
+   np.asarray(idx)
+   idx.values.astype(object)
+
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -350,6 +419,7 @@ Interval
 ^^^^^^^^
 
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
+- Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 -
 -
 

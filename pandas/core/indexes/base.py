@@ -272,7 +272,8 @@ class Index(IndexOpsMixin, PandasObject):
                                     **kwargs)
 
         # interval
-        if is_interval_dtype(data) or is_interval_dtype(dtype):
+        if ((is_interval_dtype(data) or is_interval_dtype(dtype)) and
+                not is_object_dtype(dtype)):
             from .interval import IntervalIndex
             closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
