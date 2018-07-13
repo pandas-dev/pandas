@@ -128,7 +128,7 @@ class TestiLoc(Base):
 
     def test_iloc_array_not_mutating_negative_indices(self):
 
-        # GH 21867.
+        # GH 21867
         array_with_neg_numbers = np.array([1, 2, -1])
         array_copy = array_with_neg_numbers.copy()
         df = pd.DataFrame({
