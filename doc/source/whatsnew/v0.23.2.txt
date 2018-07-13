@@ -6,6 +6,12 @@ v0.23.2
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
 
+.. note::
+
+   Pandas 0.23.2 is first pandas release that's compatible with
+   Python 3.7 (:issue:`20552`)
+
+
 .. contents:: What's new in v0.23.2
     :local:
     :backlinks: none
@@ -17,6 +23,7 @@ Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
+- Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
 -
 
 .. _whatsnew_0232.performance:
@@ -26,7 +33,10 @@ Performance Improvements
 
 - Improved performance of membership checks in :class:`CategoricalIndex`
   (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
-  is likewise much faster (:issue:`21369`)
+  is likewise much faster (:issue:`21369`, :issue:`21508`)
+- Improved performance of :meth:`HDFStore.groups` (and dependent functions like
+  :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
+  (:issue:`21372`)
 - Improved performance of :meth:`MultiIndex.is_unique` (:issue:`21522`)
 -
 
@@ -60,11 +70,14 @@ Bug Fixes
 
 - Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
 - Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
+- Bug in :meth:`DataFrame.drop` behaviour is not consistent for unique and non-unique indexes (:issue:`21494`)
+- Bug in :func:`DataFrame.duplicated` with a large number of columns causing a 'maximum recursion depth exceeded' (:issue:`21524`).
 -
 
 **I/O**
 
 - Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
+- Bug in :func:`json_normalize` when formatting the ``record_prefix`` with integer columns (:issue:`21536`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 -
 
@@ -80,6 +93,7 @@ Bug Fixes
 
 **Categorical**
 
+- Bug in rendering :class:`Series` with ``Categorical`` dtype in rare conditions under Python 2.7 (:issue:`21002`)
 -
 
 **Timezones**
