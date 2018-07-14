@@ -430,6 +430,13 @@ else:
     endian_macro = [('__LITTLE_ENDIAN__', '1')]
 
 
+if is_platform_windows():
+    extra_compile_args = []
+else:
+    # args to ignore warnings
+    extra_compile_args = ['-Wno-unused-function']
+
+
 # enable coverage by building cython files by setting the environment variable
 # "linetrace" (with a Truthy value)
 linetrace = os.environ.get('linetrace', False)
@@ -492,16 +499,6 @@ else:
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 
-def pxd(name):
-    return pjoin('pandas', name + '.pxd')
-
-
-if is_platform_windows():
-    extra_compile_args = []
-else:
-    # args to ignore warnings
-    extra_compile_args = ['-Wno-unused-function']
-
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
                              'pandas/_libs/src/parse_helper.h',
                              'pandas/_libs/src/compat_helper.h']
@@ -517,22 +514,18 @@ tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 ext_data = {
     '_libs.algos': {
         'pyxfile': '_libs/algos',
-        'pxdfiles': ['_libs/util', '_libs/algos', '_libs/hashtable'],
         'depends': _pxi_dep['algos']},
     '_libs.groupby': {
         'pyxfile': '_libs/groupby',
-        'pxdfiles': ['_libs/util', '_libs/algos'],
         'depends': _pxi_dep['groupby']},
     '_libs.hashing': {
         'pyxfile': '_libs/hashing'},
     '_libs.hashtable': {
         'pyxfile': '_libs/hashtable',
-        'pxdfiles': ['_libs/hashtable', '_libs/missing', '_libs/khash'],
         'depends': (['pandas/_libs/src/klib/khash_python.h'] +
                     _pxi_dep['hashtable'])},
     '_libs.index': {
         'pyxfile': '_libs/index',
-        'pxdfiles': ['_libs/util', '_libs/hashtable'],
         'depends': _pxi_dep['index'],
         'sources': np_datetime_sources},
     '_libs.indexing': {
@@ -541,21 +534,15 @@ ext_data = {
         'pyxfile': '_libs/internals'},
     '_libs.interval': {
         'pyxfile': '_libs/interval',
-        'pxdfiles': ['_libs/hashtable'],
         'depends': _pxi_dep['interval']},
     '_libs.join': {
         'pyxfile': '_libs/join',
-        'pxdfiles': ['_libs/util', '_libs/hashtable'],
         'depends': _pxi_dep['join']},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
-        'pxdfiles': ['_libs/util',
-                     '_libs/missing',
-                     '_libs/tslibs/conversion'],
         'depends': lib_depends + tseries_depends},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
-        'pxdfiles': ['_libs/util'],
         'depends': tseries_depends},
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
@@ -565,12 +552,9 @@ ext_data = {
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
-        'pyxfile': '_libs/reduction',
-        'pxdfiles': ['_libs/util']},
+        'pyxfile': '_libs/reduction'},
     '_libs.ops': {
-        'pyxfile': '_libs/ops',
-        'pxdfiles': ['_libs/util',
-                     '_libs/missing']},
+        'pyxfile': '_libs/ops'},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
@@ -585,101 +569,62 @@ ext_data = {
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
-        'pxdfiles': ['_libs/tslibs/conversion',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timestamps',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype',
-                     '_libs/tslibs/offsets'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
         'pyxfile': '_libs/tslibs/ccalendar'},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
-        'pxdfiles': ['_libs/tslibs/nattype',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/timedeltas'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
-        'pxdfiles': ['_libs/tslibs/ccalendar',
-                     '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
-        'pyxfile': '_libs/tslibs/frequencies',
-        'pxdfiles': []},
+        'pyxfile': '_libs/tslibs/frequencies'},
     '_libs.tslibs.nattype': {
-        'pyxfile': '_libs/tslibs/nattype',
-        'pxdfiles': []},
+        'pyxfile': '_libs/tslibs/nattype'},
     '_libs.tslibs.np_datetime': {
         'pyxfile': '_libs/tslibs/np_datetime',
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
-        'pxdfiles': ['_libs/tslibs/ccalendar',
-                     '_libs/tslibs/conversion',
-                     '_libs/tslibs/frequencies',
-                     '_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
-        'pyxfile': '_libs/tslibs/parsing',
-        'pxdfiles': []},
+        'pyxfile': '_libs/tslibs/parsing'},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
-        'pxdfiles': ['_libs/tslibs/ccalendar',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype',
-                     '_libs/tslibs/offsets'],
         'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
         'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
-        'pxdfiles': ['_libs/khash',
-                     '_libs/tslibs/ccalendar',
-                     '_libs/tslibs/frequencies',
-                     '_libs/tslibs/timezones'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
-        'pxdfiles': ['_libs/tslibs/nattype'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
-        'pxdfiles': ['_libs/tslibs/nattype',
-                     '_libs/tslibs/offsets'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timestamps': {
         'pyxfile': '_libs/tslibs/timestamps',
-        'pxdfiles': ['_libs/tslibs/ccalendar',
-                     '_libs/tslibs/conversion',
-                     '_libs/tslibs/nattype',
-                     '_libs/tslibs/offsets',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
-        'pyxfile': '_libs/tslibs/timezones',
-        'pxdfiles': []},
+        'pyxfile': '_libs/tslibs/timezones'},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/skiplist'],
         'language': 'c++',
         'suffix': '.cpp'},
     '_libs.writers': {
-        'pyxfile': '_libs/writers',
-        'pxdfiles': []},
+        'pyxfile': '_libs/writers'},
     'io.sas._sas': {
         'pyxfile': 'io/sas/sas'},
     'io.msgpack._packer': {
@@ -710,10 +655,6 @@ for name, data in ext_data.items():
     source_suffix = suffix if suffix == '.pyx' else data.get('suffix', '.c')
 
     sources = [srcpath(data['pyxfile'], suffix=source_suffix, subdir='')]
-
-    pxds = [pxd(x) for x in data.get('pxdfiles', [])]
-    if suffix == '.pyx' and pxds:
-        sources.extend(pxds)
 
     sources.extend(data.get('sources', []))
 
