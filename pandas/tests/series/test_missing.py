@@ -1322,6 +1322,7 @@ class TestSeriesInterpolateData(TestData):
     @pytest.mark.parametrize('use_idx', [True, False])
     @pytest.mark.parametrize('tz', [None, 'US/Central'])
     def test_interpolate_dt64_values(self, tz, use_idx):
+        # GH#21915
         dti = pd.date_range('2016-01-01', periods=10, tz=tz)
         index = dti if use_idx else None
 
@@ -1338,6 +1339,7 @@ class TestSeriesInterpolateData(TestData):
 
     @pytest.mark.parametrize('use_idx', [True, False])
     def test_interpolate_td64_values(self, use_idx):
+        # GH#21915
         tdi = pd.timedelta_range('1D', periods=10)
         index = tdi if use_idx else None
 

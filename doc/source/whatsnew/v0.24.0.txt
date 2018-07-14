@@ -371,7 +371,7 @@ Datetimelike
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
 - Fixed bug where :meth:`Timestamp.resolution` incorrectly returned 1-microsecond ``timedelta`` instead of 1-nanosecond :class:`Timedelta` (:issue:`21336`,:issue:`21365`)
-- Fixed bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` where null values were not filled for dtypes of ``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64[ns]`` (:issue:`????`)
+- Fixed bug in :meth:`DataFrame.interpolate` and :meth:`Series.interpolate` where null values were not filled for dtypes of ``datetime64[ns]``, ``datetime64[ns, tz]``, ``timedelta64[ns]`` (:issue:`21915`)
 
 Timedelta
 ^^^^^^^^^
