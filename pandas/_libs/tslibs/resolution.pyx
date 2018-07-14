@@ -15,7 +15,7 @@ from pandas._libs.khash cimport (khiter_t,
                                  kh_init_int64, kh_int64_t,
                                  kh_resize_int64, kh_get_int64)
 
-from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
+from np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
 from timezones cimport (is_utc, is_tzlocal,
                         maybe_get_tz, get_dst_info)
@@ -53,7 +53,7 @@ _ONE_DAY = <int64_t>(24 * _ONE_HOUR)
 cpdef resolution(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
 
     if tz is not None:
@@ -75,7 +75,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         Py_ssize_t n = len(stamps)
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int64_t local_val
 
     if is_utc(tz):
@@ -122,7 +122,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
     return reso
 
 
-cdef inline int _reso_stamp(pandas_datetimestruct *dts):
+cdef inline int _reso_stamp(npy_datetimestruct *dts):
     if dts.us != 0:
         if dts.us % 1000 == 0:
             return RESO_MS

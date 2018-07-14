@@ -28,9 +28,9 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define PyInt_AsLong PyLong_AsLong
 #endif
 
-const pandas_datetimestruct _NS_MIN_DTS = {
+const npy_datetimestruct _NS_MIN_DTS = {
     1677, 9, 21, 0, 12, 43, 145225, 0, 0};
-const pandas_datetimestruct _NS_MAX_DTS = {
+const npy_datetimestruct _NS_MAX_DTS = {
     2262, 4, 11, 23, 47, 16, 854775, 807000, 0};
 
 
@@ -62,7 +62,7 @@ int dayofweek(int y, int m, int d) {
  * Adjusts a datetimestruct based on a minutes offset. Assumes
  * the current values are valid.g
  */
-void add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes) {
+void add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes) {
     int isleap;
 
     /* MINUTES */
@@ -111,7 +111,7 @@ void add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes) {
 /*
  * Calculates the days offset from the 1970 epoch.
  */
-npy_int64 get_datetimestruct_days(const pandas_datetimestruct *dts) {
+npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
     int i, month;
     npy_int64 year, days = 0;
     const int *month_lengths;
@@ -211,7 +211,7 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
  * Adjusts a datetimestruct based on a seconds offset. Assumes
  * the current values are valid.
  */
-NPY_NO_EXPORT void add_seconds_to_datetimestruct(pandas_datetimestruct *dts,
+NPY_NO_EXPORT void add_seconds_to_datetimestruct(npy_datetimestruct *dts,
                                                  int seconds) {
     int minutes;
 
@@ -236,7 +236,7 @@ NPY_NO_EXPORT void add_seconds_to_datetimestruct(pandas_datetimestruct *dts,
  * offset from 1970.
  */
 static void set_datetimestruct_days(npy_int64 days,
-                                    pandas_datetimestruct *dts) {
+                                    npy_datetimestruct *dts) {
     const int *month_lengths;
     int i;
 
@@ -255,10 +255,10 @@ static void set_datetimestruct_days(npy_int64 days,
 }
 
 /*
- * Compares two pandas_datetimestruct objects chronologically
+ * Compares two npy_datetimestruct objects chronologically
  */
-int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
-                              const pandas_datetimestruct *b) {
+int cmp_npy_datetimestruct(const npy_datetimestruct *a,
+                           const npy_datetimestruct *b) {
     if (a->year > b->year) {
         return 1;
     } else if (a->year < b->year) {
@@ -319,7 +319,7 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
 /*
  *
  * Tests for and converts a Python datetime.datetime or datetime.date
- * object into a NumPy pandas_datetimestruct.  Uses tzinfo (if present)
+ * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
  * to convert to UTC time.
  *
  * While the C API has PyDate_* and PyDateTime_* functions, the following
@@ -331,12 +331,12 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
  * if obj doesn't have the needed date or datetime attributes.
  */
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
-                                         pandas_datetimestruct *out) {
+                                         npy_datetimestruct *out) {
     PyObject *tmp;
     int isleap;
 
     /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(pandas_datetimestruct));
+    memset(out, 0, sizeof(npy_datetimestruct));
     out->month = 1;
     out->day = 1;
 
@@ -512,8 +512,8 @@ invalid_time:
     return -1;
 }
 
-npy_datetime pandas_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                               pandas_datetimestruct *d) {
+npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
+                                            npy_datetimestruct *d) {
     npy_datetime result = NPY_DATETIME_NAT;
 
     convert_datetimestruct_to_datetime(fr, d, &result);
@@ -521,7 +521,7 @@ npy_datetime pandas_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
 }
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
-                                       pandas_datetimestruct *result) {
+                                       npy_datetimestruct *result) {
     convert_datetime_to_datetimestruct(fr, val, result);
 }
 
@@ -539,7 +539,7 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
  * Returns 0 on success, -1 on failure.
  */
 int convert_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
-                                       const pandas_datetimestruct *dts,
+                                       const npy_datetimestruct *dts,
                                        npy_datetime *out) {
     npy_datetime ret;
 
@@ -643,11 +643,11 @@ int convert_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
  */
 int convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
                                        npy_datetime dt,
-                                       pandas_datetimestruct *out) {
+                                       npy_datetimestruct *out) {
     npy_int64 perday;
 
     /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(pandas_datetimestruct));
+    memset(out, 0, sizeof(npy_datetimestruct));
     out->year = 1970;
     out->month = 1;
     out->day = 1;
