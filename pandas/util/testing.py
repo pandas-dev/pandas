@@ -19,7 +19,7 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, IntervalArray
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -885,7 +885,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         assert_attr_equal('freq', left, right, obj=obj)
     if (isinstance(left, pd.IntervalIndex) or
             isinstance(right, pd.IntervalIndex)):
-        assert_attr_equal('closed', left, right, obj=obj)
+        assert_interval_array_equal(left.values, right.values)
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
@@ -1021,6 +1021,31 @@ def assert_categorical_equal(left, right, check_dtype=True,
                            obj='{obj}.values'.format(obj=obj))
 
     assert_attr_equal('ordered', left, right, obj=obj)
+
+
+def assert_interval_array_equal(left, right, exact='equiv',
+                                obj='IntervalArray'):
+    """Test that two IntervalArrays are equivalent.
+
+    Parameters
+    ----------
+    left, right : IntervalArray
+        The IntervalArrays to compare.
+    exact : bool / string {'equiv'}, default 'equiv'
+        Whether to check the Index class, dtype and inferred_type
+        are identical. If 'equiv', then RangeIndex can be substituted for
+        Int64Index as well.
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    """
+    _check_isinstance(left, right, IntervalArray)
+
+    assert_index_equal(left.left, right.left, exact=exact,
+                       obj='{obj}.left'.format(obj=obj))
+    assert_index_equal(left.right, right.right, exact=exact,
+                       obj='{obj}.left'.format(obj=obj))
+    assert_attr_equal('closed', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
@@ -1251,10 +1276,7 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        # TODO: big hack here
-        left = pd.IntervalIndex(left)
-        right = pd.IntervalIndex(right)
-        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
+        assert_interval_array_equal(left.values, right.values)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
