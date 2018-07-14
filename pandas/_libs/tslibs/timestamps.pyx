@@ -29,7 +29,7 @@ from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct)
+                          npy_datetimestruct, dt64_to_dtstruct)
 from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -45,7 +45,7 @@ _no_input = object()
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
-                                            pandas_datetimestruct dts,
+                                            npy_datetimestruct dts,
                                             object tz, object freq):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
@@ -973,7 +973,7 @@ class Timestamp(_Timestamp):
         """
 
         cdef:
-            pandas_datetimestruct dts
+            npy_datetimestruct dts
             int64_t value, value_tz, offset
             object _tzinfo, result, k, v
             datetime ts_input

@@ -47,14 +47,14 @@ static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
  * Assumes GREGORIAN_CALENDAR */
 npy_int64 unix_date_from_ymd(int year, int month, int day) {
     /* Calculate the absolute date */
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     npy_int64 unix_date;
 
-    memset(&dts, 0, sizeof(pandas_datetimestruct));
+    memset(&dts, 0, sizeof(npy_datetimestruct));
     dts.year = year;
     dts.month = month;
     dts.day = day;
-    unix_date = pandas_datetimestruct_to_datetime(NPY_FR_D, &dts);
+    unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, &dts);
     return unix_date;
 }
 
@@ -127,7 +127,7 @@ static npy_int64 DtoB_weekday(npy_int64 unix_date) {
     return floordiv(unix_date + 4, 7) * 5 + mod_compat(unix_date + 4, 7) - 4;
 }
 
-static npy_int64 DtoB(pandas_datetimestruct *dts,
+static npy_int64 DtoB(npy_datetimestruct *dts,
                       int roll_back, npy_int64 unix_date) {
     int day_of_week = dayofweek(dts->year, dts->month, dts->day);
 
@@ -149,7 +149,7 @@ static npy_int64 DtoB(pandas_datetimestruct *dts,
 //************ FROM DAILY ***************
 
 static npy_int64 asfreq_DTtoA(npy_int64 ordinal, asfreq_info *af_info) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     ordinal = downsample_daytime(ordinal, af_info);
     pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts);
     if (dts.month > af_info->to_end) {
@@ -160,7 +160,7 @@ static npy_int64 asfreq_DTtoA(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static int DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     int quarter;
 
     pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts);
@@ -188,7 +188,7 @@ static npy_int64 asfreq_DTtoQ(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_DTtoM(npy_int64 ordinal, asfreq_info *af_info) {
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
 
     ordinal = downsample_daytime(ordinal, af_info);
 
@@ -203,7 +203,7 @@ static npy_int64 asfreq_DTtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back;
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     npy_int64 unix_date = downsample_daytime(ordinal, af_info);
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
 
@@ -262,7 +262,7 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back;
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     npy_int64 unix_date = asfreq_WtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
@@ -302,7 +302,7 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back;
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     npy_int64 unix_date = asfreq_MtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
@@ -357,7 +357,7 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back;
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     npy_int64 unix_date = asfreq_QtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
@@ -414,7 +414,7 @@ static npy_int64 asfreq_AtoW(npy_int64 ordinal, asfreq_info *af_info) {
 
 static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
     int roll_back;
-    pandas_datetimestruct dts;
+    npy_datetimestruct dts;
     npy_int64 unix_date = asfreq_AtoDT(ordinal, af_info);
 
     pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts);
