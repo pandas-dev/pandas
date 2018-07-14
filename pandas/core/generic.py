@@ -725,7 +725,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         level : int, str, or list-like
             If a string is given, must be the name of a level
-            If list-like, elements must be names or positional indexes of levels.
+            If list-like, elements must be names or positional indexes
+            of levels.
 
         axis : {0 or 'index', 1 or 'columns'}, default 0
 
