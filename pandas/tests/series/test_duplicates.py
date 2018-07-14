@@ -1,14 +1,11 @@
 # coding=utf-8
-# pylint: disable-msg=E1101,W0612
 
 import pytest
 
 import numpy as np
-import pandas as pd
 
-from pandas import Series
+from pandas import Series, Categorical
 
-from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
 
@@ -21,9 +18,9 @@ def test_value_counts_nunique():
     assert result == 11
 
     # GH 18051
-    s = pd.Series(pd.Categorical([]))
+    s = Series(Categorical([]))
     assert s.nunique() == 0
-    s = pd.Series(pd.Categorical([np.nan]))
+    s = Series(Categorical([np.nan]))
     assert s.nunique() == 0
 
 
@@ -52,11 +49,10 @@ def test_unique():
     tm.assert_numpy_array_equal(result, expected)
 
     # GH 18051
-    s = pd.Series(pd.Categorical([]))
-    tm.assert_categorical_equal(s.unique(), pd.Categorical([]),
-                                check_dtype=False)
-    s = pd.Series(pd.Categorical([np.nan]))
-    tm.assert_categorical_equal(s.unique(), pd.Categorical([np.nan]),
+    s = Series(Categorical([]))
+    tm.assert_categorical_equal(s.unique(), Categorical([]), check_dtype=False)
+    s = Series(Categorical([np.nan]))
+    tm.assert_categorical_equal(s.unique(), Categorical([np.nan]),
                                 check_dtype=False)
 
 
@@ -83,7 +79,7 @@ def test_is_unique_class_ne(capsys):
             raise Exception("NEQ not supported")
 
     li = [Foo(i) for i in range(5)]
-    s = pd.Series(li, index=[i for i in range(5)])
+    s = Series(li, index=[i for i in range(5)])
     _, err = capsys.readouterr()
     s.is_unique
     _, err = capsys.readouterr()
@@ -100,11 +96,11 @@ def test_is_unique_class_ne(capsys):
 def test_drop_duplicates_non_bool(any_numpy_dtype, keep, expected):
     tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(any_numpy_dtype))
 
-    assert_series_equal(tc.duplicated(keep=keep), expected)
-    assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
+    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
+    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
     sc.drop_duplicates(keep=keep, inplace=True)
-    assert_series_equal(sc, tc[~expected])
+    tm.assert_series_equal(sc, tc[~expected])
 
 
 @pytest.mark.parametrize('keep, expected',
@@ -114,11 +110,11 @@ def test_drop_duplicates_non_bool(any_numpy_dtype, keep, expected):
 def test_drop_duplicates_bool(keep, expected):
     tc = Series([True, False, True, False])
 
-    assert_series_equal(tc.duplicated(keep=keep), expected)
-    assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
+    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
+    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
     sc = tc.copy()
     sc.drop_duplicates(keep=keep, inplace=True)
-    assert_series_equal(sc, tc[~expected])
+    tm.assert_series_equal(sc, tc[~expected])
 
 
 @pytest.mark.parametrize('keep, expected', [
