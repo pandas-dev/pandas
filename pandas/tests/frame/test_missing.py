@@ -360,7 +360,10 @@ class TestDataFrameMissingData(TestData):
         cat = Categorical([np.nan, 2, np.nan])
         val = Categorical([np.nan, np.nan, np.nan])
         df = DataFrame({"cats": cat, "vals": val})
-        res = df.fillna(df.median())
+        with tm.assert_produces_warning(RuntimeWarning):
+            # RuntimeWarning: All-NaN slice encountered
+            res = df.fillna(df.median())
+
         v_exp = [np.nan, np.nan, np.nan]
         df_exp = DataFrame({"cats": [2, 2, 2], "vals": v_exp},
                            dtype='category')
@@ -855,3 +858,68 @@ class TestDataFrameInterpolate(TestData):
         # all good
         result = df[['B', 'D']].interpolate(downcast=None)
         assert_frame_equal(result, df[['B', 'D']])
+
+    @pytest.mark.parametrize('use_idx', [True, False])
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_interpolate_dt64_values(self, tz, use_idx):
+        dti = pd.date_range('2016-01-01', periods=10, tz=tz)
+        index = dti if use_idx else None
+
+        # Copy to avoid corrupting dti, see GH#21907
+        ser = pd.Series(dti, index=index).copy()
+        ser[::3] = pd.NaT
+
+        expected = pd.Series(dti, index=index)
+        expected.iloc[0] = pd.NaT
+        expected.iloc[-1] = expected.iloc[-2]
+
+        df = ser.to_frame()
+        expected = expected.to_frame()
+
+        result = df.interpolate(method='linear')
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('use_idx', [True, False])
+    def test_interpolate_td64_values(self, use_idx):
+        tdi = pd.timedelta_range('1D', periods=10)
+        index = tdi if use_idx else None
+
+        ser = pd.Series(tdi, index=index)
+        ser[::3] = pd.NaT
+
+        expected = pd.Series(tdi, index=index)
+        expected.iloc[0] = pd.NaT
+        expected.iloc[-1] = expected.iloc[-2]
+
+        df = ser.to_frame()
+        expected = expected.to_frame()
+
+        result = df.interpolate(method='linear')
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('use_idx', [True, False])
+    def test_interpolate_datetimelike_and_object(self, use_idx):
+        # Check that dt64/td64 with more than one column doesn't get
+        # screwed up by .transpose() with an object column present.
+        dti_tz = pd.date_range('2016-01-01', periods=10, tz='US/Central')
+        dti_naive = pd.date_range('2016-01-01', periods=10, tz=None)
+        tdi = pd.timedelta_range('1D', periods=10)
+        objcol = list('ABCDEFGHIJ')
+
+        index = tdi if use_idx else None
+
+        df = pd.DataFrame({'aware': dti_tz,
+                           'naive': dti_naive,
+                           'tdi': tdi,
+                           'obj': objcol},
+                          columns=['naive', 'aware', 'tdi', 'obj'],
+                          index=index)
+
+        expected = df.copy()
+        expected.iloc[0, :-1] = pd.NaT
+        expected.iloc[-1, :-1] = df.iloc[-2, :-1]
+
+        df.iloc[::3, :-1] = pd.NaT
+
+        result = df.interpolate(method='linear')
+        tm.assert_frame_equal(result, expected)

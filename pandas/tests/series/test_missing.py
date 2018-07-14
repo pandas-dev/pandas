@@ -1317,3 +1317,36 @@ class TestSeriesInterpolateData(TestData):
         result = ts.reindex(new_index).interpolate(method='time')
 
         tm.assert_numpy_array_equal(result.values, exp.values)
+
+    # TODO: De-duplicate with similar tests in test.frame.test_missing?
+    @pytest.mark.parametrize('use_idx', [True, False])
+    @pytest.mark.parametrize('tz', [None, 'US/Central'])
+    def test_interpolate_dt64_values(self, tz, use_idx):
+        dti = pd.date_range('2016-01-01', periods=10, tz=tz)
+        index = dti if use_idx else None
+
+        # Copy to avoid corrupting dti, see GH#21907
+        ser = pd.Series(dti, index=index).copy()
+        ser[::3] = pd.NaT
+
+        expected = pd.Series(dti, index=index)
+        expected.iloc[0] = pd.NaT
+        expected.iloc[-1] = expected.iloc[-2]
+
+        result = ser.interpolate(method='linear')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('use_idx', [True, False])
+    def test_interpolate_td64_values(self, use_idx):
+        tdi = pd.timedelta_range('1D', periods=10)
+        index = tdi if use_idx else None
+
+        ser = pd.Series(tdi, index=index)
+        ser[::3] = pd.NaT
+
+        expected = pd.Series(tdi, index=index)
+        expected.iloc[0] = pd.NaT
+        expected.iloc[-1] = expected.iloc[-2]
+
+        result = ser.interpolate(method='linear')
+        tm.assert_series_equal(result, expected)
