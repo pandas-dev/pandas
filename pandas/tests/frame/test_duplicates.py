@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import pytest
 
-import pandas as pd
 import numpy as np
 
 from pandas.compat import lrange, string_types
@@ -16,9 +15,9 @@ import pandas.util.testing as tm
 @pytest.mark.parametrize('subset', ['a', ['a'], ['a', 'B']])
 def test_duplicated_with_misspelled_column_name(subset):
     # GH 19730
-    df = pd.DataFrame({'A': [0, 0, 1],
-                       'B': [0, 0, 1],
-                       'C': [0, 0, 1]})
+    df = DataFrame({'A': [0, 0, 1],
+                    'B': [0, 0, 1],
+                    'C': [0, 0, 1]})
 
     with pytest.raises(KeyError):
         df.duplicated(subset)
@@ -34,14 +33,13 @@ def test_duplicated_do_not_fail_on_wide_dataframes():
     # with different (important!) values
     data = {'col_{0:02d}'.format(i): np.random.randint(0, 1000, 30000)
             for i in range(100)}
-    df = pd.DataFrame(data).T
+    df = DataFrame(data).T
     result = df.duplicated()
 
-    # Then duplicates produce the bool pd.Series as a result
-    # and don't fail during calculation.
-    # Actual values doesn't matter here, though usually
-    # it's all False in this case
-    assert isinstance(result, pd.Series)
+    # Then duplicates produce the bool Series as a result and don't fail during
+    # calculation. Actual values doesn't matter here, though usually it's all
+    # False in this case
+    assert isinstance(result, Series)
     assert result.dtype == np.bool
 
 
@@ -159,26 +157,26 @@ def test_drop_duplicates():
     tm.assert_frame_equal(result, expected)
 
     # GH 11376
-    df = pd.DataFrame({'x': [7, 6, 3, 3, 4, 8, 0],
-                       'y': [0, 6, 5, 5, 9, 1, 2]})
+    df = DataFrame({'x': [7, 6, 3, 3, 4, 8, 0],
+                    'y': [0, 6, 5, 5, 9, 1, 2]})
     expected = df.loc[df.index != 3]
     tm.assert_frame_equal(df.drop_duplicates(), expected)
 
-    df = pd.DataFrame([[1, 0], [0, 2]])
+    df = DataFrame([[1, 0], [0, 2]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
-    df = pd.DataFrame([[-2, 0], [0, -4]])
+    df = DataFrame([[-2, 0], [0, -4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
     x = np.iinfo(np.int64).max / 3 * 2
-    df = pd.DataFrame([[-x, x], [0, x + 4]])
+    df = DataFrame([[-x, x], [0, x + 4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
-    df = pd.DataFrame([[-x, x], [x, x + 4]])
+    df = DataFrame([[-x, x], [x, x + 4]])
     tm.assert_frame_equal(df.drop_duplicates(), df)
 
     # GH 11864
-    df = pd.DataFrame([i] * 9 for i in range(16))
+    df = DataFrame([i] * 9 for i in range(16))
     df = df.append([[1] + [0] * 8], ignore_index=True)
 
     for keep in ['first', 'last', False]:
