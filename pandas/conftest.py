@@ -257,7 +257,7 @@ COMPLEX_DTYPES = [complex, "complex64", "complex128"]
 STRING_DTYPES = [str, 'str', 'U']
 
 ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
-ALL_NUMPY_DTYPES = ALL_REAL_DTYPES + STRING_DTYPES + COMPLEX_DTYPES
+ALL_NUMPY_DTYPES = ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
 
 
 @pytest.fixture(params=STRING_DTYPES)
@@ -364,7 +364,7 @@ def any_real_dtype(request):
 @pytest.fixture(params=ALL_NUMPY_DTYPES)
 def any_numpy_dtype(request):
     """
-    Parameterized fixture for any numpy dtypes.
+    Parameterized fixture for all numpy dtypes.
 
     * int8
     * uint8
