@@ -5,7 +5,6 @@ import pytest
 import numpy as np
 
 from pandas import Series, Categorical
-
 import pandas.util.testing as tm
 
 
