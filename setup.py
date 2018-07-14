@@ -44,7 +44,7 @@ try:
     _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
 except ImportError:
     _CYTHON_INSTALLED = False
-    cythonize = lambda x: x  # dummy func
+    cythonize = lambda x, *args, **kwargs: x  # dummy func
 
 # The import of Extension must be after the import of Cython, otherwise
 # we do not get the appropriately patched class.
