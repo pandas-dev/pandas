@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas._libs import tslibs, lib
+from pandas._libs import tslibs
 from pandas._libs.tslibs import Timedelta, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
@@ -11,7 +11,7 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, _ensure_int64, is_timedelta64_dtype)
+    _TD_DTYPE, _ensure_int64, is_timedelta64_dtype, is_list_like)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
@@ -20,7 +20,19 @@ import pandas.core.common as com
 from pandas.tseries.offsets import Tick, DateOffset
 from pandas.tseries.frequencies import to_offset
 
-from .datetimelike import DatetimeLikeArrayMixin
+from . import datetimelike as dtl
+
+
+def _to_m8(key):
+    """
+    Timedelta-like => dt64
+    """
+    if not isinstance(key, Timedelta):
+        # this also converts strings
+        key = Timedelta(key)
+
+    # return an type that can be compared
+    return np.int64(key.value).view(_TD_DTYPE)
 
 
 def _is_convertible_to_td(key):
@@ -42,7 +54,47 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
+def _td_array_cmp(opname, cls):
+    """
+    Wrap comparison operations to convert timedelta-like to timedelta64
+    """
+    nat_result = True if opname == '__ne__' else False
+
+    def wrapper(self, other):
+        msg = "cannot compare a {cls} with type {typ}"
+        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
+        if _is_convertible_to_td(other) or other is NaT:
+            try:
+                other = _to_m8(other)
+            except ValueError:
+                # failed to parse as timedelta
+                raise TypeError(msg.format(cls=type(self).__name__,
+                                           typ=type(other).__name__))
+            result = meth(self, other)
+            if isna(other):
+                result.fill(nat_result)
+
+        elif not is_list_like(other):
+            raise TypeError(msg.format(cls=type(self).__name__,
+                                       typ=type(other).__name__))
+        else:
+            other = type(self)(other).values
+            result = meth(self, other)
+            result = com._values_from_object(result)
+
+            o_mask = np.array(isna(other))
+            if o_mask.any():
+                result[o_mask] = nat_result
+
+        if self.hasnans:
+            result[self._isnan] = nat_result
+
+        return result
+
+    return compat.set_function_name(wrapper, opname, cls)
+
+
+class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
@@ -78,20 +130,15 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                 freq != 'infer'):
             freq = to_offset(freq)
 
-        if periods is not None:
-            if lib.is_float(periods):
-                periods = int(periods)
-            elif not lib.is_integer(periods):
-                raise TypeError('`periods` must be a number, got {periods}'
-                                .format(periods=periods))
+        periods = dtl.validate_periods(periods)
 
         if values is None:
             if freq is None and com._any_none(periods, start, end):
                 raise ValueError('Must provide freq argument if no data is '
                                  'supplied')
             else:
-                return cls._generate(start, end, periods, freq,
-                                     closed=closed)
+                return cls._generate_range(start, end, periods, freq,
+                                           closed=closed)
 
         result = cls._simple_new(values, freq=freq)
         if freq == 'infer':
@@ -102,7 +149,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         return result
 
     @classmethod
-    def _generate(cls, start, end, periods, freq, closed=None, **kwargs):
+    def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
         # **kwargs are for compat with TimedeltaIndex, which includes `name`
         if com._count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
@@ -220,6 +267,19 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         return NotImplemented
 
     # ----------------------------------------------------------------
+    # Comparison Methods
+
+    @classmethod
+    def _add_comparison_methods(cls):
+        """add in comparison methods"""
+        cls.__eq__ = _td_array_cmp('__eq__', cls)
+        cls.__ne__ = _td_array_cmp('__ne__', cls)
+        cls.__lt__ = _td_array_cmp('__lt__', cls)
+        cls.__gt__ = _td_array_cmp('__gt__', cls)
+        cls.__le__ = _td_array_cmp('__le__', cls)
+        cls.__ge__ = _td_array_cmp('__ge__', cls)
+
+    # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
 
     def total_seconds(self):
@@ -330,6 +390,9 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         if not hasnans:
             result = result.astype('int64')
         return result
+
+
+TimedeltaArrayMixin._add_comparison_methods()
 
 
 # ---------------------------------------------------------------------
