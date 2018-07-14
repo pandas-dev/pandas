@@ -684,8 +684,6 @@ class NDFrame(PandasObject, SelectionMixin):
         new_axes = self._construct_axes_dict_from(self, [self._get_axis(x)
                                                          for x in axes_names])
         new_values = self.values.transpose(axes_numbers)
-
-        new_values = values.transpose(axes_numbers)
         if kwargs.pop('copy', None) or (len(args) and args[-1]):
             new_values = new_values.copy()
 
