@@ -46,14 +46,14 @@ from conversion cimport tz_convert_utc_to_tzlocal
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
-from parsing import parse_time_string, NAT_SENTINEL
+from parsing import parse_time_string
 from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
 from offsets import _Tick
 
-cdef bint PY2 = str == bytes
+DEF PY2 = str == bytes
 
 
 cdef extern from "period_helper.h":
@@ -729,7 +729,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    if PY2:
+    IF PY2:
         result = result.decode('utf-8', 'ignore')
 
     return result
@@ -1820,7 +1820,7 @@ class Period(_Period):
                 value = str(value)
             value = value.upper()
             dt, _, reso = parse_time_string(value, freq)
-            if dt is NAT_SENTINEL:
+            if dt is NaT:
                 ordinal = iNaT
 
             if freq is None:

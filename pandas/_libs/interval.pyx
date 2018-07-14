@@ -1,17 +1,22 @@
-cimport numpy as cnp
-import numpy as np
-
-cimport util
-cimport cython
-import cython
-from numpy cimport ndarray
-from tslibs import Timestamp
-from tslibs.timezones cimport tz_compare
+# -*- coding: utf-8 -*-
+import numbers
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-import numbers
+cimport cython
+from cython cimport Py_ssize_t
+
+import numpy as np
+from numpy cimport ndarray
+
+
+cimport util
+
+from tslibs import Timestamp
+from tslibs.timezones cimport tz_compare
+
+
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
