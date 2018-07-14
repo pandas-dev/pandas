@@ -1366,3 +1366,6 @@ column index name will be used as the name of the inserted column:
    result
 
    result.stack()
+
+Additional discussion can be found at `https://pythonforbiologists.com/when-to-use-aggregatefiltertransform-in-pandas/
+<https://pythonforbiologists.com/when-to-use-aggregatefiltertransform-in-pandas/>`_.
