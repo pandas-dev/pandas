@@ -4,6 +4,9 @@ cnp.import_array()
 
 cimport cpython
 from cpython cimport PyTypeObject
+from cpython.string cimport PyString_FromString, PyString_AsString
+
+DEF PY3 = bytes != str
 
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
@@ -14,6 +17,8 @@ cdef extern from "Python.h":
     bint PyFloat_Check(object obj) nogil
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+    char* PyUnicode_AsUTF8(object unicode)
+    object PyUnicode_FromString(const char* u) nogil
 
 
 cdef extern from "numpy/arrayobject.h":
@@ -69,8 +74,6 @@ cdef extern from "../src/numpy_helper.h":
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     cnp.int64_t get_nat()
     object get_value_1d(ndarray, Py_ssize_t)
-    char *get_c_string(object) except NULL
-    object char_to_string(char*)
 
 ctypedef fused numeric:
     cnp.int8_t
@@ -99,6 +102,26 @@ cdef extern from "../src/headers/stdint.h":
     enum: INT32_MIN
     enum: INT64_MAX
     enum: INT64_MIN
+
+
+cdef inline const char* get_c_string(object obj) except NULL:
+    """
+    returns ASCII or UTF8 (py3) view on python str
+    python object owns memory, should not be freed
+    """
+    # TODO: this docstring is copied verbatim from version that was
+    # directly in numpy_helper.C; is it still accurate?
+    IF PY3:
+        return PyUnicode_AsUTF8(obj)
+    ELSE:
+        return PyString_AsString(obj)
+
+
+cdef inline object char_to_string(const char* data):
+    IF PY3:
+        return PyUnicode_FromString(data)
+    ELSE:
+        return PyString_FromString(data)
 
 
 cdef inline object get_value_at(ndarray arr, object loc):
