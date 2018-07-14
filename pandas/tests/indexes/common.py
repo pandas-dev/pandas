@@ -343,7 +343,7 @@ class Base(object):
         new_copy = indices.copy(deep=True, name="banana")
         assert new_copy.name == "banana"
 
-    def test_duplicates(self, indices):
+    def test_has_duplicates(self, indices):
         if type(indices) is not self._holder:
             pytest.skip('Can only check if we have the correct type')
         if not len(indices) or isinstance(indices, MultiIndex):
