@@ -683,10 +683,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         new_axes = self._construct_axes_dict_from(self, [self._get_axis(x)
                                                          for x in axes_names])
-        values = self.values
-        if isinstance(values, DatetimeIndex):
-            # kludge for tz-aware case.  See GH#19198
-            values = values.astype('O').values.reshape(self.shape)
+        new_values = self.values.transpose(axes_numbers)
+
         new_values = values.transpose(axes_numbers)
         if kwargs.pop('copy', None) or (len(args) and args[-1]):
             new_values = new_values.copy()
