@@ -1591,8 +1591,8 @@ cdef class _Period(object):
         return value
 
     def __setstate__(self, state):
-        self.freq=state[1]
-        self.ordinal=state[2]
+        self.freq = state[1]
+        self.ordinal = state[2]
 
     def __reduce__(self):
         object_state = None, self.freq, self.ordinal

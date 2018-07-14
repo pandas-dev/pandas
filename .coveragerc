@@ -22,11 +22,6 @@ exclude_lines =
     if 0:
     if __name__ == .__main__.:
 
-    # Workaround for cython misreporting def/cpdef/cdef lines
-    # https://github.com/cython/cython/issues/1461
-    ^cdef
-    ^cpdef
-
 ignore_errors = False
 show_missing = True
 

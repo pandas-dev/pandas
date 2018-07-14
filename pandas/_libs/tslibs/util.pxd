@@ -1,4 +1,4 @@
-from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
+from numpy cimport ndarray
 cimport numpy as cnp
 cnp.import_array()
 
