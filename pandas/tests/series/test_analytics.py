@@ -907,105 +907,6 @@ class TestSeriesAnalytics(TestData):
         pytest.raises(Exception, a.dot, a.values[:3])
         pytest.raises(ValueError, a.dot, b.T)
 
-    def test_value_counts_nunique(self):
-
-        # basics.rst doc example
-        series = Series(np.random.randn(500))
-        series[20:500] = np.nan
-        series[10:20] = 5000
-        result = series.nunique()
-        assert result == 11
-
-        # GH 18051
-        s = pd.Series(pd.Categorical([]))
-        assert s.nunique() == 0
-        s = pd.Series(pd.Categorical([np.nan]))
-        assert s.nunique() == 0
-
-    def test_unique(self):
-
-        # 714 also, dtype=float
-        s = Series([1.2345] * 100)
-        s[::2] = np.nan
-        result = s.unique()
-        assert len(result) == 2
-
-        s = Series([1.2345] * 100, dtype='f4')
-        s[::2] = np.nan
-        result = s.unique()
-        assert len(result) == 2
-
-        # NAs in object arrays #714
-        s = Series(['foo'] * 100, dtype='O')
-        s[::2] = np.nan
-        result = s.unique()
-        assert len(result) == 2
-
-        # decision about None
-        s = Series([1, 2, 3, None, None, None], dtype=object)
-        result = s.unique()
-        expected = np.array([1, 2, 3, None], dtype=object)
-        tm.assert_numpy_array_equal(result, expected)
-
-        # GH 18051
-        s = pd.Series(pd.Categorical([]))
-        tm.assert_categorical_equal(s.unique(), pd.Categorical([]),
-                                    check_dtype=False)
-        s = pd.Series(pd.Categorical([np.nan]))
-        tm.assert_categorical_equal(s.unique(), pd.Categorical([np.nan]),
-                                    check_dtype=False)
-
-    @pytest.mark.parametrize(
-        'keep, expected',
-        [
-            ('first', Series([False, False, False, False, True, True, False])),
-            ('last', Series([False, True, True, False, False, False, False])),
-            (False, Series([False, True, True, False, True, True, False]))
-        ])
-    def test_drop_duplicates_non_bool(self, any_numpy_dtype, keep, expected):
-        tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(any_numpy_dtype))
-
-        assert_series_equal(tc.duplicated(keep=keep), expected)
-        assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(keep=keep, inplace=True)
-        assert_series_equal(sc, tc[~expected])
-
-    @pytest.mark.parametrize('keep, expected',
-                             [('first', Series([False, False, True, True])),
-                              ('last', Series([True, True, False, False])),
-                              (False, Series([True, True, True, True]))])
-    def test_drop_duplicates_bool(self, keep, expected):
-        tc = Series([True, False, True, False])
-
-        assert_series_equal(tc.duplicated(keep=keep), expected)
-        assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
-        sc = tc.copy()
-        sc.drop_duplicates(keep=keep, inplace=True)
-        assert_series_equal(sc, tc[~expected])
-
-    @pytest.mark.parametrize('keep, expected', [
-        ('first', Series([False, False, True, False, True], name='name')),
-        ('last', Series([True, True, False, False, False], name='name')),
-        (False, Series([True, True, True, False, True], name='name'))
-    ])
-    def test_duplicated_keep(self, keep, expected):
-        s = Series(['a', 'b', 'b', 'c', 'a'], name='name')
-
-        result = s.duplicated(keep=keep)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('keep, expected', [
-        ('first', Series([False, False, True, False, True])),
-        ('last', Series([True, True, False, False, False])),
-        (False, Series([True, True, True, False, True]))
-    ])
-    def test_duplicated_nan_none(self, keep, expected):
-        s = Series([np.nan, 3, 3, None, np.nan], dtype=object)
-
-        result = s.duplicated(keep=keep)
-        tm.assert_series_equal(result, expected)
-
     def test_clip(self):
         val = self.ts.median()
 
@@ -1419,10 +1320,6 @@ class TestSeriesAnalytics(TestData):
             assert Series([], dtype=dtype).min() is pd.NaT
             assert Series([], dtype=dtype).max() is pd.NaT
 
-    def test_unique_data_ownership(self):
-        # it works! #1807
-        Series(Series(["a", "c", "b"]).unique()).sort_values()
-
     def test_repeat(self):
         s = Series(np.random.randn(3), index=['a', 'b', 'c'])
 
@@ -1498,29 +1395,6 @@ class TestSeriesAnalytics(TestData):
         r = s.searchsorted([0, 3], sorter=np.argsort(s))
         e = np.array([0, 2], dtype=np.intp)
         tm.assert_numpy_array_equal(r, e)
-
-    def test_is_unique(self):
-        # GH11946
-        s = Series(np.random.randint(0, 10, size=1000))
-        assert not s.is_unique
-        s = Series(np.arange(1000))
-        assert s.is_unique
-
-    def test_is_unique_class_ne(self, capsys):
-        # GH 20661
-        class Foo(object):
-            def __init__(self, val):
-                self._value = val
-
-            def __ne__(self, other):
-                raise Exception("NEQ not supported")
-
-        li = [Foo(i) for i in range(5)]
-        s = pd.Series(li, index=[i for i in range(5)])
-        _, err = capsys.readouterr()
-        s.is_unique
-        _, err = capsys.readouterr()
-        assert len(err) == 0
 
     def test_is_monotonic(self):
 
