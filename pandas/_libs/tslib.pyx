@@ -1,16 +1,9 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-
-cimport numpy as cnp
-from numpy cimport int64_t, ndarray, float64_t
-import numpy as np
-cnp.import_array()
-
+cimport cython
+from cython cimport Py_ssize_t
 
 from cpython cimport PyFloat_Check, PyUnicode_Check
-
-from util cimport (is_integer_object, is_float_object, is_string_object,
-                   is_datetime64_object)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
@@ -18,6 +11,18 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                timedelta, datetime, date, time)
 # import datetime C API
 PyDateTime_IMPORT
+
+
+cimport numpy as cnp
+from numpy cimport int64_t, ndarray, float64_t
+import numpy as np
+cnp.import_array()
+
+import pytz
+
+
+from util cimport (is_integer_object, is_float_object, is_string_object,
+                   is_datetime64_object)
 
 
 from tslibs.np_datetime cimport (check_dts_bounds,
@@ -29,13 +34,6 @@ from tslibs.np_datetime cimport (check_dts_bounds,
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from tslibs.parsing import parse_datetime_string
-
-cimport cython
-from cython cimport Py_ssize_t
-
-
-import pytz
-
 
 from tslibs.timedeltas cimport cast_from_unit
 from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
@@ -54,7 +52,8 @@ from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
 
-cdef bint PY2 = str == bytes
+
+DEF PY2 = str == bytes
 
 
 cdef inline object create_datetime_from_ts(
@@ -556,8 +555,9 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-                if PyUnicode_Check(val) and PY2:
-                    val = val.encode('utf-8')
+                if PY2:
+                    if PyUnicode_Check(val):
+                        val = val.encode('utf-8')
 
                 try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
