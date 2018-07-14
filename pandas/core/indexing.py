@@ -2596,6 +2596,7 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
+        indices = indices.copy()
         indices[mask] += n
 
     mask = (indices >= n) | (indices < 0)
