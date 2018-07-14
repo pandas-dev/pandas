@@ -10,21 +10,6 @@ import pytest
 from pandas.compat import range, u
 
 
-@pytest.fixture
-def idx_dup():
-    # compare tests/indexes/multi/conftest.py
-    major_axis = pd.Index(['foo', 'bar', 'baz', 'qux'])
-    minor_axis = pd.Index(['one', 'two'])
-
-    major_labels = np.array([0, 0, 1, 0, 1, 1])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
-    index_names = ['first', 'second']
-    mi = pd.MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels],
-                       names=index_names, verify_integrity=False)
-    return mi
-
-
 @pytest.mark.parametrize('names', [None, ['first', 'second']])
 def test_unique(names):
     mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]],
