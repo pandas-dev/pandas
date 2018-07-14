@@ -8,7 +8,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
-    get_period_field_arr, period_asfreq_arr, _quarter_to_myear)
+    get_period_field_arr, period_asfreq_arr)
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -26,7 +26,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
-from .datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -466,7 +466,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in compat.zip(year, quarter):
-            y, m = _quarter_to_myear(y, q, freq)
+            y, m = libperiod.quarter_to_myear(y, q, freq)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

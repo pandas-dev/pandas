@@ -32,7 +32,7 @@ PANDAS_INLINE PyObject* get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
 
 
 void set_array_not_contiguous(PyArrayObject* ao) {
-    ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);
+    ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
 }
 
 #endif  // PANDAS__LIBS_SRC_NUMPY_HELPER_H_

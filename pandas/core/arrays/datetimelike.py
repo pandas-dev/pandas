@@ -10,17 +10,51 @@ from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
 from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas import compat
 
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick
 
 from pandas.core.dtypes.common import (
+    needs_i8_conversion,
+    is_list_like,
+    is_bool_dtype,
     is_period_dtype,
     is_timedelta64_dtype,
     is_object_dtype)
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+
+
+def _make_comparison_op(op, cls):
+    # TODO: share code with indexes.base version?  Main difference is that
+    # the block for MultiIndex was removed here.
+    def cmp_method(self, other):
+        if isinstance(other, ABCDataFrame):
+            return NotImplemented
+
+        if isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+            if other.ndim > 0 and len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
+
+        if needs_i8_conversion(self) and needs_i8_conversion(other):
+            # we may need to directly compare underlying
+            # representations
+            return self._evaluate_compare(other, op)
+
+        # numpy will show a DeprecationWarning on invalid elementwise
+        # comparisons, this will raise in the future
+        with warnings.catch_warnings(record=True):
+            with np.errstate(all='ignore'):
+                result = op(self.values, np.asarray(other))
+
+        return result
+
+    name = '__{name}__'.format(name=op.__name__)
+    # TODO: docstring?
+    return compat.set_function_name(cmp_method, name, cls)
 
 
 class AttributesMixin(object):
@@ -435,3 +469,85 @@ class DatetimeLikeArrayMixin(AttributesMixin):
         if not is_period_dtype(self):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
+
+    # --------------------------------------------------------------
+    # Comparison Methods
+
+    def _evaluate_compare(self, other, op):
+        """
+        We have been called because a comparison between
+        8 aware arrays. numpy >= 1.11 will
+        now warn about NaT comparisons
+        """
+        # Called by comparison methods when comparing datetimelike
+        # with datetimelike
+
+        if not isinstance(other, type(self)):
+            # coerce to a similar object
+            if not is_list_like(other):
+                # scalar
+                other = [other]
+            elif lib.is_scalar(lib.item_from_zerodim(other)):
+                # ndarray scalar
+                other = [other.item()]
+            other = type(self)(other)
+
+        # compare
+        result = op(self.asi8, other.asi8)
+
+        # technically we could support bool dtyped Index
+        # for now just return the indexing array directly
+        mask = (self._isnan) | (other._isnan)
+
+        filler = iNaT
+        if is_bool_dtype(result):
+            filler = False
+
+        result[mask] = filler
+        return result
+
+    # TODO: get this from ExtensionOpsMixin
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        # DatetimeArray and TimedeltaArray comparison methods will
+        # call these as their super(...) methods
+        cls.__eq__ = _make_comparison_op(operator.eq, cls)
+        cls.__ne__ = _make_comparison_op(operator.ne, cls)
+        cls.__lt__ = _make_comparison_op(operator.lt, cls)
+        cls.__gt__ = _make_comparison_op(operator.gt, cls)
+        cls.__le__ = _make_comparison_op(operator.le, cls)
+        cls.__ge__ = _make_comparison_op(operator.ge, cls)
+
+
+DatetimeLikeArrayMixin._add_comparison_methods()
+
+
+# -------------------------------------------------------------------
+# Shared Constructor Helpers
+
+def validate_periods(periods):
+    """
+    If a `periods` argument is passed to the Datetime/Timedelta Array/Index
+    constructor, cast it to an integer.
+
+    Parameters
+    ----------
+    periods : None, float, int
+
+    Returns
+    -------
+    periods : None or int
+
+    Raises
+    ------
+    TypeError
+        if periods is None, float, or int
+    """
+    if periods is not None:
+        if lib.is_float(periods):
+            periods = int(periods)
+        elif not lib.is_integer(periods):
+            raise TypeError('periods must be a number, got {periods}'
+                            .format(periods=periods))
+    return periods
