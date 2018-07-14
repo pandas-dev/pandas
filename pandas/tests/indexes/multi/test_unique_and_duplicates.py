@@ -228,6 +228,29 @@ def test_has_duplicates_overflow():
     check(8, True)
 
 
+@pytest.mark.parametrize('keep, expected', [
+    ('first', np.array([False, False, False, True, True, False])),
+    ('last', np.array([False, True, True, False, False, False])),
+    (False, np.array([False, True, True, True, True, False]))
+])
+def test_duplicated(idx_dup, keep, expected):
+    result = idx_dup.duplicated(keep=keep)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last', False])
+def test_duplicated_large(keep):
+    # GH 9125
+    n, k = 200, 5000
+    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
+    labels = [np.random.choice(n, k * n) for lev in levels]
+    mi = pd.MultiIndex(levels=levels, labels=labels)
+
+    result = mi.duplicated(keep=keep)
+    expected = pd._libs.hashtable.duplicated_object(mi.values, keep=keep)
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_get_duplicates():
     # GH5873
     for a in [101, 102]:
@@ -258,26 +281,3 @@ def test_get_duplicates():
 
             tm.assert_numpy_array_equal(mi.duplicated(),
                                         np.zeros(len(mi), dtype='bool'))
-
-
-@pytest.mark.parametrize('keep, expected', [
-    ('first', np.array([False, False, False, True, True, False])),
-    ('last', np.array([False, True, True, False, False, False])),
-    (False, np.array([False, True, True, True, True, False]))
-])
-def test_duplicated(idx_dup, keep, expected):
-    result = idx_dup.duplicated(keep=keep)
-    tm.assert_numpy_array_equal(result, expected)
-
-
-@pytest.mark.parametrize('keep', ['first', 'last', False])
-def test_duplicated_large(keep):
-    # GH 9125
-    n, k = 200, 5000
-    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
-    labels = [np.random.choice(n, k * n) for lev in levels]
-    mi = pd.MultiIndex(levels=levels, labels=labels)
-
-    result = mi.duplicated(keep=keep)
-    expected = pd._libs.hashtable.duplicated_object(mi.values, keep=keep)
-    tm.assert_numpy_array_equal(result, expected)
