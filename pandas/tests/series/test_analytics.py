@@ -962,9 +962,8 @@ class TestSeriesAnalytics(TestData):
             ('last', Series([False, True, True, False, False, False, False])),
             (False, Series([False, True, True, False, True, True, False]))
         ])
-    @pytest.mark.parametrize('npdtype', ['int_', 'uint', 'float_', 'unicode_'])
-    def test_drop_duplicates_non_bool(self, npdtype, keep, expected):
-        tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(npdtype))
+    def test_drop_duplicates_non_bool(self, any_numpy_dtype, keep, expected):
+        tc = Series([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(any_numpy_dtype))
 
         assert_series_equal(tc.duplicated(keep=keep), expected)
         assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
