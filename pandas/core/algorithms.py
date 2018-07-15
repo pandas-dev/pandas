@@ -420,6 +420,7 @@ def isin(comps, values):
 
     is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x)
                               or isinstance(x, Timestamp))
+
     if is_time_like(dtype):
         values, _, _ = _ensure_data(values, dtype=dtype)
     else:
@@ -428,24 +429,20 @@ def isin(comps, values):
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x.astype(object), y.astype(object))
 
-    # This block checks if comps and values
-    # are all int or all float
-    int_flg = False
-    float_flg = False
+    comps_types = set(type(v) for v in comps)
+    values_types = set(type(v) for v in values)
 
     is_int = lambda x: ((x == np.int64) or (x == int))
     is_float = lambda x: ((x == np.float64) or (x == float))
 
-    comps_types = set(type(v) for v in comps)
-    values_types = set(type(v) for v in values)
+    int_flg = False
+    float_flg = False
 
     if len(comps_types) == len(values_types) == 1:
         comps_types = comps_types.pop()
         values_types = values_types.pop()
-        if (is_int(comps_types) and is_int(values_types)):
-            int_flg = True
-        elif (is_float(comps_types) and is_float(values_types)):
-            float_flg = True
+        int_flg = (is_int(comps_types) and is_int(values_types))
+        float_flg = (is_float(comps_types) and is_float(values_types))
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
