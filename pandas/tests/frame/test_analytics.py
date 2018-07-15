@@ -1685,6 +1685,16 @@ class TestDataFrameAnalytics(TestData):
         expected1 = df[:2]
         tm.assert_frame_equal(result1, expected1)
 
+    def test_drop_duplicates_with_no_column(self):
+        # GH20516
+        df0 = DataFrame()
+        result0 = df0.drop_duplicates()
+        tm.assert_frame_equal(result0, df0)
+
+        df1 = DataFrame(index=[1, 2])
+        result1 = df1.drop_duplicates()
+        tm.assert_frame_equal(result1, df1)
+
     def test_drop_duplicates_for_take_all(self):
         df = DataFrame({'AAA': ['foo', 'bar', 'baz', 'bar',
                                 'foo', 'bar', 'qux', 'foo'],
