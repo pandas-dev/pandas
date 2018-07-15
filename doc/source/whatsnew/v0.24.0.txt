@@ -257,6 +257,7 @@ ExtensionType Changes
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+- Bug in :func:`concat` that lead to inconsistent behaviour for ExtensionArrays where the scalar representation was int or float (:issue:`21792`)
 -
 
 .. _whatsnew_0240.api.incompatibilities:
