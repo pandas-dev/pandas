@@ -561,7 +561,6 @@ class TestTimedeltaSeriesAdditionSubtraction(object):
         with pytest.raises(TypeError):
             tdser + Series([2, 3, 4])
 
-    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
     def test_td64series_radd_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             Series([2, 3, 4]) + tdser
@@ -570,7 +569,6 @@ class TestTimedeltaSeriesAdditionSubtraction(object):
         with pytest.raises(TypeError):
             tdser - Series([2, 3, 4])
 
-    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
     def test_td64series_rsub_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             Series([2, 3, 4]) - tdser
@@ -611,9 +609,7 @@ class TestTimedeltaSeriesAdditionSubtraction(object):
     @pytest.mark.parametrize('vector', [
         np.array([1, 2, 3]),
         pd.Index([1, 2, 3]),
-        pytest.param(Series([1, 2, 3]),
-                     marks=pytest.mark.xfail(reason='GH#19123 integer '
-                                                    'interpreted as nanos'))
+        Series([1, 2, 3])
     ])
     def test_td64series_add_sub_numeric_array_invalid(self, vector,
                                                       dtype, tdser):
