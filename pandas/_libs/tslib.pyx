@@ -53,7 +53,7 @@ from tslibs.timestamps cimport (create_timestamp_from_ts,
 from tslibs.timestamps import Timestamp
 
 
-DEF PY2 = str == bytes
+cdef bint PY2 = str == bytes
 
 
 cdef inline object create_datetime_from_ts(
@@ -555,9 +555,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-                if PY2:
-                    if PyUnicode_Check(val):
-                        val = val.encode('utf-8')
+                if PyUnicode_Check(val) and PY2:
+                    val = val.encode('utf-8')
 
                 try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
