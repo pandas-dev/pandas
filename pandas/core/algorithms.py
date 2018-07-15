@@ -440,6 +440,8 @@ def isin(comps, values):
     values_types = set(type(v) for v in values)
 
     if len(comps_types) == len(values_types) == 1:
+        comps_types = comps_types.pop()
+        values_types = values_types.pop()
         if (is_int(comps_types) and is_int(values_types)):
             int_flg = True
         elif (is_float(comps_types) and is_float(values_types)):
