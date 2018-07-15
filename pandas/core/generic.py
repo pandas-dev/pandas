@@ -289,10 +289,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 for i, a in cls._AXIS_NAMES.items():
                     set_axis(a, i)
 
-        # addtl parms
-        if isinstance(ns, dict):
-            for k, v in ns.items():
-                setattr(cls, k, v)
+        assert not isinstance(ns, dict)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -1060,8 +1057,13 @@ class NDFrame(PandasObject, SelectionMixin):
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
-            result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
-                                                    level=level)
+
+            # TODO: we already did a copy above, can we avoid doing again?
+            new_data = result._data.copy(deep=copy)
+            from pandas.core.internals import _transform_index
+            new_data.set_axis(baxis,
+                              _transform_index(new_data.axes[baxis], f, level))
+            result._data = new_data
             result._clear_item_cache()
 
         if inplace:
@@ -3330,8 +3332,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2       3       5
         3       4       6
         """
-        new_data = self._data.add_prefix(prefix)
-        return self._constructor(new_data).__finalize__(self)
+        f = functools.partial('{prefix}{}'.format, prefix=prefix)
+
+        mapper = {self._info_axis_name: f}
+        return self.rename(**mapper)
 
     def add_suffix(self, suffix):
         """
@@ -3387,8 +3391,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2       3       5
         3       4       6
         """
-        new_data = self._data.add_suffix(suffix)
-        return self._constructor(new_data).__finalize__(self)
+        f = functools.partial('{}{suffix}'.format, suffix=suffix)
+
+        mapper = {self._info_axis_name: f}
+        return self.rename(**mapper)
 
     _shared_docs['sort_values'] = """
         Sort by the values along either axis
@@ -3904,6 +3910,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_data).__finalize__(self)
 
+    # TODO: unused; remove?
     def _reindex_axis(self, new_index, fill_method, axis, copy):
         new_data = self._data.reindex_axis(new_index, axis=axis,
                                            method=fill_method, copy=copy)
