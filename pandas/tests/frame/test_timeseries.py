@@ -640,26 +640,22 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.at_time('00:00')
 
-    @pytest.mark.parametrize('time_axis', [
-        (False, False), (True, False), (False, True), (True, True)])
-    def test_at_time_axis(self, time_axis):
+    @pytest.mark.parametrize('axis', ['index', 'columns'])
+    def test_at_time_axis(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        ts.index, ts.columns = rng, rng
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
 
-        if time_axis[0]:
-            ts.index = rng
-            expected = ts.loc[indices]
-            result = ts.at_time('9:30', axis=0)
-            assert_frame_equal(result, expected)
-
-        if time_axis[1]:
-            ts.columns = rng
+        if axis == 'index':
+            expected = ts.loc[indices, :]
+        elif axis == 'columns':
             expected = ts.loc[:, indices]
-            result = ts.at_time('9:30', axis=1)
-            assert_frame_equal(result, expected)
+
+        result = ts.at_time('9:30', axis=axis)
+        assert_frame_equal(result, expected)
 
     def test_between_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -727,38 +723,42 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.between_time(start_time='00:00', end_time='12:00')
 
-    @pytest.mark.parametrize('time_axis', [
-        (False, False), (True, False), (False, True), (True, True)])
-    def test_between_time_axis(self, time_axis):
+    @pytest.mark.parametrize('axis', [
+        (), 'index', 'columns', ('index', 'columns')])
+    def test_between_time_axis(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
-        blank = np.arange(0, len(rng))
+        ts = DataFrame(np.random.randn(len(rng), len(rng)))
         stime, etime = ('08:00:00', '09:00:00')
-        rand_data = np.random.randn(len(rng), len(rng))
         exp_len = 7
 
-        if time_axis[0]:
-            index = rng
-        else:
-            index = blank
-        if time_axis[1]:
-            col = rng
-        else:
-            col = blank
-
-        ts = DataFrame(rand_data, index=index, columns=col)
-
-        if time_axis[0]:
+        if 'index' in axis:
+            ts.index = rng
             assert len(ts.between_time(stime, etime)) == exp_len
             assert len(ts.between_time(stime, etime, axis=0)) == exp_len
-        else:
+
+        if 'columns' in axis:
+            ts.columns = rng
+            selected = ts.between_time(stime, etime, axis=1).columns
+            assert len(selected) == exp_len
+
+    @pytest.mark.parametrize('axis', [
+        (), 'index', 'columns', ('index', 'columns')])
+    def test_between_time_axis_raises(self, axis):
+        # issue 8839
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        mask = np.arange(0, len(rng))
+        rand_data = np.random.randn(len(rng), len(rng))
+        ts = DataFrame(rand_data, index=rng, columns=rng)
+        stime, etime = ('08:00:00', '09:00:00')
+
+        if 'index' not in axis:
+            ts.index = mask
             pytest.raises(TypeError, ts.between_time, stime, etime)
             pytest.raises(TypeError, ts.between_time, stime, etime, axis=0)
 
-        if time_axis[1]:
-            selected = ts.between_time(stime, etime, axis=1).columns
-            assert len(selected) == exp_len
-        else:
+        if 'columns' not in axis:
+            ts.columns = mask
             pytest.raises(TypeError, ts.between_time, stime, etime, axis=1)
 
     def test_operation_on_NaT(self):

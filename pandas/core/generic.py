@@ -7062,12 +7062,13 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = self._stat_axis_number
         axis = self._get_axis_number(axis)
 
+        index = self._get_axis(axis)
         try:
-            index = self._get_axis(axis)
             indexer = index.indexer_at_time(time, asof=asof)
-            return self._take(indexer, axis=axis)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
+
+        return self._take(indexer, axis=axis)
 
     def between_time(self, start_time, end_time, include_start=True,
                      include_end=True, axis=None):
@@ -7132,14 +7133,15 @@ class NDFrame(PandasObject, SelectionMixin):
             axis = self._stat_axis_number
         axis = self._get_axis_number(axis)
 
+        index = self._get_axis(axis)
         try:
-            index = self._get_axis(axis)
             indexer = index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer, axis=axis)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
+
+        return self._take(indexer, axis=axis)
 
     def resample(self, rule, how=None, axis=0, fill_method=None, closed=None,
                  label=None, convention='start', kind=None, loffset=None,
