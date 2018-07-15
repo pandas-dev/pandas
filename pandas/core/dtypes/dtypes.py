@@ -8,6 +8,65 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 from .base import ExtensionDtype, _DtypeOpsMixin
 
 
+class Registry(object):
+    """
+    Registry for dtype inference
+
+    The registry allows one to map a string repr of a extension
+    dtype to an extenstion dtype.
+
+    Multiple extension types can be registered.
+    These are tried in order.
+
+    Examples
+    --------
+    registry.register(MyExtensionDtype)
+    """
+    dtypes = []
+
+    @classmethod
+    def register(self, dtype):
+        """
+        Parameters
+        ----------
+        dtype : ExtensionDtype
+        """
+        if not issubclass(dtype, (PandasExtensionDtype, ExtensionDtype)):
+            raise ValueError("can only register pandas extension dtypes")
+
+        self.dtypes.append(dtype)
+
+    def find(self, dtype):
+        """
+        Parameters
+        ----------
+        dtype : PandasExtensionDtype or string
+
+        Returns
+        -------
+        return the first matching dtype, otherwise return None
+        """
+        if not isinstance(dtype, compat.string_types):
+            dtype_type = dtype
+            if not isinstance(dtype, type):
+                dtype_type = type(dtype)
+            if issubclass(dtype_type, (PandasExtensionDtype, ExtensionDtype)):
+                return dtype
+
+            return None
+
+        for dtype_type in self.dtypes:
+            try:
+                return dtype_type.construct_from_string(dtype)
+            except TypeError:
+                pass
+
+        return None
+
+
+registry = Registry()
+
+
 class PandasExtensionDtype(_DtypeOpsMixin):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
@@ -112,7 +171,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
     >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
     0      a
     1      b
@@ -264,6 +323,17 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return 0
         else:
             return np.bitwise_xor.reduce(hashed)
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas import Categorical
+        return Categorical
 
     @classmethod
     def construct_from_string(cls, string):
@@ -556,11 +626,16 @@ class PeriodDtype(PandasExtensionDtype):
     @classmethod
     def construct_from_string(cls, string):
         """
-        attempt to construct this type from a string, raise a TypeError
-        if its not possible
+        Strict construction from a string, raise a TypeError if not
+        possible
         """
         from pandas.tseries.offsets import DateOffset
-        if isinstance(string, (compat.string_types, DateOffset)):
+
+        if (isinstance(string, compat.string_types) and
+            (string.startswith('period[') or
+             string.startswith('Period[')) or
+                isinstance(string, DateOffset)):
+            # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
             try:
                 return cls(freq=string)
@@ -615,14 +690,13 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(PandasExtensionDtype):
+class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
     name = 'interval'
-    type = IntervalDtypeType
     kind = None
     str = '|O08'
     base = np.dtype('O')
@@ -660,7 +734,7 @@ class IntervalDtype(PandasExtensionDtype):
             try:
                 subtype = pandas_dtype(subtype)
             except TypeError:
-                raise ValueError("could not construct IntervalDtype")
+                raise TypeError("could not construct IntervalDtype")
 
         if is_categorical_dtype(subtype) or is_string_dtype(subtype):
             # GH 19016
@@ -677,15 +751,34 @@ class IntervalDtype(PandasExtensionDtype):
             return u
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import IntervalArray
+        return IntervalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         """
         attempt to construct this type from a string, raise a TypeError
         if its not possible
         """
-        if isinstance(string, compat.string_types):
+        if (isinstance(string, compat.string_types) and
+            (string.startswith('interval') or
+             string.startswith('Interval'))):
             return cls(string)
+
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
+
+    @property
+    def type(self):
+        from pandas import Interval
+        return Interval
 
     def __unicode__(self):
         if self.subtype is None:
@@ -727,3 +820,10 @@ class IntervalDtype(PandasExtensionDtype):
             else:
                 return False
         return super(IntervalDtype, cls).is_dtype(dtype)
+
+
+# register the dtypes in search order
+registry.register(DatetimeTZDtype)
+registry.register(PeriodDtype)
+registry.register(IntervalDtype)
+registry.register(CategoricalDtype)

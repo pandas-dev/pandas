@@ -840,19 +840,22 @@ def _str_extract_frame(arr, pat, flags=0):
 
 def str_extract(arr, pat, flags=0, expand=True):
     r"""
+    Extract capture groups in the regex `pat` as columns in a DataFrame.
+
     For each subject string in the Series, extract groups from the
-    first match of regular expression pat.
+    first match of regular expression `pat`.
 
     Parameters
     ----------
     pat : string
-        Regular expression pattern with capturing groups
+        Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-
+        ``re`` module flags, e.g. ``re.IGNORECASE``.
+        See :mod:`re`
     expand : bool, default True
-        * If True, return DataFrame.
-        * If False, return Series/Index/DataFrame.
+        If True, return DataFrame with one column per capture group.
+        If False, return a Series/Index if there is one capture group
+        or DataFrame if there are multiple capture groups.
 
         .. versionadded:: 0.18.0
 
@@ -875,7 +878,7 @@ def str_extract(arr, pat, flags=0, expand=True):
     A pattern with two groups will return a DataFrame with two columns.
     Non-matches will be NaN.
 
-    >>> s = Series(['a1', 'b2', 'c3'])
+    >>> s = pd.Series(['a1', 'b2', 'c3'])
     >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
@@ -914,7 +917,6 @@ def str_extract(arr, pat, flags=0, expand=True):
     1      2
     2    NaN
     dtype: object
-
     """
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
@@ -959,7 +961,7 @@ def str_extractall(arr, pat, flags=0):
     A pattern with one group will return a DataFrame with one column.
     Indices with no matches will not appear in the result.
 
-    >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
+    >>> s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
     >>> s.str.extractall(r"[ab](\d)")
              0
       match
@@ -1051,13 +1053,13 @@ def str_get_dummies(arr, sep='|'):
 
     Examples
     --------
-    >>> Series(['a|b', 'a', 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  1  0  0
     2  1  0  1
 
-    >>> Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  0  0  0
@@ -2338,47 +2340,83 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, expand=expand)
 
     _shared_docs['str_partition'] = ("""
-    Split the string at the %(side)s occurrence of `sep`, and return 3 elements
-    containing the part before the separator, the separator itself,
-    and the part after the separator.
+    Split the string at the %(side)s occurrence of `sep`.
+
+    This method splits the string at the %(side)s occurrence of `sep`,
+    and returns 3 elements containing the part before the separator,
+    the separator itself, and the part after the separator.
     If the separator is not found, return %(return)s.
 
     Parameters
     ----------
-    pat : string, default whitespace
+    pat : str, default whitespace
         String to split on.
     expand : bool, default True
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+        If True, return DataFrame/MultiIndex expanding dimensionality.
+        If False, return Series/Index.
 
     Returns
     -------
-    split : DataFrame/MultiIndex or Series/Index of objects
+    DataFrame/MultiIndex or Series/Index of objects
 
     See Also
     --------
     %(also)s
+    Series.str.split : Split strings around given separators.
+    str.partition : Standard library version.
 
     Examples
     --------
 
-    >>> s = Series(['A_B_C', 'D_E_F', 'X'])
-    0    A_B_C
-    1    D_E_F
-    2        X
+
+    >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
+    >>> s
+    0    Linda van der Berg
+    1    George Pitt-Rivers
     dtype: object
 
-    >>> s.str.partition('_')
-       0  1    2
-    0  A  _  B_C
-    1  D  _  E_F
-    2  X
+    >>> s.str.partition()
+            0  1             2
+    0   Linda     van der Berg
+    1  George      Pitt-Rivers
 
-    >>> s.str.rpartition('_')
-         0  1  2
-    0  A_B  _  C
-    1  D_E  _  F
-    2          X
+    To partition by the last space instead of the first one:
+
+    >>> s.str.rpartition()
+                   0  1            2
+    0  Linda van der            Berg
+    1         George     Pitt-Rivers
+
+    To partition by something different than a space:
+
+    >>> s.str.partition('-')
+                        0  1       2
+    0  Linda van der Berg
+    1         George Pitt  -  Rivers
+
+    To return a Series containining tuples instead of a DataFrame:
+
+    >>> s.str.partition('-', expand=False)
+    0    (Linda van der Berg, , )
+    1    (George Pitt, -, Rivers)
+    dtype: object
+
+    Also available on indices:
+
+    >>> idx = pd.Index(['X 123', 'Y 999'])
+    >>> idx
+    Index(['X 123', 'Y 999'], dtype='object')
+
+    Which will create a MultiIndex:
+
+    >>> idx.str.partition()
+    MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
+               labels=[[0, 1], [0, 0], [0, 1]])
+
+    Or an index with tuples with ``expand=False``:
+
+    >>> idx.str.partition(expand=False)
+    Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
     """)
 
     @Appender(_shared_docs['str_partition'] % {
@@ -2473,18 +2511,63 @@ class StringMethods(NoNewAttributesMixin):
 
     def zfill(self, width):
         """
-        Filling left side of strings in the Series/Index with 0.
-        Equivalent to :meth:`str.zfill`.
+        Pad strings in the Series/Index by prepending '0' characters.
+
+        Strings in the Series/Index are padded with '0' characters on the
+        left of the string to reach a total string length  `width`. Strings
+        in the Series/Index with length greater or equal to `width` are
+        unchanged.
 
         Parameters
         ----------
         width : int
-            Minimum width of resulting string; additional characters will be
-            filled with 0
+            Minimum length of resulting string; strings with length less
+            than `width` be prepended with '0' characters.
 
         Returns
         -------
-        filled : Series/Index of objects
+        Series/Index of objects
+
+        See Also
+        --------
+        Series.str.rjust: Fills the left side of strings with an arbitrary
+            character.
+        Series.str.ljust: Fills the right side of strings with an arbitrary
+            character.
+        Series.str.pad: Fills the specified sides of strings with an arbitrary
+            character.
+        Series.str.center: Fills boths sides of strings with an arbitrary
+            character.
+
+        Notes
+        -----
+        Differs from :meth:`str.zfill` which has special handling
+        for '+'/'-' in the string.
+
+        Examples
+        --------
+        >>> s = pd.Series(['-1', '1', '1000', 10, np.nan])
+        >>> s
+        0      -1
+        1       1
+        2    1000
+        3      10
+        4     NaN
+        dtype: object
+
+        Note that ``10`` and ``NaN`` are not strings, therefore they are
+        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
+        regular character and the zero is added to the left of it
+        (:meth:`str.zfill` would have moved it to the left). ``1000``
+        remains unchanged as it is longer than `width`.
+
+        >>> s.str.zfill(3)
+        0     0-1
+        1     001
+        2    1000
+        3     NaN
+        4     NaN
+        dtype: object
         """
         result = str_pad(self._data, width, side='left', fillchar='0')
         return self._wrap_result(result)
@@ -2509,13 +2592,67 @@ class StringMethods(NoNewAttributesMixin):
         result = str_encode(self._data, encoding, errors)
         return self._wrap_result(result)
 
-    _shared_docs['str_strip'] = ("""
-    Strip whitespace (including newlines) from each string in the
-    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+    _shared_docs['str_strip'] = (r"""
+    Remove leading and trailing characters.
+
+    Strip whitespaces (including newlines) or a set of specified characters
+    from each string in the Series/Index from %(side)s.
+    Equivalent to :meth:`str.%(method)s`.
+
+    Parameters
+    ----------
+    to_strip : str or None, default None.
+        Specifying the set of characters to be removed.
+        All combinations of this set of characters will be stripped.
+        If None then whitespaces are removed.
 
     Returns
     -------
-    stripped : Series/Index of objects
+    Series/Index of objects
+
+    See Also
+    --------
+    Series.str.strip : Remove leading and trailing characters in Series/Index
+    Series.str.lstrip : Remove leading characters in Series/Index
+    Series.str.rstrip : Remove trailing characters in Series/Index
+
+    Examples
+    --------
+    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t', np.nan])
+    >>> s
+    0    1. Ant.
+    1    2. Bee!\n
+    2    3. Cat?\t
+    3          NaN
+    dtype: object
+
+    >>> s.str.strip()
+    0    1. Ant.
+    1    2. Bee!
+    2    3. Cat?
+    3        NaN
+    dtype: object
+
+    >>> s.str.lstrip('123.')
+    0    Ant.
+    1    Bee!\n
+    2    Cat?\t
+    3       NaN
+    dtype: object
+
+    >>> s.str.rstrip('.!? \n\t')
+    0    1. Ant
+    1    2. Bee
+    2    3. Cat
+    3       NaN
+    dtype: object
+
+    >>> s.str.strip('123.!? \n\t')
+    0    Ant
+    1    Bee
+    2    Cat
+    3    NaN
+    dtype: object
     """)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',

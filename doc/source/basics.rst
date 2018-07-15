@@ -1924,11 +1924,24 @@ untouched. If the data is modified, it is because you did so explicitly.
 dtypes
 ------
 
-The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]`` and ``datetime64[ns, tz]``, ``timedelta[ns]``,
-``category`` and ``object``. In addition these dtypes have item sizes, e.g.
-``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>`
-for more detail on ``datetime64[ns, tz]`` dtypes.
+For the most part, pandas uses NumPy arrays and dtypes for Series or individual
+columns of a DataFrame. The main types allowed in pandas objects are ``float``,
+``int``, ``bool``, and ``datetime64[ns]`` (note that NumPy does not support
+timezone-aware datetimes).
+
+In addition to NumPy's types, pandas :ref:`extends <extending.extension-types>`
+NumPy's type-system for a few cases.
+
+* :ref:`Categorical <categorical>`
+* :ref:`Datetime with Timezone <timeseries.timezone_series>`
+* :ref:`Period <timeseries.periods>`
+* :ref:`Interval <advanced.indexing.intervallindex>`
+
+Pandas uses the ``object`` dtype for storing strings.
+
+Finally, arbitrary objects may be stored using the ``object`` dtype, but should
+be avoided to the extent possible (for performance and interoperability with
+other libraries and methods. See :ref:`basics.object_conversion`).
 
 A convenient :attr:`~DataFrame.dtypes` attribute for DataFrame returns a Series
 with the data type of each column.

@@ -1,6 +1,5 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
-import operator
-
 cimport cython
 from cython cimport Py_ssize_t
 
@@ -754,4 +753,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
     return result
 
 
-include "inference.pyx"
+include "src/inference.pyx"

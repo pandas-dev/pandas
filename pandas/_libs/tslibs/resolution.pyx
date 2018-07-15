@@ -15,22 +15,18 @@ from pandas._libs.khash cimport (khiter_t,
                                  kh_init_int64, kh_int64_t,
                                  kh_resize_int64, kh_get_int64)
 
-from cpython.datetime cimport datetime
-
-from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
+from np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
 from timezones cimport (is_utc, is_tzlocal,
-                        maybe_get_tz, get_dst_info, get_utcoffset)
+                        maybe_get_tz, get_dst_info)
 from fields import build_field_sarray
 from conversion import tz_convert
 from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar import MONTH_ALIASES, int_to_weekday
 from ccalendar cimport get_days_in_month
+from timestamps import Timestamp
 
 from pandas._libs.properties import cache_readonly
-from pandas._libs.tslib import Timestamp
-
-from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 
 # ----------------------------------------------------------------------
 # Constants
@@ -57,7 +53,7 @@ _ONE_DAY = <int64_t>(24 * _ONE_HOUR)
 cpdef resolution(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int reso = RESO_DAY, curr_reso
 
     if tz is not None:
@@ -79,7 +75,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         Py_ssize_t n = len(stamps)
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans, deltas, pos
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int64_t local_val
 
     if is_utc(tz):
@@ -103,10 +99,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        _pos = trans.searchsorted(stamps, side='right') - 1
-        if _pos.dtype != np.int64:
-            _pos = _pos.astype(np.int64)
-        pos = _pos
+        pos = trans.searchsorted(stamps, side='right') - 1
 
         # statictzinfo
         if typ not in ['pytz', 'dateutil']:
@@ -129,7 +122,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
     return reso
 
 
-cdef inline int _reso_stamp(pandas_datetimestruct *dts):
+cdef inline int _reso_stamp(npy_datetimestruct *dts):
     if dts.us != 0:
         if dts.us % 1000 == 0:
             return RESO_MS
@@ -346,10 +339,6 @@ class Resolution(object):
 # ----------------------------------------------------------------------
 # Frequency Inference
 
-
-# TODO: this is non performant logic here (and duplicative) and this
-# simply should call unique_1d directly
-# plus no reason to depend on khash directly
 cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
@@ -372,6 +361,50 @@ cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     result = np.array(uniques, dtype=np.int64)
     result.sort()
     return result
+
+
+cdef object month_position_check(fields, weekdays):
+    cdef:
+        int32_t daysinmonth, y, m, d
+        bint calendar_end = True
+        bint business_end = True
+        bint calendar_start = True
+        bint business_start = True
+        bint cal
+        int32_t[:] years
+        int32_t[:] months
+        int32_t[:] days
+
+    years = fields['Y']
+    months = fields['M']
+    days = fields['D']
+
+    for y, m, d, wd in zip(years, months, days, weekdays):
+        if calendar_start:
+            calendar_start &= d == 1
+        if business_start:
+            business_start &= d == 1 or (d <= 3 and wd == 0)
+
+        if calendar_end or business_end:
+            daysinmonth = get_days_in_month(y, m)
+            cal = d == daysinmonth
+            if calendar_end:
+                calendar_end &= cal
+            if business_end:
+                business_end &= cal or (daysinmonth - d < 3 and wd == 4)
+        elif not calendar_start and not business_start:
+            break
+
+    if calendar_end:
+        return 'ce'
+    elif business_end:
+        return 'be'
+    elif calendar_start:
+        return 'cs'
+    elif business_start:
+        return 'bs'
+    else:
+        return None
 
 
 cdef inline bint _is_multiple(int64_t us, int64_t mult):
@@ -482,52 +515,8 @@ cdef class _FrequencyInferer(object):
     def rep_stamp(self):
         return Timestamp(self.values[0])
 
-    cdef month_position_check(self):
-        # TODO: cythonize this, very slow
-        cdef:
-            int32_t daysinmonth, y, m, d
-            bint calendar_end = True
-            bint business_end = True
-            bint calendar_start = True
-            bint business_start = True
-            bint cal
-            int32_t[:] years
-            int32_t[:] months
-            int32_t[:] days
-
-        fields = self.fields
-        years = fields['Y']
-        months = fields['M']
-        days = fields['D']
-        weekdays = self.index.dayofweek
-
-        for y, m, d, wd in zip(years, months, days, weekdays):
-
-            if calendar_start:
-                calendar_start &= d == 1
-            if business_start:
-                business_start &= d == 1 or (d <= 3 and wd == 0)
-
-            if calendar_end or business_end:
-                daysinmonth = get_days_in_month(y, m)
-                cal = d == daysinmonth
-                if calendar_end:
-                    calendar_end &= cal
-                if business_end:
-                    business_end &= cal or (daysinmonth - d < 3 and wd == 4)
-            elif not calendar_start and not business_start:
-                break
-
-        if calendar_end:
-            return 'ce'
-        elif business_end:
-            return 'be'
-        elif calendar_start:
-            return 'cs'
-        elif business_start:
-            return 'bs'
-        else:
-            return None
+    cdef object month_position_check(self):
+        return month_position_check(self.fields, self.index.dayofweek)
 
     @cache_readonly
     def mdiffs(self):
@@ -579,6 +568,10 @@ cdef class _FrequencyInferer(object):
         if len(self.ydiffs) > 1:
             return None
 
+        # lazy import to prevent circularity
+        # TODO: Avoid non-cython dependency
+        from pandas.core.algorithms import unique
+
         if len(unique(self.fields['M'])) > 1:
             return None
 
@@ -622,6 +615,10 @@ cdef class _FrequencyInferer(object):
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
         #         return None
+
+        # lazy import to prevent circularity
+        # TODO: Avoid non-cython dependency
+        from pandas.core.algorithms import unique
 
         weekdays = unique(self.index.weekday)
         if len(weekdays) > 1:

@@ -336,6 +336,23 @@ class TestSeriesAnalytics(TestData):
                           index=['count', 'unique', 'top', 'freq'])
         tm.assert_series_equal(result, expected)
 
+    def test_describe_with_tz(self, tz_naive_fixture):
+        # GH 21332
+        tz = tz_naive_fixture
+        name = tz_naive_fixture
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s = Series(date_range(start, end, tz=tz), name=name)
+        result = s.describe()
+        expected = Series(
+            [5, 5, s.value_counts().index[0], 1, start.tz_localize(tz),
+             end.tz_localize(tz)
+             ],
+            name=name,
+            index=['count', 'unique', 'top', 'freq', 'first', 'last']
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_argsort(self):
         self._check_accum_op('argsort', check_dtype=False)
         argsorted = self.ts.argsort()
@@ -1395,6 +1412,7 @@ class TestSeriesAnalytics(TestData):
                                        s, out=data)
 
     def test_ptp(self):
+        # GH21614
         N = 1000
         arr = np.random.randn(N)
         ser = Series(arr)
@@ -1402,27 +1420,36 @@ class TestSeriesAnalytics(TestData):
 
         # GH11163
         s = Series([3, 5, np.nan, -3, 10])
-        assert s.ptp() == 13
-        assert pd.isna(s.ptp(skipna=False))
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            assert s.ptp() == 13
+            assert pd.isna(s.ptp(skipna=False))
 
         mi = pd.MultiIndex.from_product([['a', 'b'], [1, 2, 3]])
         s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
 
         expected = pd.Series([6, 2], index=['a', 'b'], dtype=np.float64)
-        tm.assert_series_equal(s.ptp(level=0), expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_series_equal(s.ptp(level=0), expected)
 
         expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
-        tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
         with pytest.raises(ValueError):
-            s.ptp(axis=1)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
         with pytest.raises(TypeError):
-            s.ptp()
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                s.ptp()
 
         with pytest.raises(NotImplementedError):
-            s.ptp(numeric_only=True)
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                s.ptp(numeric_only=True)
 
     def test_empty_timeseries_redections_return_nat(self):
         # covers #11245
