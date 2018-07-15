@@ -52,7 +52,7 @@ from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
 from offsets import _Tick
 
-DEF PY2 = str == bytes
+cdef bint PY2 = str == bytes
 
 
 cdef extern from "period_helper.h":
@@ -728,7 +728,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    IF PY2:
+    if PY2:
         result = result.decode('utf-8', 'ignore')
 
     return result
