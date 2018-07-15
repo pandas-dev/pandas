@@ -816,12 +816,8 @@ class TestTimedeltaSeriesMultiplicationDivision(object):
 
     @pytest.mark.parametrize('two', [
         2, 2.0,
-        pytest.param(np.array(2),
-                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
-                                                    'incorrectly True.')),
-        pytest.param(np.array(2.0),
-                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
-                                                    'incorrectly True.')),
+        np.array(2),
+        np.array(2.0),
     ])
     def test_td64series_div_numeric_scalar(self, two, tdser):
         # GH#4521
