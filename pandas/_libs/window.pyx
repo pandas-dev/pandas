@@ -6,6 +6,7 @@ from cython cimport Py_ssize_t
 from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free
+from libc.math cimport isnan
 
 import numpy as np
 cimport numpy as cnp
@@ -649,25 +650,20 @@ cdef inline double calc_var(int64_t minp, int ddof, double nobs,
     return result
 
 
-cdef inline void add_var(double val, double *nobs, double *mean_x,
+cdef inline void add_var(const double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
+    # `isnan` instead of equality as fix for GH-21813
+    if isnan(val):
+        return
+
     nobs[0] = nobs[0] + 1
-    # Not NaN
-    if val == val:
-        # a part of Welford's method for the online variance-calculation
-        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-        delta = val - mean_x[0]
-        mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
-    else:
-        # XXX
-        # `nobs[0] = nobs[0] + 1` should be in the if branch
-        # but something goes wrong with MSVC 2017 causing the whole
-        # path to optimize out, uncoditionally adding and
-        # backing out as a hack to fix
-        nobs[0] = nobs[0] - 1
+    # a part of Welford's method for the online variance-calculation
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    delta = val - mean_x[0]
+    mean_x[0] = mean_x[0] + delta / nobs[0]
+    ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
