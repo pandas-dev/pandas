@@ -777,10 +777,7 @@ class TestTimedeltaSeriesMultiplicationDivision(object):
                                        'float64', 'float32', 'float16'])
     @pytest.mark.parametrize('vector', [
         np.array([20, 30, 40]),
-        pytest.param(pd.Index([20, 30, 40]),
-                     marks=pytest.mark.xfail(reason='__mul__ raises '
-                                                    'instead of returning '
-                                                    'NotImplemented')),
+        pd.Index([20, 30, 40]),
         Series([20, 30, 40])
     ])
     def test_td64series_rmul_numeric_array(self, vector, dtype, tdser):
