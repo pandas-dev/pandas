@@ -2237,12 +2237,19 @@ class TestDataFrameAnalytics(TestData):
         """Should process np.nan argument as None """
         # GH # 17276
         tm.assert_frame_equal(self.frame.clip(np.nan), self.frame)
-        tm.assert_frame_equal(self.frame.clip(upper=[1, 2, np.nan]),
-                              self.frame)
-        tm.assert_frame_equal(self.frame.clip(lower=[1, np.nan, 3]),
-                              self.frame)
         tm.assert_frame_equal(self.frame.clip(upper=np.nan, lower=np.nan),
                               self.frame)
+
+        # GH #19992
+        df = DataFrame({'col_0': [1, 2, 3], 'col_1': [4, 5, 6],
+                        'col_2': [7, 8, 9]})
+        df1 = DataFrame({'col_0': [4, 5, np.nan], 'col_1': [4, 5, np.nan],
+                         'col_2': [7, 8, np.nan]})
+        df2 = DataFrame({'col_0': [4, 4, 4], 'col_1': [5, 5, 6],
+                         'col_2': [np.nan, np.nan, np.nan]})
+
+        tm.assert_frame_equal(df.clip(lower=[4, 5, np.nan], axis=0), df1)
+        tm.assert_frame_equal(df.clip(lower=[4, 5, np.nan], axis=1), df2)
 
     # Matrix-like
     def test_dot(self):
