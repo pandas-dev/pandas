@@ -55,7 +55,9 @@ class BaseDtypeTests(BaseExtensionTests):
         with pytest.raises(NotImplementedError):
             dtype.construct_array_type('foo')
 
-    def test_check_dtype(self, data, dtype):
+    def test_check_dtype(self, data):
+        dtype = data.dtype
+
         # check equivalency for using .dtypes
         df = pd.DataFrame({'A': pd.Series(data, dtype=dtype),
                            'B': data,
@@ -70,10 +72,10 @@ class BaseDtypeTests(BaseExtensionTests):
             expected = pd.Series([True, True, False, False],
                                  index=list('ABCD'))
 
-        result = df.dtypes == dtype.name
+        result = df.dtypes == str(dtype)
         self.assert_series_equal(result, expected)
 
         expected = pd.Series([True, True, False, False],
                              index=list('ABCD'))
-        result = df.dtypes.apply(str) == dtype.name
+        result = df.dtypes.apply(str) == str(dtype)
         self.assert_series_equal(result, expected)
