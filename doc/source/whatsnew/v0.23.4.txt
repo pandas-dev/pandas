@@ -41,7 +41,7 @@ Bug Fixes
 
 **I/O**
 
-- Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
+-
 -
 
 **Categorical**

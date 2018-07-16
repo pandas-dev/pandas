@@ -1,11 +1,6 @@
-from functools import partial
 import pytest
 
 from pandas.io.formats.console import detect_console_encoding
-
-
-def mock_raises_exception(error=Exception):
-    raise error
 
 
 @pytest.mark.parametrize('empty,filled', [
@@ -28,8 +23,8 @@ def test_detect_console_encoding_from_stdout_stdin(monkeypatch, empty, filled):
 
 
 @pytest.mark.parametrize('stdEncoding', [
-    partial(mock_raises_exception, AttributeError),
-    partial(mock_raises_exception, IOError),
+    pytest.raises(AttributeError),
+    pytest.raises(IOError),
     lambda: 'ascii'
 ])
 def test_detect_console_encoding_fallback_to_locale(monkeypatch, stdEncoding):
@@ -42,9 +37,9 @@ def test_detect_console_encoding_fallback_to_locale(monkeypatch, stdEncoding):
 
 @pytest.mark.parametrize('std,locale', [
     ['ascii', 'ascii'],
-    ['ascii', mock_raises_exception],
-    [mock_raises_exception, 'ascii'],
-    [mock_raises_exception, mock_raises_exception]
+    ['ascii', pytest.raises(Exception)],
+    [pytest.raises(Exception), 'ascii'],
+    [pytest.raises(Exception), pytest.raises(Exception)]
 ])
 def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):
     # When both the stdout/stdin encoding and locale preferred encoding checks
