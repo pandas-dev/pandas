@@ -6,7 +6,6 @@ from cython cimport Py_ssize_t
 from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free
-from libc.math cimport isnan
 
 import numpy as np
 cimport numpy as cnp
@@ -17,6 +16,9 @@ cnp.import_array()
 cdef extern from "src/headers/cmath" namespace "std":
     int signbit(double) nogil
     double sqrt(double x) nogil
+
+cdef extern from "numpy/npy_math.h":
+    bint isnan(double) nogil
 
 cimport util
 from util cimport numeric
