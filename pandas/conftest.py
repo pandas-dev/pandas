@@ -248,7 +248,19 @@ def tz_aware_fixture(request):
     return request.param
 
 
-@pytest.fixture(params=[str, 'str', 'U'])
+UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+
+FLOAT_DTYPES = [float, "float32", "float64"]
+COMPLEX_DTYPES = [complex, "complex64", "complex128"]
+STRING_DTYPES = [str, 'str', 'U']
+
+ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_NUMPY_DTYPES = ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
+
+
+@pytest.fixture(params=STRING_DTYPES)
 def string_dtype(request):
     """Parametrized fixture for string dtypes.
 
@@ -257,9 +269,6 @@ def string_dtype(request):
     * 'U'
     """
     return request.param
-
-
-FLOAT_DTYPES = [float, "float32", "float64"]
 
 
 @pytest.fixture(params=FLOAT_DTYPES)
@@ -274,7 +283,7 @@ def float_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=[complex, "complex64", "complex128"])
+@pytest.fixture(params=COMPLEX_DTYPES)
 def complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
@@ -284,12 +293,6 @@ def complex_dtype(request):
     """
 
     return request.param
-
-
-UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
-SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
-ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
 
 
 @pytest.fixture(params=SIGNED_INT_DTYPES)
@@ -353,6 +356,31 @@ def any_real_dtype(request):
     * uint64
     * float32
     * float64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_NUMPY_DTYPES)
+def any_numpy_dtype(request):
+    """
+    Parameterized fixture for all numpy dtypes.
+
+    * int8
+    * uint8
+    * int16
+    * uint16
+    * int32
+    * uint32
+    * int64
+    * uint64
+    * float32
+    * float64
+    * complex64
+    * complex128
+    * str
+    * 'str'
+    * 'U'
     """
 
     return request.param
