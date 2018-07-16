@@ -438,8 +438,8 @@ else:
 
 
 # enable coverage by building cython files by setting the environment variable
-# "linetrace" (with a Truthy value)
-linetrace = os.environ.get('linetrace', False)
+# "PANDAS_CYTHON_COVERAGE" (with a Truthy value)
+linetrace = os.environ.get('PANDAS_CYTHON_COVERAGE', False)
 CYTHON_TRACE = str(int(bool(linetrace)))
 # TODO: Maybe make this a CLI option for build_ext?
 
