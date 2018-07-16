@@ -747,7 +747,6 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_frame_to_period(self):
         K = 5
-        from pandas.core.indexes.period import period_range
 
         dr = date_range('1/1/2000', '1/1/2001')
         pr = period_range('1/1/2000', '1/1/2001')
