@@ -366,10 +366,12 @@ class Base(object):
 
         idx = self._holder(indices)
         if idx.has_duplicates:
-            # We need to be able to control creation of duplicates here
-            # This is slightly circular, as drop_duplicates depends on
-            # duplicated, but in the end, it all works out because we
-            # cross-check with Series.duplicated
+            # We are testing the duplicated-method here, so we need to know
+            # exactly which indices are duplicate and how (for the result).
+            # This is not possible if "idx" has duplicates already, which we
+            # therefore remove. This is seemingly circular, as drop_duplicates
+            # invokes duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated, which is tested separately.
             idx = idx.drop_duplicates()
 
         n, k = len(idx), 10
