@@ -18,6 +18,7 @@ from pandas._libs import lib, Timestamp
 from pandas.util._decorators import Substitution, Appender
 from pandas import compat
 
+import pandas.core.indexes.base as ibase
 import pandas.core.common as com
 from pandas.core.panel import Panel
 from pandas.compat import lzip, map
@@ -1567,7 +1568,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results = concat(results, axis=1)
 
         if not self.as_index:
-            results.index = com.default_index(len(results))
+            results.index = ibase.default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby

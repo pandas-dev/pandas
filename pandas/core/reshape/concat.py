@@ -11,6 +11,7 @@ from pandas.core.arrays.categorical import (_factorize_from_iterable,
                                             _factorize_from_iterables)
 from pandas.core.internals import concatenate_block_managers
 from pandas.core import common as com
+import pandas.core.indexes.base as ibase
 from pandas.core.generic import NDFrame
 import pandas.core.dtypes.concat as _concat
 
@@ -477,7 +478,7 @@ class _Concatenator(object):
             if self.axis == 0:
                 indexes = [x.index for x in self.objs]
             elif self.ignore_index:
-                idx = com.default_index(len(self.objs))
+                idx = ibase.default_index(len(self.objs))
                 return idx
             elif self.keys is None:
                 names = [None] * len(self.objs)
@@ -497,14 +498,14 @@ class _Concatenator(object):
                 if has_names:
                     return Index(names)
                 else:
-                    return com.default_index(len(self.objs))
+                    return ibase.default_index(len(self.objs))
             else:
                 return ensure_index(self.keys)
         else:
             indexes = [x._data.axes[self.axis] for x in self.objs]
 
         if self.ignore_index:
-            idx = com.default_index(sum(len(i) for i in indexes))
+            idx = ibase.default_index(sum(len(i) for i in indexes))
             return idx
 
         if self.keys is None:

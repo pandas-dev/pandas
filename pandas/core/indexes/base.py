@@ -5009,3 +5009,8 @@ def _trim_front(strings):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise ValueError('do not recognize join method %s' % method)
+
+
+def default_index(n):
+    from pandas.core.index import RangeIndex
+    return RangeIndex(0, n, name=None)

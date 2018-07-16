@@ -120,11 +120,6 @@ def is_bool_indexer(key):
     return False
 
 
-def default_index(n):
-    from pandas.core.index import RangeIndex
-    return RangeIndex(0, n, name=None)
-
-
 def _mut_exclusive(**kwargs):
     item1, item2 = kwargs.items()
     label1, val1 = item1

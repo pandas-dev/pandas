@@ -17,6 +17,7 @@ from pandas.core.dtypes.missing import notna
 
 import pandas.core.ops as ops
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
@@ -319,7 +320,7 @@ class Panel(NDFrame):
         fixed_axes = []
         for i, ax in enumerate(axes):
             if ax is None:
-                ax = com.default_index(shape[i])
+                ax = ibase.default_index(shape[i])
             else:
                 ax = ensure_index(ax)
             fixed_axes.append(ax)

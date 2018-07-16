@@ -27,6 +27,7 @@ from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.util._decorators import Appender
 import pandas.core.ops as ops
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 
 _shared_doc_kwargs = dict(klass='SparseDataFrame')
 
@@ -219,9 +220,9 @@ class SparseDataFrame(DataFrame):
     def _prep_index(self, data, index, columns):
         N, K = data.shape
         if index is None:
-            index = com.default_index(N)
+            index = ibase.default_index(N)
         if columns is None:
-            columns = com.default_index(K)
+            columns = ibase.default_index(K)
 
         if len(columns) != K:
             raise ValueError('Column length mismatch: {columns} vs. {K}'

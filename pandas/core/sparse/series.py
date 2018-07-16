@@ -16,6 +16,7 @@ from pandas.core.series import Series
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
@@ -149,7 +150,7 @@ class SparseSeries(Series):
                     data.fill(v)
 
             if index is None:
-                index = com.default_index(sparse_index.length)
+                index = ibase.default_index(sparse_index.length)
             index = ensure_index(index)
 
             # create/copy the manager

@@ -71,6 +71,8 @@ import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
+import pandas.core.indexes.base as ibase
+
 import pandas.io.formats.format as fmt
 from pandas.util._decorators import (
     Appender, deprecate, deprecate_kwarg, Substitution)
@@ -256,7 +258,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = com.default_index(len(data))
+                index = ibase.default_index(len(data))
             elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't
@@ -1202,7 +1204,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
-            new_index = com.default_index(len(self))
+            new_index = ibase.default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -2500,7 +2502,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bad = isna(arr)
 
         good = ~bad
-        idx = com.default_index(len(self))
+        idx = ibase.default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
 
