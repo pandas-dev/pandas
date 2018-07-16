@@ -29,6 +29,11 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
 
+cdef extern from "numpy/npy_math.h":
+    # Note: apparently npy_isnan has better windows-compat than
+    # the libc.math.isnan implementation
+    bint npy_isnan(double x) nogil
+
 # --------------------------------------------------------------------
 # Type Checking
 
@@ -159,7 +164,7 @@ cdef inline is_array(object o):
 
 cdef inline bint _checknull(object val):
     try:
-        return val is None or (cpython.PyFloat_Check(val) and val != val)
+        return val is None or (cpython.PyFloat_Check(val) and npy_isnan(val))
     except ValueError:
         return False
 
