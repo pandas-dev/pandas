@@ -246,23 +246,27 @@ class SparseArray(PandasObject, ExtensionArray):
 
     def take(self, indices, allow_fill=False, fill_value=None):
         from pandas.core.algorithms import take
-        indices = np.asarray(indices)
 
-        if allow_fill and fill_value is None:
-            fill_value = self.fill_value
+        indices = np.asarray(indices, dtype='i4').copy()
+        n = len(self)
 
-        if not len(self):
-            taken = super().take(indices, allow_fill, fill_value)
-            return self._from_sequence(taken)
+        if allow_fill:
+            fill_value = self.fill_value if fill_value is None else fill_value
 
-        # TODO: be efficient for mostly na `indices`.
-        idx = self.sp_index.to_int_index()
-        valid_idx = pd.Index(indices, copy=False) & pd.Index(idx.indices,
-                                                             copy=False)
-        sp_indices = idx.lookup_array(np.asarray(valid_idx).astype('i4'))
-        out = np.empty(len(self), dtype=self.dtype)
-        out.fill(fill_value)
-        out[valid_idx] = self.sp_values[sp_indices]
+            if n:
+                na = indices < 0
+                indices[na] = 0
+            else:
+                return take(self.values, indices, fill_value=fill_value)
+
+        else:
+            indices[indices < 0] += n
+            values_indices = self.sp_index.lookup_array(indices)
+            out = np.empty(len(indices), dtype=self.values.dtype)
+            out.fill(self.fill_value)
+            out[values_indices > 0] = self.values[
+                values_indices[values_indices > 0]
+            ]
 
         return type(self)(out, fill_value=fill_value)
 
