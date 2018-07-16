@@ -88,6 +88,75 @@ def test_duplicated_subset(subset, keep):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize('keep, expected_inv_values', [
+    ('first', [1, 4, 4, 16, 1]),
+    ('last', [25, 9, 9, 16, 25])
+])
+def test_duplicated_inverse(keep, expected_inv_values):
+    # check that return_inverse kwarg does not affect outcome;
+    # index of inverse must be correctly transformed as well
+    idx = [1, 4, 9, 16, 25]
+    df = DataFrame({'A': [0, 1, 1, 2, 0], 'B': ['a', 'b', 'b', 'c', 'a']},
+                   index=idx)
+
+    expected_isdup = df.duplicated(keep=keep)
+    expected_inv = Series(expected_inv_values, index=idx)
+    result_isdup, result_inv = df.duplicated(keep=keep,
+                                             return_inverse=True)
+    tm.assert_series_equal(result_isdup, expected_isdup)
+    tm.assert_series_equal(result_inv, expected_inv)
+
+    # test that result_inv works (and fits together with expected_isdup)
+    unique = df.loc[~expected_isdup]
+    reconstr = unique.reindex(result_inv).set_index(result_inv.index)
+    tm.assert_frame_equal(reconstr, df)
+
+
+def test_duplicated_inverse_raises():
+    df = DataFrame({'A': [0, 1, 1, 2, 0], 'B': ['a', 'b', 'b', 'c', 'a']})
+
+    rgx = 'The parameters return_inverse=True and keep=False cannot be.*'
+    with tm.assert_raises_regex(ValueError, rgx):
+        df.duplicated(keep=False, return_inverse=True)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+@pytest.mark.parametrize('subset', [None, ['A', 'B'], 'A'])
+def test_duplicated_inverse_large(subset, keep):
+    # unsorted index important to check 'first'/'last' functionality
+    df = DataFrame(np.random.randint(0, 10, (10000, 3)),
+                   columns=list('ABC')).sample(5000)
+
+    expected_isdup = df.duplicated(keep=keep, subset=subset)
+    result_isdup, result_inv = df.duplicated(keep=keep, subset=subset,
+                                             return_inverse=True)
+    tm.assert_series_equal(result_isdup, expected_isdup)
+
+    if subset is None:
+        subset = list(df.columns)
+    elif isinstance(subset, string_types):
+        # need to have a DataFrame, not a Series
+        # -> select columns with singleton list, not string
+        subset = [subset]
+
+    unique = df.loc[~expected_isdup, subset]
+    reconstr = unique.reindex(result_inv).set_index(result_inv.index)
+    tm.assert_frame_equal(reconstr, df[subset])
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+def test_duplicated_inverse_fastpath(keep):
+    df = DataFrame({'A': range(10)})  # no duplicates
+
+    expected_isdup = df.duplicated(keep=keep)
+    result_isdup, result_inv = df.duplicated(keep=keep,
+                                             return_inverse=True)
+    tm.assert_series_equal(result_isdup, expected_isdup)
+
+    expected_inv = Series(range(10))
+    tm.assert_series_equal(result_inv, expected_inv)
+
+
 def test_drop_duplicates():
     df = DataFrame({'AAA': ['foo', 'bar', 'foo', 'bar',
                             'foo', 'bar', 'bar', 'foo'],

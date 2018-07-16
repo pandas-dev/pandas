@@ -770,7 +770,7 @@ def _value_counts_arraylike(values, dropna):
     return keys, counts
 
 
-def duplicated(values, keep='first'):
+def duplicated(values, keep='first', return_inverse=False):
     """
     Return boolean ndarray denoting duplicate values.
 
@@ -785,16 +785,67 @@ def duplicated(values, keep='first'):
           occurrence.
         - ``last`` : Mark duplicates as ``True`` except for the last
           occurrence.
-        - False : Mark all duplicates as ``True``.
+        - False : Mark all duplicates as ``True``. This option is not
+          compatible with ``return_inverse``.
+    return_inverse : boolean, default False
+        If True, also return the selection of (integer) indices from the array
+        of unique values (created e.g. by selecting the boolean complement of
+        the first output, or by using `.drop_duplicates` with the same
+        `keep`-parameter) that can be used to reconstruct "values".
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
-    duplicated : ndarray
+    duplicated : ndarray or tuple of ndarray if ``return_inverse`` is True
     """
+
+    if return_inverse and keep is False:
+        raise ValueError("The parameters return_inverse=True and "
+                         "keep=False cannot be used together (impossible "
+                         "to calculate an inverse when discarding all "
+                         "instances of a duplicate).")
 
     values, dtype, ndtype = _ensure_data(values)
     f = getattr(htable, "duplicated_{dtype}".format(dtype=ndtype))
-    return f(values, keep=keep)
+    isdup = f(values, keep=keep)
+    if not return_inverse:
+        return isdup
+    elif not isdup.any():
+        # no need to calculate inverse if no duplicates
+        inv = np.arange(len(values))
+        return isdup, inv
+
+    if keep == 'first':
+        # o2u: original indices to indices of ARRAY of unique values
+        # u2o: reduplication from array of unique values to original array
+        # this fits together in the way that values[o2u] are the unique values
+        # and values[o2u][u2o] == values
+        _, o2u, u2o = np.unique(values, return_index=True,
+                                return_inverse=True)
+    elif keep == 'last':
+        # np.unique takes first occurrence as unique value,
+        # so we flip values that first becomes last
+        values = values[::-1]
+        _, o2u, u2o = np.unique(values, return_index=True,
+                                return_inverse=True)
+        # the values in "values" correspond(ed) to the index of "values",
+        # which is simply np.arange(len(values)).
+        # By flipping "values" around, we need to do the same for the index,
+        # ___because o2u and u2o are relative to that order___.
+        # Finally, to fit with the original order again, we need to flip the
+        # result around one last time.
+        o2u, u2o = np.arange(len(values))[::-1][o2u], u2o[::-1]
+
+    # np.unique yields a ___sorted___ list of uniques, and o2u/u2o are relative
+    # to this order. To restore the original order, we argsort o2u, because o2u
+    # would be ordered if np.unique had not sorted implicitly. The first
+    # argsort gives the permutation from o2u to its sorted form, but we need
+    # the inverse permutation (the map from the unsorted uniques to o2u, from
+    # which we can continue with u2o). This inversion (as a permutation) is
+    # achieved by the second argsort.
+    inv = np.argsort(np.argsort(o2u))[u2o]
+    return isdup, inv
 
 
 def mode(values, dropna=True):

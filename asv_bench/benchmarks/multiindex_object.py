@@ -83,17 +83,22 @@ class Integer(object):
 class Duplicated(object):
 
     goal_time = 0.2
+    params = (['first', 'last', False], [True, False])
+    param_names = ['keep', 'return_inverse']
 
-    def setup(self):
-        n, k = 200, 5000
+    def setup(self, keep, return_inverse):
+        if keep is False and return_inverse:
+            raise NotImplementedError
+
+        n, k = 200, 1000
         levels = [np.arange(n),
                   tm.makeStringIndex(n).values,
                   1000 + np.arange(n)]
         labels = [np.random.choice(n, (k * n)) for lev in levels]
         self.mi = MultiIndex(levels=levels, labels=labels)
 
-    def time_duplicated(self):
-        self.mi.duplicated()
+    def time_duplicated(self, keep, return_inverse):
+        self.mi.duplicated(keep=keep, return_inverse=return_inverse)
 
 
 class Sortlevel(object):

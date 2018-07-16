@@ -903,14 +903,19 @@ class MultiIndex(Index):
         return hash_tuple(key)
 
     @Appender(Index.duplicated.__doc__)
-    def duplicated(self, keep='first'):
+    def duplicated(self, keep='first', return_inverse=False):
         from pandas.core.sorting import get_group_index
-        from pandas._libs.hashtable import duplicated_int64
+        from pandas.core.algorithms import duplicated
+
+        if return_inverse and keep is False:
+            raise ValueError("The parameters return_inverse=True and "
+                             "keep=False cannot be used together (impossible "
+                             "to calculate an inverse when discarding all "
+                             "instances of a duplicate).")
 
         shape = map(len, self.levels)
         ids = get_group_index(self.labels, shape, sort=False, xnull=False)
-
-        return duplicated_int64(ids, keep)
+        return duplicated(ids, keep=keep, return_inverse=return_inverse)
 
     def fillna(self, value=None, downcast=None):
         """

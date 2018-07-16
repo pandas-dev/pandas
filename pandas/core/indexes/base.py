@@ -4568,7 +4568,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return super(Index, self).drop_duplicates(keep=keep)
 
-    def duplicated(self, keep='first'):
+    def duplicated(self, keep='first', return_inverse=False):
         """
         Indicate duplicate index values.
 
@@ -4585,7 +4585,20 @@ class Index(IndexOpsMixin, PandasObject):
               occurrence.
             - 'last' : Mark duplicates as ``True`` except for the last
               occurrence.
-            - ``False`` : Mark all duplicates as ``True``.
+            - ``False`` : Mark all duplicates as ``True``. This option is not
+              compatible with ``return_inverse``.
+        return_inverse : boolean, default False
+            If True, also return the selection of (integer) indices from the
+            Index with unique values (created e.g. by selecting the boolean
+            complement of the first output, or by using `.drop_duplicates` with
+            the same `keep`-parameter). This allows to reconstruct the original
+            Index from the subset of unique values, see example below.
+
+            .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        duplicated : ndarray or or tuple of ndarray if return_inverse is True
 
         Examples
         --------
@@ -4601,20 +4614,37 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.duplicated(keep='first')
         array([False, False,  True, False,  True])
 
-        By using 'last', the last occurrence of each set of duplicated values
-        is set on False and all others on True:
+        By using `'last'`, the last occurrence of each set of duplicated values
+        is set to False and all others to True:
 
         >>> idx.duplicated(keep='last')
         array([ True, False,  True, False, False])
 
-        By setting keep on ``False``, all duplicates are True:
+        By specifying `keep=False`, all duplicates are set to True:
 
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True])
 
-        Returns
-        -------
-        numpy.ndarray
+        Using the keyword `return_inverse=True`, the output becomes a tuple of
+        `np.ndarray`:
+
+        >>> isduplicate, inverse = idx.duplicated(return_inverse=True)
+        >>> inverse
+        array([0, 1, 0, 2, 0], dtype=int64)
+
+        This can be used to reconstruct the original object from its unique
+        elements as follows:
+
+        >>> idx_unique = idx[~isduplicate]  # same as idx.drop_duplicates()
+        >>> idx_unique
+        Index(['lama', 'cow', 'beetle'], dtype='object')
+        >>>
+        >>> reconstruct = idx_unique[inverse]
+        >>> reconstruct
+        Index(['lama', 'cow', 'lama', 'beetle', 'lama'], dtype='object')
+        >>>
+        >>> reconstruct.equals(idx)
+        True
 
         See Also
         --------
@@ -4622,7 +4652,8 @@ class Index(IndexOpsMixin, PandasObject):
         pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
         pandas.Index.drop_duplicates : Remove duplicate values from Index
         """
-        return super(Index, self).duplicated(keep=keep)
+        return super(Index, self).duplicated(keep=keep,
+                                             return_inverse=return_inverse)
 
     _index_shared_docs['fillna'] = """
         Fill NA/NaN values with the specified value

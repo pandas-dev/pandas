@@ -4335,7 +4335,7 @@ class DataFrame(NDFrame):
         else:
             return self[-duplicated]
 
-    def duplicated(self, subset=None, keep='first'):
+    def duplicated(self, subset=None, keep='first', return_inverse=False):
         """
         Return boolean Series denoting duplicate rows, optionally only
         considering certain columns
@@ -4350,14 +4350,150 @@ class DataFrame(NDFrame):
               first occurrence.
             - ``last`` : Mark duplicates as ``True`` except for the
               last occurrence.
-            - False : Mark all duplicates as ``True``.
+            - False : Mark all duplicates as ``True``. This option is not
+              compatible with ``return_inverse``.
+        return_inverse : boolean, default False
+            If True, also return the selection from the index from the
+            DataFrame of unique values (created e.g. by selecting the boolean
+            complement of the first output, or by using `.drop_duplicates` with
+            the same `keep`-parameter) and how they relate to the index of the
+            current DataFrame. This allows to reconstruct the original
+            DataFrame from the subset of unique values, see example below.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
-        duplicated : Series
+        duplicated : Series or tuple of Series if return_inverse is True
+
+        Examples
+        --------
+        By default, for each set of duplicated values, the first occurrence is
+        set on False and all others on True:
+
+        >>> data = {'species': ['lama', 'cow', 'lama', 'ant', 'lama', 'bee'],
+                    'type': ['mammal'] * 3 + ['insect', 'mammal', 'insect']}
+        >>> animals = pd.DataFrame(data, index=[1, 4, 9, 16, 25])
+        >>> animals
+           species    type
+        1     lama  mammal
+        4      cow  mammal
+        9     lama  mammal
+        16     ant  insect
+        25    lama  mammal
+        36     bee  insect
+        >>>
+        >>> animals.duplicated()  # default: keep='first'
+        1     False
+        4     False
+        9      True
+        16    False
+        25     True
+        36    False
+        dtype: bool
+
+        By using `'last'`, the last occurrence of each set of duplicated values
+        is set to False and all others to True:
+
+        >>> animals.duplicated(keep='last')
+        1      True
+        4     False
+        9      True
+        16    False
+        25    False
+        36    False
+        dtype: bool
+
+        By specifying `keep=False`, all duplicates are set to True:
+
+        >>> animals.duplicated(keep=False)
+        1      True
+        4     False
+        9      True
+        16    False
+        25     True
+        36    False
+        dtype: bool
+
+        By specifying the `subset`-keyword, the duplicates will be calculated
+        based on just the subset of columns given
+
+        >>> animals.duplicated(subset=['type'])  # default: keep='first'
+        1     False
+        4      True
+        9      True
+        16    False
+        25     True
+        36     True
+        dtype: bool
+
+        Using the keyword `return_inverse=True`, the output becomes a tuple of
+        `Series`:
+
+        >>> isduplicate, inverse = animals.duplicated(return_inverse=True)
+        >>> inverse
+        1      1
+        4      4
+        9      1
+        16    16
+        25     1
+        36    36
+        dtype: int64
+
+        This can be used to reconstruct the original object from its unique
+        elements as follows:
+
+        >>> # same as animals.drop_duplicates()
+        >>> animals_unique = animals.loc[~isduplicate]
+        >>> animals_unique
+           species    type
+        1     lama  mammal
+        4      cow  mammal
+        16     ant  insect
+        36     bee  insect
+        >>>
+        >>> reconstruct = animals_unique.reindex(inverse)
+        >>> reconstruct
+           species    type
+        1     lama  mammal
+        4      cow  mammal
+        1     lama  mammal
+        16     ant  insect
+        1     lama  mammal
+        36     bee  insect
+
+        We see that the values of `animals` get reconstructed correctly, but
+        the index does not match yet -- consequently, the last step is to
+        correctly set the index.
+
+        >>> reconstruct = reconstruct.set_index(inverse.index)
+        >>> reconstruct
+           species    type
+        1     lama  mammal
+        4      cow  mammal
+        9     lama  mammal
+        16     ant  insect
+        25    lama  mammal
+        36     bee  insect
+        >>>
+        >>> reconstruct.equals(animals)
+        True
+
+        See Also
+        --------
+        pandas.Index.duplicated : Equivalent method on pandas.Index
+        pandas.Series.duplicated : Equivalent method on pandas.Series
+        pandas.DataFrame.drop_duplicates : Remove duplicate values
         """
         from pandas.core.sorting import get_group_index
-        from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+        from pandas._libs.hashtable import _SIZE_HINT_LIMIT
+        from pandas.core.algorithms import duplicated
+
+        if return_inverse and keep is False:
+            raise ValueError("The parameters return_inverse=True and "
+                             "keep=False cannot be used together (impossible "
+                             "to calculate an inverse when discarding all "
+                             "instances of a duplicate).")
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -4383,7 +4519,15 @@ class DataFrame(NDFrame):
         labels, shape = map(list, zip(*map(f, vals)))
 
         ids = get_group_index(labels, shape, sort=False, xnull=False)
-        return Series(duplicated_int64(ids, keep), index=self.index)
+        if not return_inverse:
+            return Series(duplicated(ids, keep=keep), index=self.index)
+
+        # return_inverse = True
+        isdup_array, inv_array = duplicated(ids, keep=keep,
+                                            return_inverse=True)
+        isdup = Series(isdup_array, index=self.index)
+        inv = Series(self.loc[~isdup_array].index[inv_array], index=self.index)
+        return isdup, inv
 
     # ----------------------------------------------------------------------
     # Sorting

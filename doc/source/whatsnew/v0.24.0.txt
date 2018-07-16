@@ -159,6 +159,56 @@ This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
 
+.. _whatsnew_0240.enhancements.duplicated_inverse:
+
+The ``duplicated``-method has gained the ``return_inverse`` kwarg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``duplicated``-method for ``Series``, ``DataFrame`` and all flavors of ``Index`` has gained a ``return_inverse`` keyword,
+which is False by default. Specifying ``return_inverse=True`` will add an object to the output (which therefore becomes a tuple)
+that allows reconstructing the original object from the deduplicated, unique subset (:issue:`21357`).
+
+For ``Index`` objects, the inverse is an ``np.ndarray``:
+
+.. ipython:: python
+
+    idx = pd.Index(['a', 'b', 'b', 'c', 'a'])
+    idx.has_duplicates
+    isduplicate, inverse = idx.duplicated(return_inverse=True)  # default: keep='first'
+    isduplicate
+    inverse
+
+This allows to reconstruct the original ``Index`` as follows:
+
+.. ipython:: python
+
+    unique = idx[~isduplicate]  # same as idx.drop_duplicates()
+    unique
+
+    reconstruct = unique[inverse]
+    reconstruct.equals(idx)
+
+For ``DataFrame`` and ``Series`` the inverse needs to take into account the original index as well, and is therefore a ``Series``,
+which contains the mapping from the index of the deduplicated, unique subset back to the original index.
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [0, 1, 1, 2, 0], 'B': ['a', 'b', 'b', 'c', 'a']},
+                      index=[1, 4, 9, 16, 25])
+    df
+    isduplicate, inverse = df.duplicated(keep='last', return_inverse=True)
+    isduplicate
+    inverse
+
+    unique = df.loc[~isduplicate]  # same as df.drop_duplicates(keep='last')
+    unique
+    reconstruct = unique.reindex(inverse.values).set_index(inverse.index)
+    reconstruct.equals(df)
+
+The keyword works as expected for ``keep='first'|'last'``, but cannot be used together with ``keep=False`` (since discarding all duplicates makes it impossible
+to construct an inverse).
+
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements

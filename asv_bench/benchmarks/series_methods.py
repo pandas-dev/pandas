@@ -192,3 +192,21 @@ class SeriesGetattr(object):
 
     def time_series_datetimeindex_repr(self):
         getattr(self.s, 'a', None)
+
+
+class Duplicated(object):
+
+    goal_time = 0.2
+    params = (['first', 'last', False], [True, False])
+    param_names = ['keep', 'return_inverse']
+
+    def setup(self, keep, return_inverse):
+        if keep is False and return_inverse:
+            raise NotImplementedError
+
+        n, k = 200, 1000
+        base = tm.makeStringIndex(n)
+        self.s = Series(base[np.random.choice(n, k * n)])
+
+    def time_series_duplicated(self, keep, return_inverse):
+        self.s.duplicated(keep=keep, return_inverse=return_inverse)

@@ -392,10 +392,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                   ordered=result.ordered)
 
     @Appender(Index.duplicated.__doc__)
-    def duplicated(self, keep='first'):
-        from pandas._libs.hashtable import duplicated_int64
+    def duplicated(self, keep='first', return_inverse=False):
+        from pandas.core.algorithms import duplicated
         codes = self.codes.astype('i8')
-        return duplicated_int64(codes, keep)
+        return duplicated(codes, keep=keep, return_inverse=return_inverse)
 
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """

@@ -378,6 +378,82 @@ class Base(object):
         result = idx.duplicated(keep=keep)
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize('keep', ['first', 'last'])
+    def test_duplicated_inverse(self, indices, keep):
+        # check that return_inverse kwarg does not affect outcome
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we have the correct type')
+        if not len(indices) or isinstance(indices, MultiIndex):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
+        idx = self._holder(indices)
+        if idx.has_duplicates:
+            # We need to be able to control creation of duplicates here
+            # This is slightly circular, as drop_duplicates depends on
+            # duplicated, but in the end, it all works out because we
+            # cross-check with Series.duplicated
+            idx = idx.drop_duplicates()
+
+        n, k = len(idx), 10
+        duplicated_selection = np.random.choice(n, k * n)
+        idx = self._holder(idx.values[duplicated_selection])
+
+        expected_isdup = idx.duplicated(keep=keep)
+        if keep == 'first':
+            _, tmp_ind, tmp_inv = np.unique(idx, return_index=True,
+                                            return_inverse=True)
+        else:  # 'last'
+            # switch order before calling unique then restore correct ordering
+            # for tmp_ind, tmp_inv
+            _, tmp_ind, tmp_inv = np.unique(idx[::-1], return_index=True,
+                                            return_inverse=True)
+            tmp_ind = np.arange(len(idx))[::-1][tmp_ind]
+            tmp_inv = tmp_inv[::-1]
+        # explanation in pandas.core.algorithms.duplicated
+        expected_inv = np.argsort(np.argsort(tmp_ind))[tmp_inv]
+
+        result_isdup, result_inv = idx.duplicated(keep=keep,
+                                                  return_inverse=True)
+        tm.assert_numpy_array_equal(result_isdup, expected_isdup)
+        tm.assert_numpy_array_equal(result_inv, expected_inv)
+
+        # test that result_inv works (and fits together with expected_isdup)
+        unique = idx[~expected_isdup]
+        reconstr = unique[result_inv]
+        tm.assert_index_equal(reconstr, idx)
+
+    def test_duplicated_inverse_raises(self, indices):
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we have the correct type')
+
+        rgx = 'The parameters return_inverse=True and keep=False cannot be.*'
+        with tm.assert_raises_regex(ValueError, rgx):
+            self._holder(indices).duplicated(keep=False, return_inverse=True)
+
+    @pytest.mark.parametrize('keep', ['first', 'last'])
+    def test_duplicated_inverse_fastpath(self, indices, keep):
+        if type(indices) is not self._holder:
+            pytest.skip('Can only check if we have the correct type')
+        if not len(indices) or isinstance(indices, MultiIndex):
+            # MultiIndex tested separately in:
+            # tests/indexes/multi/test_unique_and_duplicates
+            pytest.skip('Skip check for empty Index and MultiIndex')
+
+        idx = self._holder(indices)
+        if idx.has_duplicates:
+            # fastpath only possible if no duplicates
+            idx = idx.drop_duplicates()
+
+        expected_isdup = idx.duplicated(keep=keep)
+        result_isdup, result_inv = idx.duplicated(keep=keep,
+                                                  return_inverse=True)
+        tm.assert_numpy_array_equal(result_isdup, expected_isdup)
+
+        expected_inv = np.arange(len(idx))
+        tm.assert_numpy_array_equal(result_inv, expected_inv)
+
     def test_unique(self, indices):
         # don't test a MultiIndex here (as its tested separated)
         # don't test a CategoricalIndex because categories change (GH 18291)

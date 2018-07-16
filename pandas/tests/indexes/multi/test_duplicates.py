@@ -212,29 +212,6 @@ def test_has_duplicates_overflow():
     check(8, True)
 
 
-@pytest.mark.parametrize('keep, expected', [
-    ('first', np.array([False, False, False, True, True, False])),
-    ('last', np.array([False, True, True, False, False, False])),
-    (False, np.array([False, True, True, True, True, False]))
-])
-def test_duplicated(idx_dup, keep, expected):
-    result = idx_dup.duplicated(keep=keep)
-    tm.assert_numpy_array_equal(result, expected)
-
-
-@pytest.mark.parametrize('keep', ['first', 'last', False])
-def test_duplicated_large(keep):
-    # GH 9125
-    n, k = 200, 5000
-    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
-    labels = [np.random.choice(n, k * n) for lev in levels]
-    mi = MultiIndex(levels=levels, labels=labels)
-
-    result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated_object(mi.values, keep=keep)
-    tm.assert_numpy_array_equal(result, expected)
-
-
 def test_get_duplicates():
     # GH5873
     for a in [101, 102]:
@@ -264,3 +241,84 @@ def test_get_duplicates():
 
             tm.assert_numpy_array_equal(mi.duplicated(),
                                         np.zeros(len(mi), dtype='bool'))
+
+
+@pytest.mark.parametrize('keep, expected', [
+    ('first', np.array([False, False, False, True, True, False])),
+    ('last', np.array([False, True, True, False, False, False])),
+    (False, np.array([False, True, True, True, True, False]))
+])
+def test_duplicated(idx_dup, keep, expected):
+    result = idx_dup.duplicated(keep=keep)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last', False])
+def test_duplicated_large(keep):
+    # GH 9125
+    n, k = 200, 5000
+    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
+    labels = [np.random.choice(n, k * n) for lev in levels]
+    mi = MultiIndex(levels=levels, labels=labels)
+
+    result = mi.duplicated(keep=keep)
+    expected = hashtable.duplicated_object(mi.values, keep=keep)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+def test_duplicated_inverse(idx_dup, keep):
+    # check that return_inverse kwarg does not affect outcome;
+    # index of inverse must be correctly transformed as well
+
+    expected_isdup = idx_dup.duplicated(keep=keep)
+    expected_inv = np.array([0, 1, 2, 1, 2, 3], dtype='int64')
+    result_isdup, result_inv = idx_dup.duplicated(keep=keep,
+                                                  return_inverse=True)
+    tm.assert_numpy_array_equal(result_isdup, expected_isdup)
+    tm.assert_numpy_array_equal(result_inv, expected_inv)
+
+    # test that result_inv works (and fits together with expected_isdup)
+    unique = MultiIndex.from_tuples(idx_dup.values[~expected_isdup])
+    reconstr = MultiIndex.from_tuples(unique.values[result_inv],
+                                      names=idx_dup.names)
+    tm.assert_index_equal(reconstr, idx_dup)
+
+
+def test_duplicated_inverse_raises(idx_dup):
+    rgx = 'The parameters return_inverse=True and keep=False cannot be.*'
+    with tm.assert_raises_regex(ValueError, rgx):
+        idx_dup.duplicated(keep=False, return_inverse=True)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+def test_duplicated_inverse_large(keep):
+    n, k = 200, 5000
+    levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
+    labels = [np.random.choice(n, k * n) for lev in levels]
+    mi = MultiIndex(levels=levels, labels=labels)
+
+    expected_isdup = mi.duplicated(keep=keep)
+    result_isdup, result_inv = mi.duplicated(keep=keep,
+                                             return_inverse=True)
+    tm.assert_numpy_array_equal(result_isdup, expected_isdup)
+
+    # test that result_inv works (and fits together with expected_isdup)
+    unique = MultiIndex.from_tuples(mi.values[~expected_isdup])
+    reconstr = MultiIndex.from_tuples(unique.values[result_inv],
+                                      names=mi.names)
+    tm.assert_index_equal(reconstr, mi)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+def test_duplicated_inverse_fastpath(idx_dup, keep):
+    # fastpath is only taken if there are no duplicates
+    mi = idx_dup.drop_duplicates()
+
+    expected_isdup = mi.duplicated(keep=keep)
+    result_isdup, result_inv = mi.duplicated(keep=keep,
+                                             return_inverse=True)
+    tm.assert_numpy_array_equal(result_isdup, expected_isdup)
+
+    expected_inv = np.arange(4)
+    tm.assert_numpy_array_equal(result_inv, expected_inv)

@@ -84,6 +84,24 @@ class Ops(object):
         self.index % 2
 
 
+class Duplicated(object):
+
+    goal_time = 0.2
+    params = (['first', 'last', False], [True, False])
+    param_names = ['keep', 'return_inverse']
+
+    def setup(self, keep, return_inverse):
+        if keep is False and return_inverse:
+            raise NotImplementedError
+
+        n, k = 200, 1000
+        base = tm.makeStringIndex(n)
+        self.idx = Index(base[np.random.choice(n, k * n)])
+
+    def time_duplicated(self, keep, return_inverse):
+        self.idx.duplicated(keep=keep, return_inverse=return_inverse)
+
+
 class Range(object):
 
     goal_time = 0.2

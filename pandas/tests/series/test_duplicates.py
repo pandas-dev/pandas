@@ -138,3 +138,66 @@ def test_duplicated_nan_none(keep, expected):
 
     result = s.duplicated(keep=keep)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('keep, expected_inv_values', [
+    ('first', [1, 4, 4, 16, 1]),
+    ('last', [25, 9, 9, 16, 25])
+])
+def test_duplicated_inverse(keep, expected_inv_values):
+    # check that return_inverse kwarg does not affect outcome;
+    # index of inverse must be correctly transformed as well
+    idx = [1, 4, 9, 16, 25]
+    s = Series(['a', 'b', 'b', 'c', 'a'], index=idx)
+
+    expected_isdup = s.duplicated(keep=keep)
+    expected_inv = Series(expected_inv_values, index=idx)
+    result_isdup, result_inv = s.duplicated(keep=keep,
+                                            return_inverse=True)
+    tm.assert_series_equal(result_isdup, expected_isdup)
+    tm.assert_series_equal(result_inv, expected_inv)
+
+    # test that result_inv works (and fits together with expected_isdup)
+    unique = s.loc[~expected_isdup]
+    reconstr = unique.reindex(result_inv)
+    # Series has no set_index (GH21684)
+    reconstr.index = result_inv.index
+    tm.assert_series_equal(reconstr, s)
+
+
+def test_duplicated_inverse_raises():
+    s = Series(['a', 'b', 'b', 'c', 'a'])
+
+    rgx = 'The parameters return_inverse=True and keep=False cannot be.*'
+    with tm.assert_raises_regex(ValueError, rgx):
+        s.duplicated(keep=False, return_inverse=True)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+def test_duplicated_inverse_large(keep):
+    # unsorted index important to check 'first'/'last' functionality
+    s = Series(np.random.randint(0, 1000, 10000)).sample(5000)
+
+    expected_isdup = s.duplicated(keep=keep)
+    result_isdup, result_inv = s.duplicated(keep=keep, return_inverse=True)
+    tm.assert_series_equal(result_isdup, expected_isdup)
+
+    # test that result_inv works (and fits together with expected_isdup)
+    unique = s.loc[~expected_isdup]
+    reconstr = unique.reindex(result_inv)
+    # Series has no set_index (GH21684)
+    reconstr.index = result_inv.index
+    tm.assert_series_equal(reconstr, s)
+
+
+@pytest.mark.parametrize('keep', ['first', 'last'])
+def test_duplicated_inverse_fastpath(keep):
+    s = Series(range(10))  # no duplicates
+
+    expected_isdup = s.duplicated(keep=keep)
+    result_isdup, result_inv = s.duplicated(keep=keep,
+                                            return_inverse=True)
+    tm.assert_series_equal(result_isdup, expected_isdup)
+
+    expected_inv = Series(range(10))
+    tm.assert_series_equal(result_inv, expected_inv)

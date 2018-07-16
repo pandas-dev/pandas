@@ -412,21 +412,35 @@ class Nunique(object):
 class Duplicated(object):
 
     goal_time = 0.2
+    params = (['first', 'last', False], [True, False])
+    param_names = ['keep', 'return_inverse']
 
-    def setup(self):
+    def setup(self, keep, return_inverse):
+        if keep is False and return_inverse:
+            raise NotImplementedError
+
         n = (1 << 20)
         t = date_range('2015-01-01', freq='S', periods=(n // 64))
         xs = np.random.randn(n // 64).round(2)
         self.df = DataFrame({'a': np.random.randint(-1 << 8, 1 << 8, n),
                              'b': np.random.choice(t, n),
                              'c': np.random.choice(xs, n)})
-        self.df2 = DataFrame(np.random.randn(1000, 100).astype(str)).T
+        # df2 will not have any duplicates
+        self.df2 = DataFrame(np.random.randn(100, 1000).astype(str))
 
-    def time_frame_duplicated(self):
-        self.df.duplicated()
+        df3 = DataFrame(np.random.randint(0, 10, (2 ** 18, 5)),
+                        columns=list('ABCDE'))
+        df3.loc[:, 'F'] = Series('', index=df3.index).str.cat(df3.astype(str))
+        self.df3 = df3
 
-    def time_frame_duplicated_wide(self):
-        self.df2.duplicated()
+    def time_frame_duplicated(self, keep, return_inverse):
+        self.df.duplicated(keep=keep, return_inverse=return_inverse)
+
+    def time_frame_duplicated_wide(self, keep, return_inverse):
+        self.df2.duplicated(keep=keep, return_inverse=return_inverse)
+
+    def time_frame_duplicated_mixed(self, keep, return_inverse):
+        self.df3.duplicated(keep=keep, return_inverse=return_inverse)
 
 
 class XS(object):

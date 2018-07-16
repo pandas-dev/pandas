@@ -1246,15 +1246,38 @@ class IndexOpsMixin(object):
         else:
             return result
 
-    def duplicated(self, keep='first'):
+    def duplicated(self, keep='first', return_inverse=False):
         from pandas.core.algorithms import duplicated
+
+        if return_inverse and keep is False:
+            raise ValueError("The parameters return_inverse=True and "
+                             "keep=False cannot be used together (impossible "
+                             "to calculate an inverse when discarding all "
+                             "instances of a duplicate).")
+
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                return np.zeros(len(self), dtype=np.bool)
-            return duplicated(self, keep=keep)
-        else:
+                isdup = np.zeros(len(self), dtype=np.bool)
+                if not return_inverse:
+                    return isdup
+                return isdup, np.arange(len(self))
+            # core.algorithms.duplicated has the same output signature as
+            # Index.duplicated -> no need to distinguish cases here
+            return duplicated(self, keep=keep, return_inverse=return_inverse)
+
+        # Series case
+        if not return_inverse:
             return self._constructor(duplicated(self, keep=keep),
                                      index=self.index).__finalize__(self)
+
+        # return_inverse = True
+        isdup_array, inv_array = duplicated(self, keep=keep,
+                                            return_inverse=True)
+        isdup = self._constructor(isdup_array,
+                                  index=self.index).__finalize__(self)
+        inv = self._constructor(self.loc[~isdup_array].index[inv_array],
+                                index=self.index)
+        return isdup, inv
 
     # ----------------------------------------------------------------------
     # abstracts

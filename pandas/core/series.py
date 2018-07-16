@@ -1590,7 +1590,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
-    def duplicated(self, keep='first'):
+    def duplicated(self, keep='first', return_inverse=False):
         """
         Indicate duplicate Series values.
 
@@ -1605,56 +1605,115 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
               occurrence.
             - 'last' : Mark duplicates as ``True`` except for the last
               occurrence.
-            - ``False`` : Mark all duplicates as ``True``.
+            - ``False`` : Mark all duplicates as ``True``. This option is not
+              compatible with ``return_inverse``.
+        return_inverse : boolean, default False
+            If True, also return the selection from the index from the Series
+            of unique values (created e.g. by selecting the boolean complement
+            of the first output, or by using `.drop_duplicates` with the same
+            `keep`-parameter) and how they relate to the index of the current
+            Series. This allows to reconstruct the original Series from the
+            subset of unique values, see example below.
+
+            .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        duplicated : Series or or tuple of Series if return_inverse is True
 
         Examples
         --------
         By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'],
+                                index=[1, 4, 9, 16, 25])
         >>> animals.duplicated()
-        0    False
-        1    False
-        2     True
-        3    False
-        4     True
+        1     False
+        4     False
+        9      True
+        16    False
+        25     True
         dtype: bool
 
         which is equivalent to
 
         >>> animals.duplicated(keep='first')
-        0    False
-        1    False
-        2     True
-        3    False
-        4     True
+        1     False
+        4     False
+        9      True
+        16    False
+        25     True
         dtype: bool
 
-        By using 'last', the last occurrence of each set of duplicated values
-        is set on False and all others on True:
+        By using `'last'`, the last occurrence of each set of duplicated values
+        is set to False and all others to True:
 
         >>> animals.duplicated(keep='last')
-        0     True
-        1    False
-        2     True
-        3    False
-        4    False
+        1      True
+        4     False
+        9      True
+        16    False
+        25    False
         dtype: bool
 
-        By setting keep on ``False``, all duplicates are True:
+        By specifying `keep=False`, all duplicates are set to True:
 
         >>> animals.duplicated(keep=False)
-        0     True
-        1    False
-        2     True
-        3    False
-        4     True
+        1      True
+        4     False
+        9      True
+        16    False
+        25     True
         dtype: bool
 
-        Returns
-        -------
-        pandas.core.series.Series
+        Using the keyword `return_inverse=True`, the output becomes a tuple of
+        `Series`:
+
+        >>> isduplicate, inverse = animals.duplicated(return_inverse=True)
+        >>> inverse
+        1      1
+        4      4
+        9      1
+        16    16
+        25     1
+        dtype: int64
+
+        This can be used to reconstruct the original object from its unique
+        elements as follows:
+
+        >>> # same as animals.drop_duplicates()
+        >>> animals_unique = animals.loc[~isduplicate]
+        >>> animals_unique
+        1       lama
+        4        cow
+        16    beetle
+        dtype: object
+        >>>
+        >>> reconstruct = animals_unique.reindex(inverse)
+        >>> reconstruct
+        1       lama
+        4        cow
+        1       lama
+        16    beetle
+        1       lama
+        dtype: object
+
+        We see that the values of `animals` get reconstructed correctly, but
+        the index does not match yet  -- consequently, the last step is to
+        correctly set the index.
+
+        >>> reconstruct.index = inverse.index
+        >>> reconstruct
+        1       lama
+        4        cow
+        9       lama
+        16    beetle
+        25      lama
+        dtype: object
+        >>>
+        >>> reconstruct.equals(animals)
+        True
 
         See Also
         --------
@@ -1662,7 +1721,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
         pandas.Series.drop_duplicates : Remove duplicate values from Series
         """
-        return super(Series, self).duplicated(keep=keep)
+        return super(Series, self).duplicated(keep=keep,
+                                              return_inverse=return_inverse)
 
     def idxmin(self, axis=0, skipna=True, *args, **kwargs):
         """
