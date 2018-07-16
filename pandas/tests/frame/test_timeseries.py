@@ -779,10 +779,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         # TODO: l1 should be a PeriodIndex for testing
         #       after GH2106 is addressed
-        with pytest.raises(NotImplementedError):
-            period_range('20140701', periods=1).tz_convert('UTC')
-        with pytest.raises(NotImplementedError):
-            period_range('20140701', periods=1).tz_localize('UTC')
+
         # l1 = period_range('20140701', periods=5, freq='D')
         l1 = date_range('20140701', periods=5, freq='D')
 
