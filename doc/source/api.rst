@@ -1870,6 +1870,8 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
+    PeriodIndex.tz_convert
+    PeriodIndex.tz_localize
 
 Scalars
 -------
