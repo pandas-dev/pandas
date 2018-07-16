@@ -2243,13 +2243,16 @@ class TestDataFrameAnalytics(TestData):
         # GH #19992
         df = DataFrame({'col_0': [1, 2, 3], 'col_1': [4, 5, 6],
                         'col_2': [7, 8, 9]})
-        df1 = DataFrame({'col_0': [4, 5, np.nan], 'col_1': [4, 5, np.nan],
-                         'col_2': [7, 8, np.nan]})
-        df2 = DataFrame({'col_0': [4, 4, 4], 'col_1': [5, 5, 6],
-                         'col_2': [np.nan, np.nan, np.nan]})
 
-        tm.assert_frame_equal(df.clip(lower=[4, 5, np.nan], axis=0), df1)
-        tm.assert_frame_equal(df.clip(lower=[4, 5, np.nan], axis=1), df2)
+        result = df.clip(lower=[4, 5, np.nan], axis=0)
+        expected = DataFrame({'col_0': [4, 5, np.nan], 'col_1': [4, 5, np.nan],
+                              'col_2': [7, 8, np.nan]})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.clip(lower=[4, 5, np.nan], axis=1)
+        expected = DataFrame({'col_0': [4, 4, 4], 'col_1': [5, 5, 6],
+                              'col_2': [np.nan, np.nan, np.nan]})
+        tm.assert_frame_equal(result, expected)
 
     # Matrix-like
     def test_dot(self):
