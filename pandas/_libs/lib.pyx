@@ -753,4 +753,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
     return result
 
 
-include "inference.pyx"
+include "src/inference.pyx"

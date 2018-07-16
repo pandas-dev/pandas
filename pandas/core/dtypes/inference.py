@@ -285,7 +285,9 @@ def is_list_like(obj):
     """
 
     return (isinstance(obj, Iterable) and
+            # we do not count strings/unicode/bytes as list-like
             not isinstance(obj, string_and_binary_types) and
+            # exclude zero-dimensional numpy arrays, effectively scalars
             not (isinstance(obj, np.ndarray) and obj.ndim == 0))
 
 

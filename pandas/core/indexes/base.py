@@ -46,7 +46,6 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_extension_array_dtype,
     is_hashable,
-    needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
 
@@ -87,11 +86,6 @@ def _make_comparison_op(op, cls):
         if isinstance(other, (np.ndarray, Index, ABCSeries)):
             if other.ndim > 0 and len(self) != len(other):
                 raise ValueError('Lengths must match to compare')
-
-        # we may need to directly compare underlying
-        # representations
-        if needs_i8_conversion(self) and needs_i8_conversion(other):
-            return self._evaluate_compare(other, op)
 
         from .multi import MultiIndex
         if is_object_dtype(self) and not isinstance(self, MultiIndex):
@@ -273,7 +267,8 @@ class Index(IndexOpsMixin, PandasObject):
                                     **kwargs)
 
         # interval
-        elif is_interval_dtype(data) or is_interval_dtype(dtype):
+        elif ((is_interval_dtype(data) or is_interval_dtype(dtype)) and
+              not is_object_dtype(dtype)):
             from .interval import IntervalIndex
             closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
@@ -4647,9 +4642,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _evaluate_with_datetime_like(self, other, op):
         raise TypeError("can only perform ops with datetime like values")
-
-    def _evaluate_compare(self, other, op):
-        raise com.AbstractMethodError(self)
 
     @classmethod
     def _add_comparison_methods(cls):

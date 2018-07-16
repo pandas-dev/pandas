@@ -166,6 +166,10 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
     pass
 
 
+class TestSetitem(BaseDecimal, base.BaseSetitemTests):
+    pass
+
+
 # TODO(extension)
 @pytest.mark.xfail(reason=(
     "raising AssertionError as this is not implemented, "
