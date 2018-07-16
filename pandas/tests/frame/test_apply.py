@@ -5,6 +5,7 @@ from __future__ import print_function
 import pytest
 
 import operator
+from collections import OrderedDict
 from datetime import datetime
 from itertools import chain
 
@@ -846,58 +847,74 @@ class TestInferOutputShape(object):
         assert_frame_equal(result, expected)
 
 
-def zip_frames(*frames):
+def zip_frames(frames, axis=1):
     """
-    take a list of frames, zip the columns together for each
-    assume that these all have the first frame columns
+    take a list of frames, zip them together under the
+    assumption that these all have the first frames' index/columns.
 
-    return a new frame
+    Returns
+    -------
+    new_frame : DataFrame
     """
-    columns = frames[0].columns
-    zipped = [f[c] for c in columns for f in frames]
-    return pd.concat(zipped, axis=1)
+    if axis == 1:
+        columns = frames[0].columns
+        zipped = [f.loc[:, c] for c in columns for f in frames]
+        return pd.concat(zipped, axis=1)
+    else:
+        index = frames[0].index
+        zipped = [f.loc[i, :] for i in index for f in frames]
+        return pd.DataFrame(zipped)
 
 
 class TestDataFrameAggregate(TestData):
 
-    def test_agg_transform(self):
+    def test_agg_transform(self, axis):
+        other_axis = abs(axis - 1)
 
         with np.errstate(all='ignore'):
 
-            f_sqrt = np.sqrt(self.frame)
             f_abs = np.abs(self.frame)
+            f_sqrt = np.sqrt(self.frame)
 
             # ufunc
-            result = self.frame.transform(np.sqrt)
+            result = self.frame.transform(np.sqrt, axis=axis)
             expected = f_sqrt.copy()
             assert_frame_equal(result, expected)
 
-            result = self.frame.apply(np.sqrt)
+            result = self.frame.apply(np.sqrt, axis=axis)
             assert_frame_equal(result, expected)
 
-            result = self.frame.transform(np.sqrt)
+            result = self.frame.transform(np.sqrt, axis=axis)
             assert_frame_equal(result, expected)
 
             # list-like
-            result = self.frame.apply([np.sqrt])
+            result = self.frame.apply([np.sqrt], axis=axis)
             expected = f_sqrt.copy()
-            expected.columns = pd.MultiIndex.from_product(
-                [self.frame.columns, ['sqrt']])
+            if axis == 0:
+                expected.columns = pd.MultiIndex.from_product(
+                    [self.frame.columns, ['sqrt']])
+            else:
+                expected.index = pd.MultiIndex.from_product(
+                    [self.frame.index, ['sqrt']])
             assert_frame_equal(result, expected)
 
-            result = self.frame.transform([np.sqrt])
+            result = self.frame.transform([np.sqrt], axis=axis)
             assert_frame_equal(result, expected)
 
             # multiple items in list
             # these are in the order as if we are applying both
             # functions per series and then concatting
-            expected = zip_frames(f_sqrt, f_abs)
-            expected.columns = pd.MultiIndex.from_product(
-                [self.frame.columns, ['sqrt', 'absolute']])
-            result = self.frame.apply([np.sqrt, np.abs])
+            result = self.frame.apply([np.abs, np.sqrt], axis=axis)
+            expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
+            if axis == 0:
+                expected.columns = pd.MultiIndex.from_product(
+                    [self.frame.columns, ['absolute', 'sqrt']])
+            else:
+                expected.index = pd.MultiIndex.from_product(
+                    [self.frame.index, ['absolute', 'sqrt']])
             assert_frame_equal(result, expected)
 
-            result = self.frame.transform(['sqrt', np.abs])
+            result = self.frame.transform([np.abs, 'sqrt'], axis=axis)
             assert_frame_equal(result, expected)
 
     def test_transform_and_agg_err(self, axis):
@@ -985,46 +1002,51 @@ class TestDataFrameAggregate(TestData):
 
     def test_agg_reduce(self, axis):
         other_axis = abs(axis - 1)
-        name1, name2 = self.frame.axes[other_axis].unique()[:2]
+        name1, name2 = self.frame.axes[other_axis].unique()[:2].sort_values()
 
         # all reducers
-        expected = zip_frames(self.frame.mean(axis=axis).to_frame(),
-                              self.frame.max(axis=axis).to_frame(),
-                              self.frame.sum(axis=axis).to_frame()).T
-        expected.index = ['mean', 'max', 'sum']
+        expected = pd.concat([self.frame.mean(axis=axis),
+                              self.frame.max(axis=axis),
+                              self.frame.sum(axis=axis),
+                              ], axis=1)
+        expected.columns = ['mean', 'max', 'sum']
+        expected = expected.T if axis == 0 else expected
+
         result = self.frame.agg(['mean', 'max', 'sum'], axis=axis)
         assert_frame_equal(result, expected)
 
         # dict input with scalars
-        func = {name1: 'mean', name2: 'sum'}
+        func = OrderedDict([(name1, 'mean'), (name2, 'sum')])
         result = self.frame.agg(func, axis=axis)
         expected = Series([self.frame.loc(other_axis)[name1].mean(),
                            self.frame.loc(other_axis)[name2].sum()],
                           index=[name1, name2])
-        assert_series_equal(result.reindex_like(expected), expected)
+        assert_series_equal(result, expected)
 
         # dict input with lists
-        func = {name1: ['mean'], name2: ['sum']}
+        func = OrderedDict([(name1, ['mean']), (name2, ['sum'])])
         result = self.frame.agg(func, axis=axis)
         expected = DataFrame({
             name1: Series([self.frame.loc(other_axis)[name1].mean()],
                           index=['mean']),
             name2: Series([self.frame.loc(other_axis)[name2].sum()],
                           index=['sum'])})
-        assert_frame_equal(result.reindex_like(expected), expected)
+        expected = expected.T if axis == 1 else expected
+        assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        func = {name1: ['mean', 'sum'],
-                name2: ['sum', 'max']}
+        func = OrderedDict([(name1, ['mean', 'sum']), (name2, ['sum', 'max'])])
         result = self.frame.agg(func, axis=axis)
-        expected = DataFrame({
-            name1: Series([self.frame.loc(other_axis)[name1].mean(),
+        expected = DataFrame(OrderedDict([
+            (name1, Series([self.frame.loc(other_axis)[name1].mean(),
                            self.frame.loc(other_axis)[name1].sum()],
-                          index=['mean', 'sum']),
-            name2: Series([self.frame.loc(other_axis)[name2].sum(),
+                           index=['mean', 'sum'])),
+            (name2, Series([self.frame.loc(other_axis)[name2].sum(),
                            self.frame.loc(other_axis)[name2].max()],
-                          index=['sum', 'max'])})
-        assert_frame_equal(result.reindex_like(expected), expected)
+                           index=['sum', 'max'])),
+        ]))
+        expected = expected.T if axis == 1 else expected
+        assert_frame_equal(result, expected)
 
     def test_nuiscance_columns(self):
 

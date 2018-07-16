@@ -105,6 +105,11 @@ class FrameApply(object):
     def get_result(self):
         """ compute the results """
 
+        # dispatch to agg
+        if isinstance(self.f, (list, dict)):
+            return self.obj.aggregate(self.f, axis=self.axis,
+                                      *self.args, **self.kwds)
+
         # all empty
         if len(self.columns) == 0 and len(self.index) == 0:
             return self.apply_empty_result()
@@ -307,15 +312,6 @@ class FrameApply(object):
 
 class FrameRowApply(FrameApply):
     axis = 0
-
-    def get_result(self):
-
-        # dispatch to agg
-        if isinstance(self.f, (list, dict)):
-            return self.obj.aggregate(self.f, axis=self.axis,
-                                      *self.args, **self.kwds)
-
-        return super(FrameRowApply, self).get_result()
 
     def apply_broadcast(self):
         return super(FrameRowApply, self).apply_broadcast(self.obj)

@@ -6080,10 +6080,19 @@ class DataFrame(NDFrame):
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
-        obj = self.T if axis == 1 else self
-        return super(DataFrame, obj)._aggregate(arg, *args, **kwargs)
+        if axis == 1:
+            result, how = (super(DataFrame, self.T)
+                           ._aggregate(arg, *args, **kwargs))
+            result = result.T if result is not None else result
+            return result, how
+        return super(DataFrame, self)._aggregate(arg, *args, **kwargs)
 
     agg = aggregate
+
+    def transform(self, func, axis=0, *args, **kwargs):
+        if axis == 1:
+            return super(DataFrame, self.T).transform(func, *args, **kwargs).T
+        return super(DataFrame, self).transform(func, *args, **kwargs)
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
