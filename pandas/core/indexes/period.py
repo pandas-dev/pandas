@@ -140,8 +140,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     asfreq
     strftime
     to_timestamp
-    tz_convert
-    tz_localize
 
     Examples
     --------
