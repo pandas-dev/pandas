@@ -2966,6 +2966,13 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(rs, df.mask(df <= 0, other))
         assert_frame_equal(rs, df.mask(~cond, other))
 
+        # see gh-21891
+        df = DataFrame([1, 2])
+        res = df.mask([[True], [False]])
+
+        exp = DataFrame([np.nan, 2])
+        tm.assert_frame_equal(res, exp)
+
     def test_mask_inplace(self):
         # GH8801
         df = DataFrame(np.random.randn(5, 3))
