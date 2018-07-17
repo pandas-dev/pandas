@@ -188,7 +188,7 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cpdef ndarray unbox_utcoffsets(object transinfo):
+cpdef ndarray[int64_t, ndim=1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] arr
@@ -216,6 +216,8 @@ cdef object get_dst_info(object tz):
     """
     cache_key = tz_cache_key(tz)
     if cache_key is None:
+        # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
+        # psycopg2.tz.FixedOffsetTimezone
         num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),

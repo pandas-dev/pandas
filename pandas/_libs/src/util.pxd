@@ -5,6 +5,7 @@ cnp.import_array()
 cimport cpython
 from cpython cimport PyTypeObject
 
+
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
@@ -100,6 +101,7 @@ cdef extern from "headers/stdint.h":
     enum: INT64_MAX
     enum: INT64_MIN
 
+
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
@@ -118,6 +120,7 @@ cdef inline object get_value_at(ndarray arr, object loc):
         raise IndexError('index out of bounds')
 
     return get_value_1d(arr, i)
+
 
 cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
     """Sets a value into the array without checking the writeable flag.
@@ -153,11 +156,13 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
 
+
 cdef inline bint _checknull(object val):
     try:
         return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
+
 
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'

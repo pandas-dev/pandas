@@ -21,15 +21,16 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #include <numpy/arrayobject.h>
 #include <numpy/arrayscalars.h>
+#include <numpy/ndarraytypes.h>
 #include "np_datetime.h"
 
 #if PY_MAJOR_VERSION >= 3
 #define PyInt_AsLong PyLong_AsLong
 #endif
 
-const pandas_datetimestruct _NS_MIN_DTS = {
+const npy_datetimestruct _NS_MIN_DTS = {
     1677, 9, 21, 0, 12, 43, 145225, 0, 0};
-const pandas_datetimestruct _NS_MAX_DTS = {
+const npy_datetimestruct _NS_MAX_DTS = {
     2262, 4, 11, 23, 47, 16, 854775, 807000, 0};
 
 
@@ -61,7 +62,7 @@ int dayofweek(int y, int m, int d) {
  * Adjusts a datetimestruct based on a minutes offset. Assumes
  * the current values are valid.g
  */
-void add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes) {
+void add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes) {
     int isleap;
 
     /* MINUTES */
@@ -110,7 +111,7 @@ void add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes) {
 /*
  * Calculates the days offset from the 1970 epoch.
  */
-npy_int64 get_datetimestruct_days(const pandas_datetimestruct *dts) {
+npy_int64 get_datetimestruct_days(const npy_datetimestruct *dts) {
     int i, month;
     npy_int64 year, days = 0;
     const int *month_lengths;
@@ -210,7 +211,7 @@ static npy_int64 days_to_yearsdays(npy_int64 *days_) {
  * Adjusts a datetimestruct based on a seconds offset. Assumes
  * the current values are valid.
  */
-NPY_NO_EXPORT void add_seconds_to_datetimestruct(pandas_datetimestruct *dts,
+NPY_NO_EXPORT void add_seconds_to_datetimestruct(npy_datetimestruct *dts,
                                                  int seconds) {
     int minutes;
 
@@ -235,7 +236,7 @@ NPY_NO_EXPORT void add_seconds_to_datetimestruct(pandas_datetimestruct *dts,
  * offset from 1970.
  */
 static void set_datetimestruct_days(npy_int64 days,
-                                    pandas_datetimestruct *dts) {
+                                    npy_datetimestruct *dts) {
     const int *month_lengths;
     int i;
 
@@ -254,10 +255,10 @@ static void set_datetimestruct_days(npy_int64 days,
 }
 
 /*
- * Compares two pandas_datetimestruct objects chronologically
+ * Compares two npy_datetimestruct objects chronologically
  */
-int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
-                              const pandas_datetimestruct *b) {
+int cmp_npy_datetimestruct(const npy_datetimestruct *a,
+                           const npy_datetimestruct *b) {
     if (a->year > b->year) {
         return 1;
     } else if (a->year < b->year) {
@@ -318,7 +319,7 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
 /*
  *
  * Tests for and converts a Python datetime.datetime or datetime.date
- * object into a NumPy pandas_datetimestruct.  Uses tzinfo (if present)
+ * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
  * to convert to UTC time.
  *
  * While the C API has PyDate_* and PyDateTime_* functions, the following
@@ -330,12 +331,12 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
  * if obj doesn't have the needed date or datetime attributes.
  */
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
-                                         pandas_datetimestruct *out) {
+                                         npy_datetimestruct *out) {
     PyObject *tmp;
     int isleap;
 
     /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(pandas_datetimestruct));
+    memset(out, 0, sizeof(npy_datetimestruct));
     out->month = 1;
     out->day = 1;
 
@@ -511,21 +512,21 @@ invalid_time:
     return -1;
 }
 
-npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
-                                               pandas_datetimestruct *d) {
-    npy_datetime result = PANDAS_DATETIME_NAT;
+npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
+                                            npy_datetimestruct *d) {
+    npy_datetime result = NPY_DATETIME_NAT;
 
     convert_datetimestruct_to_datetime(fr, d, &result);
     return result;
 }
 
-void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
-                                       pandas_datetimestruct *result) {
+void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
+                                       npy_datetimestruct *result) {
     convert_datetime_to_datetimestruct(fr, val, result);
 }
 
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
-                                         PANDAS_DATETIMEUNIT fr,
+                                         NPY_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result) {
     convert_timedelta_to_timedeltastruct(fr, val, result);
 }
@@ -537,15 +538,15 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
-                                       const pandas_datetimestruct *dts,
+int convert_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
+                                       const npy_datetimestruct *dts,
                                        npy_datetime *out) {
     npy_datetime ret;
 
-    if (base == PANDAS_FR_Y) {
+    if (base == NPY_FR_Y) {
         /* Truncate to the year */
         ret = dts->year - 1970;
-    } else if (base == PANDAS_FR_M) {
+    } else if (base == NPY_FR_M) {
         /* Truncate to the month */
         ret = 12 * (dts->year - 1970) + (dts->month - 1);
     } else {
@@ -553,7 +554,7 @@ int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
         npy_int64 days = get_datetimestruct_days(dts);
 
         switch (base) {
-            case PANDAS_FR_W:
+            case NPY_FR_W:
                 /* Truncate to weeks */
                 if (days >= 0) {
                     ret = days / 7;
@@ -561,31 +562,31 @@ int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
                     ret = (days - 6) / 7;
                 }
                 break;
-            case PANDAS_FR_D:
+            case NPY_FR_D:
                 ret = days;
                 break;
-            case PANDAS_FR_h:
+            case NPY_FR_h:
                 ret = days * 24 + dts->hour;
                 break;
-            case PANDAS_FR_m:
+            case NPY_FR_m:
                 ret = (days * 24 + dts->hour) * 60 + dts->min;
                 break;
-            case PANDAS_FR_s:
+            case NPY_FR_s:
                 ret = ((days * 24 + dts->hour) * 60 + dts->min) * 60 + dts->sec;
                 break;
-            case PANDAS_FR_ms:
+            case NPY_FR_ms:
                 ret = (((days * 24 + dts->hour) * 60 + dts->min) * 60 +
                        dts->sec) *
                           1000 +
                       dts->us / 1000;
                 break;
-            case PANDAS_FR_us:
+            case NPY_FR_us:
                 ret = (((days * 24 + dts->hour) * 60 + dts->min) * 60 +
                        dts->sec) *
                           1000000 +
                       dts->us;
                 break;
-            case PANDAS_FR_ns:
+            case NPY_FR_ns:
                 ret = ((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
                         dts->sec) *
                            1000000 +
@@ -593,7 +594,7 @@ int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
                           1000 +
                       dts->ps / 1000;
                 break;
-            case PANDAS_FR_ps:
+            case NPY_FR_ps:
                 ret = ((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
                         dts->sec) *
                            1000000 +
@@ -601,7 +602,7 @@ int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
                           1000000 +
                       dts->ps;
                 break;
-            case PANDAS_FR_fs:
+            case NPY_FR_fs:
                 /* only 2.6 hours */
                 ret = (((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
                          dts->sec) *
@@ -612,7 +613,7 @@ int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
                           1000 +
                       dts->as / 1000;
                 break;
-            case PANDAS_FR_as:
+            case NPY_FR_as:
                 /* only 9.2 secs */
                 ret = (((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
                          dts->sec) *
@@ -640,13 +641,13 @@ int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
 /*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
-int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
+int convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
                                        npy_datetime dt,
-                                       pandas_datetimestruct *out) {
+                                       npy_datetimestruct *out) {
     npy_int64 perday;
 
     /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(pandas_datetimestruct));
+    memset(out, 0, sizeof(npy_datetimestruct));
     out->year = 1970;
     out->month = 1;
     out->day = 1;
@@ -656,11 +657,11 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
      * for negative values.
      */
     switch (base) {
-        case PANDAS_FR_Y:
+        case NPY_FR_Y:
             out->year = 1970 + dt;
             break;
 
-        case PANDAS_FR_M:
+        case NPY_FR_M:
             if (dt >= 0) {
                 out->year = 1970 + dt / 12;
                 out->month = dt % 12 + 1;
@@ -670,16 +671,16 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             }
             break;
 
-        case PANDAS_FR_W:
+        case NPY_FR_W:
             /* A week is 7 days */
             set_datetimestruct_days(dt * 7, out);
             break;
 
-        case PANDAS_FR_D:
+        case NPY_FR_D:
             set_datetimestruct_days(dt, out);
             break;
 
-        case PANDAS_FR_h:
+        case NPY_FR_h:
             perday = 24LL;
 
             if (dt >= 0) {
@@ -693,7 +694,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->hour = dt;
             break;
 
-        case PANDAS_FR_m:
+        case NPY_FR_m:
             perday = 24LL * 60;
 
             if (dt >= 0) {
@@ -708,7 +709,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->min = dt % 60;
             break;
 
-        case PANDAS_FR_s:
+        case NPY_FR_s:
             perday = 24LL * 60 * 60;
 
             if (dt >= 0) {
@@ -724,7 +725,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->sec = dt % 60;
             break;
 
-        case PANDAS_FR_ms:
+        case NPY_FR_ms:
             perday = 24LL * 60 * 60 * 1000;
 
             if (dt >= 0) {
@@ -741,7 +742,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->us = (dt % 1000LL) * 1000;
             break;
 
-        case PANDAS_FR_us:
+        case NPY_FR_us:
             perday = 24LL * 60LL * 60LL * 1000LL * 1000LL;
 
             if (dt >= 0) {
@@ -758,7 +759,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->us = dt % 1000000LL;
             break;
 
-        case PANDAS_FR_ns:
+        case NPY_FR_ns:
             perday = 24LL * 60LL * 60LL * 1000LL * 1000LL * 1000LL;
 
             if (dt >= 0) {
@@ -776,7 +777,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->ps = (dt % 1000LL) * 1000;
             break;
 
-        case PANDAS_FR_ps:
+        case NPY_FR_ps:
             perday = 24LL * 60 * 60 * 1000 * 1000 * 1000 * 1000;
 
             if (dt >= 0) {
@@ -794,7 +795,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             out->ps = dt % 1000000LL;
             break;
 
-        case PANDAS_FR_fs:
+        case NPY_FR_fs:
             /* entire range is only +- 2.6 hours */
             if (dt >= 0) {
                 out->hour = dt / (60 * 60 * 1000000000000000LL);
@@ -821,7 +822,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
             }
             break;
 
-        case PANDAS_FR_as:
+        case NPY_FR_as:
             /* entire range is only +- 9.2 seconds */
             if (dt >= 0) {
                 out->sec = (dt / 1000000000000000000LL) % 60;
@@ -861,7 +862,7 @@ int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_timedelta_to_timedeltastruct(PANDAS_DATETIMEUNIT base,
+int convert_timedelta_to_timedeltastruct(NPY_DATETIMEUNIT base,
                                          npy_timedelta td,
                                          pandas_timedeltastruct *out) {
     npy_int64 frac;
@@ -874,7 +875,7 @@ int convert_timedelta_to_timedeltastruct(PANDAS_DATETIMEUNIT base,
     memset(out, 0, sizeof(pandas_timedeltastruct));
 
     switch (base) {
-        case PANDAS_FR_ns:
+        case NPY_FR_ns:
 
         // put frac in seconds
         if (td < 0 && td % (1000LL * 1000LL * 1000LL) != 0)

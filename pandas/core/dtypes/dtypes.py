@@ -171,7 +171,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
     Examples
     --------
-    >>> t = CategoricalDtype(categories=['b', 'a'], ordered=True)
+    >>> t = pd.CategoricalDtype(categories=['b', 'a'], ordered=True)
     >>> pd.Series(['a', 'b', 'a', 'c'], dtype=t)
     0      a
     1      b
@@ -690,14 +690,13 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(PandasExtensionDtype):
+class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
     name = 'interval'
-    type = IntervalDtypeType
     kind = None
     str = '|O08'
     base = np.dtype('O')
@@ -752,6 +751,17 @@ class IntervalDtype(PandasExtensionDtype):
             return u
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import IntervalArray
+        return IntervalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         """
         attempt to construct this type from a string, raise a TypeError
@@ -764,6 +774,11 @@ class IntervalDtype(PandasExtensionDtype):
 
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
+
+    @property
+    def type(self):
+        from pandas import Interval
+        return Interval
 
     def __unicode__(self):
         if self.subtype is None:

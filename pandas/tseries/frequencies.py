@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.tseries.offsets import DateOffset
 
-from pandas._libs.tslib import Timedelta
+from pandas._libs.tslibs import Timedelta
 
 import pandas._libs.tslibs.frequencies as libfreqs
 from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
@@ -208,8 +208,8 @@ def get_offset(name):
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
         # cache
         _offset_map[name] = offset
-    # do not return cache because it's mutable
-    return _offset_map[name].copy()
+
+    return _offset_map[name]
 
 
 getOffset = get_offset

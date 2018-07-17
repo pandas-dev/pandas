@@ -1,7 +1,7 @@
 .. _whatsnew_0240:
 
-v0.24.0
--------
+v0.24.0 (Month XX, 2018)
+------------------------
 
 .. _whatsnew_0240.enhancements:
 
@@ -16,7 +16,7 @@ New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
-operators. (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
+operators (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
 
 1. Define each of the operators on your ``ExtensionArray`` subclass.
 2. Use an operator implementation from pandas that depends on operators that are already defined
@@ -66,6 +66,36 @@ Current Behavior:
 
     result
 
+
+.. _whatsnew_0240.enhancements.interval:
+
+Storing Interval Data in Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
+:class:`IntervalIndex` like previously (:issue:`19453`).
+
+.. ipython:: python
+
+   ser = pd.Series(pd.interval_range(0, 5))
+   ser
+   ser.dtype
+
+Previously, these would be cast to a NumPy array of ``Interval`` objects. In general,
+this should result in better performance when storing an array of intervals in
+a :class:`Series`.
+
+Note that the ``.values`` of a ``Series`` containing intervals is no longer a NumPy
+array, but rather an ``ExtensionArray``:
+
+.. ipython:: python
+
+   ser.values
+
+This is the same behavior as ``Series.values`` for categorical data. See
+:ref:`whatsnew_0240.api_breaking.interval_values` for more.
+
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -80,15 +110,55 @@ Other Enhancements
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
-- :func:`read_html` copies cell data across ``colspan``s and ``rowspan``s, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
-- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
+- :func:`read_html` copies cell data across ``colspan`` and ``rowspan``, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
+- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep`` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
+- :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
 -
 
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. _whatsnew_0240.api_breaking.interval_values:
+
+``IntervalIndex.values`` is now an ``IntervalArray``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :attr:`~Interval.values` attribute of an :class:`IntervalIndex` now returns an
+``IntervalArray``, rather than a NumPy array of :class:`Interval` objects (:issue:`19453`).
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: idx = pd.interval_range(0, 4)
+
+   In [2]: idx.values
+   Out[2]:
+   array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+          Interval(2, 3, closed='right'), Interval(3, 4, closed='right')],
+         dtype=object)
+
+New Behavior:
+
+.. ipython:: python
+
+   idx = pd.interval_range(0, 4)
+   idx.values
+
+This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.
+
+For situations where you need an ``ndarray`` of ``Interval`` objects, use
+:meth:`numpy.asarray` or ``idx.astype(object)``.
+
+.. ipython:: python
+  
+   np.asarray(idx)
+   idx.values.astype(object)
+
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -100,27 +170,33 @@ Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
 `normalize=True` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
-.. ipython:: python
-
-    ts = pd.Timestamp('2018-06-11 18:01:14')
-    ts
-    tic = pd.offsets.Hour(n=2, normalize=True)
-    tic
-
-Previous Behavior:
+*Previous Behavior*:
 
 .. code-block:: ipython
 
-    In [4]: ts + tic
-    Out [4]: Timestamp('2018-06-11 00:00:00')
 
-    In [5]: ts + tic + tic + tic == ts + (tic + tic + tic)
-    Out [5]: False
+   In [2]: ts = pd.Timestamp('2018-06-11 18:01:14')
 
-Current Behavior:
+   In [3]: ts
+   Out[3]: Timestamp('2018-06-11 18:01:14')
+
+   In [4]: tic = pd.offsets.Hour(n=2, normalize=True)
+      ...:
+
+   In [5]: tic
+   Out[5]: <2 * Hours>
+
+   In [6]: ts + tic
+   Out[6]: Timestamp('2018-06-11 00:00:00')
+
+   In [7]: ts + tic + tic + tic == ts + (tic + tic + tic)
+   Out[7]: False
+
+*Current Behavior*:
 
 .. ipython:: python
 
+    ts = pd.Timestamp('2018-06-11 18:01:14')
     tic = pd.offsets.Hour(n=2)
     ts + tic + tic + tic == ts + (tic + tic + tic)
 
@@ -183,11 +259,6 @@ ExtensionType Changes
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 -
 
-.. _whatsnew_0240.api.other:
-
-Other API Changes
-^^^^^^^^^^^^^^^^^
-
 .. _whatsnew_0240.api.incompatibilities:
 
 Series and Index Data-Dtype Incompatibilities
@@ -228,8 +299,11 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
+- Accessing a level of a ``MultiIndex`` with a duplicate name (e.g. in
+  :meth:~MultiIndex.get_level_values) now raises a ``ValueError`` instead of
+  a ``KeyError`` (:issue:`21678`).
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
--
+- Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
 -
 
 .. _whatsnew_0240.deprecations:
@@ -239,6 +313,7 @@ Deprecations
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
+- :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
 -
 
 .. _whatsnew_0240.prior_deprecations:
@@ -295,6 +370,7 @@ Datetimelike
 ^^^^^^^^^^^^
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
+- Fixed bug where :meth:`Timestamp.resolution` incorrectly returned 1-microsecond ``timedelta`` instead of 1-nanosecond :class:`Timedelta` (:issue:`21336`,:issue:`21365`)
 
 Timedelta
 ^^^^^^^^^
@@ -307,15 +383,16 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
-- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError``(:issue:`8910`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
 - Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
 - Bug in :meth:`Series.replace` with ``datetime64[ns, tz]`` data when replacing ``NaT`` (:issue:`11792`)
 - Bug in :class:`Timestamp` when passing different string date formats with a timezone offset would produce different timezone offsets (:issue:`12064`)
 - Bug when comparing a tz-naive :class:`Timestamp` to a tz-aware :class:`DatetimeIndex` which would coerce the :class:`DatetimeIndex` to tz-naive (:issue:`12601`)
 - Bug in :meth:`Series.truncate` with a tz-aware :class:`DatetimeIndex` which would cause a core dump (:issue:`9243`)
-- Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp`s to tz-aware (:issue:`13051`)
+- Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp` to tz-aware (:issue:`13051`)
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 - Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
+- Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
 
 Offsets
 ^^^^^^^
@@ -327,6 +404,7 @@ Numeric
 ^^^^^^^
 
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
+- Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
 -
 -
 
@@ -341,6 +419,7 @@ Interval
 ^^^^^^^^
 
 - Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
+- Bug in the ``IntervalIndex`` repr where a trailing comma was missing after the list of intervals (:issue:`20611`)
 -
 -
 
@@ -351,14 +430,16 @@ Indexing
 - When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError``, consistently with the case of a flat :class:`Int64Index, rather than falling back to positional indexing (:issue:`21593`)
 - Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
 - Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
+- ``DataFrame.__getitem__`` now accepts dictionaries and dictionary keys as list-likes of labels, consistently with ``Series.__getitem__`` (:issue:`21294`)
+- Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
-
--
+- Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
 
 Missing
 ^^^^^^^
 
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
+- Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -371,7 +452,7 @@ I/O
 ^^^
 
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
--
+- :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 -
 
 Plotting
@@ -404,12 +485,18 @@ Reshaping
 -
 -
 
+Build Changes
+^^^^^^^^^^^^^
+
+- Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
 -
 
 Other
 ^^^^^
 
 - :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
+- Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
+- :meth: `~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
 -
 -
 -

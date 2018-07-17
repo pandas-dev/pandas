@@ -21,7 +21,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    INT64_MAX)
 
 cimport ccalendar
-from conversion import tz_localize_to_utc, date_normalize
+from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
 from fields import get_start_end_field, get_date_name_field
@@ -29,7 +29,7 @@ from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct)
+                          npy_datetimestruct, dt64_to_dtstruct)
 from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -45,7 +45,7 @@ _no_input = object()
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
-                                            pandas_datetimestruct dts,
+                                            npy_datetimestruct dts,
                                             object tz, object freq):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
@@ -406,6 +406,15 @@ cdef class _Timestamp(datetime):
     @property
     def asm8(self):
         return np.datetime64(self.value, 'ns')
+
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
@@ -964,7 +973,7 @@ class Timestamp(_Timestamp):
         """
 
         cdef:
-            pandas_datetimestruct dts
+            npy_datetimestruct dts
             int64_t value, value_tz, offset
             object _tzinfo, result, k, v
             datetime ts_input
@@ -1083,7 +1092,7 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        normalized_value = date_normalize(
+        normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
 

@@ -1,16 +1,9 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-
-cimport numpy as cnp
-from numpy cimport int64_t, ndarray, float64_t
-import numpy as np
-cnp.import_array()
-
+cimport cython
+from cython cimport Py_ssize_t
 
 from cpython cimport PyFloat_Check, PyUnicode_Check
-
-from util cimport (is_integer_object, is_float_object, is_string_object,
-                   is_datetime64_object)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
@@ -20,8 +13,20 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
 PyDateTime_IMPORT
 
 
+cimport numpy as cnp
+from numpy cimport int64_t, ndarray, float64_t
+import numpy as np
+cnp.import_array()
+
+import pytz
+
+
+from util cimport (is_integer_object, is_float_object, is_string_object,
+                   is_datetime64_object)
+
+
 from tslibs.np_datetime cimport (check_dts_bounds,
-                                 pandas_datetimestruct,
+                                 npy_datetimestruct,
                                  _string_to_dts,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
@@ -30,22 +35,13 @@ from tslibs.np_datetime import OutOfBoundsDatetime
 
 from tslibs.parsing import parse_datetime_string
 
-cimport cython
-from cython cimport Py_ssize_t
-
-
-import pytz
-
-
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timedeltas import Timedelta, ints_to_pytimedelta  # noqa:F841
 from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                                treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
                                 tz_convert_utc_to_tzlocal)
-from tslibs.conversion import tz_convert_single, normalize_date  # noqa:F841
 
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT
@@ -56,24 +52,25 @@ from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
 
+
 cdef bint PY2 = str == bytes
 
 
 cdef inline object create_datetime_from_ts(
-        int64_t value, pandas_datetimestruct dts,
+        int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.datetime from its parts """
     return datetime(dts.year, dts.month, dts.day, dts.hour,
                     dts.min, dts.sec, dts.us, tz)
 
 cdef inline object create_date_from_ts(
-        int64_t value, pandas_datetimestruct dts,
+        int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.date from its parts """
     return date(dts.year, dts.month, dts.day)
 
 cdef inline object create_time_from_ts(
-        int64_t value, pandas_datetimestruct dts,
+        int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.time from its parts """
     return time(dts.hour, dts.min, dts.sec, dts.us)
@@ -105,11 +102,11 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
     cdef:
         Py_ssize_t i, n = len(arr)
         ndarray[int64_t] trans, deltas
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         object dt
         int64_t value
         ndarray[object] result = np.empty(n, dtype=object)
-        object (*func_create)(int64_t, pandas_datetimestruct, object, object)
+        object (*func_create)(int64_t, npy_datetimestruct, object, object)
 
     if box == "date":
         assert (tz is None), "tz should be None when converting to date"
@@ -232,7 +229,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
         bint show_ms = 0, show_us = 0, show_ns = 0, basic_format = 0
         ndarray[object] result = np.empty(N, dtype=object)
         object ts, res
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     if na_rep is None:
         na_rep = 'NaT'
@@ -456,7 +453,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         object val, py_dt
         ndarray[int64_t] iresult
         ndarray[object] oresult
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         bint utc_convert = bool(utc)
         bint seen_integer = 0
         bint seen_string = 0

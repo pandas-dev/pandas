@@ -5,12 +5,12 @@ from cpython.datetime cimport datetime, tzinfo
 
 from numpy cimport int64_t, int32_t
 
-from np_datetime cimport pandas_datetimestruct
+from np_datetime cimport npy_datetimestruct
 
 
 cdef class _TSObject:
     cdef:
-        pandas_datetimestruct dts      # pandas_datetimestruct
+        npy_datetimestruct dts      # npy_datetimestruct
         int64_t value               # numpy dt64
         object tzinfo
 

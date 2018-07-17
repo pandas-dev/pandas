@@ -58,7 +58,6 @@ class _Unstacker(object):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
@@ -114,12 +113,6 @@ class _Unstacker(object):
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index.remove_unused_levels()
-
-        if isinstance(self.index, MultiIndex):
-            if index._reference_duplicate_name(level):
-                msg = ("Ambiguous reference to {level}. The index "
-                       "names are not unique.".format(level=level))
-                raise ValueError(msg)
 
         self.level = self.index._get_level_number(level)
 
@@ -534,12 +527,6 @@ def stack(frame, level=-1, dropna=True):
 
     N, K = frame.shape
 
-    if isinstance(frame.columns, MultiIndex):
-        if frame.columns._reference_duplicate_name(level):
-            msg = ("Ambiguous reference to {level}. The column "
-                   "names are not unique.".format(level=level))
-            raise ValueError(msg)
-
     # Will also convert negative level numbers and check if out of bounds.
     level_num = frame.columns._get_level_number(level)
 
@@ -771,7 +758,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)

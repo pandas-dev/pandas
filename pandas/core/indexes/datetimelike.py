@@ -12,7 +12,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 
 import numpy as np
 
-from pandas._libs import lib, iNaT, NaT, Timedelta
+from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timestamps import round_ns
 
@@ -40,8 +40,8 @@ from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
-from pandas.core.algorithms import checked_add_with_arr
-from pandas.errors import NullFrequencyError, PerformanceWarning
+
+from pandas.errors import NullFrequencyError
 import pandas.io.formats.printing as printing
 
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
@@ -223,7 +223,7 @@ class TimelikeOps(object):
         if index.empty or inferred == freq.freqstr:
             return None
 
-        on_freq = cls._generate(
+        on_freq = cls._generate_range(
             index[0], None, len(index), None, freq, **kwargs)
         if not np.array_equal(index.asi8, on_freq.asi8):
             msg = ('Inferred frequency {infer} from passed values does not '
@@ -240,6 +240,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
     _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
     hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
+    _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
+    resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
     def equals(self, other):
         """
@@ -288,34 +290,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return wrapper
 
+    @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        """
-        We have been called because a comparison between
-        8 aware arrays. numpy >= 1.11 will
-        now warn about NaT comparisons
-        """
-
-        # coerce to a similar object
-        if not isinstance(other, type(self)):
-            if not is_list_like(other):
-                # scalar
-                other = [other]
-            elif is_scalar(lib.item_from_zerodim(other)):
-                # ndarray scalar
-                other = [other.item()]
-            other = type(self)(other)
-
-        # compare
-        result = op(self.asi8, other.asi8)
-
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
-        mask = (self._isnan) | (other._isnan)
+        result = DatetimeLikeArrayMixin._evaluate_compare(self, other, op)
         if is_bool_dtype(result):
-            result[mask] = False
             return result
-
-        result[mask] = iNaT
         try:
             return Index(result)
         except TypeError:
@@ -344,12 +323,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             result = result.tz_localize(self.tz)
         return result
 
-    def _box_values(self, values):
-        """
-        apply box func to passed values
-        """
-        return lib.map_infer(values, self._box_func)
-
     def _box_values_as_index(self):
         """
         return object Index which contains boxed values
@@ -370,76 +343,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             return False
 
     contains = __contains__
-
-    def __getitem__(self, key):
-        """
-        This getitem defers to the underlying array, which by-definition can
-        only handle list-likes, slices, and integer scalars
-        """
-
-        is_int = is_integer(key)
-        if is_scalar(key) and not is_int:
-            raise IndexError("only integers, slices (`:`), ellipsis (`...`), "
-                             "numpy.newaxis (`None`) and integer or boolean "
-                             "arrays are valid indices")
-
-        getitem = self._data.__getitem__
-        if is_int:
-            val = getitem(key)
-            return self._box_func(val)
-        else:
-            if com.is_bool_indexer(key):
-                key = np.asarray(key)
-                if key.all():
-                    key = slice(0, None, None)
-                else:
-                    key = lib.maybe_booleans_to_slice(key.view(np.uint8))
-
-            attribs = self._get_attributes_dict()
-
-            is_period = isinstance(self, ABCPeriodIndex)
-            if is_period:
-                freq = self.freq
-            else:
-                freq = None
-                if isinstance(key, slice):
-                    if self.freq is not None and key.step is not None:
-                        freq = key.step * self.freq
-                    else:
-                        freq = self.freq
-
-            attribs['freq'] = freq
-
-            result = getitem(key)
-            if result.ndim > 1:
-                # To support MPL which performs slicing with 2 dim
-                # even though it only has 1 dim by definition
-                if is_period:
-                    return self._simple_new(result, **attribs)
-                return result
-
-            return self._simple_new(result, **attribs)
-
-    def _nat_new(self, box=True):
-        """
-        Return Index or ndarray filled with NaT which has the same
-        length as the caller.
-
-        Parameters
-        ----------
-        box : boolean, default True
-            - If True returns a Index as the same as caller.
-            - If False returns ndarray of np.int64.
-        """
-        result = np.zeros(len(self), dtype=np.int64)
-        result.fill(iNaT)
-        if not box:
-            return result
-
-        attribs = self._get_attributes_dict()
-        if not is_period_dtype(self):
-            attribs['freq'] = None
-        return self._simple_new(result, **attribs)
 
     # Try to run function on index first, and then on elements of index
     # Especially important for group-by functionality
@@ -647,17 +550,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                 attrs.append(('freq', freq))
         return attrs
 
-    @cache_readonly
-    def _resolution(self):
-        return frequencies.Resolution.get_reso_from_freq(self.freqstr)
-
-    @cache_readonly
-    def resolution(self):
-        """
-        Returns day, hour, minute, second, millisecond or microsecond
-        """
-        return frequencies.Resolution.get_str(self._resolution)
-
     def _convert_scalar_indexer(self, key, kind=None):
         """
         we don't allow integer or float indexing on datetime-like when using
@@ -683,85 +575,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return (super(DatetimeIndexOpsMixin, self)
                 ._convert_scalar_indexer(key, kind=kind))
-
-    def _add_nat(self):
-        """Add pd.NaT to self"""
-        if is_period_dtype(self):
-            raise TypeError('Cannot add {cls} and {typ}'
-                            .format(cls=type(self).__name__,
-                                    typ=type(NaT).__name__))
-
-        # GH#19124 pd.NaT is treated like a timedelta for both timedelta
-        # and datetime dtypes
-        return self._nat_new(box=True)
-
-    def _addsub_offset_array(self, other, op):
-        """
-        Add or subtract array-like of DateOffset objects
-
-        Parameters
-        ----------
-        other : Index, np.ndarray
-            object-dtype containing pd.DateOffset objects
-        op : {operator.add, operator.sub}
-
-        Returns
-        -------
-        result : same class as self
-        """
-        assert op in [operator.add, operator.sub]
-        if len(other) == 1:
-            return op(self, other[0])
-
-        warnings.warn("Adding/subtracting array of DateOffsets to "
-                      "{cls} not vectorized"
-                      .format(cls=type(self).__name__), PerformanceWarning)
-
-        res_values = op(self.astype('O').values, np.array(other))
-        kwargs = {}
-        if not is_period_dtype(self):
-            kwargs['freq'] = 'infer'
-        return self._constructor(res_values, **kwargs)
-
-    def _addsub_int_array(self, other, op):
-        """
-        Add or subtract array-like of integers equivalent to applying
-        `shift` pointwise.
-
-        Parameters
-        ----------
-        other : Index, np.ndarray
-            integer-dtype
-        op : {operator.add, operator.sub}
-
-        Returns
-        -------
-        result : same class as self
-        """
-        assert op in [operator.add, operator.sub]
-        if is_period_dtype(self):
-            # easy case for PeriodIndex
-            if op is operator.sub:
-                other = -other
-            res_values = checked_add_with_arr(self.asi8, other,
-                                              arr_mask=self._isnan)
-            res_values = res_values.view('i8')
-            res_values[self._isnan] = iNaT
-            return self._from_ordinals(res_values, freq=self.freq)
-
-        elif self.freq is None:
-            # GH#19123
-            raise NullFrequencyError("Cannot shift with no freq")
-
-        elif isinstance(self.freq, Tick):
-            # easy case where we can convert to timedelta64 operation
-            td = Timedelta(self.freq)
-            return op(self, td * other)
-
-        # We should only get here with DatetimeIndex; dispatch
-        # to _addsub_offset_array
-        assert not is_timedelta64_dtype(self)
-        return op(self, np.array(other) * self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):

@@ -1,7 +1,7 @@
 .. _whatsnew_0232:
 
-v0.23.2
--------
+v0.23.2 (July 5, 2018)
+----------------------
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -64,7 +64,7 @@ Fixed Regressions
 
 
 Build Changes
--------------
+~~~~~~~~~~~~~
 
 - The source and binary distributions no longer include test data files, resulting in smaller download sizes. Tests relying on these data files will be skipped when using ``pandas.test()``. (:issue:`19320`)
 

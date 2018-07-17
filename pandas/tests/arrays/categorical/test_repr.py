@@ -6,7 +6,7 @@ from pandas import (Categorical, Series, CategoricalIndex, date_range,
                     period_range, timedelta_range)
 from pandas.compat import u, PY3
 from pandas.core.config import option_context
-from pandas.tests.categorical.common import TestCategorical
+from pandas.tests.arrays.categorical.common import TestCategorical
 
 
 class TestCategoricalReprWithFactor(TestCategorical):

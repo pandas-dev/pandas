@@ -15,7 +15,6 @@ cimport util
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 from tslibs.nattype import NaT
-from tslibs.nattype cimport is_null_datetimelike
 
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF

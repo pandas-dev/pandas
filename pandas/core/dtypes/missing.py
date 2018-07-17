@@ -3,14 +3,14 @@ missing types & inference
 """
 import numpy as np
 from pandas._libs import lib, missing as libmissing
-from pandas._libs.tslib import NaT, iNaT
+from pandas._libs.tslibs import NaT, iNaT
 from .generic import (ABCMultiIndex, ABCSeries,
                       ABCIndexClass, ABCGeneric,
                       ABCExtensionArray)
 from .common import (is_string_dtype, is_datetimelike,
                      is_datetimelike_v_numeric, is_float_dtype,
                      is_datetime64_dtype, is_datetime64tz_dtype,
-                     is_timedelta64_dtype, is_interval_dtype,
+                     is_timedelta64_dtype,
                      is_period_dtype,
                      is_complex_dtype,
                      is_string_like_dtype, is_bool_dtype,
@@ -196,10 +196,6 @@ def _isna_ndarraylike(obj):
         else:
             values = obj
         result = values.isna()
-    elif is_interval_dtype(values):
-        # TODO(IntervalArray): remove this if block
-        from pandas import IntervalIndex
-        result = IntervalIndex(obj).isna()
     elif is_string_dtype(dtype):
         # Working around NumPy ticket 1542
         shape = values.shape
