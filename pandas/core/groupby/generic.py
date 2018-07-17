@@ -46,7 +46,6 @@ from pandas.core.base import SpecificationError, DataError
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.internals import BlockManager, make_block
-from pandas.compat.numpy import _np_version_under1p13
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -1208,10 +1207,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        minlength = ngroups or 0
-        if _np_version_under1p13 and minlength == 0:
-            minlength = None
-        out = np.bincount(ids[mask], minlength=minlength)
+        out = np.bincount(ids[mask], minlength=ngroups or None)
 
         return Series(out,
                       index=self.grouper.result_index,

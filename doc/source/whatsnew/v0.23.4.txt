@@ -32,7 +32,6 @@ Bug Fixes
 
 - Bug where calling :func:`DataFrameGroupBy.agg` with a list of functions including ``ohlc`` as the non-initial element would raise a ``ValueError`` (:issue:`21716`)
 - Bug in ``roll_quantile`` caused a memory leak when calling ``.rolling(...).quantile(q)`` with ``q`` in (0,1) (:issue:`21965`)
-- Bug in :func:`pandas.core.groupby.SeriesGroupBy.count` when using numpy < 1.13 and ngroups=0 (:issue:`21956`).
 -
 
 **Conversion**
