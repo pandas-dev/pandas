@@ -28,6 +28,15 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define PyInt_AsLong PyLong_AsLong
 #endif
 
+// Silence "implicit declaration of function" warnings
+int convert_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
+                                       const npy_datetimestruct *dts,
+                                       npy_datetime *out);
+int convert_timedelta_to_timedeltastruct(NPY_DATETIMEUNIT base,
+                                         npy_timedelta td,
+                                         pandas_timedeltastruct *out);
+
+
 const npy_datetimestruct _NS_MIN_DTS = {
     1677, 9, 21, 0, 12, 43, 145225, 0, 0};
 const npy_datetimestruct _NS_MAX_DTS = {

@@ -389,7 +389,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if val != val or (use_na_value and val == na_value2):
+                if npy_isnan(val) or (use_na_value and val == na_value2):
                     labels[i] = na_sentinel
                     continue
 
@@ -528,7 +528,7 @@ cdef class StringHashTable(HashTable):
     cpdef get_item(self, object val):
         cdef:
             khiter_t k
-            char *v
+            const char *v
         v = util.get_c_string(val)
 
         k = kh_get_str(self.table, v)
@@ -541,7 +541,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-            char *v
+            const char *v
 
         v = util.get_c_string(val)
 
@@ -560,10 +560,10 @@ cdef class StringHashTable(HashTable):
             int64_t *resbuf = <int64_t*> labels.data
             khiter_t k
             kh_str_t *table = self.table
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
 
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
             v = util.get_c_string(val)
@@ -589,10 +589,10 @@ cdef class StringHashTable(HashTable):
             object val
             ObjectVector uniques
             khiter_t k
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
 
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         uindexer = np.empty(n, dtype=np.int64)
         for i in range(n):
             val = values[i]
@@ -627,12 +627,12 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            char *v
+            const char *v
             khiter_t k
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
         # these by-definition *must* be strings
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char**> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -660,12 +660,12 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            char *v
-            char **vecs
+            const char *v
+            const char**vecs
             khiter_t k
 
         # these by-definition *must* be strings
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char**> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -693,8 +693,8 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t idx, count = count_prior
             int ret = 0
             object val
-            char *v
-            char **vecs
+            const char *v
+            const char**vecs
             khiter_t k
             bint use_na_value
 
@@ -705,7 +705,7 @@ cdef class StringHashTable(HashTable):
 
         # pre-filter out missing
         # and assign pointers
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char**> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 

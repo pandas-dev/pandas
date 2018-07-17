@@ -16,6 +16,7 @@ cnp.import_array()
 
 cdef extern from "numpy/npy_math.h":
     double NAN "NPY_NAN"
+    bint npy_isnan(double x) nogil
 
 
 from khash cimport (

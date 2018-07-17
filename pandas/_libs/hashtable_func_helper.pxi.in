@@ -271,7 +271,7 @@ def ismember_{{dtype}}({{scalar}}[:] arr, {{scalar}}[:] values, bint hasnans=0):
             if k != table.n_buckets:
                 result[i] = 1
             else:
-                result[i] = hasnans and val != val
+                result[i] = hasnans and npy_isnan(val)
     {{endif}}
 
     kh_destroy_{{ttype}}(table)

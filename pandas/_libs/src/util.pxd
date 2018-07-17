@@ -32,6 +32,7 @@ cdef extern from "numpy/ndarrayobject.h":
 cdef extern from "numpy/npy_math.h":
     # Note: apparently npy_isnan has better windows-compat than
     # the libc.math.isnan implementation
+    # See discussion: https://github.com/cython/cython/issues/550
     bint npy_isnan(double x) nogil
 
 # --------------------------------------------------------------------
@@ -75,7 +76,7 @@ cdef extern from "numpy_helper.h":
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     cnp.int64_t get_nat()
     object get_value_1d(ndarray, Py_ssize_t)
-    char *get_c_string(object) except NULL
+    const char *get_c_string(object) except NULL
     object char_to_string(char*)
 
 ctypedef fused numeric:

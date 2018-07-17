@@ -13,7 +13,7 @@ from numpy cimport (ndarray,
                     uint32_t, uint64_t, float32_t, float64_t)
 
 
-from util cimport numeric, get_nat
+from util cimport numeric, get_nat, npy_isnan
 
 from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
@@ -35,7 +35,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
 
     # count NAs
     for i in range(n):
-        if a[i] != a[i]:
+        if npy_isnan(a[i]):
             na_count += 1
 
     if na_count:
@@ -46,7 +46,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
 
         j = 0
         for i in range(n):
-            if a[i] == a[i]:
+            if not npy_isnan(a[i]):
                 tmp[j] = a[i]
                 j += 1
 
@@ -160,7 +160,7 @@ def group_cumprod_float64(float64_t[:, :] out,
                 continue
             for j in range(K):
                 val = values[i, j]
-                if val == val:
+                if not npy_isnan(val):
                     accum[lab, j] *= val
                     out[i, j] = accum[lab, j]
                 else:
@@ -199,7 +199,7 @@ def group_cumsum(numeric[:, :] out,
                 val = values[i, j]
 
                 if numeric == float32_t or numeric == float64_t:
-                    if val == val:
+                    if not npy_isnan(val):
                         accum[lab, j] += val
                         out[i, j] = accum[lab, j]
                     else:
