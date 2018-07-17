@@ -15,6 +15,7 @@ from pandas._libs import internals as libinternals
 
 from pandas.core.base import PandasObject
 
+import pandas.core.dtypes.common as ct
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
     PandasExtensionDtype,
@@ -1158,20 +1159,19 @@ class Block(PandasObject):
         try:
             m = missing.clean_interp_method(method, **kwargs)
         except:
-            m = None
+            raise ValueError("invalid method '{0}' to interpolate."
+                             .format(method))
 
-        if m is not None:
-            r = check_int_bool(self, inplace)
-            if r is not None:
-                return r
-            return self._interpolate(method=m, index=index, values=values,
-                                     axis=axis, limit=limit,
-                                     limit_direction=limit_direction,
-                                     limit_area=limit_area,
-                                     fill_value=fill_value, inplace=inplace,
-                                     downcast=downcast, mgr=mgr, **kwargs)
+        r = check_int_bool(self, inplace)
+        if r is not None:
+            return r
+        return self._interpolate(method=m, index=index, values=values,
+                                 axis=axis, limit=limit,
+                                 limit_direction=limit_direction,
+                                 limit_area=limit_area,
+                                 fill_value=fill_value, inplace=inplace,
+                                 downcast=downcast, mgr=mgr, **kwargs)
 
-        raise ValueError("invalid method '{0}' to interpolate.".format(method))
 
     def _interpolate_with_fill(self, method='pad', axis=0, inplace=False,
                                limit=None, fill_value=None, coerce=False,
@@ -1199,6 +1199,7 @@ class Block(PandasObject):
         blocks = [self.make_block_same_class(values, ndim=self.ndim)]
         return self._maybe_downcast(blocks, downcast)
 
+    # TODO: ignoring `values`?
     def _interpolate(self, method=None, index=None, values=None,
                      fill_value=None, axis=0, limit=None,
                      limit_direction='forward', limit_area=None,
@@ -1206,13 +1207,27 @@ class Block(PandasObject):
         """ interpolate using scipy wrappers """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        data = self.values if inplace else self.values.copy()
 
         # only deal with floats
-        if not self.is_float:
+        if ct.needs_i8_conversion(self.dtype):
+            if ct.is_period_dtype(self.dtype):
+                raise NotImplementedError("PeriodDtype columns/Series don't "
+                                          "exist yet, but will soon.  "
+                                          "When they do, test them!")
+            mask = isna(self.values)
+            values = self.values
+
+            # DatetimeTZBlock.values is DatetimeIndex, need to cast/shape
+            values = getattr(values, 'values', values).reshape(self.shape)
+            data = values.astype(np.float64)
+            data[mask.reshape(self.shape)] = np.nan
+        elif not self.is_float:
             if not self.is_integer:
                 return self
-            data = data.astype(np.float64)
+            data = self.values.astype(np.float64)
+        else:
+            # avoid making a copy if possible
+            data = self.values if inplace else self.values.copy()
 
         if fill_value is None:
             fill_value = self.fill_value
@@ -1224,7 +1239,6 @@ class Block(PandasObject):
         # process 1-d slices in the axis direction
 
         def func(x):
-
             # process a 1-d slice, returning it
             # should the axis argument be handled below in apply_along_axis?
             # i.e. not an arg to missing.interpolate_1d
@@ -1236,6 +1250,20 @@ class Block(PandasObject):
 
         # interp each column independently
         interp_values = np.apply_along_axis(func, axis, data)
+        if ct.needs_i8_conversion(self.dtype):
+            # convert remaining NaNs back to NaT and cast back to own dtype
+            mask = isna(interp_values)
+            interp_values[mask] = fill_value  # TODO: or self.fill_value?
+
+            # Note: we need to get to a numpy dtype (M8[ns] or m8[ns]) and
+            # not a pandas tz-aware dtype (for now)
+            dtype = self.dtype.base
+            assert isinstance(dtype, np.dtype)
+            interp_values = interp_values.astype(dtype)
+            if is_datetimetz(self):
+                # squeeze() since we expanded dimension above
+                held = self._holder(interp_values.squeeze(), tz='UTC')
+                interp_values = held.tz_convert(self.dtype.tz)
 
         blocks = [self.make_block_same_class(interp_values)]
         return self._maybe_downcast(blocks, downcast)
