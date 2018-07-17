@@ -16,12 +16,12 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_unsigned_integer_dtype, is_signed_integer_dtype,
-    is_integer_dtype, is_complex_dtype,
+    is_integer, is_integer_dtype, is_complex_dtype,
     is_object_dtype,
     is_extension_array_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
-    is_numeric_dtype, is_float_dtype,
+    is_numeric_dtype, is_float, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
     is_datetimetz, is_datetime_or_timedelta_dtype,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
@@ -432,16 +432,13 @@ def isin(comps, values):
     comps_types = set(type(v) for v in comps)
     values_types = set(type(v) for v in values)
 
-    is_int = lambda x: ((x == np.int64) or (x == int))
-    is_float = lambda x: ((x == np.float64) or (x == float))
-
     int_flg = False
     float_flg = False
 
     if len(comps_types) == len(values_types) == 1:
         comps_types = comps_types.pop()
         values_types = values_types.pop()
-        int_flg = (is_int(comps_types) and is_int(values_types))
+        int_flg = (is_integer(comps_types) and is_integer(values_types))
         float_flg = (is_float(comps_types) and is_float(values_types))
 
     # GH16012
