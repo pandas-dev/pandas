@@ -561,7 +561,6 @@ class TestTimedeltaSeriesAdditionSubtraction(object):
         with pytest.raises(TypeError):
             tdser + Series([2, 3, 4])
 
-    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
     def test_td64series_radd_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             Series([2, 3, 4]) + tdser
@@ -570,7 +569,6 @@ class TestTimedeltaSeriesAdditionSubtraction(object):
         with pytest.raises(TypeError):
             tdser - Series([2, 3, 4])
 
-    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
     def test_td64series_rsub_int_series_invalid(self, tdser):
         with pytest.raises(TypeError):
             Series([2, 3, 4]) - tdser
@@ -611,9 +609,7 @@ class TestTimedeltaSeriesAdditionSubtraction(object):
     @pytest.mark.parametrize('vector', [
         np.array([1, 2, 3]),
         pd.Index([1, 2, 3]),
-        pytest.param(Series([1, 2, 3]),
-                     marks=pytest.mark.xfail(reason='GH#19123 integer '
-                                                    'interpreted as nanos'))
+        Series([1, 2, 3])
     ])
     def test_td64series_add_sub_numeric_array_invalid(self, vector,
                                                       dtype, tdser):
@@ -777,10 +773,7 @@ class TestTimedeltaSeriesMultiplicationDivision(object):
                                        'float64', 'float32', 'float16'])
     @pytest.mark.parametrize('vector', [
         np.array([20, 30, 40]),
-        pytest.param(pd.Index([20, 30, 40]),
-                     marks=pytest.mark.xfail(reason='__mul__ raises '
-                                                    'instead of returning '
-                                                    'NotImplemented')),
+        pd.Index([20, 30, 40]),
         Series([20, 30, 40])
     ])
     def test_td64series_rmul_numeric_array(self, vector, dtype, tdser):
@@ -816,12 +809,8 @@ class TestTimedeltaSeriesMultiplicationDivision(object):
 
     @pytest.mark.parametrize('two', [
         2, 2.0,
-        pytest.param(np.array(2),
-                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
-                                                    'incorrectly True.')),
-        pytest.param(np.array(2.0),
-                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
-                                                    'incorrectly True.')),
+        np.array(2),
+        np.array(2.0),
     ])
     def test_td64series_div_numeric_scalar(self, two, tdser):
         # GH#4521
