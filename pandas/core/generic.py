@@ -7941,6 +7941,10 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
 
+        # see gh-21891
+        if not hasattr(cond, "__invert__"):
+            cond = np.array(cond)
+
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,
                           errors=errors)
