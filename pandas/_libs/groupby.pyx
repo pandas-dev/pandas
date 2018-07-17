@@ -12,8 +12,13 @@ from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
 
+cdef extern from "numpy/npy_math.h":
+    # Note: apparently npy_isnan has better windows-compat than
+    # the libc.math.isnan implementation
+    # See discussion: https://github.com/cython/cython/issues/550
+    bint npy_isnan(double x) nogil
 
-from util cimport numeric, get_nat, npy_isnan
+from util cimport numeric, get_nat
 
 from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
