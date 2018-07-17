@@ -29,7 +29,7 @@ dtypes = [('Float64', 'float64', 'float64_t'),
 
 ctypedef struct {{name}}VectorData:
     {{arg}} *data
-    size_t n, m
+    Py_ssize_t n, m
 
 {{endif}}
 
@@ -147,7 +147,7 @@ cdef class StringVector:
     cdef resize(self):
         cdef:
             char **orig_data
-            size_t i, m
+            Py_ssize_t i, m
 
         m = self.data.m
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
@@ -172,7 +172,7 @@ cdef class StringVector:
     def to_array(self):
         cdef:
             ndarray ao
-            size_t n
+            Py_ssize_t n
             object val
 
         ao = np.empty(self.data.n, dtype=np.object)
@@ -198,7 +198,7 @@ cdef class ObjectVector:
 
     cdef:
         PyObject **data
-        size_t n, m
+        Py_ssize_t n, m
         ndarray ao
         bint external_view_exists
 
@@ -281,7 +281,7 @@ cdef class {{name}}HashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, {{dtype}}_t val):
@@ -522,7 +522,7 @@ cdef class StringHashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof(char *) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
@@ -769,7 +769,7 @@ cdef class PyObjectHashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof(PyObject *) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
