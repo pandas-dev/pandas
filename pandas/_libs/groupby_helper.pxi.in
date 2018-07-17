@@ -340,7 +340,11 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
+                {{if c_type.startswith('float')}}
                 if not npy_isnan(val) and val != {{nan_val}}:
+                {{else}}
+                if val == val and val != {{nan_val}}:
+                {{endif}}
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -396,7 +400,11 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
+                {{if c_type.startswith('float')}}
                 if not npy_isnan(val) and val != {{nan_val}}:
+                {{else}}
+                if val == val and val != {{nan_val}}:
+                {{endif}}
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
