@@ -18,7 +18,7 @@ cdef extern from "src/headers/cmath" namespace "std":
     double sqrt(double x) nogil
 
 cdef extern from "numpy/npy_math.h":
-    bint isnan(double) nogil
+    bint npy_isnan(double) nogil
 
 cimport util
 from util cimport numeric
@@ -657,7 +657,7 @@ cdef inline void add_var(const double val, double *nobs, double *mean_x,
     """ add a value from the var calc """
     cdef double delta
     # `isnan` instead of equality as fix for GH-21813
-    if isnan(val):
+    if npy_isnan(val):
         return
 
     nobs[0] = nobs[0] + 1
