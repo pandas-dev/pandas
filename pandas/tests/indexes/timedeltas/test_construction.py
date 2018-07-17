@@ -45,9 +45,11 @@ class TestTimedeltaIndex(object):
                               expected)
 
     def test_constructor_iso(self):
+        # GH #21877
         expected = timedelta_range('1s', periods=9, freq='s')
         durations = ['P0DT0H0M{}S'.format(i) for i in range(1, 10)]
-        tm.assert_index_equal(to_timedelta(durations), expected)
+        result = to_timedelta(durations)
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)

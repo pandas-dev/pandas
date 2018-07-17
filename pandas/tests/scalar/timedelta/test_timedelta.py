@@ -234,6 +234,7 @@ class TestTimedeltas(object):
         assert tup.nanoseconds == 0
 
     def test_iso_convertion(self):
+        # GH #21877
         expected = Timedelta(1, unit='s')
         assert to_timedelta('P0DT0H0M1S') == expected
 
