@@ -934,7 +934,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas, pos
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val
 

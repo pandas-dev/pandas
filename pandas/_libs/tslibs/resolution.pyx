@@ -74,7 +74,8 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans, deltas, pos
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val
 
