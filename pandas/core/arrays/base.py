@@ -637,6 +637,21 @@ class ExtensionOpsMixin(object):
 
     @classmethod
     def _create_arithmetic_method(cls, op):
+        """
+        Define a method to generate binary arithmetic operations for the
+        mixed-in class.
+
+        See ExtensionScalarOpsMixin for an example.
+
+        Parameters
+        ----------
+        op : binary operator
+            operator.add, operator.sub, ...
+
+        Returns
+        -------
+        arith_method : binary operator
+        """
         raise AbstractMethodError(cls)
 
     @classmethod
@@ -664,6 +679,20 @@ class ExtensionOpsMixin(object):
 
     @classmethod
     def _create_comparison_method(cls, op):
+        """
+        Define a method to generate comparison methods for the mixed-in class.
+
+        See ExtensionScalarOpsMixin for an example.
+
+        Parameters
+        ----------
+        op : binary operator
+            operator.eq, operator.ne, ...
+
+        Returns
+        -------
+        compare_method : binary method
+        """
         raise AbstractMethodError(cls)
 
     @classmethod
