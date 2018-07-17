@@ -21,7 +21,7 @@ from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, RangeIndex, isna)
-from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
+from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -329,7 +329,7 @@ class TestIndex(Base):
     ])
     def test_constructor_simple_new(self, vals, dtype):
         index = Index(vals, name=dtype)
-        result = index._simple_new(index, dtype)
+        result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("vals", [
@@ -2455,7 +2455,7 @@ class TestIndexUtils(object):
                     names=['L1', 'L2'])),
     ])
     def test_ensure_index_from_sequences(self, data, names, expected):
-        result = _ensure_index_from_sequences(data, names)
+        result = ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
 
 

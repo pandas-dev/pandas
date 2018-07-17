@@ -14,20 +14,21 @@ import datetime
 import struct
 import sys
 from collections import OrderedDict
+import warnings
 
 import numpy as np
 from dateutil.relativedelta import relativedelta
+
 from pandas._libs.lib import infer_dtype
 from pandas._libs.tslibs import NaT, Timestamp
 from pandas._libs.writers import max_len_string_array
 
-import pandas as pd
 from pandas import compat, to_timedelta, to_datetime, isna, DatetimeIndex
 from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
                            zip, BytesIO)
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
-from pandas.core.dtypes.common import (is_categorical_dtype, _ensure_object,
+from pandas.core.dtypes.common import (is_categorical_dtype, ensure_object,
                                        is_datetime64_dtype)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
@@ -317,12 +318,12 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt):
         ms = dates
         conv_dates = convert_delta_safe(base, ms, 'ms')
     elif fmt.startswith(("%tC", "tC")):
-        from warnings import warn
 
-        warn("Encountered %tC format. Leaving in Stata Internal Format.")
+        warnings.warn("Encountered %tC format. Leaving in Stata "
+                      "Internal Format.")
         conv_dates = Series(dates, dtype=np.object)
         if has_bad_values:
-            conv_dates[bad_locs] = pd.NaT
+            conv_dates[bad_locs] = NaT
         return conv_dates
     # Delta days relative to base
     elif fmt.startswith(("%td", "td", "%d", "d")):
@@ -425,8 +426,7 @@ def _datetime_to_stata_elapsed_vec(dates, fmt):
         d = parse_dates_safe(dates, delta=True)
         conv_dates = d.delta / 1000
     elif fmt in ["%tC", "tC"]:
-        from warnings import warn
-        warn("Stata Internal Format tC not supported.")
+        warnings.warn("Stata Internal Format tC not supported.")
         conv_dates = dates
     elif fmt in ["%td", "td"]:
         d = parse_dates_safe(dates, delta=True)
@@ -580,8 +580,6 @@ def _cast_to_stata_types(data):
                     raise ValueError(msg.format(col, value, float64_max))
 
     if ws:
-        import warnings
-
         warnings.warn(ws, PossiblePrecisionLoss)
 
     return data
@@ -627,7 +625,6 @@ class StataValueLabel(object):
             category = vl[1]
             if not isinstance(category, string_types):
                 category = str(category)
-                import warnings
                 warnings.warn(value_label_mismatch_doc.format(catarray.name),
                               ValueLabelTypeMismatch)
 
@@ -1425,7 +1422,6 @@ class StataReader(StataParser, BaseIterator):
     @Appender(_data_method_doc)
     def data(self, **kwargs):
 
-        import warnings
         warnings.warn("'data' is deprecated, use 'read' instead")
 
         if self._data_read:
@@ -1822,7 +1818,7 @@ def _dtype_to_stata_type(dtype, column):
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1867,7 +1863,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Writing general object arrays is not supported')
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return '%9s'
@@ -2105,7 +2101,6 @@ class StataWriter(StataParser):
                     del self._convert_dates[o]
 
         if converted_names:
-            import warnings
             conversion_warning = []
             for orig_name, name in converted_names.items():
                 # need to possibly encode the orig name if its unicode
@@ -2423,7 +2418,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize

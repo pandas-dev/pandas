@@ -9,14 +9,12 @@ from cpython.slice cimport PySlice_Check
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t)
+                    int64_t, uint8_t, uint64_t, intp_t,
+                    # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
+                    # for cimport in cython>=0.27.3
+                    NPY_DATETIME, NPY_TIMEDELTA)
 cnp.import_array()
 
-cdef extern from "numpy/arrayobject.h":
-    # These can be cimported directly from numpy in cython>=0.27.3
-    cdef enum NPY_TYPES:
-        NPY_DATETIME
-        NPY_TIMEDELTA
 
 cimport util
 
@@ -43,9 +41,9 @@ cdef inline bint is_definitely_invalid_key(object val):
             or PyList_Check(val) or hasattr(val, '_data'))
 
 
-def get_value_at(ndarray arr, object loc):
+cpdef get_value_at(ndarray arr, object loc, object tz=None):
     if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_at(arr, loc))
+        return Timestamp(util.get_value_at(arr, loc), tz=tz)
     elif arr.descr.type_num == NPY_TIMEDELTA:
         return Timedelta(util.get_value_at(arr, loc))
     return util.get_value_at(arr, loc)
@@ -68,12 +66,7 @@ cpdef object get_value_box(ndarray arr, object loc):
     if i >= sz or sz == 0 or i < 0:
         raise IndexError('index out of bounds')
 
-    if arr.descr.type_num == NPY_DATETIME:
-        return Timestamp(util.get_value_1d(arr, i))
-    elif arr.descr.type_num == NPY_TIMEDELTA:
-        return Timedelta(util.get_value_1d(arr, i))
-    else:
-        return util.get_value_1d(arr, i)
+    return get_value_at(arr, i, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -114,11 +107,7 @@ cdef class IndexEngine:
         if PySlice_Check(loc) or cnp.PyArray_Check(loc):
             return arr[loc]
         else:
-            if arr.descr.type_num == NPY_DATETIME:
-                return Timestamp(util.get_value_at(arr, loc), tz=tz)
-            elif arr.descr.type_num == NPY_TIMEDELTA:
-                return Timedelta(util.get_value_at(arr, loc))
-            return util.get_value_at(arr, loc)
+            return get_value_at(arr, loc, tz=tz)
 
     cpdef set_value(self, ndarray arr, object key, object value):
         """

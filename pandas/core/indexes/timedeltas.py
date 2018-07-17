@@ -1,7 +1,5 @@
 """ implement the TimedeltaIndex """
 
-from datetime import timedelta
-
 import numpy as np
 from pandas.core.dtypes.common import (
     _TD_DTYPE,
@@ -13,11 +11,14 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_timedelta64_ns_dtype,
     pandas_dtype,
-    _ensure_int64)
+    ensure_int64)
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays.timedelta import TimedeltaArrayMixin
+from pandas.core.arrays.timedeltas import (
+    TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
+from pandas.core.arrays import datetimelike as dtl
+
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -33,7 +34,7 @@ from pandas.core.indexes.datetimelike import (
     TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.offsets import DateOffset
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
 
@@ -54,39 +55,10 @@ def _td_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
-    nat_result = True if opname == '__ne__' else False
-
     def wrapper(self, other):
-        msg = "cannot compare a {cls} with type {typ}"
-        func = getattr(super(TimedeltaIndex, self), opname)
-        if _is_convertible_to_td(other) or other is NaT:
-            try:
-                other = _to_m8(other)
-            except ValueError:
-                # failed to parse as timedelta
-                raise TypeError(msg.format(cls=type(self).__name__,
-                                           typ=type(other).__name__))
-            result = func(other)
-            if isna(other):
-                result.fill(nat_result)
-
-        elif not is_list_like(other):
-            raise TypeError(msg.format(cls=type(self).__name__,
-                                       typ=type(other).__name__))
-        else:
-            other = TimedeltaIndex(other).values
-            result = func(other)
-            result = com._values_from_object(result)
-
-            o_mask = np.array(isna(other))
-            if o_mask.any():
-                result[o_mask] = nat_result
-
-        if self.hasnans:
-            result[self._isnan] = nat_result
-
-        # support of bool dtype indexers
+        result = getattr(TimedeltaArrayMixin, opname)(self, other)
         if is_bool_dtype(result):
+            # support of bool dtype indexers
             return result
         return Index(result)
 
@@ -219,20 +191,15 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 freq_infer = True
                 freq = None
 
-        if periods is not None:
-            if is_float(periods):
-                periods = int(periods)
-            elif not is_integer(periods):
-                msg = 'periods must be a number, got {periods}'
-                raise TypeError(msg.format(periods=periods))
+        periods = dtl.validate_periods(periods)
 
         if data is None:
             if freq is None and com._any_none(periods, start, end):
                 msg = 'Must provide freq argument if no data is supplied'
                 raise ValueError(msg)
             else:
-                return cls._generate(start, end, periods, name, freq,
-                                     closed=closed)
+                return cls._generate_range(start, end, periods, name, freq,
+                                           closed=closed)
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -249,65 +216,28 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         elif copy:
             data = np.array(data, copy=True)
 
+        subarr = cls._simple_new(data, name=name, freq=freq)
         # check that we are matching freqs
-        if verify_integrity and len(data) > 0:
+        if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
-                index = cls._simple_new(data, name=name)
-                cls._validate_frequency(index, freq)
-                index.freq = freq
-                return index
+                cls._validate_frequency(subarr, freq)
 
         if freq_infer:
-            index = cls._simple_new(data, name=name)
-            inferred = index.inferred_freq
+            inferred = subarr.inferred_freq
             if inferred:
-                index.freq = to_offset(inferred)
-            return index
+                subarr.freq = to_offset(inferred)
+            return subarr
 
-        return cls._simple_new(data, name=name, freq=freq)
+        return subarr
 
     @classmethod
-    def _generate(cls, start, end, periods, name, freq, closed=None):
-        if com._count_not_none(start, end, periods, freq) != 3:
-            raise ValueError('Of the four parameters: start, end, periods, '
-                             'and freq, exactly three must be specified')
-
-        if start is not None:
-            start = Timedelta(start)
-
-        if end is not None:
-            end = Timedelta(end)
-
-        left_closed = False
-        right_closed = False
-
-        if start is None and end is None:
-            if closed is not None:
-                raise ValueError("Closed has to be None if not both of start"
-                                 "and end are defined")
-
-        if closed is None:
-            left_closed = True
-            right_closed = True
-        elif closed == "left":
-            left_closed = True
-        elif closed == "right":
-            right_closed = True
-        else:
-            raise ValueError("Closed has to be either 'left', 'right' or None")
-
-        if freq is not None:
-            index = _generate_regular_range(start, end, periods, freq)
-            index = cls._simple_new(index, name=name, freq=freq)
-        else:
-            index = to_timedelta(np.linspace(start.value, end.value, periods))
-
-        if not left_closed:
-            index = index[1:]
-        if not right_closed:
-            index = index[:-1]
-
-        return index
+    def _generate_range(cls, start, end, periods, name, freq, closed=None):
+        # TimedeltaArray gets `name` via **kwargs, so we need to explicitly
+        # override it if name is passed as a positional argument
+        return super(TimedeltaIndex, cls)._generate_range(start, end,
+                                                          periods, freq,
+                                                          name=name,
+                                                          closed=closed)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
@@ -383,90 +313,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     microseconds = _wrap_field_accessor("microseconds")
     nanoseconds = _wrap_field_accessor("nanoseconds")
 
-    @property
-    def components(self):
-        """
-        Return a dataframe of the components (days, hours, minutes,
-        seconds, milliseconds, microseconds, nanoseconds) of the Timedeltas.
-
-        Returns
-        -------
-        a DataFrame
-        """
-        from pandas import DataFrame
-
-        columns = ['days', 'hours', 'minutes', 'seconds',
-                   'milliseconds', 'microseconds', 'nanoseconds']
-        hasnans = self.hasnans
-        if hasnans:
-            def f(x):
-                if isna(x):
-                    return [np.nan] * len(columns)
-                return x.components
-        else:
-            def f(x):
-                return x.components
-
-        result = DataFrame([f(x) for x in self])
-        result.columns = columns
-        if not hasnans:
-            result = result.astype('int64')
-        return result
-
+    @Appender(TimedeltaArrayMixin.total_seconds.__doc__)
     def total_seconds(self):
-        """
-        Return total duration of each element expressed in seconds.
-
-        This method is available directly on TimedeltaIndex and on Series
-        containing timedelta values under the ``.dt`` namespace.
-
-        Returns
-        -------
-        seconds : Float64Index or Series
-            When the calling object is a TimedeltaIndex, the return type is a
-            Float64Index. When the calling object is a Series, the return type
-            is Series of type `float64` whose index is the same as the
-            original.
-
-        See Also
-        --------
-        datetime.timedelta.total_seconds : Standard library version
-            of this method.
-        TimedeltaIndex.components : Return a DataFrame with components of
-            each Timedelta.
-
-        Examples
-        --------
-        **Series**
-
-        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
-        >>> s
-        0   0 days
-        1   1 days
-        2   2 days
-        3   3 days
-        4   4 days
-        dtype: timedelta64[ns]
-
-        >>> s.dt.total_seconds()
-        0         0.0
-        1     86400.0
-        2    172800.0
-        3    259200.0
-        4    345600.0
-        dtype: float64
-
-        **TimedeltaIndex**
-
-        >>> idx = pd.to_timedelta(np.arange(5), unit='d')
-        >>> idx
-        TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
-                       dtype='timedelta64[ns]', freq=None)
-
-        >>> idx.total_seconds()
-        Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
-                     dtype='float64')
-        """
         result = TimedeltaArrayMixin.total_seconds(self)
         return Index(result, name=self.name)
 
@@ -888,7 +736,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         else:
             if is_list_like(loc):
                 loc = lib.maybe_indices_to_slice(
-                    _ensure_int64(np.array(loc)), len(self))
+                    ensure_int64(np.array(loc)), len(self))
             if isinstance(loc, slice) and loc.step in (1, None):
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
@@ -913,45 +761,6 @@ def _is_convertible_to_index(other):
                                       'mixed-integer-float', 'mixed')):
         return True
     return False
-
-
-def _is_convertible_to_td(key):
-    return isinstance(key, (Tick, timedelta,
-                            np.timedelta64, compat.string_types))
-
-
-def _to_m8(key):
-    """
-    Timedelta-like => dt64
-    """
-    if not isinstance(key, Timedelta):
-        # this also converts strings
-        key = Timedelta(key)
-
-    # return an type that can be compared
-    return np.int64(key.value).view(_TD_DTYPE)
-
-
-def _generate_regular_range(start, end, periods, offset):
-    stride = offset.nanos
-    if periods is None:
-        b = Timedelta(start).value
-        e = Timedelta(end).value
-        e += stride - e % stride
-    elif start is not None:
-        b = Timedelta(start).value
-        e = b + periods * stride
-    elif end is not None:
-        e = Timedelta(end).value + stride
-        b = e - periods * stride
-    else:
-        raise ValueError("at least 'start' or 'end' should be specified "
-                         "if a 'period' is given.")
-
-    data = np.arange(b, e, stride, dtype=np.int64)
-    data = TimedeltaIndex._simple_new(data, None)
-
-    return data
 
 
 def timedelta_range(start=None, end=None, periods=None, freq=None,
