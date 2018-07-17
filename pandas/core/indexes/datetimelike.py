@@ -17,7 +17,7 @@ from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timestamps import round_ns
 
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     is_dtype_equal,
     is_float,
     is_integer,
@@ -223,7 +223,7 @@ class TimelikeOps(object):
         if index.empty or inferred == freq.freqstr:
             return None
 
-        on_freq = cls._generate(
+        on_freq = cls._generate_range(
             index[0], None, len(index), None, freq, **kwargs)
         if not np.array_equal(index.asi8, on_freq.asi8):
             msg = ('Inferred frequency {infer} from passed values does not '
@@ -290,34 +290,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return wrapper
 
+    @Appender(DatetimeLikeArrayMixin._evaluate_compare.__doc__)
     def _evaluate_compare(self, other, op):
-        """
-        We have been called because a comparison between
-        8 aware arrays. numpy >= 1.11 will
-        now warn about NaT comparisons
-        """
-
-        # coerce to a similar object
-        if not isinstance(other, type(self)):
-            if not is_list_like(other):
-                # scalar
-                other = [other]
-            elif is_scalar(lib.item_from_zerodim(other)):
-                # ndarray scalar
-                other = [other.item()]
-            other = type(self)(other)
-
-        # compare
-        result = op(self.asi8, other.asi8)
-
-        # technically we could support bool dtyped Index
-        # for now just return the indexing array directly
-        mask = (self._isnan) | (other._isnan)
+        result = DatetimeLikeArrayMixin._evaluate_compare(self, other, op)
         if is_bool_dtype(result):
-            result[mask] = False
             return result
-
-        result[mask] = iNaT
         try:
             return Index(result)
         except TypeError:
@@ -414,7 +391,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_int64(indices)
+        indices = ensure_int64(indices)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):

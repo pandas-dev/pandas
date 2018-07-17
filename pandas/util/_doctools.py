@@ -163,6 +163,14 @@ class TablePlotter(object):
         ax.axis('off')
 
 
+class _WritableDoc(type):
+    # Remove this when Python2 support is dropped
+    # __doc__ is not mutable for new-style classes in Python2, which means
+    # we can't use @Appender to share class docstrings. This can be used
+    # with `add_metaclass` to make cls.__doc__ mutable.
+    pass
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 

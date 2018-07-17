@@ -13,7 +13,7 @@ from pandas.compat import range, map, zip
 
 import pandas.core.dtypes.generic as gt
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     is_datetimelike_v_numeric,
     is_numeric_v_string_like, is_extension_type,
     is_extension_array_dtype,
@@ -31,7 +31,7 @@ from pandas.core.dtypes.cast import (
 import pandas.core.algorithms as algos
 from pandas.core.base import PandasObject
 
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices
 
 from pandas.io.formats.printing import pprint_thing
@@ -102,7 +102,7 @@ class BlockManager(PandasObject):
                  '_is_consolidated', '_blknos', '_blklocs']
 
     def __init__(self, blocks, axes, do_integrity_check=True):
-        self.axes = [_ensure_index(ax) for ax in axes]
+        self.axes = [ensure_index(ax) for ax in axes]
         self.blocks = tuple(blocks)
 
         for block in blocks:
@@ -127,8 +127,8 @@ class BlockManager(PandasObject):
     def make_empty(self, axes=None):
         """ return an empty BlockManager with the items axis of len 0 """
         if axes is None:
-            axes = [_ensure_index([])] + [_ensure_index(a)
-                                          for a in self.axes[1:]]
+            axes = [ensure_index([])] + [ensure_index(a)
+                                         for a in self.axes[1:]]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -152,7 +152,7 @@ class BlockManager(PandasObject):
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
-        new_labels = _ensure_index(new_labels)
+        new_labels = ensure_index(new_labels)
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
 
@@ -275,7 +275,7 @@ class BlockManager(PandasObject):
         if (isinstance(state, tuple) and len(state) >= 4 and
                 '0.14.1' in state[3]):
             state = state[3]['0.14.1']
-            self.axes = [_ensure_index(ax) for ax in state['axes']]
+            self.axes = [ensure_index(ax) for ax in state['axes']]
             self.blocks = tuple(unpickle_block(b['values'], b['mgr_locs'])
                                 for b in state['blocks'])
         else:
@@ -283,7 +283,7 @@ class BlockManager(PandasObject):
             # little while longer
             ax_arrays, bvalues, bitems = state[:3]
 
-            self.axes = [_ensure_index(ax) for ax in ax_arrays]
+            self.axes = [ensure_index(ax) for ax in ax_arrays]
 
             if len(bitems) == 1 and self.axes[0].equals(bitems[0]):
                 # This is a workaround for pre-0.14.1 pickles that didn't
@@ -1218,7 +1218,7 @@ class BlockManager(PandasObject):
         """
         Conform block manager to new index.
         """
-        new_index = _ensure_index(new_index)
+        new_index = ensure_index(new_index)
         new_index, indexer = self.axes[axis].reindex(new_index, method=method,
                                                      limit=limit)
 
@@ -1497,7 +1497,7 @@ class SingleBlockManager(BlockManager):
                                      'more than 1 block')
                 block = block[0]
         else:
-            self.axes = [_ensure_index(axis)]
+            self.axes = [ensure_index(axis)]
 
             # create the block here
             if isinstance(block, list):
@@ -1779,7 +1779,7 @@ def _get_blkno_placements(blknos, blk_count, group=True):
         yield (BlockPlacement, blkno)
     """
 
-    blknos = _ensure_int64(blknos)
+    blknos = ensure_int64(blknos)
 
     # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in libinternals.get_blkno_indexers(blknos, group):
