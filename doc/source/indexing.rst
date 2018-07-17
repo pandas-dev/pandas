@@ -1919,3 +1919,6 @@ This will **not** work at all, and so should be avoided:
    The chained assignment warnings / exceptions are aiming to inform the user of a possibly invalid
    assignment. There may be false positives; situations where a chained assignment is inadvertently
    reported.
+
+For additional discussion and explanation, see `https://www.dataquest.io/blog/settingwithcopywarning/
+<https://www.dataquest.io/blog/settingwithcopywarning/>`_.
