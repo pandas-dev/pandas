@@ -2,9 +2,13 @@
 
 from warnings import catch_warnings
 from distutils.version import LooseVersion
-from pandas import DataFrame, RangeIndex, Int64Index, get_option
+
+import pandas.core.dtypes.generic as gt
+
+from pandas import RangeIndex, get_option
 from pandas.compat import string_types
 import pandas.core.common as com
+
 from pandas.io.common import get_filepath_or_buffer, is_s3_url
 
 
@@ -47,7 +51,7 @@ class BaseImpl(object):
     @staticmethod
     def validate_dataframe(df):
 
-        if not isinstance(df, DataFrame):
+        if not isinstance(df, gt.ABCDataFrame):
             raise ValueError("to_parquet only supports IO with DataFrames")
 
         # must have value column names (strings only)
@@ -140,15 +144,14 @@ class PyArrowImpl(BaseImpl):
     def _validate_write_lt_070(self, df):
         # Compatibility shim for pyarrow < 0.7.0
         # TODO: Remove in pandas 0.23.0
-        from pandas.core.indexes.multi import MultiIndex
-        if isinstance(df.index, MultiIndex):
+        if isinstance(df.index, gt.ABCMultiIndex):
             msg = (
                 "Multi-index DataFrames are only supported "
                 "with pyarrow >= 0.7.0"
             )
             raise ValueError(msg)
         # Validate index
-        if not isinstance(df.index, Int64Index):
+        if not isinstance(df.index, gt.ABCInt64Index):
             msg = (
                 "pyarrow < 0.7.0 does not support serializing {} for the "
                 "index; you can .reset_index() to make the index into "

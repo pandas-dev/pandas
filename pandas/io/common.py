@@ -7,15 +7,17 @@ import mmap
 from contextlib import contextmanager, closing
 import zipfile
 
-from pandas.compat import StringIO, BytesIO, string_types, text_type
-from pandas import compat
-from pandas.io.formats.printing import pprint_thing
-import pandas.core.common as com
-from pandas.core.dtypes.common import is_number, is_file_like
-
 # compat
 from pandas.errors import (ParserError, DtypeWarning,  # noqa
-                           EmptyDataError, ParserWarning)
+                           EmptyDataError, ParserWarning, AbstractMethodError)
+
+from pandas.compat import StringIO, BytesIO, string_types, text_type
+from pandas import compat
+
+from pandas.core.dtypes.common import is_number, is_file_like
+
+from pandas.io.formats.printing import pprint_thing
+
 
 # gh-12665: Alias for now and remove later.
 CParserError = ParserError
@@ -67,7 +69,7 @@ class BaseIterator(object):
         return self
 
     def __next__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 if not compat.PY3:

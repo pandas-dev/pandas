@@ -12,9 +12,16 @@ from textwrap import fill
 
 import numpy as np
 
+from pandas._libs import lib, parsers, ops as libops
+from pandas._libs.tslibs import parsing
+
+from pandas.util._decorators import Appender
+from pandas.errors import ParserWarning, ParserError, EmptyDataError
+
 from pandas import compat
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
+
 from pandas.core.dtypes.common import (
     is_integer, ensure_object,
     is_list_like, is_integer_dtype,
@@ -24,6 +31,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
+
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
                                ensure_index_from_sequences)
 from pandas.core.series import Series
@@ -31,20 +39,14 @@ from pandas.core.frame import DataFrame
 from pandas.core.arrays import Categorical
 from pandas.core import algorithms
 import pandas.core.common as com
+from pandas.core.tools import datetimes as tools
+
 from pandas.io.date_converters import generic_parser
-from pandas.errors import ParserWarning, ParserError, EmptyDataError
 from pandas.io.common import (get_filepath_or_buffer, is_file_like,
                               _validate_header_arg, _get_handle,
                               UnicodeReader, UTF8Recoder, _NA_VALUES,
                               BaseIterator, _infer_compression)
-from pandas.core.tools import datetimes as tools
 
-from pandas.util._decorators import Appender
-
-import pandas._libs.lib as lib
-import pandas._libs.parsers as parsers
-import pandas._libs.ops as libops
-from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
 # This exists at the beginning of a file to indicate endianness

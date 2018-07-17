@@ -6,25 +6,27 @@ retrieval and to reduce dependency on DB-specific API.
 
 from __future__ import print_function, division
 from datetime import datetime, date, time
-
+from contextlib import contextmanager
 import warnings
 import re
+
 import numpy as np
 
 import pandas._libs.lib as lib
+
+from pandas.compat import (map, zip, raise_with_traceback,
+                           string_types, text_type)
+
+from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.common import (
     is_list_like, is_dict_like,
     is_datetime64tz_dtype)
 
-from pandas.compat import (map, zip, raise_with_traceback,
-                           string_types, text_type)
-from pandas.core.api import DataFrame, Series
+from pandas.core.api import DataFrame
 from pandas.core.base import PandasObject
 from pandas.core.tools.datetimes import to_datetime
-
-from contextlib import contextmanager
 
 
 class SQLAlchemyRequired(ImportError):
@@ -439,7 +441,7 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
 
     pandas_sql = pandasSQL_builder(con, schema=schema)
 
-    if isinstance(frame, Series):
+    if isinstance(frame, ABCSeries):
         frame = frame.to_frame()
     elif not isinstance(frame, DataFrame):
         raise NotImplementedError("'frame' argument should be either a "
