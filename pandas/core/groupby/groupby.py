@@ -28,7 +28,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
-    _ensure_float)
+    ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.missing import isna, notna
 
@@ -842,7 +842,7 @@ b  2""")
                 # since we are masking, make sure that we have a float object
                 values = result
                 if is_numeric_dtype(values.dtype):
-                    values = _ensure_float(values)
+                    values = ensure_float(values)
 
                 output[name] = self._try_cast(values[mask], result)
 

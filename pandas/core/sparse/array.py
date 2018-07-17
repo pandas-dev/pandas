@@ -16,7 +16,7 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
     is_integer_dtype,
@@ -468,7 +468,7 @@ class SparseArray(PandasObject, np.ndarray):
             # return scalar
             return self[indices]
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         n = len(self)
         if allow_fill and fill_value is not None:
             # allow -1 to indicate self.fill_value,

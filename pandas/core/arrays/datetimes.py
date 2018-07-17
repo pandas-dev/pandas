@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
-    _ensure_int64)
+    ensure_int64)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
@@ -167,7 +167,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             values = np.array(values, copy=False)
 
         if not is_datetime64_dtype(values):
-            values = _ensure_int64(values).view(_NS_DTYPE)
+            values = ensure_int64(values).view(_NS_DTYPE)
 
         result = object.__new__(cls)
         result._data = values

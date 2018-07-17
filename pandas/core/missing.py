@@ -18,7 +18,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_integer,
     needs_i8_conversion,
-    _ensure_float64)
+    ensure_float64)
 
 from pandas.core.dtypes.cast import infer_dtype_from_array
 from pandas.core.dtypes.missing import isna
@@ -480,7 +480,7 @@ def pad_1d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_1d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.pad_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_inplace_object
@@ -506,7 +506,7 @@ def backfill_1d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_1d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.backfill_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_inplace_object
@@ -533,7 +533,7 @@ def pad_2d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _pad_2d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.pad_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.pad_2d_inplace_object
@@ -564,7 +564,7 @@ def backfill_2d(values, limit=None, mask=None, dtype=None):
     elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         _method = _backfill_2d_datetime
     elif is_integer_dtype(values):
-        values = _ensure_float64(values)
+        values = ensure_float64(values)
         _method = algos.backfill_2d_inplace_float64
     elif values.dtype == np.object_:
         _method = algos.backfill_2d_inplace_object

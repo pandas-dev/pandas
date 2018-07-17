@@ -17,12 +17,13 @@ from pandas.core.dtypes.missing import notna
 
 import pandas.core.ops as ops
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
+from pandas.core.index import (Index, MultiIndex, ensure_index,
                                _get_objs_combined_axis)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.indexing import maybe_droplevels
@@ -198,7 +199,7 @@ class Panel(NDFrame):
 
         # prefilter if haxis passed
         if haxis is not None:
-            haxis = _ensure_index(haxis)
+            haxis = ensure_index(haxis)
             data = OrderedDict((k, v)
                                for k, v in compat.iteritems(data)
                                if k in haxis)
@@ -319,9 +320,9 @@ class Panel(NDFrame):
         fixed_axes = []
         for i, ax in enumerate(axes):
             if ax is None:
-                ax = com._default_index(shape[i])
+                ax = ibase.default_index(shape[i])
             else:
-                ax = _ensure_index(ax)
+                ax = ensure_index(ax)
             fixed_axes.append(ax)
 
         return create_block_manager_from_blocks([values], fixed_axes)
@@ -1536,7 +1537,7 @@ class Panel(NDFrame):
         if index is None:
             index = Index([])
 
-        return _ensure_index(index)
+        return ensure_index(index)
 
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,

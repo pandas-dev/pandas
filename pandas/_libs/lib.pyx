@@ -485,7 +485,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
 
 def clean_index_list(list obj):
     """
-    Utility used in pandas.core.index._ensure_index
+    Utility used in pandas.core.index.ensure_index
     """
     cdef:
         Py_ssize_t i, n = len(obj)

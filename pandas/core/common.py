@@ -13,7 +13,7 @@ from pandas._libs import lib, tslibs
 from pandas import compat
 from pandas.compat import long, zip, iteritems, PY36, OrderedDict
 from pandas.core.config import get_option
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex
+from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
@@ -118,11 +118,6 @@ def is_bool_indexer(key):
             return False
 
     return False
-
-
-def _default_index(n):
-    from pandas.core.index import RangeIndex
-    return RangeIndex(0, n, name=None)
 
 
 def _mut_exclusive(**kwargs):
@@ -299,11 +294,10 @@ def intersection(*seqs):
 
 
 def _asarray_tuplesafe(values, dtype=None):
-    from pandas.core.index import Index
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):
         values = list(values)
-    elif isinstance(values, Index):
+    elif isinstance(values, ABCIndexClass):
         return values.values
 
     if isinstance(values, list) and dtype in [np.object_, object]:

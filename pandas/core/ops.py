@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_extension_array_dtype,
-    _ensure_object)
+    ensure_object)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
     construct_1d_object_array_from_listlike)
@@ -1387,8 +1387,8 @@ def _bool_method_SERIES(cls, op, special):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:
-                    x = _ensure_object(x)
-                    y = _ensure_object(y)
+                    x = ensure_object(x)
+                    y = ensure_object(y)
                     result = libops.vec_binop(x, y, op)
             else:
                 # let null fall thru
