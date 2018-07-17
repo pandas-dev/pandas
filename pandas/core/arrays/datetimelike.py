@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT
+from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
@@ -643,8 +644,7 @@ def validate_tz_from_dtype(dtype, tz):
             dtype = DatetimeTZDtype.construct_from_string(dtype)
             dtz = getattr(dtype, 'tz', None)
             if dtz is not None:
-                if tz is not None and str(tz) != str(dtz):
-                    # TODO: use timezones.compare_tz?
+                if tz is not None and not timezones.tz_compare(tz, dtz):
                     raise ValueError("cannot supply both a tz and a dtype"
                                      " with a tz")
                 tz = dtz
