@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
-    _ensure_object)
+    ensure_object)
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
@@ -33,7 +33,7 @@ from pandas._libs.tslibs import resolution, period
 
 from pandas.core.arrays.period import PeriodArrayMixin
 from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs, _ensure_index
+from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
 from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
@@ -255,7 +255,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                             "floating point in construction")
 
         # anything else, likely an array of strings or periods
-        data = _ensure_object(data)
+        data = ensure_object(data)
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
         return cls._from_ordinals(data, name=name, freq=freq)
@@ -567,7 +567,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        target = _ensure_index(target)
+        target = ensure_index(target)
 
         if hasattr(target, 'freq') and target.freq != self.freq:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)

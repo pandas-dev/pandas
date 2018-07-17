@@ -19,7 +19,7 @@ from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
                                         ABCSeries, ABCIntervalIndex,
                                         ABCInterval)
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.indexes.base import Index, _ensure_index
+from pandas.core.indexes.base import Index, ensure_index
 from pandas.util._decorators import Appender
 from pandas.util._doctools import _WritableDoc
 
@@ -145,8 +145,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         result = IntervalMixin.__new__(cls)
 
         closed = closed or 'right'
-        left = _ensure_index(left, copy=copy)
-        right = _ensure_index(right, copy=copy)
+        left = ensure_index(left, copy=copy)
+        right = ensure_index(right, copy=copy)
 
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
