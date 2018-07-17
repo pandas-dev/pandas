@@ -478,6 +478,7 @@ Deprecations
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
 - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
+- :func:`pandas.read_table` is deprecated. Use :func:`pandas.read_csv` instead (:issue:`21948`)
 
 .. _whatsnew_0240.prior_deprecations:
 
