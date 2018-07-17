@@ -6891,7 +6891,7 @@ class DataFrame(NDFrame):
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False):
+    def corrwith(self, other, axis=0, method='pearson', drop=False):
         """
         Compute pairwise correlation between rows or columns of two DataFrame
         objects.
@@ -6901,6 +6901,10 @@ class DataFrame(NDFrame):
         other : DataFrame, Series
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
+        method : {'pearson', 'kendall', 'spearman'}
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
 
@@ -6912,10 +6916,9 @@ class DataFrame(NDFrame):
         this = self._get_numeric_data()
 
         if isinstance(other, Series):
-            return this.apply(other.corr, axis=axis)
+            return this.apply(other.corr, axis=axis, method=method)
 
         other = other._get_numeric_data()
-
         left, right = this.align(other, join='inner', copy=False)
 
         # mask missing values
@@ -6926,14 +6929,9 @@ class DataFrame(NDFrame):
             left = left.T
             right = right.T
 
-        # demeaned data
-        ldem = left - left.mean()
-        rdem = right - right.mean()
-
-        num = (ldem * rdem).sum()
-        dom = (left.count() - 1) * left.std() * right.std()
-
-        correl = num / dom
+        correl = Series(index=left.columns)
+        for col in left.columns:
+            correl[col] = nanops.nancorr(left[col], right[col], method=method)
 
         if not drop:
             raxis = 1 if axis == 0 else 0
