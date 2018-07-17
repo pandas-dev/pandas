@@ -23,10 +23,10 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_object,
-    _ensure_categorical,
-    _ensure_platform_int,
+    ensure_int64,
+    ensure_object,
+    ensure_categorical,
+    ensure_platform_int,
     is_integer,
     is_float,
     is_dtype_equal,
@@ -1887,7 +1887,7 @@ class Index(IndexOpsMixin, PandasObject):
     def is_all_dates(self):
         if self._data is None:
             return False
-        return is_datetime_array(_ensure_object(self.values))
+        return is_datetime_array(ensure_object(self.values))
 
     def __reduce__(self):
         d = dict(data=self._data)
@@ -2091,7 +2091,7 @@ class Index(IndexOpsMixin, PandasObject):
              fill_value=None, **kwargs):
         if kwargs:
             nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         if self._can_hold_na:
             taken = self._assert_take_fillable(self.values, indices,
                                                allow_fill=allow_fill,
@@ -2107,7 +2107,7 @@ class Index(IndexOpsMixin, PandasObject):
     def _assert_take_fillable(self, values, indices, allow_fill=True,
                               fill_value=None, na_value=np.nan):
         """ Internal method to handle NA filling of take """
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
 
         # only fill if we are passing a non-None fill_value
         if allow_fill and fill_value is not None:
@@ -2699,7 +2699,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
+        other = ensure_index(other)
 
         if len(other) == 0 or self.equals(other):
             return self._get_consensus_name(other)
@@ -2799,7 +2799,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
+        other = ensure_index(other)
 
         if self.equals(other):
             return self._get_consensus_name(other)
@@ -3254,7 +3254,7 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
 
@@ -3262,7 +3262,7 @@ class Index(IndexOpsMixin, PandasObject):
         # this fix False and True would be treated as 0 and 1 respectively.
         # (GH #16877)
         if target.is_boolean() and self.is_numeric():
-            return _ensure_platform_int(np.repeat(-1, target.size))
+            return ensure_platform_int(np.repeat(-1, target.size))
 
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
@@ -3293,7 +3293,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             indexer = self._engine.get_indexer(target._ndarray_values)
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     def _convert_tolerance(self, tolerance, target):
         # override this method on subclasses
@@ -3395,7 +3395,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = _ensure_index(target)
+        target = ensure_index(target)
         if is_categorical(target):
             target = target.astype(target.dtype.categories.dtype)
         pself, ptarget = self._maybe_promote(target)
@@ -3409,7 +3409,7 @@ class Index(IndexOpsMixin, PandasObject):
             tgt_values = target._ndarray_values
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
-        return _ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), missing
 
     def get_indexer_for(self, target, **kwargs):
         """
@@ -3451,7 +3451,7 @@ class Index(IndexOpsMixin, PandasObject):
         from .multi import MultiIndex
         if isinstance(values, MultiIndex):
             values = values.values
-        values = _ensure_categorical(values)
+        values = ensure_categorical(values)
         result = values._reverse_indexer()
 
         # map to the label
@@ -3639,7 +3639,7 @@ class Index(IndexOpsMixin, PandasObject):
             attrs.pop('freq', None)  # don't preserve freq
             target = self._simple_new(None, dtype=self.dtype, **attrs)
         else:
-            target = _ensure_index(target)
+            target = ensure_index(target)
 
         if level is not None:
             if method is not None:
@@ -3687,7 +3687,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
 
-        target = _ensure_index(target)
+        target = ensure_index(target)
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
         new_labels = self.take(indexer[check])
@@ -3696,11 +3696,11 @@ class Index(IndexOpsMixin, PandasObject):
         if len(missing):
             length = np.arange(len(indexer))
 
-            missing = _ensure_platform_int(missing)
+            missing = ensure_platform_int(missing)
             missing_labels = target.take(missing)
-            missing_indexer = _ensure_int64(length[~check])
+            missing_indexer = ensure_int64(length[~check])
             cur_labels = self.take(indexer[check]).values
-            cur_indexer = _ensure_int64(length[check])
+            cur_indexer = ensure_int64(length[check])
 
             new_labels = np.empty(tuple([len(indexer)]), dtype=object)
             new_labels[cur_indexer] = cur_labels
@@ -3774,7 +3774,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_level(other, level, how=how,
                                     return_indexers=return_indexers)
 
-        other = _ensure_index(other)
+        other = ensure_index(other)
 
         if len(other) == 0 and how in ('left', 'outer'):
             join_index = self._shallow_copy()
@@ -3901,8 +3901,8 @@ class Index(IndexOpsMixin, PandasObject):
                                                  how=how,
                                                  sort=True)
 
-        left_idx = _ensure_platform_int(left_idx)
-        right_idx = _ensure_platform_int(right_idx)
+        left_idx = ensure_platform_int(left_idx)
+        right_idx = ensure_platform_int(right_idx)
 
         join_index = np.asarray(self._ndarray_values.take(left_idx))
         mask = left_idx == -1
@@ -3935,7 +3935,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return np.empty(0, dtype='int64')
 
             if len(labels) == 1:
-                lab = _ensure_int64(labels[0])
+                lab = ensure_int64(labels[0])
                 sorter, _ = libalgos.groupsort_indexer(lab, 1 + lab.max())
                 return sorter
 
@@ -3946,8 +3946,8 @@ class Index(IndexOpsMixin, PandasObject):
                 tic |= lab[:-1] != lab[1:]
 
             starts = np.hstack(([True], tic, [True])).nonzero()[0]
-            lab = _ensure_int64(labels[-1])
-            return lib.get_level_sorter(lab, _ensure_int64(starts))
+            lab = ensure_int64(labels[-1])
+            return lib.get_level_sorter(lab, ensure_int64(starts))
 
         if isinstance(self, MultiIndex) and isinstance(other, MultiIndex):
             raise TypeError('Join on level between two MultiIndex objects '
@@ -3979,7 +3979,7 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index = left[left_indexer]
 
         else:
-            left_lev_indexer = _ensure_int64(left_lev_indexer)
+            left_lev_indexer = ensure_int64(left_lev_indexer)
             rev_indexer = lib.get_reverse_indexer(left_lev_indexer,
                                                   len(old_level))
 
@@ -4038,9 +4038,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if return_indexers:
             left_indexer = (None if left_indexer is None
-                            else _ensure_platform_int(left_indexer))
+                            else ensure_platform_int(left_indexer))
             right_indexer = (None if right_indexer is None
-                             else _ensure_platform_int(right_indexer))
+                             else ensure_platform_int(right_indexer))
             return join_index, left_indexer, right_indexer
         else:
             return join_index
@@ -4084,8 +4084,8 @@ class Index(IndexOpsMixin, PandasObject):
             join_index = self._wrap_joined_index(join_index, other)
 
         if return_indexers:
-            lidx = None if lidx is None else _ensure_platform_int(lidx)
-            ridx = None if ridx is None else _ensure_platform_int(ridx)
+            lidx = None if lidx is None else ensure_platform_int(lidx)
+            ridx = None if ridx is None else ensure_platform_int(ridx)
             return join_index, lidx, ridx
         else:
             return join_index
@@ -4903,7 +4903,7 @@ Index._add_logical_methods()
 Index._add_comparison_methods()
 
 
-def _ensure_index_from_sequences(sequences, names=None):
+def ensure_index_from_sequences(sequences, names=None):
     """Construct an index from sequences of data.
 
     A single sequence returns an Index. Many sequences returns a
@@ -4920,18 +4920,18 @@ def _ensure_index_from_sequences(sequences, names=None):
 
     Examples
     --------
-    >>> _ensure_index_from_sequences([[1, 2, 3]], names=['name'])
+    >>> ensure_index_from_sequences([[1, 2, 3]], names=['name'])
     Int64Index([1, 2, 3], dtype='int64', name='name')
 
-    >>> _ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
-                                     names=['L1', 'L2'])
+    >>> ensure_index_from_sequences([['a', 'a'], ['a', 'b']],
+                                    names=['L1', 'L2'])
     MultiIndex(levels=[['a'], ['a', 'b']],
                labels=[[0, 0], [0, 1]],
                names=['L1', 'L2'])
 
     See Also
     --------
-    _ensure_index
+    ensure_index
     """
     from .multi import MultiIndex
 
@@ -4943,7 +4943,7 @@ def _ensure_index_from_sequences(sequences, names=None):
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def _ensure_index(index_like, copy=False):
+def ensure_index(index_like, copy=False):
     """
     Ensure that we have an index from some index-like object
 
@@ -4959,19 +4959,19 @@ def _ensure_index(index_like, copy=False):
 
     Examples
     --------
-    >>> _ensure_index(['a', 'b'])
+    >>> ensure_index(['a', 'b'])
     Index(['a', 'b'], dtype='object')
 
-    >>> _ensure_index([('a', 'a'),  ('b', 'c')])
+    >>> ensure_index([('a', 'a'),  ('b', 'c')])
     Index([('a', 'a'), ('b', 'c')], dtype='object')
 
-    >>> _ensure_index([['a', 'a'], ['b', 'c']])
+    >>> ensure_index([['a', 'a'], ['b', 'c']])
     MultiIndex(levels=[['a'], ['b', 'c']],
                labels=[[0, 0], [0, 1]])
 
     See Also
     --------
-    _ensure_index_from_sequences
+    ensure_index_from_sequences
     """
     if isinstance(index_like, Index):
         if copy:
@@ -5029,3 +5029,8 @@ def _trim_front(strings):
 def _validate_join_method(method):
     if method not in ['left', 'right', 'inner', 'outer']:
         raise ValueError('do not recognize join method %s' % method)
+
+
+def default_index(n):
+    from pandas.core.index import RangeIndex
+    return RangeIndex(0, n, name=None)
