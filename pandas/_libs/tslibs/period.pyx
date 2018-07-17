@@ -1415,7 +1415,7 @@ cdef class _Period(object):
         >>> per.start_time.dayofweek
         6
 
-        For periods with a frequancy higher than days, the last day of the
+        For periods with a frequency higher than days, the last day of the
         period is returned.
 
         >>> per = pd.Period('2018-01', 'M')
@@ -1466,7 +1466,7 @@ cdef class _Period(object):
         >>> per.start_time.dayofweek
         6
 
-        For periods with a frequancy higher than days, the last day of the
+        For periods with a frequency higher than days, the last day of the
         period is returned.
 
         >>> per = pd.Period('2018-01', 'M')
