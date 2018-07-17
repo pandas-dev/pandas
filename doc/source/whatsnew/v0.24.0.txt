@@ -3,6 +3,11 @@
 v0.24.0 (Month XX, 2018)
 ------------------------
 
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping-27` for more.
+
 .. _whatsnew_0240.enhancements:
 
 New features
