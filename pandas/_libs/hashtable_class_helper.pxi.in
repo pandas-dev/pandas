@@ -389,7 +389,11 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
+                {{if dtype == 'float64'}}
                 if npy_isnan(val) or (use_na_value and val == na_value2):
+                {{else}}
+                if val != val or (use_na_value and val == na_value2):
+                {{endif}}
                     labels[i] = na_sentinel
                     continue
 
