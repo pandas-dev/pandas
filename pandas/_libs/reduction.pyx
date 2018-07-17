@@ -518,6 +518,7 @@ def apply_frame_axis0(object frame, object f, object names,
         except:
             raise InvalidApply('Let this error raise above us')
 
+    piece = result
     slider = BlockSlider(frame)
 
     mutated = False
@@ -529,7 +530,8 @@ def apply_frame_axis0(object frame, object f, object names,
             item_cache.clear()  # ugh
 
             object.__setattr__(slider.dummy, 'name', names[i])
-            piece = f(slider.dummy)
+            if i > 0:
+                piece = f(slider.dummy)
 
             # I'm paying the price for index-sharing, ugh
             try:
