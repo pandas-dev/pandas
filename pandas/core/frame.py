@@ -7301,23 +7301,22 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False, dropna=True):
         """
-        Gets the mode(s) of each element along the axis selected. Adds a row
-        for each mode per label, fills in gaps with nan.
+        Get the mode(s) of each element along the selected axis.
 
-        Note that there could be multiple values returned for the selected
-        axis (when more than one item share the maximum frequency), which is
-        the reason why a dataframe is returned. If you want to impute missing
-        values with the mode in a dataframe ``df``, you can just do this:
-        ``df.fillna(df.mode().iloc[0])``
+        The mode of a set of values is the value or set of values that appear
+        most often.
+
+        Adds a row for each mode per label, filling gaps with NaN.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            * 0 or 'index' : get mode of each column
-            * 1 or 'columns' : get mode of each row
-        numeric_only : boolean, default False
-            if True, only apply to numeric columns
-        dropna : boolean, default True
+            The axis to iterate over while searching for the mode.
+            To find the mode for each column, use ``axis=0``.
+            To find the mode for each row, use ``axis=1``.
+        numeric_only : bool, default False
+            If True, only apply to numeric columns.
+        dropna : bool, default True
             Don't consider counts of NaN/NaT.
 
             .. versionadded:: 0.24.0
@@ -7325,14 +7324,41 @@ class DataFrame(NDFrame):
         Returns
         -------
         modes : DataFrame (sorted)
+            A DataFrame containing the modes
+            If ``axis=0``, there will be one column per column in the original
+            DataFrame, with as many rows as there are modes.
+            If ``axis=1``, there will be one row per row in the original
+            DataFrame, with as many columns as there are modes.
+
+        Notes
+        -----
+        There may be multiple values returned for the selected
+        axis when more than one item share the maximum frequency, which is
+        the reason why a DataFrame is returned.
+
+        See Also
+        --------
+        Series.mode : Return the highest frequency value in a Series.
+        Series.value_counts : Return the counts of values in a Series.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
-        >>> df.mode()
-           A
-        0  1
-        1  2
+
+        ``mode`` returns a DataFrame with multiple rows if there is more than
+        one mode. Missing entries are imputed with NaN.
+
+        >>> df = pd.DataFrame({'name': ['Alice', 'Bob', 'Alice', 'Bob'],
+        ...                    'age': [21, 45, 33, 21]})
+        >>> df
+	    name  age
+	0  Alice   21
+	1    Bob   45
+	2  Alice   33
+	3    Bob   21
+	>>> df.mode()
+	    name   age
+	0  Alice  21.0
+	1    Bob   NaN
         """
         data = self if not numeric_only else self._get_numeric_data()
 
