@@ -58,3 +58,7 @@ Bug Fixes
 
 -
 -
+
+**Missing**
+
+- Bug in :func:`Series.clip` and :func:`DataFrame.clip` cannot accept list-like threshold containing ``NaN`` (:issue:`19992`)
