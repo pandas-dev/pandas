@@ -481,9 +481,10 @@ static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
     npy_datetimestruct dts;
     PyDatetimeScalarObject *obj = (PyDatetimeScalarObject *)_obj;
     PRINTMARK();
+    // TODO: Does not appear to be reached in tests.
 
-    pandas_datetime_to_datetimestruct(
-        obj->obval, (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
+    pandas_datetime_to_datetimestruct(obj->obval,
+                                     (NPY_DATETIMEUNIT)obj->obmeta.base, &dts);
     return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
 }
 

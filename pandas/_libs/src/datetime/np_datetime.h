@@ -33,8 +33,8 @@ extern const npy_datetimestruct _NS_MAX_DTS;
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
                                          npy_datetimestruct *out);
 
-npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                            npy_datetimestruct *d);
+npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
+                                            const npy_datetimestruct *dts);
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
                                        npy_datetimestruct *result);
@@ -73,10 +73,5 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
 void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
-
-int
-convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
-                                   npy_datetime dt,
-                                   npy_datetimestruct *out);
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
