@@ -538,7 +538,7 @@ def apply_frame_axis0(object frame, object f, object names,
             try:
                 if piece.index is slider.dummy.index:
                     piece = piece.copy(deep='all')
-                else:
+                elif i >= int(skip_first_index):
                     mutated = True
             except AttributeError:
                 pass
