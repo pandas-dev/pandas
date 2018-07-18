@@ -491,7 +491,7 @@ static void *NpyDateTimeScalarToJSON(JSOBJ _obj, JSONTypeContext *tc,
 static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
                               size_t *_outLen) {
     npy_datetimestruct dts;
-    PyObject *obj = (PyObject *)_obj;
+    PyDateTime_Date *obj = (PyDateTime_Date *)_obj;
 
     PRINTMARK();
 

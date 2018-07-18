@@ -18,6 +18,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
 
 #include <numpy/ndarraytypes.h>
+#include <datetime.h>
 
 typedef struct {
         npy_int64 days;
@@ -30,7 +31,7 @@ extern const npy_datetimestruct _NS_MAX_DTS;
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
-int convert_pydatetime_to_datetimestruct(PyObject *obj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *obj,
                                          npy_datetimestruct *out);
 
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,

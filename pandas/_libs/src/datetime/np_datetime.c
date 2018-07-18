@@ -235,8 +235,7 @@ NPY_NO_EXPORT void add_seconds_to_datetimestruct(npy_datetimestruct *dts,
  * Fills in the year, month, day in 'dts' based on the days
  * offset from 1970.
  */
-static void set_datetimestruct_days(npy_int64 days,
-                                    npy_datetimestruct *dts) {
+static void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts) {
     const int *month_lengths;
     int i;
 
@@ -330,7 +329,7 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
-int convert_pydatetime_to_datetimestruct(PyObject *obj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *obj,
                                          npy_datetimestruct *out) {
     // Assumes that obj is a valid datetime object
     PyObject *tmp;
@@ -343,6 +342,9 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
     out->year = PyInt_AsLong(PyObject_GetAttrString(obj, "year"));
     out->month = PyInt_AsLong(PyObject_GetAttrString(obj, "month"));
     out->day = PyInt_AsLong(PyObject_GetAttrString(obj, "day"));
+
+    // TODO: If we can get PyDateTime_IMPORT to work, we could use
+    // PyDateTime_Check here, and less verbose attribute lookups.
 
     /* Check for time attributes (if not there, return success as a date) */
     if (!PyObject_HasAttrString(obj, "hour") ||
@@ -357,8 +359,8 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
     out->sec = PyInt_AsLong(PyObject_GetAttrString(obj, "second"));
     out->us = PyInt_AsLong(PyObject_GetAttrString(obj, "microsecond"));
 
-    /* Apply the time zone offset if it exists */
-    if (PyObject_HasAttrString(obj, "tzinfo")) {
+    /* Apply the time zone offset if datetime obj is tz-aware */
+    if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
         tmp = PyObject_GetAttrString(obj, "tzinfo");
         if (tmp == NULL) {
             return -1;
