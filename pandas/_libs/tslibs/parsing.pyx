@@ -8,15 +8,13 @@ import re
 
 cimport cython
 from cython cimport Py_ssize_t
-
+from libc.stdint cimport int64_t
 
 from cpython.datetime cimport datetime
 import time
 
 import numpy as np
-cimport numpy as cnp
-from numpy cimport int64_t, ndarray
-cnp.import_array()
+from numpy cimport ndarray
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:

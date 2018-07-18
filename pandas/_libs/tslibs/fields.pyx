@@ -9,9 +9,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t, int8_t
-cnp.import_array()
 
 from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
