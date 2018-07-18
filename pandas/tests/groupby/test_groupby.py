@@ -34,7 +34,7 @@ def test_apply_frame_axis0_runs_each_group_once(skip_first_index=True):
     class CountCalls:
         def __init__(self):
             self.counter = 0
-            
+
         def f(self, x):
             self.counter += 1
             return demean(x)
