@@ -542,9 +542,9 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        # static/pytz/dateutil specific code
-        if typ == 'fixed':
-            # i.e. is_fixed_offset; in this case we know len(deltas) == 1
+        if is_fixed_offset(tz):
+            # static/fixed tzinfo; in this case we know len(deltas) == 1
+            # This can come back with `typ` of either "fixed" or None
             dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
         elif typ == 'pytz':
             # i.e. treat_tz_as_pytz(tz)
