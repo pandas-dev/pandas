@@ -343,7 +343,7 @@ int convert_pydatetime_to_datetimestruct(PyDateTime_Date *obj,
     out->month = PyInt_AsLong(PyObject_GetAttrString(obj, "month"));
     out->day = PyInt_AsLong(PyObject_GetAttrString(obj, "day"));
 
-    // TODO: If we can get PyDateTime_IMPORT to work, we could use
+    // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
     // PyDateTime_Check here, and less verbose attribute lookups.
 
     /* Check for time attributes (if not there, return success as a date) */
@@ -718,7 +718,6 @@ void pandas_datetime_to_datetimestruct(npy_datetime dt,
                             "NumPy datetime metadata is corrupted with invalid "
                             "base unit");
     }
-
 }
 
 /*
