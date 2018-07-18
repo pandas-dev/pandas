@@ -3,14 +3,15 @@
 # at https://github.com/veorq/SipHash
 
 import cython
-cimport numpy as cnp
+from cpython cimport PyBytes_Check, PyUnicode_Check
+
+from libc.stdlib cimport malloc, free
+from libc.stdint cimport uint8_t, uint32_t, uint64_t
+
 import numpy as np
-from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
+from numpy cimport ndarray
 
 from util cimport _checknull
-from cpython cimport (PyBytes_Check,
-                      PyUnicode_Check)
-from libc.stdlib cimport malloc, free
 
 DEF cROUNDS = 2
 DEF dROUNDS = 4
