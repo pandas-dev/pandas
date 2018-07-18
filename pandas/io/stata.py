@@ -28,7 +28,7 @@ from pandas.compat import (lrange, lmap, lzip, text_type, string_types, range,
                            zip, BytesIO)
 from pandas.core.arrays import Categorical
 from pandas.core.base import StringMixin
-from pandas.core.dtypes.common import (is_categorical_dtype, _ensure_object,
+from pandas.core.dtypes.common import (is_categorical_dtype, ensure_object,
                                        is_datetime64_dtype)
 from pandas.core.frame import DataFrame
 from pandas.core.series import Series
@@ -1818,7 +1818,7 @@ def _dtype_to_stata_type(dtype, column):
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         return max(itemsize, 1)
     elif dtype == np.float64:
         return 255
@@ -1863,7 +1863,7 @@ def _dtype_to_default_stata_fmt(dtype, column, dta_version=114,
         if not (inferred_dtype in ('string', 'unicode') or
                 len(column) == 0):
             raise ValueError('Writing general object arrays is not supported')
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         if itemsize > max_str_len:
             if dta_version >= 117:
                 return '%9s'
@@ -2418,7 +2418,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
-        itemsize = max_len_string_array(_ensure_object(column.values))
+        itemsize = max_len_string_array(ensure_object(column.values))
         itemsize = max(itemsize, 1)
         if itemsize <= 2045:
             return itemsize

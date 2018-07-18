@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from pandas.core.arrays.datetimes import DatetimeArrayMixin
-from pandas.core.arrays.timedelta import TimedeltaArrayMixin
+from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
 from pandas.core.arrays.period import PeriodArrayMixin
 
 

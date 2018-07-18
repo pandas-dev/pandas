@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_scalar,
     is_sparse,
-    _ensure_platform_int)
+    ensure_platform_int)
 from pandas.core.dtypes.missing import isna, _infer_fill_value
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
@@ -1483,7 +1483,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_arr_indexer(keyarr)
 
             if not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
+                keyarr = ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
         return keyarr
@@ -2596,6 +2596,7 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
+        indices = indices.copy()
         indices[mask] += n
 
     mask = (indices >= n) | (indices < 0)

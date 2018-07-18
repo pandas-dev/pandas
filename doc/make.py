@@ -363,6 +363,10 @@ def main():
     sys.path.append(args.python_path)
     globals()['pandas'] = importlib.import_module('pandas')
 
+    # Set the matplotlib backend to the non-interactive Agg backend for all
+    # child processes.
+    os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
+
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
                          args.verbosity)
     getattr(builder, args.command)()

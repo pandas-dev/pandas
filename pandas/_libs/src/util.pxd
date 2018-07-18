@@ -5,6 +5,7 @@ cnp.import_array()
 cimport cpython
 from cpython cimport PyTypeObject
 
+
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.

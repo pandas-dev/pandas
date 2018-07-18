@@ -35,8 +35,8 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_scalar,
     is_scipy_sparse,
-    _ensure_int32,
-    _ensure_categorical)
+    ensure_int32,
+    ensure_categorical)
 from pandas.util import testing as tm
 import pandas.util._test_decorators as td
 
@@ -1217,19 +1217,19 @@ def test_is_scipy_sparse(spmatrix):  # noqa: F811
 
 def test_ensure_int32():
     values = np.arange(10, dtype=np.int32)
-    result = _ensure_int32(values)
+    result = ensure_int32(values)
     assert (result.dtype == np.int32)
 
     values = np.arange(10, dtype=np.int64)
-    result = _ensure_int32(values)
+    result = ensure_int32(values)
     assert (result.dtype == np.int32)
 
 
 def test_ensure_categorical():
     values = np.arange(10, dtype=np.int32)
-    result = _ensure_categorical(values)
+    result = ensure_categorical(values)
     assert (result.dtype == 'category')
 
     values = Categorical(values)
-    result = _ensure_categorical(values)
+    result = ensure_categorical(values)
     tm.assert_categorical_equal(result, values)
