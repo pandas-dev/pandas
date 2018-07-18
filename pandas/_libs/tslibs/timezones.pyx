@@ -264,7 +264,8 @@ cdef object get_dst_info(object tz):
                 # functions would then hit an IndexError because they assume
                 # `deltas` is non-empty.
                 # (under the just-deleted code that returned empty arrays)
-                raise ValueError(tz)
+                raise AssertionError("dateutil tzinfo is not a FixedOffset "
+                                     "and has an empty `_trans_list`.", tz)
 
         else:
             # static tzinfo
