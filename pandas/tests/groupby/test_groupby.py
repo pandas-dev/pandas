@@ -26,14 +26,18 @@ import pandas as pd
 from pandas._libs import reduction
 
 
+def demean(arr):
+    return arr - arr.mean()
+
+
 def test_apply_frame_axis0_runs_each_group_once(skip_first_index=True):
     class CountCalls:
         def __init__(self):
             self.counter = 0
-
-        def f(self, *args):
+            
+        def f(self, x):
             self.counter += 1
-            return 0
+            return demean(x)
 
     df = pd.DataFrame([[1, 2], [-3, -4], [5, 6], [-7, -8], [9, 10]],
                       index=['A', 'B', 'C', 'D', 'E'], columns=['x', 'y'])
