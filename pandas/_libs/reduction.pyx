@@ -494,7 +494,8 @@ class InvalidApply(Exception):
 
 
 def apply_frame_axis0(object frame, object f, object names,
-                      ndarray[int64_t] starts, ndarray[int64_t] ends):
+                      ndarray[int64_t] starts, ndarray[int64_t] ends,
+                      skip_first_index = True):
     cdef:
         BlockSlider slider
         Py_ssize_t i, n = len(starts)
@@ -530,7 +531,7 @@ def apply_frame_axis0(object frame, object f, object names,
             item_cache.clear()  # ugh
 
             object.__setattr__(slider.dummy, 'name', names[i])
-            if i > 0:
+            if i >= int(skip_first_index):
                 piece = f(slider.dummy)
 
             # I'm paying the price for index-sharing, ugh
