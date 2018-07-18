@@ -527,7 +527,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     cdef:
         ndarray[int64_t] trans, deltas
         int64_t delta, local_val
-        Py_ssize_t posn
+        Py_ssize_t pos
 
     assert obj.tzinfo is None
 
@@ -782,7 +782,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     cdef:
         ndarray[int64_t] utc_dates, tt, result, trans, deltas
         Py_ssize_t i, j, pos, n = len(vals)
-        ndarray[Py_ssize_t] posn
         int64_t v, offset, delta
         npy_datetimestruct dts
 
@@ -1124,7 +1123,8 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas, pos
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t[:] pos
         npy_datetimestruct dts
 
     if is_utc(tz):

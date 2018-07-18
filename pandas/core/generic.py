@@ -12,8 +12,8 @@ import pandas as pd
 
 from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_object,
+    ensure_int64,
+    ensure_object,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
+from pandas.core.index import (Index, MultiIndex, ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -3235,7 +3235,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Case for non-unique axis
         else:
-            labels = _ensure_object(com._index_labels_to_array(labels))
+            labels = ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
@@ -3889,9 +3889,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if index is None:
                 continue
 
-            index = _ensure_index(index)
+            index = ensure_index(index)
             if indexer is not None:
-                indexer = _ensure_int64(indexer)
+                indexer = ensure_int64(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
@@ -7942,6 +7942,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
+
+        # see gh-21891
+        if not hasattr(cond, "__invert__"):
+            cond = np.array(cond)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,

@@ -16,7 +16,7 @@ from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.index import (
     Index, MultiIndex, CategoricalIndex)
 from pandas.core.dtypes.common import (
-    _ensure_categorical,
+    ensure_categorical,
     is_hashable,
     is_list_like,
     is_timedelta64_dtype,
@@ -360,7 +360,7 @@ class Grouping(object):
         if isinstance(self.grouper, BaseGrouper):
             return self.grouper.indices
 
-        values = _ensure_categorical(self.grouper)
+        values = ensure_categorical(self.grouper)
         return values._reverse_indexer()
 
     @property
