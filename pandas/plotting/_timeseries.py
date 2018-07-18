@@ -8,9 +8,9 @@ from matplotlib import pylab
 from pandas._libs.tslibs.period import Period
 
 from pandas.core.dtypes.generic import (
-    ABCPeriodIndex, ABCDatetimeIndex, ABCTimedeltaIndex)
+    ABCPeriodIndex, ABCDatetimeIndex, ABCTimedeltaIndex,
+    ABCDateOffset)
 
-from pandas.tseries.offsets import DateOffset
 import pandas.tseries.frequencies as frequencies
 
 from pandas.io.formats.printing import pprint_thing
@@ -209,7 +209,7 @@ def _get_freq(ax, series):
         freq = ax_freq
 
     # get the period frequency
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
     else:
         freq = frequencies.get_base_alias(freq)
@@ -231,7 +231,7 @@ def _use_dynamic_x(ax, data):
     if freq is None:
         return False
 
-    if isinstance(freq, DateOffset):
+    if isinstance(freq, ABCDateOffset):
         freq = freq.rule_code
     else:
         freq = frequencies.get_base_alias(freq)
@@ -269,7 +269,7 @@ def _maybe_convert_index(ax, data):
 
         if freq is None:
             freq = getattr(data.index, 'inferred_freq', None)
-        if isinstance(freq, DateOffset):
+        if isinstance(freq, ABCDateOffset):
             freq = freq.rule_code
 
         if freq is None:

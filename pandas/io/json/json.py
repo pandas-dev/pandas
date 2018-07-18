@@ -1,23 +1,30 @@
 # pylint: disable-msg=E1101,W0613,W0603
 from itertools import islice
 import os
+
 import numpy as np
 
 import pandas._libs.json as json
 from pandas._libs.tslibs import iNaT
+
+from pandas.errors import AbstractMethodError
+
+from pandas import compat
 from pandas.compat import StringIO, long, u, to_str
-from pandas import compat, isna
-from pandas import Series, DataFrame, to_datetime, MultiIndex
+
+from pandas.core.dtypes.common import is_period_dtype
+from pandas.core.dtypes.generic import ABCMultiIndex
+
+from pandas import Series, DataFrame, to_datetime, isna, concat
+
 from pandas.io.common import (get_filepath_or_buffer, _get_handle,
                               _infer_compression, _stringify_path,
                               BaseIterator)
-from pandas.io.parsers import _validate_integer
-import pandas.core.common as com
-from pandas.core.reshape.concat import concat
 from pandas.io.formats.printing import pprint_thing
+from pandas.io.parsers import _validate_integer
+
 from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema, parse_table_schema
-from pandas.core.dtypes.common import is_period_dtype
 
 loads = json.loads
 dumps = json.dumps
@@ -93,7 +100,7 @@ class Writer(object):
         self._format_axes()
 
     def _format_axes(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def write(self):
         return self._write(self.obj, self.orient, self.double_precision,
@@ -181,7 +188,7 @@ class JSONTableWriter(FrameWriter):
         self.schema = build_table_schema(obj, index=self.index)
 
         # NotImplementd on a column MultiIndex
-        if obj.ndim == 2 and isinstance(obj.columns, MultiIndex):
+        if obj.ndim == 2 and isinstance(obj.columns, ABCMultiIndex):
             raise NotImplementedError(
                 "orient='table' is not supported for MultiIndex")
 
@@ -654,7 +661,7 @@ class Parser(object):
                 setattr(self.obj, axis, new_axis)
 
     def _try_convert_types(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
@@ -767,7 +774,7 @@ class Parser(object):
         return data, False
 
     def _try_convert_dates(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
 
 class SeriesParser(Parser):

@@ -1,8 +1,11 @@
 """ feather-format compat """
 
 from distutils.version import LooseVersion
-from pandas import DataFrame, RangeIndex, Int64Index
 from pandas.compat import range
+
+from pandas.core.dtypes.generic import ABCDataFrame, ABCInt64Index
+from pandas import RangeIndex
+
 from pandas.io.common import _stringify_path
 
 
@@ -45,7 +48,7 @@ def to_feather(df, path):
 
     """
     path = _stringify_path(path)
-    if not isinstance(df, DataFrame):
+    if not isinstance(df, ABCDataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
     feather = _try_import()
@@ -57,7 +60,7 @@ def to_feather(df, path):
     # validate that we have only a default index
     # raise on anything else as we don't serialize the index
 
-    if not isinstance(df.index, Int64Index):
+    if not isinstance(df.index, ABCInt64Index):
         raise ValueError("feather does not support serializing {} "
                          "for the index; you can .reset_index()"
                          "to make the index into column(s)".format(

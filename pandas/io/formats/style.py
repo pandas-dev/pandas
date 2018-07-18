@@ -14,22 +14,23 @@ try:
         PackageLoader, Environment, ChoiceLoader, FileSystemLoader
     )
 except ImportError:
-    msg = "pandas.Styler requires jinja2. "\
-          "Please install with `conda install Jinja2`\n"\
-          "or `pip install Jinja2`"
+    msg = ("pandas.Styler requires jinja2. "
+           "Please install with `conda install Jinja2`\n"
+           "or `pip install Jinja2`")
     raise ImportError(msg)
 
-from pandas.core.dtypes.common import is_float, is_string_like
-
 import numpy as np
-import pandas as pd
-from pandas.api.types import is_list_like
+
+from pandas.util._decorators import Appender
 from pandas.compat import range
+
+from pandas.core.dtypes.common import is_float, is_string_like, is_list_like
+
+import pandas as pd
 from pandas.core.config import get_option
 from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
-from pandas.util._decorators import Appender
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors
