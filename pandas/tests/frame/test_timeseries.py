@@ -747,7 +747,6 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_frame_to_period(self):
         K = 5
-        from pandas.core.indexes.period import period_range
 
         dr = date_range('1/1/2000', '1/1/2001')
         pr = period_range('1/1/2000', '1/1/2001')
@@ -776,14 +775,6 @@ class TestDataFrameTimeSeriesMethods(TestData):
     @pytest.mark.parametrize("fn", ['tz_localize', 'tz_convert'])
     def test_tz_convert_and_localize(self, fn):
         l0 = date_range('20140701', periods=5, freq='D')
-
-        # TODO: l1 should be a PeriodIndex for testing
-        #       after GH2106 is addressed
-        with pytest.raises(NotImplementedError):
-            period_range('20140701', periods=1).tz_convert('UTC')
-        with pytest.raises(NotImplementedError):
-            period_range('20140701', periods=1).tz_localize('UTC')
-        # l1 = period_range('20140701', periods=5, freq='D')
         l1 = date_range('20140701', periods=5, freq='D')
 
         int_idx = Index(range(5))
