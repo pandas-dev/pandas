@@ -7303,8 +7303,8 @@ class DataFrame(NDFrame):
         """
         Get the mode(s) of each element along the selected axis.
 
-        The mode of a set of values is the value or set of values that appear
-        most often.
+        The mode of a set of values is the value that appears most often.
+        It can be multiple values.
 
         Adds a row for each mode per label, filling gaps with NaN.
 
@@ -7323,18 +7323,12 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        modes : DataFrame (sorted)
+        DataFrame (sorted)
             A DataFrame containing the modes
             If ``axis=0``, there will be one column per column in the original
             DataFrame, with as many rows as there are modes.
             If ``axis=1``, there will be one row per row in the original
             DataFrame, with as many columns as there are modes.
-
-        Notes
-        -----
-        There may be multiple values returned for the selected
-        axis when more than one item share the maximum frequency, which is
-        the reason why a DataFrame is returned.
 
         See Also
         --------
@@ -7350,15 +7344,15 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({'name': ['Alice', 'Bob', 'Alice', 'Bob'],
         ...                    'age': [21, 45, 33, 21]})
         >>> df
-	    name  age
-	0  Alice   21
-	1    Bob   45
-	2  Alice   33
-	3    Bob   21
-	>>> df.mode()
-	    name   age
-	0  Alice  21.0
-	1    Bob   NaN
+            name  age
+        0  Alice   21
+        1    Bob   45
+        2  Alice   33
+        3    Bob   21
+        >>> df.mode()
+            name   age
+        0  Alice  21.0
+        1    Bob   NaN
         """
         data = self if not numeric_only else self._get_numeric_data()
 
