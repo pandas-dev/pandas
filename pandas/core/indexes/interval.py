@@ -899,7 +899,8 @@ class IntervalIndex(IntervalMixin, Index):
 
         return self._shallow_copy(left, right)
 
-    # __repr__ associated methods are based on MultiIndex
+    # ----------------------------------------------------------------------
+    # Rendering Methods
 
     def _format_with_header(self, header, **kwargs):
         return header + list(self._format_native_types(**kwargs))
@@ -955,6 +956,8 @@ class IntervalIndex(IntervalMixin, Index):
     def _format_space(self):
         space = ' ' * (len(self.__class__.__name__) + 1)
         return "\n{space}".format(space=space)
+
+    # ----------------------------------------------------------------------
 
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))

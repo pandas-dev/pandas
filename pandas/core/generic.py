@@ -150,17 +150,6 @@ class NDFrame(PandasObject, SelectionMixin):
                       "in a future version.", FutureWarning, stacklevel=2)
         self._is_copy = msg
 
-    def _repr_data_resource_(self):
-        """
-        Not a real Jupyter special repr method, but we use the same
-        naming convention.
-        """
-        if config.get_option("display.html.table_schema"):
-            data = self.head(config.get_option('display.max_rows'))
-            payload = json.loads(data.to_json(orient='table'),
-                                 object_pairs_hook=collections.OrderedDict)
-            return payload
-
     def _validate_dtype(self, dtype):
         """ validate the passed dtype """
 
@@ -202,12 +191,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         raise com.AbstractMethodError(self)
 
-    def __unicode__(self):
-        # unicode representation based upon iterating over self
-        # (since, by definition, `PandasContainers` are iterable)
-        prepr = '[%s]' % ','.join(map(pprint_thing, self))
-        return '%s(%s)' % (self.__class__.__name__, prepr)
-
     def _dir_additions(self):
         """ add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
@@ -229,6 +212,36 @@ class NDFrame(PandasObject, SelectionMixin):
         original, such as Series.to_frame() and DataFrame.to_panel()
         """
         raise NotImplementedError
+
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
+    def __unicode__(self):
+        # unicode representation based upon iterating over self
+        # (since, by definition, `PandasContainers` are iterable)
+        prepr = '[%s]' % ','.join(map(pprint_thing, self))
+        return '%s(%s)' % (self.__class__.__name__, prepr)
+
+    def _repr_data_resource_(self):
+        """
+        Not a real Jupyter special repr method, but we use the same
+        naming convention.
+        """
+        if config.get_option("display.html.table_schema"):
+            data = self.head(config.get_option('display.max_rows'))
+            payload = json.loads(data.to_json(orient='table'),
+                                 object_pairs_hook=collections.OrderedDict)
+            return payload
+
+    def _repr_latex_(self):
+        """
+        Returns a LaTeX representation for a particular object.
+        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
+        """
+        if config.get_option('display.latex.repr'):
+            return self.to_latex()
+        else:
+            return None
 
     # ----------------------------------------------------------------------
     # Axis
@@ -1758,19 +1771,6 @@ class NDFrame(PandasObject, SelectionMixin):
             self._unpickle_matrix_compat(state)
 
         self._item_cache = {}
-
-    # ----------------------------------------------------------------------
-    # IO
-
-    def _repr_latex_(self):
-        """
-        Returns a LaTeX representation for a particular object.
-        Mainly for use with nbconvert (jupyter notebook conversion to pdf).
-        """
-        if config.get_option('display.latex.repr'):
-            return self.to_latex()
-        else:
-            return None
 
     # ----------------------------------------------------------------------
     # I/O Methods

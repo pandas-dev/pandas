@@ -587,6 +587,9 @@ class DataFrame(NDFrame):
         """
         return len(self.index), len(self.columns)
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
@@ -722,6 +725,59 @@ class DataFrame(NDFrame):
         """
         from pandas.io.formats.style import Styler
         return Styler(self)
+
+    @Substitution(header='Write out the column names. If a list of strings '
+                         'is given, it is assumed to be aliases for the '
+                         'column names')
+    @Substitution(shared_params=fmt.common_docstring,
+                  returns=fmt.return_docstring)
+    def to_string(self, buf=None, columns=None, col_space=None, header=True,
+                  index=True, na_rep='NaN', formatters=None, float_format=None,
+                  sparsify=None, index_names=True, justify=None,
+                  line_width=None, max_rows=None, max_cols=None,
+                  show_dimensions=False):
+        """
+        Render a DataFrame to a console-friendly tabular output.
+
+        %(shared_params)s
+        line_width : int, optional
+            Width to wrap a line in characters.
+
+        %(returns)s
+
+        See Also
+        --------
+        to_html : Convert DataFrame to HTML.
+
+        Examples
+        --------
+        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
+        >>> df = pd.DataFrame(d)
+        >>> print(df.to_string())
+           col1  col2
+        0     1     4
+        1     2     5
+        2     3     6
+        """
+
+        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
+                                           col_space=col_space, na_rep=na_rep,
+                                           formatters=formatters,
+                                           float_format=float_format,
+                                           sparsify=sparsify, justify=justify,
+                                           index_names=index_names,
+                                           header=header, index=index,
+                                           line_width=line_width,
+                                           max_rows=max_rows,
+                                           max_cols=max_cols,
+                                           show_dimensions=show_dimensions)
+        formatter.to_string()
+
+        if buf is None:
+            result = formatter.buf.getvalue()
+            return result
+
+    # ----------------------------------------------------------------------
 
     def iteritems(self):
         """
@@ -2004,57 +2060,6 @@ class DataFrame(NDFrame):
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
                    compression=compression, **kwargs)
-
-    @Substitution(header='Write out the column names. If a list of strings '
-                         'is given, it is assumed to be aliases for the '
-                         'column names')
-    @Substitution(shared_params=fmt.common_docstring,
-                  returns=fmt.return_docstring)
-    def to_string(self, buf=None, columns=None, col_space=None, header=True,
-                  index=True, na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=None, index_names=True, justify=None,
-                  line_width=None, max_rows=None, max_cols=None,
-                  show_dimensions=False):
-        """
-        Render a DataFrame to a console-friendly tabular output.
-
-        %(shared_params)s
-        line_width : int, optional
-            Width to wrap a line in characters.
-
-        %(returns)s
-
-        See Also
-        --------
-        to_html : Convert DataFrame to HTML.
-
-        Examples
-        --------
-        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
-        >>> df = pd.DataFrame(d)
-        >>> print(df.to_string())
-           col1  col2
-        0     1     4
-        1     2     5
-        2     3     6
-        """
-
-        formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,
-                                           col_space=col_space, na_rep=na_rep,
-                                           formatters=formatters,
-                                           float_format=float_format,
-                                           sparsify=sparsify, justify=justify,
-                                           index_names=index_names,
-                                           header=header, index=index,
-                                           line_width=line_width,
-                                           max_rows=max_rows,
-                                           max_cols=max_cols,
-                                           show_dimensions=show_dimensions)
-        formatter.to_string()
-
-        if buf is None:
-            result = formatter.buf.getvalue()
-            return result
 
     @Substitution(header='whether to print column labels, default True')
     @Substitution(shared_params=fmt.common_docstring,

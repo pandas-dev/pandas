@@ -1002,6 +1002,9 @@ class Index(IndexOpsMixin, PandasObject):
                 return [name]
             return name
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     def __unicode__(self):
         """
         Return a string representation for this object.
@@ -1060,6 +1063,64 @@ class Index(IndexOpsMixin, PandasObject):
         Return a list of tuples of the (attr,formatted_value)
         """
         return format_object_attrs(self)
+
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.values
+
+    def format(self, name=False, formatter=None, **kwargs):
+        """
+        Render a string representation of the Index
+        """
+        header = []
+        if name:
+            header.append(pprint_thing(self.name,
+                                       escape_chars=('\t', '\r', '\n')) if
+                          self.name is not None else '')
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
+
+        return self._format_with_header(header, **kwargs)
+
+    def _format_with_header(self, header, na_rep='NaN', **kwargs):
+        values = self.values
+
+        from pandas.io.formats.format import format_array
+
+        if is_categorical_dtype(values.dtype):
+            values = np.array(values)
+
+        elif is_object_dtype(values.dtype):
+            values = lib.maybe_convert_objects(values, safe=1)
+
+        if is_object_dtype(values.dtype):
+            result = [pprint_thing(x, escape_chars=('\t', '\r', '\n'))
+                      for x in values]
+
+            # could have nans
+            mask = isna(values)
+            if mask.any():
+                result = np.array(result)
+                result[mask] = na_rep
+                result = result.tolist()
+
+        else:
+            result = _trim_front(format_array(values, None, justify='left'))
+        return header + result
+
+    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
+        """ actually format my specific types """
+        mask = isna(self)
+        if not self.is_object() and not quoting:
+            values = np.asarray(self).astype(str)
+        else:
+            values = np.array(self, dtype=object, copy=True)
+
+        values[mask] = na_rep
+        return values
+
+    # ----------------------------------------------------------------------
 
     def to_series(self, index=None, name=None):
         """
@@ -1373,10 +1434,6 @@ class Index(IndexOpsMixin, PandasObject):
         warnings.warn("'summary' is deprecated and will be removed in a "
                       "future version.", FutureWarning, stacklevel=2)
         return self._summary(name)
-
-    def _mpl_repr(self):
-        # how to represent ourselves to matplotlib
-        return self.values
 
     _na_value = np.nan
     """The expected NA value to use with this index."""
@@ -2254,47 +2311,6 @@ class Index(IndexOpsMixin, PandasObject):
             # coerces to object
             return self.astype(object).putmask(mask, value)
 
-    def format(self, name=False, formatter=None, **kwargs):
-        """
-        Render a string representation of the Index
-        """
-        header = []
-        if name:
-            header.append(pprint_thing(self.name,
-                                       escape_chars=('\t', '\r', '\n')) if
-                          self.name is not None else '')
-
-        if formatter is not None:
-            return header + list(self.map(formatter))
-
-        return self._format_with_header(header, **kwargs)
-
-    def _format_with_header(self, header, na_rep='NaN', **kwargs):
-        values = self.values
-
-        from pandas.io.formats.format import format_array
-
-        if is_categorical_dtype(values.dtype):
-            values = np.array(values)
-
-        elif is_object_dtype(values.dtype):
-            values = lib.maybe_convert_objects(values, safe=1)
-
-        if is_object_dtype(values.dtype):
-            result = [pprint_thing(x, escape_chars=('\t', '\r', '\n'))
-                      for x in values]
-
-            # could have nans
-            mask = isna(values)
-            if mask.any():
-                result = np.array(result)
-                result[mask] = na_rep
-                result = result.tolist()
-
-        else:
-            result = _trim_front(format_array(values, None, justify='left'))
-        return header + result
-
     def to_native_types(self, slicer=None, **kwargs):
         """
         Format specified values of `self` and return them.
@@ -2320,17 +2336,6 @@ class Index(IndexOpsMixin, PandasObject):
         if slicer is not None:
             values = values[slicer]
         return values._format_native_types(**kwargs)
-
-    def _format_native_types(self, na_rep='', quoting=None, **kwargs):
-        """ actually format my specific types """
-        mask = isna(self)
-        if not self.is_object() and not quoting:
-            values = np.asarray(self).astype(str)
-        else:
-            values = np.array(self, dtype=object, copy=True)
-
-        values[mask] = na_rep
-        return values
 
     def equals(self, other):
         """

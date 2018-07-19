@@ -387,9 +387,37 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # Avoid materializing self._values
         return self._ndarray_values.shape
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     @property
     def _formatter_func(self):
         return lambda x: "'%s'" % x
+
+    def _mpl_repr(self):
+        # how to represent ourselves to matplotlib
+        return self.astype(object).values
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+
+        values = self.astype(object).values
+
+        if date_format:
+            formatter = lambda dt: dt.strftime(date_format)
+        else:
+            formatter = lambda dt: u'%s' % dt
+
+        if self.hasnans:
+            mask = self._isnan
+            values[mask] = na_rep
+            imask = ~mask
+            values[imask] = np.array([formatter(dt) for dt
+                                      in values[imask]])
+        else:
+            values = np.array([formatter(dt) for dt in values])
+        return values
+
+    # ----------------------------------------------------------------------
 
     def asof_locs(self, where, mask):
         """
@@ -480,10 +508,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     @property
     def end_time(self):
         return self.to_timestamp(how='end')
-
-    def _mpl_repr(self):
-        # how to represent ourselves to matplotlib
-        return self.astype(object).values
 
     def to_timestamp(self, freq=None, how='start'):
         """
@@ -755,25 +779,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             rawarr = PeriodIndex._from_ordinals(rawarr, freq=self.freq,
                                                 name=self.name)
         return rawarr
-
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-
-        values = self.astype(object).values
-
-        if date_format:
-            formatter = lambda dt: dt.strftime(date_format)
-        else:
-            formatter = lambda dt: u'%s' % dt
-
-        if self.hasnans:
-            mask = self._isnan
-            values[mask] = na_rep
-            imask = ~mask
-            values[imask] = np.array([formatter(dt) for dt
-                                      in values[imask]])
-        else:
-            values = np.array([formatter(dt) for dt in values])
-        return values
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""

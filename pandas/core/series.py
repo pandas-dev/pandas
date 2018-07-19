@@ -476,12 +476,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ return the internal repr of this data """
         return self._data.internal_values()
 
-    def _formatting_values(self):
-        """Return the values that can be formatted (used by SeriesFormatter
-        and DataFrameFormatter)
-        """
-        return self._data.formatting_values()
-
     def get_values(self):
         """ same as values (but handles sparseness conversions); is a view """
         return self._data.get_values()
@@ -1226,6 +1220,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             df = self.to_frame(name)
             return df.reset_index(level=level, drop=drop)
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     def __unicode__(self):
         """
         Return a string representation for a particular DataFrame
@@ -1300,6 +1297,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             except AttributeError:
                 with open(buf, 'w') as f:
                     f.write(result)
+
+    def _formatting_values(self):
+        """Return the values that can be formatted (used by SeriesFormatter
+        and DataFrameFormatter)
+        """
+        return self._data.formatting_values()
+
+    # ----------------------------------------------------------------------
 
     def iteritems(self):
         """

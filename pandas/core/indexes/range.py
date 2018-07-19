@@ -185,6 +185,9 @@ class RangeIndex(Int64Index):
         d.update(dict(self._get_data_as_items()))
         return ibase._new_Index, (self.__class__, d), None
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr, formatted_value)
@@ -197,6 +200,8 @@ class RangeIndex(Int64Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    # ----------------------------------------------------------------------
 
     @cache_readonly
     def nbytes(self):
