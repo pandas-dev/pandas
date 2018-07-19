@@ -6520,9 +6520,11 @@ class NDFrame(PandasObject, SelectionMixin):
         # GH 17276
         # numpy doesn't like NaN as a clip value
         # so ignore
-        if np.any(pd.isnull(lower)):
+        # GH 19992
+        # numpy doesn't drop a list-like bound containing NaN
+        if not is_list_like(lower) and np.any(pd.isnull(lower)):
             lower = None
-        if np.any(pd.isnull(upper)):
+        if not is_list_like(upper) and np.any(pd.isnull(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)
@@ -7940,6 +7942,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
+
+        # see gh-21891
+        if not hasattr(cond, "__invert__"):
+            cond = np.array(cond)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,

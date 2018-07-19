@@ -160,7 +160,7 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
 :meth:`numpy.asarray` or ``idx.astype(object)``.
 
 .. ipython:: python
-  
+
    np.asarray(idx)
    idx.values.astype(object)
 
@@ -309,7 +309,7 @@ Other API Changes
   a ``KeyError`` (:issue:`21678`).
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 - Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
--
+- :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -487,6 +487,7 @@ Reshaping
 - Bug in :func:`pandas.concat` when joining resampled DataFrames with timezone aware index (:issue:`13783`)
 - Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
+- Bug in :meth:`Series.mask` and :meth:`DataFrame.mask` with ``list`` conditionals (:issue:`21891`)
 -
 -
 
