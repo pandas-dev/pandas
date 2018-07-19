@@ -1481,6 +1481,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
             else:
                 output[i] = NaN
 
+    skiplist_destroy(skiplist)
+
     return output
 
 
