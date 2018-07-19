@@ -496,6 +496,8 @@ class DataFrameFormatter(TableFormatter):
             self.tr_col_num = col_num
         if truncate_v:
             if max_rows_adj == 0:
+                # TODO: should the next condition be an elif? row_num gets
+                # overwritten in the next block
                 row_num = len(frame)
             if max_rows_adj == 1:
                 row_num = max_rows

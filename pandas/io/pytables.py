@@ -2819,7 +2819,6 @@ class LegacyFixed(GenericFixed):
 class LegacySeriesFixed(LegacyFixed):
 
     def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
         index = self.read_index_legacy('index')
         values = self.read_array('values')
         return Series(values, index=index)
@@ -2828,7 +2827,6 @@ class LegacySeriesFixed(LegacyFixed):
 class LegacyFrameFixed(LegacyFixed):
 
     def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
         index = self.read_index_legacy('index')
         columns = self.read_index_legacy('columns')
         values = self.read_array('values')
@@ -2877,7 +2875,6 @@ class SparseSeriesFixed(SparseFixed):
     attributes = ['name', 'fill_value', 'kind']
 
     def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
         index = self.read_index('index')
         sp_values = self.read_array('sp_values')
         sp_index = self.read_index('sp_index')
@@ -2901,7 +2898,6 @@ class SparseFrameFixed(SparseFixed):
     attributes = ['default_kind', 'default_fill_value']
 
     def read(self, **kwargs):
-        kwargs = self.validate_read(kwargs)
         columns = self.read_index('columns')
         sdict = {}
         for c in columns:
@@ -2967,7 +2963,6 @@ class BlockManagerFixed(GenericFixed):
     def read(self, start=None, stop=None, **kwargs):
         # start, stop applied to rows, so 0th axis only
 
-        kwargs = self.validate_read(kwargs)
         select_axis = self.obj_type()._get_block_manager_axis(0)
 
         axes = []

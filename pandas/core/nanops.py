@@ -479,7 +479,6 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 @disallow('M8', 'm8')
 def nansem(values, axis=None, skipna=True, ddof=1):
-    var = nanvar(values, axis, skipna, ddof=ddof)
 
     mask = isna(values)
     if not is_float_dtype(values.dtype):
@@ -635,7 +634,6 @@ def nankurt(values, axis=None, skipna=True):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
         numer = count * (count + 1) * (count - 1) * m4
         denom = (count - 2) * (count - 3) * m2**2
-        result = numer / denom - adj
 
     # floating point error
     #

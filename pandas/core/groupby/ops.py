@@ -387,6 +387,7 @@ class BaseGrouper(object):
 
             # otherwise find dtype-specific version, falling back to object
             for dt in [dtype_str, 'object']:
+                # TODO: Should dtype_str below be replaced with dt?
                 f = getattr(libgroupby, "%s_%s" % (fname, dtype_str), None)
                 if f is not None:
                     return f
@@ -582,7 +583,6 @@ class BaseGrouper(object):
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
-                chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
                                comp_ids, is_datetimelike, **kwargs)
         else:

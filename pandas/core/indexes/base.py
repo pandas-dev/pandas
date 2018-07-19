@@ -237,7 +237,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = set(['str'])
+    _accessors = {'str'}
 
     str = CachedAccessor("str", StringMethods)
 
@@ -979,8 +979,6 @@ class Index(IndexOpsMixin, PandasObject):
         return self.copy(**kwargs)
 
     def __deepcopy__(self, memo=None):
-        if memo is None:
-            memo = {}
         return self.copy(deep=True)
 
     def _validate_names(self, name=None, names=None, deep=False):
@@ -1622,11 +1620,6 @@ class Index(IndexOpsMixin, PandasObject):
         # if we are mixed and have integers
         try:
             if is_positional and self.is_mixed():
-                # TODO: i, j are not used anywhere
-                if start is not None:
-                    i = self.get_loc(start)  # noqa
-                if stop is not None:
-                    j = self.get_loc(stop)  # noqa
                 is_positional = False
         except KeyError:
             if self.inferred_type == 'mixed-integer-float':

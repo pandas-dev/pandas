@@ -773,7 +773,6 @@ class _GroupByMixin(GroupByMixin):
     """ provide the groupby facilities """
 
     def __init__(self, obj, *args, **kwargs):
-        parent = kwargs.pop('parent', None)  # noqa
         groupby = kwargs.pop('groupby', None)
         if groupby is None:
             groupby, obj = obj, obj.obj
@@ -933,7 +932,6 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index=index)
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -974,8 +972,6 @@ class _Rolling_and_Expanding(_Rolling):
     def apply(self, func, raw=None, args=(), kwargs={}):
         from pandas import Series
 
-        # TODO: _level is unused?
-        _level = kwargs.pop('_level', None)  # noqa
         window = self._get_window()
         offset = _offset(window, self.center)
         index, indexi = self._get_index()

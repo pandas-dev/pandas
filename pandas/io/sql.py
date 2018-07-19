@@ -845,7 +845,6 @@ class SQLTable(PandasObject):
 
         if col_type == 'datetime64' or col_type == 'datetime':
             try:
-                tz = col.tzinfo  # noqa
                 return DateTime(timezone=True)
             except:
                 return DateTime

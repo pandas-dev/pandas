@@ -25,7 +25,7 @@ from pandas.util._doctools import _WritableDoc
 
 from . import ExtensionArray, Categorical
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
@@ -401,7 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     msg = ('{name}.from_tuples received an invalid '
                            'item, {tpl}').format(name=name, tpl=d)
                     raise TypeError(msg)
-                lhs, rhs = d
             left.append(lhs)
             right.append(rhs)
 
@@ -815,7 +814,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 

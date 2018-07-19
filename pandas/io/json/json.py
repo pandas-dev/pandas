@@ -547,6 +547,8 @@ class JsonReader(BaseIterator):
 
         if typ == 'series' or obj is None:
             if not isinstance(dtype, bool):
+                # TODO: dtype is unused. This is probably supposed to be
+                # kwargs.update({'dtype' : dtype})
                 dtype = dict(data=dtype)
             obj = SeriesParser(json, **kwargs).parse()
 

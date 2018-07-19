@@ -900,7 +900,6 @@ class TestDataFrameConstructors(TestData):
         # Empty generator: list(empty_gen()) == []
         def empty_gen():
             return
-            yield
 
         df = DataFrame(empty_gen(), columns=['A', 'B'])
         tm.assert_frame_equal(df, expected)
