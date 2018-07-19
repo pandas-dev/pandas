@@ -481,13 +481,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint is_coerce = errors=='coerce'
         _TSObject _ts
         int out_local=0, out_tzoffset=0
-        ndarray[int64_t] out_tzoffset_vals
+        set out_tzoffset_vals = set()
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
     try:
-        out_tzoffset_vals = np.empty(n, dtype=np.int64)
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
         for i in range(n):
@@ -607,6 +606,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise TypeError("invalid string coercion to datetime")
 
                     try:
+                        if py_dt.tzinfo is not None:
+                            seen_datetime_offset = 1
+                            out_tzoffset_vals.add(py_dt.tzinfo)
+                        else:
+                            # Add a marker for naive string, to track if we are
+                            # parsing mixed naive and aware strings
+                            out_tzoffset_vals.add('naive')
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
                     except OutOfBoundsDatetime:
@@ -623,12 +629,16 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 else:
                     # No error raised by string_to_dts, pick back up
                     # where we left off
-                    out_tzoffset_vals[i] = out_tzoffset
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
                         seen_datetime_offset = 1
                         tz = pytz.FixedOffset(out_tzoffset)
+                        out_tzoffset_vals.add(tz)
                         value = tz_convert_single(value, tz, 'UTC')
+                    else:
+                        # Add a marker for naive string, to track if we are
+                        # parsing mixed naive and aware strings
+                        out_tzoffset_vals.add('naive')
                     iresult[i] = value
                     try:
                         check_dts_bounds(&dts)
@@ -672,19 +682,18 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
         if seen_datetime_offset and not utc_convert:
             # GH 17697
-            # 1) If all the offsets are equal, return one pytz.FixedOffset for
+            # 1) If all the offsets are equal, return one offset for
             #    the parsed dates to (maybe) pass to DatetimeIndex
             # 2) If the offsets are different, then force the parsing down the
             #    object path where an array of datetimes
             #    (with individual dateutil.tzoffsets) are returned
 
-            # Faster to compare integers than to compare pytz objects
-            is_same_offsets = (out_tzoffset_vals[0] == out_tzoffset_vals).all()
+            is_same_offsets = len(out_tzoffset_vals) == 1
             if not is_same_offsets:
                 result, tz_out = array_to_datetime_object(values, is_raise,
                                                           dayfirst, yearfirst)
             else:
-                tz_out = pytz.FixedOffset(out_tzoffset)
+                tz_out = out_tzoffset_vals[0]
 
         return result, tz_out
     except OutOfBoundsDatetime:
@@ -725,7 +734,7 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
         Py_ssize_t i, n = len(values)
         object val,
         ndarray[object] oresult
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     oresult = np.empty(n, dtype=object)
 
