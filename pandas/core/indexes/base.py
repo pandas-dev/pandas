@@ -1952,6 +1952,9 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         return is_datetime_array(ensure_object(self.values))
 
+    # ----------------------------------------------------------------------
+    # Picklability
+
     def __reduce__(self):
         d = dict(data=self._data)
         d.update(self._get_attributes_dict())
@@ -1983,6 +1986,8 @@ class Index(IndexOpsMixin, PandasObject):
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
+
+    # ----------------------------------------------------------------------
 
     def __nonzero__(self):
         raise ValueError("The truth value of a {0} is ambiguous. "
