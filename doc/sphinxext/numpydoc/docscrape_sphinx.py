@@ -56,10 +56,6 @@ class SphinxDocString(NumpyDocString):
 
     def _str_signature(self):
         return ['']
-        if self['Signature']:
-            return ['``%s``' % self['Signature']] + ['']
-        else:
-            return ['']
 
     def _str_summary(self):
         return self['Summary'] + ['']
