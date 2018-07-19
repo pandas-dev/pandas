@@ -711,6 +711,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return lambda x: "'%s'" % formatter(x, tz=self.tz)
 
     # ----------------------------------------------------------------------
+    # Pickling Methods
 
     def __reduce__(self):
 
@@ -753,6 +754,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
+
+    # ----------------------------------------------------------------------
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
