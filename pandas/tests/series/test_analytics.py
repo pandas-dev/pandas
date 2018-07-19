@@ -1140,10 +1140,14 @@ class TestSeriesAnalytics(TestData):
         s = Series([1, 2, 3])
 
         assert_series_equal(s.clip(np.nan), Series([1, 2, 3]))
-        assert_series_equal(s.clip(upper=[1, 1, np.nan]), Series([1, 2, 3]))
-        assert_series_equal(s.clip(lower=[1, np.nan, 1]), Series([1, 2, 3]))
         assert_series_equal(s.clip(upper=np.nan, lower=np.nan),
                             Series([1, 2, 3]))
+
+        # GH #19992
+        assert_series_equal(s.clip(lower=[0, 4, np.nan]),
+                            Series([1, 4, np.nan]))
+        assert_series_equal(s.clip(upper=[1, np.nan, 1]),
+                            Series([1, np.nan, 1]))
 
     def test_clip_against_series(self):
         # GH #6966
