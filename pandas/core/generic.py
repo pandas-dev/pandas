@@ -742,9 +742,11 @@ class NDFrame(PandasObject, SelectionMixin):
         ...:     [5, 6, 7, 8],
         ...:     [9, 10, 11, 12]
         ...: ]).set_index([0, 1]).rename_axis(['a', 'b'])
+
         >>> df.columns = pd.MultiIndex.from_tuples([
         ...:    ('c', 'e'), ('d', 'f')
         ...:], names=['level_1', 'level_2'])
+
         >>> df
         level_1   c   d
         level_2   e   f
