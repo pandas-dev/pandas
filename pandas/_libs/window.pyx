@@ -14,11 +14,9 @@ cnp.import_array()
 
 
 cdef extern from "src/headers/cmath" namespace "std":
+    bint isnan(double) nogil
     int signbit(double) nogil
     double sqrt(double x) nogil
-
-cdef extern from "numpy/npy_math.h":
-    bint npy_isnan(double) nogil
 
 cimport util
 from util cimport numeric
@@ -656,8 +654,8 @@ cdef inline void add_var(const double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
-    # `isnan` instead of equality as fix for GH-21813
-    if npy_isnan(val):
+    # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
+    if isnan(val):
         return
 
     nobs[0] = nobs[0] + 1

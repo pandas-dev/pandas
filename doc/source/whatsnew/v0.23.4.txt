@@ -20,7 +20,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
-- 
+- Python 3.7 with Windows gave all missing values for rolling variance calculations (:issue:`21813`)
 -
 
 .. _whatsnew_0234.bug_fixes:
