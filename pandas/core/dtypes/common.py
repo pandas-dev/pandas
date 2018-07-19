@@ -5,17 +5,20 @@ from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from .dtypes import (CategoricalDtype, CategoricalDtypeType,
-                     DatetimeTZDtype, DatetimeTZDtypeType,
-                     PeriodDtype, PeriodDtypeType,
-                     IntervalDtype, IntervalDtypeType,
-                     ExtensionDtype, PandasExtensionDtype)
-from .generic import (ABCCategorical, ABCPeriodIndex,
-                      ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass, ABCDateOffset)
-from .inference import is_string_like, is_list_like
-from .inference import *  # noqa
+
+from pandas.core.dtypes.dtypes import (
+    registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
+    DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
+    IntervalDtypeType, ExtensionDtype)
+from pandas.core.dtypes.generic import (
+    ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
+    ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
+    ABCDateOffset)
+from pandas.core.dtypes.inference import (  # noqa:F401
+    is_bool, is_integer, is_hashable, is_iterator, is_float,
+    is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
+    is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
+    is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
@@ -29,14 +32,14 @@ _INT64_DTYPE = np.dtype(np.int64)
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
-_ensure_float64 = algos.ensure_float64
-_ensure_float32 = algos.ensure_float32
+ensure_float64 = algos.ensure_float64
+ensure_float32 = algos.ensure_float32
 
 _ensure_datetime64ns = conversion.ensure_datetime64ns
 _ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
-def _ensure_float(arr):
+def ensure_float(arr):
     """
     Ensure that an array object has a float dtype if possible.
 
@@ -56,16 +59,16 @@ def _ensure_float(arr):
     return arr
 
 
-_ensure_uint64 = algos.ensure_uint64
-_ensure_int64 = algos.ensure_int64
-_ensure_int32 = algos.ensure_int32
-_ensure_int16 = algos.ensure_int16
-_ensure_int8 = algos.ensure_int8
-_ensure_platform_int = algos.ensure_platform_int
-_ensure_object = algos.ensure_object
+ensure_uint64 = algos.ensure_uint64
+ensure_int64 = algos.ensure_int64
+ensure_int32 = algos.ensure_int32
+ensure_int16 = algos.ensure_int16
+ensure_int8 = algos.ensure_int8
+ensure_platform_int = algos.ensure_platform_int
+ensure_object = algos.ensure_object
 
 
-def _ensure_categorical(arr):
+def ensure_categorical(arr):
     """
     Ensure that an array-like object is a Categorical (if not already).
 
@@ -1975,38 +1978,13 @@ def pandas_dtype(dtype):
     np.dtype or a pandas dtype
     """
 
-    if isinstance(dtype, DatetimeTZDtype):
-        return dtype
-    elif isinstance(dtype, PeriodDtype):
-        return dtype
-    elif isinstance(dtype, CategoricalDtype):
-        return dtype
-    elif isinstance(dtype, IntervalDtype):
-        return dtype
-    elif isinstance(dtype, string_types):
-        try:
-            return DatetimeTZDtype.construct_from_string(dtype)
-        except TypeError:
-            pass
+    # registered extension types
+    result = registry.find(dtype)
+    if result is not None:
+        return result
 
-        if dtype.startswith('period[') or dtype.startswith('Period['):
-            # do not parse string like U as period[U]
-            try:
-                return PeriodDtype.construct_from_string(dtype)
-            except TypeError:
-                pass
-
-        elif dtype.startswith('interval') or dtype.startswith('Interval'):
-            try:
-                return IntervalDtype.construct_from_string(dtype)
-            except TypeError:
-                pass
-
-        try:
-            return CategoricalDtype.construct_from_string(dtype)
-        except TypeError:
-            pass
-    elif isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
+    # un-registered extension types
+    if isinstance(dtype, ExtensionDtype):
         return dtype
 
     try:

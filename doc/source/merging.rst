@@ -245,7 +245,7 @@ need to be:
 
 .. ipython:: python
 
-   result = df1.append(df4)
+   result = df1.append(df4, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -279,13 +279,13 @@ need to be:
 
 Ignoring indexes on the concatenation axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-For ``DataFrame``s which don't have a meaningful index, you may wish to append
-them and ignore the fact that they may have overlapping indexes. To do this, use
-the ``ignore_index`` argument:
+For ``DataFrame`` objects which don't have a meaningful index, you may wish
+to append them and ignore the fact that they may have overlapping indexes. To
+do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
-   result = pd.concat([df1, df4], ignore_index=True)
+   result = pd.concat([df1, df4], ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -299,7 +299,7 @@ This is also a valid argument to :meth:`DataFrame.append`:
 
 .. ipython:: python
 
-   result = df1.append(df4, ignore_index=True)
+   result = df1.append(df4, ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -314,7 +314,7 @@ This is also a valid argument to :meth:`DataFrame.append`:
 Concatenating with mixed ndims
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can concatenate a mix of ``Series`` and ``DataFrame``s. The
+You can concatenate a mix of ``Series`` and ``DataFrame`` objects. The
 ``Series`` will be transformed to ``DataFrame`` with the column name as
 the name of the ``Series``.
 
@@ -494,7 +494,7 @@ You can also pass a list of dicts or Series:
 
    dicts = [{'A': 1, 'B': 2, 'C': 3, 'X': 4},
             {'A': 5, 'B': 6, 'C': 7, 'Y': 8}]
-   result = df1.append(dicts, ignore_index=True)
+   result = df1.append(dicts, ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:

@@ -172,6 +172,11 @@ class TestTimestampProperties(object):
                                2005, 1, 1), (2005, 1, 2)]])
         assert (result == [52, 52, 53, 53]).all()
 
+    def test_resolution(self):
+        # GH#21336, GH#21365
+        dt = Timestamp('2100-01-01 00:00:00')
+        assert dt.resolution == Timedelta(nanoseconds=1)
+
 
 class TestTimestampConstructors(object):
 
@@ -540,6 +545,14 @@ class TestTimestampConstructors(object):
         expected = Timestamp('2016-10-30 03:00:00{}'.format(offset),
                              tz='Europe/Helsinki')
         result = Timestamp(expected, tz='Europe/Helsinki')
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        '2013/01/01 00:00:00+09:00', '2013-01-01 00:00:00+09:00'])
+    def test_construct_with_different_string_format(self, arg):
+        # GH 12064
+        result = Timestamp(arg)
+        expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
         assert result == expected
 
 

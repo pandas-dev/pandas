@@ -17,9 +17,10 @@ from pandas.core.dtypes.cast import (
     coerce_indexer_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_object,
-    _ensure_platform_int,
+    ensure_int64,
+    ensure_object,
+    ensure_platform_int,
+    is_extension_array_dtype,
     is_dtype_equal,
     is_datetimelike,
     is_datetime64_dtype,
@@ -675,7 +676,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-        >>> c = Categorical(['a', 'b'])
+        >>> c = pd.Categorical(['a', 'b'])
         >>> c
         [a, b]
         Categories (2, object): [a, b]
@@ -697,73 +698,6 @@ class Categorical(ExtensionArray, PandasObject):
                              "items than the old categories!")
 
         self._dtype = new_dtype
-
-    def _codes_for_groupby(self, sort, observed):
-        """
-        Code the categories to ensure we can groupby for categoricals.
-
-        If observed=True, we return a new Categorical with the observed
-        categories only.
-
-        If sort=False, return a copy of self, coded with categories as
-        returned by .unique(), followed by any categories not appearing in
-        the data. If sort=True, return self.
-
-        This method is needed solely to ensure the categorical index of the
-        GroupBy result has categories in the order of appearance in the data
-        (GH-8868).
-
-        Parameters
-        ----------
-        sort : boolean
-            The value of the sort parameter groupby was called with.
-        observed : boolean
-            Account only for the observed values
-
-        Returns
-        -------
-        Categorical
-            If sort=False, the new categories are set to the order of
-            appearance in codes (unless ordered=True, in which case the
-            original order is preserved), followed by any unrepresented
-            categories in the original order.
-        """
-
-        # we only care about observed values
-        if observed:
-            unique_codes = unique1d(self.codes)
-            cat = self.copy()
-
-            take_codes = unique_codes[unique_codes != -1]
-            if self.ordered:
-                take_codes = np.sort(take_codes)
-
-            # we recode according to the uniques
-            categories = self.categories.take(take_codes)
-            codes = _recode_for_categories(self.codes,
-                                           self.categories,
-                                           categories)
-
-            # return a new categorical that maps our new codes
-            # and categories
-            dtype = CategoricalDtype(categories, ordered=self.ordered)
-            return type(self)(codes, dtype=dtype, fastpath=True)
-
-        # Already sorted according to self.categories; all is fine
-        if sort:
-            return self
-
-        # sort=False should order groups in as-encountered order (GH-8868)
-        cat = self.unique()
-
-        # But for groupby to work, all categories should be present,
-        # including those missing from the data (GH-13179), which .unique()
-        # above dropped
-        cat.add_categories(
-            self.categories[~self.categories.isin(cat.categories)],
-            inplace=True)
-
-        return self.reorder_categories(cat.categories)
 
     def _set_dtype(self, dtype):
         """Internal method for directly updating the CategoricalDtype
@@ -950,7 +884,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-        >>> c = Categorical(['a', 'a', 'b'])
+        >>> c = pd.Categorical(['a', 'a', 'b'])
         >>> c.rename_categories([0, 1])
         [0, 0, 1]
         Categories (2, int64): [0, 1]
@@ -1287,7 +1221,7 @@ class Categorical(ExtensionArray, PandasObject):
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, _ensure_platform_int(periods), axis=0)
+            codes = np.roll(codes, ensure_platform_int(periods), axis=0)
             if periods > 0:
                 codes[:periods] = -1
             else:
@@ -1310,6 +1244,11 @@ class Categorical(ExtensionArray, PandasObject):
         ret = take_1d(self.categories.values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
+        if is_extension_array_dtype(ret):
+            # When we're a Categorical[ExtensionArray], like Interval,
+            # we need to ensure __array__ get's all the way to an
+            # ndarray.
+            ret = np.asarray(ret)
         return ret
 
     def __setstate__(self, state):
@@ -2009,8 +1948,7 @@ class Categorical(ExtensionArray, PandasObject):
                 return self.categories[i]
         else:
             return self._constructor(values=self._codes[key],
-                                     categories=self.categories,
-                                     ordered=self.ordered, fastpath=True)
+                                     dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
         """ Item assignment.
@@ -2199,7 +2137,7 @@ class Categorical(ExtensionArray, PandasObject):
         if dropna:
             good = self._codes != -1
             values = self._codes[good]
-        values = sorted(htable.mode_int64(_ensure_int64(values), dropna))
+        values = sorted(htable.mode_int64(ensure_int64(values), dropna))
         result = self._constructor(values=values, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
@@ -2493,8 +2431,8 @@ def _get_codes_for_values(values, categories):
 
     from pandas.core.algorithms import _get_data_algo, _hashtables
     if not is_dtype_equal(values.dtype, categories.dtype):
-        values = _ensure_object(values)
-        categories = _ensure_object(categories)
+        values = ensure_object(values)
+        categories = ensure_object(categories)
 
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
     (_, _), cats = _get_data_algo(categories, _hashtables)

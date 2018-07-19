@@ -107,7 +107,9 @@ class BaseJSON(object):
 
 
 class TestDtype(BaseJSON, base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type() is JSONArray
 
 
 class TestInterface(BaseJSON, base.BaseInterfaceTests):
@@ -130,7 +132,11 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
@@ -238,3 +244,12 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping
         )
+
+
+class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
+    def test_error(self, data, all_arithmetic_operators):
+        pass
+
+
+class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass

@@ -17,12 +17,13 @@ from pandas.core.dtypes.missing import notna
 
 import pandas.core.ops as ops
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
 from pandas.compat.numpy import function as nv
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
+from pandas.core.index import (Index, MultiIndex, ensure_index,
                                _get_objs_combined_axis)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.indexing import maybe_droplevels
@@ -89,7 +90,6 @@ def panel_index(time, panels, names=None):
 
     or
 
-    >>> import numpy as np
     >>> years = np.repeat(range(1960,1963), 3)
     >>> panels = np.tile(['A', 'B', 'C'], 3)
     >>> panel_idx = panel_index(years, panels)
@@ -199,7 +199,7 @@ class Panel(NDFrame):
 
         # prefilter if haxis passed
         if haxis is not None:
-            haxis = _ensure_index(haxis)
+            haxis = ensure_index(haxis)
             data = OrderedDict((k, v)
                                for k, v in compat.iteritems(data)
                                if k in haxis)
@@ -320,9 +320,9 @@ class Panel(NDFrame):
         fixed_axes = []
         for i, ax in enumerate(axes):
             if ax is None:
-                ax = com._default_index(shape[i])
+                ax = ibase.default_index(shape[i])
             else:
-                ax = _ensure_index(ax)
+                ax = ensure_index(ax)
             fixed_axes.append(ax)
 
         return create_block_manager_from_blocks([values], fixed_axes)
@@ -912,7 +912,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby.groupby import PanelGroupBy
+        from pandas.core.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
@@ -948,10 +948,14 @@ class Panel(NDFrame):
             data[item] = self[item].values.ravel()[selector]
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
-            axis_idx = idx.to_hierarchical(n_repeat, n_shuffle)
-            labels = [x[selector] for x in axis_idx.labels]
-            levels = axis_idx.levels
-            names = axis_idx.names
+            # Replicates and shuffles MultiIndex, returns individual attributes
+            labels = [np.repeat(x, n_repeat) for x in idx.labels]
+            # Assumes that each label is divisible by n_shuffle
+            labels = [x.reshape(n_shuffle, -1).ravel(order='F')
+                      for x in labels]
+            labels = [x[selector] for x in labels]
+            levels = idx.levels
+            names = idx.names
             return labels, levels, names
 
         def construct_index_parts(idx, major=True):
@@ -1143,13 +1147,26 @@ class Panel(NDFrame):
             raise NotImplementedError('Panel.{0} does not implement '
                                       'numeric_only.'.format(name))
 
-        axis_name = self._get_axis_name(axis)
-        axis_number = self._get_axis_number(axis_name)
+        if axis is None and filter_type == 'bool':
+            # labels = None
+            # constructor = None
+            axis_number = None
+            axis_name = None
+        else:
+            # TODO: Make other agg func handle axis=None properly
+            axis = self._get_axis_number(axis)
+            # labels = self._get_agg_axis(axis)
+            # constructor = self._constructor
+            axis_name = self._get_axis_name(axis)
+            axis_number = self._get_axis_number(axis_name)
+
         f = lambda x: op(x, axis=axis_number, skipna=skipna, **kwds)
 
         with np.errstate(all='ignore'):
             result = f(self.values)
 
+        if axis is None and filter_type == 'bool':
+            return np.bool_(result)
         axes = self._get_plane_axes(axis_name)
         if result.ndim == 2 and axis_name != self._info_axis_name:
             result = result.T
@@ -1520,7 +1537,7 @@ class Panel(NDFrame):
         if index is None:
             index = Index([])
 
-        return _ensure_index(index)
+        return ensure_index(index)
 
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,

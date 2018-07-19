@@ -13,8 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_scalar,
     is_sparse,
-    _is_unorderable_exception,
-    _ensure_platform_int)
+    ensure_platform_int)
 from pandas.core.dtypes.missing import isna, _infer_fill_value
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
@@ -139,10 +138,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # as its basically direct indexing
             # but will fail when the index is not present
             # see GH5667
-            try:
-                return self.obj._xs(label, axis=axis)
-            except:
-                return self.obj[label]
+            return self.obj._xs(label, axis=axis)
         elif isinstance(label, tuple) and isinstance(label[axis], slice):
             raise IndexingError('no slices here, handle elsewhere')
 
@@ -902,30 +898,45 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         return retval
 
     def _multi_take_opportunity(self, tup):
-        from pandas.core.generic import NDFrame
+        """
+        Check whether there is the possibility to use ``_multi_take``.
+        Currently the limit is that all axes being indexed must be indexed with
+        list-likes.
 
-        # ugly hack for GH #836
-        if not isinstance(self.obj, NDFrame):
-            return False
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis
 
+        Returns
+        -------
+        boolean: Whether the current indexing can be passed through _multi_take
+        """
         if not all(is_list_like_indexer(x) for x in tup):
             return False
 
         # just too complicated
-        for indexer, ax in zip(tup, self.obj._data.axes):
-            if isinstance(ax, MultiIndex):
-                return False
-            elif com.is_bool_indexer(indexer):
-                return False
-            elif not ax.is_unique:
-                return False
+        if any(com.is_bool_indexer(x) for x in tup):
+            return False
 
         return True
 
     def _multi_take(self, tup):
-        """ create the reindex map for our objects, raise the _exception if we
-        can't create the indexer
         """
+        Create the indexers for the passed tuple of keys, and execute the take
+        operation. This allows the take operation to be executed all at once -
+        rather than once for each dimension - improving efficiency.
+
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis
+
+        Returns
+        -------
+        values: same type as the object being indexed
+        """
+        # GH 836
         o = self.obj
         d = {axis: self._get_listlike_indexer(key, axis)
              for (key, axis) in zip(tup, o._AXIS_ORDERS)}
@@ -1472,7 +1483,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_arr_indexer(keyarr)
 
             if not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
+                keyarr = ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
         return keyarr
@@ -1782,9 +1793,8 @@ class _LocIndexer(_LocationIndexer):
 
     @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis):
-        ax = self.obj._get_axis(axis)
 
-        # valid for a label where all labels are in the index
+        # valid for a collection of labels (we check their presence later)
         # slice of labels (where start-end in labels)
         # slice of integers (only if in the labels)
         # boolean
@@ -1792,31 +1802,11 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return
 
-        elif com.is_bool_indexer(key):
+        if com.is_bool_indexer(key):
             return
 
-        elif not is_list_like_indexer(key):
-
-            def error():
-                if isna(key):
-                    raise TypeError("cannot use label indexing with a null "
-                                    "key")
-                raise KeyError(u"the label [{key}] is not in the [{axis}]"
-                               .format(key=key,
-                                       axis=self.obj._get_axis_name(axis)))
-
-            try:
-                key = self._convert_scalar_indexer(key, axis)
-                if not ax.contains(key):
-                    error()
-            except TypeError as e:
-
-                # python 3 type errors should be raised
-                if _is_unorderable_exception(e):
-                    error()
-                raise
-            except:
-                error()
+        if not is_list_like_indexer(key):
+            self._convert_scalar_indexer(key, axis)
 
     def _is_scalar_access(self, key):
         # this is a shortcut accessor to both .loc and .iloc
@@ -1934,7 +1924,8 @@ class _LocIndexer(_LocationIndexer):
 
 
 class _iLocIndexer(_LocationIndexer):
-    """Purely integer-location based indexing for selection by position.
+    """
+    Purely integer-location based indexing for selection by position.
 
     ``.iloc[]`` is primarily integer position based (from ``0`` to
     ``length-1`` of the axis), but may also be used with a boolean
@@ -1947,14 +1938,125 @@ class _iLocIndexer(_LocationIndexer):
     - A slice object with ints, e.g. ``1:7``.
     - A boolean array.
     - A ``callable`` function with one argument (the calling Series, DataFrame
-      or Panel) and that returns valid output for indexing (one of the above)
+      or Panel) and that returns valid output for indexing (one of the above).
+      This is useful in method chains, when you don't have a reference to the
+      calling object, but would like to base your selection on some value.
 
     ``.iloc`` will raise ``IndexError`` if a requested indexer is
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
-    See more at :ref:`Selection by Position <indexing.integer>`
+    See more at ref:`Selection by Position <indexing.integer>`.
 
+    See Also
+    --------
+    DataFrame.iat : Fast integer location scalar accessor.
+    DataFrame.loc : Purely label-location based indexer for selection by label.
+    Series.iloc : Purely integer-location based indexing for
+                   selection by position.
+
+    Examples
+    --------
+
+    >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
+    ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
+    ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+    >>> df = pd.DataFrame(mydict)
+    >>> df
+          a     b     c     d
+    0     1     2     3     4
+    1   100   200   300   400
+    2  1000  2000  3000  4000
+
+    **Indexing just the rows**
+
+    With a scalar integer.
+
+    >>> type(df.iloc[0])
+    <class 'pandas.core.series.Series'>
+    >>> df.iloc[0]
+    a    1
+    b    2
+    c    3
+    d    4
+    Name: 0, dtype: int64
+
+    With a list of integers.
+
+    >>> df.iloc[[0]]
+       a  b  c  d
+    0  1  2  3  4
+    >>> type(df.iloc[[0]])
+    <class 'pandas.core.frame.DataFrame'>
+
+    >>> df.iloc[[0, 1]]
+         a    b    c    d
+    0    1    2    3    4
+    1  100  200  300  400
+
+    With a `slice` object.
+
+    >>> df.iloc[:3]
+          a     b     c     d
+    0     1     2     3     4
+    1   100   200   300   400
+    2  1000  2000  3000  4000
+
+    With a boolean mask the same length as the index.
+
+    >>> df.iloc[[True, False, True]]
+          a     b     c     d
+    0     1     2     3     4
+    2  1000  2000  3000  4000
+
+    With a callable, useful in method chains. The `x` passed
+    to the ``lambda`` is the DataFrame being sliced. This selects
+    the rows whose index label even.
+
+    >>> df.iloc[lambda x: x.index % 2 == 0]
+          a     b     c     d
+    0     1     2     3     4
+    2  1000  2000  3000  4000
+
+    **Indexing both axes**
+
+    You can mix the indexer types for the index and columns. Use ``:`` to
+    select the entire axis.
+
+    With scalar integers.
+
+    >>> df.iloc[0, 1]
+    2
+
+    With lists of integers.
+
+    >>> df.iloc[[0, 2], [1, 3]]
+          b     d
+    0     2     4
+    2  2000  4000
+
+    With `slice` objects.
+
+    >>> df.iloc[1:3, 0:3]
+          a     b     c
+    1   100   200   300
+    2  1000  2000  3000
+
+    With a boolean array whose length matches the columns.
+
+    >>> df.iloc[:, [True, False, True, False]]
+          a     c
+    0     1     3
+    1   100   300
+    2  1000  3000
+
+    With a callable function that expects the Series or DataFrame.
+
+    >>> df.iloc[:, lambda df: [0, 2]]
+          a     c
+    0     1     3
+    1   100   300
+    2  1000  3000
     """
 
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
@@ -2494,6 +2596,7 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
+        indices = indices.copy()
         indices[mask] += n
 
     mask = (indices >= n) | (indices < 0)

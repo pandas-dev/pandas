@@ -3,8 +3,8 @@ import warnings
 
 from pandas.core.indexes.base import (Index,
                                       _new_Index,
-                                      _ensure_index,
-                                      _ensure_index_from_sequences,
+                                      ensure_index,
+                                      ensure_index_from_sequences,
                                       InvalidIndexError)  # noqa
 from pandas.core.indexes.category import CategoricalIndex  # noqa
 from pandas.core.indexes.multi import MultiIndex  # noqa
@@ -17,8 +17,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 import pandas.core.common as com
-from pandas._libs import lib
-from pandas._libs.tslib import NaT
+from pandas._libs import lib, NaT
 
 _sort_msg = textwrap.dedent("""\
 Sorting because non-concatenation axis is not aligned. A future version
@@ -37,7 +36,7 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'InvalidIndexError', 'TimedeltaIndex',
            'PeriodIndex', 'DatetimeIndex',
            '_new_Index', 'NaT',
-           '_ensure_index', '_ensure_index_from_sequences',
+           'ensure_index', 'ensure_index_from_sequences',
            '_get_combined_index',
            '_get_objs_combined_axis', '_union_indexes',
            '_get_consensus_names',
@@ -67,7 +66,7 @@ def _get_combined_index(indexes, intersect=False, sort=False):
             index = index.intersection(other)
     else:
         index = _union_indexes(indexes, sort=sort)
-        index = _ensure_index(index)
+        index = ensure_index(index)
 
     if sort:
         try:

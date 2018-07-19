@@ -13,15 +13,19 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-
-import pandas as pd
-from pandas import compat
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas.errors import EmptyDataError
-import numpy as np
+from datetime import datetime
 import struct
+
+import numpy as np
+
+from pandas import compat
+from pandas.errors import EmptyDataError
+
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas._sas import Parser
+
+import pandas as pd
 
 
 class _subheader_pointer(object):
@@ -169,7 +173,7 @@ class SAS7BDATReader(BaseIterator):
                 self.encoding or self.default_encoding)
 
         # Timestamp is epoch 01/01/1960
-        epoch = pd.datetime(1960, 1, 1)
+        epoch = datetime(1960, 1, 1)
         x = self._read_float(const.date_created_offset + align1,
                              const.date_created_length)
         self.date_created = epoch + pd.to_timedelta(x, unit='s')

@@ -20,8 +20,7 @@ cdef extern from "../src/headers/cmath" namespace "std":
 cimport util
 from util cimport numeric
 
-from skiplist cimport (IndexableSkiplist,
-                       node_t, skiplist_t,
+from skiplist cimport (skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
@@ -1481,6 +1480,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                         output[i] = <double> (vlow + vhigh) / 2
             else:
                 output[i] = NaN
+
+    skiplist_destroy(skiplist)
 
     return output
 

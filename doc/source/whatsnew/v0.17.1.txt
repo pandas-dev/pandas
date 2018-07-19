@@ -58,7 +58,7 @@ We can render the HTML to get the following table.
    :file: whatsnew_0171_html_table.html
 
 :class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook.
-See the :doc:`documentation <style>` for more.
+See the :ref:`documentation </style.ipynb>` for more.
 
 .. _whatsnew_0171.enhancements:
 

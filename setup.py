@@ -24,23 +24,6 @@ def is_platform_windows():
     return sys.platform == 'win32' or sys.platform == 'cygwin'
 
 
-def is_platform_linux():
-    return sys.platform == 'linux2'
-
-
-def is_platform_mac():
-    return sys.platform == 'darwin'
-
-
-min_cython_ver = '0.24'
-try:
-    import Cython
-    ver = Cython.__version__
-    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
-except ImportError:
-    _CYTHON_INSTALLED = False
-
-
 min_numpy_ver = '1.9.0'
 setuptools_kwargs = {
     'install_requires': [
@@ -53,24 +36,29 @@ setuptools_kwargs = {
 }
 
 
+min_cython_ver = '0.28.2'
+try:
+    import Cython
+    ver = Cython.__version__
+    _CYTHON_INSTALLED = ver >= LooseVersion(min_cython_ver)
+except ImportError:
+    _CYTHON_INSTALLED = False
+
+# The import of Extension must be after the import of Cython, otherwise
+# we do not get the appropriately patched class.
+# See https://cython.readthedocs.io/en/latest/src/reference/compilation.html
 from distutils.extension import Extension  # noqa:E402
 from distutils.command.build import build  # noqa:E402
-from distutils.command.build_ext import build_ext as _build_ext  # noqa:E402
 
 try:
     if not _CYTHON_INSTALLED:
         raise ImportError('No supported version of Cython installed.')
-    try:
-        from Cython.Distutils.old_build_ext import old_build_ext as _build_ext  # noqa:F811,E501
-    except ImportError:
-        # Pre 0.25
-        from Cython.Distutils import build_ext as _build_ext
+    from Cython.Distutils.old_build_ext import old_build_ext as _build_ext
     cython = True
 except ImportError:
+    from distutils.command.build_ext import build_ext as _build_ext
     cython = False
-
-
-if cython:
+else:
     try:
         try:
             from Cython import Tempita as tempita
@@ -103,27 +91,30 @@ for module, files in _pxi_dep_template.items():
 
 
 class build_ext(_build_ext):
-    def build_extensions(self):
+    @classmethod
+    def render_templates(cls, pxifiles):
+        for pxifile in pxifiles:
+            # build pxifiles first, template extension must be .pxi.in
+            assert pxifile.endswith('.pxi.in')
+            outfile = pxifile[:-3]
 
-        # if builing from c files, don't need to
+            if (os.path.exists(outfile) and
+                    os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
+                # if .pxi.in is not updated, no need to output .pxi
+                continue
+
+            with open(pxifile, "r") as f:
+                tmpl = f.read()
+            pyxcontent = tempita.sub(tmpl)
+
+            with open(outfile, "w") as f:
+                f.write(pyxcontent)
+
+    def build_extensions(self):
+        # if building from c files, don't need to
         # generate template output
         if cython:
-            for pxifile in _pxifiles:
-                # build pxifiles first, template extension must be .pxi.in
-                assert pxifile.endswith('.pxi.in')
-                outfile = pxifile[:-3]
-
-                if (os.path.exists(outfile) and
-                        os.stat(pxifile).st_mtime < os.stat(outfile).st_mtime):
-                    # if .pxi.in is not updated, no need to output .pxi
-                    continue
-
-                with open(pxifile, "r") as f:
-                    tmpl = f.read()
-                pyxcontent = tempita.sub(tmpl)
-
-                with open(outfile, "w") as f:
-                    f.write(pyxcontent)
+            self.render_templates(_pxifiles)
 
         numpy_incl = pkg_resources.resource_filename('numpy', 'core/include')
 
@@ -217,6 +208,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering']
 
@@ -359,7 +351,6 @@ class CheckSDist(sdist_class):
 class CheckingBuildExt(build_ext):
     """
     Subclass build_ext to get clearer report if Cython is necessary.
-
     """
 
     def check_cython_extensions(self, extensions):
@@ -378,9 +369,11 @@ class CheckingBuildExt(build_ext):
 
 
 class CythonCommand(build_ext):
-    """Custom distutils command subclassed from Cython.Distutils.build_ext
+    """
+    Custom distutils command subclassed from Cython.Distutils.build_ext
     to compile pyx->c, and stop there. All this does is override the
-    C-compile method build_extension() with a no-op."""
+    C-compile method build_extension() with a no-op.
+    """
     def build_extension(self, ext):
         pass
 
@@ -444,7 +437,6 @@ if suffix == '.pyx':
     lib_depends.append('pandas/_libs/src/util.pxd')
 else:
     lib_depends = []
-    plib_depends = []
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
@@ -470,8 +462,6 @@ np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
 
 tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
-# some linux distros require it
-libraries = ['m'] if not is_platform_windows() else []
 
 ext_data = {
     '_libs.algos': {
@@ -530,16 +520,6 @@ ext_data = {
         'pyxfile': '_libs/ops',
         'pxdfiles': ['_libs/src/util',
                      '_libs/missing']},
-    '_libs.tslibs.period': {
-        'pyxfile': '_libs/tslibs/period',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/missing',
-                     '_libs/tslibs/ccalendar',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
@@ -559,7 +539,8 @@ ext_data = {
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
@@ -591,6 +572,7 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
@@ -599,6 +581,16 @@ ext_data = {
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util']},
+    '_libs.tslibs.period': {
+        'pyxfile': '_libs/tslibs/period',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
+        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
+        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
@@ -617,7 +609,8 @@ ext_data = {
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timestamps': {
@@ -626,6 +619,7 @@ ext_data = {
                      '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -734,11 +728,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*', '_libs/*.dll'],
-                    'pandas.tests.io': ['data/legacy_hdf/*.h5',
-                                        'data/legacy_pickle/*/*.pickle',
-                                        'data/legacy_msgpack/*/*.msgpack',
-                                        'data/html_encoding/*.html']},
+      package_data={'': ['templates/*', '_libs/*.dll']},
       ext_modules=extensions,
       maintainer_email=EMAIL,
       description=DESCRIPTION,

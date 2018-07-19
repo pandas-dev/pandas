@@ -7,7 +7,7 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas import Categorical, Series, DataFrame, date_range
-from pandas.tests.categorical.common import TestCategorical
+from pandas.tests.arrays.categorical.common import TestCategorical
 
 
 class TestCategoricalOpsWithFactor(TestCategorical):

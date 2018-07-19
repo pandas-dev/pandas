@@ -33,7 +33,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_scalar,
-    _ensure_object)
+    is_extension_array_dtype,
+    ensure_object)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
     construct_1d_object_array_from_listlike)
@@ -400,6 +401,52 @@ d  -1.0  NaN
 e  NaN  -2.0
 """
 
+_mod_example_FRAME = """
+**Using a scalar argument**
+
+>>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a", "b", "c", "d"],
+...                   columns=['one'])
+>>> df
+    one
+a   2.0
+b   4.0
+c   NaN
+d   6.2
+>>> df.mod(3, fill_value=-1)
+    one
+a   2.0
+b   1.0
+c   2.0
+d   0.2
+
+**Using a DataFrame argument**
+
+>>> df = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
+...                   index=['a', 'b', 'c', 'd'])
+>>> df
+    one   two
+a   NaN   NaN
+b   2.0   1.0
+c   3.0   1.0
+d   14.0  3.0
+>>> other = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
+...                           three=[np.nan, 10, np.nan, -7]),
+...                      index=['a', 'b', 'd', 'e'])
+>>> other
+    one three
+a   NaN NaN
+b   NaN 10.0
+d   6.0 NaN
+e   NaN -7.0
+>>> df.mod(other, fill_value=3)
+    one   three two
+a   NaN   NaN   NaN
+b   2.0   3.0   1.0
+c   0.0   NaN   1.0
+d   2.0   NaN   0.0
+e   NaN  -4.0   NaN
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -417,7 +464,7 @@ _op_descriptions = {
     'mod': {'op': '%',
             'desc': 'Modulo',
             'reverse': 'rmod',
-            'df_examples': None},
+            'df_examples': _mod_example_FRAME},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
@@ -993,6 +1040,26 @@ def _construct_divmod_result(left, result, index, name, dtype):
     )
 
 
+def dispatch_to_extension_op(op, left, right):
+    """
+    Assume that left or right is a Series backed by an ExtensionArray,
+    apply the operator defined by op.
+    """
+
+    # The op calls will raise TypeError if the op is not defined
+    # on the ExtensionArray
+    if is_extension_array_dtype(left):
+        res_values = op(left.values, right)
+    else:
+        # We know that left is not ExtensionArray and is Series and right is
+        # ExtensionArray.  Want to force ExtensionArray op to get called
+        res_values = op(list(left.values), right.values)
+
+    res_name = get_op_result_name(left, right)
+    return left._constructor(res_values, index=left.index,
+                             name=res_name)
+
+
 def _arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -1060,6 +1127,11 @@ def _arith_method_SERIES(cls, op, special):
         elif is_categorical_dtype(left):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
+
+        elif (is_extension_array_dtype(left) or
+              (is_extension_array_dtype(right) and
+               not is_categorical_dtype(right))):
+            return dispatch_to_extension_op(op, left, right)
 
         lvalues = left.values
         rvalues = right
@@ -1238,6 +1310,11 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
+        elif (is_extension_array_dtype(self) or
+              (is_extension_array_dtype(other) and
+               not is_categorical_dtype(other))):
+            return dispatch_to_extension_op(op, self, other)
+
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)
             res_values = na_op(self.values, other.values)
@@ -1310,8 +1387,8 @@ def _bool_method_SERIES(cls, op, special):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:
-                    x = _ensure_object(x)
-                    y = _ensure_object(y)
+                    x = ensure_object(x)
+                    y = ensure_object(y)
                     result = libops.vec_binop(x, y, op)
             else:
                 # let null fall thru

@@ -270,12 +270,13 @@ For concatenation with a ``Series`` or ``DataFrame``, it is possible to align th
 the ``join``-keyword.
 
 .. ipython:: python
+   :okwarning:
 
-    u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
-    s
-    u
-    s.str.cat(u)
-    s.str.cat(u, join='left')
+   u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
+   s
+   u
+   s.str.cat(u)
+   s.str.cat(u, join='left')
 
 .. warning::
 
@@ -296,7 +297,7 @@ In particular, alignment also means that the different lengths do not need to co
 The same alignment can be used when ``others`` is a ``DataFrame``:
 
 .. ipython:: python
-    
+
     f = d.loc[[3, 2, 1, 0], :]
     s
     f
@@ -311,7 +312,7 @@ All one-dimensional list-likes can be arbitrarily combined in a list-like contai
 
     s
     u
-    s.str.cat([u, pd.Index(u.values), ['A', 'B', 'C', 'D'], map(str, u.index)], na_rep='-')
+    s.str.cat([u.values, ['A', 'B', 'C', 'D'], map(str, u.index)], na_rep='-')
 
 All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
 
