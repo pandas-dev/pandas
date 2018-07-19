@@ -161,32 +161,41 @@ class DateOffset(BaseOffset):
 
     Parameters
     ----------
-    n : int (default 1)
-    normalize : bool (default False)
+    n : int, default 1
+        The number of time periods the offset represents.
+    normalize : bool, default False
+        Whether to round the result of a DateOffset addition down to the
+        previous midnight.
+    **kwds
+        Temporal parameter that add to or replace the offset value.
 
-    Parameters that ADD to the offset (like Timedelta)
-    --------------------------------------------------
-    years : int or None
-    months : int or None
-    weeks : int or None
-    days : int or None
-    hours : int or None
-    minutes : int or None
-    seconds : int or None
-    microseconds : int or None
-    nanoseconds : int or None
+        Parameters that **add** to the offset (like Timedelta):
 
-    Parameters that REPLACE the offset value
-    ----------------------------------------
-    year : int or None
-    month : int or None
-    day : int or None
-    weekday : int or None
-    hour : int or None
-    minute : int or None
-    second : int or None
-    microsecond : int or None
-    nanosecond : int or None
+        - years
+        - months
+        - weeks
+        - days
+        - hours
+        - minutes
+        - seconds
+        - microseconds
+        - nanoseconds
+
+        Parameters that **replace** the offset value:
+
+        - year
+        - month
+        - day
+        - weekday
+        - hour
+        - minute
+        - second
+        - microsecond
+        - nanosecond
+
+    See Also
+    --------
+    dateutil.relativedelta.relativedelta
 
     Examples
     --------
@@ -197,10 +206,6 @@ class DateOffset(BaseOffset):
     >>> ts = pd.Timestamp('2017-01-01 09:10:11')
     >>> ts + DateOffset(month=3)
     Timestamp('2017-03-01 09:10:11')
-
-    See Also
-    --------
-    dateutil.relativedelta.relativedelta
     """
     _params = cache_readonly(BaseOffset._params.fget)
     _use_relativedelta = False
