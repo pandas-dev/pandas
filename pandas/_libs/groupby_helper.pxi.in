@@ -66,7 +66,7 @@ def group_add_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if not npy_isnan(val):
                     nobs[lab, j] += 1
                     sumx[lab, j] += val
 
@@ -112,7 +112,7 @@ def group_prod_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if not npy_isnan(val):
                     nobs[lab, j] += 1
                     prodx[lab, j] *= val
 
@@ -161,7 +161,7 @@ def group_var_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
-                if val == val:
+                if not npy_isnan(val):
                     nobs[lab, j] += 1
                     oldmean = mean[lab, j]
                     mean[lab, j] += (val - oldmean) / nobs[lab, j]
@@ -209,7 +209,7 @@ def group_mean_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
             for j in range(K):
                 val = values[i, j]
                 # not nan
-                if val == val:
+                if not npy_isnan(val):
                     nobs[lab, j] += 1
                     sumx[lab, j] += val
 
@@ -260,10 +260,10 @@ def group_ohlc_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
 
             counts[lab] += 1
             val = values[i, 0]
-            if val != val:
+            if npy_isnan(val):
                 continue
 
-            if out[lab, 0] != out[lab, 0]:
+            if npy_isnan(out[lab, 0]):
                 out[lab, 0] = out[lab, 1] = out[lab, 2] = out[lab, 3] = val
             else:
                 out[lab, 1] = max(out[lab, 1], val)
@@ -340,7 +340,11 @@ def group_last_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
+                {{if c_type.startswith('float')}}
+                if not npy_isnan(val) and val != {{nan_val}}:
+                {{else}}
                 if val == val and val != {{nan_val}}:
+                {{endif}}
                     nobs[lab, j] += 1
                     resx[lab, j] = val
 
@@ -396,7 +400,11 @@ def group_nth_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 val = values[i, j]
 
                 # not nan
+                {{if c_type.startswith('float')}}
+                if not npy_isnan(val) and val != {{nan_val}}:
+                {{else}}
                 if val == val and val != {{nan_val}}:
+                {{endif}}
                     nobs[lab, j] += 1
                     if nobs[lab, j] == rank:
                         resx[lab, j] = val
@@ -651,7 +659,7 @@ def group_max_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 {{if name == 'int64'}}
                 if val != {{nan_val}}:
                 {{else}}
-                if val == val and val != {{nan_val}}:
+                if not npy_isnan(val) and val != {{nan_val}}:
                 {{endif}}
                     nobs[lab, j] += 1
                     if val > maxx[lab, j]:
@@ -706,7 +714,7 @@ def group_min_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                 {{if name == 'int64'}}
                 if val != {{nan_val}}:
                 {{else}}
-                if val == val and val != {{nan_val}}:
+                if not npy_isnan(val) and val != {{nan_val}}:
                 {{endif}}
                     nobs[lab, j] += 1
                     if val < minx[lab, j]:
@@ -754,7 +762,7 @@ def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     out[i, j] = {{nan_val}}
                 else:
                 {{else}}
-                if val == val:
+                if not npy_isnan(val):
                 {{endif}}
                     mval = accum[lab, j]
                     if val < mval:
@@ -795,7 +803,7 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     out[i, j] = {{nan_val}}
                 else:
                 {{else}}
-                if val == val:
+                if not npy_isnan(val):
                 {{endif}}
                     mval = accum[lab, j]
                     if val > mval:
