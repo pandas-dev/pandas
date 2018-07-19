@@ -2630,8 +2630,10 @@ class Index(IndexOpsMixin, PandasObject):
         return self + other
 
     def __sub__(self, other):
-        raise TypeError("cannot perform __sub__ with this index type: "
-                        "{typ}".format(typ=type(self).__name__))
+        return Index(np.array(self) - other)
+
+    def __rsub__(self, other):
+        return Index(other - np.array(self))
 
     def __and__(self, other):
         return self.intersection(other)

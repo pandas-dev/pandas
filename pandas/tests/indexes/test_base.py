@@ -871,6 +871,18 @@ class TestIndex(Base):
         pytest.raises(TypeError, lambda: index - index.tolist())
         pytest.raises(TypeError, lambda: index.tolist() - index)
 
+    def test_sub_object(self):
+        # GH#19369
+        from decimal import Decimal
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(0), Decimal(1)])
+
+        result = index - Decimal(1)
+        tm.assert_index_equal(result, expected)
+
+        result = index - pd.Index([Decimal(1), Decimal(1)])
+        tm.assert_index_equal(result, expected)
+
     def test_map_identity_mapping(self):
         # GH 12766
         # TODO: replace with fixture
