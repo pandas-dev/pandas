@@ -778,6 +778,7 @@ class DataFrame(NDFrame):
             return result
 
     # ----------------------------------------------------------------------
+    # Iteration
 
     def iteritems(self):
         """
@@ -909,6 +910,8 @@ class DataFrame(NDFrame):
         return zip(*arrays)
 
     items = iteritems
+
+    # ----------------------------------------------------------------------
 
     def __len__(self):
         """Returns length of info axis, but here we use the index """

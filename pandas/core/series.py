@@ -1305,6 +1305,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._data.formatting_values()
 
     # ----------------------------------------------------------------------
+    # Iteration
 
     def iteritems(self):
         """
@@ -1314,12 +1315,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     items = iteritems
 
-    # ----------------------------------------------------------------------
-    # Misc public methods
-
     def keys(self):
         """Alias for index"""
         return self.index
+
+    # ----------------------------------------------------------------------
+    # Misc public methods
 
     def to_dict(self, into=dict):
         """

@@ -1590,15 +1590,11 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Iteration
 
-    def __hash__(self):
-        raise TypeError('{0!r} objects are mutable, thus they cannot be'
-                        ' hashed'.format(self.__class__.__name__))
-
     def __iter__(self):
         """Iterate over infor axis"""
         return iter(self._info_axis)
 
-    # can we get a better explanation of this?
+    # TODO: can we get a better explanation of this?
     def keys(self):
         """Get the 'info axis' (see Indexing for more)
 
@@ -1615,6 +1611,12 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         for h in self._info_axis:
             yield h, self[h]
+
+    # ----------------------------------------------------------------------
+
+    def __hash__(self):
+        raise TypeError('{0!r} objects are mutable, thus they cannot be'
+                        ' hashed'.format(self.__class__.__name__))
 
     def __len__(self):
         """Returns length of info axis"""
