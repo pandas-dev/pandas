@@ -650,7 +650,7 @@ cdef inline double calc_var(int64_t minp, int ddof, double nobs,
     return result
 
 
-cdef inline void add_var(const double val, double *nobs, double *mean_x,
+cdef inline void add_var(double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
