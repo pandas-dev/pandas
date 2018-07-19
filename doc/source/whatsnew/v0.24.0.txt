@@ -458,6 +458,7 @@ I/O
 
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
+- :func:`read_sas()` now has new parameter convert_dates(default=True) which is passed through to SAS7BDATReader. Setting convert_dates=False allows SAS datasets with dates larger than pd.Timestamp.max (2262-04-11 23:47:16.854775807) to be read in with all date/datetime columns as their native float64.  The SAS dates can then be converted to datetime.date/datetime objects post-import, or the values capped to pd.Timestamp.max and converted with pd.to_datetime()  (:issue:`20927`)
 -
 
 Plotting

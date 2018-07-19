@@ -6,7 +6,7 @@ from pandas.io.common import _stringify_path
 
 
 def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
-             chunksize=None, iterator=False):
+             chunksize=None, iterator=False, convert_dates=True):
     """
     Read SAS files stored as either XPORT or SAS7BDAT format files.
 
@@ -25,6 +25,15 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
         Read file `chunksize` lines at a time, returns iterator.
     iterator : bool, defaults to False
         If True, returns an iterator for reading the file incrementally.
+    convert_dates: bool, default to True
+        If True convert SAS date and datetime columns to Pandas datetime
+        NB.  For datetimes larger than pd.Timestamp.max
+        '2262-04-11 23:47:16.854775807' an exception
+        pandas._libs.tslibs.np_datetime.OutOfBoundsDatetime is thrown
+        If False SAS date and datetime columns are read as their native
+        float64 and can be converted after the import to
+        datetime.datetime or datetime.date values (or high values capped
+        to pd.Timestamp.max and converted with pandas.to_datetime)
 
     Returns
     -------
@@ -58,7 +67,8 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
         from pandas.io.sas.sas7bdat import SAS7BDATReader
         reader = SAS7BDATReader(filepath_or_buffer, index=index,
                                 encoding=encoding,
-                                chunksize=chunksize)
+                                chunksize=chunksize,
+                                convert_dates=convert_dates)
     else:
         raise ValueError('unknown SAS format')
 

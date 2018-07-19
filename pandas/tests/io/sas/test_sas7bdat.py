@@ -188,3 +188,26 @@ def test_zero_variables(datapath):
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
     with pytest.raises(EmptyDataError):
         pd.read_sas(fname)
+
+
+def test_max_sas_date_exception(datapath):
+    # GH 20927
+    fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
+    with pytest.raises(pd._libs.tslibs.np_datetime.OutOfBoundsDatetime):
+        pd.read_sas(fname)
+        assert True
+
+
+def test_max_sas_date(datapath):
+    # GH 20927
+    fname = datapath("io", "sas", "data", "max_sas_date.sas7bdat")
+    df = pd.read_sas(fname, encoding='iso-8859-1', convert_dates=False)
+    # SAS likes to left pad strings with spaces - lstrip before comparing
+    str_cols = df.select_dtypes(['object']).columns
+    df[str_cols] = df[str_cols].apply(lambda x: x.str.lstrip(' '))
+    fname = datapath("io", "sas", "data", "max_sas_date.csv")
+    df0 = pd.read_csv(
+        fname, dtype={'dt_as_float': np.float64,
+                      'dt_as_dt': np.float64, 'date_as_date': np.float64,
+                      'date_as_num': np.float64})
+    tm.assert_frame_equal(df, df0)
