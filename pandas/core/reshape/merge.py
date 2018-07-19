@@ -12,6 +12,7 @@ import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -27,11 +28,12 @@ from pandas.core.dtypes.common import (
     is_int_or_datetime_dtype,
     is_dtype_equal,
     is_bool,
+    is_bool_dtype,
     is_list_like,
     is_datetimelike,
-    _ensure_int64,
-    _ensure_float64,
-    _ensure_object,
+    ensure_int64,
+    ensure_float64,
+    ensure_object,
     _get_dtype)
 from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.internals import (items_overlap_with_suffix,
@@ -318,7 +320,7 @@ def merge_asof(left, right, on=None,
         - If True, allow matching with the same 'on' value
           (i.e. less-than-or-equal-to / greater-than-or-equal-to)
         - If False, don't match the same 'on' value
-          (i.e., stricly less-than / strictly greater-than)
+          (i.e., strictly less-than / strictly greater-than)
 
     direction : 'backward' (default), 'forward', or 'nearest'
         Whether to search for prior, subsequent, or closest matches.
@@ -456,8 +458,8 @@ def merge_asof(left, right, on=None,
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
-    2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
-    3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100     NaN     NaN
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
     See also
@@ -704,8 +706,7 @@ class _MergeOperation(object):
                                 take_right = self.right[name]._values
 
             elif left_indexer is not None \
-                    and isinstance(self.left_join_keys[i], np.ndarray):
-
+                    and is_array_like(self.left_join_keys[i]):
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
 
@@ -955,14 +956,14 @@ class _MergeOperation(object):
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
-                    if not (lk == lk.astype(rk.dtype)).all():
+                    if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
-                    if not (rk == rk.astype(lk.dtype)).all():
+                    if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
@@ -974,9 +975,14 @@ class _MergeOperation(object):
 
             # Check if we are trying to merge on obviously
             # incompatible dtypes GH 9780, GH 15800
-            elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
+
+            # boolean values are considered as numeric, but are still allowed
+            # to be merged on object boolean values
+            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
+                    and not is_numeric_dtype(rk)):
                 raise ValueError(msg)
-            elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
+            elif (not is_numeric_dtype(lk)
+                    and (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
                 raise ValueError(msg)
@@ -1021,7 +1027,12 @@ class _MergeOperation(object):
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
-                    raise MergeError('No common columns to perform merge on')
+                    raise MergeError(
+                        'No common columns to perform merge on. '
+                        'Merge options: left_on={lon}, right_on={ron}, '
+                        'left_index={lidx}, right_index={ridx}'
+                        .format(lon=self.left_on, ron=self.right_on,
+                                lidx=self.left_index, ridx=self.right_index))
                 if not common_cols.is_unique:
                     raise MergeError("Data columns not unique: {common!r}"
                                      .format(common=common_cols))
@@ -1201,9 +1212,9 @@ def _asof_by_function(direction, on_type, by_type):
 
 
 _type_casters = {
-    'int64_t': _ensure_int64,
-    'double': _ensure_float64,
-    'object': _ensure_object,
+    'int64_t': ensure_int64,
+    'double': ensure_float64,
+    'object': ensure_object,
 }
 
 _cython_types = {
@@ -1479,8 +1490,8 @@ def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = libjoin.left_outer_join(
-        _ensure_int64(left_key),
-        _ensure_int64(right_key),
+        ensure_int64(left_key),
+        ensure_int64(right_key),
         count, sort=sort)
 
     return left_indexer, right_indexer
@@ -1535,16 +1546,23 @@ def _factorize_keys(lk, rk, sort=True):
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
         klass = libhashtable.Int64Factorizer
-        lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk.codes)
+
+        if lk.categories.equals(rk.categories):
+            rk = rk.codes
+        else:
+            # Same categories in different orders -> recode
+            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+
+        lk = ensure_int64(lk.codes)
+        rk = ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
-        lk = _ensure_int64(com._values_from_object(lk))
-        rk = _ensure_int64(com._values_from_object(rk))
+        lk = ensure_int64(com._values_from_object(lk))
+        rk = ensure_int64(com._values_from_object(rk))
     else:
         klass = libhashtable.Factorizer
-        lk = _ensure_object(lk)
-        rk = _ensure_object(rk)
+        lk = ensure_object(lk)
+        rk = ensure_object(rk)
 
     rizer = klass(max(len(lk), len(rk)))
 
@@ -1582,7 +1600,7 @@ def _sort_labels(uniques, left, right):
     labels = np.concatenate([left, right])
 
     _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
-    new_labels = _ensure_int64(new_labels)
+    new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right

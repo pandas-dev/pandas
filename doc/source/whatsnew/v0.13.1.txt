@@ -119,8 +119,7 @@ API changes
   equal. NaNs in identical locations are treated as
   equal. (:issue:`5283`) See also :ref:`the docs<basics.equals>` for a motivating example.
 
-  .. ipython:: python
-      :okwarning:
+  .. code-block:: python
 
       df = DataFrame({'col':['foo', 0, np.nan]})
       df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])
@@ -140,14 +139,21 @@ API changes
   applied would be called with an empty ``Series`` to guess whether a
   ``Series`` or ``DataFrame`` should be returned:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     def applied_func(col):
-        print("Apply function being called with: ", col)
-        return col.sum()
+    In [32]: def applied_func(col):
+      ....:    print("Apply function being called with: ", col)
+      ....:    return col.sum()
+      ....:
 
-     empty = DataFrame(columns=['a', 'b'])
-     empty.apply(applied_func)
+    In [33]: empty = DataFrame(columns=['a', 'b'])
+
+    In [34]: empty.apply(applied_func)
+    Apply function being called with:  Series([], Length: 0, dtype: float64)
+    Out[34]:
+    a   NaN
+    b   NaN
+    Length: 2, dtype: float64
 
   Now, when ``apply`` is called on an empty ``DataFrame``: if the ``reduce``
   argument is ``True`` a ``Series`` will returned, if it is ``False`` a
@@ -155,10 +161,22 @@ API changes
   function being applied will be called with an empty series to try and guess
   the return type.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     empty.apply(applied_func, reduce=True)
-     empty.apply(applied_func, reduce=False)
+    In [35]: empty.apply(applied_func, reduce=True)
+    Out[35]:
+    a   NaN
+    b   NaN
+    Length: 2, dtype: float64
+
+    In [36]: empty.apply(applied_func, reduce=False)
+    Out[36]:
+    Empty DataFrame
+    Columns: [a, b]
+    Index: []
+
+    [0 rows x 2 columns]
+
 
 Prior Version Deprecations/Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -9,6 +9,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
+from pandas.io.common import _get_handle
 import pandas.core.common as com
 from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
@@ -919,42 +920,46 @@ class TestDataFrameToCSV(TestData):
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    def test_to_csv_compression(self, compression_no_zip):
-
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+    @pytest.mark.parametrize('df,encoding', [
+        (DataFrame([[0.123456, 0.234567, 0.567567],
+                    [12.32112, 123123.2, 321321.2]],
+                   index=['A', 'B'], columns=['X', 'Y', 'Z']), None),
+        # GH 21241, 21118
+        (DataFrame([['abc', 'def', 'ghi']], columns=['X', 'Y', 'Z']), 'ascii'),
+        (DataFrame(5 * [[123, u"你好", u"世界"]],
+                   columns=['X', 'Y', 'Z']), 'gb2312'),
+        (DataFrame(5 * [[123, u"Γειά σου", u"Κόσμε"]],
+                   columns=['X', 'Y', 'Z']), 'cp737')
+    ])
+    def test_to_csv_compression(self, df, encoding, compression):
 
         with ensure_clean() as filename:
 
-            df.to_csv(filename, compression=compression_no_zip)
-
+            df.to_csv(filename, compression=compression, encoding=encoding)
             # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression=compression_no_zip,
-                          index_col=0)
-            assert_frame_equal(df, rs)
+            result = read_csv(filename, compression=compression,
+                              index_col=0, encoding=encoding)
+            assert_frame_equal(df, result)
+
+            # test the round trip using file handle - to_csv -> read_csv
+            f, _handles = _get_handle(filename, 'w', compression=compression,
+                                      encoding=encoding)
+            with f:
+                df.to_csv(f, encoding=encoding)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_frame_equal(df, result)
 
             # explicitly make sure file is compressed
-            with tm.decompress_file(filename, compression_no_zip) as fh:
-                text = fh.read().decode('utf8')
+            with tm.decompress_file(filename, compression) as fh:
+                text = fh.read().decode(encoding or 'utf8')
                 for col in df.columns:
                     assert col in text
 
-            with tm.decompress_file(filename, compression_no_zip) as fh:
-                assert_frame_equal(df, read_csv(fh, index_col=0))
-
-    def test_to_csv_compression_value_error(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-            # zip compression is not supported and should raise ValueError
-            import zipfile
-            pytest.raises(zipfile.BadZipfile, df.to_csv,
-                          filename, compression="zip")
+            with tm.decompress_file(filename, compression) as fh:
+                assert_frame_equal(df, read_csv(fh,
+                                                index_col=0,
+                                                encoding=encoding))
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:
@@ -1054,10 +1059,10 @@ class TestDataFrameToCSV(TestData):
 
     def test_to_csv_quoting(self):
         df = DataFrame({
-            'c_string': ['a', 'b,c'],
-            'c_int': [42, np.nan],
-            'c_float': [1.0, 3.2],
             'c_bool': [True, False],
+            'c_float': [1.0, 3.2],
+            'c_int': [42, np.nan],
+            'c_string': ['a', 'b,c'],
         })
 
         expected = """\

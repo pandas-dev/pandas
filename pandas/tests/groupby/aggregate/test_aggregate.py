@@ -10,54 +10,10 @@ import numpy as np
 import pandas as pd
 
 from pandas import concat, DataFrame, Index, MultiIndex, Series
-from pandas.core.groupby import Grouping, SpecificationError
+from pandas.core.groupby.grouper import Grouping
+from pandas.core.base import SpecificationError
 from pandas.compat import OrderedDict
 import pandas.util.testing as tm
-
-
-@pytest.fixture
-def ts():
-    return tm.makeTimeSeries()
-
-
-@pytest.fixture
-def tsframe():
-    return DataFrame(tm.getTimeSeriesData())
-
-
-@pytest.fixture
-def df():
-    return DataFrame(
-        {'A': ['foo', 'bar', 'foo', 'bar', 'foo', 'bar', 'foo', 'foo'],
-         'B': ['one', 'one', 'two', 'three', 'two', 'two', 'one', 'three'],
-         'C': np.random.randn(8),
-         'D': np.random.randn(8)})
-
-
-@pytest.fixture
-def mframe():
-    index = MultiIndex(levels=[['foo', 'bar', 'baz', 'qux'],
-                               ['one', 'two', 'three']],
-                       labels=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3],
-                               [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-                       names=['first', 'second'])
-    return DataFrame(np.random.randn(10, 3),
-                     index=index,
-                     columns=['A', 'B', 'C'])
-
-
-@pytest.fixture
-def three_group():
-    return DataFrame(
-        {'A': ['foo', 'foo', 'foo', 'foo', 'bar', 'bar',
-               'bar', 'bar', 'foo', 'foo', 'foo'],
-         'B': ['one', 'one', 'one', 'two', 'one', 'one',
-               'one', 'two', 'two', 'two', 'one'],
-         'C': ['dull', 'dull', 'shiny', 'dull', 'dull', 'shiny',
-               'shiny', 'dull', 'shiny', 'shiny', 'shiny'],
-         'D': np.random.randn(11),
-         'E': np.random.randn(11),
-         'F': np.random.randn(11)})
 
 
 def test_agg_regression1(tsframe):
@@ -85,6 +41,32 @@ def test_agg_ser_multi_key(df):
     results = df.C.groupby([df.A, df.B]).aggregate(f)
     expected = df.groupby(['A', 'B']).sum()['C']
     tm.assert_series_equal(results, expected)
+
+
+def test_groupby_aggregation_mixed_dtype():
+
+    # GH 6212
+    expected = DataFrame({
+        'v1': [5, 5, 7, np.nan, 3, 3, 4, 1],
+        'v2': [55, 55, 77, np.nan, 33, 33, 44, 11]},
+        index=MultiIndex.from_tuples([(1, 95), (1, 99), (2, 95), (2, 99),
+                                      ('big', 'damp'),
+                                      ('blue', 'dry'),
+                                      ('red', 'red'), ('red', 'wet')],
+                                     names=['by1', 'by2']))
+
+    df = DataFrame({
+        'v1': [1, 3, 5, 7, 8, 3, 5, np.nan, 4, 5, 7, 9],
+        'v2': [11, 33, 55, 77, 88, 33, 55, np.nan, 44, 55, 77, 99],
+        'by1': ["red", "blue", 1, 2, np.nan, "big", 1, 2, "red", 1, np.nan,
+                12],
+        'by2': ["wet", "dry", 99, 95, np.nan, "damp", 95, 99, "red", 99,
+                np.nan, np.nan]
+    })
+
+    g = df.groupby(['by1', 'by2'])
+    result = g[['v1', 'v2']].mean()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_agg_apply_corner(ts, tsframe):

@@ -113,6 +113,21 @@ class TestSparseArray(object):
         assert arr.dtype == np.int64
         assert arr.fill_value == 0
 
+    @pytest.mark.parametrize('scalar,dtype', [
+        (False, bool),
+        (0.0, 'float64'),
+        (1, 'int64'),
+        ('z', 'object')])
+    def test_scalar_with_index_infer_dtype(self, scalar, dtype):
+        # GH 19163
+        arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
+        exp = SparseArray([scalar, scalar, scalar], fill_value=scalar)
+
+        tm.assert_sp_array_equal(arr, exp)
+
+        assert arr.dtype == dtype
+        assert exp.dtype == dtype
+
     def test_sparseseries_roundtrip(self):
         # GH 13999
         for kind in ['integer', 'block']:
@@ -438,6 +453,17 @@ class TestSparseArray(object):
         assert_almost_equal(self.arr.values, self.arr_data)
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
+
+    @pytest.mark.parametrize('data,shape,dtype', [
+        ([0, 0, 0, 0, 0], (5,), None),
+        ([], (0,), None),
+        ([0], (1,), None),
+        (['A', 'A', np.nan, 'B'], (4,), np.object)
+    ])
+    def test_shape(self, data, shape, dtype):
+        # GH 21126
+        out = SparseArray(data, dtype=dtype)
+        assert out.shape == shape
 
     def test_to_dense(self):
         vals = np.array([1, np.nan, np.nan, 3, np.nan])

@@ -10,6 +10,7 @@ from numpy import nan
 import pandas as pd
 from pandas import (DataFrame, date_range, Index,
                     Series, MultiIndex, Timestamp, DatetimeIndex)
+from pandas.core.groupby.ops import BinGrouper
 from pandas.compat import StringIO
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -57,11 +58,12 @@ class TestGroupBy(object):
             result3 = df.groupby(pd.Grouper(freq='5D')).sum()
             assert_frame_equal(result3, expected)
 
-    def test_groupby_with_timegrouper_methods(self):
+    @pytest.mark.parametrize("should_sort", [True, False])
+    def test_groupby_with_timegrouper_methods(self, should_sort):
         # GH 3881
         # make sure API of timegrouper conforms
 
-        df_original = pd.DataFrame({
+        df = pd.DataFrame({
             'Branch': 'A A A A A B'.split(),
             'Buyer': 'Carl Mark Carl Joe Joe Carl'.split(),
             'Quantity': [1, 3, 5, 8, 9, 3],
@@ -75,16 +77,17 @@ class TestGroupBy(object):
             ]
         })
 
-        df_sorted = df_original.sort_values(by='Quantity', ascending=False)
+        if should_sort:
+            df = df.sort_values(by='Quantity', ascending=False)
 
-        for df in [df_original, df_sorted]:
-            df = df.set_index('Date', drop=False)
-            g = df.groupby(pd.Grouper(freq='6M'))
-            assert g.group_keys
-            assert isinstance(g.grouper, pd.core.groupby.BinGrouper)
-            groups = g.groups
-            assert isinstance(groups, dict)
-            assert len(groups) == 3
+        df = df.set_index('Date', drop=False)
+        g = df.groupby(pd.Grouper(freq='6M'))
+        assert g.group_keys
+
+        assert isinstance(g.grouper, BinGrouper)
+        groups = g.groups
+        assert isinstance(groups, dict)
+        assert len(groups) == 3
 
     def test_timegrouper_with_reg_groups(self):
 

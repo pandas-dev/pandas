@@ -5,6 +5,7 @@ cnp.import_array()
 cimport cpython
 from cpython cimport PyTypeObject
 
+
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
@@ -100,6 +101,7 @@ cdef extern from "headers/stdint.h":
     enum: INT64_MAX
     enum: INT64_MIN
 
+
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
@@ -118,6 +120,7 @@ cdef inline object get_value_at(ndarray arr, object loc):
         raise IndexError('index out of bounds')
 
     return get_value_1d(arr, i)
+
 
 cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
     """Sets a value into the array without checking the writeable flag.
@@ -153,33 +156,28 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
 
+
 cdef inline bint _checknull(object val):
     try:
         return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
 
-cdef inline bint _checknan(object val):
-    return not cnp.PyArray_Check(val) and val != val
 
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'
 
 
-cdef inline object unbox_if_zerodim(object arr):
+cdef inline bint is_offset_object(object val):
     """
-    If arr is zerodim array, return a proper array scalar (e.g. np.int64).
-    Otherwise, return arr as is.
+    Check if an object is a DateOffset object.
 
     Parameters
     ----------
-    arr : object
+    val : object
 
     Returns
     -------
-    result : object
+    is_date_offset : bool
     """
-    if cnp.PyArray_IsZeroDim(arr):
-        return cnp.PyArray_ToScalar(cnp.PyArray_DATA(arr), arr)
-    else:
-        return arr
+    return getattr(val, '_typ', None) == "dateoffset"

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 
 import numpy as np
@@ -8,6 +10,24 @@ from pandas import (TimedeltaIndex, timedelta_range, Int64Index, Float64Index,
 
 
 class TestTimedeltaIndex(object):
+    def test_astype_object(self):
+        idx = timedelta_range(start='1 days', periods=4, freq='D', name='idx')
+        expected_list = [Timedelta('1 days'), Timedelta('2 days'),
+                         Timedelta('3 days'), Timedelta('4 days')]
+        result = idx.astype(object)
+        expected = Index(expected_list, dtype=object, name='idx')
+        tm.assert_index_equal(result, expected)
+        assert idx.tolist() == expected_list
+
+    def test_astype_object_with_nat(self):
+        idx = TimedeltaIndex([timedelta(days=1), timedelta(days=2), NaT,
+                              timedelta(days=4)], name='idx')
+        expected_list = [Timedelta('1 days'), Timedelta('2 days'), NaT,
+                         Timedelta('4 days')]
+        result = idx.astype(object)
+        expected = Index(expected_list, dtype=object, name='idx')
+        tm.assert_index_equal(result, expected)
+        assert idx.tolist() == expected_list
 
     def test_astype(self):
         # GH 13149, GH 13209

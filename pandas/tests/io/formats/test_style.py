@@ -24,7 +24,7 @@ class TestStyler(object):
 
         def h(x, foo='bar'):
             return pd.Series(
-                ['color: {foo}'.format(foo=foo)], index=x.index, name=x.name)
+                'color: {foo}'.format(foo=foo), index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -45,6 +45,13 @@ class TestStyler(object):
 
     def test_repr_html_ok(self):
         self.styler._repr_html_()
+
+    def test_repr_html_mathjax(self):
+        # gh-19824
+        assert 'tex2jax_ignore' not in self.styler._repr_html_()
+
+        with pd.option_context('display.html.use_mathjax', False):
+            assert 'tex2jax_ignore' in self.styler._repr_html_()
 
     def test_update_ctx(self):
         self.styler._update_ctx(self.attrs)
@@ -1010,9 +1017,9 @@ class TestStyler(object):
         assert ctx['body'][1][2]['display_value'] == 3
 
 
+@td.skip_if_no_mpl
 class TestStylerMatplotlibDep(object):
 
-    @td.skip_if_no_mpl
     def test_background_gradient(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
 
@@ -1024,7 +1031,58 @@ class TestStylerMatplotlibDep(object):
 
         result = df.style.background_gradient(
             subset=pd.IndexSlice[1, 'A'])._compute().ctx
-        assert result[(1, 0)] == ['background-color: #fff7fb']
+
+        assert result[(1, 0)] == ['background-color: #fff7fb',
+                                  'color: #000000']
+
+    @pytest.mark.parametrize(
+        'c_map,expected', [
+            (None, {
+                (0, 0): ['background-color: #440154', 'color: #f1f1f1'],
+                (1, 0): ['background-color: #fde725', 'color: #000000']}),
+            ('YlOrRd', {
+                (0, 0): ['background-color: #ffffcc', 'color: #000000'],
+                (1, 0): ['background-color: #800026', 'color: #f1f1f1']})])
+    def test_text_color_threshold(self, c_map, expected):
+        df = pd.DataFrame([1, 2], columns=['A'])
+        result = df.style.background_gradient(cmap=c_map)._compute().ctx
+        assert result == expected
+
+    @pytest.mark.parametrize("text_color_threshold", [1.1, '1', -1, [2, 2]])
+    def test_text_color_threshold_raises(self, text_color_threshold):
+        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+        msg = "`text_color_threshold` must be a value from 0 to 1."
+        with tm.assert_raises_regex(ValueError, msg):
+            df.style.background_gradient(
+                text_color_threshold=text_color_threshold)._compute()
+
+    @td.skip_if_no_mpl
+    def test_background_gradient_axis(self):
+        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+
+        low = ['background-color: #f7fbff', 'color: #000000']
+        high = ['background-color: #08306b', 'color: #f1f1f1']
+        mid = ['background-color: #abd0e6', 'color: #000000']
+        result = df.style.background_gradient(cmap='Blues',
+                                              axis=0)._compute().ctx
+        assert result[(0, 0)] == low
+        assert result[(0, 1)] == low
+        assert result[(1, 0)] == high
+        assert result[(1, 1)] == high
+
+        result = df.style.background_gradient(cmap='Blues',
+                                              axis=1)._compute().ctx
+        assert result[(0, 0)] == low
+        assert result[(0, 1)] == high
+        assert result[(1, 0)] == low
+        assert result[(1, 1)] == high
+
+        result = df.style.background_gradient(cmap='Blues',
+                                              axis=None)._compute().ctx
+        assert result[(0, 0)] == low
+        assert result[(0, 1)] == mid
+        assert result[(1, 0)] == mid
+        assert result[(1, 1)] == high
 
 
 def test_block_names():

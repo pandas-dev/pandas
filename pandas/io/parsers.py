@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
-    is_integer, _ensure_object,
+    is_integer, ensure_object,
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
@@ -25,7 +25,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _ensure_index_from_sequences)
+                               ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.arrays import Categorical
@@ -43,6 +43,7 @@ from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
+import pandas._libs.ops as libops
 from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
@@ -96,13 +97,18 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-usecols : array-like or callable, default None
-    Return a subset of the columns. If array-like, all elements must either
+usecols : list-like or callable, default None
+    Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid array-like
+    inferred from the document header row(s). For example, a valid list-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so usecols=[1,0] is the same as [0,1].
+    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    To instantiate a DataFrame from ``data`` with element order preserved use
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
+    in ``['foo', 'bar']`` order or
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
+    for ``['bar', 'foo']`` order.
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
@@ -119,7 +125,8 @@ mangle_dupe_cols : boolean, default True
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `str` or `object` together with suitable `na_values` settings
+    to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 %s
@@ -413,7 +420,7 @@ def _read(filepath_or_buffer, kwds):
 
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -439,6 +446,13 @@ def _read(filepath_or_buffer, kwds):
         data = parser.read(nrows)
     finally:
         parser.close()
+
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+
     return data
 
 
@@ -1164,7 +1178,7 @@ def _validate_usecols_arg(usecols):
 
     Parameters
     ----------
-    usecols : array-like, callable, or None
+    usecols : list-like, callable, or None
         List of columns to use when parsing or a callable that can be used
         to filter a list of table columns.
 
@@ -1179,17 +1193,19 @@ def _validate_usecols_arg(usecols):
         'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
         is passed in or None if a callable or None is passed in.
     """
-    msg = ("'usecols' must either be all strings, all unicode, "
-           "all integers or a callable")
-
+    msg = ("'usecols' must either be list-like of all strings, all unicode, "
+           "all integers or a callable.")
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('empty', 'integer',
-                                 'string', 'unicode'):
+        # GH20529, ensure is iterable container but not string.
+        elif not is_list_like(usecols):
             raise ValueError(msg)
-
+        else:
+            usecols_dtype = lib.infer_dtype(usecols)
+            if usecols_dtype not in ('empty', 'integer',
+                                     'string', 'unicode'):
+                raise ValueError(msg)
         return set(usecols), usecols_dtype
     return usecols, None
 
@@ -1505,7 +1521,7 @@ class ParserBase(object):
             arrays.append(arr)
 
         names = self.index_names
-        index = _ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1604,9 +1620,9 @@ class ParserBase(object):
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = lib.maybe_convert_bool(values,
-                                            true_values=self.true_values,
-                                            false_values=self.false_values)
+            result = libops.maybe_convert_bool(values,
+                                               true_values=self.true_values,
+                                               false_values=self.false_values)
 
         return result, na_count
 
@@ -1684,11 +1700,12 @@ class CParserWrapper(ParserBase):
         # #2442
         kwds['allow_leading_cols'] = self.index_col is not False
 
-        self._reader = parsers.TextReader(src, **kwds)
-
-        # XXX
+        # GH20529, validate usecol arg before TextReader
         self.usecols, self.usecols_dtype = _validate_usecols_arg(
-            self._reader.usecols)
+            kwds['usecols'])
+        kwds['usecols'] = self.usecols
+
+        self._reader = parsers.TextReader(src, **kwds)
 
         passed_names = self.names is None
 
@@ -1872,7 +1889,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = _ensure_index_from_sequences(arrays)
+            index = ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -2988,7 +3005,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools.to_datetime(
-                    _ensure_object(strs),
+                    ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
@@ -3192,12 +3209,22 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             col = columns[k] if is_integer(k) else k
             dtype[col] = v
 
-    if index_col is None or index_col is False:
+    # Even though we have no data, the "index" of the empty DataFrame
+    # could for example still be an empty MultiIndex. Thus, we need to
+    # check whether we have any index columns specified, via either:
+    #
+    # 1) index_col (column indices)
+    # 2) index_names (column names)
+    #
+    # Both must be non-null to ensure a successful construction. Otherwise,
+    # we have to create a generic emtpy Index.
+    if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
-        index = _ensure_index_from_sequences(data, names=index_names)
+        index = ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
+
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 

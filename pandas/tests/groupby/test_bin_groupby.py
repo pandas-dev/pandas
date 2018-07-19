@@ -5,8 +5,9 @@ import pytest
 from numpy import nan
 import numpy as np
 
-from pandas.core.dtypes.common import _ensure_int64
+from pandas.core.dtypes.common import ensure_int64
 from pandas import Index, isna
+from pandas.core.groupby.ops import generate_bins_generic
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 from pandas._libs import lib, groupby, reduction
@@ -54,7 +55,6 @@ class TestBinGroupers(object):
         self.bins = np.array([3, 6], dtype=np.int64)
 
     def test_generate_bins(self):
-        from pandas.core.groupby import generate_bins_generic
         values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
         binner = np.array([0, 3, 6, 9], dtype=np.int64)
 
@@ -90,8 +90,8 @@ def test_group_ohlc():
         bins = np.array([6, 12, 20])
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = _ensure_int64(np.repeat(np.arange(3),
-                                         np.diff(np.r_[0, bins])))
+        labels = ensure_int64(np.repeat(np.arange(3),
+                                        np.diff(np.r_[0, bins])))
 
         func = getattr(groupby, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)

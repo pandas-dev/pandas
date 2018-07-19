@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import pandas._libs.json as json
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs import iNaT
 from pandas.compat import StringIO, long, u, to_str
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
@@ -231,9 +231,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     Parameters
     ----------
     path_or_buf : a valid JSON string or file-like, default: None
-        The string could be a URL. Valid URL schemes include http, ftp, s3, and
-        file. For file URLs, a host is expected. For instance, a local file
-        could be ``file://localhost/path/to/table.json``
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gcs, and file. For file URLs, a host is expected. For instance, a local
+        file could be ``file://localhost/path/to/table.json``
 
     orient : string,
         Indication of expected JSON string format.
@@ -348,7 +348,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     to denote a missing :class:`Index` name, and the subsequent
     :func:`read_json` operation cannot distinguish between the two. The same
     limitation is encountered with a :class:`MultiIndex` and any names
-    beginning with 'level_'.
+    beginning with ``'level_'``.
 
     See Also
     --------
@@ -404,7 +404,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     """
 
     compression = _infer_compression(path_or_buf, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression,
     )
 
@@ -419,7 +419,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     if chunksize:
         return json_reader
 
-    return json_reader.read()
+    result = json_reader.read()
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+    return result
 
 
 class JsonReader(BaseIterator):

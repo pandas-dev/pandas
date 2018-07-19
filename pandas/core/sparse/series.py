@@ -11,11 +11,12 @@ import warnings
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, _ensure_index, InvalidIndexError
+from pandas.core.index import Index, ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
@@ -42,6 +43,10 @@ class SparseSeries(Series):
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     kind : {'block', 'integer'}
     fill_value : float
         Code for missing value. Defaults depends on dtype.
@@ -145,8 +150,8 @@ class SparseSeries(Series):
                     data.fill(v)
 
             if index is None:
-                index = com._default_index(sparse_index.length)
-            index = _ensure_index(index)
+                index = ibase.default_index(sparse_index.length)
+            index = ensure_index(index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -216,12 +221,6 @@ class SparseSeries(Series):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.SparseSeries(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, copy=copy,
-                               fill_value=fill_value, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, copy=False,
-                    fill_value=None, fastpath=False):
         return cls(arr, index=index, name=name, copy=copy,
                    fill_value=fill_value, fastpath=fastpath)
 
@@ -400,7 +399,7 @@ class SparseSeries(Series):
 
         Returns
         -------
-        abs: type of caller
+        abs: same type as caller
         """
         return self._constructor(np.abs(self.values),
                                  index=self.index).__finalize__(self)
@@ -738,15 +737,14 @@ class SparseSeries(Series):
 
         Examples
         --------
-        >>> from numpy import nan
-        >>> s = Series([3.0, nan, 1.0, 3.0, nan, nan])
-        >>> s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                              (1, 2, 'a', 1),
-                                              (1, 1, 'b', 0),
-                                              (1, 1, 'b', 1),
-                                              (2, 1, 'b', 0),
-                                              (2, 1, 'b', 1)],
-                                              names=['A', 'B', 'C', 'D'])
+        >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
+        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                                (1, 2, 'a', 1),
+                                                (1, 1, 'b', 0),
+                                                (1, 1, 'b', 1),
+                                                (2, 1, 'b', 0),
+                                                (2, 1, 'b', 1)],
+                                                names=['A', 'B', 'C', 'D'])
         >>> ss = s.to_sparse()
         >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
                                          column_levels=['C', 'D'],
@@ -798,7 +796,7 @@ class SparseSeries(Series):
         matrix([[ 0.,  0.,  1.,  2.],
                 [ 3.,  0.,  0.,  0.],
                 [ 0.,  0.,  0.,  0.]])
-        >>> ss = SparseSeries.from_coo(A)
+        >>> ss = pd.SparseSeries.from_coo(A)
         >>> ss
         0  2    1
            3    2
@@ -811,12 +809,6 @@ class SparseSeries(Series):
         return _coo_to_sparse_series(A, dense_index=dense_index)
 
 
-# overwrite series methods with unaccelerated versions
-ops.add_special_arithmetic_methods(SparseSeries, **ops.series_special_funcs)
-ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
-# overwrite basic arithmetic to use SparseSeries version
-# force methods to overwrite previous definitions.
-ops.add_special_arithmetic_methods(SparseSeries,
-                                   ops._arith_method_SPARSE_SERIES,
-                                   comp_method=ops._arith_method_SPARSE_SERIES,
-                                   bool_method=None)
+# overwrite series methods with unaccelerated Sparse-specific versions
+ops.add_flex_arithmetic_methods(SparseSeries)
+ops.add_special_arithmetic_methods(SparseSeries)

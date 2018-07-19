@@ -15,11 +15,28 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 from pandas import Timestamp, NaT
+from pandas.errors import OutOfBoundsDatetime
 
 
 class TestTimestampTZOperations(object):
     # --------------------------------------------------------------
     # Timestamp.tz_localize
+
+    def test_tz_localize_pushes_out_of_bounds(self):
+        # GH#12677
+        # tz_localize that pushes away from the boundary is OK
+        pac = Timestamp.min.tz_localize('US/Pacific')
+        assert pac.value > Timestamp.min.value
+        pac.tz_convert('Asia/Tokyo')  # tz_convert doesn't change value
+        with pytest.raises(OutOfBoundsDatetime):
+            Timestamp.min.tz_localize('Asia/Tokyo')
+
+        # tz_localize that pushes away from the boundary is OK
+        tokyo = Timestamp.max.tz_localize('Asia/Tokyo')
+        assert tokyo.value < Timestamp.max.value
+        tokyo.tz_convert('US/Pacific')  # tz_convert doesn't change value
+        with pytest.raises(OutOfBoundsDatetime):
+            Timestamp.max.tz_localize('US/Pacific')
 
     def test_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
@@ -77,11 +94,10 @@ class TestTimestampTZOperations(object):
         with pytest.raises(AmbiguousTimeError):
             ts.tz_localize('US/Pacific', errors='coerce')
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
-    def test_tz_localize_roundtrip(self, stamp, tz):
+    def test_tz_localize_roundtrip(self, stamp, tz_aware_fixture):
+        tz = tz_aware_fixture
         ts = Timestamp(stamp)
         localized = ts.tz_localize(tz)
         assert localized == Timestamp(stamp, tz=tz)
@@ -145,11 +161,11 @@ class TestTimestampTZOperations(object):
     # ------------------------------------------------------------------
     # Timestamp.tz_convert
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
-    def test_tz_convert_roundtrip(self, stamp, tz):
+    def test_tz_convert_roundtrip(self, stamp, tz_aware_fixture):
+        tz = tz_aware_fixture
+
         ts = Timestamp(stamp, tz='UTC')
         converted = ts.tz_convert(tz)
 

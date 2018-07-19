@@ -2,6 +2,9 @@
 """
 Testing that we work in the downstream packages
 """
+import subprocess
+import sys
+
 import pytest
 import numpy as np  # noqa
 from pandas import DataFrame
@@ -53,6 +56,12 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+def test_oo_optimizable():
+    # GH 21071
+    subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
+
+
+@tm.network
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
@@ -73,6 +82,7 @@ def test_scikit_learn(df):
     clf.predict(digits.data[-1:])
 
 
+@tm.network
 def test_seaborn():
 
     seaborn = import_module('seaborn')
@@ -85,6 +95,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
+@pytest.mark.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 

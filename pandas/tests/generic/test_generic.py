@@ -199,11 +199,11 @@ class Generic(object):
         self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
-        # GH 5191
-        # compound dtypes should raise not-implementederror
+        # see gh-5191
+        # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return self._construct(shape=3, dtype=dtype)
+            return self._construct(shape=3, value=1, dtype=dtype)
 
         pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
                                                ("B", "str"),
@@ -534,14 +534,14 @@ class Generic(object):
 
         # small
         shape = [int(2e3)] + ([1] * (self._ndim - 1))
-        small = self._construct(shape, dtype='int8')
+        small = self._construct(shape, dtype='int8', value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
         shape = [int(2e6)] + ([1] * (self._ndim - 1))
-        big = self._construct(shape, dtype='int8')
+        big = self._construct(shape, dtype='int8', value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)
@@ -591,6 +591,26 @@ class Generic(object):
                 obj_copy = func(obj)
                 assert obj_copy is not obj
                 self._compare(obj_copy, obj)
+
+    @pytest.mark.parametrize("periods,fill_method,limit,exp", [
+        (1, "ffill", None, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, 0]),
+        (1, "ffill", 1, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, np.nan]),
+        (1, "bfill", None, [np.nan, 0, 0, 1, 1, 1.5, np.nan, np.nan]),
+        (1, "bfill", 1, [np.nan, np.nan, 0, 1, 1, 1.5, np.nan, np.nan]),
+        (-1, "ffill", None, [np.nan, np.nan, -.5, -.5, -.6, 0, 0, np.nan]),
+        (-1, "ffill", 1, [np.nan, np.nan, -.5, -.5, -.6, 0, np.nan, np.nan]),
+        (-1, "bfill", None, [0, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan]),
+        (-1, "bfill", 1, [np.nan, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan])
+    ])
+    def test_pct_change(self, periods, fill_method, limit, exp):
+        vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+        obj = self._typ(vals)
+        func = getattr(obj, 'pct_change')
+        res = func(periods=periods, fill_method=fill_method, limit=limit)
+        if type(obj) is DataFrame:
+            tm.assert_frame_equal(res, DataFrame(exp))
+        else:
+            tm.assert_series_equal(res, Series(exp))
 
 
 class TestNDFrame(object):

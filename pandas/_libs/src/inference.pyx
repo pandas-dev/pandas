@@ -28,6 +28,8 @@ cdef extern from "numpy/arrayobject.h":
         cdef object fields
         cdef tuple names
 
+from missing cimport is_null_datetime64, is_null_timedelta64, is_null_period
+
 from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
 
 # core.common import for fast inference checks
@@ -574,40 +576,6 @@ cpdef object infer_datetimelike_array(object arr):
     return 'mixed'
 
 
-cdef inline bint is_null_datetime64(v):
-    # determine if we have a null for a datetime (or integer versions),
-    # excluding np.timedelta64('nat')
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    elif util.is_datetime64_object(v):
-        return v.view('int64') == iNaT
-    return False
-
-
-cdef inline bint is_null_timedelta64(v):
-    # determine if we have a null for a timedelta (or integer versions),
-    # excluding np.datetime64('nat')
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    elif util.is_timedelta64_object(v):
-        return v.view('int64') == iNaT
-    return False
-
-
-cdef inline bint is_null_period(v):
-    # determine if we have a null for a Period (or integer versions),
-    # excluding np.datetime64('nat') and np.timedelta64('nat')
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    return False
-
-
 cdef inline bint is_datetime(object o):
     return PyDateTime_Check(o)
 
@@ -752,7 +720,7 @@ cdef class IntegerFloatValidator(Validator):
         return issubclass(self.dtype.type, np.integer)
 
 
-cpdef bint is_integer_float_array(ndarray values):
+cdef bint is_integer_float_array(ndarray values):
     cdef:
         IntegerFloatValidator validator = IntegerFloatValidator(
             len(values),
@@ -803,7 +771,7 @@ cdef class UnicodeValidator(Validator):
         return issubclass(self.dtype.type, np.unicode_)
 
 
-cpdef bint is_unicode_array(ndarray values, bint skipna=False):
+cdef bint is_unicode_array(ndarray values, bint skipna=False):
     cdef:
         UnicodeValidator validator = UnicodeValidator(
             len(values),
@@ -822,7 +790,7 @@ cdef class BytesValidator(Validator):
         return issubclass(self.dtype.type, np.bytes_)
 
 
-cpdef bint is_bytes_array(ndarray values, bint skipna=False):
+cdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         BytesValidator validator = BytesValidator(
             len(values),
@@ -1090,7 +1058,7 @@ def maybe_convert_numeric(ndarray[object] values, set na_values,
     cdef:
         int status, maybe_int
         Py_ssize_t i, n = values.size
-        Seen seen = Seen(coerce_numeric);
+        Seen seen = Seen(coerce_numeric)
         ndarray[float64_t] floats = np.empty(n, dtype='f8')
         ndarray[complex128_t] complexes = np.empty(n, dtype='c16')
         ndarray[int64_t] ints = np.empty(n, dtype='i8')
@@ -1224,8 +1192,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[uint8_t] bools
         ndarray[int64_t] idatetimes
         ndarray[int64_t] itimedeltas
-        Seen seen = Seen();
-        object val, onan
+        Seen seen = Seen()
+        object val
         float64_t fval, fnan
 
     n = len(objects)
@@ -1244,7 +1212,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         timedeltas = np.empty(n, dtype='m8[ns]')
         itimedeltas = timedeltas.view(np.int64)
 
-    onan = np.nan
     fnan = np.nan
 
     for i from 0 <= i < n:
@@ -1403,55 +1370,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
                     return bools.view(np.bool_)
 
     return objects
-
-
-def maybe_convert_bool(ndarray[object] arr,
-                       true_values=None, false_values=None):
-    cdef:
-        Py_ssize_t i, n
-        ndarray[uint8_t] result
-        object val
-        set true_vals, false_vals
-        int na_count = 0
-
-    n = len(arr)
-    result = np.empty(n, dtype=np.uint8)
-
-    # the defaults
-    true_vals = set(('True', 'TRUE', 'true'))
-    false_vals = set(('False', 'FALSE', 'false'))
-
-    if true_values is not None:
-        true_vals = true_vals | set(true_values)
-
-    if false_values is not None:
-        false_vals = false_vals | set(false_values)
-
-    for i from 0 <= i < n:
-        val = arr[i]
-
-        if cpython.PyBool_Check(val):
-            if val is True:
-                result[i] = 1
-            else:
-                result[i] = 0
-        elif val in true_vals:
-            result[i] = 1
-        elif val in false_vals:
-            result[i] = 0
-        elif PyFloat_Check(val):
-            result[i] = UINT8_MAX
-            na_count += 1
-        else:
-            return arr
-
-    if na_count > 0:
-        mask = result == UINT8_MAX
-        arr = result.view(np.bool_).astype(object)
-        np.putmask(arr, mask, np.nan)
-        return arr
-    else:
-        return result.view(np.bool_)
 
 
 def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,

@@ -9,13 +9,16 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
-import pandas as pd
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas import compat
 import struct
-import numpy as np
-from pandas.util._decorators import Appender
 import warnings
+
+import numpy as np
+
+from pandas.util._decorators import Appender
+from pandas import compat
+
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
+import pandas as pd
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")
@@ -68,11 +71,11 @@ Examples
 --------
 Read a SAS Xport file:
 
->>> df = pandas.read_sas('filename.XPT')
+>>> df = pd.read_sas('filename.XPT')
 
 Read a Xport file in 10,000 line chunks:
 
->>> itr = pandas.read_sas('filename.XPT', chunksize=10000)
+>>> itr = pd.read_sas('filename.XPT', chunksize=10000)
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
@@ -236,7 +239,8 @@ class XportReader(BaseIterator):
         self._chunksize = chunksize
 
         if isinstance(filepath_or_buffer, str):
-            filepath_or_buffer, encoding, compression = get_filepath_or_buffer(
+            (filepath_or_buffer, encoding,
+             compression, should_close) = get_filepath_or_buffer(
                 filepath_or_buffer, encoding=encoding)
 
         if isinstance(filepath_or_buffer, (str, compat.text_type, bytes)):

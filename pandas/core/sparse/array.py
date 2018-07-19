@@ -16,7 +16,7 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
     is_integer_dtype,
@@ -26,7 +26,8 @@ from pandas.core.dtypes.common import (
     is_scalar, is_dtype_equal)
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
-    astype_nansafe, find_common_type)
+    astype_nansafe, find_common_type, infer_dtype_from_scalar,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
 import pandas._libs.sparse as splib
@@ -52,16 +53,10 @@ def _get_fill(arr):
         return np.asarray(arr.fill_value)
 
 
-def _sparse_array_op(left, right, op, name, series=False):
-
-    if series and is_integer_dtype(left) and is_integer_dtype(right):
-        # series coerces to float64 if result should have NaN/inf
-        if name in ('floordiv', 'mod') and (right.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
-        elif name in ('rfloordiv', 'rmod') and (left.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+def _sparse_array_op(left, right, op, name):
+    if name.startswith('__'):
+        # For lookups in _libs.sparse we need non-dunder op name
+        name = name[2:-2]
 
     # dtype used to find corresponding sparse method
     if not is_dtype_equal(left.dtype, right.dtype):
@@ -118,6 +113,10 @@ def _sparse_array_op(left, right, op, name, series=False):
 
 def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     """ wrap op result to have correct dtype """
+    if name.startswith('__'):
+        # e.g. __eq__ --> eq
+        name = name[2:-2]
+
     if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
         dtype = np.bool
 
@@ -162,9 +161,9 @@ class SparseArray(PandasObject, np.ndarray):
                 data = np.nan
             if not is_scalar(data):
                 raise Exception("must only pass scalars with an index ")
-            values = np.empty(len(index), dtype='float64')
-            values.fill(data)
-            data = values
+            dtype = infer_dtype_from_scalar(data)[0]
+            data = construct_1d_arraylike_from_scalar(
+                data, len(index), dtype)
 
         if isinstance(data, ABCSparseSeries):
             data = data.values
@@ -291,6 +290,7 @@ class SparseArray(PandasObject, np.ndarray):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = self.fill_value, self.sp_index
+        object_state[2] = self.sp_values.__reduce__()[2]
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -339,6 +339,10 @@ class SparseArray(PandasObject, np.ndarray):
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
         return output
+
+    @property
+    def shape(self):
+        return (len(self),)
 
     @property
     def sp_values(self):
@@ -464,7 +468,7 @@ class SparseArray(PandasObject, np.ndarray):
             # return scalar
             return self[indices]
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         n = len(self)
         if allow_fill and fill_value is not None:
             # allow -1 to indicate self.fill_value,
@@ -842,7 +846,4 @@ def _make_index(length, indices, kind):
     return index
 
 
-ops.add_special_arithmetic_methods(SparseArray,
-                                   arith_method=ops._arith_method_SPARSE_ARRAY,
-                                   comp_method=ops._arith_method_SPARSE_ARRAY,
-                                   bool_method=ops._arith_method_SPARSE_ARRAY)
+ops.add_special_arithmetic_methods(SparseArray)

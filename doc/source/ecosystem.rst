@@ -12,10 +12,13 @@ build powerful and more focused data tools.
 The creation of libraries that complement pandas' functionality also allows pandas
 development to remain focused around it's original requirements.
 
-This is an in-exhaustive list of projects that build on pandas in order to provide
-tools in the PyData space.
+This is an inexhaustive list of projects that build on pandas in order to provide
+tools in the PyData space. For a list of projects that depend on pandas,
+see the 
+`libraries.io usage page for pandas <https://libraries.io/pypi/pandas/usage>`_
+or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
 
-We'd like to make it easier for users to find these project, if you know of other
+We'd like to make it easier for users to find these projects, if you know of other
 substantial projects that you feel should be on this list, please let us know.
 
 
@@ -38,12 +41,26 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
 ML pipeline.
 
+`Featuretools <https://github.com/featuretools/featuretools/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community. 
 
 .. _ecosystem.visualization:
 
 Visualization
 -------------
+
+`Altair <https://altair-viz.github.io/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Altair is a declarative statistical visualization library for Python.
+With Altair, you can spend more time understanding your data and its
+meaning. Altair's API is simple, friendly and consistent and built on
+top of the powerful Vega-Lite JSON specification. This elegant
+simplicity produces beautiful and effective visualizations with a
+minimal amount of code. Altair works with Pandas DataFrames.
+
 
 `Bokeh <http://bokeh.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,31 +82,22 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`yhat/ggplot <https://github.com/yhat/ggplot>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`yhat/ggpy <https://github.com/yhat/ggpy>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for Python users has long been missing. Although still young
-(as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
+(as of Jan-2014), the `yhat/ggpy <https://github.com/yhat/ggpy>`__ project has been
 progressing quickly in that direction.
-
-`Vincent <https://github.com/wrobstory/vincent>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
-(that in turn, leverages `d3 <http://d3js.org/>`__) to create
-plots. Although functional, as of Summer 2016 the Vincent project has not been updated
-in over two years and is `unlikely to receive further updates <https://github.com/wrobstory/vincent#2015-08-12-update>`__.
 
 `IPython Vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Like Vincent, the `IPython Vega <https://github.com/vega/ipyvega>`__ project leverages `Vega
-<https://github.com/trifacta/vega>`__ to create plots, but primarily
-targets the IPython Notebook environment.
+`IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
+<https://github.com/trifacta/vega>`__ to create plots within Jupyter Notebook.
 
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -112,20 +120,28 @@ IDE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
-environment.
-IPython Notebook is a web application for creating IPython notebooks.
-An IPython notebook is a JSON document containing an ordered list
+environment. IPython tab completion works with Pandas methods and also
+attributes like DataFrame columns.
+
+`Jupyter Notebook / Jupyter Lab <https://jupyter.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Jupyter Notebook is a web application for creating Jupyter notebooks.
+A Jupyter notebook is a JSON document containing an ordered list
 of input/output cells which can contain code, text, mathematics, plots
 and rich media.
-IPython notebooks can be converted to a number of open standard output formats
+Jupyter notebooks can be converted to a number of open standard output formats
 (HTML, HTML presentation slides, LaTeX, PDF, ReStructuredText, Markdown,
-Python) through 'Download As' in the web interface and ``ipython nbconvert``
+Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-Pandas DataFrames implement ``_repr_html_`` methods
-which are utilized by IPython Notebook for displaying
-(abbreviated) HTML tables.  (Note: HTML tables may or may not be
-compatible with non-HTML IPython output formats.)
+Pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+which are utilized by Jupyter Notebook for displaying
+(abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
+(Note: HTML tables may or may not be
+compatible with non-HTML Jupyter output formats.)
+
+See :ref:`Options and Settings <options>` and :ref:`<options.available>`
+for pandas ``display.`` settings.
 
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -141,11 +157,10 @@ editing, testing, debugging, and introspection features.
 Spyder can now introspect and display Pandas DataFrames and show
 both "column wise min/max and global min/max coloring."
 
-
 .. _ecosystem.api:
 
 API
------
+---
 
 `pandas-datareader <https://github.com/pydata/pandas-datareader>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -156,14 +171,22 @@ See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.
 
 The following data feeds are available:
 
-  * Yahoo! Finance
-  * Google Finance
-  * FRED
-  * Fama/French
-  * World Bank
-  * OECD
-  * Eurostat
-  * EDGAR Index
+ * Google Finance
+ * Tiingo
+ * Morningstar
+ * IEX
+ * Robinhood
+ * Enigma
+ * Quandl
+ * FRED
+ * Fama/French
+ * World Bank
+ * OECD
+ * Eurostat
+ * TSP Fund Data
+ * Nasdaq Trader Symbol Definitions
+ * Stooq Index Data
+ * MOEX Data
 
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -184,9 +207,9 @@ and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,   
 and international organisations. pandaSDMX can expose datasets and related 
-structural metadata including dataflows, code-lists, 
-and datastructure definitions as pandas Series 
-or multi-indexed DataFrames.  
+structural metadata including data flows, code-lists,
+and data structure definitions as pandas Series
+or MultiIndexed DataFrames.
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -224,24 +247,23 @@ dimensional arrays, rather than the tabular data for which pandas excels.
 Out-of-core
 -------------
 
-`Dask <https://dask.readthedocs.io/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Dask is a flexible parallel computing library for analytics. Dask
-provides a familiar ``DataFrame`` interface for out-of-core, parallel and distributed computing.
-
-`Dask-ML <https://dask-ml.readthedocs.io/en/latest/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
-
-
 `Blaze <http://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Blaze provides a standard API for doing computations with various
 in-memory and on-disk backends: NumPy, Pandas, SQLAlchemy, MongoDB, PyTables,
 PySpark.
+
+`Dask <https://dask.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dask is a flexible parallel computing library for analytics. Dask
+provides a familiar ``DataFrame`` interface for out-of-core, parallel and distributed computing.
+
+`Dask-ML <https://dask-ml.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
 
 `Odo <http://odo.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -252,6 +274,26 @@ PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
 
+`Ray <https://ray.readthedocs.io/en/latest/pandas_on_ray.html>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pandas on Ray is an early stage DataFrame library that wraps Pandas and transparently distributes the data and computation. The user does not need to know how many cores their system has, nor do they need to specify how to distribute the data. In fact, users can continue using their previous Pandas notebooks while experiencing a considerable speedup from Pandas on Ray, even on a single machine. Only a modification of the import statement is needed, as we demonstrate below. Once you’ve changed your import statement, you’re ready to use Pandas on Ray just like you would Pandas.
+
+.. code:: python
+
+    # import pandas as pd
+    import ray.dataframe as pd
+
+
+`Vaex <https://docs.vaex.io/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to Pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+
+ * vaex.from_pandas
+ * vaex.to_pandas_df
+
+
 .. _ecosystem.data_validation:
 
 Data validation
@@ -260,5 +302,40 @@ Data validation
 `Engarde <http://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+Engarde is a lightweight library used to explicitly state your assumptions about your datasets
 and check that they're *actually* true.
+
+.. _ecosystem.extensions:
+
+Extension Data Types
+--------------------
+
+Pandas provides an interface for defining
+:ref:`extension types <extending.extension-types>` to extend NumPy's type
+system. The following libraries implement that interface to provide types not
+found in NumPy or pandas, which work well with pandas' data containers.
+
+`cyberpandas`_
+~~~~~~~~~~~~~~
+
+Cyberpandas provides an extension type for storing arrays of IP Addresses. These
+arrays can be stored inside pandas' Series and DataFrame.
+
+.. _ecosystem.accessors:
+
+Accessors
+---------
+
+A directory of projects providing
+:ref:`extension accessors <extending.register-accessors>`. This is for users to
+discover new accessors and for library authors to coordinate on the namespace.
+
+============== ========== =========================
+Library        Accessor   Classes
+============== ========== =========================
+`cyberpandas`_ ``ip``     ``Series``
+`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
+============== ========== =========================
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
+.. _pdvega: https://jakevdp.github.io/pdvega/

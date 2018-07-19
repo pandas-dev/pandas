@@ -37,8 +37,9 @@ _mixed_frame = _frame.copy()
 
 class TestPandasContainer(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, datapath):
+        self.dirpath = datapath("io", "json", "data")
 
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -59,7 +60,8 @@ class TestPandasContainer(object):
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
-    def teardown_method(self, method):
+        yield
+
         del self.dirpath
 
         del self.ts
@@ -553,7 +555,7 @@ class TestPandasContainer(object):
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
-        df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
+        df = pd.DataFrame({'bar' * 100000: [1], 'foo': [1337]})
         assert df.to_json() == \
             '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
                 bar=('bar' * 100000))
@@ -1039,7 +1041,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(result, expected)
 
     def test_read_s3_jsonl(self, s3_resource):
-        pytest.importorskip('s3fs')
         # GH17200
 
         result = read_json('s3n://pandas-test/items.jsonl', lines=True)
