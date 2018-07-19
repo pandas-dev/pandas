@@ -624,8 +624,6 @@ class SparseSeries(Series):
         cumsum : SparseSeries
         """
         nv.validate_cumsum(args, kwargs)
-        if axis is not None:
-            axis = self._get_axis_number(axis)
 
         new_array = self.values.cumsum()
 
@@ -654,7 +652,6 @@ class SparseSeries(Series):
         Analogous to Series.dropna. If fill_value=NaN, returns a dense Series
         """
         # TODO: make more efficient
-        axis = self._get_axis_number(axis or 0)
         dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"

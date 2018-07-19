@@ -126,7 +126,7 @@ _lite_rule_alias = {
     'us': 'U',
     'ns': 'N'}
 
-_dont_uppercase = set(('MS', 'ms'))
+_dont_uppercase = {'MS', 'ms'}
 
 # ----------------------------------------------------------------------
 

@@ -222,7 +222,6 @@ class HTMLFormatter(TableFormatter):
             return row
 
         self.write('<thead>', indent)
-        row = []
 
         indent += self.indent_delta
 

@@ -1743,9 +1743,6 @@ def _comp_method_PANEL(cls, op, special):
 
     @Appender('Wrapper for comparison method {name}'.format(name=op_name))
     def f(self, other, axis=None):
-        # Validate the axis parameter
-        if axis is not None:
-            axis = self._get_axis_number(axis)
 
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op, try_cast=False)
