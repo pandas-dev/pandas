@@ -711,7 +711,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return lambda x: "'%s'" % formatter(x, tz=self.tz)
 
     # ----------------------------------------------------------------------
-    # Pickling Methods
+    # Picklability
 
     def __reduce__(self):
 

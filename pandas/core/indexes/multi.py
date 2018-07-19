@@ -1540,6 +1540,9 @@ class MultiIndex(Index):
         """A tuple with the length of each level."""
         return tuple(len(x) for x in self.levels)
 
+    # ----------------------------------------------------------------------
+    # Picklability
+
     def __reduce__(self):
         """Necessary for making this object picklable"""
         d = dict(levels=[lev for lev in self.levels],
@@ -1567,6 +1570,8 @@ class MultiIndex(Index):
         self.sortorder = sortorder
         self._verify_integrity()
         self._reset_identity()
+
+    # ----------------------------------------------------------------------
 
     def __getitem__(self, key):
         if is_scalar(key):
