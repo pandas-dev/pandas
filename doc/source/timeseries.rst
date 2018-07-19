@@ -723,7 +723,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     microsecond,"The microseconds of the datetime"
     nanosecond,"The nanoseconds of the datetime"
     date,"Returns datetime.date (does not contain timezone information)"
-    time,"Returns datetime.time (does not contain timezone information)"
+    time,"Returns datetime.time (contains timezone information)"
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
