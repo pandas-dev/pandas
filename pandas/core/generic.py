@@ -8035,15 +8035,21 @@ class NDFrame(PandasObject, SelectionMixin):
     """)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
         if periods == 0:
             return self
 
         block_axis = self._get_block_manager_axis(axis)
+        shift_kwargs = {'periods': periods, 'axis': block_axis}
+        if not is_categorical_dtype(self):
+            shift_kwargs['fill_value'] = fill_value
         if freq is None:
-            new_data = self._data.shift(periods=periods, axis=block_axis)
+                new_data = self._data.shift(**shift_kwargs)
         else:
-            return self.tshift(periods, freq)
+            tshift_kwargs = {'periods': periods, 'freq': freq}
+            if not is_categorical_dtype(self):
+                tshift_kwargs['fill_value'] = fill_value
+            return self.tshift(**tshift_kwargs)
 
         return self._constructor(new_data).__finalize__(self)
 
@@ -8083,18 +8089,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_obj.__finalize__(self)
 
-    def tshift(self, periods=1, freq=None, axis=0):
+    def tshift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
         """
         Shift the time index, using the index's frequency if available.
 
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative
+            Number of periods to move, can be positive or negative.
         freq : DateOffset, timedelta, or time rule string, default None
-            Increment to use from the tseries module or time rule (e.g. 'EOM')
+            Increment to use from the tseries module or time rule (e.g. 'EOM').
         axis : int or basestring
-            Corresponds to the axis that contains the Index
+            Corresponds to the axis that contains the Index.
+        fill_value :
+            Value to use to cover missing values.
 
         Notes
         -----

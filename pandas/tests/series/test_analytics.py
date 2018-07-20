@@ -1459,6 +1459,17 @@ class TestSeriesAnalytics(TestData):
         expected = ts.astype(float).shift(1)
         assert_series_equal(shifted, expected)
 
+    def test_shift_fillna(self):
+        # ENH 15486
+        ts = self.ts.astype(int)
+        fillval = 0
+        shifted = ts.shift(1, fill_value=fillval)
+        # default behaviour adds nan so converts to floats
+        default = ts.shift(1)
+        default.iloc[0] = fillval
+        expected = default.astype(int)
+        assert_series_equal(shifted, expected)
+
     def test_shift_categorical(self):
         # GH 9416
         s = pd.Series(['a', 'b', 'c', 'd'], dtype='category')

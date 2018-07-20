@@ -1283,12 +1283,12 @@ class Block(PandasObject):
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0, mgr=None, fill_value=np.nan):
         """ shift the block by periods, possibly upcast """
 
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = maybe_upcast(self.values)
+        new_values, fill_value = maybe_upcast(self.values, fill_value)
 
         # make sure array sent to np.roll is c_contiguous
         f_ordered = new_values.flags.f_contiguous
@@ -2587,7 +2587,7 @@ class CategoricalBlock(ExtensionBlock):
 
         return result
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0, mgr=None, fill_value=np.nan):
         return self.make_block_same_class(values=self.values.shift(periods),
                                           placement=self.mgr_locs)
 
@@ -2931,7 +2931,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     def _box_func(self):
         return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0, mgr=None, fill_value=np.nan):
         """ shift the block by periods """
 
         # think about moving this to the DatetimeIndex. This is a non-freq
@@ -3124,7 +3124,7 @@ class SparseBlock(NonConsolidatableMixIn, Block):
         return [self.make_block_same_class(values=values,
                                            placement=self.mgr_locs)]
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0, mgr=None, fill_value=np.nan):
         """ shift the block by periods """
         N = len(self.values.T)
         indexer = np.zeros(N, dtype=int)
