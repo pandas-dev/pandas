@@ -6,6 +6,10 @@ v0.23.4
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
 
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping-27` for more.
 
 .. contents:: What's new in v0.23.4
     :local:
@@ -27,6 +31,7 @@ Bug Fixes
 **Groupby/Resample/Rolling**
 
 - Bug where calling :func:`DataFrameGroupBy.agg` with a list of functions including ``ohlc`` as the non-initial element would raise a ``ValueError`` (:issue:`21716`)
+- Bug in ``roll_quantile`` caused a memory leak when calling ``.rolling(...).quantile(q)`` with ``q`` in (0,1) (:issue:`21965`)
 -
 
 **Conversion**
@@ -58,3 +63,7 @@ Bug Fixes
 
 -
 -
+
+**Missing**
+
+- Bug in :func:`Series.clip` and :func:`DataFrame.clip` cannot accept list-like threshold containing ``NaN`` (:issue:`19992`)
