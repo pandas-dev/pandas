@@ -479,6 +479,9 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 @disallow('M8', 'm8')
 def nansem(values, axis=None, skipna=True, ddof=1):
+    # This checks if non-numeric-like data is passed with numeric_only=False
+    # and raises a TypeError otherwise
+    var = nanvar(values, axis, skipna, ddof=ddof)
 
     mask = isna(values)
     if not is_float_dtype(values.dtype):
