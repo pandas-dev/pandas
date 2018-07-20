@@ -2,6 +2,7 @@
 [run]
 branch = False
 omit = */tests/*
+plugins = Cython.Coverage
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -22,6 +23,7 @@ exclude_lines =
     if __name__ == .__main__.:
 
 ignore_errors = False
+show_missing = True
 
 [html]
 directory = coverage_html_report
