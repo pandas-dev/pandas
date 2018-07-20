@@ -1948,7 +1948,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return nanops.nancov(this.values, other.values,
                              min_periods=min_periods)
 
-    def diff(self, periods=1):
+    def diff(self, periods=1, suffix=None):
         """
         First discrete difference of element.
 
@@ -2008,8 +2008,25 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com._values_from_object(self), periods)
-        return self._constructor(result, index=self.index).__finalize__(self)
+        def _diff(x):
+            result = algorithms.diff(com._values_from_object(self), x)
+            return self._constructor(result, index=self.index).__finalize__(self)
+
+        if isinstance(periods, int):
+            return _diff(periods)
+        elif isinstance(periods, list):
+            if len(periods) == 0:
+                raise ValueError('Must provide non empty list to periods')
+            else:
+                result = _diff(periods[0]).to_frame().add_suffix('{}{}'.format(suffix, periods[0]))
+                for period in periods[1:]:
+                    next_addition = _diff(period).to_frame().add_suffix('{}{}'.format(suffix, period))
+                    result = result.join(next_addition)
+                return result
+        else:
+            raise TypeError('`periods` must be an integer or a list')
+
+
 
     def autocorr(self, lag=1):
         """
