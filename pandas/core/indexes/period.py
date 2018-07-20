@@ -315,7 +315,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 return True
             except Exception:
                 return False
-            return False
 
     contains = __contains__
 
