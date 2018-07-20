@@ -3155,7 +3155,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
             if not is_list_like(new_values) or self.ndim == 1:
-                return com._maybe_box_datetimelike(new_values)
+                return com.maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
                 new_values, index=self.columns,

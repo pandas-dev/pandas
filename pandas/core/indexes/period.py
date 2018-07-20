@@ -527,7 +527,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         """
         s = com._values_from_object(series)
         try:
-            return com._maybe_box(self,
+            return com.maybe_box(self,
                                   super(PeriodIndex, self).get_value(s, key),
                                   series, key)
         except (KeyError, IndexError):
@@ -552,7 +552,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                     return series[key]
                 elif grp == freqn:
                     key = Period(asdt, freq=self.freq).ordinal
-                    return com._maybe_box(self, self._engine.get_value(s, key),
+                    return com.maybe_box(self, self._engine.get_value(s, key),
                                           series, key)
                 else:
                     raise KeyError(key)
@@ -560,7 +560,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 pass
 
             key = Period(key, self.freq).ordinal
-            return com._maybe_box(self, self._engine.get_value(s, key),
+            return com.maybe_box(self, self._engine.get_value(s, key),
                                   series, key)
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)

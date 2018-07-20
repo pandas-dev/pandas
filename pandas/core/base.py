@@ -856,7 +856,7 @@ class IndexOpsMixin(object):
         numpy.ndarray.tolist
         """
         if is_datetimelike(self._values):
-            return [com._maybe_box_datetimelike(x) for x in self._values]
+            return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
         else:

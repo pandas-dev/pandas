@@ -499,7 +499,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             return self.get_value_maybe_box(series, key)
 
         try:
-            return com._maybe_box(self, Index.get_value(self, series, key),
+            return com.maybe_box(self, Index.get_value(self, series, key),
                                   series, key)
         except KeyError:
             try:
@@ -517,7 +517,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         if not isinstance(key, Timedelta):
             key = Timedelta(key)
         values = self._engine.get_value(com._values_from_object(series), key)
-        return com._maybe_box(self, values, series, key)
+        return com.maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """

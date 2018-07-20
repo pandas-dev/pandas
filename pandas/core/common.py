@@ -72,7 +72,7 @@ def _get_info_slice(obj, indexer):
     return tuple(slices)
 
 
-def _maybe_box(indexer, values, obj, key):
+def maybe_box(indexer, values, obj, key):
 
     # if we have multiples coming back, box em
     if isinstance(values, np.ndarray):
@@ -82,7 +82,7 @@ def _maybe_box(indexer, values, obj, key):
     return values
 
 
-def _maybe_box_datetimelike(value):
+def maybe_box_datetimelike(value):
     # turn a datetime like into a Timestamp/timedelta as needed
 
     if isinstance(value, (np.datetime64, datetime)):
@@ -416,7 +416,7 @@ def _dict_compat(d):
     dict
 
     """
-    return dict((_maybe_box_datetimelike(key), value)
+    return dict((maybe_box_datetimelike(key), value)
                 for key, value in iteritems(d))
 
 

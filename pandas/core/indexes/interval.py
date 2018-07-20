@@ -1120,8 +1120,8 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    start = com._maybe_box_datetimelike(start)
-    end = com._maybe_box_datetimelike(end)
+    start = com.maybe_box_datetimelike(start)
+    end = com.maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
     if freq is None and com._any_none(periods, start, end):
