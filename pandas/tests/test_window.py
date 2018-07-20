@@ -464,6 +464,60 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize("input_dtype", ['int', 'float'])
+    @pytest.mark.parametrize("func,closed,expected", [
+        ('min', 'right', [0.0, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ('min', 'both', [0.0, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ('min', 'neither', [np.nan, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ('min', 'left', [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ('max', 'right', [0.0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ('max', 'both', [0.0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ('max', 'neither', [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ('max', 'left', [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8])
+    ])
+    def test_closed_min_max_datetime(self, input_dtype,
+                                     func, closed,
+                                     expected):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10).astype(input_dtype),
+                        index=pd.date_range('2000', periods=10))
+
+        result = getattr(ser.rolling('3D', closed=closed), func)()
+        expected = pd.Series(expected, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_closed_uneven(self):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+
+        # uneven
+        ser = ser.drop(index=ser.index[[1, 5]])
+        result = ser.rolling('3D', closed='left').min()
+        expected = pd.Series([np.nan, 0, 0, 2, 3, 4, 6, 6],
+                             index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func,closed,expected", [
+        ('min', 'right', [np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
+        ('min', 'both', [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, np.nan]),
+        ('min', 'neither', [np.nan, np.nan, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
+        ('min', 'left', [np.nan, np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan]),
+        ('max', 'right', [np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan, np.nan]),
+        ('max', 'both', [np.nan, 1, 2, 3, 4, 5, 6, 6, 6, np.nan]),
+        ('max', 'neither', [np.nan, np.nan, 1, 2, 3, 4, 5, 6, np.nan, np.nan]),
+        ('max', 'left', [np.nan, np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan])
+    ])
+    def test_closed_min_max_minp(self, func, closed, expected):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+        ser[ser.index[-3:]] = np.nan
+        result = getattr(ser.rolling('3D', min_periods=2, closed=closed),
+                         func)()
+        expected = pd.Series(expected, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('roller', ['1s', 1])
     def tests_empty_df_rolling(self, roller):
         # GH 15819 Verifies that datetime and integer rolling windows can be

@@ -477,6 +477,9 @@ Groupby/Resample/Rolling
 -
 -
 
+- Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
+  datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
+
 Sparse
 ^^^^^^
 
