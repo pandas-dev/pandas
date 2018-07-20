@@ -625,7 +625,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 

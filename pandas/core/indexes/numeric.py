@@ -249,9 +249,9 @@ class UInt64Index(NumericIndex):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
         # also uint64.
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
         if is_integer_dtype(keyarr):
-            return com._asarray_tuplesafe(keyarr, dtype=np.uint64)
+            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
         return keyarr
 
     @Appender(_index_shared_docs['_convert_index_indexer'])

@@ -1474,7 +1474,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_index_indexer(key)
         else:
             # asarray can be unsafe, NumPy strings are weird
-            keyarr = com._asarray_tuplesafe(key)
+            keyarr = com.asarray_tuplesafe(key)
 
         if is_integer_dtype(keyarr):
             # Cast the indexer to uint64 if possible so
