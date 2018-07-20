@@ -475,11 +475,9 @@ Numeric
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 - Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
 - Fixed bug in :func:`unique` handled signed zeros inconsistently: for some inputs 0.0 and -0.0 were treated as equal and for some inputs as different. Now they are treated as equal for all inputs (:issue:`21866`)
-- Bug in :meth:`DataFrame.agg`, :meth:`DataFrame.transform` and :meth:`DataFrame.apply` when ``axis=1``.
-  Using ``apply`` with a list of functions and axis=1 (e.g. ``df.apply(['abs'], axis=1)``)
-  previously gave a TypeError. This fixes that issue.
-  As ``agg`` and ``transform`` in some cases delegate to ``apply``, this also
-  fixed this issue for them (:issue:`16679`).
+- Bug in :meth:`DataFrame.agg`, :meth:`DataFrame.transform` and :meth:`DataFrame.apply` where,
+  when supplied with a list of functions and ``axis=1`` (e.g. ``df.apply(['sum', 'mean'], axis=1)``),
+  a ``TypeError`` was wrongly raised. For all three methods such calculation are now done correctly. (:issue:`16679`).
 -
 
 Strings

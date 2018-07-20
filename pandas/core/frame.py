@@ -6080,7 +6080,7 @@ class DataFrame(NDFrame):
         return result
 
     def _aggregate(self, arg, axis=0, *args, **kwargs):
-        if axis == 1:
+        if axis in {1, 'columns'}:
             result, how = (super(DataFrame, self.T)
                            ._aggregate(arg, *args, **kwargs))
             result = result.T if result is not None else result
@@ -6090,7 +6090,7 @@ class DataFrame(NDFrame):
     agg = aggregate
 
     def transform(self, func, axis=0, *args, **kwargs):
-        if axis == 1:
+        if axis in {1, 'columns'}:
             return super(DataFrame, self.T).transform(func, *args, **kwargs).T
         return super(DataFrame, self).transform(func, *args, **kwargs)
 

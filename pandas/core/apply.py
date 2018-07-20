@@ -5,6 +5,8 @@ from pandas._libs import reduction
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.common import (
     is_extension_type,
+    is_dict_like,
+    is_list_like,
     is_sequence)
 from pandas.util._decorators import cache_readonly
 
@@ -106,7 +108,7 @@ class FrameApply(object):
         """ compute the results """
 
         # dispatch to agg
-        if isinstance(self.f, (list, dict)):
+        if is_list_like(self.f) or is_dict_like(self.f):
             return self.obj.aggregate(self.f, axis=self.axis,
                                       *self.args, **self.kwds)
 

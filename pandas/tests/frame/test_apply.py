@@ -869,7 +869,7 @@ def zip_frames(frames, axis=1):
 class TestDataFrameAggregate(TestData):
 
     def test_agg_transform(self, axis):
-        other_axis = abs(axis - 1)
+        other_axis = 1 if axis in {0, 'index'} else 0
 
         with np.errstate(all='ignore'):
 
@@ -890,7 +890,7 @@ class TestDataFrameAggregate(TestData):
             # list-like
             result = self.frame.apply([np.sqrt], axis=axis)
             expected = f_sqrt.copy()
-            if axis == 0:
+            if axis in {0, 'index'}:
                 expected.columns = pd.MultiIndex.from_product(
                     [self.frame.columns, ['sqrt']])
             else:
@@ -906,7 +906,7 @@ class TestDataFrameAggregate(TestData):
             # functions per series and then concatting
             result = self.frame.apply([np.abs, np.sqrt], axis=axis)
             expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
-            if axis == 0:
+            if axis in {0, 'index'}:
                 expected.columns = pd.MultiIndex.from_product(
                     [self.frame.columns, ['absolute', 'sqrt']])
             else:
@@ -1001,7 +1001,7 @@ class TestDataFrameAggregate(TestData):
                     'B': {'bar': 'max'}})
 
     def test_agg_reduce(self, axis):
-        other_axis = abs(axis - 1)
+        other_axis = 1 if axis in {0, 'index'} else 0
         name1, name2 = self.frame.axes[other_axis].unique()[:2].sort_values()
 
         # all reducers
@@ -1010,7 +1010,7 @@ class TestDataFrameAggregate(TestData):
                               self.frame.sum(axis=axis),
                               ], axis=1)
         expected.columns = ['mean', 'max', 'sum']
-        expected = expected.T if axis == 0 else expected
+        expected = expected.T if axis in {0, 'index'} else expected
 
         result = self.frame.agg(['mean', 'max', 'sum'], axis=axis)
         assert_frame_equal(result, expected)
@@ -1031,7 +1031,7 @@ class TestDataFrameAggregate(TestData):
                           index=['mean']),
             name2: Series([self.frame.loc(other_axis)[name2].sum()],
                           index=['sum'])})
-        expected = expected.T if axis == 1 else expected
+        expected = expected.T if axis in {1, 'columns'} else expected
         assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
@@ -1045,7 +1045,7 @@ class TestDataFrameAggregate(TestData):
                            self.frame.loc(other_axis)[name2].max()],
                            index=['sum', 'max'])),
         ]))
-        expected = expected.T if axis == 1 else expected
+        expected = expected.T if axis in {1, 'columns'} else expected
         assert_frame_equal(result, expected)
 
     def test_nuiscance_columns(self):

@@ -60,8 +60,8 @@ def spmatrix(request):
     return getattr(sparse, request.param + '_matrix')
 
 
-@pytest.fixture(params=[0, 1],
-                ids=lambda x: "axis {}".format(x))
+@pytest.fixture(params=[0, 1, 'index', 'columns'],
+                ids=lambda x: "axis {!r}".format(x))
 def axis(request):
     """
      Fixture for returning the axis numbers of a dataframe.
@@ -69,7 +69,7 @@ def axis(request):
     return request.param
 
 
-@pytest.fixture(params=[0], ids=lambda x: "axis {}".format(x))
+@pytest.fixture(params=[0, 'index'], ids=lambda x: "axis {!r}".format(x))
 def axis_series(request):
     """
      Fixture for returning the axis numbers of a series.
