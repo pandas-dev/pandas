@@ -441,7 +441,6 @@ else:
 # "PANDAS_CYTHON_COVERAGE" (with a Truthy value)
 linetrace = os.environ.get('PANDAS_CYTHON_COVERAGE', False)
 CYTHON_TRACE = str(int(bool(linetrace)))
-# TODO: Maybe make this a CLI option for build_ext?
 
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
