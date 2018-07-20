@@ -594,7 +594,6 @@ ext_data = {
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/khash',
                      '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
