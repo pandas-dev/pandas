@@ -183,6 +183,7 @@ def _parse_float_vec(vec):
 
     # Get the second half of the ibm number into the second half of
     # the ieee number
+    # TODO: This value is unused. Should it be used in the calc below?
     ieee2 = xport2
 
     # The fraction bit to the left of the binary point in the ieee

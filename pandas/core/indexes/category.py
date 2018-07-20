@@ -132,6 +132,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             ordered = self.ordered
         if name is None:
             name = self.name
+        # TODO: ordered above is unused. Should ordered be passed below?
         cat = Categorical.from_codes(codes, categories=categories,
                                      ordered=self.ordered)
         return CategoricalIndex(cat, name=name)

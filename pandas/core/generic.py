@@ -1024,6 +1024,7 @@ class NDFrame(PandasObject, SelectionMixin):
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
         if axis is not None:
+            # TODO: axis is unused, is this just validating?
             axis = self._get_axis_number(axis)
 
         if kwargs:
@@ -5207,6 +5208,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __deepcopy__(self, memo=None):
         if memo is None:
+            # TODO: memo is unused
             memo = {}
         return self.copy(deep=True)
 

@@ -933,6 +933,7 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
+        # TODO: index & indexi, is this just validation?
         index, indexi = self._get_index(index=index)
 
         window = self._get_window()
