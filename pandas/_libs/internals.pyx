@@ -390,7 +390,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     start = 0
     cur_blkno = blknos[start]
 
-    if group == False:
+    if group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 yield cur_blkno, slice(start, i)
