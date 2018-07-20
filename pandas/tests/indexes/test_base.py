@@ -903,7 +903,7 @@ class TestIndex(Base):
             'foo' - index
 
         with pytest.raises(TypeError):
-            np.array([2, pd.Timestamp.now()]) - index
+            np.array([True, pd.Timestamp.now()]) - index
 
     def test_map_identity_mapping(self):
         # GH 12766
