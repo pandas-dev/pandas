@@ -243,36 +243,6 @@ class groupby(dict):
             return iter(dict.items(self))
 
 
-def map_indices_py(arr):
-    """
-    Returns a dictionary with (element, index) pairs for each element in the
-    given array/list
-    """
-    return {x: i for i, x in enumerate(arr)}
-
-
-def union(*seqs):
-    result = set([])
-    for seq in seqs:
-        if not isinstance(seq, set):
-            seq = set(seq)
-        result |= seq
-    return type(seqs[0])(list(result))
-
-
-def difference(a, b):
-    return type(a)(list(set(a) - set(b)))
-
-
-def intersection(*seqs):
-    result = set(seqs[0])
-    for seq in seqs:
-        if not isinstance(seq, set):
-            seq = set(seq)
-        result &= seq
-    return type(seqs[0])(list(result))
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):

@@ -88,42 +88,6 @@ def test_split_ranges():
     test_locs([1])
 
 
-def test_map_indices_py():
-    data = [4, 3, 2, 1]
-    expected = {4: 0, 3: 1, 2: 2, 1: 3}
-
-    result = com.map_indices_py(data)
-
-    assert (result == expected)
-
-
-def test_union():
-    a = [1, 2, 3]
-    b = [4, 5, 6]
-
-    union = sorted(com.union(a, b))
-
-    assert ((a + b) == union)
-
-
-def test_difference():
-    a = [1, 2, 3]
-    b = [1, 2, 3, 4, 5, 6]
-
-    inter = sorted(com.difference(b, a))
-
-    assert ([4, 5, 6] == inter)
-
-
-def test_intersection():
-    a = [1, 2, 3]
-    b = [1, 2, 3, 4, 5, 6]
-
-    inter = sorted(com.intersection(a, b))
-
-    assert (a == inter)
-
-
 def test_groupby():
     values = ['foo', 'bar', 'baz', 'baz2', 'qux', 'foo3']
     expected = {'f': ['foo', 'foo3'],
