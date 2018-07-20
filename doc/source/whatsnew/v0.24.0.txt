@@ -343,7 +343,7 @@ Performance Improvements
 - Improved performance of :meth:`HDFStore.groups` (and dependent functions like
   :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
   (:issue:`21372`)
--
+- Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:``)
 
 .. _whatsnew_0240.docs:
 
