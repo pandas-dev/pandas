@@ -328,36 +328,37 @@ class _FrequencyInferer(object):
             return None
 
         delta = self.deltas[0]
-        if libresolution.is_multiple(delta, _ONE_DAY):
+        if _is_multiple(delta, _ONE_DAY):
             return self._infer_daily_rule()
+
+        # Business hourly, maybe. 17: one day / 65: one weekend
+        if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
+            return 'BH'
+        # Possibly intraday frequency.  Here we use the
+        # original .asi8 values as the modified values
+        # will not work around DST transitions.  See #8772
+        elif not self.is_unique_asi8:
+            return None
+
+        delta = self.deltas_asi8[0]
+        if _is_multiple(delta, _ONE_HOUR):
+            # Hours
+            return _maybe_add_count('H', delta / _ONE_HOUR)
+        elif _is_multiple(delta, _ONE_MINUTE):
+            # Minutes
+            return _maybe_add_count('T', delta / _ONE_MINUTE)
+        elif _is_multiple(delta, _ONE_SECOND):
+            # Seconds
+            return _maybe_add_count('S', delta / _ONE_SECOND)
+        elif _is_multiple(delta, _ONE_MILLI):
+            # Milliseconds
+            return _maybe_add_count('L', delta / _ONE_MILLI)
+        elif _is_multiple(delta, _ONE_MICRO):
+            # Microseconds
+            return _maybe_add_count('U', delta / _ONE_MICRO)
         else:
-            # Business hourly, maybe. 17: one day / 65: one weekend
-            if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
-                return 'BH'
-            # Possibly intraday frequency.  Here we use the
-            # original .asi8 values as the modified values
-            # will not work around DST transitions.  See #8772
-            elif not self.is_unique_asi8:
-                return None
-            delta = self.deltas_asi8[0]
-            if libresolution.is_multiple(delta, _ONE_HOUR):
-                # Hours
-                return libresolution.maybe_add_count('H', delta / _ONE_HOUR)
-            elif libresolution.is_multiple(delta, _ONE_MINUTE):
-                # Minutes
-                return libresolution.maybe_add_count('T', delta / _ONE_MINUTE)
-            elif libresolution.is_multiple(delta, _ONE_SECOND):
-                # Seconds
-                return libresolution.maybe_add_count('S', delta / _ONE_SECOND)
-            elif libresolution.is_multiple(delta, _ONE_MILLI):
-                # Milliseconds
-                return libresolution.maybe_add_count('L', delta / _ONE_MILLI)
-            elif libresolution.is_multiple(delta, _ONE_MICRO):
-                # Microseconds
-                return libresolution.maybe_add_count('U', delta / _ONE_MICRO)
-            else:
-                # Nanoseconds
-                return libresolution.maybe_add_count('N', delta)
+            # Nanoseconds
+            return _maybe_add_count('N', delta)
 
     @cache_readonly
     def day_deltas(self):
@@ -394,7 +395,7 @@ class _FrequencyInferer(object):
             nyears = self.ydiffs[0]
             month = MONTH_ALIASES[self.rep_stamp.month]
             alias = '{prefix}-{month}'.format(prefix=annual_rule, month=month)
-            return libresolution.maybe_add_count(alias, nyears)
+            return _maybe_add_count(alias, nyears)
 
         quarterly_rule = self._get_quarterly_rule()
         if quarterly_rule:
@@ -403,21 +404,21 @@ class _FrequencyInferer(object):
             month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
             alias = '{prefix}-{month}'.format(prefix=quarterly_rule,
                                               month=month)
-            return libresolution.maybe_add_count(alias, nquarters)
+            return _maybe_add_count(alias, nquarters)
 
         monthly_rule = self._get_monthly_rule()
         if monthly_rule:
-            return libresolution.maybe_add_count(monthly_rule, self.mdiffs[0])
+            return _maybe_add_count(monthly_rule, self.mdiffs[0])
 
         if self.is_unique:
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
                 day = int_to_weekday[self.rep_stamp.weekday()]
-                return libresolution.maybe_add_count(
+                return _maybe_add_count(
                     'W-{day}'.format(day=day), days / 7)
             else:
-                return libresolution.maybe_add_count('D', days)
+                return _maybe_add_count('D', days)
 
         if self._is_business_daily():
             return 'B'
@@ -500,6 +501,17 @@ class _TimedeltaFrequencyInferer(_FrequencyInferer):
                 # Weekly
                 wd = int_to_weekday[self.rep_stamp.weekday()]
                 alias = 'W-{weekday}'.format(weekday=wd)
-                return libresolution.maybe_add_count(alias, days / 7)
+                return _maybe_add_count(alias, days / 7)
             else:
-                return libresolution.maybe_add_count('D', days)
+                return _maybe_add_count('D', days)
+
+
+def _is_multiple(us, mult):
+    return us % mult == 0
+
+
+def maybe_add_count(base, count):
+    if count != 1:
+        return '{count}{base}'.format(count=count, base=base)
+    else:
+        return base

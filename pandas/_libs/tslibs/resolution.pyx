@@ -356,16 +356,3 @@ def month_position_check(fields, weekdays):
         return 'bs'
     else:
         return None
-
-
-@cython.returns(bint)
-def is_multiple(int64_t us, int64_t mult):
-    return us % mult == 0
-
-
-@cython.returns(str)
-def maybe_add_count(str base, int64_t count):
-    if count != 1:
-        return '{count}{base}'.format(count=count, base=base)
-    else:
-        return base
