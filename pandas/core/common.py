@@ -11,7 +11,7 @@ import numpy as np
 from pandas._libs import lib, tslibs
 
 from pandas import compat
-from pandas.compat import long, zip, iteritems, PY36, OrderedDict
+from pandas.compat import zip, iteritems, PY36, OrderedDict
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
@@ -117,19 +117,6 @@ def is_bool_indexer(key):
             return False
 
     return False
-
-
-def _mut_exclusive(**kwargs):
-    item1, item2 = kwargs.items()
-    label1, val1 = item1
-    label2, val2 = item2
-    if val1 is not None and val2 is not None:
-        msg = 'mutually exclusive arguments: {label1!r} and {label2!r}'
-        raise TypeError(msg.format(label1=label1, label2=label2))
-    elif val1 is not None:
-        return val1
-    else:
-        return val2
 
 
 def _not_none(*args):

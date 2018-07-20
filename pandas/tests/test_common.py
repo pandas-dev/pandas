@@ -15,15 +15,6 @@ from pandas.io.common import _get_handle
 import pandas.util.testing as tm
 
 
-def test_mut_exclusive():
-    msg = "mutually exclusive arguments: '[ab]' and '[ab]'"
-    with tm.assert_raises_regex(TypeError, msg):
-        com._mut_exclusive(a=1, b=2)
-    assert com._mut_exclusive(a=1, b=None) == 1
-    assert com._mut_exclusive(major=None, major_axis=None) is None
-    assert com._mut_exclusive(a=None, b=2) == 2
-
-
 def test_get_callable_name():
     getname = com._get_callable_name
 
