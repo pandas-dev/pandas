@@ -234,13 +234,6 @@ def split_ranges(mask):
         yield ranges[-1]
 
 
-def _long_prod(vals):
-    result = long(1)
-    for x in vals:
-        result *= x
-    return result
-
-
 class groupby(dict):
     """
     A simple groupby different from the one in itertools.
