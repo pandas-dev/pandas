@@ -3762,16 +3762,70 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
-    def to_csv(self, path=None, index=True, sep=",", na_rep='',
+    def to_csv_deprecation_decoration(to_csv):
+        """Decorator used to deprecate the signature of to_csv."""
+
+        from functools import wraps
+
+        @wraps(to_csv)
+        def _to_csv(*args, **kwargs):
+            if len(args) > 2:
+                warnings.warn(
+                    "The signature of `Series.to_csv` will be "
+                    "aligned to that of `DataFrame.to_csv` in the "
+                    "future. The ordering of positional "
+                    "arguments is different, so please refer "
+                    "to the documentation for `DataFrame.to_csv` when "
+                    "changing your function calls. To ensure "
+                    "future-proof calls, do not pass more than 1 "
+                    "positional argument.",
+                    FutureWarning, stacklevel=2,
+                )
+            if "path" in kwargs:
+                assert len(args) <= 1, (
+                    "Cannot specify path both as positional "
+                    "argument and keyword argument."
+                )
+                assert "path_or_buf" not in kwargs, (
+                    "Can only specify path or path_or_buf, not both."
+                )
+                warnings.warn(
+                    "path is deprecated, use path_or_buf instead",
+                    FutureWarning, stacklevel=2,
+                )
+                kwargs["path_or_buf"] = kwargs.pop("path")
+            if "header" not in kwargs:
+                warnings.warn(
+                    "The signature of `Series.to_csv` will be "
+                    "aligned to that of `DataFrame.to_csv` in the "
+                    "future. The default value of header will change. "
+                    "To keep the current behaviour, use header=False.",
+                    FutureWarning, stacklevel=2,
+                )
+            return to_csv(*args, **kwargs)
+
+        return _to_csv
+
+    @to_csv_deprecation_decoration
+    def to_csv(self, path_or_buf=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
                mode='w', encoding=None, compression=None, date_format=None,
-               decimal='.'):
-        """
-        Write Series to a comma-separated values (csv) file
+               decimal='.', columns=None, quoting=None, quotechar='"',
+               line_terminator='\n', chunksize=None, doublequote=True,
+               escapechar=None):
+
+        r"""Write Series to a comma-separated values (csv) file
+
+        .. deprecated:: 0.24.0
+            The signature will aligned to that of :func:`DataFrame.to_csv`.
+
+        :func:`Series.to_csv` will align its signature with that of
+        `DataFrame.to_csv`. Please pass in keyword arguments in accordance
+        with that signature instead.
 
         Parameters
         ----------
-        path : string or file handle, default None
+        path_or_buf : string or file handle, default None
             File path or object, if None is provided the result is returned as
             a string.
         na_rep : string, default ''
@@ -3779,39 +3833,67 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         float_format : string, default None
             Format string for floating point numbers
         header : boolean, default False
-            Write out series name
+            Write out Series name.
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, default None
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the DataFrame uses MultiIndex.
-        mode : Python write mode, default 'w'
-        sep : character, default ","
+        mode : str, default 'w'
+            Python write mode
+        sep : character, default ','
             Field delimiter for the output file.
         encoding : string, optional
-            a string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3
-        compression : string, optional
-            A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
-        date_format: string, default None
-            Format string for datetime objects.
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
+            If 'infer' and `path_or_buf` is path-like, then detect compression
+            from the following extensions: '.gz', '.bz2' or '.xz'
+            (otherwise no compression).
+        date_format : string, default None
+            Format string for datetime objects
         decimal: string, default '.'
             Character recognized as decimal separator. E.g. use ',' for
             European data
+        columns : sequence, optional
+            Columns to write
+        quoting : optional constant from csv module
+            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric
+        quotechar : string (length 1), default '\"'
+            character used to quote fields
+        line_terminator : string, default ``'\n'``
+            The newline character or character sequence to use in the output
+            file
+        chunksize : int or None
+            rows to write at a time
+        doublequote : boolean, default True
+            Control quoting of `quotechar` inside a field
+        escapechar : string (length 1), default None
+            character used to escape `sep` and `quotechar` when appropriate
+        path : string or file handle
+            .. deprecated:: 0.21.0
+            use `path_or_buf` instead
+
         """
+
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
         # result is only a string if no path provided, otherwise None
-        result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
-                           float_format=float_format, header=header,
-                           index_label=index_label, mode=mode,
-                           encoding=encoding, compression=compression,
-                           date_format=date_format, decimal=decimal)
-        if path is None:
-            return result
+        result = df.to_csv(
+            path_or_buf, index=index, sep=sep, na_rep=na_rep,
+            float_format=float_format, header=header,
+            index_label=index_label, mode=mode, encoding=encoding,
+            compression=compression, date_format=date_format,
+            decimal=decimal, columns=columns, quoting=quoting,
+            quotechar=quotechar, line_terminator=line_terminator,
+            chunksize=chunksize, doublequote=doublequote,
+            escapechar=escapechar,
+        )
+
+        return result
 
     @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
