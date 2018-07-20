@@ -139,7 +139,7 @@ class Base(object):
             constructor(dtype='int64', **filler)
 
         # invalid dtype
-        msg = 'data type "invalid" not understood'
+        msg = "data type 'invalid' not understood"
         with tm.assert_raises_regex(TypeError, msg):
             constructor(dtype='invalid', **filler)
 

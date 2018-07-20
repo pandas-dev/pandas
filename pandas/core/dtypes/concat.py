@@ -534,6 +534,7 @@ def _concat_index_asobject(to_concat, name=None):
 
     to_concat = [x._values if isinstance(x, Index) else x
                  for x in to_concat]
+
     return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
 

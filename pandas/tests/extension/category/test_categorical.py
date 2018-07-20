@@ -189,11 +189,12 @@ class TestCasting(base.BaseCastingTests):
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
-    def test_arith_scalar(self, data, all_arithmetic_operators):
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
 
         op_name = all_arithmetic_operators
         if op_name != '__rmod__':
-            super(TestArithmeticOps, self).test_arith_scalar(data, op_name)
+            super(TestArithmeticOps, self).test_arith_series_with_scalar(
+                data, op_name)
         else:
             pytest.skip('rmod never called when string is first argument')
 

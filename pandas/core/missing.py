@@ -638,7 +638,8 @@ def fill_zeros(result, x, y, name, fill):
             # if we have a fill of inf, then sign it correctly
             # (GH 6178 and PR 9308)
             if np.isinf(fill):
-                signs = np.sign(y if name.startswith(('r', '__r')) else x)
+                signs = y if name.startswith(('r', '__r')) else x
+                signs = np.sign(signs.astype('float', copy=False))
                 negative_inf_mask = (signs.ravel() < 0) & mask
                 np.putmask(result, negative_inf_mask, -fill)
 

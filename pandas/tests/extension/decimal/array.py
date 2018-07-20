@@ -1,6 +1,5 @@
 import decimal
 import numbers
-import random
 import sys
 
 import numpy as np
@@ -38,7 +37,7 @@ class DecimalDtype(ExtensionDtype):
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     dtype = DecimalDtype()
 
-    def __init__(self, values, copy=False):
+    def __init__(self, values, dtype=None, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
                 raise TypeError("All values must be of type " +
@@ -54,7 +53,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -117,7 +116,3 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
 DecimalArray._add_arithmetic_ops()
 DecimalArray._add_comparison_ops()
-
-
-def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
