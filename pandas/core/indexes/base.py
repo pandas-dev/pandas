@@ -368,7 +368,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 subarr = com.asarray_tuplesafe(data, dtype=object)
 
-            # _asarray_tuplesafe does not always copy underlying data,
+            # asarray_tuplesafe does not always copy underlying data,
             # so need to make sure that this happens
             if copy:
                 subarr = subarr.copy()

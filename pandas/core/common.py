@@ -272,7 +272,7 @@ def intersection(*seqs):
     return type(seqs[0])(list(result))
 
 
-def _asarray_tuplesafe(values, dtype=None):
+def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):
         values = list(values)
@@ -318,7 +318,7 @@ def _index_labels_to_array(labels, dtype=None):
         except TypeError:  # non-iterable
             labels = [labels]
 
-    labels = _asarray_tuplesafe(labels, dtype=dtype)
+    labels = asarray_tuplesafe(labels, dtype=dtype)
 
     return labels
 
