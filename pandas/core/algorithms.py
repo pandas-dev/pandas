@@ -421,46 +421,36 @@ def isin(comps, values):
     is_time_like = lambda x: (is_datetime_or_timedelta_dtype(x)
                               or isinstance(x, Timestamp))
 
+    is_int = lambda x: ((x == np.int64) or (x == int))
+    is_float = lambda x: ((x == np.float64) or (x == float))
+
     if is_time_like(dtype):
         values, _, _ = _ensure_data(values, dtype=dtype)
     else:
         values, _, _ = _ensure_data(values)
 
-    # faster for larger cases to use np.in1d
-    f = lambda x, y: htable.ismember_object(x, y)
-
     comps_types = set(type(v) for v in comps)
     values_types = set(type(v) for v in values)
 
-    if len(comps_types) == len(values_types) == 1:
-        comps_types = comps_types.pop()
-        values_types = values_types.pop()
-
-    is_int = lambda x: ((x == np.int64) or (x == int))
-    is_float = lambda x: ((x == np.float64) or (x == float))
+    # faster for larger cases to use np.in1d
+    f = lambda x, y: htable.ismember_object(x.astype(object), y.astype(object))
 
     # GH16012
     # Ensure np.in1d doesn't get object types or it *may* throw an exception
     if len(comps) > 1000000 and not is_object_dtype(comps):
         f = lambda x, y: np.in1d(x, y)
-    elif (is_int(comps_types) and is_int(values_types)):
-        try:
+    elif len(comps_types) == len(values_types) == 1:
+        comps_types = comps_types.pop()
+        values_types = values_types.pop()
+        if (is_int(comps_types) and is_int(values_types)):
             values = values.astype('int64', copy=False)
             comps = comps.astype('int64', copy=False)
             f = lambda x, y: htable.ismember_int64(x, y)
-        except (TypeError, ValueError):
-            values = values.astype(object)
-            comps = comps.astype(object)
-
-    elif (is_float(comps_types) and is_float(values_types)):
-        try:
+        elif (is_float(comps_types) and is_float(values_types)):
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
             checknull = isna(values).any()
             f = lambda x, y: htable.ismember_float64(x, y, checknull)
-        except (TypeError, ValueError):
-            values = values.astype(object)
-            comps = comps.astype(object)
 
     return f(comps, values)
 
