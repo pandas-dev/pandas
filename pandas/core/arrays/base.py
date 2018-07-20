@@ -634,6 +634,7 @@ class ExtensionOpsMixin(object):
     """
     A base class for linking the operators to their dunder names
     """
+
     @classmethod
     def _add_arithmetic_ops(cls):
         cls.__add__ = cls._create_arithmetic_method(operator.add)
