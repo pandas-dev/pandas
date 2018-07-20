@@ -2124,7 +2124,25 @@ class _iLocIndexer(_LocationIndexer):
         return values
 
     def _validate_integer(self, key, axis):
-        # return a boolean if we have a valid integer indexer
+        """
+        Check that 'key' is a valid position in the desired axis.
+
+        Parameters
+        ----------
+        key : int
+            Requested position
+        axis : int
+            Desired axis
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        IndexError
+            If 'key' is not a valid position in axis 'axis'
+        """
 
         ax = self.obj._get_axis(axis)
         l = len(ax)
@@ -2215,8 +2233,6 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
-            key = self._convert_scalar_indexer(key, axis)
-
             if not is_integer(key):
                 raise TypeError("Cannot index by location index with a "
                                 "non-integer key")
