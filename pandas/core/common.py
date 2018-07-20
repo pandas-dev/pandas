@@ -222,27 +222,6 @@ def split_ranges(mask):
         yield ranges[-1]
 
 
-class groupby(dict):
-    """
-    A simple groupby different from the one in itertools.
-
-    Does not require the sequence elements to be sorted by keys,
-    however it is slower.
-    """
-
-    def __init__(self, seq, key=lambda x: x):
-        for value in seq:
-            k = key(value)
-            self.setdefault(k, []).append(value)
-
-    try:
-        __iter__ = dict.iteritems
-    except AttributeError:  # pragma: no cover
-        # Python 3
-        def __iter__(self):
-            return iter(dict.items(self))
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):

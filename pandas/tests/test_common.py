@@ -88,18 +88,6 @@ def test_split_ranges():
     test_locs([1])
 
 
-def test_groupby():
-    values = ['foo', 'bar', 'baz', 'baz2', 'qux', 'foo3']
-    expected = {'f': ['foo', 'foo3'],
-                'b': ['bar', 'baz', 'baz2'],
-                'q': ['qux']}
-
-    grouped = com.groupby(values, lambda x: x[0])
-
-    for k, v in grouped:
-        assert v == expected[k]
-
-
 def test_random_state():
     import numpy.random as npr
     # Check with seed
