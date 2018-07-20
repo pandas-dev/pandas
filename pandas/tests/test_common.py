@@ -8,7 +8,6 @@ from functools import partial
 import numpy as np
 
 from pandas import Series, DataFrame, Timestamp
-from pandas.compat import range, lmap
 import pandas.core.common as com
 from pandas.core import ops
 from pandas.io.common import _get_handle
