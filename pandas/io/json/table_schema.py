@@ -6,7 +6,7 @@ http://specs.frictionlessdata.io/json-table-schema/
 import warnings
 
 import pandas._libs.json as json
-from pandas import DataFrame, Timedelta
+from pandas import DataFrame, to_timedelta
 from pandas.api.types import CategoricalDtype
 import pandas.core.common as com
 from pandas.core.dtypes.common import (
@@ -308,7 +308,7 @@ def parse_table_schema(json, precise_float):
 
     for col, dtype in dtypes.items():
         if dtype == 'timedelta64[ns]':
-            df[col] = df[col].apply(Timedelta)
+            df[col] = to_timedelta(df[col])
 
     df = df.astype(dtypes)
 
