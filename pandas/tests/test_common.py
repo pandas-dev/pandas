@@ -16,7 +16,7 @@ import pandas.util.testing as tm
 
 
 def test_get_callable_name():
-    getname = com._get_callable_name
+    getname = com.get_callable_name
 
     def fn(x):
         return x

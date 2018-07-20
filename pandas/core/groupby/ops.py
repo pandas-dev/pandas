@@ -175,7 +175,7 @@ class BaseGrouper(object):
         group_keys = self._get_group_keys()
 
         # oh boy
-        f_name = com._get_callable_name(f)
+        f_name = com.get_callable_name(f)
         if (f_name not in base.plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:

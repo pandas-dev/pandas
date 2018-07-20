@@ -348,13 +348,13 @@ def is_full_slice(obj, l):
             obj.step is None)
 
 
-def _get_callable_name(obj):
+def get_callable_name(obj):
     # typical case has name
     if hasattr(obj, '__name__'):
         return getattr(obj, '__name__')
     # some objects don't; could recurse
     if isinstance(obj, partial):
-        return _get_callable_name(obj.func)
+        return get_callable_name(obj.func)
     # fall back to class name
     if hasattr(obj, '__call__'):
         return obj.__class__.__name__

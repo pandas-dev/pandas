@@ -581,7 +581,7 @@ class SelectionMixin(object):
                     results.append(colg.aggregate(a))
 
                     # make sure we find a good name
-                    name = com._get_callable_name(a) or a
+                    name = com.get_callable_name(a) or a
                     keys.append(name)
                 except (TypeError, DataError):
                     pass
