@@ -104,7 +104,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         ndarray[int64_t] trans, deltas
         npy_datetimestruct dts
         object dt
-        int64_t value
+        int64_t value, delta
         ndarray[object] result = np.empty(n, dtype=object)
         object (*func_create)(int64_t, npy_datetimestruct, object, object)
 
@@ -125,58 +125,67 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         raise ValueError("box must be one of 'datetime', 'date', 'time' or"
                          " 'timestamp'")
 
-    if tz is not None:
-        if is_utc(tz):
-            for i in range(n):
-                value = arr[i]
-                if value == NPY_NAT:
-                    result[i] = NaT
-                else:
-                    dt64_to_dtstruct(value, &dts)
-                    result[i] = func_create(value, dts, tz, freq)
-        elif is_tzlocal(tz) or is_fixed_offset(tz):
-            for i in range(n):
-                value = arr[i]
-                if value == NPY_NAT:
-                    result[i] = NaT
-                else:
-                    # Python datetime objects do not support nanosecond
-                    # resolution (yet, PEP 564). Need to compute new value
-                    # using the i8 representation.
-                    local_value = tz_convert_utc_to_tzlocal(value, tz)
-                    dt64_to_dtstruct(local_value, &dts)
-                    result[i] = func_create(value, dts, tz, freq)
-        else:
-            trans, deltas, typ = get_dst_info(tz)
-
-            for i in range(n):
-
-                value = arr[i]
-                if value == NPY_NAT:
-                    result[i] = NaT
-                else:
-
-                    # Adjust datetime64 timestamp, recompute datetimestruct
-                    pos = trans.searchsorted(value, side='right') - 1
-                    if treat_tz_as_pytz(tz):
-                        # find right representation of dst etc in pytz timezone
-                        new_tz = tz._tzinfos[tz._transition_info[pos]]
-                    else:
-                        # no zone-name change for dateutil tzs - dst etc
-                        # represented in single object.
-                        new_tz = tz
-
-                    dt64_to_dtstruct(value + deltas[pos], &dts)
-                    result[i] = func_create(value, dts, new_tz, freq)
-    else:
+    if is_utc(tz) or tz is None:
         for i in range(n):
-
             value = arr[i]
             if value == NPY_NAT:
                 result[i] = NaT
             else:
                 dt64_to_dtstruct(value, &dts)
-                result[i] = func_create(value, dts, None, freq)
+                result[i] = func_create(value, dts, tz, freq)
+    elif is_tzlocal(tz):
+        for i in range(n):
+            value = arr[i]
+            if value == NPY_NAT:
+                result[i] = NaT
+            else:
+                # Python datetime objects do not support nanosecond
+                # resolution (yet, PEP 564). Need to compute new value
+                # using the i8 representation.
+                local_value = tz_convert_utc_to_tzlocal(value, tz)
+                dt64_to_dtstruct(local_value, &dts)
+                result[i] = func_create(value, dts, tz, freq)
+    else:
+        trans, deltas, typ = get_dst_info(tz)
+
+        if typ not in ['pytz', 'dateutil']:
+            # static/fixed; in this case we know that len(delta) == 1
+            delta = deltas[0]
+            for i in range(n):
+                value = arr[i]
+                if value == NPY_NAT:
+                    result[i] = NaT
+                else:
+                    # Adjust datetime64 timestamp, recompute datetimestruct
+                    dt64_to_dtstruct(value + delta, &dts)
+                    result[i] = func_create(value, dts, tz, freq)
+
+        elif typ == 'dateutil':
+            # no zone-name change for dateutil tzs - dst etc
+            # represented in single object.
+            for i in range(n):
+                value = arr[i]
+                if value == NPY_NAT:
+                    result[i] = NaT
+                else:
+                    # Adjust datetime64 timestamp, recompute datetimestruct
+                    pos = trans.searchsorted(value, side='right') - 1
+                    dt64_to_dtstruct(value + deltas[pos], &dts)
+                    result[i] = func_create(value, dts, tz, freq)
+        else:
+            # pytz
+            for i in range(n):
+                value = arr[i]
+                if value == NPY_NAT:
+                    result[i] = NaT
+                else:
+                    # Adjust datetime64 timestamp, recompute datetimestruct
+                    pos = trans.searchsorted(value, side='right') - 1
+                    # find right representation of dst etc in pytz timezone
+                    new_tz = tz._tzinfos[tz._transition_info[pos]]
+
+                    dt64_to_dtstruct(value + deltas[pos], &dts)
+                    result[i] = func_create(value, dts, new_tz, freq)
 
     return result
 
