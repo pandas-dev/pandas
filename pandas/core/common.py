@@ -12,7 +12,6 @@ from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import long, zip, iteritems, PY36, OrderedDict
-from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
@@ -462,77 +461,6 @@ def sentinel_factory():
         pass
 
     return Sentinel()
-
-
-# ----------------------------------------------------------------------
-# Detect our environment
-
-def in_interactive_session():
-    """ check if we're running in an interactive shell
-
-    returns True if running under python/ipython interactive shell
-    """
-
-    def check_main():
-        import __main__ as main
-        return (not hasattr(main, '__file__') or
-                get_option('mode.sim_interactive'))
-
-    try:
-        return __IPYTHON__ or check_main()  # noqa
-    except:
-        return check_main()
-
-
-def in_qtconsole():
-    """
-    check if we're inside an IPython qtconsole
-
-    .. deprecated:: 0.14.1
-       This is no longer needed, or working, in IPython 3 and above.
-    """
-    try:
-        ip = get_ipython()  # noqa
-        front_end = (
-            ip.config.get('KernelApp', {}).get('parent_appname', "") or
-            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
-        if 'qtconsole' in front_end.lower():
-            return True
-    except:
-        return False
-    return False
-
-
-def in_ipnb():
-    """
-    check if we're inside an IPython Notebook
-
-    .. deprecated:: 0.14.1
-       This is no longer needed, or working, in IPython 3 and above.
-    """
-    try:
-        ip = get_ipython()  # noqa
-        front_end = (
-            ip.config.get('KernelApp', {}).get('parent_appname', "") or
-            ip.config.get('IPKernelApp', {}).get('parent_appname', ""))
-        if 'notebook' in front_end.lower():
-            return True
-    except:
-        return False
-    return False
-
-
-def in_ipython_frontend():
-    """
-    check if we're inside an an IPython zmq frontend
-    """
-    try:
-        ip = get_ipython()  # noqa
-        return 'zmq' in str(type(ip)).lower()
-    except:
-        pass
-
-    return False
 
 
 def _random_state(state=None):
