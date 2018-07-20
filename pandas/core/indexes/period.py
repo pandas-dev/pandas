@@ -155,7 +155,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     TimedeltaIndex : Index of timedelta64 data
     """
     _typ = 'periodindex'
-    _attributes = ['name', 'freq']
+    _attributes = ['name', 'freq', 'tolerance']
 
     # define my properties & methods for delegation
     _other_ops = []
@@ -177,7 +177,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
                 periods=None, tz=None, dtype=None, copy=False, name=None,
-                **fields):
+                tolerance=None, **fields):
 
         valid_field_set = {'year', 'month', 'day', 'quarter',
                            'hour', 'minute', 'second'}
@@ -217,7 +217,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             else:
                 data, freq = cls._generate_range(start, end, periods,
                                                  freq, fields)
-            return cls._from_ordinals(data, name=name, freq=freq)
+            return cls._from_ordinals(data, name=name, freq=freq,
+                                      tolerance=tolerance)
 
         if isinstance(data, PeriodIndex):
             if freq is None or freq == data.freq:  # no freq change
@@ -228,7 +229,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 base2, _ = _gfc(freq)
                 data = period.period_asfreq_arr(data._ndarray_values,
                                                 base1, base2, 1)
-            return cls._simple_new(data, name=name, freq=freq)
+            return cls._simple_new(data, name=name, freq=freq,
+                                   tolerance=tolerance)
 
         # not array / index
         if not isinstance(data, (np.ndarray, PeriodIndex,
@@ -245,7 +247,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # datetime other than period
         if is_datetime64_dtype(data.dtype):
             data = dt64arr_to_periodarr(data, freq, tz)
-            return cls._from_ordinals(data, name=name, freq=freq)
+            return cls._from_ordinals(data, name=name, freq=freq,
+                                      tolerance=tolerance)
 
         # check not floats
         if infer_dtype(data) == 'floating' and len(data) > 0:
@@ -256,7 +259,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         data = ensure_object(data)
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
-        return cls._from_ordinals(data, name=name, freq=freq)
+        return cls._from_ordinals(data, name=name, freq=freq,
+                                  tolerance=tolerance)
 
     @cache_readonly
     def _engine(self):
@@ -277,14 +281,16 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         return cls._from_ordinals(values, name, freq, **kwargs)
 
     @classmethod
-    def _from_ordinals(cls, values, name=None, freq=None, **kwargs):
+    def _from_ordinals(cls, values, name=None, freq=None,
+                       tolerance=None, **kwargs):
         """
         Values should be int ordinals
-        `__new__` & `_simple_new` cooerce to ordinals and call this method
+        `__new__` & `_simple_new` coerce to ordinals and call this method
         """
         result = super(PeriodIndex, cls)._from_ordinals(values, freq)
 
         result.name = name
+        result.tolerance = tolerance
         result._reset_identity()
         return result
 
@@ -570,11 +576,16 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)
             raise IncompatibleFrequency(msg)
 
+        # This needs to be done before target.asi8 because
+        # _choose_tolerance expects Indexes, not numpy arrays
+        tolerance = self._choose_tolerance([target], tolerance)
+
         if isinstance(target, PeriodIndex):
             target = target.asi8
 
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
+
         return Index.get_indexer(self._int64index, target, method,
                                  limit, tolerance)
 
@@ -596,6 +607,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         loc : int
         """
         try:
+            # FIXME: intolerant
             return self._engine.get_loc(key)
         except KeyError:
             if is_integer(key):
@@ -619,6 +631,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 if tolerance is not None:
                     tolerance = self._convert_tolerance(tolerance,
                                                         np.asarray(key))
+                else:
+                    tolerance = getattr(self, 'tolerance', None)
                 return self._int64index.get_loc(ordinal, method, tolerance)
 
             except KeyError:
@@ -743,10 +757,11 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
-    def _wrap_union_result(self, other, result):
+    def _wrap_union_result(self, other, result, tolerance):
         name = self.name if self.name == other.name else None
         result = self._apply_meta(result)
         result.name = name
+        result.tolerance = tolerance
         return result
 
     def _apply_meta(self, rawarr):

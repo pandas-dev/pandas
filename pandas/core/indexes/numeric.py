@@ -33,10 +33,10 @@ class NumericIndex(Index):
     _is_numeric_dtype = True
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False):
+                fastpath=False, tolerance=None):
 
         if fastpath:
-            return cls._simple_new(data, name=name)
+            return cls._simple_new(data, name=name, tolerance=tolerance)
 
         # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
@@ -52,7 +52,7 @@ class NumericIndex(Index):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
-        return cls._simple_new(subarr, name=name)
+        return cls._simple_new(subarr, name=name, tolerance=tolerance)
 
     @Appender(_index_shared_docs['_maybe_cast_slice_bound'])
     def _maybe_cast_slice_bound(self, label, side, kind):
@@ -360,7 +360,7 @@ class Float64Index(NumericIndex):
 
         return new_values
 
-    def equals(self, other):
+    def equals(self, other, tolerance=None):
         """
         Determines if two Index objects contain the same elements.
         """
@@ -370,6 +370,8 @@ class Float64Index(NumericIndex):
         if not isinstance(other, Index):
             return False
 
+
+
         # need to compare nans locations and make sure that they are the same
         # since nans don't compare equal this is a bit tricky
         try:
@@ -378,8 +380,13 @@ class Float64Index(NumericIndex):
             if (not is_dtype_equal(self.dtype, other.dtype) or
                     self.shape != other.shape):
                 return False
+            tolerance = self._choose_tolerance([other], tolerance)
             left, right = self._ndarray_values, other._ndarray_values
-            return ((left == right) | (self._isnan & other._isnan)).all()
+            if tolerance is None:
+                return ((left == right) | (self._isnan & other._isnan)).all()
+            else:
+                return ((np.abs(left - right) <= tolerance) |
+                        (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False
 

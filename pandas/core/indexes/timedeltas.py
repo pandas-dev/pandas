@@ -167,7 +167,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     _engine_type = libindex.TimedeltaEngine
 
     _comparables = ['name', 'freq']
-    _attributes = ['name', 'freq']
+    _attributes = ['name', 'freq', 'tolerance']
     _is_numeric_dtype = True
     _infer_as_myclass = True
 
@@ -175,7 +175,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
                 periods=None, closed=None, dtype=None, copy=False,
-                name=None, verify_integrity=True):
+                name=None, verify_integrity=True,
+                tolerance=None):
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
@@ -192,7 +193,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                  'supplied')
             periods = dtl.validate_periods(periods)
             return cls._generate_range(start, end, periods, name, freq,
-                                       closed=closed)
+                                       closed=closed, tolerance=tolerance)
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -209,7 +210,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         elif copy:
             data = np.array(data, copy=True)
 
-        subarr = cls._simple_new(data, name=name, freq=freq)
+        subarr = cls._simple_new(data, name=name, freq=freq,
+                                 tolerance=tolerance)
         # check that we are matching freqs
         if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
@@ -223,13 +225,15 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return subarr
 
     @classmethod
-    def _generate_range(cls, start, end, periods, name, freq, closed=None):
+    def _generate_range(cls, start, end, periods, name, freq, closed=None,
+                        tolerance=None):
         # TimedeltaArray gets `name` via **kwargs, so we need to explicitly
         # override it if name is passed as a positional argument
         return super(TimedeltaIndex, cls)._generate_range(start, end,
                                                           periods, freq,
                                                           name=name,
-                                                          closed=closed)
+                                                          closed=closed,
+                                                          tolerance=tolerance)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
@@ -322,7 +326,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             return Index(result.astype('i8'), name=self.name)
         return super(TimedeltaIndex, self).astype(dtype, copy=copy)
 
-    def union(self, other):
+    def union(self, other, tolerance=None):
         """
         Specialized union for TimedeltaIndex objects. If combine
         overlapping ranges with the same DateOffset, will be much
@@ -336,6 +340,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         -------
         y : Index or TimedeltaIndex
         """
+        # FIXME: intolerant
         self._assert_can_do_setop(other)
         if not isinstance(other, TimedeltaIndex):
             try:
@@ -344,10 +349,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 pass
         this, other = self, other
 
+        tolerance = this._choose_tolerance([other], tolerance=tolerance)
+
         if this._can_fast_union(other):
-            return this._fast_union(other)
+            return this._fast_union(other, tolerance)
         else:
-            result = Index.union(this, other)
+            result = Index.union(this, other, tolerance=tolerance)
             if isinstance(result, TimedeltaIndex):
                 if result.freq is None:
                     result.freq = to_offset(result.inferred_freq)
@@ -368,14 +375,14 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                           return_indexers=return_indexers,
                           sort=sort)
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined, other, tolerance):
         name = self.name if self.name == other.name else None
         if (isinstance(other, TimedeltaIndex) and self.freq == other.freq and
                 self._can_fast_union(other)):
-            joined = self._shallow_copy(joined, name=name)
+            joined = self._shallow_copy(joined, name=name, tolerance=tolerance)
             return joined
         else:
-            return self._simple_new(joined, name)
+            return self._simple_new(joined, name, tolerance=tolerance)
 
     def _can_fast_union(self, other):
         if not isinstance(other, TimedeltaIndex):
@@ -404,7 +411,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self, other):
+    def _fast_union(self, other, tolerance):
         if len(other) == 0:
             return self.view(type(self))
 
@@ -420,20 +427,22 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         left_end = left[-1]
         right_end = right[-1]
 
+        # FIXME: intolerant
         # concatenate
         if left_end < right_end:
             loc = right.searchsorted(left_end, side='right')
             right_chunk = right.values[loc:]
             dates = _concat._concat_compat((left.values, right_chunk))
-            return self._shallow_copy(dates)
+            return self._shallow_copy(dates, tolerance=tolerance)
         else:
             return left
 
-    def _wrap_union_result(self, other, result):
+    def _wrap_union_result(self, other, result, tolerance):
         name = self.name if self.name == other.name else None
-        return self._simple_new(result, name=name, freq=None)
+        return self._simple_new(result, name=name, freq=None,
+                                tolerance=tolerance)
 
-    def intersection(self, other):
+    def intersection(self, other, tolerance=None):
         """
         Specialized intersection for TimedeltaIndex objects. May be much faster
         than Index.intersection
@@ -446,14 +455,17 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         -------
         y : Index or TimedeltaIndex
         """
+        # FIXME: intolerant
         self._assert_can_do_setop(other)
         if not isinstance(other, TimedeltaIndex):
             try:
                 other = TimedeltaIndex(other)
             except (TypeError, ValueError):
                 pass
-            result = Index.intersection(self, other)
+            tolerance = self._choose_tolerance([other], tolerance=tolerance)
+            result = Index.intersection(self, other, tolerance=tolerance)
             return result
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
 
         if len(self) == 0:
             return self
@@ -469,11 +481,12 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         start = right[0]
 
         if end < start:
-            return type(self)(data=[])
+            return type(self)(data=[], tolerance=tolerance)
         else:
+            # FIXME: intolerant
             lslice = slice(*left.slice_locs(start, end))
             left_chunk = left.values[lslice]
-            return self._shallow_copy(left_chunk)
+            return self._shallow_copy(left_chunk, tolerance=tolerance)
 
     def _maybe_promote(self, other):
         if other.inferred_type == 'timedelta':
@@ -529,6 +542,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             # try converting tolerance now, so errors don't get swallowed by
             # the try/except clauses below
             tolerance = self._convert_tolerance(tolerance, np.asarray(key))
+        else:
+            tolerance = getattr(self, 'tolerance', None)
 
         if _is_convertible_to_td(key):
             key = Timedelta(key)
@@ -756,7 +771,7 @@ def _is_convertible_to_index(other):
 
 
 def timedelta_range(start=None, end=None, periods=None, freq=None,
-                    name=None, closed=None):
+                    name=None, closed=None, tolerance=None):
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
     frequency
@@ -826,4 +841,5 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         freq = 'D'
 
     return TimedeltaIndex(start=start, end=end, periods=periods,
-                          freq=freq, name=name, closed=closed)
+                          freq=freq, name=name, closed=closed,
+                          tolerance=tolerance)

@@ -243,7 +243,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     _resolution = cache_readonly(DatetimeLikeArrayMixin._resolution.fget)
     resolution = cache_readonly(DatetimeLikeArrayMixin.resolution.fget)
 
-    def equals(self, other):
+    def equals(self, other, tolerance=None):
         """
         Determines if two Index objects contain the same elements.
         """
@@ -269,7 +269,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             if self.freq != other.freq:
                 return False
 
-        return np.array_equal(self.asi8, other.asi8)
+        tolerance = self._choose_tolerance([other], tolerance)
+        if tolerance is None:
+            return np.array_equal(self.asi8, other.asi8)
+        else:
+            # FIXME: Probably need to convert tolerance?
+            return np.allclose(self.asi8, other.asi8, atol=tolerance)
 
     @staticmethod
     def _join_i8_wrapper(joinf, dtype, with_indexers=True):

@@ -188,6 +188,11 @@ class Index(IndexOpsMixin, PandasObject):
         Name to be stored in the index
     tupleize_cols : bool (default: True)
         When True, attempt to create a MultiIndex if possible
+    tolerance : scalar of compatible dtype as data (default: None)
+        When not None, this parameter is used for inexact indexing.
+        Most useful for indexing a Float64Index.
+        This feature is not fully supported in all Indexer types,
+        such as categorical and range indexers.
 
     Notes
     -----
@@ -223,9 +228,10 @@ class Index(IndexOpsMixin, PandasObject):
     _data = None
     _id = None
     name = None
+    tolerance = None
     asi8 = None
     _comparables = ['name']
-    _attributes = ['name']
+    _attributes = ['name', 'tolerance']
     _is_numeric_dtype = False
     _can_hold_na = True
 
@@ -243,22 +249,23 @@ class Index(IndexOpsMixin, PandasObject):
     str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
-                fastpath=False, tupleize_cols=True, **kwargs):
+                fastpath=False, tupleize_cols=True, tolerance=None, **kwargs):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
         if fastpath:
-            return cls._simple_new(data, name)
+            return cls._simple_new(data, name, tolerance=tolerance)
 
         from .range import RangeIndex
 
         # range
         if isinstance(data, RangeIndex):
-            return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
+            return RangeIndex(start=data, copy=copy, dtype=dtype, name=name,
+                              tolerance=tolerance)
         elif isinstance(data, range):
             return RangeIndex.from_range(data, copy=copy, dtype=dtype,
-                                         name=name)
+                                         name=name, tolerance=tolerance)
 
         # categorical
         elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
@@ -272,7 +279,7 @@ class Index(IndexOpsMixin, PandasObject):
             from .interval import IntervalIndex
             closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
-                                 closed=closed)
+                                 closed=closed, tolerance=tolerance)
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
@@ -296,7 +303,8 @@ class Index(IndexOpsMixin, PandasObject):
                     'tz' in kwargs):
                 from pandas import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name,
-                                       dtype=dtype, **kwargs)
+                                       dtype=dtype, tolerance=tolerance,
+                                       **kwargs)
                 if dtype is not None and is_dtype_equal(_o_dtype, dtype):
                     return Index(result.to_pydatetime(), dtype=_o_dtype)
                 else:
@@ -305,7 +313,8 @@ class Index(IndexOpsMixin, PandasObject):
             elif (is_timedelta64_dtype(data) or
                   (dtype is not None and is_timedelta64_dtype(dtype))):
                 from pandas import TimedeltaIndex
-                result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
+                result = TimedeltaIndex(data, copy=copy, name=name,
+                                        tolerance=tolerance, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pytimedelta(), dtype=_o_dtype)
                 else:
@@ -336,14 +345,15 @@ class Index(IndexOpsMixin, PandasObject):
                             # then coerce to integer.
                             try:
                                 return cls._try_convert_to_int_index(
-                                    data, copy, name, dtype)
+                                    data, copy, name, dtype,
+                                    tolerance=tolerance)
                             except ValueError:
                                 pass
 
                             # Return an actual float index.
                             from .numeric import Float64Index
                             return Float64Index(data, copy=copy, dtype=dtype,
-                                                name=name)
+                                                name=name, tolerance=tolerance)
 
                         elif inferred == 'string':
                             pass
@@ -368,16 +378,20 @@ class Index(IndexOpsMixin, PandasObject):
             from pandas.core.indexes.period import (
                 PeriodIndex, IncompatibleFrequency)
             if isinstance(data, PeriodIndex):
-                return PeriodIndex(data, copy=copy, name=name, **kwargs)
+                return PeriodIndex(data, copy=copy, name=name,
+                                   tolerance=tolerance, **kwargs)
             if is_signed_integer_dtype(data.dtype):
                 from .numeric import Int64Index
-                return Int64Index(data, copy=copy, dtype=dtype, name=name)
+                return Int64Index(data, copy=copy, dtype=dtype, name=name,
+                                  tolerance=tolerance)
             elif is_unsigned_integer_dtype(data.dtype):
                 from .numeric import UInt64Index
-                return UInt64Index(data, copy=copy, dtype=dtype, name=name)
+                return UInt64Index(data, copy=copy, dtype=dtype, name=name,
+                                   tolerance=tolerance)
             elif is_float_dtype(data.dtype):
                 from .numeric import Float64Index
-                return Float64Index(data, copy=copy, dtype=dtype, name=name)
+                return Float64Index(data, copy=copy, dtype=dtype, name=name,
+                                    tolerance=tolerance)
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype('object')
             else:
@@ -393,18 +407,21 @@ class Index(IndexOpsMixin, PandasObject):
                 if inferred == 'integer':
                     try:
                         return cls._try_convert_to_int_index(
-                            subarr, copy, name, dtype)
+                            subarr, copy, name, dtype,
+                            tolerance=tolerance)
                     except ValueError:
                         pass
 
                     return Index(subarr, copy=copy,
-                                 dtype=object, name=name)
+                                 dtype=object, name=name, tolerance=tolerance)
                 elif inferred in ['floating', 'mixed-integer-float']:
                     from .numeric import Float64Index
-                    return Float64Index(subarr, copy=copy, name=name)
+                    return Float64Index(subarr, copy=copy, name=name,
+                                        tolerance=tolerance)
                 elif inferred == 'interval':
                     from .interval import IntervalIndex
-                    return IntervalIndex(subarr, name=name, copy=copy)
+                    return IntervalIndex(subarr, name=name, copy=copy,
+                                         tolerance=tolerance)
                 elif inferred == 'boolean':
                     # don't support boolean explicitly ATM
                     pass
@@ -416,24 +433,28 @@ class Index(IndexOpsMixin, PandasObject):
                             from pandas import DatetimeIndex
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
-                                                     name=name, **kwargs)
+                                                     name=name,
+                                                     tolerance=tolerance,
+                                                     **kwargs)
                             except tslibs.OutOfBoundsDatetime:
                                 pass
 
                     elif inferred.startswith('timedelta'):
                         from pandas import TimedeltaIndex
                         return TimedeltaIndex(subarr, copy=copy, name=name,
+                                              tolerance=tolerance,
                                               **kwargs)
                     elif inferred == 'period':
                         try:
-                            return PeriodIndex(subarr, name=name, **kwargs)
+                            return PeriodIndex(subarr, name=name, 
+                                               tolerance=tolerance, **kwargs)
                         except IncompatibleFrequency:
                             pass
             return cls._simple_new(subarr, name)
 
         elif hasattr(data, '__array__'):
             return Index(np.asarray(data), dtype=dtype, copy=copy, name=name,
-                         **kwargs)
+                         tolerance=tolerance, **kwargs)
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
@@ -450,7 +471,8 @@ class Index(IndexOpsMixin, PandasObject):
                         data, names=name or kwargs.get('names'))
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)
-            return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
+            return Index(subarr, dtype=dtype, copy=copy, name=name,
+                         tolerance=tolerance, **kwargs)
 
     """
     NOTE for new Index creation:
@@ -474,7 +496,7 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _simple_new(cls, values, name=None, dtype=None, **kwargs):
         """
-        we require the we have a dtype compat for the values
+        we require that we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
 
         Must be careful not to recurse.
@@ -853,7 +875,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     # construction helpers
     @classmethod
-    def _try_convert_to_int_index(cls, data, copy, name, dtype):
+    def _try_convert_to_int_index(cls, data, copy, name, dtype,
+                                  tolerance=None):
         """
         Attempt to convert an array of data into an integer index.
 
@@ -862,6 +885,7 @@ class Index(IndexOpsMixin, PandasObject):
         data : The data to convert.
         copy : Whether to copy the data or not.
         name : The name of the index returned.
+        tolerance : Tolerance, if any, for index matching
 
         Returns
         -------
@@ -880,7 +904,8 @@ class Index(IndexOpsMixin, PandasObject):
             try:
                 res = data.astype('i8', copy=False)
                 if (res == data).all():
-                    return Int64Index(res, copy=copy, name=name)
+                    return Int64Index(res, copy=copy, name=name,
+                                      tolerance=tolerance)
             except (OverflowError, TypeError, ValueError):
                 pass
 
@@ -889,7 +914,8 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             res = data.astype('u8', copy=False)
             if (res == data).all():
-                return UInt64Index(res, copy=copy, name=name)
+                return UInt64Index(res, copy=copy, name=name,
+                                   tolerance=tolerance)
         except (OverflowError, TypeError, ValueError):
             pass
 
@@ -1949,7 +1975,10 @@ class Index(IndexOpsMixin, PandasObject):
             return False
 
     _index_shared_docs['contains'] = """
-        return a boolean if this key is IN the index
+        return a boolean if this key is IN the index.
+
+        This method does *not* utilize the index's tolerance attribute
+        if it is defined.
 
         Parameters
         ----------
@@ -2352,7 +2381,29 @@ class Index(IndexOpsMixin, PandasObject):
         values[mask] = na_rep
         return values
 
-    def equals(self, other):
+    def _choose_tolerance(self, others, tolerance=None):
+        """
+        Negotiate which tolerance to use. Use the passed in
+        tolerance if not None. Next, use the greater tolerance
+        of the indexers' tolerances, discarding None tolerances.
+        If all else fails, then return None.
+
+        others is a list/tuple of Indexes.
+        """
+        if tolerance is not None:
+            return tolerance
+
+        # Cast to tuple
+        others = tuple(others)
+
+        all_non_none_tolerances = [i.tolerance for i in (self,) + others
+                                   if i.tolerance is not None]
+        if len(all_non_none_tolerances) == 0:
+            return None
+        else:
+            return max(all_non_none_tolerances)
+
+    def equals(self, other, tolerance=None):
         """
         Determines if two Index objects contain the same elements.
         """
@@ -2362,13 +2413,16 @@ class Index(IndexOpsMixin, PandasObject):
         if not isinstance(other, Index):
             return False
 
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+
         if is_object_dtype(self) and not is_object_dtype(other):
             # if other is not object, use other's logic for coercion
-            return other.equals(self)
+            return other.equals(self, tolerance=tolerance)
 
         try:
             return array_equivalent(com.values_from_object(self),
-                                    com.values_from_object(other))
+                                    com.values_from_object(other),
+                                    tolerance=tolerance)
         except Exception:
             return False
 
@@ -2679,7 +2733,7 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._shallow_copy(name=name)
         return self
 
-    def union(self, other):
+    def union(self, other, tolerance=None):
         """
         Form the union of two Index objects and sorts if possible.
 
@@ -2703,11 +2757,16 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if len(other) == 0 or self.equals(other):
-            return self._get_consensus_name(other)
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+        if len(other) == 0 or self.equals(other, tolerance=tolerance):
+            new_index = self._get_consensus_name(other)
+            new_index.tolerance = tolerance
+            return new_index
 
         if len(self) == 0:
-            return other._get_consensus_name(self)
+            new_index = other._get_consensus_name(self)
+            new_index.tolerance = tolerance
+            return new_index
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)
@@ -2716,7 +2775,7 @@ class Index(IndexOpsMixin, PandasObject):
         if not is_dtype_union_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.union(other)
+            return this.union(other, tolerance=tolerance)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self) or is_datetime64tz_dtype(self):
@@ -2729,6 +2788,7 @@ class Index(IndexOpsMixin, PandasObject):
             rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
+            # FIXME intolerant
             try:
                 result = self._outer_indexer(lvals, rvals)[0]
             except TypeError:
@@ -2739,7 +2799,7 @@ class Index(IndexOpsMixin, PandasObject):
                 value_set = set(lvals)
                 result.extend([x for x in rvals if x not in value_set])
         else:
-            indexer = self.get_indexer(other)
+            indexer = self.get_indexer(other, tolerance=tolerance)
             indexer, = (indexer == -1).nonzero()
 
             if len(indexer) > 0:
@@ -2770,13 +2830,13 @@ class Index(IndexOpsMixin, PandasObject):
                                   stacklevel=3)
 
         # for subclasses
-        return self._wrap_union_result(other, result)
+        return self._wrap_union_result(other, result, tolerance)
 
-    def _wrap_union_result(self, other, result):
+    def _wrap_union_result(self, other, result, tolerance=None):
         name = self.name if self.name == other.name else None
-        return self.__class__(result, name=name)
+        return self.__class__(result, name=name, tolerance=tolerance)
 
-    def intersection(self, other):
+    def intersection(self, other, tolerance=None):
         """
         Form the intersection of two Index objects.
 
@@ -2803,13 +2863,17 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = ensure_index(other)
 
-        if self.equals(other):
-            return self._get_consensus_name(other)
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+
+        if self.equals(other, tolerance=tolerance):
+            new_index = self._get_consensus_name(other)
+            new_index.tolerance = tolerance
+            return new_index
 
         if not is_dtype_equal(self.dtype, other.dtype):
             this = self.astype('O')
             other = other.astype('O')
-            return this.intersection(other)
+            return this.intersection(other, tolerance=tolerance)
 
         # TODO(EA): setops-refactor, clean all this up
         if is_period_dtype(self):
@@ -2822,17 +2886,19 @@ class Index(IndexOpsMixin, PandasObject):
             rvals = other._values
 
         if self.is_monotonic and other.is_monotonic:
+            # FIXME: intolerant
             try:
                 result = self._inner_indexer(lvals, rvals)[0]
-                return self._wrap_union_result(other, result)
+                return self._wrap_union_result(other, result, tolerance)
             except TypeError:
                 pass
 
         try:
-            indexer = Index(rvals).get_indexer(lvals)
+            indexer = Index(rvals).get_indexer(lvals, tolerance=tolerance)
             indexer = indexer.take((indexer != -1).nonzero()[0])
         except Exception:
             # duplicates
+            # FIXME: get_indexer_non_unique() is intolerant
             indexer = algos.unique1d(
                 Index(rvals).get_indexer_non_unique(lvals)[0])
             indexer = indexer[indexer != -1]
@@ -2842,7 +2908,7 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def difference(self, other):
+    def difference(self, other, tolerance=None):
         """
         Return a new Index with elements from the index that are not in
         `other`.
@@ -2868,15 +2934,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         """
         self._assert_can_do_setop(other)
-
-        if self.equals(other):
-            return self._shallow_copy([])
-
         other, result_name = self._convert_can_do_setop(other)
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+
+        if self.equals(other, tolerance=tolerance):
+            return self._shallow_copy([], tolerance=tolerance)
 
         this = self._get_unique_index()
 
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer(other, tolerance=tolerance)
         indexer = indexer.take((indexer != -1).nonzero()[0])
 
         label_diff = np.setdiff1d(np.arange(this.size), indexer,
@@ -2887,9 +2953,10 @@ class Index(IndexOpsMixin, PandasObject):
         except TypeError:
             pass
 
-        return this._shallow_copy(the_diff, name=result_name, freq=None)
+        return this._shallow_copy(the_diff, name=result_name, freq=None,
+                                  tolerance=tolerance)
 
-    def symmetric_difference(self, other, result_name=None):
+    def symmetric_difference(self, other, result_name=None, tolerance=None):
         """
         Compute the symmetric difference of two Index objects.
         It's sorted if sorting is possible.
@@ -2927,9 +2994,11 @@ class Index(IndexOpsMixin, PandasObject):
         if result_name is None:
             result_name = result_name_update
 
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+
         this = self._get_unique_index()
         other = other._get_unique_index()
-        indexer = this.get_indexer(other)
+        indexer = this.get_indexer(other, tolerance=tolerance)
 
         # {this} minus {other}
         common_indexer = indexer.take((indexer != -1).nonzero()[0])
@@ -2951,6 +3020,7 @@ class Index(IndexOpsMixin, PandasObject):
         attribs['name'] = result_name
         if 'freq' in attribs:
             attribs['freq'] = None
+        attribs['tolerance'] = tolerance
         return self._shallow_copy_with_infer(the_diff, **attribs)
 
     def _get_unique_index(self, dropna=False):
@@ -2990,7 +3060,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         key : label
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
-            * default: exact matches only.
+            * default: exact matches only (unless tolerance is
+              greater than zero)
             * pad / ffill: find the PREVIOUS index value if no exact match.
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
@@ -2999,6 +3070,9 @@ class Index(IndexOpsMixin, PandasObject):
             Maximum distance from index value for inexact matches. The value of
             the index at the matching location most satisfy the equation
             ``abs(index[loc] - key) <= tolerance``.
+            If not specified, then the tolerance already assigned to
+            this indexer is used.
+            FIXME: what to do if the method does not support tolerances?
 
             Tolerance may be a scalar
             value, which applies the same tolerance to all values, or
@@ -3007,6 +3081,7 @@ class Index(IndexOpsMixin, PandasObject):
             the index and its dtype must exactly match the index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
+            .. versionadded:: ??? (default to tolerance attribute)
 
         Returns
         -------
@@ -3029,10 +3104,12 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
+        if tolerance is None:
+            tolerance = self.tolerance
+        if tolerance is not None and method is None and tolerance > 0:
+            # Force nearest matches
+            method = 'nearest'
         if method is None:
-            if tolerance is not None:
-                raise ValueError('tolerance argument only valid if using pad, '
-                                 'backfill or nearest lookups')
             try:
                 return self._engine.get_loc(key)
             except KeyError:
@@ -3214,7 +3291,8 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         target : %(target_klass)s
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
-            * default: exact matches only.
+            * default: exact matches only (unless tolerance is
+              greater than zero)
             * pad / ffill: find the PREVIOUS index value if no exact match.
             * backfill / bfill: use NEXT index value if no exact match
             * nearest: use the NEAREST index value if no exact match. Tied
@@ -3226,6 +3304,8 @@ class Index(IndexOpsMixin, PandasObject):
             Maximum distance between original and new labels for inexact
             matches. The values of the index at the matching locations most
             satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+            If not specified, then the tolerance assigned to this indexer is
+            used.
 
             Tolerance may be a scalar value, which applies the same tolerance
             to all values, or list-like, which applies variable tolerance per
@@ -3234,6 +3314,7 @@ class Index(IndexOpsMixin, PandasObject):
             index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
+            .. versionadded:: ???? (defer to tolerance attribute)
 
         Returns
         -------
@@ -3255,10 +3336,15 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
+        if tolerance is None:
+            tolerance = self.tolerance
         method = missing.clean_reindex_fill_method(method)
         target = ensure_index(target)
         if tolerance is not None:
             tolerance = self._convert_tolerance(tolerance, target)
+        if tolerance is not None and method is None and tolerance > 0:
+            # Force nearest matches
+            method = 'nearest'
 
         # Treat boolean labels passed to a numeric index as not found. Without
         # this fix False and True would be treated as 0 and 1 respectively.
@@ -3649,7 +3735,7 @@ class Index(IndexOpsMixin, PandasObject):
             _, indexer, _ = self._join_level(target, level, how='right',
                                              return_indexers=True)
         else:
-            if self.equals(target):
+            if self.equals(target, tolerance=tolerance):
                 indexer = None
             else:
 

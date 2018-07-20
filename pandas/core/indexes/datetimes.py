@@ -251,7 +251,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     tz = None
     _freq = None
     _comparables = ['name', 'freqstr', 'tz']
-    _attributes = ['name', 'freq', 'tz']
+    _attributes = ['name', 'freq', 'tz', 'tolerance']
 
     # define my properties & methods for delegation
     _bool_ops = ['is_month_start', 'is_month_end',
@@ -279,7 +279,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 freq=None, start=None, end=None, periods=None, tz=None,
                 normalize=False, closed=None, ambiguous='raise',
                 dayfirst=False, yearfirst=False, dtype=None,
-                copy=False, name=None, verify_integrity=True):
+                copy=False, name=None, verify_integrity=True,
+                tolerance=None):
 
         # This allows to later ensure that the 'copy' parameter is honored:
         if isinstance(data, Index):
@@ -303,7 +304,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             periods = dtl.validate_periods(periods)
             return cls._generate_range(start, end, periods, name, freq,
                                        tz=tz, normalize=normalize,
-                                       closed=closed, ambiguous=ambiguous)
+                                       closed=closed, ambiguous=ambiguous,
+                                       tolerance=tolerance)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if is_scalar(data):
@@ -356,7 +358,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 data = data.astype(np.int64, copy=False)
             subarr = data.view(_NS_DTYPE)
 
-        subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
+        subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz,
+                                 tolerance=tolerance)
         if dtype is not None:
             if not is_dtype_equal(subarr.dtype, dtype):
                 # dtype must be coerced to DatetimeTZDtype above
@@ -376,7 +379,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     @classmethod
     def _generate_range(cls, start, end, periods, name, freq, tz=None,
-                        normalize=False, ambiguous='raise', closed=None):
+                        normalize=False, ambiguous='raise', closed=None,
+                        tolerance=None):
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
@@ -501,7 +505,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
 
-        index = cls._simple_new(index.values, name=name, freq=freq, tz=tz)
+        index = cls._simple_new(index.values, name=name, freq=freq, tz=tz,
+                                tolerance=tolerance)
 
         return index
 
@@ -698,6 +703,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 data = np.empty(state)
                 np.ndarray.__setstate__(data, state)
 
+            self.tolerance = None
             self._data = data
             self._reset_identity()
 
@@ -855,7 +861,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
             freq = get_period_alias(freq)
 
-        return PeriodIndex(self.values, name=self.name, freq=freq, tz=self.tz)
+        return PeriodIndex(self.values, name=self.name, freq=freq, tz=self.tz,
+                           tolerance=self.tolerance)
 
     def snap(self, freq='S'):
         """
@@ -892,9 +899,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             naive = self
         result = super(DatetimeIndex, naive).unique(level=level)
         return self._simple_new(result.values, name=self.name, tz=self.tz,
-                                freq=self.freq)
+                                freq=self.freq, tolerance=self.tolerance)
 
-    def union(self, other):
+    def union(self, other, tolerance=None):
         """
         Specialized union for DatetimeIndex objects. If combine
         overlapping ranges with the same DateOffset, will be much
@@ -908,6 +915,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         -------
         y : Index or DatetimeIndex
         """
+        # FIXME: intolerant
         self._assert_can_do_setop(other)
         if not isinstance(other, DatetimeIndex):
             try:
@@ -917,10 +925,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         this, other = self._maybe_utc_convert(other)
 
+        tolerance = this._choose_tolerance([other], tolerance=tolerance)
+
         if this._can_fast_union(other):
-            return this._fast_union(other)
+            return this._fast_union(other, tolerance)
         else:
-            result = Index.union(this, other)
+            result = Index.union(this, other, tolerance=tolerance)
             if isinstance(result, DatetimeIndex):
                 result._tz = timezones.tz_standardize(this.tz)
                 if (result.freq is None and
@@ -1009,17 +1019,17 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 other = other.tz_convert('UTC')
         return this, other
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined, other, tolerance):
         name = self.name if self.name == other.name else None
         if (isinstance(other, DatetimeIndex) and
                 self.freq == other.freq and
                 self._can_fast_union(other)):
-            joined = self._shallow_copy(joined)
+            joined = self._shallow_copy(joined, tolerance=tolerance)
             joined.name = name
             return joined
         else:
             tz = getattr(other, 'tz', None)
-            return self._simple_new(joined, name, tz=tz)
+            return self._simple_new(joined, name, tz=tz, tolerance=tolerance)
 
     def _can_fast_union(self, other):
         if not isinstance(other, DatetimeIndex):
@@ -1054,7 +1064,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             # this will raise
             return False
 
-    def _fast_union(self, other):
+    def _fast_union(self, other, tolerance):
+        # FIXME: intolerant
         if len(other) == 0:
             return self.view(type(self))
 
@@ -1076,7 +1087,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 loc = right.searchsorted(left_end, side='right')
                 right_chunk = right.values[loc:]
                 dates = _concat._concat_compat((left.values, right_chunk))
-                return self._shallow_copy(dates)
+                return self._shallow_copy(dates, tolerance=tolerance)
             else:
                 return left
         else:
@@ -1084,13 +1095,14 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                               end=max(left_end, right_end),
                               freq=left.freq)
 
-    def _wrap_union_result(self, other, result):
+    def _wrap_union_result(self, other, result, tolerance):
         name = self.name if self.name == other.name else None
         if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError('Passed item and index have different timezone')
-        return self._simple_new(result, name=name, freq=None, tz=self.tz)
+        return self._simple_new(result, name=name, freq=None, tz=self.tz,
+                                tolerance=tolerance)
 
-    def intersection(self, other):
+    def intersection(self, other, tolerance=None):
         """
         Specialized intersection for DatetimeIndex objects. May be much faster
         than Index.intersection

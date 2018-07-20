@@ -211,7 +211,8 @@ class MultiIndex(Index):
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
                 dtype=None, copy=False, name=None,
-                verify_integrity=True, _set_identity=True):
+                verify_integrity=True, _set_identity=True,
+                tolerance=None):
 
         # compat with Index
         if name is not None:
@@ -222,12 +223,15 @@ class MultiIndex(Index):
             raise ValueError('Length of levels and labels must be the same.')
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
+        if tolerance is not None:
+            raise ValueError("MultiIndex does not support non-None tolerances yet")
 
         result = object.__new__(MultiIndex)
 
         # we've already validated levels and labels, so shortcut here
         result._set_levels(levels, copy=copy, validate=False)
         result._set_labels(labels, copy=copy, validate=False)
+        result.tolerance = tolerance
 
         if names is not None:
             # handles name validation
@@ -521,7 +525,8 @@ class MultiIndex(Index):
                 labels = self.labels
         return MultiIndex(levels=levels, labels=labels, names=names,
                           sortorder=self.sortorder, verify_integrity=False,
-                          _set_identity=_set_identity)
+                          _set_identity=_set_identity,
+                          tolerance=self.tolerance)
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
@@ -1235,7 +1240,8 @@ class MultiIndex(Index):
         return 0
 
     @classmethod
-    def from_arrays(cls, arrays, sortorder=None, names=None):
+    def from_arrays(cls, arrays, sortorder=None, names=None,
+                    tolerance=None):
         """
         Convert arrays to MultiIndex
 
@@ -1281,10 +1287,11 @@ class MultiIndex(Index):
             names = [getattr(arr, "name", None) for arr in arrays]
 
         return MultiIndex(levels=levels, labels=labels, sortorder=sortorder,
-                          names=names, verify_integrity=False)
+                          names=names, verify_integrity=False,
+                          tolerance=tolerance)
 
     @classmethod
-    def from_tuples(cls, tuples, sortorder=None, names=None):
+    def from_tuples(cls, tuples, sortorder=None, names=None, tolerance=None):
         """
         Convert list of tuples to MultiIndex
 
@@ -1332,10 +1339,12 @@ class MultiIndex(Index):
         else:
             arrays = lzip(*tuples)
 
-        return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names)
+        return MultiIndex.from_arrays(arrays, sortorder=sortorder, names=names,
+                                      tolerance=tolerance)
 
     @classmethod
-    def from_product(cls, iterables, sortorder=None, names=None):
+    def from_product(cls, iterables, sortorder=None, names=None,
+                     tolerance=None):
         """
         Make a MultiIndex from the cartesian product of multiple iterables
 
@@ -1378,7 +1387,8 @@ class MultiIndex(Index):
 
         labels, levels = _factorize_from_iterables(iterables)
         labels = cartesian_product(labels)
-        return MultiIndex(levels, labels, sortorder=sortorder, names=names)
+        return MultiIndex(levels, labels, sortorder=sortorder, names=names,
+                          tolerance=tolerance)
 
     def _sort_levels_monotonic(self):
         """
@@ -1440,7 +1450,8 @@ class MultiIndex(Index):
 
         return MultiIndex(new_levels, new_labels,
                           names=self.names, sortorder=self.sortorder,
-                          verify_integrity=False)
+                          verify_integrity=False,
+                          tolerance=tolerance)
 
     def remove_unused_levels(self):
         """
@@ -1539,7 +1550,8 @@ class MultiIndex(Index):
         """Necessary for making this object picklable"""
         d = dict(levels=[lev for lev in self.levels],
                  labels=[label for label in self.labels],
-                 sortorder=self.sortorder, names=list(self.names))
+                 sortorder=self.sortorder, names=list(self.names),
+                 tolerance=self.tolerance)
         return ibase._new_Index, (self.__class__, d), None
 
     def __setstate__(self, state):
@@ -1550,6 +1562,7 @@ class MultiIndex(Index):
             labels = state.get('labels')
             sortorder = state.get('sortorder')
             names = state.get('names')
+            tolerance = state.get('tolerance', None)
 
         elif isinstance(state, tuple):
 
@@ -1560,6 +1573,7 @@ class MultiIndex(Index):
         self._set_labels(labels)
         self._set_names(names)
         self.sortorder = sortorder
+        self.tolerance = None
         self._verify_integrity()
         self._reset_identity()
 
@@ -2134,7 +2148,7 @@ class MultiIndex(Index):
             else:
                 return start + section.searchsorted(idx, side=side)
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get location for a label or a tuple of labels as an integer, slice or
         boolean mask.
@@ -2177,6 +2191,8 @@ class MultiIndex(Index):
         if method is not None:
             raise NotImplementedError('only the default get_loc method is '
                                       'currently supported for MultiIndex')
+        if tolerance is not None:
+            raise NotImplementedError("Tolerance is not supported for MultiIndex")
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
@@ -2612,7 +2628,7 @@ class MultiIndex(Index):
         return MultiIndex(levels=new_levels, labels=new_labels,
                           verify_integrity=False)
 
-    def equals(self, other):
+    def equals(self, other, tolerance=None):
         """
         Determines if two MultiIndex objects have the same labeling information
         (the levels themselves do not necessarily have to be the same)
@@ -2621,6 +2637,9 @@ class MultiIndex(Index):
         --------
         equal_levels
         """
+        if tolerance is not None:
+            raise NotImplementedError("Tolerance is not supported for"
+                                      " MultiIndex")
         if self.is_(other):
             return True
 
@@ -2675,7 +2694,7 @@ class MultiIndex(Index):
                 return False
         return True
 
-    def union(self, other):
+    def union(self, other, tolerance=None):
         """
         Form the union of two MultiIndex objects, sorting if possible
 
@@ -2689,6 +2708,10 @@ class MultiIndex(Index):
 
         >>> index.union(index2)
         """
+        if tolerance is not None:
+            raise NotImplementedError("Tolerance is not supported for"
+                                      " MultiIndex")
+
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
@@ -2700,7 +2723,7 @@ class MultiIndex(Index):
         return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                       names=result_names)
 
-    def intersection(self, other):
+    def intersection(self, other, tolerance=None):
         """
         Form the intersection of two MultiIndex objects, sorting if possible
 
@@ -2712,6 +2735,10 @@ class MultiIndex(Index):
         -------
         Index
         """
+        if tolerance is not None:
+            raise NotImplementedError("Tolerance is not supported for"
+                                      " MultiIndex")
+
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 
@@ -2729,7 +2756,7 @@ class MultiIndex(Index):
             return MultiIndex.from_arrays(lzip(*uniq_tuples), sortorder=0,
                                           names=result_names)
 
-    def difference(self, other):
+    def difference(self, other, tolerance=None):
         """
         Compute sorted set difference of two MultiIndex objects
 
@@ -2737,6 +2764,10 @@ class MultiIndex(Index):
         -------
         diff : MultiIndex
         """
+        if tolerance is not None:
+            raise NotImplementedError("Tolerance is not supported for"
+                                      " MultiIndex")
+
         self._assert_can_do_setop(other)
         other, result_names = self._convert_can_do_setop(other)
 

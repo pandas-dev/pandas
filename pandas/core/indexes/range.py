@@ -66,10 +66,12 @@ class RangeIndex(Int64Index):
     _engine_type = libindex.Int64Engine
 
     def __new__(cls, start=None, stop=None, step=None,
-                dtype=None, copy=False, name=None, fastpath=False):
+                dtype=None, copy=False, name=None, fastpath=False,
+                tolerance=None):
 
         if fastpath:
-            return cls._simple_new(start, stop, step, name=name)
+            return cls._simple_new(start, stop, step, name=name,
+                                   tolerance=tolerance)
 
         cls._validate_dtype(dtype)
 
@@ -115,7 +117,7 @@ class RangeIndex(Int64Index):
         else:
             step = ensure_int(step, 'step')
 
-        return cls._simple_new(start, stop, step, name)
+        return cls._simple_new(start, stop, step, name, tolerance=tolerance)
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
@@ -312,7 +314,7 @@ class RangeIndex(Int64Index):
         else:
             return np.arange(len(self) - 1, -1, -1)
 
-    def equals(self, other):
+    def equals(self, other, tolerance=None):
         """
         Determines if two Index objects contain the same elements.
         """
@@ -326,7 +328,7 @@ class RangeIndex(Int64Index):
                     self._start == other._start and
                     self._step == other._step)
 
-        return super(RangeIndex, self).equals(other)
+        return super(RangeIndex, self).equals(other, tolerance=tolerance)
 
     def intersection(self, other):
         """
@@ -341,6 +343,7 @@ class RangeIndex(Int64Index):
         -------
         intersection : Index
         """
+        # FIXME: intolerant
         if not isinstance(other, RangeIndex):
             return super(RangeIndex, self).intersection(other)
 
@@ -420,6 +423,7 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
+        # FIXME: intolerant
         self._assert_can_do_setop(other)
         if len(other) == 0 or self.equals(other):
             return self

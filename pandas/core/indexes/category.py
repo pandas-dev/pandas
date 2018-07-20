@@ -73,13 +73,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     _typ = 'categoricalindex'
     _engine_type = libindex.Int64Engine
-    _attributes = ['name']
+    _attributes = ['name', 'tolerance']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False):
-
+                copy=False, name=None, fastpath=False, tolerance=None):
         if fastpath:
-            return cls._simple_new(data, name=name, dtype=dtype)
+            return cls._simple_new(data, name=name, dtype=dtype, tolerance=tolerance)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -105,7 +104,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if copy:
             data = data.copy()
 
-        return cls._simple_new(data, name=name)
+        return cls._simple_new(data, name=name, tolerance=tolerance)
 
     def _create_from_codes(self, codes, categories=None, ordered=None,
                            name=None):
@@ -176,8 +175,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @classmethod
     def _simple_new(cls, values, name=None, categories=None, ordered=None,
-                    dtype=None, **kwargs):
+                    dtype=None, tolerance=None, **kwargs):
         result = object.__new__(cls)
+
+        if tolerance is not None:
+            raise ValueError("CategoricalIndex does not support non-None"
+                             " tolerances!")
 
         values = cls._create_categorical(values, categories, ordered,
                                          dtype=dtype)
@@ -243,7 +246,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         return other
 
-    def equals(self, other):
+    def equals(self, other, tolerance=None):
         """
         Determines if two CategorialIndex objects contain the same elements.
         """
@@ -252,6 +255,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         if not isinstance(other, Index):
             return False
+
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+        if tolerance is not None:
+            raise ValueError("CategoricalIndex does not support a non-None"
+                             " tolerance")
 
         try:
             other = self._is_dtype_compat(other)
@@ -401,7 +409,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ convert to object if we are a categorical """
         return self.astype('object')
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """
         Get integer location, slice or boolean mask for requested label.
 
@@ -429,6 +437,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
+        if tolerance is not None:
+            raise ValueError("CategoricalIndex does not support a non-None"
+                             " tolerance")
         codes = self.categories.get_loc(key)
         if (codes == -1):
             raise KeyError(key)

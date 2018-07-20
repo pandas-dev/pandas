@@ -53,6 +53,10 @@ _index_doc_kwargs.update(
          name : object, optional
               to be stored in the index.
          """),
+         tolerance=textwrap.dedent("""\
+         tolerance : optional
+              default tolerance, if any, to apply to indexing operations.
+        """),
          ))
 
 
@@ -111,6 +115,7 @@ def _new_IntervalIndex(cls, d):
     klass="IntervalIndex",
     summary="Immutable index of intervals that are closed on the same side.",
     name=_index_doc_kwargs['name'],
+    tolerance=_index_doc_kwargs['tolerance'],
     versionadded="0.20.0",
     extra_methods="contains\n",
     examples=textwrap.dedent("""\
@@ -137,7 +142,7 @@ def _new_IntervalIndex(cls, d):
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
-    _attributes = ['name', 'closed']
+    _attributes = ['name', 'closed', 'tolerance']
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -146,10 +151,11 @@ class IntervalIndex(IntervalMixin, Index):
     _mask = None
 
     def __new__(cls, data, closed=None, dtype=None, copy=False,
-                name=None, fastpath=False, verify_integrity=True):
+                name=None, fastpath=False, verify_integrity=True,
+                tolerance=None):
 
         if fastpath:
-            return cls._simple_new(data, name)
+            return cls._simple_new(data, name, tolerance=tolerance)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
@@ -159,10 +165,10 @@ class IntervalIndex(IntervalMixin, Index):
                                   fastpath=fastpath,
                                   verify_integrity=verify_integrity)
 
-        return cls._simple_new(array, name)
+        return cls._simple_new(array, name, tolerance=tolerance)
 
     @classmethod
-    def _simple_new(cls, array, name, closed=None):
+    def _simple_new(cls, array, name, closed=None, tolerance=None):
         """
         Construct from an IntervalArray
 
@@ -176,6 +182,7 @@ class IntervalIndex(IntervalMixin, Index):
         """
         result = IntervalMixin.__new__(cls)
         result._data = array
+        result.tolerance = tolerance
         result.name = name
         result._reset_identity()
         return result
@@ -256,25 +263,25 @@ class IntervalIndex(IntervalMixin, Index):
     @classmethod
     @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
     def from_breaks(cls, breaks, closed='right', name=None, copy=False,
-                    dtype=None):
+                    dtype=None, tolerance=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
                                               dtype=dtype)
-        return cls._simple_new(array, name=name)
+        return cls._simple_new(array, name=name, tolerance=tolerance)
 
     @classmethod
     @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
     def from_arrays(cls, left, right, closed='right', name=None, copy=False,
-                    dtype=None):
+                    dtype=None, tolerance=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(left, right, closed, copy=copy,
                                               dtype=dtype)
-        return cls._simple_new(array, name=name)
+        return cls._simple_new(array, name=name, tolerance=tolerance)
 
     @classmethod
     @Appender(_interval_shared_docs['from_intervals'] % _index_doc_kwargs)
     def from_intervals(cls, data, closed=None, name=None, copy=False,
-                       dtype=None):
+                       dtype=None, tolerance=None):
         msg = ('IntervalIndex.from_intervals is deprecated and will be '
                'removed in a future version; Use IntervalIndex(...) instead')
         warnings.warn(msg, FutureWarning, stacklevel=2)
@@ -284,16 +291,16 @@ class IntervalIndex(IntervalMixin, Index):
         if name is None and isinstance(data, cls):
             name = data.name
 
-        return cls._simple_new(array, name=name)
+        return cls._simple_new(array, name=name, tolerance=tolerance)
 
     @classmethod
     @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
     def from_tuples(cls, data, closed='right', name=None, copy=False,
-                    dtype=None):
+                    dtype=None, tolerance=None):
         with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
                                             dtype=dtype)
-        return cls._simple_new(arr, name=name)
+        return cls._simple_new(arr, name=name, tolerance=tolerance)
 
     @Appender(_interval_shared_docs['to_tuples'] % dict(
         return_type="Index",
@@ -607,7 +614,7 @@ class IntervalIndex(IntervalMixin, Index):
             stop = self._searchsorted_monotonic(key, 'right')
         return start, stop
 
-    def get_loc(self, key, method=None):
+    def get_loc(self, key, method=None, tolerance=None):
         """Get integer location, slice or boolean mask for requested label.
 
         Parameters
@@ -643,6 +650,7 @@ class IntervalIndex(IntervalMixin, Index):
         >>> overlapping_index.get_loc(1.5)
         array([0, 1], dtype=int64)
         """
+        # FIXME: mostly intolerant
         self._check_method(method)
 
         original_key = key
@@ -652,7 +660,7 @@ class IntervalIndex(IntervalMixin, Index):
             if isinstance(key, Interval):
                 left = self._maybe_cast_slice_bound(key.left, 'left', None)
                 right = self._maybe_cast_slice_bound(key.right, 'right', None)
-                key = Interval(left, right, key.closed)
+                key = Interval(left, right, key.closed, tolerance=tolerance)
             else:
                 key = self._maybe_cast_slice_bound(key, 'left', None)
 
@@ -959,7 +967,7 @@ class IntervalIndex(IntervalMixin, Index):
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))
 
-    def equals(self, other):
+    def equals(self, other, tolerance=None):
         """
         Determines if two IntervalIndex objects contain the same elements
         """
@@ -971,10 +979,12 @@ class IntervalIndex(IntervalMixin, Index):
         if not isinstance(other, IntervalIndex):
             if not is_interval_dtype(other):
                 return False
+            # FIXME: '.values'???
             other = Index(getattr(other, '.values', other))
+        tolerance = self._choose_tolerance([other], tolerance)
 
-        return (self.left.equals(other.left) and
-                self.right.equals(other.right) and
+        return (self.left.equals(other.left, tolerance=tolerance) and
+                self.right.equals(other.right, tolerance=tolerance) and
                 self.closed == other.closed)
 
     def _setop(op_name):

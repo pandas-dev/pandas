@@ -31,6 +31,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         self.orig = orig
         self.name = getattr(data, 'name', None)
         self.index = getattr(data, 'index', None)
+        self.tolerance = getattr(data, 'tolerance', None)
         self._freeze()
 
     def _get_values(self):

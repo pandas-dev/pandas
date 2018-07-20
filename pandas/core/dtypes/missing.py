@@ -369,7 +369,7 @@ def _isna_compat(arr, fill_value=np.nan):
     return True
 
 
-def array_equivalent(left, right, strict_nan=False):
+def array_equivalent(left, right, strict_nan=False, tolerance=None):
     """
     True if two arrays, left and right, have equal non-NaN elements, and NaNs
     in corresponding locations.  False otherwise. It is assumed that left and
@@ -409,7 +409,7 @@ def array_equivalent(left, right, strict_nan=False):
     # Object arrays can contain None, NaN and NaT.
     # string dtypes must be come to this path for NumPy 1.7.1 compat
     if is_string_dtype(left) or is_string_dtype(right):
-
+        # FIXME: intolerant
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
             return lib.array_equivalent_object(
@@ -434,9 +434,14 @@ def array_equivalent(left, right, strict_nan=False):
         # empty
         if not (np.prod(left.shape) and np.prod(right.shape)):
             return True
-        return ((left == right) | (isna(left) & isna(right))).all()
+        if tolerance is None:
+            return ((left == right) | (isna(left) & isna(right))).all()
+        else:
+            return ((np.abs(left - right) <= tolerance) |
+                    (isna(left) & isna(right))).all()
 
     # numpy will will not allow this type of datetimelike vs integer comparison
+    # FIXME: intolerant
     elif is_datetimelike_v_numeric(left, right):
         return False
 
@@ -454,7 +459,11 @@ def array_equivalent(left, right, strict_nan=False):
         if left.dtype != right.dtype:
             return False
 
-    return np.array_equal(left, right)
+    if tolerance is None:
+        return np.array_equal(left, right)
+    else:
+        # The remaining dtypes left won't have NaNs to worry about.
+        return np.allclose(left, right, atol=tolerance, equal_nan=False)
 
 
 def _infer_fill_value(val):

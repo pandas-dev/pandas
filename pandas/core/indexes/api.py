@@ -53,19 +53,21 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
         return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
-def _get_combined_index(indexes, intersect=False, sort=False):
+def _get_combined_index(indexes, intersect=False, sort=False,
+                        tolerance=None):
     # TODO: handle index names!
     indexes = com.get_distinct_objs(indexes)
     if len(indexes) == 0:
-        index = Index([])
+        index = Index([], tolerance=tolerance)
     elif len(indexes) == 1:
         index = indexes[0]
     elif intersect:
         index = indexes[0]
+        tolerance = index._choose_tolerance(indexes[1:], tolerance)
         for other in indexes[1:]:
-            index = index.intersection(other)
+            index = index.intersection(other, tolerance=tolerance)
     else:
-        index = _union_indexes(indexes, sort=sort)
+        index = _union_indexes(indexes, sort=sort, tolerance=tolerance)
         index = ensure_index(index)
 
     if sort:
@@ -76,17 +78,20 @@ def _get_combined_index(indexes, intersect=False, sort=False):
     return index
 
 
-def _union_indexes(indexes, sort=True):
+def _union_indexes(indexes, sort=True, tolerance=None):
     if len(indexes) == 0:
         raise AssertionError('Must have at least 1 Index to union')
     if len(indexes) == 1:
         result = indexes[0]
+        if tolerance is None:
+            tolerance = getattr(result, 'tolerance', None)
         if isinstance(result, list):
-            result = Index(sorted(result))
+            result = Index(sorted(result), tolerance=tolerance)
         return result
 
     indexes, kind = _sanitize_and_check(indexes)
 
+    # FIXME: intolerant
     def _unique_indices(inds):
         def conv(i):
             if isinstance(i, Index):
@@ -96,19 +101,20 @@ def _union_indexes(indexes, sort=True):
         return Index(
             lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
+    tolerance = indexes[0]._choose_tolerance(indexes[1:], tolerance)
     if kind == 'special':
         result = indexes[0]
 
         if hasattr(result, 'union_many'):
-            return result.union_many(indexes[1:])
+            return result.union_many(indexes[1:], tolerance=tolerance)
         else:
             for other in indexes[1:]:
-                result = result.union(other)
+                result = result.union(other, tolerance=tolerance)
             return result
     elif kind == 'array':
         index = indexes[0]
         for other in indexes[1:]:
-            if not index.equals(other):
+            if not index.equals(other, tolerance=tolerance):
 
                 if sort is None:
                     # TODO: remove once pd.concat sort default changes
@@ -119,7 +125,7 @@ def _union_indexes(indexes, sort=True):
 
         name = _get_consensus_names(indexes)[0]
         if name != index.name:
-            index = index._shallow_copy(name=name)
+            index = index._shallow_copy(name=name, tolerance=tolerance)
         return index
     else:  # kind='list'
         return _unique_indices(indexes)
