@@ -136,7 +136,6 @@ class PivotTable(object):
         self.df.pivot_table(index='key1', columns=['key2', 'key3'])
 
 
-
 class GetDummies(object):
     goal_time = 0.2
 
