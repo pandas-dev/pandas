@@ -7712,7 +7712,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         # align the cond to same shape as myself
-        cond = com._apply_if_callable(cond, self)
+        cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
         else:
@@ -7979,7 +7979,7 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 errors = 'ignore'
 
-        other = com._apply_if_callable(other, self)
+        other = com.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level,
                            errors=errors, try_cast=try_cast)
 
@@ -8001,7 +8001,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 errors = 'ignore'
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        cond = com._apply_if_callable(cond, self)
+        cond = com.apply_if_callable(cond, self)
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
