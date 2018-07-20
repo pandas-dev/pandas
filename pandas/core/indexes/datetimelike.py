@@ -789,9 +789,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         start = self[0] + n * self.freq
         end = self[-1] + n * self.freq
         attribs = self._get_attributes_dict()
-        attribs['start'] = start
-        attribs['end'] = end
-        return type(self)(**attribs)
+        return self._generate_range(start=start, end=end, periods=None,
+                                    **attribs)
 
     def repeat(self, repeats, *args, **kwargs):
         """
