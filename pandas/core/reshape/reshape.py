@@ -940,10 +940,11 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         sparse_series = {}
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code in enumerate(codes):
-            if code == -1:
-                # Blank entries if not dummy_na and code == -1, #GH4446
-                continue
+        mask = codes != -1
+        codes = codes[mask]
+        n_idx = np.arange(N)[mask]
+
+        for ndx, code in zip(n_idx, codes):
             sp_indices[code].append(ndx)
 
         if drop_first:
