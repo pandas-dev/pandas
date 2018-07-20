@@ -510,7 +510,7 @@ def _is_multiple(us, mult):
     return us % mult == 0
 
 
-def maybe_add_count(base, count):
+def _maybe_add_count(base, count):
     if count != 1:
         return '{count}{base}'.format(count=count, base=base)
     else:
