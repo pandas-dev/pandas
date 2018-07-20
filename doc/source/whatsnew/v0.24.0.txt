@@ -13,6 +13,7 @@ v0.24.0 (Month XX, 2018)
 New features
 ~~~~~~~~~~~~
 
+
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
@@ -30,6 +31,62 @@ operators (:issue:`19577`). There are two approaches for providing operator supp
 See the :ref:`ExtensionArray Operator Support
 <extending.extension.operator>` documentation section for details on both
 ways of adding operator support.
+
+.. _whatsnew_0240.enhancements.intna:
+
+Optional Integer NA Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas has gained the ability to hold integer dtypes with missing values. This long requested feature is enabled through the use of :ref:`extension types <extending.extension-types>`.
+Here is an example of the usage.
+
+We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
+marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`)
+
+.. ipython:: python
+
+   s = pd.Series([1, 2, np.nan], dtype='Int64')
+   s
+
+
+Operations on these dtypes will propagate ``NaN`` as other pandas operations.
+
+.. ipython:: python
+
+   # arithmetic
+   s + 1
+
+   # comparison
+   s == 1
+
+   # indexing
+   s.iloc[1:3]
+
+   # operate with other dtypes
+   s + s.iloc[1:3].astype('Int8')
+
+   # coerce when needed
+   s + 0.01
+
+These dtypes can operate as part of of ``DataFrame``.
+
+.. ipython:: python
+
+   df = pd.DataFrame({'A': s, 'B': [1, 1, 3], 'C': list('aab')})
+   df
+   df.dtypes
+
+
+These dtypes can be merged & reshaped & casted.
+
+.. ipython:: python
+
+   pd.concat([df[['A']], df[['B', 'C']]], axis=1).dtypes
+   df['A'].astype(float)
+
+.. warning::
+
+   The Integer NA support currently uses the captilized dtype version, e.g. ``Int8`` as compared to the traditional ``int8``. This may be changed at a future date.
 
 .. _whatsnew_0240.enhancements.read_html:
 
@@ -258,6 +315,7 @@ Previous Behavior:
 ExtensionType Changes
 ^^^^^^^^^^^^^^^^^^^^^
 
+- ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
@@ -350,7 +408,7 @@ Performance Improvements
 - Improved performance of :meth:`HDFStore.groups` (and dependent functions like
   :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
   (:issue:`21372`)
--
+- Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
 
 .. _whatsnew_0240.docs:
 
@@ -476,6 +534,9 @@ Groupby/Resample/Rolling
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
 -
 -
+
+- Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
+  datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
 
 Sparse
 ^^^^^^
