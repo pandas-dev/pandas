@@ -161,7 +161,7 @@ def _count_not_none(*args):
     return sum(x is not None for x in args)
 
 
-def _try_sort(iterable):
+def try_sort(iterable):
     listed = list(iterable)
     try:
         return sorted(listed)
@@ -169,13 +169,13 @@ def _try_sort(iterable):
         return listed
 
 
-def _dict_keys_to_ordered_list(mapping):
+def dict_keys_to_ordered_list(mapping):
     # when pandas drops support for Python < 3.6, this function
     # can be replaced by a simple list(mapping.keys())
     if PY36 or isinstance(mapping, OrderedDict):
         keys = list(mapping.keys())
     else:
-        keys = _try_sort(mapping)
+        keys = try_sort(mapping)
     return keys
 
 

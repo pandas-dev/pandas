@@ -204,7 +204,7 @@ class Panel(NDFrame):
                                for k, v in compat.iteritems(data)
                                if k in haxis)
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             haxis = Index(keys)
 
         for k, v in compat.iteritems(data):
