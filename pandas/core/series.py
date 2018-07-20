@@ -2478,8 +2478,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        # TODO: axis is unused, is this just validation?
-        axis = self._get_axis_number(axis)
+        # Valida the axis parameter
+        self._get_axis_number(axis)
 
         # GH 5856/5853
         if inplace and self._is_cached:
@@ -2651,8 +2651,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        # TODO: axis is unused, is this just validation?
-        axis = self._get_axis_number(axis)
+        # Valida the axis parameter
+        self._get_axis_number(axis)
         index = self.index
 
         if level is not None:
@@ -3073,8 +3073,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         versionadded='.. versionadded:: 0.20.0',
         **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
-        # TODO: axis is unused, is this just validation?
-        axis = self._get_axis_number(axis)
+        # Valida the axis parameter
+        self._get_axis_number(axis)
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
@@ -3920,8 +3920,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if kwargs:
             raise TypeError('dropna() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
-        # TODO: axis is unused, is this just validation?
-        axis = self._get_axis_number(axis or 0)
+        # Valida the axis parameter
+        self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)

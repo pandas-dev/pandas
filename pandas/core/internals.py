@@ -1255,10 +1255,9 @@ class Block(PandasObject):
             values = self.get_values()
 
         if fill_tuple is None:
-            # TODO: fill_value is unused; should this be passed to take_nd?
             fill_value = self.fill_value
             new_values = algos.take_nd(values, indexer, axis=axis,
-                                       allow_fill=False)
+                                       allow_fill=False, fill_value=fill_value)
         else:
             fill_value = fill_tuple[0]
             new_values = algos.take_nd(values, indexer, axis=axis,

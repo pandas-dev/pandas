@@ -495,10 +495,6 @@ class DataFrameFormatter(TableFormatter):
                                 frame.iloc[:, -col_num:]), axis=1)
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows_adj == 0:
-                # TODO: Should the next block be elif? row_num here will
-                # be overwritten.
-                row_num = len(frame)
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
