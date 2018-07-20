@@ -98,7 +98,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            return Index(result)
+            return Index(result, name=name)
         else:
             return DatetimeIndex(result, name=name)
     return result.values
@@ -135,7 +135,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
                            in zip(result, timezones)])
     if box:
         from pandas import Index
-        return Index(tz_results)
+        return Index(tz_results, name=name)
     return tz_results
 
 
@@ -526,6 +526,119 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_timedelta : Convert argument to timedelta.
     """
+    from pandas.core.indexes.datetimes import DatetimeIndex
+
+    tz = 'utc' if utc else None
+
+    def _convert_listlike(arg, box, format, name=None, tz=tz):
+
+        if isinstance(arg, (list, tuple)):
+            arg = np.array(arg, dtype='O')
+
+        # these are shortcutable
+        if is_datetime64tz_dtype(arg):
+            if not isinstance(arg, DatetimeIndex):
+                return DatetimeIndex(arg, tz=tz, name=name)
+            if utc:
+                arg = arg.tz_convert(None).tz_localize('UTC')
+            return arg
+
+        elif is_datetime64_ns_dtype(arg):
+            if box and not isinstance(arg, DatetimeIndex):
+                try:
+                    return DatetimeIndex(arg, tz=tz, name=name)
+                except ValueError:
+                    pass
+
+            return arg
+
+        elif unit is not None:
+            if format is not None:
+                raise ValueError("cannot specify both format and unit")
+            arg = getattr(arg, 'values', arg)
+            result = tslib.array_with_unit_to_datetime(arg, unit,
+                                                       errors=errors)
+            if box:
+                if errors == 'ignore':
+                    from pandas import Index
+                    return Index(result, name=name)
+
+                return DatetimeIndex(result, tz=tz, name=name)
+            return result
+        elif getattr(arg, 'ndim', 1) > 1:
+            raise TypeError('arg must be a string, datetime, list, tuple, '
+                            '1-d array, or Series')
+
+        arg = _ensure_object(arg)
+        require_iso8601 = False
+
+        if infer_datetime_format and format is None:
+            format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
+
+        if format is not None:
+            # There is a special fast-path for iso8601 formatted
+            # datetime strings, so in those cases don't use the inferred
+            # format because this path makes process slower in this
+            # special case
+            format_is_iso8601 = _format_is_iso(format)
+            if format_is_iso8601:
+                require_iso8601 = not infer_datetime_format
+                format = None
+
+        try:
+            result = None
+
+            if format is not None:
+                # shortcut formatting here
+                if format == '%Y%m%d':
+                    try:
+                        result = _attempt_YYYYMMDD(arg, errors=errors)
+                    except:
+                        raise ValueError("cannot convert the input to "
+                                         "'%Y%m%d' date format")
+
+                # fallback
+                if result is None:
+                    try:
+                        result, timezones = array_strptime(
+                            arg, format, exact=exact, errors=errors)
+                        if '%Z' in format or '%z' in format:
+                            return _return_parsed_timezone_results(
+                                result, timezones, box, tz)
+                    except tslib.OutOfBoundsDatetime:
+                        if errors == 'raise':
+                            raise
+                        result = arg
+                    except ValueError:
+                        # if format was inferred, try falling back
+                        # to array_to_datetime - terminate here
+                        # for specified formats
+                        if not infer_datetime_format:
+                            if errors == 'raise':
+                                raise
+                            result = arg
+
+            if result is None and (format is None or infer_datetime_format):
+                result = tslib.array_to_datetime(
+                    arg,
+                    errors=errors,
+                    utc=utc,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    require_iso8601=require_iso8601
+                )
+
+            if is_datetime64_dtype(result) and box:
+                result = DatetimeIndex(result, tz=tz, name=name)
+            return result
+
+        except ValueError as e:
+            try:
+                values, tz = conversion.datetime_to_datetime64(arg)
+                return DatetimeIndex._simple_new(values, name=name, tz=tz)
+            except (ValueError, TypeError):
+                raise e
+
     if arg is None:
         return None
 
