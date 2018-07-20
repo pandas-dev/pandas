@@ -203,25 +203,6 @@ def iterpairs(seq):
     return zip(seq_it, seq_it_next)
 
 
-def split_ranges(mask):
-    """ Generates tuples of ranges which cover all True value in mask
-
-    >>> list(split_ranges([1,0,0,1,0]))
-    [(0, 1), (3, 4)]
-    """
-    ranges = [(0, len(mask))]
-
-    for pos, val in enumerate(mask):
-        if not val:  # this pos should be omitted, split off the prefix range
-            r = ranges.pop()
-            if pos > r[0]:  # yield non-zero range
-                yield (r[0], pos)
-            if pos + 1 < len(mask):  # save the rest for processing
-                ranges.append((pos + 1, len(mask)))
-    if ranges:
-        yield ranges[-1]
-
-
 def asarray_tuplesafe(values, dtype=None):
 
     if not (isinstance(values, (list, tuple)) or hasattr(values, '__array__')):
@@ -292,6 +273,7 @@ def is_true_slices(l):
     return [isinstance(k, slice) and not is_null_slice(k) for k in l]
 
 
+# TODO: used only once in indexing; belongs elsewhere?
 def is_full_slice(obj, l):
     """ we have a full length slice """
     return (isinstance(obj, slice) and obj.start == 0 and obj.stop == l and
