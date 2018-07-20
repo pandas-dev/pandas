@@ -440,7 +440,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         know what you're doing
         """
         try:
-            k = com._values_from_object(key)
+            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]

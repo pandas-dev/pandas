@@ -51,7 +51,7 @@ def flatten(l):
             yield el
 
 
-def _consensus_name_attr(objs):
+def consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
         try:
@@ -62,7 +62,8 @@ def _consensus_name_attr(objs):
     return name
 
 
-def _get_info_slice(obj, indexer):
+# TODO: only used once in frame.py; belongs elsewhere?
+def get_info_slice(obj, indexer):
     """Slice the info axis of `obj` with `indexer`."""
     if not hasattr(obj, '_info_axis_number'):
         msg = 'object of type {typ!r} has no info axis'
@@ -93,7 +94,7 @@ def maybe_box_datetimelike(value):
     return value
 
 
-_values_from_object = lib.values_from_object
+values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
@@ -156,7 +157,7 @@ def _all_not_none(*args):
     return True
 
 
-def _count_not_none(*args):
+def count_not_none(*args):
     """Returns the count of arguments that are not None"""
     return sum(x is not None for x in args)
 
@@ -296,7 +297,7 @@ def asarray_tuplesafe(values, dtype=None):
     return result
 
 
-def _index_labels_to_array(labels, dtype=None):
+def index_labels_to_array(labels, dtype=None):
     """
     Transform label or iterable of labels to array, for use in Index.
 
@@ -323,7 +324,7 @@ def _index_labels_to_array(labels, dtype=None):
     return labels
 
 
-def _maybe_make_list(obj):
+def maybe_make_list(obj):
     if obj is not None and not isinstance(obj, (tuple, list)):
         return [obj]
     return obj
@@ -383,7 +384,7 @@ def apply_if_callable(maybe_callable, obj, **kwargs):
     return maybe_callable
 
 
-def _dict_compat(d):
+def dict_compat(d):
     """
     Helper function to convert datetimelike-keyed dicts to Timestamp-keyed dict
 
@@ -443,7 +444,7 @@ def sentinel_factory():
     return Sentinel()
 
 
-def _random_state(state=None):
+def random_state(state=None):
     """
     Helper function for processing random_state arguments.
 
@@ -472,7 +473,8 @@ def _random_state(state=None):
                          "RandomState, or None")
 
 
-def _get_distinct_objs(objs):
+# TODO: only used once in indexes.api; belongs elsewhere?
+def get_distinct_objs(objs):
     """
     Return a list with distinct elements of "objs" (different ids).
     Preserves order.

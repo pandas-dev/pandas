@@ -354,9 +354,9 @@ class Float64Index(NumericIndex):
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = com._values_from_object(key)
+        k = com.values_from_object(key)
         loc = self.get_loc(k)
-        new_values = com._values_from_object(series)[loc]
+        new_values = com.values_from_object(series)[loc]
 
         return new_values
 

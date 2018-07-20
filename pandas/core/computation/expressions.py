@@ -123,8 +123,8 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True,
 
 
 def _where_standard(cond, a, b):
-    return np.where(com._values_from_object(cond), com._values_from_object(a),
-                    com._values_from_object(b))
+    return np.where(com.values_from_object(cond), com.values_from_object(a),
+                    com.values_from_object(b))
 
 
 def _where_numexpr(cond, a, b):

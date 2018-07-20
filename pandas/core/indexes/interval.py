@@ -1127,7 +1127,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     if freq is None and com._any_none(periods, start, end):
         freq = 1 if is_number(endpoint) else 'D'
 
-    if com._count_not_none(start, end, periods, freq) != 3:
+    if com.count_not_none(start, end, periods, freq) != 3:
         raise ValueError('Of the four parameters: start, end, periods, and '
                          'freq, exactly three must be specified')
 

@@ -412,7 +412,7 @@ def isin(comps, values):
         # handle categoricals
         return comps._values.isin(values)
 
-    comps = com._values_from_object(comps)
+    comps = com.values_from_object(comps)
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)

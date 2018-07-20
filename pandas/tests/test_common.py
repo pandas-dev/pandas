@@ -139,22 +139,22 @@ def test_groupby():
 def test_random_state():
     import numpy.random as npr
     # Check with seed
-    state = com._random_state(5)
+    state = com.random_state(5)
     assert state.uniform() == npr.RandomState(5).uniform()
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    assert com._random_state(state2).uniform() == npr.RandomState(10).uniform()
+    assert com.random_state(state2).uniform() == npr.RandomState(10).uniform()
 
     # check with no arg random state
-    assert com._random_state() is np.random
+    assert com.random_state() is np.random
 
     # Error for floats or strings
     with pytest.raises(ValueError):
-        com._random_state('test')
+        com.random_state('test')
 
     with pytest.raises(ValueError):
-        com._random_state(5.5)
+        com.random_state(5.5)
 
 
 @pytest.mark.parametrize('left, right, expected', [
@@ -173,9 +173,9 @@ def test_dict_compat():
                        np.datetime64('2015-03-15'): 2}
     data_unchanged = {1: 2, 3: 4, 5: 6}
     expected = {Timestamp('1990-3-15'): 1, Timestamp('2015-03-15'): 2}
-    assert (com._dict_compat(data_datetime64) == expected)
-    assert (com._dict_compat(expected) == expected)
-    assert (com._dict_compat(data_unchanged) == data_unchanged)
+    assert (com.dict_compat(data_datetime64) == expected)
+    assert (com.dict_compat(expected) == expected)
+    assert (com.dict_compat(data_unchanged) == data_unchanged)
 
 
 def test_standardize_mapping():

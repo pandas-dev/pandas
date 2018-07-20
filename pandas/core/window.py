@@ -2467,7 +2467,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com._count_not_none(comass, span, halflife, alpha)
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha "
                          "are mutually exclusive")

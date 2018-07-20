@@ -395,7 +395,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     @classmethod
     def _generate_range(cls, start, end, periods, name, freq, tz=None,
                         normalize=False, ambiguous='raise', closed=None):
-        if com._count_not_none(start, end, periods, freq) != 3:
+        if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
 
@@ -1331,7 +1331,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             key = Timestamp(key, tz=self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
-        values = self._engine.get_value(com._values_from_object(series),
+        values = self._engine.get_value(com.values_from_object(series),
                                         key, tz=self.tz)
         return com.maybe_box(self, values, series, key)
 
