@@ -693,8 +693,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 result, tz_out = array_to_datetime_object(values, is_raise,
                                                           dayfirst, yearfirst)
             else:
-                tz_out = out_tzoffset_vals[0]
-
+                tz_out = out_tzoffset_vals.pop()
         return result, tz_out
     except OutOfBoundsDatetime:
         if is_raise:
