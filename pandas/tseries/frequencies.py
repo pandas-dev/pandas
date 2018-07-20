@@ -512,6 +512,8 @@ def _is_multiple(us, mult):
 
 def _maybe_add_count(base, count):
     if count != 1:
+        assert count == int(count)
+        count = int(count)
         return '{count}{base}'.format(count=count, base=base)
     else:
         return base
