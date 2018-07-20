@@ -1312,7 +1312,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         try:
             return com.maybe_box(self, Index.get_value(self, series, key),
-                                  series, key)
+                                 series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)

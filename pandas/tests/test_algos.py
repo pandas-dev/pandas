@@ -218,7 +218,7 @@ class TestFactorize(object):
                                     np.array(expected_label, dtype=np.intp))
 
         expected_level_array = com.asarray_tuplesafe(expected_level,
-                                                      dtype=object)
+                                                     dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):

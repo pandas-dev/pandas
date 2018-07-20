@@ -100,7 +100,7 @@ values_from_object = lib.values_from_object
 def is_bool_indexer(key):
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)):
         if key.dtype == np.object_:
-            key = np.asarray(_values_from_object(key))
+            key = np.asarray(values_from_object(key))
 
             if not lib.is_bool_array(key):
                 if isna(key).any():
