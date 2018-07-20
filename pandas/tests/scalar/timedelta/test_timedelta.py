@@ -233,6 +233,11 @@ class TestTimedeltas(object):
         assert tup.microseconds == 999
         assert tup.nanoseconds == 0
 
+    def test_iso_conversion(self):
+        # GH #21877
+        expected = Timedelta(1, unit='s')
+        assert to_timedelta('P0DT0H0M1S') == expected
+
     def test_nat_converters(self):
         assert to_timedelta('nat', box=False).astype('int64') == iNaT
         assert to_timedelta('nan', box=False).astype('int64') == iNaT
