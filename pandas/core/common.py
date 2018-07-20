@@ -11,7 +11,7 @@ import numpy as np
 from pandas._libs import lib, tslibs
 
 from pandas import compat
-from pandas.compat import zip, iteritems, PY36, OrderedDict
+from pandas.compat import iteritems, PY36, OrderedDict
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
 from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
@@ -178,29 +178,6 @@ def dict_keys_to_ordered_list(mapping):
     else:
         keys = try_sort(mapping)
     return keys
-
-
-def iterpairs(seq):
-    """
-    Parameters
-    ----------
-    seq : sequence
-
-    Returns
-    -------
-    iterator returning overlapping pairs of elements
-
-    Examples
-    --------
-    >>> list(iterpairs([1, 2, 3, 4]))
-    [(1, 2), (2, 3), (3, 4)]
-    """
-    # input may not be sliceable
-    seq_it = iter(seq)
-    seq_it_next = iter(seq)
-    next(seq_it_next)
-
-    return zip(seq_it, seq_it_next)
 
 
 def asarray_tuplesafe(values, dtype=None):

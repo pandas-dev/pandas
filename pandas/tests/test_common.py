@@ -49,15 +49,6 @@ def test_all_not_none():
     assert (not com._all_not_none(None, None, None, None))
 
 
-def test_iterpairs():
-    data = [1, 2, 3, 4]
-    expected = [(1, 2), (2, 3), (3, 4)]
-
-    result = list(com.iterpairs(data))
-
-    assert (result == expected)
-
-
 def test_random_state():
     import numpy.random as npr
     # Check with seed
