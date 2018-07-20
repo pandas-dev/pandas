@@ -168,13 +168,6 @@ cdef class BlockPlacement:
             val = newarr
             return BlockPlacement(val)
 
-    cdef BlockPlacement copy(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return BlockPlacement(s)
-        else:
-            return BlockPlacement(self._as_array)
-
     def add(self, other):
         return self.iadd(other)
 
