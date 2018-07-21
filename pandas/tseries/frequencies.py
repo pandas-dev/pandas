@@ -324,6 +324,14 @@ class _FrequencyInferer(object):
         return len(self.deltas_asi8) == 1
 
     def get_freq(self):  # noqa:F811
+        """
+        Find the appropriate frequency string to describe the inferred
+        frequency of self.values
+
+        Returns
+        -------
+        freqstr : str or None
+        """
         if not self.is_monotonic or not self.index.is_unique:
             return None
 

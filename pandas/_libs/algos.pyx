@@ -77,6 +77,18 @@ class NegInfinity(object):
 
 
 cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+    """
+    Efficiently find the unique first-differences of the given array.
+
+    Parameters
+    ----------
+    arr : ndarray[in64_t]
+
+    Returns
+    -------
+    result : ndarray[int64_t]
+        result is sorted
+    """
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t val
