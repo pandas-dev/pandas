@@ -28,7 +28,7 @@ TABLE_SCHEMA_VERSION = '0.20.0'
 # interface to/from
 def to_json(path_or_buf, obj, orient=None, date_format='epoch',
             double_precision=10, force_ascii=True, date_unit='ms',
-            default_handler=None, lines=False, compression=None,
+            default_handler=None, lines=False, compression='infer',
             index=True):
 
     if not index and orient not in ['split', 'table']:
