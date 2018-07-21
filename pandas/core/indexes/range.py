@@ -65,8 +65,8 @@ class RangeIndex(Int64Index):
     _typ = 'rangeindex'
     _engine_type = libindex.Int64Engine
 
-    def __new__(cls, start=None, stop=None, step=None, name=None, dtype=None,
-                fastpath=False, copy=False, **kwargs):
+    def __new__(cls, start=None, stop=None, step=None,
+                dtype=None, copy=False, name=None, fastpath=False):
 
         if fastpath:
             return cls._simple_new(start, stop, step, name=name)
@@ -81,7 +81,7 @@ class RangeIndex(Int64Index):
                                    **dict(start._get_data_as_items()))
 
         # validate the arguments
-        def _ensure_int(value, field):
+        def ensure_int(value, field):
             msg = ("RangeIndex(...) must be called with integers,"
                    " {value} was passed for {field}")
             if not is_scalar(value):
@@ -102,18 +102,18 @@ class RangeIndex(Int64Index):
         elif start is None:
             start = 0
         else:
-            start = _ensure_int(start, 'start')
+            start = ensure_int(start, 'start')
         if stop is None:
             stop = start
             start = 0
         else:
-            stop = _ensure_int(stop, 'stop')
+            stop = ensure_int(stop, 'stop')
         if step is None:
             step = 1
         elif step == 0:
             raise ValueError("Step must not be zero")
         else:
-            step = _ensure_int(step, 'step')
+            step = ensure_int(step, 'step')
 
         return cls._simple_new(start, stop, step, name)
 
@@ -550,7 +550,7 @@ class RangeIndex(Int64Index):
             stop = self._start + self._step * stop
             step = self._step * step
 
-            return RangeIndex(start, stop, step, self.name, fastpath=True)
+            return RangeIndex(start, stop, step, name=self.name, fastpath=True)
 
         # fall back to Int64Index
         return super_getitem(key)

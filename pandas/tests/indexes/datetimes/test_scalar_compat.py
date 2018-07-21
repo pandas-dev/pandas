@@ -13,13 +13,6 @@ import pandas as pd
 from pandas import date_range, Timestamp, DatetimeIndex
 
 
-@pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo',
-                        'US/Eastern', 'dateutil/Asia/Singapore',
-                        'dateutil/US/Pacific'])
-def tz(request):
-    return request.param
-
-
 class TestDatetimeIndexOps(object):
     def test_dti_time(self):
         rng = date_range('1/1/2000', freq='12min', periods=10)
@@ -84,7 +77,8 @@ class TestDatetimeIndexOps(object):
         for freq in ['Y', 'M', 'foobar']:
             pytest.raises(ValueError, lambda: dti.round(freq))
 
-    def test_round(self, tz):
+    def test_round(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         rng = date_range(start='2016-01-01', periods=5,
                          freq='30Min', tz=tz)
         elt = rng[1]
@@ -101,7 +95,7 @@ class TestDatetimeIndexOps(object):
         tm.assert_index_equal(rng.round(freq='H'), expected_rng)
         assert elt.round(freq='H') == expected_elt
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             rng.round(freq='foo')
         with tm.assert_raises_regex(ValueError, msg):
@@ -134,6 +128,22 @@ class TestDatetimeIndexOps(object):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
+    def test_no_rounding_occurs(self, tz_naive_fixture):
+        # GH 21262
+        tz = tz_naive_fixture
+        rng = date_range(start='2016-01-01', periods=5,
+                         freq='2Min', tz=tz)
+
+        expected_rng = DatetimeIndex([
+            Timestamp('2016-01-01 00:00:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:02:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:04:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:06:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:08:00', tz=tz, freq='2T'),
+        ])
+
+        tm.assert_index_equal(rng.round(freq='2T'), expected_rng)
+
     @pytest.mark.parametrize('test_input, rounder, freq, expected', [
         (['2117-01-01 00:00:45'], 'floor', '15s', ['2117-01-01 00:00:45']),
         (['2117-01-01 00:00:45'], 'ceil', '15s', ['2117-01-01 00:00:45']),
@@ -143,12 +153,16 @@ class TestDatetimeIndexOps(object):
          ['1823-01-01 00:00:01.000000020']),
         (['1823-01-01 00:00:01'], 'floor', '1s', ['1823-01-01 00:00:01']),
         (['1823-01-01 00:00:01'], 'ceil', '1s', ['1823-01-01 00:00:01']),
+        (['2018-01-01 00:15:00'], 'ceil', '15T', ['2018-01-01 00:15:00']),
+        (['2018-01-01 00:15:00'], 'floor', '15T', ['2018-01-01 00:15:00']),
+        (['1823-01-01 03:00:00'], 'ceil', '3H', ['1823-01-01 03:00:00']),
+        (['1823-01-01 03:00:00'], 'floor', '3H', ['1823-01-01 03:00:00']),
         (('NaT', '1823-01-01 00:00:01'), 'floor', '1s',
          ('NaT', '1823-01-01 00:00:01')),
         (('NaT', '1823-01-01 00:00:01'), 'ceil', '1s',
          ('NaT', '1823-01-01 00:00:01'))
     ])
-    def test_ceil_floor_edge(self, tz, test_input, rounder, freq, expected):
+    def test_ceil_floor_edge(self, test_input, rounder, freq, expected):
         dt = DatetimeIndex(list(test_input))
         func = getattr(dt, rounder)
         result = func(freq)

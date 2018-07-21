@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import (
 
 from pandas.tseries.offsets import DateOffset
 
-from pandas._libs.tslib import Timedelta
+from pandas._libs.tslibs import Timedelta
 
 import pandas._libs.tslibs.frequencies as libfreqs
 from pandas._libs.tslibs.frequencies import (  # noqa, semi-public API
@@ -142,7 +142,7 @@ def to_offset(freq):
                     else:
                         delta = delta + offset
         except Exception:
-            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     else:
         delta = None
@@ -173,10 +173,10 @@ def to_offset(freq):
                 else:
                     delta = delta + offset
         except Exception:
-            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     if delta is None:
-        raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
+        raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     return delta
 
@@ -205,11 +205,11 @@ def get_offset(name):
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
-            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
         # cache
         _offset_map[name] = offset
-    # do not return cache because it's mutable
-    return _offset_map[name].copy()
+
+    return _offset_map[name]
 
 
 getOffset = get_offset
@@ -250,7 +250,8 @@ def infer_freq(index, warn=True):
     if is_period_arraylike(index):
         raise TypeError("PeriodIndex given. Check the `freq` attribute "
                         "instead of using infer_freq.")
-    elif isinstance(index, pd.TimedeltaIndex):
+    elif is_timedelta64_dtype(index):
+        # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 

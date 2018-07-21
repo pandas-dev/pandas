@@ -1,5 +1,6 @@
 import decimal
 
+import random
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -7,7 +8,11 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, make_data
+from .array import DecimalDtype, DecimalArray
+
+
+def make_data():
+    return [decimal.Decimal(random.random()) for _ in range(100)]
 
 
 @pytest.fixture
@@ -26,6 +31,28 @@ def data_missing():
 
 
 @pytest.fixture
+def data_repeated():
+    def gen(count):
+        for _ in range(count):
+            yield DecimalArray(make_data())
+    yield gen
+
+
+@pytest.fixture
+def data_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('2'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('NaN'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
 def na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
@@ -35,68 +62,87 @@ def na_value():
     return decimal.Decimal("NaN")
 
 
-class TestDtype(base.BaseDtypeTests):
+@pytest.fixture
+def data_for_grouping():
+    b = decimal.Decimal('1.0')
+    a = decimal.Decimal('0.0')
+    c = decimal.Decimal('2.0')
+    na = decimal.Decimal('NaN')
+    return DecimalArray([b, b, na, na, a, a, b, c])
+
+
+class BaseDecimal(object):
+
+    def assert_series_equal(self, left, right, *args, **kwargs):
+
+        left_na = left.isna()
+        right_na = right.isna()
+
+        tm.assert_series_equal(left_na, right_na)
+        return tm.assert_series_equal(left[~left_na],
+                                      right[~right_na],
+                                      *args, **kwargs)
+
+    def assert_frame_equal(self, left, right, *args, **kwargs):
+        # TODO(EA): select_dtypes
+        tm.assert_index_equal(
+            left.columns, right.columns,
+            exact=kwargs.get('check_column_type', 'equiv'),
+            check_names=kwargs.get('check_names', True),
+            check_exact=kwargs.get('check_exact', False),
+            check_categorical=kwargs.get('check_categorical', True),
+            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
+
+        decimals = (left.dtypes == 'decimal').index
+
+        for col in decimals:
+            self.assert_series_equal(left[col], right[col],
+                                     *args, **kwargs)
+
+        left = left.drop(columns=decimals)
+        right = right.drop(columns=decimals)
+        tm.assert_frame_equal(left, right, *args, **kwargs)
+
+
+class TestDtype(BaseDecimal, base.BaseDtypeTests):
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type() is DecimalArray
+
+
+class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
-class TestInterface(base.BaseInterfaceTests):
+class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
+
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
+
+
+class TestReshaping(BaseDecimal, base.BaseReshapingTests):
     pass
 
 
-class TestConstructors(base.BaseConstructorsTests):
+class TestGetitem(BaseDecimal, base.BaseGetitemTests):
+
+    def test_take_na_value_other_decimal(self):
+        arr = DecimalArray([decimal.Decimal('1.0'),
+                            decimal.Decimal('2.0')])
+        result = arr.take([0, -1], allow_fill=True,
+                          fill_value=decimal.Decimal('-1.0'))
+        expected = DecimalArray([decimal.Decimal('1.0'),
+                                 decimal.Decimal('-1.0')])
+        self.assert_extension_array_equal(result, expected)
+
+
+class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class TestReshaping(base.BaseReshapingTests):
-
-    def test_align(self, data, na_value):
-        # Have to override since assert_series_equal doesn't
-        # compare Decimal(NaN) properly.
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
-
-        # NaN handling
-        e1 = pd.Series(type(data)(list(a) + [na_value]))
-        e2 = pd.Series(type(data)([na_value] + list(b)))
-        tm.assert_series_equal(r1.iloc[:3], e1.iloc[:3])
-        assert r1[3].is_nan()
-        assert e1[3].is_nan()
-
-        tm.assert_series_equal(r2.iloc[1:], e2.iloc[1:])
-        assert r2[0].is_nan()
-        assert e2[0].is_nan()
-
-    def test_align_frame(self, data, na_value):
-        # Override for Decimal(NaN) comparison
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.DataFrame({'A': a}).align(
-            pd.DataFrame({'A': b}, index=[1, 2, 3])
-        )
-
-        # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.DataFrame({'A': type(data)(list(a) + [na_value])})
-        e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
-
-        tm.assert_frame_equal(r1.iloc[:3], e1.iloc[:3])
-        assert r1.loc[3, 'A'].is_nan()
-        assert e1.loc[3, 'A'].is_nan()
-
-        tm.assert_frame_equal(r2.iloc[1:], e2.iloc[1:])
-        assert r2.loc[0, 'A'].is_nan()
-        assert e2.loc[0, 'A'].is_nan()
-
-
-class TestGetitem(base.BaseGetitemTests):
-    pass
-
-
-class TestMissing(base.BaseMissingTests):
-    pass
-
-
-class TestMethods(base.BaseMethodsTests):
+class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize('dropna', [True, False])
     @pytest.mark.xfail(reason="value_counts not implemented yet.")
     def test_value_counts(self, all_data, dropna):
@@ -112,10 +158,22 @@ class TestMethods(base.BaseMethodsTests):
         tm.assert_series_equal(result, expected)
 
 
-class TestCasting(base.BaseCastingTests):
+class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
 
 
+class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
+    pass
+
+
+class TestSetitem(BaseDecimal, base.BaseSetitemTests):
+    pass
+
+
+# TODO(extension)
+@pytest.mark.xfail(reason=(
+    "raising AssertionError as this is not implemented, "
+    "though easy enough to do"))
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
@@ -123,32 +181,86 @@ def test_series_constructor_coerce_data_to_extension_dtype_raises():
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
-def test_series_constructor_with_same_dtype_ok():
+def test_series_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
     result = pd.Series(arr, dtype=DecimalDtype())
     expected = pd.Series(arr)
     tm.assert_series_equal(result, expected)
 
-
-def test_series_constructor_coerce_extension_array_to_dtype_raises():
-    arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = "Cannot specify a dtype 'int64' .* \('decimal'\)."
-
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.Series(arr, dtype='int64')
+    result = pd.Series(arr, dtype='int64')
+    expected = pd.Series([10])
+    tm.assert_series_equal(result, expected)
 
 
-def test_dataframe_constructor_with_same_dtype_ok():
+def test_dataframe_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
 
     result = pd.DataFrame({"A": arr}, dtype=DecimalDtype())
     expected = pd.DataFrame({"A": arr})
     tm.assert_frame_equal(result, expected)
 
-
-def test_dataframe_constructor_with_different_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
+    result = pd.DataFrame({"A": arr}, dtype='int64')
+    expected = pd.DataFrame({"A": [10]})
+    tm.assert_frame_equal(result, expected)
 
-    xpr = "Cannot coerce extension array to dtype 'int64'. "
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.DataFrame({"A": arr}, dtype='int64')
+
+class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestArithmeticOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+
+        context = decimal.getcontext()
+        divbyzerotrap = context.traps[decimal.DivisionByZero]
+        invalidoptrap = context.traps[decimal.InvalidOperation]
+        context.traps[decimal.DivisionByZero] = 0
+        context.traps[decimal.InvalidOperation] = 0
+
+        # Decimal supports ops with int, but not float
+        other = pd.Series([int(d * 100) for d in data])
+        self.check_opname(s, op_name, other)
+
+        if "mod" not in op_name:
+            self.check_opname(s, op_name, s * 2)
+
+        self.check_opname(s, op_name, 0)
+        self.check_opname(s, op_name, 5)
+        context.traps[decimal.DivisionByZero] = divbyzerotrap
+        context.traps[decimal.InvalidOperation] = invalidoptrap
+
+    @pytest.mark.skip(reason="divmod not appropriate for decimal")
+    def test_divmod(self, data):
+        pass
+
+    def test_error(self):
+        pass
+
+
+class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestComparisonOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def _compare_other(self, s, data, op_name, other):
+        self.check_opname(s, op_name, other)
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0.5)
+
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+
+        alter = np.random.choice([-1, 0, 1], len(data))
+        # Randomly double, halve or keep same value
+        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
+                                   for i in alter]
+        self._compare_other(s, data, op_name, other)

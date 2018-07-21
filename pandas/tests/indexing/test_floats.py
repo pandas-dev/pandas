@@ -50,7 +50,7 @@ class TestFloatIndexers(object):
             def f():
                 s.iloc[3.0]
             tm.assert_raises_regex(TypeError,
-                                   'cannot do positional indexing',
+                                   'Cannot index by location index',
                                    f)
 
             def f():
@@ -685,17 +685,23 @@ class TestFloatIndexers(object):
         assert_series_equal(result1, result3)
         assert_series_equal(result1, result4)
 
-        result1 = s[[1.6, 5, 10]]
-        result2 = s.loc[[1.6, 5, 10]]
-        result3 = s.loc[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result1 = s[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = s.loc[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result3 = s.loc[[1.6, 5, 10]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(
             [np.nan, 2, 4], index=[1.6, 5, 10]))
 
-        result1 = s[[0, 1, 2]]
-        result2 = s.loc[[0, 1, 2]]
-        result3 = s.loc[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result1 = s[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = s.loc[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result3 = s.loc[[0, 1, 2]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(

@@ -16,9 +16,11 @@ from pandas.compat import range, lrange, lzip, StringIO
 import numpy as np
 
 import pandas as pd
-from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
+from pandas.core.indexing import (_non_reducing_slice, _maybe_numeric_slice,
+                                  validate_indices)
 from pandas import NaT, DataFrame, Index, Series, MultiIndex
 import pandas.util.testing as tm
+from pandas.compat import PY2
 
 from pandas.tests.indexing.common import Base, _mklbl
 
@@ -192,15 +194,10 @@ class TestFancy(Base):
             result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
-        # inconsistent returns for unique/duplicate indices when values are
-        # missing
-        df = DataFrame(np.random.randn(4, 3), index=list('ABCD'))
-        expected = df.reindex(['E'])
-
+        # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list('AABCD'))
-        with catch_warnings(record=True):
-            result = dfnu.ix[['E']]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError):
+            dfnu.loc[['E']]
 
         # ToDo: check_index_type can be True after GH 11497
 
@@ -225,6 +222,9 @@ class TestFancy(Base):
             result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(PY2,
+                        reason="GH-20770. Py2 unreliable warnings catching.")
+    def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
         df = DataFrame(
@@ -994,3 +994,27 @@ class TestDataframeNoneCoercion(object):
                                datetime(2000, 1, 3)],
                          'd': [None, 'b', 'c']})
         tm.assert_frame_equal(start_dataframe, exp)
+
+
+def test_validate_indices_ok():
+    indices = np.asarray([0, 1])
+    validate_indices(indices, 2)
+    validate_indices(indices[:0], 0)
+    validate_indices(np.array([-1, -1]), 0)
+
+
+def test_validate_indices_low():
+    indices = np.asarray([0, -2])
+    with tm.assert_raises_regex(ValueError, "'indices' contains"):
+        validate_indices(indices, 2)
+
+
+def test_validate_indices_high():
+    indices = np.asarray([0, 1, 2])
+    with tm.assert_raises_regex(IndexError, "indices are out"):
+        validate_indices(indices, 2)
+
+
+def test_validate_indices_empty():
+    with tm.assert_raises_regex(IndexError, "indices are out"):
+        validate_indices(np.array([0, 1]), 0)

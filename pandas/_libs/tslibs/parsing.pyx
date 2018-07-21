@@ -6,15 +6,11 @@ Parsing functions for datetime and datetime-like strings.
 import sys
 import re
 
-from cpython cimport PyString_Check, PyUnicode_Check
-
-from libc.stdlib cimport free
-
 cimport cython
 from cython cimport Py_ssize_t
 
 
-from datetime import datetime
+from cpython.datetime cimport datetime
 import time
 
 import numpy as np
@@ -34,7 +30,6 @@ else:
 # dateutil compat
 from dateutil.tz import (tzoffset,
                          tzlocal as _dateutil_tzlocal,
-                         tzfile as _dateutil_tzfile,
                          tzutc as _dateutil_tzutc,
                          tzstr as _dateutil_tzstr)
 from dateutil.relativedelta import relativedelta
@@ -42,7 +37,7 @@ from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
 from ccalendar import MONTH_NUMBERS
-from nattype import nat_strings
+from nattype import nat_strings, NaT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -58,9 +53,6 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 
 cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
-
-NAT_SENTINEL = object()
-# This allows us to reference NaT without having to import it
 
 # ----------------------------------------------------------------------
 
@@ -141,9 +133,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
                                           yearfirst=yearfirst)
-    if res[0] is NAT_SENTINEL:
-        from pandas._libs.tslib import NaT
-        res = (NaT,) + res[1:]
     return res
 
 
@@ -211,7 +200,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     # should be NaT???
 
     if date_string in nat_strings:
-        return NAT_SENTINEL, NAT_SENTINEL, ''
+        return NaT, NaT, ''
 
     date_string = date_string.upper()
     date_len = len(date_string)
@@ -412,7 +401,7 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
         # EAFP here
         try:
-            for i from 0 <= i < n:
+            for i in range(n):
                 if values[i] == '':
                     result[i] = np.nan
                 else:
@@ -424,7 +413,7 @@ def try_parse_dates(ndarray[object] values, parser=None,
         parse_date = parser
 
         try:
-            for i from 0 <= i < n:
+            for i in range(n):
                 if values[i] == '':
                     result[i] = np.nan
                 else:
@@ -464,7 +453,7 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
     else:
         parse_time = time_parser
 
-    for i from 0 <= i < n:
+    for i in range(n):
         d = parse_date(str(dates[i]))
         t = parse_time(str(times[i]))
         result[i] = datetime(d.year, d.month, d.day,
@@ -484,7 +473,7 @@ def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
-    for i from 0 <= i < n:
+    for i in range(n):
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
 
     return result
@@ -510,7 +499,7 @@ def try_parse_datetime_components(ndarray[object] years,
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
-    for i from 0 <= i < n:
+    for i in range(n):
         float_secs = float(seconds[i])
         secs = int(float_secs)
 
