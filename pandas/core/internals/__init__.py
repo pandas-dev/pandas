@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import warnings
 import copy
 from warnings import catch_warnings
@@ -39,7 +40,8 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_scalar,
-    _get_dtype)
+    _get_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_upcast,
@@ -631,9 +633,10 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
+        # convert dtypes if needed
+        dtype = pandas_dtype(dtype)
+
         # astype processing
-        if not is_extension_array_dtype(dtype):
-            dtype = np.dtype(dtype)
         if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
