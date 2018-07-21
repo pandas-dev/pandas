@@ -125,13 +125,9 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
-        if self.encoding is None:
-            if compat.PY2:
-                encoding = 'ascii'
-            else:
-                encoding = 'utf-8'
-        else:
-            encoding = self.encoding
+        encoding = self.encoding
+        if encoding is None:
+            encoding = 'ascii' if compat.compat.PY2 else 'utf-8'
 
         # GH 21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, 'write'):
