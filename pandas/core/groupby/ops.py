@@ -625,7 +625,11 @@ class BaseGrouper(object):
         splitter = get_splitter(obj, group_index, ngroups, axis=self.axis)
 
         for label, group in splitter:
-            res = func(group)
+            try:
+                res = func(group)
+            except ValueError as e:
+                # GH19720
+                raise TypeError(e)
             if result is None:
                 if (isinstance(res, (Series, Index, np.ndarray))):
                     raise ValueError('Function does not reduce')
