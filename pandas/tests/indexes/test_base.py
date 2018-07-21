@@ -33,6 +33,8 @@ from pandas.core.indexes.datetimes import _to_m8
 import pandas as pd
 from pandas._libs.tslib import Timestamp
 
+from concurrent.futures import ThreadPoolExecutor
+
 
 class TestIndex(Base):
     _holder = Index
@@ -2507,6 +2509,21 @@ class TestIndexUtils(object):
     def test_ensure_index_from_sequences(self, data, names, expected):
         result = ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
+
+
+class TestThreadSafety(object):
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize('execution_number', range(7))
+    def test_isunique(self, execution_number):
+        """This test is executed seven times, each time it uses a pool of
+        two threads to run a test that is very likely to fail without the
+        fix for gh-21150. It is not a deterministic test, as there is
+        still a chance it will pass even though the bug exists. But
+        with the fix, it must always work with not issues."""
+        x = pd.date_range('2001', '2020')
+        with ThreadPoolExecutor(2) as p:
+            assert all(p.map(lambda x: x.is_unique, [x] * 2))
 
 
 @pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt',

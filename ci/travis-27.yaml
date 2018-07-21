@@ -8,6 +8,7 @@ dependencies:
   - cython=0.28.2
   - fastparquet
   - feather-format
+  - futures
   - gcsfs
   - html5lib
   - ipython

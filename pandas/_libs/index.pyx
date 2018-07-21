@@ -23,6 +23,18 @@ from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import Timestamp, Timedelta, period as periodlib
 from pandas._libs.missing import checknull
 
+# Python 2 vs Python 3
+try:
+    from thread import allocate_lock as _thread_allocate_lock
+except ImportError:
+    try:
+        from _thread import allocate_lock as _thread_allocate_lock
+    except ImportError:
+        try:
+            from dummy_thread import allocate_lock as _thread_allocate_lock
+        except ImportError:
+            from _dummy_thread import allocate_lock as _thread_allocate_lock
+
 cdef int64_t iNaT = util.get_nat()
 
 
@@ -53,6 +65,9 @@ def get_value_box(arr: ndarray, loc: object) -> object:
 # Don't populate hash tables in monotonic indexes larger than this
 _SIZE_CUTOFF = 1000000
 
+# Used in _ensure_mapping_populated to ensure is_unique behaves correctly
+# in multi-threaded code, see gh-21150
+_mapping_populated_lock = _thread_allocate_lock()
 
 cdef class IndexEngine:
 
@@ -236,17 +251,17 @@ cdef class IndexEngine:
 
     cdef inline _ensure_mapping_populated(self):
         # this populates the mapping
-        # if its not already populated
+        # if it is not already populated
         # also satisfies the need_unique_check
 
-        if not self.is_mapping_populated:
+        with _mapping_populated_lock:
+            if not self.is_mapping_populated:
+                values = self._get_index_values()
+                self.mapping = self._make_hash_table(len(values))
+                self._call_map_locations(values)
 
-            values = self._get_index_values()
-            self.mapping = self._make_hash_table(len(values))
-            self._call_map_locations(values)
-
-            if len(self.mapping) == len(values):
-                self.unique = 1
+                if len(self.mapping) == len(values):
+                    self.unique = 1
 
         self.need_unique_check = 0
 

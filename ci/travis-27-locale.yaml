@@ -5,6 +5,7 @@ channels:
 dependencies:
   - bottleneck=1.0.0
   - cython=0.28.2
+  - futures
   - lxml
   - matplotlib=1.4.3
   - numpy=1.9.3
