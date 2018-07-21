@@ -276,9 +276,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                                                     periods, freq)
 
                 if tz is not None and getattr(index, 'tz', None) is None:
-                    arr = conversion.tz_localize_to_utc(ensure_int64(index.values),
-                                                        tz,
-                                                        ambiguous=ambiguous)
+                    arr = conversion.tz_localize_to_utc(
+                        ensure_int64(index.values),
+                        tz, ambiguous=ambiguous)
 
                     index = cls(arr)
 
