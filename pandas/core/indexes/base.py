@@ -44,6 +44,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_iterator, is_list_like,
     is_scalar)
@@ -260,18 +261,32 @@ class Index(IndexOpsMixin, PandasObject):
                                          name=name)
 
         # categorical
-        if is_categorical_dtype(data) or is_categorical_dtype(dtype):
+        elif is_categorical_dtype(data) or is_categorical_dtype(dtype):
             from .category import CategoricalIndex
             return CategoricalIndex(data, dtype=dtype, copy=copy, name=name,
                                     **kwargs)
 
         # interval
-        if ((is_interval_dtype(data) or is_interval_dtype(dtype)) and
-                not is_object_dtype(dtype)):
+        elif ((is_interval_dtype(data) or is_interval_dtype(dtype)) and
+              not is_object_dtype(dtype)):
             from .interval import IntervalIndex
             closed = kwargs.get('closed', None)
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
+
+        # extension dtype
+        elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
+            data = np.asarray(data)
+            if not (dtype is None or is_object_dtype(dtype)):
+
+                # coerce to the provided dtype
+                data = dtype.construct_array_type()(
+                    data, dtype=dtype, copy=False)
+
+            # coerce to the object dtype
+            data = data.astype(object)
+            return Index(data, dtype=object, copy=copy, name=name,
+                         **kwargs)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -1170,10 +1185,15 @@ class Index(IndexOpsMixin, PandasObject):
     def astype(self, dtype, copy=True):
         if is_dtype_equal(self.dtype, dtype):
             return self.copy() if copy else self
+
         elif is_categorical_dtype(dtype):
             from .category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
+
+        elif is_extension_array_dtype(dtype):
+            return Index(np.asarray(self), dtype=dtype, copy=copy)
+
         try:
             if is_datetime64tz_dtype(dtype):
                 from pandas import DatetimeIndex
