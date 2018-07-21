@@ -1899,7 +1899,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False, compression=None,
+                default_handler=None, lines=False, compression='infer',
                 index=True):
         """
         Convert the object to a JSON string.
