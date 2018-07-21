@@ -12,8 +12,8 @@ import operator
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name, PY3
-from pandas.core.dtypes.common import is_list_like
 from pandas.core import ops
+from pandas.core.dtypes.common import is_list_like
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -88,7 +88,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_sequence(cls, scalars, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -96,8 +96,11 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
+        dtype : dtype, optional
+            Construct for this particular dtype. This should be a Dtype
+            compatible with the ExtensionArray.
         copy : boolean, default False
-            if True, copy the underlying data
+            If True, copy the underlying data.
         Returns
         -------
         ExtensionArray
@@ -378,7 +381,7 @@ class ExtensionArray(object):
                 func = pad_1d if method == 'pad' else backfill_1d
                 new_values = func(self.astype(object), limit=limit,
                                   mask=mask)
-                new_values = self._from_sequence(new_values)
+                new_values = self._from_sequence(new_values, dtype=self.dtype)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -407,7 +410,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._from_sequence(uniques)
+        return self._from_sequence(uniques, dtype=self.dtype)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
@@ -559,7 +562,7 @@ class ExtensionArray(object):
 
                result = take(data, indices, fill_value=fill_value,
                              allow_fill=allow_fill)
-               return self._from_sequence(result)
+               return self._from_sequence(result, dtype=self.dtype)
         """
         # Implementer note: The `fill_value` parameter should be a user-facing
         # value, an instance of self.dtype.type. When passed `fill_value=None`,
@@ -634,6 +637,7 @@ class ExtensionOpsMixin(object):
     """
     A base class for linking the operators to their dunder names
     """
+
     @classmethod
     def _add_arithmetic_ops(cls):
         cls.__add__ = cls._create_arithmetic_method(operator.add)

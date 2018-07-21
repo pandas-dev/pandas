@@ -58,27 +58,19 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
 
     if tz is not None:
         tz = maybe_get_tz(tz)
-        return _reso_local(stamps, tz)
-    else:
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            curr_reso = _reso_stamp(&dts)
-            if curr_reso < reso:
-                reso = curr_reso
-        return reso
+    return _reso_local(stamps, tz)
 
 
 cdef _reso_local(ndarray[int64_t] stamps, object tz):
     cdef:
-        Py_ssize_t n = len(stamps)
+        Py_ssize_t i, n = len(stamps)
         int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans, deltas, pos
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t[:] pos
         npy_datetimestruct dts
-        int64_t local_val
+        int64_t local_val, delta
 
-    if is_utc(tz):
+    if is_utc(tz) or tz is None:
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
@@ -99,18 +91,18 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        pos = trans.searchsorted(stamps, side='right') - 1
-
-        # statictzinfo
         if typ not in ['pytz', 'dateutil']:
+            # static/fixed; in this case we know that len(delta) == 1
+            delta = deltas[0]
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
+                dt64_to_dtstruct(stamps[i] + delta, &dts)
                 curr_reso = _reso_stamp(&dts)
                 if curr_reso < reso:
                     reso = curr_reso
         else:
+            pos = trans.searchsorted(stamps, side='right') - 1
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     continue
