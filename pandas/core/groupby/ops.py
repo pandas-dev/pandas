@@ -627,9 +627,13 @@ class BaseGrouper(object):
         for label, group in splitter:
             try:
                 res = func(group)
-            except ValueError as e:
-                # GH19720
-                raise TypeError(e)
+            except ValueError:
+                if isinstance(group, Series):
+                    # GH19720, align Py3 ValueError with Py2 TypeError
+                    raise TypeError
+                else:
+                    raise
+
             if result is None:
                 if (isinstance(res, (Series, Index, np.ndarray))):
                     raise ValueError('Function does not reduce')
