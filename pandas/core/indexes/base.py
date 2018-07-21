@@ -274,6 +274,26 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
 
+        elif (is_datetime64_any_dtype(data) or
+              (dtype is not None and is_datetime64_any_dtype(dtype)) or
+                'tz' in kwargs):
+            from pandas import DatetimeIndex
+            result = DatetimeIndex(data, copy=copy, name=name,
+                                   dtype=dtype, **kwargs)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                return Index(result.to_pydatetime(), dtype=_o_dtype)
+            else:
+                return result
+
+        elif (is_timedelta64_dtype(data) or
+              (dtype is not None and is_timedelta64_dtype(dtype))):
+            from pandas import TimedeltaIndex
+            result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is not None and _o_dtype == dtype:
+                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            else:
+                return result
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
@@ -290,27 +310,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
-            if (is_datetime64_any_dtype(data) or
-                (dtype is not None and is_datetime64_any_dtype(dtype)) or
-                    'tz' in kwargs):
-                from pandas import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name,
-                                       dtype=dtype, **kwargs)
-                if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
-                else:
-                    return result
-
-            elif (is_timedelta64_dtype(data) or
-                  (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas import TimedeltaIndex
-                result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-                if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
-                else:
-                    return result
-
             if dtype is not None:
                 try:
 
