@@ -2713,6 +2713,11 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
                                 "naive Block")
             other_mask = isna(other)
             other = other.asm8.view('i8')
+        elif isinstance(other, (timedelta, np.timedelta64)):
+            if not isinstance(other, Timedelta):
+                other = Timedelta(other)
+            other_mask = isna(other)
+            other = other.asm8.view('i8')
         elif hasattr(other, 'dtype') and is_datetime64_dtype(other):
             other_mask = isna(other)
             other = other.astype('i8', copy=False).view('i8')
