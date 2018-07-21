@@ -828,7 +828,8 @@ b  2""")
             try:
                 result, counts = self.grouper.agg_series(obj, f)
                 output[name] = self._try_cast(result, obj, numeric_only=True)
-            except TypeError:
+            except (TypeError, ValueError):
+                # TypeError in Py2, ValueError in Py3, see GH19720
                 continue
 
         if len(output) == 0:

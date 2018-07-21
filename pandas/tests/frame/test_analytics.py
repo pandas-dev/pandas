@@ -1091,6 +1091,18 @@ class TestDataFrameAnalytics(TestData):
         bools.sum(1)
         bools.sum(0)
 
+    def test_sum_column_level_noskipna(self):
+        # GH19720
+        df = DataFrame(np.ones([2, 8]))
+        df.iloc[0, 0] = np.nan
+        df.columns = MultiIndex.from_product(
+            [list('ab'), list('cd'), list('ef')])
+        result = df.sum(axis=1, level=[0, 1], skipna=False)
+        expected = DataFrame(
+            [[np.nan, 2., 2., 2.], [2., 2., 2., 2.]],
+            columns=MultiIndex.from_product([list('ab'), list('cd')]))
+        tm.assert_frame_equal(result, expected)
+
     def test_mean_corner(self):
         # unit test when have object data
         the_mean = self.mixed_frame.mean(axis=0)
