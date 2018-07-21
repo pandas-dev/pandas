@@ -502,12 +502,14 @@ class TestUnique(object):
         tm.assert_numpy_array_equal(result, expected, strict_nan=True)
 
     def test_signed_zero(self):
+        # GH 21866
         a = np.array([-0.0, 0.0])
         result = pd.unique(a)
         expected = np.array([-0.0])  # 0.0 and -0.0 are equivalent
         tm.assert_numpy_array_equal(result, expected)
 
     def test_different_nans(self):
+        # GH 21866
         # create different nans from bit-patterns:
         NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
         NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
@@ -1106,6 +1108,7 @@ class TestHashTable(object):
                                                             dtype=np.int64))
 
     def test_add_signed_zeros(self):
+        # GH 21866 inconsistent hash-function for float64
         # default hash-function would lead to different hash-buckets
         # for 0.0 and -0.0 if there are more than 2^30 hash-buckets
         # but this would mean 16GB
@@ -1116,6 +1119,7 @@ class TestHashTable(object):
         assert len(m) == 1  # 0.0 and -0.0 are equivalent
 
     def test_add_different_nans(self):
+        # GH 21866 inconsistent hash-function for float64
         # create different nans from bit-patterns:
         NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
         NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
