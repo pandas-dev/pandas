@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import warnings
 import copy
 from warnings import catch_warnings
