@@ -36,7 +36,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_re,
     is_re_compilable,
-    is_scalar,
     pandas_dtype)
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
@@ -858,7 +857,7 @@ class Block(PandasObject):
                 dtype = value.dtype
                 find_dtype = True
 
-            elif is_scalar(value):
+            elif lib.is_scalar(value):
                 if isna(value):
                     # NaN promotion is handled in latter path
                     dtype = False
@@ -1610,7 +1609,7 @@ class Block(PandasObject):
             values = values[~mask]
 
             if len(values) == 0:
-                if is_scalar(q):
+                if lib.is_scalar(q):
                     return self._na_value
                 else:
                     return np.array([self._na_value] * len(q),
@@ -1621,7 +1620,7 @@ class Block(PandasObject):
         def _nanpercentile(values, q, axis, **kw):
 
             mask = isna(self.values)
-            if not is_scalar(mask) and mask.any():
+            if not lib.is_scalar(mask) and mask.any():
                 if self.ndim == 1:
                     return _nanpercentile1D(values, mask, q, **kw)
                 else:
@@ -1684,7 +1683,7 @@ class Block(PandasObject):
 
         ndim = getattr(result, 'ndim', None) or 0
         result = self._try_coerce_result(result)
-        if is_scalar(result):
+        if lib.is_scalar(result):
             return ax, self.make_block_scalar(result)
         return ax, make_block(result,
                               placement=np.arange(len(result)),
@@ -2882,7 +2881,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if isinstance(other, bool):
             raise TypeError
         elif (is_null_datelike_scalar(other) or
-              (is_scalar(other) and isna(other))):
+              (lib.is_scalar(other) and isna(other))):
             other = tslibs.iNaT
             other_mask = True
         elif isinstance(other, self._holder):
