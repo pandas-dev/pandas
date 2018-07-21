@@ -262,7 +262,7 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
             self.min_left = 0
             self.max_right = 0
 
-        if <int64_t>self.n_elements <= leaf_size:
+        if self.n_elements <= leaf_size:
             # make this a terminal (leaf) node
             self.is_leaf_node = True
             self.left = left
@@ -343,29 +343,28 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode:
             # continue the binary tree structure. Instead, we use linear
             # search.
             for i in range(self.n_elements):
-                if (self.left[i] {{cmp_left}}
-                        <{{dtype}}_t>point {{cmp_right}} self.right[i]):
+                if self.left[i] {{cmp_left}} point {{cmp_right}} self.right[i]:
                     result.append(self.indices[i])
         else:
             # There are child nodes. Based on comparing our query to the pivot,
             # look at the center values, then go to the relevant child.
-            if <{{dtype}}_t>point < self.pivot:
+            if point < self.pivot:
                 values = self.center_left_values
                 indices = self.center_left_indices
                 for i in range(self.n_center):
-                    if not values[i] {{cmp_left}} <{{dtype}}_t>point:
+                    if not values[i] {{cmp_left}} point:
                         break
                     result.append(indices[i])
-                if <{{dtype}}_t>point {{cmp_right}} self.left_node.max_right:
+                if point {{cmp_right}} self.left_node.max_right:
                     self.left_node.query(result, point)
-            elif <{{dtype}}_t>point > self.pivot:
+            elif point > self.pivot:
                 values = self.center_right_values
                 indices = self.center_right_indices
                 for i in range(self.n_center - 1, -1, -1):
-                    if not <{{dtype}}_t>point {{cmp_right}} values[i]:
+                    if not point {{cmp_right}} values[i]:
                         break
                     result.append(indices[i])
-                if self.right_node.min_left {{cmp_left}} <{{dtype}}_t>point:
+                if self.right_node.min_left {{cmp_left}} point:
                     self.right_node.query(result, point)
             else:
                 result.extend(self.center_left_indices)
