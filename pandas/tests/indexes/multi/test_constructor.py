@@ -252,11 +252,10 @@ def test_from_arrays_invalid_input(invalid_array):
 
 
 @pytest.mark.parametrize('idx1, idx2', [
-    pytest.param([1, 2, 3], ['a', 'b']),
-    pytest.param([], ['a', 'b']),
-    pytest.param([1, 2, 3], [])
-]
-)
+    ([1, 2, 3], ['a', 'b']),
+    ([], ['a', 'b']),
+    ([1, 2, 3], [])
+])
 def test_from_arrays_different_lengths(idx1, idx2):
     # see gh-13599
     tm.assert_raises_regex(ValueError, '^all arrays must '

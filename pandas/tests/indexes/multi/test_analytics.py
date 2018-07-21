@@ -17,7 +17,7 @@ def test_shift(idx):
     pytest.raises(NotImplementedError, idx.shift, 1)
     pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
-
+# TODO: reshape
 def test_insert(idx):
     # key contained in all levels
     new_index = idx.insert(0, ('bar', 'two'))
@@ -88,7 +88,7 @@ def test_insert(idx):
 def test_bounds(idx):
     idx._bounds
 
-
+# TODO: reshape
 def test_append(idx):
     result = idx[:3].append(idx[3:])
     assert result.equals(idx)
@@ -101,7 +101,7 @@ def test_append(idx):
     result = idx.append([])
     assert result.equals(idx)
 
-
+# TODO: reshape
 def test_groupby(idx):
     groups = idx.groupby(np.array([1, 1, 1, 2, 2, 2]))
     labels = idx.get_values().tolist()
@@ -158,24 +158,11 @@ def test_where_array_like():
             return i.where(klass(cond))
         pytest.raises(NotImplementedError, f)
 
-
+# TODO: reshape
 def test_reorder_levels(idx):
     # this blows up
     tm.assert_raises_regex(IndexError, '^Too many levels',
                            idx.reorder_levels, [2, 1, 0])
-
-
-@pytest.mark.parametrize('ordered', [True, False])
-def test_astype_category(idx, ordered):
-    # GH 18630
-    msg = '> 1 ndim Categorical are not supported at this time'
-    with tm.assert_raises_regex(NotImplementedError, msg):
-        idx.astype(CategoricalDtype(ordered=ordered))
-
-    if ordered is False:
-        # dtype='category' defaults to ordered=False, so only test once
-        with tm.assert_raises_regex(NotImplementedError, msg):
-            idx.astype('category')
 
 
 def test_repeat():

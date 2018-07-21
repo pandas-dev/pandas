@@ -14,3 +14,16 @@ def test_astype(idx):
 
     with tm.assert_raises_regex(TypeError, "^Setting.*dtype.*object"):
         idx.astype(np.dtype(int))
+
+
+@pytest.mark.parametrize('ordered', [True, False])
+def test_astype_category(idx, ordered):
+    # GH 18630
+    msg = '> 1 ndim Categorical are not supported at this time'
+    with tm.assert_raises_regex(NotImplementedError, msg):
+        idx.astype(CategoricalDtype(ordered=ordered))
+
+    if ordered is False:
+        # dtype='category' defaults to ordered=False, so only test once
+        with tm.assert_raises_regex(NotImplementedError, msg):
+            idx.astype('category')

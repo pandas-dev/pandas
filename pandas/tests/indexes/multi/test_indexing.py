@@ -108,7 +108,7 @@ def test_slice_locs_not_contained():
     result = index.slice_locs(-1, 10)
     assert result == (0, len(index))
 
-
+# TODO: reshape
 def test_insert_base(idx):
 
     result = idx[1:4]
@@ -117,6 +117,7 @@ def test_insert_base(idx):
     assert idx[0:4].equals(result.insert(0, idx[0]))
 
 
+# TODO: reshape
 def test_delete_base(idx):
 
     expected = idx[1:]
