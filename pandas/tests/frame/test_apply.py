@@ -40,18 +40,12 @@ def _get_cython_table_params(frame, func_names_and_expected):
     results : list
         List of three items (DataFrame, function, expected result)
     """
-    table = pd.core.base.SelectionMixin._cython_table
-    if compat.PY36:
-        table = list(table.items())
-    else:  # dicts have random order in Python<3.6, which xdist doesn't like
-        table = sorted(((key, value) for key, value in table.items()),
-                       key=lambda x: x[0].__class__.__name__)
+    from pandas.conftest import _cython_table
     results = []
     for func_name, expected in func_names_and_expected:
         results.append((frame, func_name, expected))
-        results += [
-            (frame, func, expected) for func, name in table
-            if name == func_name]
+        results += [(frame, func, expected) for func, name in _cython_table
+                    if name == func_name]
     return results
 
 

@@ -6,7 +6,7 @@ import pytest
 import pandas
 import numpy as np
 import pandas as pd
-from pandas.compat import PY3
+from pandas.compat import PY3, PY36
 import pandas.util._test_decorators as td
 
 
@@ -64,7 +64,7 @@ def spmatrix(request):
                 ids=lambda x: "axis {!r}".format(x))
 def axis(request):
     """
-     Fixture for returning the axis numbers of a dataframe.
+     Fixture for returning the axis numbers of a DataFrame.
      """
     return request.param
 
@@ -72,7 +72,7 @@ def axis(request):
 @pytest.fixture(params=[0, 'index'], ids=lambda x: "axis {!r}".format(x))
 def axis_series(request):
     """
-     Fixture for returning the axis numbers of a series.
+     Fixture for returning the axis numbers of a Series.
      """
     return request.param
 
@@ -117,6 +117,18 @@ def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations
     """
+    return request.param
+
+
+_cython_table = list(pd.core.base.SelectionMixin._cython_table.items())
+if not PY36:
+    # dicts have random order in Python<3.6, which xdist doesn't like
+    _cython_table = sorted(((key, value) for key, value in _cython_table),
+                           key=lambda x: x[0].__class__.__name__)
+
+
+@pytest.fixture(params=_cython_table)
+def cython_table_items(request):
     return request.param
 
 
