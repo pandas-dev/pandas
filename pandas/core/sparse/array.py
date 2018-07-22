@@ -245,42 +245,61 @@ class SparseArray(PandasObject, ExtensionArray):
             return libindex.get_value_at(self.sp_values, sp_loc)
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
-
-        indices = np.asarray(indices, dtype='i4').copy()
-        n = len(self)
+        indices = np.asarray(indices, dtype=np.int32)
 
         if allow_fill:
-            fill_value = self.fill_value if fill_value is None else fill_value
-
-            if n:
-                na = indices < 0
-                indices[na] = 0
-            else:
-                return take(self.values, indices, fill_value=fill_value)
-
-        indices = ensure_platform_int(indices)
-        n = len(self)
-        if allow_fill and fill_value is not None:
-            # allow -1 to indicate self.fill_value,
-            # self.fill_value may not be NaN
-            if (indices < -1).any():
-                msg = ('When allow_fill=True and fill_value is not None, '
-                       'all indices must be >= -1')
-                raise ValueError(msg)
-            elif (n <= indices).any():
-                msg = 'index is out of bounds for size {size}'.format(size=n)
-                raise IndexError(msg)
+            return self._take_with_fill(indices, fill_value=fill_value)
         else:
-            indices[indices < 0] += n
-            values_indices = self.sp_index.lookup_array(indices)
-            out = np.empty(len(indices), dtype=self.values.dtype)
-            out.fill(self.fill_value)
-            out[values_indices > 0] = self.values[
-                values_indices[values_indices > 0]
-            ]
+            return self._take_without_fill(indices)
 
-        return type(self)(out, fill_value=fill_value)
+    def _take_with_fill(self, indices, fill_value=None):
+        if fill_value is None:
+            fill_value = self.fill_value
+
+        if indices.min() < -1:
+            raise ValueError("Invalid value in 'indices'. Must be between -1 and the length of the array.")
+
+        if indices.max() >= len(self):
+            raise IndexError("out of bounds value in 'indices'.")
+
+        if len(self) == 0:
+            # Empty... Allow taking only if all empty
+            if (indices == -1).all():
+                taken = np.empty_like(indices, dtype=self.sp_values.dtype)
+                taken.fill(fill_value)
+                return taken
+            else:
+                raise IndexError('cannot do a non-empty take from an empty axes.')
+
+        # TODO: bounds check
+        sp_indexer = self.sp_index.lookup_array(indices)
+        fillable = (indices < 0) | (sp_indexer < 0)
+
+        taken = self.sp_values.take(sp_indexer)
+        taken[fillable] = fill_value
+        return taken
+
+    def _take_without_fill(self, indices):
+        to_shift = indices < 0
+        indices = indices.copy()
+
+        n = len(self)
+
+        if (indices.max() >= n) or (indices.min() < -n):
+            if n == 0:
+                raise IndexError("cannot do a non-empty take from an empty axes.")
+            else:
+                raise IndexError("out of bounds value in 'indices'.")
+
+        if to_shift.any():
+            indices[to_shift] += n
+
+        sp_indexer = self.sp_index.lookup_array(indices)
+        taken = self.sp_values.take(sp_indexer)
+        fillable = (sp_indexer < 0)
+
+        taken[fillable] = self.fill_value
+        return taken
 
     # @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     # def take(self, indices, axis=0, allow_fill=False,
