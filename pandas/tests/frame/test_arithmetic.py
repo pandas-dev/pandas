@@ -211,6 +211,16 @@ class TestFrameArithmetic(object):
                                  pd.Timedelta(days=2)])
         tm.assert_frame_equal(res, expected)
 
+    def test_timestamp_df_add_dateoffset(self):
+        expected = pd.DataFrame([pd.Timestamp('2019')])
+        result = pd.DataFrame([pd.Timestamp('2018')]) + pd.DateOffset(years=1)
+        tm.assert_frame_equal(expected, result)
+
+        expected = pd.DataFrame([pd.Timestamp('2019', tz='Asia/Shanghai')])
+        result = (pd.DataFrame([pd.Timestamp('2018', tz='Asia/Shanghai')])
+                  + pd.DateOffset(years=1))
+        tm.assert_frame_equal(expected, result)
+
     @pytest.mark.parametrize('data', [
         [1, 2, 3],
         [1.1, 2.2, 3.3],

@@ -2737,7 +2737,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
+        if isinstance(result, (np.ndarray, Block)):
             if result.dtype.kind in ['i', 'f', 'O']:
                 try:
                     result = result.astype('M8[ns]')
@@ -2784,6 +2784,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             values = conversion.ensure_datetime64ns(values)
 
         self.values[locs] = values
+
+    def eval(self, try_cast=False, *args, **kwargs):
+        blocks = super().eval(try_cast=try_cast, *args, **kwargs)
+        if try_cast:
+            blocks = [self._try_coerce_result(block) for block in blocks]
+        return blocks
 
 
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
@@ -2920,6 +2926,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if isinstance(result, np.ndarray):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
+        elif isinstance(result, Block):
+            result = self.make_block_same_class(result.values.flat)
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = tslibs.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
