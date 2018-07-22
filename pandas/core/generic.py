@@ -8103,18 +8103,19 @@ class NDFrame(PandasObject, SelectionMixin):
                2016-06-14    NaN
         Name: myvalue, dtype: float64
 
-        Merge result as a column named `delta` to the original data
+        Concatenate result as a column named `delta` to the original data
 
         >>> result.name = 'delta'
-        >>> pd.merge(data, result.to_frame(), on=['mydate', 'group'])
-                    myvalue group delta
-        mydate
-        2016-06-06        1     A    NaN
-        2016-06-08        2     A    NaN
-        2016-06-09        3     A    1.0
-        2016-06-10        4     B    NaN
-        2016-06-12        5     B    NaN
-        2016-06-13        6     B    1.0
+        >>> pd.concat([df, result], axis=1)
+            group	myvalue	delta
+        2016-06-06	A	1.0	NaN
+        2016-06-07	A	NaN	NaN
+        2016-06-08	A	2.0	NaN
+        2016-06-09	A	3.0	1.0
+        2016-06-10	B	4.0	NaN
+        2016-06-11	B	NaN	NaN
+        2016-06-12	B	5.0	NaN
+        2016-06-13	B	6.0	1.0
 
         Returns
         -------
