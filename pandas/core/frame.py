@@ -4953,6 +4953,8 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        # TODO: `func` passed here is wrapped in core.ops; if we are
+        # dispatching to Series implementation, should we pass unwrapped?
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
