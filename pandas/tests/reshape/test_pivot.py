@@ -1565,8 +1565,9 @@ class TestCrosstab(object):
                               full_normal)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index'),
                               row_normal)
-        tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns'),
-                              col_normal)
+        tm.assert_frame_equal(
+            pd.crosstab(df.a, df.b, normalize='columns').astype('f8'),
+            col_normal)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=1),
                               pd.crosstab(df.a, df.b, normalize='columns'))
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=0),
@@ -1599,7 +1600,8 @@ class TestCrosstab(object):
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
                                           margins=True), row_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',
-                                          margins=True), col_normal_margins)
+                                          margins=True).astype('f8'),
+                              col_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize=True,
                                           margins=True), all_normal_margins)
 

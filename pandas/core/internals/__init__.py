@@ -86,6 +86,45 @@ from pandas import compat
 from pandas.compat import range, map, zip, u
 
 
+def try_cast_result(left, result, dtype=None):
+    """
+    Try to cast the result to our original type, we may have
+    roundtripped thru object in the mean-time
+    """
+    if dtype is None:
+        dtype = left.dtype
+
+    if (is_integer_dtype(left) or is_bool_dtype(left) or
+            is_datetime64_dtype(left) or is_datetime64tz_dtype(left)):
+        pass
+    elif is_object_dtype(left) and lib.infer_dtype(left) == 'boolean':
+        # disguised is_bool_dtype
+        pass
+    elif is_float_dtype(left) and result.dtype == left.dtype:
+
+        # protect against a bool/object showing up here
+        if isinstance(dtype, compat.string_types) and dtype == 'infer':
+            return result
+        if not isinstance(dtype, type):
+            dtype = dtype.type
+        if issubclass(dtype, (np.bool_, np.object_)):
+            if issubclass(dtype, np.bool_):
+                if isna(result).all():
+                    return result.astype(np.bool_)
+                else:
+                    result = result.astype(np.object_)
+                    result[result == 1] = True
+                    result[result == 0] = False
+                    return result
+            else:
+                return result.astype(np.object_)
+
+        return result
+
+    # may need to change the dtype here
+    return maybe_downcast_to_dtype(result, dtype)
+
+
 class Block(PandasObject):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
@@ -711,34 +750,7 @@ class Block(PandasObject):
         """ try to cast the result to our original type, we may have
         roundtripped thru object in the mean-time
         """
-        if dtype is None:
-            dtype = self.dtype
-
-        if self.is_integer or self.is_bool or self.is_datetime:
-            pass
-        elif self.is_float and result.dtype == self.dtype:
-
-            # protect against a bool/object showing up here
-            if isinstance(dtype, compat.string_types) and dtype == 'infer':
-                return result
-            if not isinstance(dtype, type):
-                dtype = dtype.type
-            if issubclass(dtype, (np.bool_, np.object_)):
-                if issubclass(dtype, np.bool_):
-                    if isna(result).all():
-                        return result.astype(np.bool_)
-                    else:
-                        result = result.astype(np.object_)
-                        result[result == 1] = True
-                        result[result == 0] = False
-                        return result
-                else:
-                    return result.astype(np.object_)
-
-            return result
-
-        # may need to change the dtype here
-        return maybe_downcast_to_dtype(result, dtype)
+        return try_cast_result(self, result, dtype)
 
     def _try_coerce_args(self, values, other):
         """ provide coercion to our input arguments """

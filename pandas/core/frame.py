@@ -70,7 +70,8 @@ from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks)
+                                   create_block_manager_from_blocks,
+                                   try_cast_result)
 from pandas.core.series import Series
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
@@ -4929,7 +4930,7 @@ class DataFrame(NDFrame):
         if left._is_mixed_type or right._is_mixed_type:
             if self.columns.is_unique:
                 new_data = {col: func(left[col], right)
-                             for col in left.columns}
+                            for col in left.columns}
                 result = self._constructor(new_data,
                                            index=left.index,
                                            columns=left.columns,
@@ -4937,7 +4938,7 @@ class DataFrame(NDFrame):
                 return result
             else:
                 new_data = [func(left.iloc[:, idx], right)
-                             for idx in range(len(left.columns))]
+                            for idx in range(len(left.columns))]
                 result = self._constructor(new_data,
                                            index=left.index,
                                            copy=False)
@@ -4952,13 +4953,31 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
+        assert left.columns.equals(right.index), (left.columns, right.index)
 
-        new_data = left._data.eval(func=func, other=right,
-                                   axes=[left.columns, self.index],
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+        new_data = [func(left.iloc[:, n], right.iloc[n])
+                    for n in range(len(left.columns))]
+
+        if try_cast:
+            new_data = [try_cast_result(left.iloc[:, n], new_data[n])
+                        for n in range(len(left.columns))]
+
+        if left.columns.is_unique:
+            new_data = {left.columns[n]: new_data[n]
+                        for n in range(len(left.columns))}
+            result = self._constructor(new_data,
+                                       index=left.index, columns=left.columns,
+                                       copy=False)
+            return result
+
+        else:
+            new_data = {i: new_data[i] for i in range(len(new_data))}
+            result = self._constructor(new_data, index=left.index, copy=False)
+            result.columns = left.columns
+            return result
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         new_data = self._data.eval(func=func, other=other,
