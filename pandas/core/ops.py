@@ -397,64 +397,167 @@ d  -1.0  NaN
 e  NaN  -2.0
 """
 
-_gt_example_FRAME = """
->>> df1 = pd.DataFrame({'num1': range(1,6),
-...                     'num2': range(2,11,2),
-...                     'num3': range(1,20,4)})
+_eq_example_FRAME = """
+>>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [100, 200, 300]},
+...                     columns=['tool', 'score'])
 >>> df1
-   num1  num2  num3
-0     1     2     1
-1     2     4     5
-2     3     6     9
-3     4     8    13
-4     5    10    17
->>> df2 = pd.DataFrame({'num1': range(6,11),
-...                     'num2': range(1,10,2),
-...                     'num3': range(1,20,4)})
+     tool  score
+0  python    100
+1       r    200
+2   julia    300
+>>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [300, 200, 100]},
+...                     columns=['tool', 'score'])
 >>> df2
-   num1  num2  num3
-0     6     1     1
-1     7     3     5
-2     8     5     9
-3     9     7    13
-4    10     9    17
+     tool  score
+0  python    300
+1       r    200
+2   julia    100
+>>> df1.eq(df2)
+   tool  score
+0  True  False
+1  True   True
+2  True  False
+"""
+
+_ne_example_FRAME = """
+>>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [100, 200, 300]},
+...                     columns=['tool', 'score'])
+>>> df1
+     tool  score
+0  python    100
+1       r    200
+2   julia    300
+>>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [300, 200, 100]},
+...                     columns=['tool', 'score'])
+>>> df2
+     tool  score
+0  python    300
+1       r    200
+2   julia    100
+>>> df1.ne(df2)
+    tool  score
+0  False   True
+1  False  False
+2  False   True
+"""
+
+_lt_example_FRAME = """
+>>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [100, 200, 300]},
+...                     columns=['tool', 'score'])
+>>> df1
+     tool  score
+0  python    100
+1       r    200
+2   julia    300
+>>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [300, 200, 100]},
+...                     columns=['tool', 'score'])
+>>> df2
+     tool  score
+0  python    300
+1       r    200
+2   julia    100
+>>> df1.lt(df2)
+    tool  score
+0  False   True
+1  False  False
+2  False  False
+"""
+
+_le_example_FRAME = """
+>>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [100, 200, 300]},
+...                     columns=['tool', 'score'])
+>>> df1
+     tool  score
+0  python    100
+1       r    200
+2   julia    300
+>>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [300, 200, 100]},
+...                     columns=['tool', 'score'])
+>>> df2
+     tool  score
+0  python    300
+1       r    200
+2   julia    100
+>>> df1.le(df2)
+   tool  score
+0  True   True
+1  True   True
+2  True  False
+"""
+
+_gt_example_FRAME = """
+>>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [100, 200, 300]},
+...                     columns=['tool', 'score'])
+>>> df1
+     tool  score
+0  python    100
+1       r    200
+2   julia    300
+>>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [300, 200, 100]},
+...                     columns=['tool', 'score'])
+>>> df2
+     tool  score
+0  python    300
+1       r    200
+2   julia    100
 >>> df1.gt(df2)
-    num1  num2   num3
-0  False  True  False
-1  False  True  False
-2  False  True  False
-3  False  True  False
-4  False  True  False
+    tool  score
+0  False  False
+1  False  False
+2  False   True
 """
 
 _ge_example_FRAME = """
->>> df1 = pd.DataFrame({'num1': range(1,6),
-...                     'num2': range(2,11,2),
-...                     'num3': range(1,20,4)})
+>>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [100, 200, 300]},
+...                     columns=['tool', 'score'])
 >>> df1
-   num1  num2  num3
-0     1     2     1
-1     2     4     5
-2     3     6     9
-3     4     8    13
-4     5    10    17
->>> df2 = pd.DataFrame({'num1': range(6,11),
-...                     'num2': range(1,10,2),
-...                     'num3': range(1,20,4)})
+     tool  score
+0  python    100
+1       r    200
+2   julia    300
+>>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
+...                     'score': [300, 200, 100]},
+...                     columns=['tool', 'score'])
 >>> df2
-   num1  num2  num3
-0     6     1     1
-1     7     3     5
-2     8     5     9
-3     9     7    13
-4    10     9    17
+     tool  score
+0  python    300
+1       r    200
+2   julia    100
 >>> df1.ge(df2)
-    num1  num2   num3
-0  False  True   True
-1  False  True   True
-2  False  True   True
-3  False  True   True
-4  False  True   True
+   tool  score
+0  True  False
+1  True   True
+2  True   True
+"""
+
+_comp_others = """
+DataFrame.eq : Return DataFrame of boolean values equal to the
+    elementwise rows or columns of one DataFrame to another
+DataFrame.ne : Return DataFrame of boolean values not equal to 
+    the elementwise rows or columns of one DataFrame to another
+DataFrame.le : Return DataFrame of boolean values less than or 
+    equal the elementwise rows or columns of one DataFrame 
+    to another
+DataFrame.lt : Return DataFrame of boolean values strictly less 
+    than the elementwise rows or columns of one DataFrame to 
+    another
+DataFrame.ge : Return DataFrame of boolean values greater than or 
+    equal to the elementwise rows or columns of one DataFrame to 
+    another
+DataFrame.gt : Return DataFrame of boolean values strictly greater 
+    than to the elementwise rows or columns of one DataFrame to 
+    another
 """
 
 _op_descriptions = {
@@ -495,28 +598,34 @@ _op_descriptions = {
     # Comparison Operators
     'eq': {'op': '==',
            'desc': 'Equal to',
-           'reverse': None,
-           'df_examples': None},
+           'reverse': 'ne',
+           'df_examples': _eq_example_FRAME,
+           'others': _comp_others},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
-           'reverse': None,
-           'df_examples': None},
+           'reverse': 'eq',
+           'df_examples': _ne_example_FRAME,
+           'others': _comp_others},
     'lt': {'op': '<',
            'desc': 'Less than',
-           'reverse': None,
-           'df_examples': None},
+           'reverse': 'ge',
+           'df_examples': _lt_example_FRAME,
+           'others': _comp_others},
     'le': {'op': '<=',
            'desc': 'Less than or equal to',
-           'reverse': None,
-           'df_examples': None},
+           'reverse': 'gt',
+           'df_examples': _le_example_FRAME,
+           'others': _comp_others},
     'gt': {'op': '>',
            'desc': 'Greater than',
-           'reverse': None,
-           'df_examples': _gt_example_FRAME},
+           'reverse': 'le',
+           'df_examples': _gt_example_FRAME,
+           'others': _comp_others},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
-           'reverse': None,
-           'df_examples': _ge_example_FRAME}}
+           'reverse': 'lt',
+           'df_examples': _ge_example_FRAME,
+           'others': _comp_others}}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -643,11 +752,32 @@ DataFrame.{reverse}
 """
 
 _flex_comp_doc_FRAME = """
-Wrapper for flexible comparison methods {name}
+Flexible wrappers to comparison operators (specifically ``{name}``).
+
+Wrappers (``eq``, ``ne``, ``le``, ``lt``, ``ge``, ``gt``) are equivalent to 
+operators (``==``, ``=!``, ``<=``, ``<``, ``>=``, ``>``) with support to choose 
+axis (rows or columns) for comparison.
+
+Parameters
+----------
+other : DataFrame
+axis : {{0, 1, 'columns', 'rows'}}
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
+ 
+Returns
+-------
+result : DataFrame
+    Consisting of boolean values
 
 Examples
 --------
 {df_examples}
+
+See also
+--------
+{reverse}
 """
 
 _flex_doc_PANEL = """
@@ -1614,16 +1744,13 @@ def _flex_comp_method_FRAME(cls, op, special):
             result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
         return result
 
-    doc = ('Wrapper for flexible comparison methods {name}'
-           .format(name=op_name))
-
     if op_name in _op_descriptions:
         op_desc = _op_descriptions[op_name]
 
-        if op_desc['df_examples'] is not None:
-            base_doc = _flex_comp_doc_FRAME
-            doc = base_doc.format(name=op_name,
-                                  df_examples=op_desc['df_examples'])
+        base_doc = _flex_comp_doc_FRAME         
+        doc = base_doc.format(name=op_name,
+                              df_examples=op_desc['df_examples'].strip(),
+                              reverse=op_desc['others'].strip())
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
