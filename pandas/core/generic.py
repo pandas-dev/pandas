@@ -8032,7 +8032,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
 
-        >>> data = pd.DataFrame({'myvalue': [1, 2, 3, 4, 5, 6],
+        >>> df = pd.DataFrame({'myvalue': [1, 2, 3, 4, 5, 6],
         ...                      'group': ['A', 'A', 'A', 'B', 'B', 'B']},
         ...                     index=pd.DatetimeIndex(['2016-06-06',
         ...                                             '2016-06-08',
@@ -8042,7 +8042,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                                             '2016-06-13'],
         ...                                            name='mydate'))
 
-        >>> data
+        >>> df
                     myvalue group
         mydate
         2016-06-06        1     A
@@ -8055,31 +8055,40 @@ class NDFrame(PandasObject, SelectionMixin):
         For the groups compute the difference between current `myvalue` and
         `myvalue` shifted forward by 1 day.
 
-        If the dataframe is shifted without passing a freq argument than the
-        values simply move down
+        If `myvalue` is shifted then the values will simply move down.  
 
-        >>> data[data.group=='A'].myvalue.shift(1)
+        >>> df.myvalue.shift(1)
         mydate
         2016-06-06    NaN
         2016-06-08    1.0
         2016-06-09    2.0
+        2016-06-10    3.0
+        2016-06-12    4.0
+        2016-06-13    5.0
         Name: myvalue, dtype: float64
 
-        What we want however, is to shift myvalue forward by one day in order
-        to compute the difference.
+        We only want to shift myvalue forward by one day before computing
+        the difference. We can do this by reindexing and filling the groups
+        first
 
-        >>> data[data.group=='A'].myvalue.shift(1, freq=pd.Timedelta('1 days'))
-        mydate
-        2016-06-07    1
-        2016-06-09    2
-        2016-06-10    3
-        Name: myvalue, dtype: int64
+        >>> date_range = pd.date_range(df.index.min(), df.index.max())
+        >>> df = df.reindex(date_range)
+        >>> df['group'] = df['group'].ffill()
+        >>> df
+        group	myvalue
+        2016-06-06	A	1.0
+        2016-06-07	A	NaN
+        2016-06-08	A	2.0
+        2016-06-09	A	3.0
+        2016-06-10	B	4.0
+        2016-06-11	B	NaN
+        2016-06-12	B	5.0
+        2016-06-13	B	6.0
 
         After considering the grouping we can calculate the difference
         as follows
 
-        >>> result = data.groupby('group').myvalue.apply(
-        ...             lambda x: x - x.shift(1, pd.Timedelta('1 days')))
+        >>> result = df['myvalue'] - df.groupby('group')['myvalue'].shift(1)
         >>> result
         group  mydate
         A      2016-06-06    NaN
