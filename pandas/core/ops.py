@@ -544,19 +544,19 @@ _ge_example_FRAME = """
 _comp_others = """
 DataFrame.eq : Return DataFrame of boolean values equal to the
     elementwise rows or columns of one DataFrame to another
-DataFrame.ne : Return DataFrame of boolean values not equal to 
+DataFrame.ne : Return DataFrame of boolean values not equal to
     the elementwise rows or columns of one DataFrame to another
-DataFrame.le : Return DataFrame of boolean values less than or 
-    equal the elementwise rows or columns of one DataFrame 
+DataFrame.le : Return DataFrame of boolean values less than or
+    equal the elementwise rows or columns of one DataFrame
     to another
-DataFrame.lt : Return DataFrame of boolean values strictly less 
-    than the elementwise rows or columns of one DataFrame to 
+DataFrame.lt : Return DataFrame of boolean values strictly less
+    than the elementwise rows or columns of one DataFrame to
     another
-DataFrame.ge : Return DataFrame of boolean values greater than or 
-    equal to the elementwise rows or columns of one DataFrame to 
+DataFrame.ge : Return DataFrame of boolean values greater than or
+    equal to the elementwise rows or columns of one DataFrame to
     another
-DataFrame.gt : Return DataFrame of boolean values strictly greater 
-    than to the elementwise rows or columns of one DataFrame to 
+DataFrame.gt : Return DataFrame of boolean values strictly greater
+    than to the elementwise rows or columns of one DataFrame to
     another
 """
 
@@ -754,8 +754,8 @@ DataFrame.{reverse}
 _flex_comp_doc_FRAME = """
 Flexible wrappers to comparison operators (specifically ``{name}``).
 
-Wrappers (``eq``, ``ne``, ``le``, ``lt``, ``ge``, ``gt``) are equivalent to 
-operators (``==``, ``=!``, ``<=``, ``<``, ``>=``, ``>``) with support to choose 
+Wrappers (``eq``, ``ne``, ``le``, ``lt``, ``ge``, ``gt``) are equivalent to
+operators (``==``, ``=!``, ``<=``, ``<``, ``>=``, ``>``) with support to choose
 axis (rows or columns) for comparison.
 
 Parameters
@@ -765,7 +765,7 @@ axis : {{0, 1, 'columns', 'rows'}}
 level : int or name
     Broadcast across a level, matching Index values on the
     passed MultiIndex level
- 
+
 Returns
 -------
 result : DataFrame
@@ -1747,7 +1747,7 @@ def _flex_comp_method_FRAME(cls, op, special):
     if op_name in _op_descriptions:
         op_desc = _op_descriptions[op_name]
 
-        base_doc = _flex_comp_doc_FRAME         
+        base_doc = _flex_comp_doc_FRAME
         doc = base_doc.format(name=op_name,
                               df_examples=op_desc['df_examples'].strip(),
                               reverse=op_desc['others'].strip())
