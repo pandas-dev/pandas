@@ -8084,7 +8084,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-06-11     B      NaN
         2016-06-12     B      5.0
         2016-06-13     B      6.0
-        
+
         After considering the grouping we can calculate the difference
         as follows
 
@@ -8111,7 +8111,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-06-09	 A	   3.0	     1.0
         2016-06-10	 B	   4.0	     NaN
         2016-06-11	 B	   NaN	     NaN
-        2016-06-12	 B	   5.0	     NaN 
+        2016-06-12	 B	   5.0	     NaN
         2016-06-13	 B	   6.0	     1.0
 
         Returns
