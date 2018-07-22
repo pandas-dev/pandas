@@ -8032,8 +8032,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
 
-        >>> df = pd.DataFrame({'myvalue': [1, 2, 3, 4, 5, 6],
-        ...                      'group': ['A', 'A', 'A', 'B', 'B', 'B']},
+        >>> df = pd.DataFrame({'group': ['A', 'A', 'A', 'B', 'B', 'B'],
+        ...                    'myvalue': [1, 2, 3, 4, 5, 6]},
         ...                     index=pd.DatetimeIndex(['2016-06-06',
         ...                                             '2016-06-08',
         ...                                             '2016-06-09',
@@ -8043,14 +8043,14 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                                            name='mydate'))
 
         >>> df
-                    myvalue group
-        mydate
-        2016-06-06        1     A
-        2016-06-08        2     A
-        2016-06-09        3     A
-        2016-06-10        4     B
-        2016-06-12        5     B
-        2016-06-13        6     B
+                    group	myvalue
+        mydate		
+        2016-06-06	A	1
+        2016-06-08	A	2
+        2016-06-09	A	3
+        2016-06-10	B	4
+        2016-06-12	B	5
+        2016-06-13	B	6
 
         For the groups compute the difference between current `myvalue` and
         `myvalue` shifted forward by 1 day.
@@ -8067,7 +8067,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-06-13    5.0
         Name: myvalue, dtype: float64
 
-        We only want to shift myvalue forward by one day before computing
+        We only want to shift `myvalue` forward by one day before computing
         the difference. We can do this by reindexing and filling the groups
         first
 
@@ -8075,7 +8075,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = df.reindex(date_range)
         >>> df['group'] = df['group'].ffill()
         >>> df
-        group	myvalue
+                  group	myvalue
         2016-06-06	A	1.0
         2016-06-07	A	NaN
         2016-06-08	A	2.0
@@ -8090,32 +8090,29 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> result = df['myvalue'] - df.groupby('group')['myvalue'].shift(1)
         >>> result
-        group  mydate
-        A      2016-06-06    NaN
-               2016-06-07    NaN
-               2016-06-08    NaN
-               2016-06-09    1.0
-               2016-06-10    NaN
-        B      2016-06-10    NaN
-               2016-06-11    NaN
-               2016-06-12    NaN
-               2016-06-13    1.0
-               2016-06-14    NaN
-        Name: myvalue, dtype: float64
+        2016-06-06    NaN
+        2016-06-07    NaN
+        2016-06-08    NaN
+        2016-06-09    1.0
+        2016-06-10    NaN
+        2016-06-11    NaN
+        2016-06-12    NaN
+        2016-06-13    1.0
+        Freq: D, Name: myvalue, dtype: float64
 
         Concatenate result as a column named `delta` to the original data
 
         >>> result.name = 'delta'
         >>> pd.concat([df, result], axis=1)
-            group	myvalue	delta
-        2016-06-06	A	1.0	NaN
-        2016-06-07	A	NaN	NaN
-        2016-06-08	A	2.0	NaN
-        2016-06-09	A	3.0	1.0
-        2016-06-10	B	4.0	NaN
-        2016-06-11	B	NaN	NaN
-        2016-06-12	B	5.0	NaN
-        2016-06-13	B	6.0	1.0
+                    group	myvalue	delta
+        2016-06-06	 A	     1.0	NaN
+        2016-06-07	 A	     NaN	NaN
+        2016-06-08	 A	     2.0	NaN
+        2016-06-09	 A	     3.0	1.0
+        2016-06-10	 B	     4.0	NaN
+        2016-06-11	 B	     NaN	NaN     
+        2016-06-12	 B	     5.0	NaN
+        2016-06-13	 B	     6.0	1.0
 
         Returns
         -------
