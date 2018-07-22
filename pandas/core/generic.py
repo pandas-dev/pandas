@@ -8044,7 +8044,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> df
                     group	myvalue
-        mydate		
+        mydate
         2016-06-06	A	1
         2016-06-08	A	2
         2016-06-09	A	3
@@ -8055,7 +8055,7 @@ class NDFrame(PandasObject, SelectionMixin):
         For the groups compute the difference between current `myvalue` and
         `myvalue` shifted forward by 1 day.
 
-        If `myvalue` is shifted then the values will simply move down.  
+        If `myvalue` is shifted then the values will simply move down.
 
         >>> df.myvalue.shift(1)
         mydate
@@ -8110,7 +8110,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-06-08	 A	     2.0	NaN
         2016-06-09	 A	     3.0	1.0
         2016-06-10	 B	     4.0	NaN
-        2016-06-11	 B	     NaN	NaN     
+        2016-06-11	 B	     NaN	NaN  
         2016-06-12	 B	     5.0	NaN
         2016-06-13	 B	     6.0	1.0
 
