@@ -52,8 +52,7 @@ from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
 from offsets import _Tick
 
-DEF PY2 = str == bytes
-
+cdef bint PY2 = str == bytes
 
 cdef extern from "period_helper.h":
     int FR_ANN
@@ -728,7 +727,7 @@ cdef object _period_strftime(int64_t value, int freq, object fmt):
 
             result = result.replace(str_extra_fmts[i], repl)
 
-    IF PY2:
+    if PY2:
         result = result.decode('utf-8', 'ignore')
 
     return result
@@ -934,17 +933,19 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas, pos
+        ndarray[int64_t] trans, deltas
+        Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val
 
-    if is_utc(tz):
-        for i in range(n):
-            if stamps[i] == NPY_NAT:
-                result[i] = NPY_NAT
-                continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            result[i] = get_period_ordinal(&dts, freq)
+    if is_utc(tz) or tz is None:
+        with nogil:
+            for i in range(n):
+                if stamps[i] == NPY_NAT:
+                    result[i] = NPY_NAT
+                    continue
+                dt64_to_dtstruct(stamps[i], &dts)
+                result[i] = get_period_ordinal(&dts, freq)
 
     elif is_tzlocal(tz):
         for i in range(n):
@@ -958,10 +959,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        pos = trans.searchsorted(stamps, side='right') - 1
-
-        # statictzinfo
         if typ not in ['pytz', 'dateutil']:
+            # static/fixed; in this case we know that len(delta) == 1
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -969,6 +968,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
                 result[i] = get_period_ordinal(&dts, freq)
         else:
+            pos = trans.searchsorted(stamps, side='right') - 1
+
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -1379,34 +1380,49 @@ cdef class _Period(object):
     @property
     def dayofweek(self):
         """
-        Return the day of the week.
+        Day of the week the period lies in, with Monday=0 and Sunday=6.
 
-        This attribute returns the day of the week on which the particular
-        date for the given period occurs depending on the frequency with
-        Monday=0, Sunday=6.
+        If the period frequency is lower than daily (e.g. hourly), and the
+        period spans over multiple days, the day at the start of the period is
+        used.
+
+        If the frequency is higher than daily (e.g. monthly), the last day
+        of the period is used.
 
         Returns
         -------
-        Int
-            Range from 0 to 6 (included).
+        int
+            Day of the week.
 
-        See also
+        See Also
         --------
-        Period.dayofyear : Return the day of the year.
-        Period.daysinmonth : Return the number of days in that month.
+        Period.dayofweek : Day of the week the period lies in.
+        Period.weekday : Alias of Period.dayofweek.
+        Period.day : Day of the month.
+        Period.dayofyear : Day of the year.
 
         Examples
         --------
-        >>> period1 = pd.Period('2012-1-1 19:00', freq='H')
-        >>> period1
-        Period('2012-01-01 19:00', 'H')
-        >>> period1.dayofweek
+        >>> per = pd.Period('2017-12-31 22:00', 'H')
+        >>> per.dayofweek
         6
 
-        >>> period2 = pd.Period('2013-1-9 11:00', freq='H')
-        >>> period2
-        Period('2013-01-09 11:00', 'H')
-        >>> period2.dayofweek
+        For periods that span over multiple days, the day at the beginning of
+        the period is returned.
+
+        >>> per = pd.Period('2017-12-31 22:00', '4H')
+        >>> per.dayofweek
+        6
+        >>> per.start_time.dayofweek
+        6
+
+        For periods with a frequency higher than days, the last day of the
+        period is returned.
+
+        >>> per = pd.Period('2018-01', 'M')
+        >>> per.dayofweek
+        2
+        >>> per.end_time.dayofweek
         2
         """
         base, mult = get_freq_code(self.freq)
@@ -1414,6 +1430,55 @@ cdef class _Period(object):
 
     @property
     def weekday(self):
+        """
+        Day of the week the period lies in, with Monday=0 and Sunday=6.
+
+        If the period frequency is lower than daily (e.g. hourly), and the
+        period spans over multiple days, the day at the start of the period is
+        used.
+
+        If the frequency is higher than daily (e.g. monthly), the last day
+        of the period is used.
+
+        Returns
+        -------
+        int
+            Day of the week.
+
+        See Also
+        --------
+        Period.dayofweek : Day of the week the period lies in.
+        Period.weekday : Alias of Period.dayofweek.
+        Period.day : Day of the month.
+        Period.dayofyear : Day of the year.
+
+        Examples
+        --------
+        >>> per = pd.Period('2017-12-31 22:00', 'H')
+        >>> per.dayofweek
+        6
+
+        For periods that span over multiple days, the day at the beginning of
+        the period is returned.
+
+        >>> per = pd.Period('2017-12-31 22:00', '4H')
+        >>> per.dayofweek
+        6
+        >>> per.start_time.dayofweek
+        6
+
+        For periods with a frequency higher than days, the last day of the
+        period is returned.
+
+        >>> per = pd.Period('2018-01', 'M')
+        >>> per.dayofweek
+        2
+        >>> per.end_time.dayofweek
+        2
+        """
+        # Docstring is a duplicate from dayofweek. Reusing docstrings with
+        # Appender doesn't work for properties in Cython files, and setting
+        # the __doc__ attribute is also not possible.
         return self.dayofweek
 
     @property
@@ -1590,8 +1655,8 @@ cdef class _Period(object):
         return value
 
     def __setstate__(self, state):
-        self.freq=state[1]
-        self.ordinal=state[2]
+        self.freq = state[1]
+        self.ordinal = state[2]
 
     def __reduce__(self):
         object_state = None, self.freq, self.ordinal

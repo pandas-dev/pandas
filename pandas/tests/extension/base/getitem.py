@@ -226,12 +226,14 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = s.reindex([-1, 0, n])
         expected = pd.Series(
-            data._from_sequence([na_value, data[0], na_value]),
+            data._from_sequence([na_value, data[0], na_value],
+                                dtype=s.dtype),
             index=[-1, 0, n])
         self.assert_series_equal(result, expected)
 
         result = s.reindex([n, n + 1])
-        expected = pd.Series(data._from_sequence([na_value, na_value]),
+        expected = pd.Series(data._from_sequence([na_value, na_value],
+                                                 dtype=s.dtype),
                              index=[n, n + 1])
         self.assert_series_equal(result, expected)
 

@@ -12,8 +12,8 @@ import pandas as pd
 
 from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_object,
+    ensure_int64,
+    ensure_object,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
+from pandas.core.index import (Index, MultiIndex, ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -715,6 +715,66 @@ class NDFrame(PandasObject, SelectionMixin):
             new_values = new_values.copy()
 
         return self._constructor(new_values, *new_axes).__finalize__(self)
+
+    def droplevel(self, level, axis=0):
+        """Return DataFrame with requested index / column level(s) removed.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        level : int, str, or list-like
+            If a string is given, must be the name of a level
+            If list-like, elements must be names or positional indexes
+            of levels.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+
+        Returns
+        -------
+        DataFrame.droplevel()
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([
+        ...:     [1, 2, 3, 4],
+        ...:     [5, 6, 7, 8],
+        ...:     [9, 10, 11, 12]
+        ...: ]).set_index([0, 1]).rename_axis(['a', 'b'])
+
+        >>> df.columns = pd.MultiIndex.from_tuples([
+        ...:    ('c', 'e'), ('d', 'f')
+        ...:], names=['level_1', 'level_2'])
+
+        >>> df
+        level_1   c   d
+        level_2   e   f
+        a b
+        1 2      3   4
+        5 6      7   8
+        9 10    11  12
+
+        >>> df.droplevel('a')
+        level_1   c   d
+        level_2   e   f
+        b
+        2        3   4
+        6        7   8
+        10      11  12
+
+        >>> df.droplevel('level2', axis=1)
+        level_1   c   d
+        a b
+        1 2      3   4
+        5 6      7   8
+        9 10    11  12
+
+        """
+        labels = self._get_axis(axis)
+        new_labels = labels.droplevel(level)
+        result = self.set_axis(new_labels, axis=axis, inplace=False)
+        return result
 
     def pop(self, item):
         """
@@ -3235,7 +3295,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Case for non-unique axis
         else:
-            labels = _ensure_object(com._index_labels_to_array(labels))
+            labels = ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
@@ -3889,9 +3949,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if index is None:
                 continue
 
-            index = _ensure_index(index)
+            index = ensure_index(index)
             if indexer is not None:
-                indexer = _ensure_int64(indexer)
+                indexer = ensure_int64(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
@@ -6520,9 +6580,11 @@ class NDFrame(PandasObject, SelectionMixin):
         # GH 17276
         # numpy doesn't like NaN as a clip value
         # so ignore
-        if np.any(pd.isnull(lower)):
+        # GH 19992
+        # numpy doesn't drop a list-like bound containing NaN
+        if not is_list_like(lower) and np.any(pd.isnull(lower)):
             lower = None
-        if np.any(pd.isnull(upper)):
+        if not is_list_like(upper) and np.any(pd.isnull(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)
@@ -7940,6 +8002,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         cond = com._apply_if_callable(cond, self)
+
+        # see gh-21891
+        if not hasattr(cond, "__invert__"):
+            cond = np.array(cond)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,

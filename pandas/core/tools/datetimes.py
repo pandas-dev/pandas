@@ -14,7 +14,7 @@ from pandas._libs.tslibs.parsing import (  # noqa
     _guess_datetime_format)
 
 from pandas.core.dtypes.common import (
-    _ensure_object,
+    ensure_object,
     is_datetime64_ns_dtype,
     is_datetime64_dtype,
     is_datetime64tz_dtype,
@@ -216,7 +216,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         raise TypeError('arg must be a string, datetime, list, tuple, '
                         '1-d array, or Series')
 
-    arg = _ensure_object(arg)
+    arg = ensure_object(arg)
     require_iso8601 = False
 
     if infer_datetime_format and format is None:
@@ -787,7 +787,7 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
             raise TypeError('arg must be a string, datetime, list, tuple, '
                             '1-d array, or Series')
 
-        arg = _ensure_object(arg)
+        arg = ensure_object(arg)
 
         if infer_time_format and format is None:
             format = _guess_time_format_for_array(arg)

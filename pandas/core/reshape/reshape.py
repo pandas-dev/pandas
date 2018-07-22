@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like, is_bool_dtype,
     needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
@@ -141,7 +141,7 @@ class _Unstacker(object):
         ngroups = len(obs_ids)
 
         indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
@@ -156,7 +156,7 @@ class _Unstacker(object):
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
-        comp_index = _ensure_platform_int(comp_index)
+        comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
@@ -940,10 +940,11 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         sparse_series = {}
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code in enumerate(codes):
-            if code == -1:
-                # Blank entries if not dummy_na and code == -1, #GH4446
-                continue
+        mask = codes != -1
+        codes = codes[mask]
+        n_idx = np.arange(N)[mask]
+
+        for ndx, code in zip(n_idx, codes):
             sp_indices[code].append(ndx)
 
         if drop_first:
