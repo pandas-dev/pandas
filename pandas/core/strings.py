@@ -517,8 +517,7 @@ def str_endswith(arr, pat, na=np.nan):
 def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
-    some other string. Equivalent to :meth:`str.replace` or
-    :func:`re.sub`.
+    some other string. Equivalent to :func:`re.sub`.
 
     Parameters
     ----------
