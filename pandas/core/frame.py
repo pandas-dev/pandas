@@ -3250,24 +3250,23 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame([('or', 17.),('ca', 25)],
-                                index=['portland', 'berkeley'],
-                                columns=['state', 'temp_c'])
+        >>> df = pd.DataFrame({'temp_c': (17.0, 25.0)},
+                                index=['portland', 'berkeley'])
 
         Where the value is a callable, evaluated on `df`:
 
         >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
-                 state  temp_c  temp_f
-        portland    or    17.0    62.6
-        berkeley    ca    25.0    77.0
+                  temp_c  temp_f
+        portland    17.0    62.6
+        berkeley    25.0    77.0
 
         Where the value already exists and is inserted:
 
         >>> newcol = df['temp_c'] * 9 / 5 + 32
         >>> df.assign(temp_f=newcol)
-                 state  temp_c  temp_f
-        portland    or    17.0    62.6
-        berkeley    ca    25.0    77.0
+                  temp_c  temp_f
+        portland    17.0    62.6
+        berkeley    25.0    77.0
 
         Where the keyword arguments depend on each other
 
