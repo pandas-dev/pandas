@@ -4921,12 +4921,35 @@ class DataFrame(NDFrame):
                                  copy=False)
 
     def _combine_match_index(self, other, func, level=None):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        new_data = func(left.values.T, right.values).T
-        return self._constructor(new_data,
-                                 index=left.index, columns=self.columns,
-                                 copy=False)
+        assert left.index.equals(right.index)
+
+        if left._is_mixed_type or right._is_mixed_type:
+            if self.columns.is_unique:
+                new_data = {col: func(left[col], right)
+                             for col in left.columns}
+                result = self._constructor(new_data,
+                                           index=left.index,
+                                           columns=left.columns,
+                                           copy=False)
+                return result
+            else:
+                new_data = [func(left.iloc[:, idx], right)
+                             for idx in range(len(left.columns))]
+                result = self._constructor(new_data,
+                                           index=left.index,
+                                           copy=False)
+                result.columns = left.columns
+                return result
+
+        else:
+            # easy case, operate directly on values
+            result = func(left.values.T, right.values).T
+            return self._constructor(result,
+                                     index=left.index, columns=self.columns,
+                                     copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
