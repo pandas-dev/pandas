@@ -3250,38 +3250,24 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+        >>> df = pd.DataFrame([('or', 17.),('ca', 25)],
+                                index=['portland', 'berkeley'],
+                                columns=['state', 'temp_c'])
 
         Where the value is a callable, evaluated on `df`:
 
-        >>> df.assign(ln_A = lambda x: np.log(x.A))
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
+        >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
+                 state  temp_c  temp_f
+        portland    or    17.0    62.6
+        berkeley    ca    25.0    77.0
 
         Where the value already exists and is inserted:
 
-        >>> newcol = np.log(df['A'])
-        >>> df.assign(ln_A=newcol)
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
+        >>> newcol = df['temp_c'] * 9 / 5 + 32
+        >>> df.assign(temp_f=newcol)
+                 state  temp_c  temp_f
+        portland    or    17.0    62.6
+        berkeley    ca    25.0    77.0
 
         Where the keyword arguments depend on each other
 
