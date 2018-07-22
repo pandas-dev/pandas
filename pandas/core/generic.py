@@ -7965,8 +7965,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        Compute the difference between a column in a dataframe
-        with grouped data, and its shifted version.
 
         >>> data = pd.DataFrame({'myvalue': [1, 2, 3, 4, 5, 6],
         ...                      'group': ['A', 'A', 'A', 'B', 'B', 'B']},
