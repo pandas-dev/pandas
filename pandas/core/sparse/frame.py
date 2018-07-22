@@ -614,7 +614,6 @@ class SparseDataFrame(DataFrame):
 
         left, right = self.align(other, join='outer', axis=1,
                                  level=level, copy=False)
-        new_index, new_columns = left.index, left.columns
 
         new_data = {}
         for col in other.index.intersection(self.columns):
@@ -622,7 +621,7 @@ class SparseDataFrame(DataFrame):
             # TODO: Why are we casting other[col] to float?
 
         return self._constructor(
-            new_data, index=self.index, columns=new_columns,
+            new_data, index=left.index, columns=left.columns,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
