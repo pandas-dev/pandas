@@ -8075,16 +8075,16 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = df.reindex(date_range)
         >>> df['group'] = df['group'].ffill()
         >>> df
-                    group	myvalue
-        2016-06-06  A	    1.0
-        2016-06-07  A	    NaN
-        2016-06-08  A	    2.0
-        2016-06-09  A	    3.0
-        2016-06-10  B	    4.0
-        2016-06-11  B	    NaN
-        2016-06-12  B	    5.0
-        2016-06-13  B	    6.0
-
+        group  myvalue
+        2016-06-06     A      1.0
+        2016-06-07     A      NaN
+        2016-06-08     A      2.0
+        2016-06-09     A      3.0
+        2016-06-10     B      4.0
+        2016-06-11     B      NaN
+        2016-06-12     B      5.0
+        2016-06-13     B      6.0
+        
         After considering the grouping we can calculate the difference
         as follows
 
@@ -8104,15 +8104,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> result.name = 'delta'
         >>> pd.concat([df, result], axis=1)
-                    group   myvalue delta
-        2016-06-06	A	    1.0	    NaN
-        2016-06-07	A	    NaN	    NaN
-        2016-06-08	A	    2.0	    NaN
-        2016-06-09	A	    3.0	    1.0
-        2016-06-10	B	    4.0	    NaN
-        2016-06-11	B	    NaN	    NaN  
-        2016-06-12	B	    5.0	    NaN
-        2016-06-13	B	    6.0	    1.0
+        group	myvalue	delta
+        2016-06-06	A	1.0	NaN
+        2016-06-07	A	NaN	NaN
+        2016-06-08	A	2.0	NaN
+        2016-06-09	A	3.0	1.0
+        2016-06-10	B	4.0	NaN
+        2016-06-11	B	NaN	NaN
+        2016-06-12	B	5.0	NaN
+        2016-06-13	B	6.0	1.0
 
         Returns
         -------
