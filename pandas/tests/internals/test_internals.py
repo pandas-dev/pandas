@@ -1238,7 +1238,6 @@ class TestCanHoldElement(object):
         (2**63, 'complex128'),
         (True, 'bool'),
         (np.timedelta64(20, 'ns'), '<m8[ns]'),
-        (np.datetime64(20, 'ns'), '<M8[ns]'),
     ])
     @pytest.mark.parametrize('op', [
         operator.add,
@@ -1249,15 +1248,16 @@ class TestCanHoldElement(object):
         operator.pow,
     ], ids=lambda x: x.__name__)
     def test_binop_other(self, op, value, dtype):
-        skip = {(operator.add, 'bool'),
-                (operator.sub, 'bool'),
-                (operator.mul, 'bool'),
-                (operator.truediv, 'bool'),
-                (operator.mod, 'i8'),
-                (operator.mod, 'complex128'),
-                (operator.mod, '<M8[ns]'),
-                (operator.mod, '<m8[ns]'),
-                (operator.pow, 'bool')}
+        skip = {
+            (operator.add, 'bool'),
+            (operator.sub, 'bool'),
+            (operator.mul, 'bool'),
+            (operator.truediv, 'bool'),
+            (operator.mod, 'i8'),
+            (operator.mod, 'complex128'),
+            (operator.mod, '<m8[ns]'),
+            (operator.pow, 'bool'),
+        }
         if (op, dtype) in skip:
             pytest.skip("Invalid combination {},{}".format(op, dtype))
         e = DummyElement(value, dtype)

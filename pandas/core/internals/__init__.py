@@ -2788,10 +2788,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         self.values[locs] = values
 
     def eval(self, func, other, try_cast=False, **kwargs):
-        block = super().eval(func, other, try_cast=try_cast, **kwargs)[0]
+        block = super(DatetimeBlock, self).eval(func, other, try_cast=try_cast,
+                                                **kwargs)[0]
         if try_cast:
-            if isinstance(other,
-                          (tslibs.Timestamp, np.datetime64, datetime, date)):
+            if isinstance(other, (np.datetime64, date)):
                 block = TimeDeltaBlock(block.values, block.mgr_locs,
                                        ndim=block.ndim)
             elif isinstance(other, ABCDateOffset):
