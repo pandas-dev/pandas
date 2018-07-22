@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import warnings
 import copy
 from warnings import catch_warnings
@@ -21,7 +22,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
-    _ensure_int64, _ensure_platform_int,
+    ensure_int64, ensure_platform_int,
     is_integer,
     is_dtype_equal,
     is_timedelta64_dtype,
@@ -39,7 +40,8 @@ from pandas.core.dtypes.common import (
     is_re,
     is_re_compilable,
     is_scalar,
-    _get_dtype)
+    _get_dtype,
+    pandas_dtype)
 from pandas.core.dtypes.cast import (
     maybe_downcast_to_dtype,
     maybe_upcast,
@@ -65,7 +67,7 @@ from pandas.core.dtypes.generic import (
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
-from pandas.core.index import Index, MultiIndex, _ensure_index
+from pandas.core.index import Index, MultiIndex, ensure_index
 from pandas.core.indexing import maybe_convert_indices, check_setitem_lengths
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -631,9 +633,10 @@ class Block(PandasObject):
 
             return self.make_block(Categorical(self.values, dtype=dtype))
 
+        # convert dtypes if needed
+        dtype = pandas_dtype(dtype)
+
         # astype processing
-        if not is_extension_array_dtype(dtype):
-            dtype = np.dtype(dtype)
         if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
@@ -1297,7 +1300,7 @@ class Block(PandasObject):
             axis = new_values.ndim - axis - 1
 
         if np.prod(new_values.shape):
-            new_values = np.roll(new_values, _ensure_platform_int(periods),
+            new_values = np.roll(new_values, ensure_platform_int(periods),
                                  axis=axis)
 
         axis_indexer = [slice(None)] * self.ndim
@@ -3269,7 +3272,7 @@ class BlockManager(PandasObject):
                  '_is_consolidated', '_blknos', '_blklocs']
 
     def __init__(self, blocks, axes, do_integrity_check=True):
-        self.axes = [_ensure_index(ax) for ax in axes]
+        self.axes = [ensure_index(ax) for ax in axes]
         self.blocks = tuple(blocks)
 
         for block in blocks:
@@ -3294,8 +3297,8 @@ class BlockManager(PandasObject):
     def make_empty(self, axes=None):
         """ return an empty BlockManager with the items axis of len 0 """
         if axes is None:
-            axes = [_ensure_index([])] + [_ensure_index(a)
-                                          for a in self.axes[1:]]
+            axes = [ensure_index([])] + [ensure_index(a)
+                                         for a in self.axes[1:]]
 
         # preserve dtype if possible
         if self.ndim == 1:
@@ -3319,7 +3322,7 @@ class BlockManager(PandasObject):
         return len(self.axes)
 
     def set_axis(self, axis, new_labels):
-        new_labels = _ensure_index(new_labels)
+        new_labels = ensure_index(new_labels)
         old_len = len(self.axes[axis])
         new_len = len(new_labels)
 
@@ -3442,7 +3445,7 @@ class BlockManager(PandasObject):
         if (isinstance(state, tuple) and len(state) >= 4 and
                 '0.14.1' in state[3]):
             state = state[3]['0.14.1']
-            self.axes = [_ensure_index(ax) for ax in state['axes']]
+            self.axes = [ensure_index(ax) for ax in state['axes']]
             self.blocks = tuple(unpickle_block(b['values'], b['mgr_locs'])
                                 for b in state['blocks'])
         else:
@@ -3450,7 +3453,7 @@ class BlockManager(PandasObject):
             # little while longer
             ax_arrays, bvalues, bitems = state[:3]
 
-            self.axes = [_ensure_index(ax) for ax in ax_arrays]
+            self.axes = [ensure_index(ax) for ax in ax_arrays]
 
             if len(bitems) == 1 and self.axes[0].equals(bitems[0]):
                 # This is a workaround for pre-0.14.1 pickles that didn't
@@ -4384,7 +4387,7 @@ class BlockManager(PandasObject):
         """
         Conform block manager to new index.
         """
-        new_index = _ensure_index(new_index)
+        new_index = ensure_index(new_index)
         new_index, indexer = self.axes[axis].reindex(new_index, method=method,
                                                      limit=limit)
 
@@ -4663,7 +4666,7 @@ class SingleBlockManager(BlockManager):
                                      'more than 1 block')
                 block = block[0]
         else:
-            self.axes = [_ensure_index(axis)]
+            self.axes = [ensure_index(axis)]
 
             # create the block here
             if isinstance(block, list):
@@ -4889,7 +4892,7 @@ def form_blocks(arrays, names, axes):
     items_dict = defaultdict(list)
     extra_locs = []
 
-    names_idx = _ensure_index(names)
+    names_idx = ensure_index(names)
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -5207,7 +5210,7 @@ def _factor_indexer(shape, labels):
     expanded label indexer
     """
     mult = np.array(shape)[::-1].cumprod()[::-1]
-    return _ensure_platform_int(
+    return ensure_platform_int(
         np.sum(np.array(labels).T * np.append(mult, [1]), axis=1).T)
 
 
@@ -5227,7 +5230,7 @@ def _get_blkno_placements(blknos, blk_count, group=True):
 
     """
 
-    blknos = _ensure_int64(blknos)
+    blknos = ensure_int64(blknos)
 
     # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
     for blkno, indexer in libinternals.get_blkno_indexers(blknos, group):

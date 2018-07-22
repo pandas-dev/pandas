@@ -1,9 +1,10 @@
-from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
+from numpy cimport ndarray
 cimport numpy as cnp
 cnp.import_array()
 
 cimport cpython
 from cpython cimport PyTypeObject
+
 
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
@@ -63,7 +64,7 @@ cdef inline bint is_datetime64_object(object obj) nogil:
 
 # --------------------------------------------------------------------
 
-cdef extern from "numpy_helper.h":
+cdef extern from "../src/numpy_helper.h":
     void set_array_not_contiguous(ndarray ao)
 
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
@@ -86,7 +87,7 @@ ctypedef fused numeric:
     cnp.float32_t
     cnp.float64_t
 
-cdef extern from "headers/stdint.h":
+cdef extern from "../src/headers/stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
     enum: UINT32_MAX

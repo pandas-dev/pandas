@@ -5,22 +5,60 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT
+from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
 from pandas.errors import NullFrequencyError, PerformanceWarning
+from pandas import compat
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick
+from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.dtypes.common import (
+    needs_i8_conversion,
+    is_list_like,
+    is_bool_dtype,
     is_period_dtype,
     is_timedelta64_dtype,
     is_object_dtype)
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+
+from .base import ExtensionOpsMixin
+
+
+def _make_comparison_op(op, cls):
+    # TODO: share code with indexes.base version?  Main difference is that
+    # the block for MultiIndex was removed here.
+    def cmp_method(self, other):
+        if isinstance(other, ABCDataFrame):
+            return NotImplemented
+
+        if isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
+            if other.ndim > 0 and len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
+
+        if needs_i8_conversion(self) and needs_i8_conversion(other):
+            # we may need to directly compare underlying
+            # representations
+            return self._evaluate_compare(other, op)
+
+        # numpy will show a DeprecationWarning on invalid elementwise
+        # comparisons, this will raise in the future
+        with warnings.catch_warnings(record=True):
+            with np.errstate(all='ignore'):
+                result = op(self.values, np.asarray(other))
+
+        return result
+
+    name = '__{name}__'.format(name=op.__name__)
+    # TODO: docstring?
+    return compat.set_function_name(cmp_method, name, cls)
 
 
 class AttributesMixin(object):
@@ -53,7 +91,7 @@ class AttributesMixin(object):
         return self._simple_new(values, **attributes)
 
 
-class DatetimeLikeArrayMixin(AttributesMixin):
+class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -430,8 +468,186 @@ class DatetimeLikeArrayMixin(AttributesMixin):
                       "{cls} not vectorized"
                       .format(cls=type(self).__name__), PerformanceWarning)
 
-        res_values = op(self.astype('O').values, np.array(other))
+        # For EA self.astype('O') returns a numpy array, not an Index
+        left = lib.values_from_object(self.astype('O'))
+
+        res_values = op(left, np.array(other))
         kwargs = {}
         if not is_period_dtype(self):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
+
+    # --------------------------------------------------------------
+    # Comparison Methods
+
+    def _evaluate_compare(self, other, op):
+        """
+        We have been called because a comparison between
+        8 aware arrays. numpy >= 1.11 will
+        now warn about NaT comparisons
+        """
+        # Called by comparison methods when comparing datetimelike
+        # with datetimelike
+
+        if not isinstance(other, type(self)):
+            # coerce to a similar object
+            if not is_list_like(other):
+                # scalar
+                other = [other]
+            elif lib.is_scalar(lib.item_from_zerodim(other)):
+                # ndarray scalar
+                other = [other.item()]
+            other = type(self)(other)
+
+        # compare
+        result = op(self.asi8, other.asi8)
+
+        # technically we could support bool dtyped Index
+        # for now just return the indexing array directly
+        mask = (self._isnan) | (other._isnan)
+
+        filler = iNaT
+        if is_bool_dtype(result):
+            filler = False
+
+        result[mask] = filler
+        return result
+
+    # TODO: get this from ExtensionOpsMixin
+    @classmethod
+    def _add_comparison_methods(cls):
+        """ add in comparison methods """
+        # DatetimeArray and TimedeltaArray comparison methods will
+        # call these as their super(...) methods
+        cls.__eq__ = _make_comparison_op(operator.eq, cls)
+        cls.__ne__ = _make_comparison_op(operator.ne, cls)
+        cls.__lt__ = _make_comparison_op(operator.lt, cls)
+        cls.__gt__ = _make_comparison_op(operator.gt, cls)
+        cls.__le__ = _make_comparison_op(operator.le, cls)
+        cls.__ge__ = _make_comparison_op(operator.ge, cls)
+
+
+DatetimeLikeArrayMixin._add_comparison_methods()
+
+
+# -------------------------------------------------------------------
+# Shared Constructor Helpers
+
+def validate_periods(periods):
+    """
+    If a `periods` argument is passed to the Datetime/Timedelta Array/Index
+    constructor, cast it to an integer.
+
+    Parameters
+    ----------
+    periods : None, float, int
+
+    Returns
+    -------
+    periods : None or int
+
+    Raises
+    ------
+    TypeError
+        if periods is None, float, or int
+    """
+    if periods is not None:
+        if lib.is_float(periods):
+            periods = int(periods)
+        elif not lib.is_integer(periods):
+            raise TypeError('periods must be a number, got {periods}'
+                            .format(periods=periods))
+    return periods
+
+
+def validate_endpoints(closed):
+    """
+    Check that the `closed` argument is among [None, "left", "right"]
+
+    Parameters
+    ----------
+    closed : {None, "left", "right"}
+
+    Returns
+    -------
+    left_closed : bool
+    right_closed : bool
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_closed = False
+    right_closed = False
+
+    if closed is None:
+        left_closed = True
+        right_closed = True
+    elif closed == "left":
+        left_closed = True
+    elif closed == "right":
+        right_closed = True
+    else:
+        raise ValueError("Closed has to be either 'left', 'right' or None")
+
+    return left_closed, right_closed
+
+
+def maybe_infer_freq(freq):
+    """
+    Comparing a DateOffset to the string "infer" raises, so we need to
+    be careful about comparisons.  Make a dummy variable `freq_infer` to
+    signify the case where the given freq is "infer" and set freq to None
+    to avoid comparison trouble later on.
+
+    Parameters
+    ----------
+    freq : {DateOffset, None, str}
+
+    Returns
+    -------
+    freq : {DateOffset, None}
+    freq_infer : bool
+    """
+    freq_infer = False
+    if not isinstance(freq, DateOffset):
+        # if a passed freq is None, don't infer automatically
+        if freq != 'infer':
+            freq = frequencies.to_offset(freq)
+        else:
+            freq_infer = True
+            freq = None
+    return freq, freq_infer
+
+
+def validate_tz_from_dtype(dtype, tz):
+    """
+    If the given dtype is a DatetimeTZDtype, extract the implied
+    tzinfo object from it and check that it does not conflict with the given
+    tz.
+
+    Parameters
+    ----------
+    dtype : dtype, str
+    tz : None, tzinfo
+
+    Returns
+    -------
+    tz : consensus tzinfo
+
+    Raises
+    ------
+    ValueError : on tzinfo mismatch
+    """
+    if dtype is not None:
+        try:
+            dtype = DatetimeTZDtype.construct_from_string(dtype)
+            dtz = getattr(dtype, 'tz', None)
+            if dtz is not None:
+                if tz is not None and not timezones.tz_compare(tz, dtz):
+                    raise ValueError("cannot supply both a tz and a dtype"
+                                     " with a tz")
+                tz = dtz
+        except TypeError:
+            pass
+    return tz

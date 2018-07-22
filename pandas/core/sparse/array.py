@@ -17,7 +17,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
     is_integer_dtype,
@@ -259,6 +259,18 @@ class SparseArray(PandasObject, ExtensionArray):
             else:
                 return take(self.values, indices, fill_value=fill_value)
 
+        indices = ensure_platform_int(indices)
+        n = len(self)
+        if allow_fill and fill_value is not None:
+            # allow -1 to indicate self.fill_value,
+            # self.fill_value may not be NaN
+            if (indices < -1).any():
+                msg = ('When allow_fill=True and fill_value is not None, '
+                       'all indices must be >= -1')
+                raise ValueError(msg)
+            elif (n <= indices).any():
+                msg = 'index is out of bounds for size {size}'.format(size=n)
+                raise IndexError(msg)
         else:
             indices[indices < 0] += n
             values_indices = self.sp_index.lookup_array(indices)

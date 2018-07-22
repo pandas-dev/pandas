@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_object_dtype,
     is_bool_dtype,
+    is_interval_dtype,
     is_dtype_equal,
     _NS_DTYPE,
     _TD_DTYPE)
@@ -57,6 +58,8 @@ def get_dtype_kinds(l):
         elif is_bool_dtype(dtype):
             typ = 'bool'
         elif is_period_dtype(dtype):
+            typ = str(arr.dtype)
+        elif is_interval_dtype(dtype):
             typ = str(arr.dtype)
         else:
             typ = dtype.kind
@@ -531,6 +534,7 @@ def _concat_index_asobject(to_concat, name=None):
 
     to_concat = [x._values if isinstance(x, Index) else x
                  for x in to_concat]
+
     return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
 
