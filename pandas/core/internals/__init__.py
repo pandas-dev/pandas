@@ -88,8 +88,18 @@ from pandas.compat import range, map, zip, u
 
 def try_cast_result(left, result, dtype=None):
     """
-    Try to cast the result to our original type, we may have
-    roundtripped thru object in the mean-time
+    Try to cast the result to the original dtype for `left`; we may have
+    roundtripped thru object in the mean-time.
+
+    Parameters
+    ----------
+    left : array-like
+    result : array-like
+    dtype : np.dtype, pd.dtype, or None (default None)
+
+    Returns
+    -------
+    maybe_casted : same type as `result`
     """
     if dtype is None:
         dtype = left.dtype
