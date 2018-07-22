@@ -215,7 +215,8 @@ def test_reconstruct_remove_unused():
 
 @pytest.mark.parametrize('first_type,second_type', [
     ('int64', 'int64'),
-    ('datetime64[D]', 'str')])
+    ('datetime64[D]', 'str')
+])
 def test_remove_unused_levels_large(first_type, second_type):
     # GH16556
 

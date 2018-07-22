@@ -343,19 +343,29 @@ def test_from_product_empty_three_levels(N):
     tm.assert_index_equal(result, expected)
 
 
-def test_from_product_invalid_input():
-    invalid_inputs = [1, [1], [1, 2], [[1], 2],
-                      'a', ['a'], ['a', 'b'], [['a'], 'b']]
-    for i in invalid_inputs:
-        pytest.raises(TypeError, MultiIndex.from_product, iterables=i)
+@pytest.mark.parametrize('invalid_input', [
+    1,
+    [1],
+    [1, 2],
+    [[1], 2],
+    'a',
+    ['a'],
+    ['a', 'b'],
+    [['a'], 'b'],
+])
+def test_from_product_invalid_input(invalid_input):
+    pytest.raises(TypeError, MultiIndex.from_product, iterables=invalid_input)
 
 
 def test_from_product_datetimeindex():
     dt_index = date_range('2000-01-01', periods=2)
     mi = pd.MultiIndex.from_product([[1, 2], dt_index])
-    etalon = construct_1d_object_array_from_listlike([(1, pd.Timestamp(
-        '2000-01-01')), (1, pd.Timestamp('2000-01-02')), (2, pd.Timestamp(
-            '2000-01-01')), (2, pd.Timestamp('2000-01-02'))])
+    etalon = construct_1d_object_array_from_listlike([
+        (1, pd.Timestamp('2000-01-01')),
+        (1, pd.Timestamp('2000-01-02')),
+        (2, pd.Timestamp('2000-01-01')),
+        (2, pd.Timestamp('2000-01-02')),
+    ])
     tm.assert_numpy_array_equal(mi.values, etalon)
 
 

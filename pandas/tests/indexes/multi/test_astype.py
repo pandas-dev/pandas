@@ -2,7 +2,9 @@
 
 import numpy as np
 import pandas.util.testing as tm
+import pytest
 from pandas.util.testing import assert_copy
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 
 def test_astype(idx):

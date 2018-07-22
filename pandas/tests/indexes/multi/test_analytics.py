@@ -4,11 +4,8 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (DatetimeIndex, Index, MultiIndex,
-                    PeriodIndex, TimedeltaIndex, date_range,
-                    period_range)
-from pandas.compat import lrange, range
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas import Index, MultiIndex, date_range, period_range
+from pandas.compat import lrange
 
 
 def test_shift(idx):
@@ -17,91 +14,11 @@ def test_shift(idx):
     pytest.raises(NotImplementedError, idx.shift, 1)
     pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
-# TODO: reshape
-def test_insert(idx):
-    # key contained in all levels
-    new_index = idx.insert(0, ('bar', 'two'))
-    assert new_index.equal_levels(idx)
-    assert new_index[0] == ('bar', 'two')
-
-    # key not contained in all levels
-    new_index = idx.insert(0, ('abc', 'three'))
-
-    exp0 = Index(list(idx.levels[0]) + ['abc'], name='first')
-    tm.assert_index_equal(new_index.levels[0], exp0)
-
-    exp1 = Index(list(idx.levels[1]) + ['three'], name='second')
-    tm.assert_index_equal(new_index.levels[1], exp1)
-    assert new_index[0] == ('abc', 'three')
-
-    # key wrong length
-    msg = "Item must have length equal to number of levels"
-    with tm.assert_raises_regex(ValueError, msg):
-        idx.insert(0, ('foo2',))
-
-    left = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1]],
-                        columns=['1st', '2nd', '3rd'])
-    left.set_index(['1st', '2nd'], inplace=True)
-    ts = left['3rd'].copy(deep=True)
-
-    left.loc[('b', 'x'), '3rd'] = 2
-    left.loc[('b', 'a'), '3rd'] = -1
-    left.loc[('b', 'b'), '3rd'] = 3
-    left.loc[('a', 'x'), '3rd'] = 4
-    left.loc[('a', 'w'), '3rd'] = 5
-    left.loc[('a', 'a'), '3rd'] = 6
-
-    ts.loc[('b', 'x')] = 2
-    ts.loc['b', 'a'] = -1
-    ts.loc[('b', 'b')] = 3
-    ts.loc['a', 'x'] = 4
-    ts.loc[('a', 'w')] = 5
-    ts.loc['a', 'a'] = 6
-
-    right = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1], ['b', 'x', 2],
-                          ['b', 'a', -1], ['b', 'b', 3], ['a', 'x', 4],
-                          ['a', 'w', 5], ['a', 'a', 6]],
-                         columns=['1st', '2nd', '3rd'])
-    right.set_index(['1st', '2nd'], inplace=True)
-    # FIXME data types changes to float because
-    # of intermediate nan insertion;
-    tm.assert_frame_equal(left, right, check_dtype=False)
-    tm.assert_series_equal(ts, right['3rd'])
-
-    # GH9250
-    idx = [('test1', i) for i in range(5)] + \
-        [('test2', i) for i in range(6)] + \
-        [('test', 17), ('test', 18)]
-
-    left = pd.Series(np.linspace(0, 10, 11),
-                     pd.MultiIndex.from_tuples(idx[:-2]))
-
-    left.loc[('test', 17)] = 11
-    left.loc[('test', 18)] = 12
-
-    right = pd.Series(np.linspace(0, 12, 13),
-                      pd.MultiIndex.from_tuples(idx))
-
-    tm.assert_series_equal(left, right)
-
 
 def test_bounds(idx):
     idx._bounds
 
-# TODO: reshape
-def test_append(idx):
-    result = idx[:3].append(idx[3:])
-    assert result.equals(idx)
 
-    foos = [idx[:1], idx[1:3], idx[3:]]
-    result = foos[0].append(foos[1:])
-    assert result.equals(idx)
-
-    # empty
-    result = idx.append([])
-    assert result.equals(idx)
-
-# TODO: reshape
 def test_groupby(idx):
     groups = idx.groupby(np.array([1, 1, 1, 2, 2, 2]))
     labels = idx.get_values().tolist()
@@ -159,26 +76,12 @@ def test_where_array_like():
         pytest.raises(NotImplementedError, f)
 
 # TODO: reshape
+
+
 def test_reorder_levels(idx):
     # this blows up
     tm.assert_raises_regex(IndexError, '^Too many levels',
                            idx.reorder_levels, [2, 1, 0])
-
-
-def test_repeat():
-    reps = 2
-    numbers = [1, 2, 3]
-    names = np.array(['foo', 'bar'])
-
-    m = MultiIndex.from_product([
-        numbers, names], names=names)
-    expected = MultiIndex.from_product([
-        numbers, names.repeat(reps)], names=names)
-    tm.assert_index_equal(m.repeat(reps), expected)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = m.repeat(n=reps)
-        tm.assert_index_equal(result, expected)
 
 
 def test_numpy_repeat():
@@ -238,11 +141,12 @@ def test_take(idx):
     expected = idx[indexer]
     assert result.equals(expected)
 
-    if not isinstance(idx,
-                      (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-        # GH 10791
-        with pytest.raises(AttributeError):
-            idx.freq
+    # TODO: Remove Commented Code
+    # if not isinstance(idx,
+    #                   (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+    # GH 10791
+    with pytest.raises(AttributeError):
+        idx.freq
 
 
 def test_take_invalid_kwargs(idx):
