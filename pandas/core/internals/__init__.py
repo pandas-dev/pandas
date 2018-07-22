@@ -63,7 +63,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCIndexClass)
+    ABCIndexClass,
+    ABCDateOffset,
+)
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
@@ -2785,11 +2787,16 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         self.values[locs] = values
 
-    def eval(self, try_cast=False, *args, **kwargs):
-        blocks = super().eval(try_cast=try_cast, *args, **kwargs)
+    def eval(self, func, other, try_cast=False, **kwargs):
+        block = super().eval(func, other, try_cast=try_cast, **kwargs)[0]
         if try_cast:
-            blocks = [self._try_coerce_result(block) for block in blocks]
-        return blocks
+            if isinstance(other,
+                          (tslibs.Timestamp, np.datetime64, datetime, date)):
+                block = TimeDeltaBlock(block.values, block.mgr_locs,
+                                       ndim=block.ndim)
+            elif isinstance(other, ABCDateOffset):
+                block = self._try_coerce_result(block)
+        return [block]
 
 
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):

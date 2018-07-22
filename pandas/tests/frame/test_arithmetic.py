@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import pytest
 import numpy as np
 
@@ -219,6 +220,17 @@ class TestFrameArithmetic(object):
         expected = pd.DataFrame([pd.Timestamp('2019', tz='Asia/Shanghai')])
         result = (pd.DataFrame([pd.Timestamp('2018', tz='Asia/Shanghai')])
                   + pd.DateOffset(years=1))
+        tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize('other', [
+        pd.Timestamp('2017'),
+        np.datetime64('2017'),
+        datetime.datetime(2017, 1, 1),
+        datetime.date(2017, 1, 1),
+    ])
+    def test_timestamp_df_sub_timestamp(self, other):
+        expected = pd.DataFrame([pd.Timedelta('365d')])
+        result = pd.DataFrame([pd.Timestamp('2018')]) - other
         tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize('data', [
