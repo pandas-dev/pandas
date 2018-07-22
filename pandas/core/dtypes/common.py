@@ -151,8 +151,8 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
-
-    return isinstance(arr, (ABCSparseArray, ABCSparseSeries))
+    from pandas.core.sparse.array import SparseArray
+    return isinstance(arr, (SparseArray, ABCSparseSeries))
 
 
 def is_scipy_sparse(arr):
@@ -1705,6 +1705,8 @@ def is_extension_array_dtype(arr_or_dtype):
     array interface. In pandas, this includes:
 
     * Categorical
+    * Sparse
+    * Interval
 
     Third-party libraries may implement arrays or types satisfying
     this interface as well.
@@ -1713,6 +1715,11 @@ def is_extension_array_dtype(arr_or_dtype):
 
     if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
         arr_or_dtype = arr_or_dtype._values
+
+    is_extension_array = isinstance(arr_or_dtype, ExtensionArray)
+
+    if is_extension_array:
+        return True
 
     try:
         arr_or_dtype = pandas_dtype(arr_or_dtype)
@@ -1992,11 +1999,6 @@ def pandas_dtype(dtype):
     TypeError if not a dtype
 
     """
-    # short-circuit
-    if isinstance(dtype, np.ndarray):
-        return dtype.dtype
-    elif isinstance(dtype, np.dtype):
-        return dtype
 
     # registered extension types
     result = registry.find(dtype)
@@ -2005,6 +2007,12 @@ def pandas_dtype(dtype):
 
     # un-registered extension types
     elif isinstance(dtype, ExtensionDtype):
+        return dtype
+
+    # short-circuit
+    if isinstance(dtype, np.ndarray):
+        return dtype.dtype
+    elif isinstance(dtype, np.dtype):
         return dtype
 
     # try a numpy dtype

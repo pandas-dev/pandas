@@ -92,6 +92,11 @@ class TestGetitem(base.BaseGetitemTests):
     def test_take_non_na_fill_value(self, data_missing):
         pass
 
+    def test_get(self, data):
+        s = pd.Series(data, index=[2 * i for i in range(len(data))])
+        assert np.isnan(s.get(4)) and np.isnan(s.iloc[2])
+        assert s.get(2) == s.iloc[1]
+
 
 class TestSetitem(base.BaseSetitemTests):
     pass

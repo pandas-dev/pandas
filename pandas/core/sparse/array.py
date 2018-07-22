@@ -131,6 +131,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
 
 
 class SparseArray(PandasObject, ExtensionArray):
+
     def __init__(self, data, sp_index=None, fill_value=np.nan, kind='block'):
 
         if sp_index is None:
@@ -148,7 +149,7 @@ class SparseArray(PandasObject, ExtensionArray):
         self.fill_value = fill_value
 
     @classmethod
-    def _from_sequence(cls, scalars, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -248,9 +249,11 @@ class SparseArray(PandasObject, ExtensionArray):
         indices = np.asarray(indices, dtype=np.int32)
 
         if allow_fill:
-            return self._take_with_fill(indices, fill_value=fill_value)
+            result = self._take_with_fill(indices, fill_value=fill_value)
         else:
-            return self._take_without_fill(indices)
+            result = self._take_without_fill(indices)
+
+        return type(self)(result, fill_value=self.fill_value)
 
     def _take_with_fill(self, indices, fill_value=None):
         if fill_value is None:
@@ -271,12 +274,12 @@ class SparseArray(PandasObject, ExtensionArray):
             else:
                 raise IndexError('cannot do a non-empty take from an empty axes.')
 
-        # TODO: bounds check
         sp_indexer = self.sp_index.lookup_array(indices)
-        fillable = (indices < 0) | (sp_indexer < 0)
-
         taken = self.sp_values.take(sp_indexer)
-        taken[fillable] = fill_value
+        # Have to fill in two steps, since the user-passed fill value may be
+        # different from self.fill_value.
+        taken[sp_indexer < 0] = self.fill_value
+        taken[indices < 0] = fill_value
         return taken
 
     def _take_without_fill(self, indices):

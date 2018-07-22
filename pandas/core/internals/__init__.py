@@ -2998,7 +2998,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             values, placement=placement or slice(0, len(values), 1))
 
 
-class SparseBlock(NonConsolidatableMixIn, Block):
+class SparseBlock(ExtensionBlock):
     """ implement as a list of sparse arrays of the same dtype """
     __slots__ = ()
     is_sparse = True
@@ -3031,9 +3031,6 @@ class SparseBlock(NonConsolidatableMixIn, Block):
     @fill_value.setter
     def fill_value(self, v):
         self.values.fill_value = v
-
-    def to_dense(self):
-        return self.values.to_dense().view()
 
     @property
     def sp_values(self):
@@ -3172,7 +3169,9 @@ def get_block_type(values, dtype=None):
     dtype = dtype or values.dtype
     vtype = dtype.type
 
-    if is_extension_array_dtype(values):
+    if is_categorical(values):
+        cls = CategoricalBlock
+    elif is_extension_array_dtype(values):
         cls = ExtensionBlock
     elif issubclass(vtype, np.floating):
         cls = FloatBlock
@@ -3181,8 +3180,6 @@ def get_block_type(values, dtype=None):
         cls = TimeDeltaBlock
     elif issubclass(vtype, np.complexfloating):
         cls = ComplexBlock
-    elif is_categorical(values):
-        cls = CategoricalBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetimetz(values)
         cls = DatetimeBlock
