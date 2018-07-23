@@ -607,6 +607,69 @@ class MultiIndex(Index):
         result += self._engine.sizeof(deep=deep)
         return result
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
+    def format(self, space=2, sparsify=None, adjoin=True, names=False,
+               na_rep=None, formatter=None):
+        if len(self) == 0:
+            return []
+
+        stringified_levels = []
+        for lev, lab in zip(self.levels, self.labels):
+            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
+
+            if len(lev) > 0:
+
+                formatted = lev.take(lab).format(formatter=formatter)
+
+                # we have some NA
+                mask = lab == -1
+                if mask.any():
+                    formatted = np.array(formatted, dtype=object)
+                    formatted[mask] = na
+                    formatted = formatted.tolist()
+
+            else:
+                # weird all NA case
+                formatted = [pprint_thing(na if isna(x) else x,
+                                          escape_chars=('\t', '\r', '\n'))
+                             for x in algos.take_1d(lev._values, lab)]
+            stringified_levels.append(formatted)
+
+        result_levels = []
+        for lev, name in zip(stringified_levels, self.names):
+            level = []
+
+            if names:
+                level.append(pprint_thing(name,
+                                          escape_chars=('\t', '\r', '\n'))
+                             if name is not None else '')
+
+            level.extend(np.array(lev, dtype=object))
+            result_levels.append(level)
+
+        if sparsify is None:
+            sparsify = get_option("display.multi_sparse")
+
+        if sparsify:
+            sentinel = ''
+            # GH3547
+            # use value of sparsify as sentinel,  unless it's an obvious
+            # "Truthey" value
+            if sparsify not in [True, 1]:
+                sentinel = sparsify
+            # little bit of a kludge job for #1217
+            result_levels = _sparsify(result_levels, start=int(names),
+                                      sentinel=sentinel)
+
+        if adjoin:
+            from pandas.io.formats.format import _get_adjustment
+            adj = _get_adjustment()
+            return adj.adjoin(space, *result_levels).split('\n')
+        else:
+            return result_levels
+
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr,formatted_value)
@@ -628,6 +691,31 @@ class MultiIndex(Index):
     def _format_data(self, name=None):
         # we are formatting thru the attributes
         return None
+
+    def _format_native_types(self, na_rep='nan', **kwargs):
+        new_levels = []
+        new_labels = []
+
+        # go through the levels and format them
+        for level, label in zip(self.levels, self.labels):
+            level = level._format_native_types(na_rep=na_rep, **kwargs)
+            # add nan values, if there are any
+            mask = (label == -1)
+            if mask.any():
+                nan_index = len(level)
+                level = np.append(level, na_rep)
+                label = label.values()
+                label[mask] = nan_index
+            new_levels.append(level)
+            new_labels.append(label)
+
+        # reconstruct the multi-index
+        mi = MultiIndex(levels=new_levels, labels=new_labels, names=self.names,
+                        sortorder=self.sortorder, verify_integrity=False)
+
+        return mi.values
+
+    # ----------------------------------------------------------------------
 
     def __len__(self):
         return len(self.labels[0])
@@ -689,29 +777,6 @@ class MultiIndex(Index):
 
     names = property(fset=_set_names, fget=_get_names,
                      doc="Names of levels in MultiIndex")
-
-    def _format_native_types(self, na_rep='nan', **kwargs):
-        new_levels = []
-        new_labels = []
-
-        # go through the levels and format them
-        for level, label in zip(self.levels, self.labels):
-            level = level._format_native_types(na_rep=na_rep, **kwargs)
-            # add nan values, if there are any
-            mask = (label == -1)
-            if mask.any():
-                nan_index = len(level)
-                level = np.append(level, na_rep)
-                label = label.values()
-                label[mask] = nan_index
-            new_levels.append(level)
-            new_labels.append(label)
-
-        # reconstruct the multi-index
-        mi = MultiIndex(levels=new_levels, labels=new_labels, names=self.names,
-                        sortorder=self.sortorder, verify_integrity=False)
-
-        return mi.values
 
     @Appender(_index_shared_docs['_get_grouper_for_level'])
     def _get_grouper_for_level(self, mapper, level):
@@ -1075,66 +1140,6 @@ class MultiIndex(Index):
         else:
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
-
-    def format(self, space=2, sparsify=None, adjoin=True, names=False,
-               na_rep=None, formatter=None):
-        if len(self) == 0:
-            return []
-
-        stringified_levels = []
-        for lev, lab in zip(self.levels, self.labels):
-            na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
-
-            if len(lev) > 0:
-
-                formatted = lev.take(lab).format(formatter=formatter)
-
-                # we have some NA
-                mask = lab == -1
-                if mask.any():
-                    formatted = np.array(formatted, dtype=object)
-                    formatted[mask] = na
-                    formatted = formatted.tolist()
-
-            else:
-                # weird all NA case
-                formatted = [pprint_thing(na if isna(x) else x,
-                                          escape_chars=('\t', '\r', '\n'))
-                             for x in algos.take_1d(lev._values, lab)]
-            stringified_levels.append(formatted)
-
-        result_levels = []
-        for lev, name in zip(stringified_levels, self.names):
-            level = []
-
-            if names:
-                level.append(pprint_thing(name,
-                                          escape_chars=('\t', '\r', '\n'))
-                             if name is not None else '')
-
-            level.extend(np.array(lev, dtype=object))
-            result_levels.append(level)
-
-        if sparsify is None:
-            sparsify = get_option("display.multi_sparse")
-
-        if sparsify:
-            sentinel = ''
-            # GH3547
-            # use value of sparsify as sentinel,  unless it's an obvious
-            # "Truthey" value
-            if sparsify not in [True, 1]:
-                sentinel = sparsify
-            # little bit of a kludge job for #1217
-            result_levels = _sparsify(result_levels, start=int(names),
-                                      sentinel=sentinel)
-
-        if adjoin:
-            from pandas.io.formats.format import _get_adjustment
-            adj = _get_adjustment()
-            return adj.adjoin(space, *result_levels).split('\n')
-        else:
-            return result_levels
 
     def _to_safe_for_reshape(self):
         """ convert to object if we are a categorical """
@@ -1535,6 +1540,9 @@ class MultiIndex(Index):
         """A tuple with the length of each level."""
         return tuple(len(x) for x in self.levels)
 
+    # ----------------------------------------------------------------------
+    # Picklability
+
     def __reduce__(self):
         """Necessary for making this object picklable"""
         d = dict(levels=[lev for lev in self.levels],
@@ -1562,6 +1570,8 @@ class MultiIndex(Index):
         self.sortorder = sortorder
         self._verify_integrity()
         self._reset_identity()
+
+    # ----------------------------------------------------------------------
 
     def __getitem__(self, key):
         if is_scalar(key):

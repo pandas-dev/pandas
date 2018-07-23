@@ -647,6 +647,18 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         return indexSlice
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
+    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
+        from pandas.io.formats.format import _get_format_datetime64_from_values
+        format = _get_format_datetime64_from_values(self, date_format)
+
+        return libts.format_array_from_datetime(self.asi8,
+                                                tz=self.tz,
+                                                format=format,
+                                                na_rep=na_rep)
+
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return libts.ints_to_pydatetime(self.asi8, self.tz)
@@ -662,6 +674,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         from pandas.io.formats.format import _get_format_datetime64
         formatter = _get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: "'%s'" % formatter(x, tz=self.tz)
+
+    # ----------------------------------------------------------------------
+    # Picklability
 
     def __reduce__(self):
 
@@ -705,6 +720,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
+    # ----------------------------------------------------------------------
+
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
         freq = attrs.get('freq', None)
@@ -712,15 +729,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             # no need to infer if freq is None
             attrs['freq'] = 'infer'
         return attrs
-
-    def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
-        from pandas.io.formats.format import _get_format_datetime64_from_values
-        format = _get_format_datetime64_from_values(self, date_format)
-
-        return libts.format_array_from_datetime(self.asi8,
-                                                tz=self.tz,
-                                                format=format,
-                                                na_rep=na_rep)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):

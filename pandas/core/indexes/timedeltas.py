@@ -238,10 +238,21 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
+    # ----------------------------------------------------------------------
+    # Rendering Methods
+
     @property
     def _formatter_func(self):
         from pandas.io.formats.format import _get_format_timedelta64
         return _get_format_timedelta64(self, box=True)
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+        from pandas.io.formats.format import Timedelta64Formatter
+        return Timedelta64Formatter(values=self,
+                                    nat_rep=na_rep,
+                                    justify='all').get_result()
+
+    # ----------------------------------------------------------------------
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""
@@ -293,12 +304,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         except AttributeError:
             raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
                             .format(cls=type(self).__name__))
-
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-        from pandas.io.formats.format import Timedelta64Formatter
-        return Timedelta64Formatter(values=self,
-                                    nat_rep=na_rep,
-                                    justify='all').get_result()
 
     days = _wrap_field_accessor("days")
     seconds = _wrap_field_accessor("seconds")
