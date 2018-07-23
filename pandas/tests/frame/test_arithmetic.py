@@ -219,8 +219,12 @@ class TestFrameArithmetic(object):
         np.timedelta64(1, 'D')
     ])
     def test_timestamp_df_add_timedelta(self, other):
+        # GH 22005
         expected = pd.DataFrame([pd.Timestamp('2018-01-02')])
         result = pd.DataFrame([pd.Timestamp('2018-01-01')]) + other
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.DataFrame([pd.Timestamp('2018-01-03')]) - other
         tm.assert_frame_equal(result, expected)
 
         result = other + pd.DataFrame([pd.Timestamp('2018-01-01')])

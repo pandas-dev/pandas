@@ -443,7 +443,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
-- Bug in :class:`DataFrame` with ``dtype='datetime64[ns]'`` when adding :class:`Timedelta` (:issue:`22007`)
+- Bug in :class:`DataFrame` with ``dtype='datetime64[ns]'`` when adding :class:`Timedelta` (:issue:`22005`)
 -
 -
 
