@@ -12,6 +12,7 @@ v0.24.0 (Month XX, 2018)
 
 New features
 ~~~~~~~~~~~~
+- :func:`merge` now directly allows merge between objects of type ``DataFrame`` and named ``Series``, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
 
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
