@@ -114,7 +114,7 @@ def show_versions(as_json=False):
     if (as_json):
         try:
             import json
-        except:
+        except ImportError:
             import simplejson as json
 
         j = dict(system=dict(sys_info), dependencies=dict(deps_blob))
