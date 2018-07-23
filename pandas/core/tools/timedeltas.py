@@ -131,7 +131,7 @@ def _validate_timedelta_unit(arg):
     """ provide validation / translation for timedelta short units """
     try:
         return _unit_map[arg]
-    except:
+    except (KeyError, TypeError):
         if arg is None:
             return 'ns'
         raise ValueError("invalid timedelta unit {arg} provided"
