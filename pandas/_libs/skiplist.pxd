@@ -4,7 +4,6 @@
 from cython cimport Py_ssize_t
 
 
-
 cdef extern from "src/skiplist.h":
     ctypedef struct node_t:
         node_t **next
