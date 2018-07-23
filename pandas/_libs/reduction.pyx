@@ -545,8 +545,6 @@ def apply_frame_axis0(object frame, object f, object names,
                     mutated = True
 
             results.append(piece)
-    except:
-        raise
     finally:
         slider.reset()
 
