@@ -2,8 +2,10 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import StringIO
-from pandas.core.dtypes.common import is_extension_array_dtype
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.api.types import (
+    is_extension_array_dtype, is_extension_dtype
+)
+from pandas.api.extensions import ExtensionDtype
 
 from .base import BaseExtensionTests
 
@@ -58,9 +60,11 @@ class BaseInterfaceTests(BaseExtensionTests):
 
     def test_is_extension_array_dtype(self, data):
         assert is_extension_array_dtype(data)
-        assert is_extension_array_dtype(data.dtype)
         assert is_extension_array_dtype(pd.Series(data))
         assert isinstance(data.dtype, ExtensionDtype)
+
+    def test_is_extension_dtype(self, data):
+        assert is_extension_dtype(data.dtype)
 
     def test_no_values_attribute(self, data):
         # GH-20735: EA's with .values attribute give problems with internal

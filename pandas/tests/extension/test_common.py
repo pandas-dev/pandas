@@ -4,7 +4,9 @@ import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.arrays import ExtensionArray
-from pandas.core.dtypes.common import is_extension_array_dtype
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype, is_extension_dtype
+)
 from pandas.core.dtypes import dtypes
 
 
@@ -38,13 +40,19 @@ class TestExtensionArrayDtype(object):
 
     @pytest.mark.parametrize('values', [
         pd.Categorical([]),
-        pd.Categorical([]).dtype,
         pd.Series(pd.Categorical([])),
-        DummyDtype(),
+
         DummyArray(np.array([1, 2])),
     ])
     def test_is_extension_array_dtype(self, values):
         assert is_extension_array_dtype(values)
+
+    @pytest.mark.parametrize('dtype', [
+        pd.Categorical([]).dtype,
+        DummyDtype(),
+    ])
+    def test_is_extension_dtype(self, dtype):
+        assert is_extension_dtype(dtype)
 
     @pytest.mark.parametrize('values', [
         np.array([]),
@@ -91,4 +99,4 @@ def test_is_not_extension_array_dtype(dtype):
 ])
 def test_is_extension_array_dtype(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
-    assert is_extension_array_dtype(dtype)
+    assert is_extension_dtype(dtype)

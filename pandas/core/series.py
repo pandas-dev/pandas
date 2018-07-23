@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_extension_type,
     is_extension_array_dtype,
+    is_extension_dtype,
     is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
@@ -4088,7 +4089,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 # that Categorical is the only array type for 'category'.
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
-            elif is_extension_array_dtype(dtype):
+            elif is_extension_dtype(dtype):
                 # create an extension array from its dtype
                 array_type = dtype.construct_array_type()
                 subarr = array_type(subarr, dtype=dtype, copy=copy)

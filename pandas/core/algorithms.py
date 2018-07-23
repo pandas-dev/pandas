@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_complex_dtype,
     is_object_dtype,
     is_extension_array_dtype,
+    is_extension_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
@@ -153,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     Index for extension types, otherwise ndarray casted to dtype
     """
     from pandas import Index
-    if is_extension_array_dtype(dtype):
+    if is_extension_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
