@@ -157,6 +157,7 @@ class TestSeriesConstructors(TestData):
         assert_series_equal(s2, s1.sort_index())
 
     def test_constructor_iterable(self):
+        # GH 21987
         class Iter():
             def __iter__(self):
                 for i in range(10):
@@ -167,13 +168,13 @@ class TestSeriesConstructors(TestData):
         assert_series_equal(result, expected)
 
     def test_constructor_sequence(self):
-
+        # GH 21987
         expected = Series(list(range(10)), dtype='int64')
         result = Series(range(10), dtype='int64')
         assert_series_equal(result, expected)
 
     def test_constructor_single_str(self):
-
+        # GH 21987
         expected = Series(['abc'])
         result = Series('abc')
         assert_series_equal(result, expected)

@@ -948,6 +948,7 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_iterable(self):
+        # GH 21987
         class Iter():
             def __iter__(self):
                 for i in range(10):
