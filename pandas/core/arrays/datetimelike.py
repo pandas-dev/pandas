@@ -21,10 +21,10 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_list_like,
     is_offsetlike,
+    is_extension_array_dtype,
     is_datetime64_dtype,
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
-    is_categorical_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_bool_dtype,
@@ -327,7 +327,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         if is_period_dtype(cls):
             # Frequency validation is not meaningful for Period Array/Index
-            return
+            return None
 
         inferred = index.inferred_freq
         if index.size == 0 or inferred == freq.freqstr:
@@ -603,7 +603,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 raise TypeError("cannot add {dtype}-dtype to {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
-            elif is_categorical_dtype(other):
+            elif is_extension_array_dtype(other):
                 # Categorical op will raise; defer explicitly
                 return NotImplemented
             else:  # pragma: no cover
@@ -664,7 +664,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 raise TypeError("cannot subtract {dtype}-dtype from {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
-            elif is_categorical_dtype(other):
+            elif is_extension_array_dtype(other):
                 # Categorical op will raise; defer explicitly
                 return NotImplemented
             else:  # pragma: no cover

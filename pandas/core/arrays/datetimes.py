@@ -1244,15 +1244,33 @@ def _generate_regular_range(cls, start, end, periods, freq):
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
 
-        dates = list(xdr)
-        # utc = len(dates) > 0 and dates[0].tzinfo is not None
-        values = np.array([x.value for x in dates])
+        values = np.array([x.value for x in xdr])
         data = cls._simple_new(values, freq=freq, tz=tz)
 
     return data
 
 
 def _infer_tz_from_endpoints(start, end, tz):
+    """
+    If a timezone is not explicitly given via `tz`, see if one can
+    be inferred from the `start` and `end` endpoints.  If more than one
+    of these inputs provides a timezone, require that they all agree.
+
+    Parameters
+    ----------
+    start : Timestamp
+    end : Timestamp
+    tz : tzinfo or None
+
+    Returns
+    -------
+    tz : tzinfo or None
+    inferred_tz : tzinfo or None
+
+    Raises
+    ------
+    TypeError : if start and end timezones do not agree
+    """
     try:
         inferred_tz = timezones.infer_tzinfo(start, end)
     except Exception:
