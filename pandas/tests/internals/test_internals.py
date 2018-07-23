@@ -1248,16 +1248,14 @@ class TestCanHoldElement(object):
         operator.pow,
     ], ids=lambda x: x.__name__)
     def test_binop_other(self, op, value, dtype):
-        skip = {
-            (operator.add, 'bool'),
-            (operator.sub, 'bool'),
-            (operator.mul, 'bool'),
-            (operator.truediv, 'bool'),
-            (operator.mod, 'i8'),
-            (operator.mod, 'complex128'),
-            (operator.mod, '<m8[ns]'),
-            (operator.pow, 'bool'),
-        }
+        skip = {(operator.add, 'bool'),
+                (operator.sub, 'bool'),
+                (operator.mul, 'bool'),
+                (operator.truediv, 'bool'),
+                (operator.mod, 'i8'),
+                (operator.mod, 'complex128'),
+                (operator.mod, '<m8[ns]'),
+                (operator.pow, 'bool')}
         if (op, dtype) in skip:
             pytest.skip("Invalid combination {},{}".format(op, dtype))
         e = DummyElement(value, dtype)

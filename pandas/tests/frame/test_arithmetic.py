@@ -213,6 +213,7 @@ class TestFrameArithmetic(object):
         tm.assert_frame_equal(res, expected)
 
     def test_timestamp_df_add_dateoffset(self):
+        # GH 21610
         expected = pd.DataFrame([pd.Timestamp('2019')])
         result = pd.DataFrame([pd.Timestamp('2018')]) + pd.DateOffset(years=1)
         tm.assert_frame_equal(expected, result)
@@ -229,6 +230,7 @@ class TestFrameArithmetic(object):
         datetime.date(2017, 1, 1),
     ])
     def test_timestamp_df_sub_timestamp(self, other):
+        # GH 8554 12437
         expected = pd.DataFrame([pd.Timedelta('365d')])
         result = pd.DataFrame([pd.Timestamp('2018')]) - other
         tm.assert_frame_equal(expected, result)
