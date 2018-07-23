@@ -1,7 +1,6 @@
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import registry
 from pandas import compat
 
 
@@ -63,6 +62,3 @@ class SparseDtype(ExtensionDtype):
         elif isinstance(dtype, cls):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
-
-
-registry.register(SparseDtype)
