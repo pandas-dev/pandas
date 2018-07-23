@@ -519,13 +519,15 @@ def apply_frame_axis0(object frame, object f, object names,
             raise InvalidApply('Let this error raise above us')
 
     slider = BlockSlider(frame)
-    mutated = False
 
+    mutated = False
     item_cache = slider.dummy._item_cache
     try:
         for i in range(n):
             slider.move(starts[i], ends[i])
+
             item_cache.clear()  # ugh
+
             object.__setattr__(slider.dummy, 'name', names[i])
 
             # issue #21609. Skipping the first group to avoid running
@@ -547,6 +549,7 @@ def apply_frame_axis0(object frame, object f, object names,
         raise
     finally:
         slider.reset()
+
     return results, mutated
 
 
@@ -593,6 +596,7 @@ cdef class BlockSlider:
         # move blocks
         for i in range(self.nblocks):
             arr = self.blocks[i]
+
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i] + arr.strides[1] * start
             arr.shape[1] = end - start
