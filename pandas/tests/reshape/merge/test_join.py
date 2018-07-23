@@ -234,7 +234,6 @@ class TestJoin(object):
 
         # GH21220 - merging of Series and DataFrame is now allowed
         # Edited the test to remove the Series object from test parameters
-        # Also, parameterized the original test
 
         df = DataFrame({'a': [1, 1]})
         with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
