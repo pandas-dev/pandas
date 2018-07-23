@@ -52,7 +52,7 @@ def box_expected(expected, box_cls):
     elif box_cls is pd.DataFrame:
         expected = pd.Series(expected).to_frame()
     else:
-        raise NotImplementedError(type(box_cls))
+        raise NotImplementedError(box_cls)
     return expected
 
 
