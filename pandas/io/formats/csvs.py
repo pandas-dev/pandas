@@ -127,7 +127,7 @@ class CSVFormatter(object):
         # create the writer & save
         encoding = self.encoding
         if encoding is None:
-            encoding = 'ascii' if compat.compat.PY2 else 'utf-8'
+            encoding = 'ascii' if compat.PY2 else 'utf-8'
 
         f, handles = _get_handle(
             path_or_buf=self.path_or_buf,
