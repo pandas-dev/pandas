@@ -134,10 +134,13 @@ class CSVFormatter(object):
             encoding = self.encoding
 
         # GH 21227 internal compression is not used when file-like passed.
-        print('debug_3', self.compression)
-        print('debug_4', self.path_or_buf)
-        print('debug_5', hasattr(self.path_or_buf, 'write'))
+        import logging
+        logging.warning('debug_3: {}'.format(self.compression))
+        logging.warning('debug_4: {}'.format(self.path_or_buf))
+        logging.warning(
+            'debug_5: {}'.format(hasattr(self.path_or_buf, 'write')))
         if self.compression and hasattr(self.path_or_buf, 'write'):
+            logging.warning('debug_6: in loop, should RuntimeWarn')
             msg = ("compression has no effect when passing file-like "
                    "object as input.")
             warnings.warn(msg, RuntimeWarning, stacklevel=2)
