@@ -125,16 +125,40 @@ class CSVFormatter(object):
 
     def save(self):
         # create the writer & save
-        encoding = self.encoding
-        if encoding is None:
-            encoding = 'ascii' if compat.PY2 else 'utf-8'
+        if self.encoding is None:
+            if compat.PY2:
+                encoding = 'ascii'
+            else:
+                encoding = 'utf-8'
+        else:
+            encoding = self.encoding
 
-        f, handles = _get_handle(
-            path_or_buf=self.path_or_buf,
-            mode=self.mode,
-            encoding=encoding,
-            compression=self.compression,
-        )
+        # GH 21227 internal compression is not used when file-like passed.
+        if self.compression and hasattr(self.path_or_buf, 'write'):
+            msg = ("compression has no effect when passing file-like "
+                   "object as input.")
+            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+
+        # when zip compression is called.
+        is_zip = isinstance(self.path_or_buf, ZipFile) or (
+            not hasattr(self.path_or_buf, 'write')
+            and self.compression == 'zip')
+
+        if is_zip:
+            # zipfile doesn't support writing string to archive. uses string
+            # buffer to receive csv writing and dump into zip compression
+            # file handle. GH 21241, 21118
+            f = StringIO()
+            close = False
+        elif hasattr(self.path_or_buf, 'write'):
+            f = self.path_or_buf
+            close = False
+        else:
+            f, handles = _get_handle(self.path_or_buf, self.mode,
+                                     encoding=encoding,
+                                     compression=self.compression)
+            close = True
+
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
                                  delimiter=self.sep, quoting=self.quoting,
@@ -150,8 +174,21 @@ class CSVFormatter(object):
             self._save()
 
         finally:
-            for handle in handles:
-                handle.close()
+            if is_zip:
+                # GH 17778 handles zip compression separately.
+                buf = f.getvalue()
+                if hasattr(self.path_or_buf, 'write'):
+                    self.path_or_buf.write(buf)
+                else:
+                    f, handles = _get_handle(self.path_or_buf, self.mode,
+                                             encoding=encoding,
+                                             compression=self.compression)
+                    f.write(buf)
+                    close = True
+            if close:
+                f.close()
+                for _fh in handles:
+                    _fh.close()
 
     def _save_header(self):
 
