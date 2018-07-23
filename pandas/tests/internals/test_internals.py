@@ -1238,7 +1238,6 @@ class TestCanHoldElement(object):
         (2**63, 'complex128'),
         (True, 'bool'),
         (np.timedelta64(20, 'ns'), '<m8[ns]'),
-        (np.datetime64(20, 'ns'), '<M8[ns]'),
     ])
     @pytest.mark.parametrize('op', [
         operator.add,
@@ -1255,7 +1254,6 @@ class TestCanHoldElement(object):
                 (operator.truediv, 'bool'),
                 (operator.mod, 'i8'),
                 (operator.mod, 'complex128'),
-                (operator.mod, '<M8[ns]'),
                 (operator.mod, '<m8[ns]'),
                 (operator.pow, 'bool')}
         if (op, dtype) in skip:

@@ -63,7 +63,9 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
     ABCDatetimeIndex,
     ABCExtensionArray,
-    ABCIndexClass)
+    ABCIndexClass,
+    ABCDateOffset,
+)
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
@@ -2737,7 +2739,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
+        if isinstance(result, (np.ndarray, Block)):
             if result.dtype.kind in ['i', 'f', 'O']:
                 try:
                     result = result.astype('M8[ns]')
@@ -2784,6 +2786,17 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
             values = conversion.ensure_datetime64ns(values)
 
         self.values[locs] = values
+
+    def eval(self, func, other, try_cast=False, **kwargs):
+        block = super(DatetimeBlock, self).eval(func, other, try_cast=try_cast,
+                                                **kwargs)[0]
+        if try_cast:
+            if isinstance(other, (np.datetime64, date)):
+                block = TimeDeltaBlock(block.values, block.mgr_locs,
+                                       ndim=block.ndim)
+            elif isinstance(other, ABCDateOffset):
+                block = self._try_coerce_result(block)
+        return [block]
 
 
 class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
@@ -2920,6 +2933,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         if isinstance(result, np.ndarray):
             if result.dtype.kind in ['i', 'f', 'O']:
                 result = result.astype('M8[ns]')
+        elif isinstance(result, Block):
+            result = self.make_block_same_class(result.values.flat)
         elif isinstance(result, (np.integer, np.float, np.datetime64)):
             result = tslibs.Timestamp(result, tz=self.values.tz)
         if isinstance(result, np.ndarray):
