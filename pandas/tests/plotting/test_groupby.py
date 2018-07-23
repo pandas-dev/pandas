@@ -11,6 +11,7 @@ import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
+
 # import matplotlib.pyplot as plt
 # import pandas as pd
 # import pytest
@@ -19,7 +20,7 @@ from pandas.tests.plotting.common import TestPlotBase
 #
 # @pytest.mark.mpl_image_compare
 # def test_first_plot_only_once():
-#     class multiplot:
+#     class multiplot(object):
 #         def __init__(self):
 #             self.fig, self.axes = plt.subplots(3, 1)
 #             plt.tight_layout()
