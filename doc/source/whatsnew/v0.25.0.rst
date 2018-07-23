@@ -64,7 +64,8 @@ Performance Improvements
 
 - Significant speedup in `SparseArray` initialization that benefits most operations, fixing performance regression introduced in v0.20.0 (:issue:`24985`)
 - `DataFrame.to_stata()` is now faster when outputting data with any string or non-native endian columns (:issue:`25045`)
--
+- Improved performance of :meth:`Series.searchsorted`. The speedup is especially large when the dtype is int8/int16/int32 and the searched key is within
+  the integer bounds for the dtype(:issue:`22034`)
 
 
 .. _whatsnew_0250.bug_fixes:

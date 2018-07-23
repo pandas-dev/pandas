@@ -2394,9 +2394,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = ensure_platform_int(sorter)
-        result = self._values.searchsorted(Series(value)._values,
-                                           side=side, sorter=sorter)
+        if not is_extension_type(self._values):
+            value = np.asarray(value, dtype=self._values.dtype)
+            value = value[..., np.newaxis] if value.ndim == 0 else value
 
+        result = self._values.searchsorted(value, side=side, sorter=sorter)
         return result[0] if is_scalar(value) else result
 
     # -------------------------------------------------------------------
