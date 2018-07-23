@@ -494,8 +494,7 @@ class InvalidApply(Exception):
 
 
 def apply_frame_axis0(object frame, object f, object names,
-                      ndarray[int64_t] starts, ndarray[int64_t] ends,
-                      skip_first_index = True):
+                      ndarray[int64_t] starts, ndarray[int64_t] ends):
     cdef:
         BlockSlider slider
         Py_ssize_t i, n = len(starts)
@@ -513,40 +512,41 @@ def apply_frame_axis0(object frame, object f, object names,
         chunk = frame.iloc[starts[0]:ends[0]]
         object.__setattr__(chunk, 'name', names[0])
         try:
-            result = f(chunk)
-            if result is chunk:
+            piece = f(chunk)
+            if piece is chunk:
                 raise InvalidApply('Function unsafe for fast apply')
         except:
             raise InvalidApply('Let this error raise above us')
 
-    piece = result
     slider = BlockSlider(frame)
-
     mutated = False
+
     item_cache = slider.dummy._item_cache
     try:
         for i in range(n):
             slider.move(starts[i], ends[i])
-
             item_cache.clear()  # ugh
-
             object.__setattr__(slider.dummy, 'name', names[i])
-            if i >= int(skip_first_index):
+
+            # issue #21609. Skipping the first group to avoid running
+            # the functions twice. For plots this leads to an extra
+            # plot of the first group.
+            if (i > 0) | (hasattr(piece, 'index')):
                 piece = f(slider.dummy)
 
             # I'm paying the price for index-sharing, ugh
-            try:
+
+            if hasattr(piece, 'index'):
                 if piece.index is slider.dummy.index:
                     piece = piece.copy(deep='all')
-                elif i >= int(skip_first_index):
+                else:
                     mutated = True
-            except AttributeError:
-                pass
 
             results.append(piece)
+    except:
+        raise
     finally:
         slider.reset()
-
     return results, mutated
 
 
@@ -593,7 +593,6 @@ cdef class BlockSlider:
         # move blocks
         for i in range(self.nblocks):
             arr = self.blocks[i]
-
             # axis=1 is the frame's axis=0
             arr.data = self.base_ptrs[i] + arr.strides[1] * start
             arr.shape[1] = end - start

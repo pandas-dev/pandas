@@ -24,36 +24,27 @@ import pandas.util.testing as tm
 import pandas as pd
 
 from pandas._libs import reduction
+from itertools import count
 
 
-def demean(arr):
-    return arr - arr.mean()
-
-
-def test_apply_frame_axis0_runs_each_group_once(skip_first_index=True):
-    class CountCalls:
-        def __init__(self):
-            self.counter = 0
-
-        def f(self, x):
-            self.counter += 1
-            return demean(x)
-
+def test_apply_frame_axis0_runs_each_group_once():
+    # issue #21609
     df = pd.DataFrame([[1, 2], [-3, -4], [5, 6], [-7, -8], [9, 10]],
                       index=['A', 'B', 'C', 'D', 'E'], columns=['x', 'y'])
     df['cat'] = [1, 2, 1, 2, 1]
     sdata = df.sort_values('cat')
 
-    cc = CountCalls()
-    f = cc.f
+    cc = count()
+    f = lambda x: next(cc)  # x is dummy input
     names = pd.Int64Index([1, 2], dtype='int64', name='cat')
     starts = np.array([0, 3])
     ends = np.array([3, 5])
 
     results, mutated = reduction.apply_frame_axis0(
-        sdata, f, names, starts, ends,
-        skip_first_index=skip_first_index)
-    assert cc.counter == 2
+        sdata, f, names, starts, ends)
+
+    result = next(cc)
+    assert result == 2
 
 
 def test_repr():
@@ -1417,7 +1408,7 @@ def test_set_group_name(df, grouper):
 
 
 def test_group_name_available_in_inference_pass():
-    # gh-15062
+    # gh-15062, issue #21609
     df = pd.DataFrame({'a': [0, 0, 1, 1, 2, 2], 'b': np.arange(6)})
 
     names = []
@@ -1427,8 +1418,6 @@ def test_group_name_available_in_inference_pass():
         return group.copy()
 
     df.groupby('a', sort=False, group_keys=False).apply(f)
-    # we expect 2 zeros because we call ``f`` once to see if a faster route
-    # can be used.
     expected_names = [0, 0, 1, 2]
     assert names == expected_names
 
