@@ -11,39 +11,39 @@ import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import pytest
-from pandas._libs import reduction
-
-
-@pytest.mark.mpl_image_compare
-def test_first_plot_only_once():
-    class multiplot:
-        def __init__(self):
-            self.fig, self.axes = plt.subplots(3, 1)
-            plt.tight_layout()
-            self.axidx = 0
-
-        def plot(self, group, **kwargs):
-            self.axes[self.axidx].scatter(group['x'], group['y'], **kwargs)
-            self.axidx += 1
-            return self.fig
-
-    df = pd.DataFrame([[1, 2], [-3, -4], [5, 6], [-7, -8], [9, 10]],
-                      index=['A', 'B', 'C', 'D', 'E'], columns=['x', 'y'])
-    df['cat'] = [1, 2, 1, 2, 1]
-    sdata = df.sort_values('cat')
-    mlplt = multiplot()
-    f = mlplt.plot
-    names = pd.Int64Index([1, 2], dtype='int64', name='cat')
-    starts = np.array([0, 3])
-    ends = np.array([3, 5])
-
-    results, mutated = reduction.apply_frame_axis0(
-        sdata, f, names, starts, ends)
-
-    return results[0]
+# import matplotlib.pyplot as plt
+# import pandas as pd
+# import pytest
+# from pandas._libs import reduction
+#
+#
+# @pytest.mark.mpl_image_compare
+# def test_first_plot_only_once():
+#     class multiplot:
+#         def __init__(self):
+#             self.fig, self.axes = plt.subplots(3, 1)
+#             plt.tight_layout()
+#             self.axidx = 0
+#
+#         def plot(self, group, **kwargs):
+#             self.axes[self.axidx].scatter(group['x'], group['y'], **kwargs)
+#             self.axidx += 1
+#             return self.fig
+#
+#     df = pd.DataFrame([[1, 2], [-3, -4], [5, 6], [-7, -8], [9, 10]],
+#                       index=['A', 'B', 'C', 'D', 'E'], columns=['x', 'y'])
+#     df['cat'] = [1, 2, 1, 2, 1]
+#     sdata = df.sort_values('cat')
+#     mlplt = multiplot()
+#     f = mlplt.plot
+#     names = pd.Int64Index([1, 2], dtype='int64', name='cat')
+#     starts = np.array([0, 3])
+#     ends = np.array([3, 5])
+#
+#     results, mutated = reduction.apply_frame_axis0(
+#         sdata, f, names, starts, ends)
+#
+#     return results[0]
 
 
 @td.skip_if_no_mpl
