@@ -890,6 +890,13 @@ class TestMisc(Base):
         del df
         assert wr() is None
 
+    def test_zero_index_iloc_raises(self):
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
+        ar = np.array(0)
+        msg = 'Cannot index by location index with a non-integer key'
+        with assert_raises_regex(TypeError, msg):
+            df.iloc[ar]
+
 
 class TestSeriesNoneCoercion(object):
     EXPECTED_RESULTS = [

@@ -501,6 +501,7 @@ Indexing
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
+- Bug where indexing with a 0-dimensional array would error with an unhelpful stack trace (:issue: `21946`)
 
 Missing
 ^^^^^^^
