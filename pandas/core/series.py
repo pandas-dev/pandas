@@ -3757,24 +3757,30 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
-    def to_csv(self, path=None, index=True, sep=",", na_rep='',
-               float_format=None, header=False, index_label=None,
+    def to_csv(self, path_or_buf=None, index=True, sep=",", na_rep='',
+               float_format=None, header=None, index_label=None,
                mode='w', encoding=None, compression=None, date_format=None,
-               decimal='.'):
-        """
-        Write Series to a comma-separated values (csv) file
+               decimal='.', **kwargs):
+        """Export to a comma-separated values (CSV) file
+
+        .. deprecated:: 0.24.0
+            The signature will aligned to that of :func:`DataFrame.to_csv`.
+
+        :func:`Series.to_csv` will align its signature with that of
+        `DataFrame.to_csv`. Please pass in keyword arguments in accordance
+        with that signature instead.
 
         Parameters
         ----------
-        path : string or file handle, default None
+        path_or_buf : string or file handle, default None
             File path or object, if None is provided the result is returned as
             a string.
         na_rep : string, default ''
             Missing data representation
         float_format : string, default None
             Format string for floating point numbers
-        header : boolean, default False
-            Write out series name
+        header : boolean, default None
+            Write out Series name. By default, the name will be omitted.
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, default None
@@ -3797,15 +3803,47 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Character recognized as decimal separator. E.g. use ',' for
             European data
         """
+
         from pandas.core.frame import DataFrame
         df = DataFrame(self)
-        # result is only a string if no path provided, otherwise None
-        result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
-                           float_format=float_format, header=header,
-                           index_label=index_label, mode=mode,
-                           encoding=encoding, compression=compression,
-                           date_format=date_format, decimal=decimal)
-        if path is None:
+
+        new_path_key = "path_or_buf"
+        old_path_key = "path"
+        emit_warning = False
+
+        # For backwards compatibility, override the `path_of_buf`
+        # argument if a `path` keyword argument is provided.
+        if kwargs.get(old_path_key, None) is not None:
+            kwargs[new_path_key] = kwargs.pop(old_path_key)
+            emit_warning = True
+
+        if header is None:
+            emit_warning = True
+            header = False
+
+        if emit_warning:
+            warnings.warn("The signature of `Series.to_csv` will be "
+                          "aligned to that of `DataFrame.to_csv` in the "
+                          "future. Note that some of the default arguments "
+                          "and argument names are different, so please refer "
+                          "to the documentation for `DataFrame.to_csv` when "
+                          "changing your function calls.",
+                          FutureWarning, stacklevel=2)
+            header = False
+
+        to_csv_kwargs = dict(path_or_buf=path_or_buf, index=index, sep=sep,
+                             na_rep=na_rep, float_format=float_format,
+                             header=header, index_label=index_label,
+                             mode=mode, encoding=encoding,
+                             compression=compression,
+                             date_format=date_format,
+                             decimal=decimal)
+        to_csv_kwargs.update(**kwargs)
+
+        # Result is only a string if no path provided, otherwise None.
+        result = df.to_csv(**to_csv_kwargs)
+
+        if to_csv_kwargs[new_path_key] is None:
             return result
 
     @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
