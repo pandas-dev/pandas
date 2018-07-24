@@ -29,7 +29,7 @@ dtypes = [('Float64', 'float64', 'float64_t'),
 
 ctypedef struct {{name}}VectorData:
     {{arg}} *data
-    size_t n, m
+    Py_ssize_t n, m
 
 {{endif}}
 
@@ -147,7 +147,7 @@ cdef class StringVector:
     cdef resize(self):
         cdef:
             char **orig_data
-            size_t i, m
+            Py_ssize_t i, m
 
         m = self.data.m
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
@@ -172,7 +172,7 @@ cdef class StringVector:
     def to_array(self):
         cdef:
             ndarray ao
-            size_t n
+            Py_ssize_t n
             object val
 
         ao = np.empty(self.data.n, dtype=np.object)
@@ -198,7 +198,7 @@ cdef class ObjectVector:
 
     cdef:
         PyObject **data
-        size_t n, m
+        Py_ssize_t n, m
         ndarray ao
         bint external_view_exists
 
@@ -281,7 +281,7 @@ cdef class {{name}}HashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, {{dtype}}_t val):
@@ -522,13 +522,13 @@ cdef class StringHashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof(char *) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
         cdef:
             khiter_t k
-            char *v
+            const char *v
         v = util.get_c_string(val)
 
         k = kh_get_str(self.table, v)
@@ -541,7 +541,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-            char *v
+            const char *v
 
         v = util.get_c_string(val)
 
@@ -560,10 +560,10 @@ cdef class StringHashTable(HashTable):
             int64_t *resbuf = <int64_t*> labels.data
             khiter_t k
             kh_str_t *table = self.table
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
 
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
             v = util.get_c_string(val)
@@ -589,10 +589,10 @@ cdef class StringHashTable(HashTable):
             object val
             ObjectVector uniques
             khiter_t k
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
 
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         uindexer = np.empty(n, dtype=np.int64)
         for i in range(n):
             val = values[i]
@@ -627,7 +627,7 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            char *v
+            const char *v
             khiter_t k
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
@@ -660,12 +660,12 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
             khiter_t k
 
         # these by-definition *must* be strings
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -693,8 +693,8 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t idx, count = count_prior
             int ret = 0
             object val
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
             khiter_t k
             bint use_na_value
 
@@ -705,7 +705,7 @@ cdef class StringHashTable(HashTable):
 
         # pre-filter out missing
         # and assign pointers
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -769,7 +769,7 @@ cdef class PyObjectHashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof(PyObject *) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):

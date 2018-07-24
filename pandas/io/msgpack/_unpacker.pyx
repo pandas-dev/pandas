@@ -139,7 +139,7 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
     ret = unpack_construct(&ctx, buf, buf_len, &off)
     if ret == 1:
         obj = unpack_data(&ctx)
-        if off < buf_len:
+        if <Py_ssize_t> off < buf_len:
             raise ExtraData(obj, PyBytes_FromStringAndSize(
                 buf + off, buf_len - off))
         return obj
@@ -367,9 +367,11 @@ cdef class Unpacker(object):
         self.buf_tail = tail + _buf_len
 
     cdef read_from_file(self):
+        # Assume self.max_buffer_size - (self.buf_tail - self.buf_head) >= 0
         next_bytes = self.file_like_read(
             min(self.read_size,
-                self.max_buffer_size - (self.buf_tail - self.buf_head)))
+                <Py_ssize_t>(self.max_buffer_size -
+                             (self.buf_tail - self.buf_head))))
         if next_bytes:
             self.append_buffer(PyBytes_AsString(next_bytes),
                                PyBytes_Size(next_bytes))
@@ -417,7 +419,9 @@ cdef class Unpacker(object):
     def read_bytes(self, Py_ssize_t nbytes):
         """Read a specified number of raw bytes from the stream"""
         cdef size_t nread
-        nread = min(self.buf_tail - self.buf_head, nbytes)
+
+        # Assume that self.buf_tail - self.buf_head >= 0
+        nread = min(<Py_ssize_t>(self.buf_tail - self.buf_head), nbytes)
         ret = PyBytes_FromStringAndSize(self.buf + self.buf_head, nread)
         self.buf_head += nread
         if len(ret) < nbytes and self.file_like is not None:

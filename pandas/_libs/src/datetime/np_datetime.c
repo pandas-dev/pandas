@@ -329,10 +329,11 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
-int convert_pydatetime_to_datetimestruct(PyDateTime_Date *obj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out) {
     // Assumes that obj is a valid datetime object
     PyObject *tmp;
+    PyObject *obj = (PyObject*)dtobj;
 
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(npy_datetimestruct));
