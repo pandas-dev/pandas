@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT
+from pandas._libs.tslibs import timezones
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
@@ -13,7 +14,7 @@ from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas import compat
 
 from pandas.tseries import frequencies
-from pandas.tseries.offsets import Tick
+from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.dtypes.common import (
     needs_i8_conversion,
@@ -23,9 +24,12 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_object_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame, ABCIndexClass
+from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+
+from .base import ExtensionOpsMixin
 
 
 def _make_comparison_op(op, cls):
@@ -87,7 +91,7 @@ class AttributesMixin(object):
         return self._simple_new(values, **attributes)
 
 
-class DatetimeLikeArrayMixin(AttributesMixin):
+class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 
@@ -464,7 +468,10 @@ class DatetimeLikeArrayMixin(AttributesMixin):
                       "{cls} not vectorized"
                       .format(cls=type(self).__name__), PerformanceWarning)
 
-        res_values = op(self.astype('O').values, np.array(other))
+        # For EA self.astype('O') returns a numpy array, not an Index
+        left = lib.values_from_object(self.astype('O'))
+
+        res_values = op(left, np.array(other))
         kwargs = {}
         if not is_period_dtype(self):
             kwargs['freq'] = 'infer'
@@ -551,3 +558,96 @@ def validate_periods(periods):
             raise TypeError('periods must be a number, got {periods}'
                             .format(periods=periods))
     return periods
+
+
+def validate_endpoints(closed):
+    """
+    Check that the `closed` argument is among [None, "left", "right"]
+
+    Parameters
+    ----------
+    closed : {None, "left", "right"}
+
+    Returns
+    -------
+    left_closed : bool
+    right_closed : bool
+
+    Raises
+    ------
+    ValueError : if argument is not among valid values
+    """
+    left_closed = False
+    right_closed = False
+
+    if closed is None:
+        left_closed = True
+        right_closed = True
+    elif closed == "left":
+        left_closed = True
+    elif closed == "right":
+        right_closed = True
+    else:
+        raise ValueError("Closed has to be either 'left', 'right' or None")
+
+    return left_closed, right_closed
+
+
+def maybe_infer_freq(freq):
+    """
+    Comparing a DateOffset to the string "infer" raises, so we need to
+    be careful about comparisons.  Make a dummy variable `freq_infer` to
+    signify the case where the given freq is "infer" and set freq to None
+    to avoid comparison trouble later on.
+
+    Parameters
+    ----------
+    freq : {DateOffset, None, str}
+
+    Returns
+    -------
+    freq : {DateOffset, None}
+    freq_infer : bool
+    """
+    freq_infer = False
+    if not isinstance(freq, DateOffset):
+        # if a passed freq is None, don't infer automatically
+        if freq != 'infer':
+            freq = frequencies.to_offset(freq)
+        else:
+            freq_infer = True
+            freq = None
+    return freq, freq_infer
+
+
+def validate_tz_from_dtype(dtype, tz):
+    """
+    If the given dtype is a DatetimeTZDtype, extract the implied
+    tzinfo object from it and check that it does not conflict with the given
+    tz.
+
+    Parameters
+    ----------
+    dtype : dtype, str
+    tz : None, tzinfo
+
+    Returns
+    -------
+    tz : consensus tzinfo
+
+    Raises
+    ------
+    ValueError : on tzinfo mismatch
+    """
+    if dtype is not None:
+        try:
+            dtype = DatetimeTZDtype.construct_from_string(dtype)
+            dtz = getattr(dtype, 'tz', None)
+            if dtz is not None:
+                if tz is not None and not timezones.tz_compare(tz, dtz):
+                    raise ValueError("cannot supply both a tz and a dtype"
+                                     " with a tz")
+                tz = dtz
+        except TypeError:
+            pass
+    return tz
