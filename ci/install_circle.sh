@@ -42,13 +42,7 @@ source $ENVS_FILE
 # edit the locale override if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
 
-    apt-get update && apt-get install locales -y
-
-    echo "LC_ALL=$LOCALE_OVERRIDE" >> /etc/environment
-    echo "$LOCALE_OVERRIDE UTF-8" >> /etc/locale.gen
-    echo "LANG=$LOCALE_OVERRIDE" > /etc/locale.conf
-
-    locale-gen $LOCALE_OVERRIDE
+    apt-get update && apt-get -y install locales locales-all
 
     export LANG=$LOCALE_OVERRIDE
     export LC_ALL=$LOCALE_OVERRIDE

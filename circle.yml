@@ -74,4 +74,3 @@ workflows:
       - py27_compat
       - py36_locale
       - py35_ascii
-
