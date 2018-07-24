@@ -716,6 +716,66 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_values, *new_axes).__finalize__(self)
 
+    def droplevel(self, level, axis=0):
+        """Return DataFrame with requested index / column level(s) removed.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        level : int, str, or list-like
+            If a string is given, must be the name of a level
+            If list-like, elements must be names or positional indexes
+            of levels.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+
+        Returns
+        -------
+        DataFrame.droplevel()
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([
+        ...:     [1, 2, 3, 4],
+        ...:     [5, 6, 7, 8],
+        ...:     [9, 10, 11, 12]
+        ...: ]).set_index([0, 1]).rename_axis(['a', 'b'])
+
+        >>> df.columns = pd.MultiIndex.from_tuples([
+        ...:    ('c', 'e'), ('d', 'f')
+        ...:], names=['level_1', 'level_2'])
+
+        >>> df
+        level_1   c   d
+        level_2   e   f
+        a b
+        1 2      3   4
+        5 6      7   8
+        9 10    11  12
+
+        >>> df.droplevel('a')
+        level_1   c   d
+        level_2   e   f
+        b
+        2        3   4
+        6        7   8
+        10      11  12
+
+        >>> df.droplevel('level2', axis=1)
+        level_1   c   d
+        a b
+        1 2      3   4
+        5 6      7   8
+        9 10    11  12
+
+        """
+        labels = self._get_axis(axis)
+        new_labels = labels.droplevel(level)
+        result = self.set_axis(new_labels, axis=axis, inplace=False)
+        return result
+
     def pop(self, item):
         """
         Return item and drop from frame. Raise KeyError if not found.
@@ -1777,65 +1837,98 @@ class NDFrame(PandasObject, SelectionMixin):
     # I/O Methods
 
     _shared_docs['to_excel'] = """
-    Write %(klass)s to an excel sheet
-    %(versionadded_to_excel)s
+    Write %(klass)s to an excel sheet.
+
+    To write a single %(klass)s to an excel .xlsx file it is only necessary to
+    specify a target file name. To write to multiple sheets it is necessary to
+    create an `ExcelWriter` object with a target file name, and specify a sheet
+    in the file to write to. Multiple sheets may be written to by
+    specifying unique `sheet_name`. With all data written to the file it is
+    necessary to save the changes. Note that creating an ExcelWriter object
+    with a file name that already exists will result in the contents of the
+    existing file being erased.
 
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
-        File path or existing ExcelWriter
+        File path or existing ExcelWriter.
     sheet_name : string, default 'Sheet1'
-        Name of sheet which will contain DataFrame
+        Name of sheet which will contain DataFrame.
     na_rep : string, default ''
-        Missing data representation
-    float_format : string, default None
-        Format string for floating point numbers
-    columns : sequence, optional
-        Columns to write
+        Missing data representation.
+    float_format : string, optional
+        Format string for floating point numbers. For example
+        ``float_format="%%.2f"`` will format 0.1234 to 0.12.
+    columns : sequence or list of string, optional
+        Columns to write.
     header : boolean or list of string, default True
         Write out the column names. If a list of strings is given it is
-        assumed to be aliases for the column names
+        assumed to be aliases for the column names.
     index : boolean, default True
-        Write row names (index)
-    index_label : string or sequence, default None
-        Column label for index column(s) if desired. If None is given, and
+        Write row names (index).
+    index_label : string or sequence, optional
+        Column label for index column(s) if desired. If not specified, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    startrow :
-        upper left cell row to dump data frame
-    startcol :
-        upper left cell column to dump data frame
-    engine : string, default None
-        write engine to use - you can also set this via the options
-        ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+    startrow : integer, default 0
+        Upper left cell row to dump data frame.
+    startcol : integer, default 0
+        Upper left cell column to dump data frame.
+    engine : string, optional
+        Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
+        via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
     merge_cells : boolean, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding: string, default None
-        encoding of the resulting excel file. Only necessary for xlwt,
+    encoding : string, optional
+        Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
     inf_rep : string, default 'inf'
         Representation for infinity (there is no native representation for
-        infinity in Excel)
-    freeze_panes : tuple of integer (length 2), default None
+        infinity in Excel).
+    verbose : boolean, default True
+        Display more information in the error logs.
+    freeze_panes : tuple of integer (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
-        is to be frozen
+        is to be frozen.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.20.0.
 
     Notes
     -----
-    If passing an existing ExcelWriter object, then the sheet will be added
-    to the existing workbook.  This can be used to save different
-    DataFrames to one workbook:
+    For compatibility with :meth:`~DataFrame.to_csv`,
+    to_excel serializes lists and dicts to strings before writing.
 
-    >>> writer = pd.ExcelWriter('output.xlsx')
-    >>> df1.to_excel(writer,'Sheet1')
-    >>> df2.to_excel(writer,'Sheet2')
+    Once a workbook has been saved it is not possible write further data
+    without rewriting the whole workbook.
+
+    See Also
+    --------
+    pandas.read_excel
+    pandas.ExcelWriter
+
+    Examples
+    --------
+
+    Create, write to and save a workbook:
+
+    >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
+    ...                   index=['row 1', 'row 2'],
+    ...                   columns=['col 1', 'col 2'])
+    >>> df1.to_excel("output.xlsx")
+
+    To specify the sheet name:
+
+    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
+
+    If you wish to write to more than one sheet in the workbook, it is
+    necessary to specify an ExcelWriter object:
+
+    >>> writer = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel(writer, sheet_name='Sheet1')
+    >>> df2 = df1.copy()
+    >>> df2.to_excel(writer, sheet_name='Sheet2')
     >>> writer.save()
-
-    For compatibility with to_csv, to_excel serializes lists and dicts to
-    strings before writing.
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
