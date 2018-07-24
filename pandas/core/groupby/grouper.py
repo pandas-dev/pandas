@@ -59,7 +59,7 @@ class Grouper(object):
     sort : boolean, default to False
         whether to sort the resulting labels
 
-    additional kwargs to control time-like groupers (when ``freq`` is passed)
+    additional kwargs to control time-like groupers (when `freq` is passed)
 
     closed : closed end of interval; 'left' or 'right'
     label : interval boundary to use for labeling; 'left' or 'right'
