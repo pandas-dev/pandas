@@ -11,6 +11,42 @@ import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
+from itertools import count
+import pandas as pd
+
+
+def test_no_double_plot_for_first_group():
+    class extGroupByPlot(pd.core.groupby.groupby.GroupByPlot):
+        def __init__(self, groupby):
+            super().__init__(groupby)
+
+        def __getattr__(self, name):
+            def attr(*args, **kwargs):
+                counter_obj = count()
+
+                def f(self):
+                    getattr(self.plot, name)(*args, **kwargs)
+                    next(counter_obj) # I have no idea why this is needed
+                    return next(counter_obj)
+
+                f.__name__ = name
+                return self._groupby.apply(f)
+
+            return attr
+
+    df = pd.DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], columns=['x', 'y'])
+    df['cat'] = [1, 1, 1, 1]
+    g = df.groupby('cat')
+    extra_plotting_methods = ['line', 'bar', 'barh',
+                              'box', 'kde', 'density',
+                              'area', 'pie', 'scatter',
+                              'hexbin']
+
+    for plotting_method in extra_plotting_methods:
+        eG = extGroupByPlot(g)
+        result = eG.__getattr__(plotting_method)(x='x', y='y')
+        assert result.iloc[0] == 1
+
 
 @td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
