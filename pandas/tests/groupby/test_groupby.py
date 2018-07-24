@@ -37,8 +37,8 @@ def test_apply_frame_axis0_runs_each_group_once():
     cc = count()
     f = lambda x: next(cc)  # x is dummy input
     names = pd.Int64Index([1, 2], dtype='int64', name='cat')
-    starts = np.array([0, 3])
-    ends = np.array([3, 5])
+    starts = np.array([0, 3], dtype=np.int64)
+    ends = np.array([3, 5], dtype=np.int64)
 
     results, mutated = reduction.apply_frame_axis0(
         sdata, f, names, starts, ends)
