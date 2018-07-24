@@ -43,8 +43,10 @@ def test_isin_nan_pypy():
 def test_isin():
     values = [('foo', 2), ('bar', 3), ('quux', 4)]
 
-    idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(
-        4)])
+    idx = MultiIndex.from_arrays([
+        ['qux', 'baz', 'foo', 'bar'],
+        np.arange(4)
+    ])
     result = idx.isin(values)
     expected = np.array([False, False, True, True])
     tm.assert_numpy_array_equal(result, expected)
