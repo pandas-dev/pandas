@@ -23,7 +23,7 @@ def left_right_dtypes(request):
     return request.param
 
 
-class TestMethods:
+class TestMethods(object):
 
     @pytest.mark.parametrize('repeats', [0, 1, 5])
     def test_repeat(self, left_right_dtypes, repeats):
@@ -51,7 +51,7 @@ class TestMethods:
         tm.assert_extension_array_equal(result, expected)
 
 
-class TestSetitem:
+class TestSetitem(object):
 
     def test_set_na(self, left_right_dtypes):
         left, right = left_right_dtypes

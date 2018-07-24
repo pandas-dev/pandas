@@ -59,7 +59,7 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
-class TestInterface:
+class TestInterface(object):
 
     def test_repr_array(self, data):
         result = repr(data)
@@ -79,7 +79,7 @@ class TestInterface:
             assert 'length' in result
 
 
-class TestConstructors:
+class TestConstructors(object):
 
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
@@ -318,7 +318,7 @@ class TestComparisonOps(BaseOpsUtil):
         self._compare_other(s, data, op_name, other)
 
 
-class TestCasting:
+class TestCasting(object):
     pass
 
     @pytest.mark.parametrize('dropna', [True, False])
