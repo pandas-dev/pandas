@@ -172,6 +172,9 @@ from pandas.io.formats.excel import CSSToExcelConverter
      {'alignment': {'wrap_text': False}}),
     ('white-space: normal',
      {'alignment': {'wrap_text': True}}),
+    # NUMBER FORMAT
+    ('number-format: 0%',
+     {'number_format': {'format_code': '0%'}}),
 ])
 def test_css_to_excel(css, expected):
     convert = CSSToExcelConverter()
