@@ -3,8 +3,6 @@
 cimport cython
 from cython cimport Py_ssize_t
 
-from libc.stdint cimport int64_t
-
 from cpython cimport PyObject
 from cpython.slice cimport PySlice_Check
 
@@ -12,6 +10,7 @@ cdef extern from "Python.h":
     Py_ssize_t PY_SSIZE_T_MAX
 
 import numpy as np
+from numpy cimport int64_t
 
 cdef extern from "compat_helper.h":
     cdef int slice_get_indices(PyObject* s, Py_ssize_t length,
