@@ -208,8 +208,8 @@ def get_offset(name):
             raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
         # cache
         _offset_map[name] = offset
-    # do not return cache because it's mutable
-    return _offset_map[name].copy()
+
+    return _offset_map[name]
 
 
 getOffset = get_offset
@@ -250,7 +250,8 @@ def infer_freq(index, warn=True):
     if is_period_arraylike(index):
         raise TypeError("PeriodIndex given. Check the `freq` attribute "
                         "instead of using infer_freq.")
-    elif isinstance(index, pd.TimedeltaIndex):
+    elif is_timedelta64_dtype(index):
+        # Allow TimedeltaIndex and TimedeltaArray
         inferer = _TimedeltaFrequencyInferer(index, warn=warn)
         return inferer.get_freq()
 

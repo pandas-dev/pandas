@@ -48,9 +48,8 @@ PANDAS_INLINE PyObject* char_to_string(const char* data) {
 #endif
 }
 
-
 void set_array_not_contiguous(PyArrayObject* ao) {
-    ao->flags &= ~(NPY_C_CONTIGUOUS | NPY_F_CONTIGUOUS);
+    ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
 }
 
 #endif  // PANDAS__LIBS_SRC_NUMPY_HELPER_H_

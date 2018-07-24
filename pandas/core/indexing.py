@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_scalar,
     is_sparse,
-    _ensure_platform_int)
+    ensure_platform_int)
 from pandas.core.dtypes.missing import isna, _infer_fill_value
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender
@@ -1483,7 +1483,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_arr_indexer(keyarr)
 
             if not labels.is_integer():
-                keyarr = _ensure_platform_int(keyarr)
+                keyarr = ensure_platform_int(keyarr)
                 return labels.take(keyarr)
 
         return keyarr
@@ -2124,7 +2124,25 @@ class _iLocIndexer(_LocationIndexer):
         return values
 
     def _validate_integer(self, key, axis):
-        # return a boolean if we have a valid integer indexer
+        """
+        Check that 'key' is a valid position in the desired axis.
+
+        Parameters
+        ----------
+        key : int
+            Requested position
+        axis : int
+            Desired axis
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        IndexError
+            If 'key' is not a valid position in axis 'axis'
+        """
 
         ax = self.obj._get_axis(axis)
         l = len(ax)
@@ -2215,8 +2233,6 @@ class _iLocIndexer(_LocationIndexer):
 
         # a single integer
         else:
-            key = self._convert_scalar_indexer(key, axis)
-
             if not is_integer(key):
                 raise TypeError("Cannot index by location index with a "
                                 "non-integer key")
@@ -2596,6 +2612,7 @@ def maybe_convert_indices(indices, n):
 
     mask = indices < 0
     if mask.any():
+        indices = indices.copy()
         indices[mask] += n
 
     mask = (indices >= n) | (indices < 0)

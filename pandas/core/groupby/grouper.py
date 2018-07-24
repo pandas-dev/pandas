@@ -16,7 +16,7 @@ from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.index import (
     Index, MultiIndex, CategoricalIndex)
 from pandas.core.dtypes.common import (
-    _ensure_categorical,
+    ensure_categorical,
     is_hashable,
     is_list_like,
     is_timedelta64_dtype,
@@ -59,7 +59,7 @@ class Grouper(object):
     sort : boolean, default to False
         whether to sort the resulting labels
 
-    additional kwargs to control time-like groupers (when ``freq`` is passed)
+    additional kwargs to control time-like groupers (when `freq` is passed)
 
     closed : closed end of interval; 'left' or 'right'
     label : interval boundary to use for labeling; 'left' or 'right'
@@ -360,7 +360,7 @@ class Grouping(object):
         if isinstance(self.grouper, BaseGrouper):
             return self.grouper.indices
 
-        values = _ensure_categorical(self.grouper)
+        values = ensure_categorical(self.grouper)
         return values._reverse_indexer()
 
     @property

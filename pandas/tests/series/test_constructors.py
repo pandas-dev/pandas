@@ -226,10 +226,13 @@ class TestSeriesConstructors(TestData):
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
+        # can cast to a new dtype
+        result = Series(pd.Categorical([1, 2, 3]),
+                        dtype='int64')
+        expected = pd.Series([1, 2, 3], dtype='int64')
+        tm.assert_series_equal(result, expected)
+
         # GH12574
-        pytest.raises(
-            ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
-                                       dtype='int64'))
         cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
