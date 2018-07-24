@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
-    _ensure_object)
+    ensure_object)
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
@@ -33,7 +33,7 @@ from pandas._libs.tslibs import resolution, period
 
 from pandas.core.arrays.period import PeriodArrayMixin
 from pandas.core.base import _shared_docs
-from pandas.core.indexes.base import _index_shared_docs, _ensure_index
+from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
 from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
@@ -140,8 +140,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     asfreq
     strftime
     to_timestamp
-    tz_convert
-    tz_localize
 
     Examples
     --------
@@ -255,7 +253,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                             "floating point in construction")
 
         # anything else, likely an array of strings or periods
-        data = _ensure_object(data)
+        data = ensure_object(data)
         freq = freq or period.extract_freq(data)
         data = period.extract_ordinals(data, freq)
         return cls._from_ordinals(data, name=name, freq=freq)
@@ -317,7 +315,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 return True
             except Exception:
                 return False
-            return False
 
     contains = __contains__
 
@@ -567,7 +564,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
-        target = _ensure_index(target)
+        target = ensure_index(target)
 
         if hasattr(target, 'freq') and target.freq != self.freq:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)
@@ -805,52 +802,8 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     _unpickle_compat = __setstate__
 
-    def tz_convert(self, tz):
-        """
-        Convert tz-aware DatetimeIndex from one time zone to another (using
-        pytz/dateutil)
 
-        Parameters
-        ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries.
-            None will remove timezone holding UTC time.
-
-        Returns
-        -------
-        normalized : DatetimeIndex
-
-        Notes
-        -----
-        Not currently implemented for PeriodIndex
-        """
-        raise NotImplementedError("Not yet implemented for PeriodIndex")
-
-    def tz_localize(self, tz, ambiguous='raise'):
-        """
-        Localize tz-naive DatetimeIndex to given time zone (using
-        pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
-
-        Parameters
-        ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries.
-            None will remove timezone holding local time.
-
-        Returns
-        -------
-        localized : DatetimeIndex
-
-        Notes
-        -----
-        Not currently implemented for PeriodIndex
-        """
-        raise NotImplementedError("Not yet implemented for PeriodIndex")
-
-
-PeriodIndex._add_comparison_methods()
+PeriodIndex._add_comparison_ops()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
