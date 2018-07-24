@@ -215,7 +215,8 @@ def test_reconstruct_remove_unused():
 
 @pytest.mark.parametrize('first_type,second_type', [
     ('int64', 'int64'),
-    ('datetime64[D]', 'str')])
+    ('datetime64[D]', 'str')
+])
 def test_remove_unused_levels_large(first_type, second_type):
     # GH16556
 
@@ -254,3 +255,9 @@ def test_remove_unused_nan(level0, level1):
     tm.assert_index_equal(result, mi)
     for level in 0, 1:
         assert('unused' not in result.levels[level])
+
+
+def test_argsort(idx):
+    result = idx.argsort()
+    expected = idx.values.argsort()
+    tm.assert_numpy_array_equal(result, expected)
