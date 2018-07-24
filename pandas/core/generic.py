@@ -1120,9 +1120,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # TODO: we already did a copy above, can we avoid doing again?
             new_data = result._data.copy(deep=copy)
-            from pandas.core.internals import _transform_index
-            new_data.set_axis(baxis,
-                              _transform_index(new_data.axes[baxis], f, level))
+            from pandas.core.internals.managers import _transform_index
+            new_labels = _transform_index(new_data.axes[baxis], f, level)
+            new_data.set_axis(baxis, new_labels)
             result._data = new_data
             result._clear_item_cache()
 
