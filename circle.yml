@@ -7,16 +7,20 @@ jobs:
   py27_compat:
     docker:
       - image: continuumio/miniconda:latest
+      # databases configuration
       - image: circleci/postgres:9.6.5-alpine-ram
         environment:
             POSTGRES_USER: postgres
             POSTGRES_DB: pandas_nosetest
+      - image: circleci/mysql:8-ram
+        MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        MYSQL_ROOT_PASSWORD: ''
+        MYSQL_DATABASE: pandas_nosetest
     environment:
       JOB: "2.7_COMPAT"
       ENV_FILE: "ci/circle-27-compat.yaml"
       LOCALE_OVERRIDE: "it_IT.UTF-8"
       MINICONDA_DIR: /home/ubuntu/miniconda3
-      POSTGRESQL_URL: "postgresql://postgres@localhost/pandas_nosetest"
     steps:
       - checkout
       - run:
@@ -24,9 +28,6 @@ jobs:
           command: |
             ./ci/install_circle.sh
             ./ci/show_circle.sh
-      - run:
-          name: install database
-          command: ./ci/install_db_circle.sh
       - run:
           name: test
           command: ./ci/run_circle.sh  --skip-slow --skip-network
@@ -37,6 +38,15 @@ jobs:
   py36_locale:
     docker:
       - image: continuumio/miniconda:latest
+      # databases configuration
+      - image: circleci/postgres:9.6.5-alpine-ram
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_DB: pandas_nosetest
+      - image: circleci/mysql:8-ram
+        MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        MYSQL_ROOT_PASSWORD: ''
+        MYSQL_DATABASE: pandas_nosetest
     environment:
       JOB: "3.6_LOCALE"
       ENV_FILE: "ci/circle-36-locale.yaml"
@@ -50,9 +60,6 @@ jobs:
             ./ci/install_circle.sh
             ./ci/show_circle.sh
       - run:
-          name: install database
-          command: ./ci/install_db_circle.sh
-      - run:
           name: test
           command: ./ci/run_circle.sh  --skip-slow --skip-network
 
@@ -62,6 +69,15 @@ jobs:
   py36_locale_slow:
     docker:
       - image: continuumio/miniconda:latest
+      # databases configuration
+      - image: circleci/postgres:9.6.5-alpine-ram
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_DB: pandas_nosetest
+      - image: circleci/mysql:8-ram
+        MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        MYSQL_ROOT_PASSWORD: ''
+        MYSQL_DATABASE: pandas_nosetest
     environment:
       JOB: "3.6_LOCALE_SLOW"
       ENV_FILE: "ci/circle-36-locale_slow.yaml"
@@ -75,9 +91,6 @@ jobs:
             ./ci/install_circle.sh
             ./ci/show_circle.sh
       - run:
-          name: install database
-          command: ./ci/install_db_circle.sh
-      - run:
           name: test
           command: ./ci/run_circle.sh  --only-slow --skip-network
 
@@ -87,6 +100,15 @@ jobs:
   py35_ascii:
     docker:
       - image: continuumio/miniconda:latest
+      # databases configuration
+      - image: circleci/postgres:9.6.5-alpine-ram
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_DB: pandas_nosetest
+      - image: circleci/mysql:8-ram
+        MYSQL_ALLOW_EMPTY_PASSWORD: yes
+        MYSQL_ROOT_PASSWORD: ''
+        MYSQL_DATABASE: pandas_nosetest
     environment:
       JOB: "3.5_ASCII"
       ENV_FILE: "ci/circle-35-ascii.yaml"
@@ -99,9 +121,6 @@ jobs:
           command: |
             ./ci/install_circle.sh
             ./ci/show_circle.sh
-      - run:
-          name: install database
-          command: ./ci/install_db_circle.sh
       - run:
           name: test
           command: ./ci/run_circle.sh  --skip-slow --skip-network
