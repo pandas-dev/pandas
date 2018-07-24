@@ -1,6 +1,7 @@
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.dtypes import Registry
 from pandas import compat
 
 
@@ -37,11 +38,11 @@ class SparseDtype(ExtensionDtype):
     def construct_from_string(cls, string):
         if string.startswith("Sparse"):
             sub_type = cls._parse_subtype(string)
+            try:
+                return SparseDtype(sub_type)
+            except Exception:
+                raise TypeError
         else:
-            sub_type = string
-        try:
-            return SparseDtype(sub_type)
-        except:
             raise TypeError
 
     @staticmethod
@@ -62,3 +63,6 @@ class SparseDtype(ExtensionDtype):
         elif isinstance(dtype, cls):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
+
+
+Registry.register(SparseDtype)

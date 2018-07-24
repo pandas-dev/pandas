@@ -44,12 +44,12 @@ def data_repeated():
 
 @pytest.fixture
 def data_for_sorting():
-    return SparseArray([1, 2, 3])
+    return SparseArray([2, 3, 1])
 
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return SparseArray([1, np.nan, 2])
+    return SparseArray([2, np.nan, 1])
 
 
 @pytest.fixture
@@ -98,12 +98,25 @@ class TestGetitem(base.BaseGetitemTests):
         assert s.get(2) == s.iloc[1]
 
 
-class TestSetitem(base.BaseSetitemTests):
-    pass
-
+# Skipping TestSetitem, since we don't implement it.
 
 class TestMissing(base.BaseMissingTests):
-    pass
+    @pytest.mark.skip(reason="Unsupported")
+    def test_fillna_limit_pad(self):
+        pass
+
+    @pytest.mark.skip(reason="Unsupported")
+    def test_fillna_limit_backfill(self):
+        pass
+
+    @pytest.mark.skip(reason="Unsupported")
+    def test_fillna_series_method(self):
+        pass
+
+    @pytest.mark.skip(reason="Unsupported")
+    def test_fillna_series(self):
+        # this one looks doable.
+        pass
 
 
 class TestMethods(base.BaseMethodsTests):

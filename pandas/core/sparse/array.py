@@ -175,6 +175,10 @@ class SparseArray(PandasObject, ExtensionArray):
         return self.sp_index.length
 
     @property
+    def _null_fill_value(self):
+        return isna(self.fill_value)
+
+    @property
     def nbytes(self):
         # TODO: move to sp_index
         return self.sp_values.nbytes + self.sp_index.nbytes
@@ -193,19 +197,72 @@ class SparseArray(PandasObject, ExtensionArray):
     def isna(self):
         if isna(self.fill_value):
             # Then just the sparse values
-            mask = np.zeros(len(self), dtype=bool)
+            mask = np.ones(len(self), dtype=bool)
             # TODO: avoid to_int_index
-            mask[self.sp_index.to_int_index().indices] = True
+            mask[self.sp_index.to_int_index().indices] = False
         else:
             # This is inevitable expensive?
             mask = pd.isna(np.asarray(self))
         return mask
+
+    def fillna(self, value=None, method=None, limit=None):
+        if method is not None:
+            raise NotImplementedError("'method' is not supported in "
+                                      "'SparseArray.fillna'.")
+
+        if limit is not None:
+            raise NotImplementedError("'limit' is not supported in "
+                                      "'SparseArray.fillna'.")
+
+        if issubclass(self.dtype.type, np.floating):
+            value = float(value)
+
+        new_values = np.where(isna(self.sp_values), value, self.sp_values)
+        fill_value = value if self._null_fill_value else self.fill_value
+
+        return type(self)(new_values, self.sp_index, fill_value=fill_value)
 
     def unique(self):
         return pd.unique(self.sp_values)
 
     def factorize(self, na_sentinel=-1):
         return pd.factorize(self.sp_values)
+
+    def value_counts(self, dropna=True):
+        """
+        Returns a Series containing counts of unique values.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't include counts of NaN, even if NaN is in sp_values.
+
+        Returns
+        -------
+        counts : Series
+        """
+        keys, counts = algos._value_counts_arraylike(self.sp_values,
+                                                     dropna=dropna)
+        fcounts = self.sp_index.ngaps
+        if fcounts > 0:
+            if self._null_fill_value and dropna:
+                pass
+            else:
+                if self._null_fill_value:
+                    mask = pd.isna(keys)
+                else:
+                    mask = keys == self.fill_value
+
+                if mask.any():
+                    counts[mask] += fcounts
+                else:
+                    keys = np.insert(keys, 0, self.fill_value)
+                    counts = np.insert(counts, 0, fcounts)
+
+        if not isinstance(keys, pd.Index):
+            keys = pd.Index(keys)
+        result = pd.Series(counts, index=keys)
+        return result
 
     # --------
     # Indexing
@@ -248,7 +305,9 @@ class SparseArray(PandasObject, ExtensionArray):
     def take(self, indices, allow_fill=False, fill_value=None):
         indices = np.asarray(indices, dtype=np.int32)
 
-        if allow_fill:
+        if indices.size == 0:
+            result = []
+        elif allow_fill:
             result = self._take_with_fill(indices, fill_value=fill_value)
         else:
             result = self._take_without_fill(indices)
@@ -278,8 +337,17 @@ class SparseArray(PandasObject, ExtensionArray):
         taken = self.sp_values.take(sp_indexer)
         # Have to fill in two steps, since the user-passed fill value may be
         # different from self.fill_value.
-        taken[sp_indexer < 0] = self.fill_value
-        taken[indices < 0] = fill_value
+
+        m1 = sp_indexer < 0
+        m2 = indices < 0
+
+        if m1.any():
+            taken = taken.astype('float64')  # TODO
+            taken[m1] = self.fill_value
+
+        if m2.any():
+            taken = taken.astype('float64')  # TODO
+            taken[indices < 0] = fill_value
         return taken
 
     def _take_without_fill(self, indices):
@@ -301,82 +369,12 @@ class SparseArray(PandasObject, ExtensionArray):
         taken = self.sp_values.take(sp_indexer)
         fillable = (sp_indexer < 0)
 
-        taken[fillable] = self.fill_value
+        if fillable.any():
+            # TODO: may need to coerce array to fill value
+            taken = taken.astype('float64')
+            taken[fillable] = self.fill_value
+
         return taken
-
-    # @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
-    # def take(self, indices, axis=0, allow_fill=False,
-    #          fill_value=None, **kwargs):
-    #     """
-    #     Sparse-compatible version of ndarray.take
-    #
-    #     Returns
-    #     -------
-    #     taken : ndarray
-    #     """
-    #     # XXX: change default allow_fill
-    #     nv.validate_take(tuple(), kwargs)
-    #
-    #     if axis:
-    #         raise ValueError("axis must be 0, input was {axis}"
-    #                          .format(axis=axis))
-    #
-    #     if is_integer(indices):
-    #         # return scalar
-    #         return self[indices]
-    #
-    #     indices = _ensure_platform_int(indices)
-    #     n = len(self)
-    #
-    #     # Handle empty take
-    #     if n == 0 and not allow_fill:
-    #         if len(indices):
-    #             raise IndexError("cannot do a non-empty take")
-    #         else:
-    #             return self.copy()
-    #     elif n == 0:
-    #         if (indices > -1).any():
-    #             raise IndexError("cannot do a non-empty take")
-    #         else:
-    #             out = np.empty_like(indices, dtype=self.dtype.dtype)
-    #             out[:] = self.fill_value if fill_value is None else fill_value
-    #             # TODO: this is wrong.
-    #             return out
-    #
-    #     if allow_fill and fill_value is not None:
-    #         # allow -1 to indicate self.fill_value,
-    #         # self.fill_value may not be NaN
-    #         if (indices < -1).any():
-    #             msg = ('When allow_fill=True and fill_value is not None, '
-    #                    'all indices must be >= -1')
-    #             raise ValueError(msg)
-    #         elif (n <= indices).any():
-    #             msg = 'index is out of bounds for size {size}'.format(size=n)
-    #             raise IndexError(msg)
-    #     else:
-    #         if ((indices < -n) | (n <= indices)).any():
-    #             msg = 'index is out of bounds for size {size}'.format(size=n)
-    #             raise IndexError(msg)
-    #
-    #     indices = indices.astype(np.int32)
-    #     if not (allow_fill and fill_value is not None):
-    #         indices = indices.copy()
-    #         indices[indices < 0] += n
-    #
-    #     locs = self.sp_index.lookup_array(indices)
-    #     indexer = np.arange(len(locs), dtype=np.int32)
-    #     mask = locs != -1
-    #
-    #     if mask.any():
-    #         indexer = indexer[mask]
-    #         new_values = self.sp_values.take(locs[mask])
-    #         sp_index = _make_index(len(indices), indexer, kind='integer')
-    #     else:
-    #         indexer = np.empty(shape=(0, ), dtype=np.int32)
-    #         new_values = np.empty(shape=(0, ), dtype=self.sp_values.dtype)
-    #         sp_index = _make_index(len(indices), indexer, kind=self.sp_index)
-    #     return type(self)(new_values, sp_index, fill_value=self.fill_value)
-
 
     def copy(self, deep=False):
         if deep:
@@ -870,20 +868,7 @@ class SparseArray(PandasObject, ExtensionArray):
 #         mask = notna(sp_vals)
 #         return sp_vals[mask]
 #
-#     @Appender(_index_shared_docs['fillna'] % _sparray_doc_kwargs)
-#     def fillna(self, value, downcast=None):
-#         if downcast is not None:
-#             raise NotImplementedError
-#
-#         if issubclass(self.dtype.type, np.floating):
-#             value = float(value)
-#
-#         new_values = np.where(isna(self.sp_values), value, self.sp_values)
-#         fill_value = value if self._null_fill_value else self.fill_value
-#
-#         return self._simple_new(new_values, self.sp_index,
-#                                 fill_value=fill_value)
-#
+
 #     def all(self, axis=0, *args, **kwargs):
 #         """
 #         Tests whether all elements evaluate True
