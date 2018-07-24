@@ -1855,8 +1855,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Name of sheet which will contain DataFrame.
     na_rep : string, default ''
         Missing data representation.
-    float_format : string, default None
-        Format string for floating point numbers.
+    float_format : string, optional
+        Format string for floating point numbers. For example
+        ``float_format="%%.2f"`` will format 0.1234 to 0.12.
     columns : sequence or list of string, optional
         Columns to write.
     header : boolean or list of string, default True
@@ -1864,21 +1865,21 @@ class NDFrame(PandasObject, SelectionMixin):
         assumed to be aliases for the column names.
     index : boolean, default True
         Write row names (index).
-    index_label : string or sequence, default None
-        Column label for index column(s) if desired. If None is given, and
+    index_label : string or sequence, optional
+        Column label for index column(s) if desired. If not specified, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
     startrow : integer, default 0
         Upper left cell row to dump data frame.
     startcol : integer, default 0
         Upper left cell column to dump data frame.
-    engine : string, default None
+    engine : string, optional
         Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
         via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
     merge_cells : boolean, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding : string, default None
+    encoding : string, optional
         Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
     inf_rep : string, default 'inf'
@@ -1886,11 +1887,19 @@ class NDFrame(PandasObject, SelectionMixin):
         infinity in Excel).
     verbose : boolean, default True
         Display more information in the error logs.
-    freeze_panes : tuple of integer (length 2), default None
+    freeze_panes : tuple of integer (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
 
         .. versionadded:: 0.20.0.
+
+    Notes
+    -----
+    For compatibility with :meth:`~DataFrame.to_csv`,
+    to_excel serializes lists and dicts to strings before writing.
+
+    Once a workbook has been saved it is not possible write further data
+    without rewriting the whole workbook.
 
     See Also
     --------
@@ -1919,15 +1928,6 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> df2 = df1.copy()
     >>> df2.to_excel(writer, sheet_name='Sheet2')
     >>> writer.save()
-
-    Note that once a workbook has been saved it is not possible write further
-    data without rewriting the whole workbook.
-
-    Limit floats to a fixed precision using float_format. For example
-    float_format="%%.2f" will format 0.1234 to 0.12.
-
-    For compatibility with :meth:`~DataFrame.to_csv`,
-    to_excel serializes lists and dicts to strings before writing.
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
