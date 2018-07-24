@@ -13,7 +13,6 @@ from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
     UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
 
-from ..extension.integer.test_integer import BaseInteger
 from ..extension.base import BaseOpsUtil
 
 
@@ -80,7 +79,7 @@ class TestInterface:
             assert 'length' in result
 
 
-class TestConstructors(BaseInteger):
+class TestConstructors:
 
     def test_from_dtype_from_float(self, data):
         # construct from our dtype & string dtype
@@ -89,21 +88,21 @@ class TestConstructors(BaseInteger):
         # from float
         expected = pd.Series(data)
         result = pd.Series(np.array(data).astype('float'), dtype=str(dtype))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # from int / list
         expected = pd.Series(data)
         result = pd.Series(np.array(data).tolist(), dtype=str(dtype))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # from int / array
         expected = pd.Series(data).dropna().reset_index(drop=True)
         dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
         result = pd.Series(dropped, dtype=str(dtype))
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
 
-class TestArithmeticOps(BaseOpsUtil, BaseInteger):
+class TestArithmeticOps(BaseOpsUtil):
 
     def _check_divmod_op(self, s, op, other, exc=None):
         super(TestArithmeticOps, self)._check_divmod_op(s, op, other, None)
@@ -140,7 +139,7 @@ class TestArithmeticOps(BaseOpsUtil, BaseInteger):
         # check comparisions that are resulting in float dtypes
 
         expected[mask] = np.nan
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
         # check comparisions that are resulting in integer dtypes
@@ -193,10 +192,10 @@ class TestArithmeticOps(BaseOpsUtil, BaseInteger):
 
             original = original.astype('float')
             original[mask] = np.nan
-            self.assert_series_equal(original, expected.astype('float'))
+            tm.assert_series_equal(original, expected.astype('float'))
 
         # assert our expected result
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_arith_integer_array(self, data, all_arithmetic_operators):
         # we operate with a rhs of an integer array
@@ -281,7 +280,7 @@ class TestArithmeticOps(BaseOpsUtil, BaseInteger):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
 
-class TestComparisonOps(BaseOpsUtil, BaseInteger):
+class TestComparisonOps(BaseOpsUtil):
 
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
@@ -319,7 +318,7 @@ class TestComparisonOps(BaseOpsUtil, BaseInteger):
         self._compare_other(s, data, op_name, other)
 
 
-class TestCasting(BaseInteger):
+class TestCasting:
     pass
 
     @pytest.mark.parametrize('dropna', [True, False])
@@ -337,7 +336,7 @@ class TestCasting(BaseInteger):
                                        dtype=all_data.dtype))
         expected = pd.Index(other, dtype=object)
 
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('dropna', [True, False])
     def test_astype_index(self, all_data, dropna):
@@ -355,7 +354,7 @@ class TestCasting(BaseInteger):
 
         result = idx.astype(dtype)
         expected = idx.astype(object).astype(dtype)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_astype(self, all_data):
         all_data = all_data[:10]
@@ -368,13 +367,13 @@ class TestCasting(BaseInteger):
         s = pd.Series(ints)
         result = s.astype(all_data.dtype)
         expected = pd.Series(ints)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same other - ints
         s = pd.Series(ints)
         result = s.astype(dtype)
         expected = pd.Series(ints, dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same numpy_dtype - ints
         s = pd.Series(ints)
@@ -387,13 +386,13 @@ class TestCasting(BaseInteger):
         s = pd.Series(mixed)
         result = s.astype(all_data.dtype)
         expected = pd.Series(mixed)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same other - mixed
         s = pd.Series(mixed)
         result = s.astype(dtype)
         expected = pd.Series(mixed, dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same numpy_dtype - mixed
         s = pd.Series(mixed)
@@ -411,12 +410,12 @@ class TestCasting(BaseInteger):
         s = pd.Series([1, 2, 3], dtype='Int64')
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3], dtype='Int8')
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = pd.Series([1, 2, 3, None], dtype='Int64')
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3, None], dtype='Int8')
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
 
