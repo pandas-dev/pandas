@@ -6,7 +6,7 @@ echo "[home_dir: $home_dir]"
 echo "[ls -ltr]"
 ls -ltr
 
-apt-get update -y && apt-get install build-essential -y
+apt-get update -y && apt-get install -y build-essential postgresql-client-9.6
 
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1

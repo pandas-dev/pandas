@@ -7,11 +7,16 @@ jobs:
   py27_compat:
     docker:
       - image: continuumio/miniconda:latest
+      - image: circleci/postgres:9.6.5-alpine-ram
+        environment:
+            POSTGRES_USER: postgres
+            POSTGRES_DB: pandas_nosetest
     environment:
       JOB: "2.7_COMPAT"
       ENV_FILE: "ci/circle-27-compat.yaml"
       LOCALE_OVERRIDE: "it_IT.UTF-8"
       MINICONDA_DIR: /home/ubuntu/miniconda3
+      POSTGRESQL_URL: "postgresql://postgres@localhost/pandas_nosetest"
     steps:
       - checkout
       - run:
