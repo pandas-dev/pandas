@@ -4178,6 +4178,8 @@ class Index(IndexOpsMixin, PandasObject):
             pass
         elif is_integer(key):
             pass
+        elif np.array(key).ndim == 0:
+            self._invalid_indexer(form, key)
         elif kind in ['iloc', 'getitem']:
             self._invalid_indexer(form, key)
         return key

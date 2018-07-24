@@ -2692,8 +2692,9 @@ def is_nested_tuple(tup, labels):
 
 def is_list_like_indexer(key):
     # allow a list_like, but exclude NamedTuples which can be indexers
-    return is_list_like(key) and not (isinstance(key, tuple) and
-                                      type(key) is not tuple)
+    return (is_list_like(key)
+            and not (isinstance(key, tuple) and type(key) is not tuple)
+            and not np.array(key).ndim == 0)
 
 
 def is_label_like(key):
