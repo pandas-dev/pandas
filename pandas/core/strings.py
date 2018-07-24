@@ -55,7 +55,7 @@ def _get_array_list(arr, others):
     """
     from pandas.core.series import Series
 
-    if len(others) and isinstance(com._values_from_object(others)[0],
+    if len(others) and isinstance(com.values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
     else:
@@ -702,7 +702,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com._values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
         return result
 
 
