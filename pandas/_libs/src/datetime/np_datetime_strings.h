@@ -51,19 +51,19 @@ This file implements string parsing and creation for NumPy datetime.
  */
 int
 parse_iso_8601_datetime(char *str, int len,
-                    pandas_datetimestruct *out,
-                    int *out_local,
-                    int *out_tzoffset);
+                        npy_datetimestruct *out,
+                        int *out_local,
+                        int *out_tzoffset);
 
 /*
  * Provides a string length to use for converting datetime
  * objects with the given local and unit settings.
  */
 int
-get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
+get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
 
 /*
- * Converts an pandas_datetimestruct to an (almost) ISO 8601
+ * Converts an npy_datetimestruct to an (almost) ISO 8601
  * NULL-terminated string using timezone Z (UTC).
  *
  * 'base' restricts the output to that unit. Set 'base' to
@@ -73,7 +73,7 @@ get_datetime_iso_8601_strlen(int local, PANDAS_DATETIMEUNIT base);
  *  string was too short).
  */
 int
-make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
-                       PANDAS_DATETIMEUNIT base);
+make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
+                       NPY_DATETIMEUNIT base);
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

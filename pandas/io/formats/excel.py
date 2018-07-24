@@ -8,13 +8,16 @@ import itertools
 import numpy as np
 
 from pandas.compat import reduce
-from pandas.io.formats.css import CSSResolver, CSSWarning
-from pandas.io.formats.printing import pprint_thing
 import pandas.core.common as com
+
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes import missing
-from pandas import Index, MultiIndex, PeriodIndex
-from pandas.io.formats.common import get_level_lengths
+from pandas.core.dtypes.generic import ABCMultiIndex, ABCPeriodIndex
+from pandas import Index
+
+from pandas.io.formats.css import CSSResolver, CSSWarning
+from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.format import get_level_lengths
 
 
 class ExcelCell(object):
@@ -95,8 +98,8 @@ class CSSToExcelConverter(object):
             'border': self.build_border(props),
             'fill': self.build_fill(props),
             'font': self.build_font(props),
+            'number_format': self.build_number_format(props),
         }
-        # TODO: support number format
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
         def remove_none(d):
@@ -311,6 +314,9 @@ class CSSToExcelConverter(object):
             warnings.warn('Unhandled color format: {val!r}'.format(val=val),
                           CSSWarning)
 
+    def build_number_format(self, props):
+        return {'format_code': props.get('number-format')}
+
 
 class ExcelFormatter(object):
     """
@@ -414,7 +420,7 @@ class ExcelFormatter(object):
         coloffset = 0
         lnum = 0
 
-        if self.index and isinstance(self.df.index, MultiIndex):
+        if self.index and isinstance(self.df.index, ABCMultiIndex):
             coloffset = len(self.df.index[0]) - 1
 
         if self.merge_cells:
@@ -449,7 +455,7 @@ class ExcelFormatter(object):
 
             if self.index:
                 coloffset = 1
-                if isinstance(self.df.index, MultiIndex):
+                if isinstance(self.df.index, ABCMultiIndex):
                     coloffset = len(self.df.index[0])
 
             colnames = self.columns
@@ -466,7 +472,7 @@ class ExcelFormatter(object):
                                 header_style)
 
     def _format_header(self):
-        if isinstance(self.columns, MultiIndex):
+        if isinstance(self.columns, ABCMultiIndex):
             gen = self._format_header_mi()
         else:
             gen = self._format_header_regular()
@@ -483,7 +489,7 @@ class ExcelFormatter(object):
 
     def _format_body(self):
 
-        if isinstance(self.df.index, MultiIndex):
+        if isinstance(self.df.index, ABCMultiIndex):
             return self._format_hierarchical_rows()
         else:
             return self._format_regular_rows()
@@ -507,7 +513,7 @@ class ExcelFormatter(object):
             else:
                 index_label = self.df.index.names[0]
 
-            if isinstance(self.columns, MultiIndex):
+            if isinstance(self.columns, ABCMultiIndex):
                 self.rowcounter += 1
 
             if index_label and self.header is not False:
@@ -516,7 +522,7 @@ class ExcelFormatter(object):
 
             # write index_values
             index_values = self.df.index
-            if isinstance(self.df.index, PeriodIndex):
+            if isinstance(self.df.index, ABCPeriodIndex):
                 index_values = self.df.index.to_timestamp()
 
             for idx, idxval in enumerate(index_values):
@@ -548,7 +554,7 @@ class ExcelFormatter(object):
             # with index names (blank if None) for
             # unambigous round-trip, unless not merging,
             # in which case the names all go on one row Issue #11328
-            if isinstance(self.columns, MultiIndex) and self.merge_cells:
+            if isinstance(self.columns, ABCMultiIndex) and self.merge_cells:
                 self.rowcounter += 1
 
             # if index labels are not empty go ahead and dump

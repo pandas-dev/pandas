@@ -16,27 +16,26 @@ PyDateTime_IMPORT
 from numpy cimport int64_t
 
 cdef extern from "../src/datetime/np_datetime.h":
-    int cmp_pandas_datetimestruct(pandas_datetimestruct *a,
-                                  pandas_datetimestruct *b)
+    int cmp_npy_datetimestruct(npy_datetimestruct *a,
+                               npy_datetimestruct *b)
 
-    npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
-                                                   pandas_datetimestruct *d
-                                                   ) nogil
+    npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
+                                                npy_datetimestruct *d) nogil
 
     void pandas_datetime_to_datetimestruct(npy_datetime val,
-                                           PANDAS_DATETIMEUNIT fr,
-                                           pandas_datetimestruct *result) nogil
+                                           NPY_DATETIMEUNIT fr,
+                                           npy_datetimestruct *result) nogil
 
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
-                                             PANDAS_DATETIMEUNIT fr,
+                                             NPY_DATETIMEUNIT fr,
                                              pandas_timedeltastruct *result
                                             ) nogil
 
-    pandas_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
+    npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
 cdef extern from "../src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(char *str, int len,
-                                pandas_datetimestruct *out,
+                                npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
 
 # ----------------------------------------------------------------------
@@ -59,11 +58,11 @@ cdef inline npy_timedelta get_timedelta64_value(object obj) nogil:
     return (<PyTimedeltaScalarObject*>obj).obval
 
 
-cdef inline PANDAS_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
+cdef inline NPY_DATETIMEUNIT get_datetime64_unit(object obj) nogil:
     """
     returns the unit part of the dtype for a numpy datetime64 object.
     """
-    return <PANDAS_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
+    return <NPY_DATETIMEUNIT>(<PyDatetimeScalarObject*>obj).obmeta.base
 
 # ----------------------------------------------------------------------
 # Comparison
@@ -101,17 +100,17 @@ class OutOfBoundsDatetime(ValueError):
     pass
 
 
-cdef inline check_dts_bounds(pandas_datetimestruct *dts):
+cdef inline check_dts_bounds(npy_datetimestruct *dts):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
     cdef:
         bint error = False
 
     if (dts.year <= 1677 and
-            cmp_pandas_datetimestruct(dts, &_NS_MIN_DTS) == -1):
+            cmp_npy_datetimestruct(dts, &_NS_MIN_DTS) == -1):
         error = True
     elif (dts.year >= 2262 and
-          cmp_pandas_datetimestruct(dts, &_NS_MAX_DTS) == 1):
+          cmp_npy_datetimestruct(dts, &_NS_MAX_DTS) == 1):
         error = True
 
     if error:
@@ -125,29 +124,32 @@ cdef inline check_dts_bounds(pandas_datetimestruct *dts):
 # ----------------------------------------------------------------------
 # Conversion
 
-cdef inline int64_t dtstruct_to_dt64(pandas_datetimestruct* dts) nogil:
-    """Convenience function to call pandas_datetimestruct_to_datetime
-    with the by-far-most-common frequency PANDAS_FR_ns"""
-    return pandas_datetimestruct_to_datetime(PANDAS_FR_ns, dts)
+cdef inline int64_t dtstruct_to_dt64(npy_datetimestruct* dts) nogil:
+    """Convenience function to call npy_datetimestruct_to_datetime
+    with the by-far-most-common frequency NPY_FR_ns"""
+    return npy_datetimestruct_to_datetime(NPY_FR_ns, dts)
 
 
 cdef inline void dt64_to_dtstruct(int64_t dt64,
-                                  pandas_datetimestruct* out) nogil:
+                                  npy_datetimestruct* out) nogil:
     """Convenience function to call pandas_datetime_to_datetimestruct
-    with the by-far-most-common frequency PANDAS_FR_ns"""
-    pandas_datetime_to_datetimestruct(dt64, PANDAS_FR_ns, out)
+    with the by-far-most-common frequency NPY_FR_ns"""
+    pandas_datetime_to_datetimestruct(dt64, NPY_FR_ns, out)
     return
 
 cdef inline void td64_to_tdstruct(int64_t td64,
                                   pandas_timedeltastruct* out) nogil:
     """Convenience function to call pandas_timedelta_to_timedeltastruct
-    with the by-far-most-common frequency PANDAS_FR_ns"""
-    pandas_timedelta_to_timedeltastruct(td64, PANDAS_FR_ns, out)
+    with the by-far-most-common frequency NPY_FR_ns"""
+    pandas_timedelta_to_timedeltastruct(td64, NPY_FR_ns, out)
     return
 
 
 cdef inline int64_t pydatetime_to_dt64(datetime val,
-                                       pandas_datetimestruct *dts):
+                                       npy_datetimestruct *dts):
+    """
+    Note we are assuming that the datetime object is timezone-naive.
+    """
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -159,8 +161,7 @@ cdef inline int64_t pydatetime_to_dt64(datetime val,
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int64_t pydate_to_dt64(date val,
-                                   pandas_datetimestruct *dts):
+cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -169,7 +170,7 @@ cdef inline int64_t pydate_to_dt64(date val,
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts,
+cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
                                int* out_local, int* out_tzoffset) except? -1:
     cdef:
         int result
@@ -187,7 +188,7 @@ cdef inline int _string_to_dts(object val, pandas_datetimestruct* dts,
 
 
 cdef inline int _cstring_to_dts(char *val, int length,
-                                pandas_datetimestruct* dts,
+                                npy_datetimestruct* dts,
                                 int* out_local, int* out_tzoffset) except? -1:
     # Note: without this "extra layer" between _string_to_dts
     # and parse_iso_8601_datetime, calling _string_to_dts raises

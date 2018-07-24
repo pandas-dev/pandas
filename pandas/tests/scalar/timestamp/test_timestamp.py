@@ -124,8 +124,8 @@ class TestTimestampProperties(object):
         assert np.isnan(nan_ts.day_name(time_locale))
         assert np.isnan(nan_ts.month_name(time_locale))
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
-    def test_is_leap_year(self, tz):
+    def test_is_leap_year(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH 13727
         dt = Timestamp('2000-01-01 00:00:00', tz=tz)
         assert dt.is_leap_year
@@ -171,6 +171,11 @@ class TestTimestampProperties(object):
                            for args in [(2000, 1, 1), (2000, 1, 2), (
                                2005, 1, 1), (2005, 1, 2)]])
         assert (result == [52, 52, 53, 53]).all()
+
+    def test_resolution(self):
+        # GH#21336, GH#21365
+        dt = Timestamp('2100-01-01 00:00:00')
+        assert dt.resolution == Timedelta(nanoseconds=1)
 
 
 class TestTimestampConstructors(object):
@@ -420,6 +425,12 @@ class TestTimestampConstructors(object):
         expected = expected + Timedelta(nanoseconds=1)
         assert result == expected
 
+    @pytest.mark.parametrize('z', ['Z0', 'Z00'])
+    def test_constructor_invalid_Z0_isostring(self, z):
+        # GH 8910
+        with pytest.raises(ValueError):
+            Timestamp('2014-11-02 01:00{}'.format(z))
+
     @pytest.mark.parametrize('arg', ['year', 'month', 'day', 'hour', 'minute',
                                      'second', 'microsecond', 'nanosecond'])
     def test_invalid_date_kwarg_with_string_input(self, arg):
@@ -521,6 +532,29 @@ class TestTimestampConstructors(object):
         assert (abs(ts_from_string_tz.tz_localize(None) -
                     ts_from_method_tz.tz_localize(None)) < delta)
 
+    @pytest.mark.parametrize('tz', [None, pytz.timezone('US/Pacific')])
+    def test_disallow_setting_tz(self, tz):
+        # GH 3746
+        ts = Timestamp('2010')
+        with pytest.raises(AttributeError):
+            ts.tz = tz
+
+    @pytest.mark.parametrize('offset', ['+0300', '+0200'])
+    def test_construct_timestamp_near_dst(self, offset):
+        # GH 20854
+        expected = Timestamp('2016-10-30 03:00:00{}'.format(offset),
+                             tz='Europe/Helsinki')
+        result = Timestamp(expected, tz='Europe/Helsinki')
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        '2013/01/01 00:00:00+09:00', '2013-01-01 00:00:00+09:00'])
+    def test_construct_with_different_string_format(self, arg):
+        # GH 12064
+        result = Timestamp(arg)
+        expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
+        assert result == expected
+
 
 class TestTimestamp(object):
 
@@ -614,10 +648,51 @@ class TestTimestamp(object):
         assert stamp.microsecond == 145224
         assert stamp.nanosecond == 192
 
-    def test_unit(self):
-
-        def check(val, unit=None, h=1, s=1, us=0):
-            stamp = Timestamp(val, unit=unit)
+    @pytest.mark.parametrize('value, check_kwargs', [
+        [946688461000000000, {}],
+        [946688461000000000 / long(1000), dict(unit='us')],
+        [946688461000000000 / long(1000000), dict(unit='ms')],
+        [946688461000000000 / long(1000000000), dict(unit='s')],
+        [10957, dict(unit='D', h=0)],
+        pytest.param((946688461000000000 + 500000) / long(1000000000),
+                     dict(unit='s', us=499, ns=964),
+                     marks=pytest.mark.skipif(not PY3,
+                                              reason='using truediv, so these'
+                                                     ' are like floats')),
+        pytest.param((946688461000000000 + 500000000) / long(1000000000),
+                     dict(unit='s', us=500000),
+                     marks=pytest.mark.skipif(not PY3,
+                                              reason='using truediv, so these'
+                                                     ' are like floats')),
+        pytest.param((946688461000000000 + 500000) / long(1000000),
+                     dict(unit='ms', us=500),
+                     marks=pytest.mark.skipif(not PY3,
+                                              reason='using truediv, so these'
+                                                     ' are like floats')),
+        pytest.param((946688461000000000 + 500000) / long(1000000000),
+                     dict(unit='s'),
+                     marks=pytest.mark.skipif(PY3,
+                                              reason='get chopped in py2')),
+        pytest.param((946688461000000000 + 500000000) / long(1000000000),
+                     dict(unit='s'),
+                     marks=pytest.mark.skipif(PY3,
+                                              reason='get chopped in py2')),
+        pytest.param((946688461000000000 + 500000) / long(1000000),
+                     dict(unit='ms'),
+                     marks=pytest.mark.skipif(PY3,
+                                              reason='get chopped in py2')),
+        [(946688461000000000 + 500000) / long(1000), dict(unit='us', us=500)],
+        [(946688461000000000 + 500000000) / long(1000000),
+         dict(unit='ms', us=500000)],
+        [946688461000000000 / 1000.0 + 5, dict(unit='us', us=5)],
+        [946688461000000000 / 1000.0 + 5000, dict(unit='us', us=5000)],
+        [946688461000000000 / 1000000.0 + 0.5, dict(unit='ms', us=500)],
+        [946688461000000000 / 1000000.0 + 0.005, dict(unit='ms', us=5, ns=5)],
+        [946688461000000000 / 1000000000.0 + 0.5, dict(unit='s', us=500000)],
+        [10957 + 0.5, dict(unit='D', h=12)]])
+    def test_unit(self, value, check_kwargs):
+        def check(value, unit=None, h=1, s=1, us=0, ns=0):
+            stamp = Timestamp(value, unit=unit)
             assert stamp.year == 2000
             assert stamp.month == 1
             assert stamp.day == 1
@@ -630,41 +705,9 @@ class TestTimestamp(object):
                 assert stamp.minute == 0
                 assert stamp.second == 0
                 assert stamp.microsecond == 0
-            assert stamp.nanosecond == 0
+            assert stamp.nanosecond == ns
 
-        ts = Timestamp('20000101 01:01:01')
-        val = ts.value
-        days = (ts - Timestamp('1970-01-01')).days
-
-        check(val)
-        check(val / long(1000), unit='us')
-        check(val / long(1000000), unit='ms')
-        check(val / long(1000000000), unit='s')
-        check(days, unit='D', h=0)
-
-        # using truediv, so these are like floats
-        if PY3:
-            check((val + 500000) / long(1000000000), unit='s', us=500)
-            check((val + 500000000) / long(1000000000), unit='s', us=500000)
-            check((val + 500000) / long(1000000), unit='ms', us=500)
-
-        # get chopped in py2
-        else:
-            check((val + 500000) / long(1000000000), unit='s')
-            check((val + 500000000) / long(1000000000), unit='s')
-            check((val + 500000) / long(1000000), unit='ms')
-
-        # ok
-        check((val + 500000) / long(1000), unit='us', us=500)
-        check((val + 500000000) / long(1000000), unit='ms', us=500000)
-
-        # floats
-        check(val / 1000.0 + 5, unit='us', us=5)
-        check(val / 1000.0 + 5000, unit='us', us=5000)
-        check(val / 1000000.0 + 0.5, unit='ms', us=500)
-        check(val / 1000000.0 + 0.005, unit='ms', us=5)
-        check(val / 1000000000.0 + 0.5, unit='s', us=500000)
-        check(days + 0.5, unit='D', h=12)
+        check(value, **check_kwargs)
 
     def test_roundtrip(self):
 

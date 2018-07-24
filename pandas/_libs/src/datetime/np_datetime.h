@@ -18,57 +18,30 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
 
 #include <numpy/ndarraytypes.h>
-
-typedef enum {
-        PANDAS_FR_Y = 0,  // Years
-        PANDAS_FR_M = 1,  // Months
-        PANDAS_FR_W = 2,  // Weeks
-        // Gap where NPY_FR_B was
-        PANDAS_FR_D = 4,  // Days
-        PANDAS_FR_h = 5,  // hours
-        PANDAS_FR_m = 6,  // minutes
-        PANDAS_FR_s = 7,  // seconds
-        PANDAS_FR_ms = 8,  // milliseconds
-        PANDAS_FR_us = 9,  // microseconds
-        PANDAS_FR_ns = 10,  // nanoseconds
-        PANDAS_FR_ps = 11,  // picoseconds
-        PANDAS_FR_fs = 12,  // femtoseconds
-        PANDAS_FR_as = 13,  // attoseconds
-        PANDAS_FR_GENERIC = 14  // Generic, unbound units, can
-                                // convert to anything
-} PANDAS_DATETIMEUNIT;
-
-#define PANDAS_DATETIME_NUMUNITS 13
-
-#define PANDAS_DATETIME_NAT NPY_MIN_INT64
-
-typedef struct {
-        npy_int64 year;
-        npy_int32 month, day, hour, min, sec, us, ps, as;
-} pandas_datetimestruct;
+#include <datetime.h>
 
 typedef struct {
         npy_int64 days;
         npy_int32 hrs, min, sec, ms, us, ns, seconds, microseconds, nanoseconds;
 } pandas_timedeltastruct;
 
-extern const pandas_datetimestruct _NS_MIN_DTS;
-extern const pandas_datetimestruct _NS_MAX_DTS;
+extern const npy_datetimestruct _NS_MIN_DTS;
+extern const npy_datetimestruct _NS_MAX_DTS;
 
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
-int convert_pydatetime_to_datetimestruct(PyObject *obj,
-                                         pandas_datetimestruct *out);
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
+                                         npy_datetimestruct *out);
 
-npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
-                                               pandas_datetimestruct *d);
+npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
+                                            const npy_datetimestruct *dts);
 
-void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
-                                       pandas_datetimestruct *result);
+void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
+                                       npy_datetimestruct *result);
 
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
-                                         PANDAS_DATETIMEUNIT fr,
+                                         NPY_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result);
 
 int dayofweek(int y, int m, int d);
@@ -84,14 +57,14 @@ int is_leapyear(npy_int64 year);
  * Calculates the days offset from the 1970 epoch.
  */
 npy_int64
-get_datetimestruct_days(const pandas_datetimestruct *dts);
+get_datetimestruct_days(const npy_datetimestruct *dts);
 
 
 /*
- * Compares two pandas_datetimestruct objects chronologically
+ * Compares two npy_datetimestruct objects chronologically
  */
-int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
-                              const pandas_datetimestruct *b);
+int cmp_npy_datetimestruct(const npy_datetimestruct *a,
+                           const npy_datetimestruct *b);
 
 
 /*
@@ -99,12 +72,7 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
  * the current values are valid.
  */
 void
-add_minutes_to_datetimestruct(pandas_datetimestruct *dts, int minutes);
+add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
-
-int
-convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
-                                   npy_datetime dt,
-                                   pandas_datetimestruct *out);
 
 #endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_

@@ -316,16 +316,22 @@ class TestIndexOps(Ops):
 
         for o in self.objs:
             # Check that we work.
-            for p in ['shape', 'dtype', 'flags', 'T',
-                      'strides', 'itemsize', 'nbytes']:
+            for p in ['shape', 'dtype', 'T', 'nbytes']:
                 assert getattr(o, p, None) is not None
 
-            assert hasattr(o, 'base')
+            # deprecated properties
+            for p in ['flags', 'strides', 'itemsize']:
+                with tm.assert_produces_warning(FutureWarning):
+                    assert getattr(o, p, None) is not None
+
+            with tm.assert_produces_warning(FutureWarning):
+                assert hasattr(o, 'base')
 
             # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that
             try:
-                assert o.data is not None
+                with tm.assert_produces_warning(FutureWarning):
+                    assert o.data is not None
             except ValueError:
                 pass
 
@@ -647,83 +653,83 @@ class TestIndexOps(Ops):
 
             assert s.nunique() == 0
 
-    def test_value_counts_datetime64(self):
-        klasses = [Index, Series]
-        for klass in klasses:
-            # GH 3002, datetime64[ns]
-            # don't test names though
-            txt = "\n".join(['xxyyzz20100101PIE', 'xxyyzz20100101GUM',
-                             'xxyyzz20100101EGG', 'xxyyww20090101EGG',
-                             'foofoo20080909PIE', 'foofoo20080909GUM'])
-            f = StringIO(txt)
-            df = pd.read_fwf(f, widths=[6, 8, 3],
-                             names=["person_id", "dt", "food"],
-                             parse_dates=["dt"])
+    @pytest.mark.parametrize('klass', [Index, Series])
+    def test_value_counts_datetime64(self, klass):
 
-            s = klass(df['dt'].copy())
-            s.name = None
+        # GH 3002, datetime64[ns]
+        # don't test names though
+        txt = "\n".join(['xxyyzz20100101PIE', 'xxyyzz20100101GUM',
+                         'xxyyzz20100101EGG', 'xxyyww20090101EGG',
+                         'foofoo20080909PIE', 'foofoo20080909GUM'])
+        f = StringIO(txt)
+        df = pd.read_fwf(f, widths=[6, 8, 3],
+                         names=["person_id", "dt", "food"],
+                         parse_dates=["dt"])
 
-            idx = pd.to_datetime(['2010-01-01 00:00:00Z',
-                                  '2008-09-09 00:00:00Z',
-                                  '2009-01-01 00:00:00X'])
-            expected_s = Series([3, 2, 1], index=idx)
-            tm.assert_series_equal(s.value_counts(), expected_s)
+        s = klass(df['dt'].copy())
+        s.name = None
 
-            expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
-                                                   '2009-01-01 00:00:00Z',
-                                                   '2008-09-09 00:00:00Z'],
-                                                  dtype='datetime64[ns]')
-            if isinstance(s, Index):
-                tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
-            else:
-                tm.assert_numpy_array_equal(s.unique(), expected)
+        idx = pd.to_datetime(['2010-01-01 00:00:00Z',
+                              '2008-09-09 00:00:00Z',
+                              '2009-01-01 00:00:00Z'])
+        expected_s = Series([3, 2, 1], index=idx)
+        tm.assert_series_equal(s.value_counts(), expected_s)
 
-            assert s.nunique() == 3
+        expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
+                                               '2009-01-01 00:00:00Z',
+                                               '2008-09-09 00:00:00Z'],
+                                              dtype='datetime64[ns]')
+        if isinstance(s, Index):
+            tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
+        else:
+            tm.assert_numpy_array_equal(s.unique(), expected)
 
-            # with NaT
-            s = df['dt'].copy()
-            s = klass([v for v in s.values] + [pd.NaT])
+        assert s.nunique() == 3
 
-            result = s.value_counts()
-            assert result.index.dtype == 'datetime64[ns]'
-            tm.assert_series_equal(result, expected_s)
+        # with NaT
+        s = df['dt'].copy()
+        s = klass([v for v in s.values] + [pd.NaT])
 
-            result = s.value_counts(dropna=False)
-            expected_s[pd.NaT] = 1
-            tm.assert_series_equal(result, expected_s)
+        result = s.value_counts()
+        assert result.index.dtype == 'datetime64[ns]'
+        tm.assert_series_equal(result, expected_s)
 
-            unique = s.unique()
-            assert unique.dtype == 'datetime64[ns]'
+        result = s.value_counts(dropna=False)
+        expected_s[pd.NaT] = 1
+        tm.assert_series_equal(result, expected_s)
 
-            # numpy_array_equal cannot compare pd.NaT
-            if isinstance(s, Index):
-                exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
-                tm.assert_index_equal(unique, exp_idx)
-            else:
-                tm.assert_numpy_array_equal(unique[:3], expected)
-                assert pd.isna(unique[3])
+        unique = s.unique()
+        assert unique.dtype == 'datetime64[ns]'
 
-            assert s.nunique() == 3
-            assert s.nunique(dropna=False) == 4
+        # numpy_array_equal cannot compare pd.NaT
+        if isinstance(s, Index):
+            exp_idx = DatetimeIndex(expected.tolist() + [pd.NaT])
+            tm.assert_index_equal(unique, exp_idx)
+        else:
+            tm.assert_numpy_array_equal(unique[:3], expected)
+            assert pd.isna(unique[3])
 
-            # timedelta64[ns]
-            td = df.dt - df.dt + timedelta(1)
-            td = klass(td, name='dt')
+        assert s.nunique() == 3
+        assert s.nunique(dropna=False) == 4
 
-            result = td.value_counts()
-            expected_s = Series([6], index=[Timedelta('1day')], name='dt')
-            tm.assert_series_equal(result, expected_s)
+        # timedelta64[ns]
+        td = df.dt - df.dt + timedelta(1)
+        td = klass(td, name='dt')
 
-            expected = TimedeltaIndex(['1 days'], name='dt')
-            if isinstance(td, Index):
-                tm.assert_index_equal(td.unique(), expected)
-            else:
-                tm.assert_numpy_array_equal(td.unique(), expected.values)
+        result = td.value_counts()
+        expected_s = Series([6], index=[Timedelta('1day')], name='dt')
+        tm.assert_series_equal(result, expected_s)
 
-            td2 = timedelta(1) + (df.dt - df.dt)
-            td2 = klass(td2, name='dt')
-            result2 = td2.value_counts()
-            tm.assert_series_equal(result2, expected_s)
+        expected = TimedeltaIndex(['1 days'], name='dt')
+        if isinstance(td, Index):
+            tm.assert_index_equal(td.unique(), expected)
+        else:
+            tm.assert_numpy_array_equal(td.unique(), expected.values)
+
+        td2 = timedelta(1) + (df.dt - df.dt)
+        td2 = klass(td2, name='dt')
+        result2 = td2.value_counts()
+        tm.assert_series_equal(result2, expected_s)
 
     def test_factorize(self):
         for orig in self.objs:
@@ -1194,7 +1200,8 @@ class TestToIterable(object):
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
     (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
-    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
+     'interval'),
 ])
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
@@ -1208,6 +1215,8 @@ def test_values_consistent(array, expected_type, dtype):
         tm.assert_index_equal(l_values, r_values)
     elif pd.api.types.is_categorical(l_values):
         tm.assert_categorical_equal(l_values, r_values)
+    elif pd.api.types.is_interval_dtype(l_values):
+        tm.assert_interval_array_equal(l_values, r_values)
     else:
         raise TypeError("Unexpected type {}".format(type(l_values)))
 

@@ -55,8 +55,8 @@ Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
    df.columns.str.lower()
 
 These string methods can then be used to clean up the columns as needed.
-Here we are removing leading and trailing whitespaces, lowercasing all names,
-and replacing any remaining whitespaces with underscores:
+Here we are removing leading and trailing white spaces, lower casing all names,
+and replacing any remaining white spaces with underscores:
 
 .. ipython:: python
 
@@ -199,6 +199,136 @@ regular expression object will raise a ``ValueError``.
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
 
+.. _text.concatenate:
+
+Concatenation
+-------------
+
+There are several ways to concatenate a ``Series`` or ``Index``, either with itself or others, all based on :meth:`~Series.str.cat`,
+resp. ``Index.str.cat``.
+
+Concatenating a single Series into a string
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The content of a ``Series`` (or ``Index``) can be concatenated:
+
+.. ipython:: python
+
+    s = pd.Series(['a', 'b', 'c', 'd'])
+    s.str.cat(sep=',')
+    
+If not specified, the keyword ``sep`` for the separator defaults to the empty string, ``sep=''``:
+
+.. ipython:: python
+
+    s.str.cat()
+
+By default, missing values are ignored. Using ``na_rep``, they can be given a representation:
+
+.. ipython:: python
+
+    t = pd.Series(['a', 'b', np.nan, 'd'])
+    t.str.cat(sep=',')
+    t.str.cat(sep=',', na_rep='-')
+
+Concatenating a Series and something list-like into a Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The first argument to :meth:`~Series.str.cat` can be a list-like object, provided that it matches the length of the calling ``Series`` (or ``Index``).
+
+.. ipython:: python
+
+    s.str.cat(['A', 'B', 'C', 'D'])
+    
+Missing values on either side will result in missing values in the result as well, *unless* ``na_rep`` is specified:
+
+.. ipython:: python
+
+    s.str.cat(t)
+    s.str.cat(t, na_rep='-')
+
+Concatenating a Series and something array-like into a Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 0.23.0
+
+The parameter ``others`` can also be two-dimensional. In this case, the number or rows must match the lengths of the calling ``Series`` (or ``Index``).
+
+.. ipython:: python
+
+    d = pd.concat([t, s], axis=1)
+    s
+    d
+    s.str.cat(d, na_rep='-')
+    
+Concatenating a Series and an indexed object into a Series, with alignment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 0.23.0
+
+For concatenation with a ``Series`` or ``DataFrame``, it is possible to align the indexes before concatenation by setting
+the ``join``-keyword.
+
+.. ipython:: python
+   :okwarning:
+
+   u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
+   s
+   u
+   s.str.cat(u)
+   s.str.cat(u, join='left')
+
+.. warning::
+
+    If the ``join`` keyword is not passed, the method :meth:`~Series.str.cat` will currently fall back to the behavior before version 0.23.0 (i.e. no alignment),
+    but a ``FutureWarning`` will be raised if any of the involved indexes differ, since this default will change to ``join='left'`` in a future version.
+
+The usual options are available for ``join`` (one of ``'left', 'outer', 'inner', 'right'``).
+In particular, alignment also means that the different lengths do not need to coincide anymore.
+
+.. ipython:: python
+
+    v = pd.Series(['z', 'a', 'b', 'd', 'e'], index=[-1, 0, 1, 3, 4])
+    s
+    v
+    s.str.cat(v, join='left', na_rep='-')
+    s.str.cat(v, join='outer', na_rep='-')
+
+The same alignment can be used when ``others`` is a ``DataFrame``:
+
+.. ipython:: python
+
+    f = d.loc[[3, 2, 1, 0], :]
+    s
+    f
+    s.str.cat(f, join='left', na_rep='-')
+
+Concatenating a Series and many objects into a Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All one-dimensional list-likes can be arbitrarily combined in a list-like container (including iterators, ``dict``-views, etc.):
+
+.. ipython:: python
+
+    s
+    u
+    s.str.cat([u.values, ['A', 'B', 'C', 'D'], map(str, u.index)], na_rep='-')
+
+All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
+
+.. ipython:: python
+
+    v
+    s.str.cat([u, v, ['A', 'B', 'C', 'D']], join='outer', na_rep='-')
+
+If using ``join='right'`` on a list of ``others`` that contains different indexes,
+the union of these indexes will be used as the basis for the final concatenation:
+
+.. ipython:: python
+
+    u.loc[[3]]
+    v.loc[[-1, 0]]
+    s.str.cat([u.loc[[3]], v.loc[[-1, 0]]], join='right', na_rep='-')
 
 Indexing with ``.str``
 ----------------------

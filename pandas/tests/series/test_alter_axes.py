@@ -188,6 +188,11 @@ class TestSeriesAlterAxes(TestData):
             with tm.assert_raises_regex(IndexError, 'Too many levels'):
                 s.reset_index(level=[0, 1, 2])
 
+        # Check that .reset_index([],drop=True) doesn't fail
+        result = pd.Series(range(4)).reset_index([], drop=True)
+        expected = pd.Series(range(4))
+        assert_series_equal(result, expected)
+
     def test_reset_index_range(self):
         # GH 12071
         s = pd.Series(range(2), name='A', dtype='int64')
@@ -275,3 +280,30 @@ class TestSeriesAlterAxes(TestData):
             with tm.assert_produces_warning(FutureWarning):
                 result = s.set_axis(0, list('abcd'), inplace=False)
             tm.assert_series_equal(result, expected)
+
+    def test_reset_index_drop_errors(self):
+        #  GH 20925
+
+        # KeyError raised for series index when passed level name is missing
+        s = pd.Series(range(4))
+        with tm.assert_raises_regex(KeyError, 'must be same as name'):
+            s.reset_index('wrong', drop=True)
+        with tm.assert_raises_regex(KeyError, 'must be same as name'):
+            s.reset_index('wrong')
+
+        # KeyError raised for series when level to be dropped is missing
+        s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
+        with tm.assert_raises_regex(KeyError, 'not found'):
+            s.reset_index('wrong', drop=True)
+
+    def test_droplevel(self):
+        # GH20342
+        ser = pd.Series([1, 2, 3, 4])
+        ser.index = pd.MultiIndex.from_arrays([(1, 2, 3, 4), (5, 6, 7, 8)],
+                                              names=['a', 'b'])
+        expected = ser.reset_index('b', drop=True)
+        result = ser.droplevel('b', axis='index')
+        assert_series_equal(result, expected)
+        # test that droplevel raises ValueError on axis != 0
+        with pytest.raises(ValueError):
+            ser.droplevel(1, axis='columns')
