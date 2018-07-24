@@ -1483,6 +1483,17 @@ class TestTSPlot(TestPlotBase):
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
 
+    def test_matplotlib_scatter_datetime64(self):
+        # https://github.com/matplotlib/matplotlib/issues/11391
+        df = DataFrame(np.random.RandomState(0).rand(10, 2),
+                       columns=["x", "y"])
+        df["time"] = date_range("2018-01-01", periods=10, freq="D")
+        fig, ax = self.plt.subplots()
+        ax.scatter(x="time", y="y", data=df)
+        fig.canvas.draw()
+        label = ax.get_xticklabels()[0]
+        assert label.get_text() == '2017-12-12'
+
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
     import matplotlib.pyplot as plt
