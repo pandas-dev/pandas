@@ -1688,7 +1688,7 @@ def is_extension_type(arr):
     return False
 
 
-def is_extension_array_dtype(arr):
+def is_extension_array(arr):
     """Check if an array object is a pandas extension array type.
 
     Parameters
@@ -1748,7 +1748,7 @@ def is_extension_dtype(dtype):
 
     See Also
     --------
-    is_extension_array_dtype : Similar method for arrays.
+    is_extension_array : Similar method for arrays.
     """
     return isinstance(dtype, ExtensionDtype)
 

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pandas.compat import StringIO
 from pandas.api.types import (
-    is_extension_array_dtype, is_extension_dtype
+    is_extension_array, is_extension_dtype
 )
 from pandas.api.extensions import ExtensionDtype
 
@@ -58,13 +58,13 @@ class BaseInterfaceTests(BaseExtensionTests):
         result = buf.getvalue()
         assert data.dtype.name in result
 
-    def test_is_extension_array_dtype(self, data):
-        assert is_extension_array_dtype(data)
-        assert is_extension_array_dtype(pd.Series(data))
-        assert isinstance(data.dtype, ExtensionDtype)
+    def test_is_extension_array(self, data):
+        assert is_extension_array(data)
+        assert is_extension_array(pd.Series(data))
 
     def test_is_extension_dtype(self, data):
         assert is_extension_dtype(data.dtype)
+        assert isinstance(data.dtype, ExtensionDtype)
 
     def test_no_values_attribute(self, data):
         # GH-20735: EA's with .values attribute give problems with internal

@@ -23,7 +23,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_float_dtype, is_numeric_dtype,
     is_numeric_v_string_like, is_extension_type,
-    is_extension_array_dtype,
+    is_extension_array,
     is_scalar,
     _get_dtype)
 from pandas.core.dtypes.cast import (
@@ -1071,7 +1071,7 @@ class BlockManager(PandasObject):
         # TODO(EA): Remove an is_extension_ when all extension types satisfy
         # the interface
         value_is_extension_type = (is_extension_type(value) or
-                                   is_extension_array_dtype(value))
+                                   is_extension_array(value))
 
         # categorical/spares/datetimetz
         if value_is_extension_type:

@@ -5,7 +5,7 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
-    is_extension_array_dtype, is_extension_dtype
+    is_extension_array, is_extension_dtype
 )
 from pandas.core.dtypes import dtypes
 
@@ -44,8 +44,8 @@ class TestExtensionArrayDtype(object):
 
         DummyArray(np.array([1, 2])),
     ])
-    def test_is_extension_array_dtype(self, values):
-        assert is_extension_array_dtype(values)
+    def test_is_extension_array(self, values):
+        assert is_extension_array(values)
 
     @pytest.mark.parametrize('dtype', [
         pd.Categorical([]).dtype,
@@ -59,7 +59,7 @@ class TestExtensionArrayDtype(object):
         pd.Series(np.array([])),
     ])
     def test_is_not_extension_array_dtype(self, values):
-        assert not is_extension_array_dtype(values)
+        assert not is_extension_array(values)
 
 
 def test_astype():
@@ -90,13 +90,13 @@ def test_astype_no_copy():
 ])
 def test_is_not_extension_array_dtype(dtype):
     assert not isinstance(dtype, dtypes.ExtensionDtype)
-    assert not is_extension_array_dtype(dtype)
+    assert not is_extension_array(dtype)
 
 
 @pytest.mark.parametrize('dtype', [
     dtypes.CategoricalDtype(),
     dtypes.IntervalDtype(),
 ])
-def test_is_extension_array_dtype(dtype):
+def test_is_extension_array(dtype):
     assert isinstance(dtype, dtypes.ExtensionDtype)
     assert is_extension_dtype(dtype)

@@ -2501,7 +2501,7 @@ Dtype introspection
     api.types.is_datetime64_ns_dtype
     api.types.is_datetime64tz_dtype
     api.types.is_extension_type
-    api.types.is_extension_array_dtype
+    api.types.is_extension_array
     api.types.is_extension_dtype
     api.types.is_float_dtype
     api.types.is_int64_dtype

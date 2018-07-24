@@ -5,7 +5,7 @@ import sys
 from .common import (pandas_dtype,
                      is_dtype_equal,
                      is_extension_dtype,
-                     is_extension_array_dtype,
+                     is_extension_array,
                      is_extension_type,
 
                      # categorical
