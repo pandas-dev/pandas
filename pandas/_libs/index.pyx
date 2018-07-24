@@ -9,14 +9,12 @@ from cpython.slice cimport PySlice_Check
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t)
+                    int64_t, uint8_t, uint64_t, intp_t,
+                    # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
+                    # for cimport in cython>=0.27.3
+                    NPY_DATETIME, NPY_TIMEDELTA)
 cnp.import_array()
 
-cdef extern from "numpy/arrayobject.h":
-    # These can be cimported directly from numpy in cython>=0.27.3
-    cdef enum NPY_TYPES:
-        NPY_DATETIME
-        NPY_TIMEDELTA
 
 cimport util
 
