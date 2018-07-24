@@ -389,7 +389,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
--
+- Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 -
 -
 

@@ -1,5 +1,7 @@
 """
 Misc tools for implementing data structures
+
+Note: pandas.core.common is *not* part of the public API.
 """
 
 from datetime import datetime, timedelta
