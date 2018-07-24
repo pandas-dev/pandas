@@ -3,6 +3,24 @@ import pytest
 from pandas.io.formats.console import detect_console_encoding
 
 
+class MockEncoding(object):
+    """
+    Used to add a side effect when accessing the 'encoding' property. If the
+    side effect is a str in nature, the value will be returned. Otherwise, the
+    side effect should be an exception that will be raised.
+    """
+    def __init__(self, encoding):
+        super(MockEncoding, self).__init__()
+        self.val = encoding
+
+    @property
+    def encoding(self):
+        if isinstance(self.val, str):
+            return self.val
+        else:
+            raise self.val
+
+
 @pytest.mark.parametrize('empty,filled', [
     ['stdin', 'stdout'],
     ['stdout', 'stdin']
@@ -11,11 +29,6 @@ def test_detect_console_encoding_from_stdout_stdin(monkeypatch, empty, filled):
     # Ensures that when sys.stdout.encoding or sys.stdin.encoding is used when
     # they have values filled.
     # GH 21552
-    class MockEncoding(object):
-        def __init__(self, encoding):
-            super(MockEncoding, self).__init__()
-            self.encoding = encoding
-
     with monkeypatch.context() as context:
         context.setattr('sys.{}'.format(empty), MockEncoding(''))
         context.setattr('sys.{}'.format(filled), MockEncoding(filled))
@@ -23,9 +36,9 @@ def test_detect_console_encoding_from_stdout_stdin(monkeypatch, empty, filled):
 
 
 @pytest.mark.parametrize('stdEncoding', [
-    pytest.raises(AttributeError),
-    pytest.raises(IOError),
-    lambda: 'ascii'
+    MockEncoding(AttributeError),
+    MockEncoding(IOError),
+    MockEncoding('ascii')
 ])
 def test_detect_console_encoding_fallback_to_locale(monkeypatch, stdEncoding):
     # GH 21552
@@ -36,10 +49,12 @@ def test_detect_console_encoding_fallback_to_locale(monkeypatch, stdEncoding):
 
 
 @pytest.mark.parametrize('std,locale', [
-    ['ascii', 'ascii'],
-    ['ascii', pytest.raises(Exception)],
-    [pytest.raises(Exception), 'ascii'],
-    [pytest.raises(Exception), pytest.raises(Exception)]
+    [MockEncoding('ascii'), 'ascii'],
+    [MockEncoding('ascii'), object()],
+    [MockEncoding(AttributeError), 'ascii'],
+    [MockEncoding(AttributeError), object()],
+    [MockEncoding(IOError), 'ascii'],
+    [MockEncoding(IOError), object()]
 ])
 def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):
     # When both the stdout/stdin encoding and locale preferred encoding checks
