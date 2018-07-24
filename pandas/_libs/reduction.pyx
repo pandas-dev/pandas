@@ -512,8 +512,8 @@ def apply_frame_axis0(object frame, object f, object names,
         chunk = frame.iloc[starts[0]:ends[0]]
         object.__setattr__(chunk, 'name', names[0])
         try:
-            piece = f(chunk)
-            if piece is chunk:
+            result = f(chunk)
+            if result is chunk:
                 raise InvalidApply('Function unsafe for fast apply')
         except:
             raise InvalidApply('Let this error raise above us')
@@ -529,20 +529,16 @@ def apply_frame_axis0(object frame, object f, object names,
             item_cache.clear()  # ugh
 
             object.__setattr__(slider.dummy, 'name', names[i])
-
-            # issue #21609. Skipping the first group to avoid running
-            # the functions twice. For plots this leads to an extra
-            # plot of the first group.
-            if (i > 0) | (hasattr(piece, 'index')):
-                piece = f(slider.dummy)
+            piece = f(slider.dummy)
 
             # I'm paying the price for index-sharing, ugh
-
-            if hasattr(piece, 'index'):
+            try:
                 if piece.index is slider.dummy.index:
                     piece = piece.copy(deep='all')
                 else:
                     mutated = True
+            except AttributeError:
+                pass
 
             results.append(piece)
     finally:

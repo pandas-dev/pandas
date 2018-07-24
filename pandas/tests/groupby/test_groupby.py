@@ -23,29 +23,6 @@ import numpy as np
 import pandas.util.testing as tm
 import pandas as pd
 
-from pandas._libs import reduction
-from itertools import count
-
-
-def test_apply_frame_axis0_runs_each_group_once():
-    # issue #21609
-    df = pd.DataFrame([[1, 2], [-3, -4], [5, 6], [-7, -8], [9, 10]],
-                      index=['A', 'B', 'C', 'D', 'E'], columns=['x', 'y'])
-    df['cat'] = [1, 2, 1, 2, 1]
-    sdata = df.sort_values('cat')
-
-    cc = count()
-    f = lambda x: next(cc)  # x is dummy input
-    names = pd.Int64Index([1, 2], dtype='int64', name='cat')
-    starts = np.array([0, 3], dtype=np.int64)
-    ends = np.array([3, 5], dtype=np.int64)
-
-    results, mutated = reduction.apply_frame_axis0(
-        sdata, f, names, starts, ends)
-
-    result = next(cc)
-    assert result == 2
-
 
 def test_repr():
     # GH18203
@@ -1408,7 +1385,7 @@ def test_set_group_name(df, grouper):
 
 
 def test_group_name_available_in_inference_pass():
-    # gh-15062, issue #21609
+    # gh-15062
     df = pd.DataFrame({'a': [0, 0, 1, 1, 2, 2], 'b': np.arange(6)})
 
     names = []
