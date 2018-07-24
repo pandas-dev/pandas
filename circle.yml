@@ -1,5 +1,9 @@
 version: 2
 jobs:
+
+  # --------------------------------------------------------------------------
+  # 0. py27_compat
+  # --------------------------------------------------------------------------
   py27_compat:
     docker:
       - image: continuumio/miniconda:latest
@@ -22,6 +26,9 @@ jobs:
           name: test
           command: ./ci/run_circle.sh  --skip-slow --skip-network
 
+  # --------------------------------------------------------------------------
+  # 1. py36_locale
+  # --------------------------------------------------------------------------
   py36_locale:
     docker:
       - image: continuumio/miniconda:latest
@@ -44,6 +51,34 @@ jobs:
           name: test
           command: ./ci/run_circle.sh  --skip-slow --skip-network
 
+  # --------------------------------------------------------------------------
+  # 2. py36_locale_slow
+  # --------------------------------------------------------------------------
+  py36_locale_slow:
+    docker:
+      - image: continuumio/miniconda:latest
+    environment:
+      JOB: "3.6_LOCALE_SLOW"
+      ENV_FILE: "ci/circle-36-locale_slow.yaml"
+      LOCALE_OVERRIDE: "zh_CN.UTF-8"
+      MINICONDA_DIR: /home/ubuntu/miniconda3
+    steps:
+      - checkout
+      - run:
+          name: build
+          command: |
+            ./ci/install_circle.sh
+            ./ci/show_circle.sh
+      - run:
+          name: install database
+          command: ./ci/install_db_circle.sh
+      - run:
+          name: test
+          command: ./ci/run_circle.sh  --only-slow --skip-network
+
+  # --------------------------------------------------------------------------
+  # 3. py35_ascii
+  # --------------------------------------------------------------------------
   py35_ascii:
     docker:
       - image: continuumio/miniconda:latest
@@ -73,4 +108,5 @@ workflows:
     jobs:
       - py27_compat
       - py36_locale
+      - py36_locale_slow
       - py35_ascii
