@@ -40,6 +40,8 @@ cdef class {{name}}Engine(IndexEngine):
     cdef _make_hash_table(self, n):
         {{if name == 'Object'}}
         return _hash.PyObjectHashTable(n)
+        {{elif name in {'Int8', 'Int16', 'Int32'} }}
+        return _hash.Int64HashTable(n)
         {{else}}
         return _hash.{{name}}HashTable(n)
         {{endif}}

@@ -6,7 +6,9 @@ import cython
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t,
+                    int8_t, int16_t, int32_t, int64_t,
+                    uint8_t, uint64_t,
+                    intp_t,
                     # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
                     # for cimport in cython>=0.27.3
                     NPY_DATETIME, NPY_TIMEDELTA)
@@ -242,6 +244,8 @@ cdef class IndexEngine:
         if not self.is_mapping_populated:
 
             values = self._get_index_values()
+            if values.dtype in {'int8', 'int16', 'int32'}:
+                values = algos.ensure_int64(values)
             self.mapping = self._make_hash_table(len(values))
             self._call_map_locations(values)
 

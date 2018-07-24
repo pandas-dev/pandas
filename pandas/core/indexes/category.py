@@ -448,18 +448,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        codes = self.categories.get_loc(key)
-        if (codes == -1):
-            raise KeyError(key)
+        code = self.categories.get_loc(key)
 
-        if self.is_monotonic_increasing and not self.is_unique:
-            if codes not in self._engine:
-                raise KeyError(key)
-            codes = self.codes.dtype.type(codes)
-            lhs = self.codes.searchsorted(codes, side='left')
-            rhs = self.codes.searchsorted(codes, side='right')
-            return slice(lhs, rhs)
-        return self._engine.get_loc(codes)
+        # dtype must be same as dtype for self.codes else searchsorted is slow
+        code = self.codes.dtype.type(code)
+
+        return self._engine.get_loc(code)
 
     def get_value(self, series, key):
         """
