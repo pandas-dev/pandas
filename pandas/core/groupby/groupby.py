@@ -306,6 +306,7 @@ class GroupByPlot(PandasObject):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
+            f.__name__ = name
             return self._groupby.apply(f)
         return attr
 

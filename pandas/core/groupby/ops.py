@@ -177,6 +177,7 @@ class BaseGrouper(object):
         # oh boy
         f_name = com._get_callable_name(f)
         if (f_name not in base.plotting_methods and
+                f_name not in base.extra_plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
                 values, mutated = splitter.fast_apply(f, group_keys)

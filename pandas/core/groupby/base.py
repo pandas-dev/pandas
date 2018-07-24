@@ -59,6 +59,7 @@ class GroupByMixin(object):
 # special case to prevent duplicate plots when catching exceptions when
 # forwarding methods from NDFrames
 plotting_methods = frozenset(['plot', 'boxplot', 'hist'])
+extra_plotting_methods = frozenset(['scatter'])
 
 common_apply_whitelist = frozenset([
     'last', 'first',
