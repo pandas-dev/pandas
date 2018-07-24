@@ -524,11 +524,11 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        s = com._values_from_object(series)
+        s = com.values_from_object(series)
         try:
-            return com._maybe_box(self,
-                                  super(PeriodIndex, self).get_value(s, key),
-                                  series, key)
+            return com.maybe_box(self,
+                                 super(PeriodIndex, self).get_value(s, key),
+                                 series, key)
         except (KeyError, IndexError):
             try:
                 asdt, parsed, reso = parse_time_string(key, self.freq)
@@ -551,16 +551,16 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                     return series[key]
                 elif grp == freqn:
                     key = Period(asdt, freq=self.freq).ordinal
-                    return com._maybe_box(self, self._engine.get_value(s, key),
-                                          series, key)
+                    return com.maybe_box(self, self._engine.get_value(s, key),
+                                         series, key)
                 else:
                     raise KeyError(key)
             except TypeError:
                 pass
 
             key = Period(key, self.freq).ordinal
-            return com._maybe_box(self, self._engine.get_value(s, key),
-                                  series, key)
+            return com.maybe_box(self, self._engine.get_value(s, key),
+                                 series, key)
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
@@ -865,7 +865,7 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
     PeriodIndex(['2017-03', '2017-04', '2017-05', '2017-06'],
                 dtype='period[M]', freq='M')
     """
-    if com._count_not_none(start, end, periods) != 2:
+    if com.count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 

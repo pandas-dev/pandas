@@ -385,7 +385,7 @@ class _Concatenator(object):
 
             # stack blocks
             if self.axis == 0:
-                name = com._consensus_name_attr(self.objs)
+                name = com.consensus_name_attr(self.objs)
 
                 mgr = self.objs[0]._data.concat([x._data for x in self.objs],
                                                 self.new_axes)

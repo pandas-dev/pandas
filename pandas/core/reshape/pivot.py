@@ -470,8 +470,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')

@@ -204,7 +204,7 @@ class Panel(NDFrame):
                                for k, v in compat.iteritems(data)
                                if k in haxis)
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             haxis = Index(keys)
 
         for k, v in compat.iteritems(data):
@@ -282,7 +282,7 @@ class Panel(NDFrame):
         return cls(**d)
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         if isinstance(self._info_axis, MultiIndex):
             return self._getitem_multilevel(key)
@@ -596,7 +596,7 @@ class Panel(NDFrame):
         return self._constructor_sliced(values, **d)
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
         shape = tuple(self.shape)
         if isinstance(value, self._constructor_sliced):
             value = value.reindex(

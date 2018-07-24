@@ -1260,17 +1260,17 @@ def test_groupby_sort_multi():
                     'd': np.random.randn(3)})
 
     tups = lmap(tuple, df[['a', 'b', 'c']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['a', 'b', 'c'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
 
     tups = lmap(tuple, df[['c', 'a', 'b']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['c', 'a', 'b'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups)
 
     tups = lmap(tuple, df[['b', 'c', 'a']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['b', 'c', 'a'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
 
@@ -1282,7 +1282,7 @@ def test_groupby_sort_multi():
 
     def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
         tups = lmap(tuple, df[keys].values)
-        tups = com._asarray_tuplesafe(tups)
+        tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
         for k, v in compat.iteritems(expected):
             assert (result[k] == v)

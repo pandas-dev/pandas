@@ -190,7 +190,7 @@ class BinOp(ops.BinOp):
             v = _coerce_scalar_to_timedelta_type(v, unit='s').value
             return TermValue(int(v), v, kind)
         elif meta == u('category'):
-            metadata = com._values_from_object(self.metadata)
+            metadata = com.values_from_object(self.metadata)
             result = metadata.searchsorted(v, side='left')
 
             # result returns 0 if v is first element or if v is not in metadata

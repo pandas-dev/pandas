@@ -500,9 +500,9 @@ class _MergeOperation(object):
         self.how = how
         self.axis = axis
 
-        self.on = com._maybe_make_list(on)
-        self.left_on = com._maybe_make_list(left_on)
-        self.right_on = com._maybe_make_list(right_on)
+        self.on = com.maybe_make_list(on)
+        self.left_on = com.maybe_make_list(left_on)
+        self.right_on = com.maybe_make_list(right_on)
 
         self.copy = copy
         self.suffixes = suffixes
@@ -1552,8 +1552,8 @@ def _factorize_keys(lk, rk, sort=True):
         rk = ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(com._values_from_object(lk))
-        rk = ensure_int64(com._values_from_object(rk))
+        lk = ensure_int64(com.values_from_object(lk))
+        rk = ensure_int64(com.values_from_object(rk))
     else:
         klass = libhashtable.Factorizer
         lk = ensure_object(lk)

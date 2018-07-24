@@ -253,7 +253,7 @@ class TestFromTuples(Base):
             return {'data': tuples}
         elif is_categorical_dtype(breaks):
             return {'data': breaks._constructor(tuples)}
-        return {'data': com._asarray_tuplesafe(tuples)}
+        return {'data': com.asarray_tuplesafe(tuples)}
 
     def test_constructor_errors(self):
         # non-tuple

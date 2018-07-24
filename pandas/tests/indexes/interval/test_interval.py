@@ -947,7 +947,7 @@ class TestIntervalIndex(Base):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
-        expected = Index(com._asarray_tuplesafe(tuples))
+        expected = Index(com.asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
@@ -963,7 +963,7 @@ class TestIntervalIndex(Base):
         result = idx.to_tuples(na_tuple=na_tuple)
 
         # check the non-NA portion
-        expected_notna = Index(com._asarray_tuplesafe(tuples[:-1]))
+        expected_notna = Index(com.asarray_tuplesafe(tuples[:-1]))
         result_notna = result[:-1]
         tm.assert_index_equal(result_notna, expected_notna)
 

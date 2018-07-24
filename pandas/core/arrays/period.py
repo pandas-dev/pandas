@@ -167,7 +167,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             freq = Period._maybe_convert_freq(freq)
 
         field_count = len(fields)
-        if com._count_not_none(start, end) > 0:
+        if com.count_not_none(start, end) > 0:
             if field_count > 0:
                 raise ValueError('Can either instantiate from fields '
                                  'or endpoints, but not both')
@@ -392,7 +392,7 @@ PeriodArrayMixin._add_comparison_ops()
 # Constructor Helpers
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
-    if com._count_not_none(start, end, periods) != 2:
+    if com.count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 

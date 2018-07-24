@@ -81,7 +81,7 @@ def _td_array_cmp(cls, op):
         else:
             other = type(self)(other).values
             result = meth(self, other)
-            result = com._values_from_object(result)
+            result = com.values_from_object(result)
 
             o_mask = np.array(isna(other))
             if o_mask.any():
@@ -150,7 +150,7 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     @classmethod
     def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
         # **kwargs are for compat with TimedeltaIndex, which includes `name`
-        if com._count_not_none(start, end, periods, freq) != 3:
+        if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
 
