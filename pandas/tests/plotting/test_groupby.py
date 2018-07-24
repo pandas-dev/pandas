@@ -26,8 +26,10 @@ def test_no_double_plot_for_first_group():
 
                 def f(self):
                     getattr(self.plot, name)(*args, **kwargs)
-                    next(counter_obj) # I have no idea why this is needed
-                    return next(counter_obj)
+                    # I have no idea why this is needed twice
+                    counter = next(counter_obj)
+                    counter = next(counter_obj)
+                    return counter
 
                 f.__name__ = name
                 return self._groupby.apply(f)
