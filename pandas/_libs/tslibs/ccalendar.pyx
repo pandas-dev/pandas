@@ -8,7 +8,7 @@ Cython implementations of functions resembling the stdlib calendar module
 cimport cython
 from cython cimport Py_ssize_t
 
-from libc.stdint cimport int64_t, int32_t
+from numpy cimport int64_t, int32_t
 
 from locale import LC_TIME
 from strptime import LocaleTime

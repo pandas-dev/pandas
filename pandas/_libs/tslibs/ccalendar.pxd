@@ -2,7 +2,8 @@
 # cython: profile=False
 
 from cython cimport Py_ssize_t
-from libc.stdint cimport int64_t, int32_t
+
+from numpy cimport int64_t, int32_t
 
 
 cdef int dayofweek(int y, int m, int d) nogil
