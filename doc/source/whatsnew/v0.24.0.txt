@@ -12,6 +12,7 @@ v0.24.0 (Month XX, 2018)
 
 New features
 ~~~~~~~~~~~~
+- :func:`merge` now directly allows merge between objects of type ``DataFrame`` and named ``Series``, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
 
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
@@ -370,6 +371,8 @@ Other API Changes
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 - Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
 - :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
+- :class:`Index` subtraction will attempt to operate element-wise instead of raising ``TypeError`` (:issue:`19369`)
+- :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 
 .. _whatsnew_0240.deprecations:
 
