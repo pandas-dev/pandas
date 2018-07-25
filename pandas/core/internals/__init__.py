@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from .blocks import (  # noqa:F401
-    try_cast_result,  # frame
     _block2d_to_blocknd, _factor_indexer, _block_shape,  # io.pytables
     _safe_reshape,  # io.packers
     make_block,     # io.pytables, io.packers
