@@ -14,7 +14,6 @@ from pandas.tests.plotting.common import TestPlotBase
 from itertools import count
 import pandas as pd
 import pytest
-import sys
 
 
 @pytest.mark.parametrize(
