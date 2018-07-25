@@ -144,7 +144,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     Parameters
     ----------
-    data : array-like, dict, or scalar value
+    data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series
 
         .. versionchanged :: 0.23.0
@@ -241,6 +241,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
+            # If data is Iterable but not list-like, consume into list.
             elif (isinstance(data, collections.Iterable)
                   and not isinstance(data, collections.Sized)):
                 data = list(data)

@@ -267,7 +267,7 @@ class DataFrame(NDFrame):
 
     Parameters
     ----------
-    data : numpy ndarray (structured or homogeneous), dict, or DataFrame
+    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
@@ -391,6 +391,8 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
+
+        # For data is list-like, or Iterable (will consume into list)
         elif (isinstance(data, collections.Iterable)
               and not isinstance(data, string_and_binary_types)):
             if not isinstance(data, collections.Sequence):
