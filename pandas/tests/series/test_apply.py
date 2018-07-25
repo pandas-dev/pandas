@@ -12,37 +12,12 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isna)
 from pandas.compat import lrange
 from pandas import compat
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import (assert_series_equal,
+                                 assert_frame_equal)
 import pandas.util.testing as tm
+from pandas.conftest import _get_cython_table_params
 
 from .common import TestData
-
-
-def _get_cython_table_params(series, func_names_and_expected):
-    """combine series, functions from SelectionMixin._cython_table
-    keys and expected result.
-
-    Parameters
-    ----------
-    series : Series
-        A Series
-    func_names_and_expected : Sequence of two items
-        The first item is a name of a NDFrame method ('sum', 'prod') etc.
-        The second item is the expected return value
-
-    Returns
-    -------
-    results : list
-        List of three items (Series, function, expected result)
-    """
-    from pandas.conftest import _cython_table
-    results = []
-    for func_name, expected in func_names_and_expected:
-        results.append((series, func_name, expected))
-        results += [
-            (series, func, expected) for func, name in _cython_table
-            if name == func_name]
-    return results
 
 
 class TestSeriesApply(TestData):
