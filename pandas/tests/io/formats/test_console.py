@@ -3,6 +3,7 @@ import pytest
 from pandas.io.formats.console import detect_console_encoding
 
 
+# TODO(py27): replace with mock
 class MockEncoding(object):
     """
     Used to add a side effect when accessing the 'encoding' property. If the
@@ -15,10 +16,13 @@ class MockEncoding(object):
 
     @property
     def encoding(self):
-        if isinstance(self.val, str):
-            return self.val
-        else:
-            raise self.val
+        return raiseOrReturn(self.val)
+
+def raiseOrReturn(val):
+    if isinstance(val, str):
+        return val
+    else:
+        raise val
 
 
 @pytest.mark.parametrize('empty,filled', [
@@ -49,12 +53,12 @@ def test_detect_console_encoding_fallback_to_locale(monkeypatch, stdEncoding):
 
 
 @pytest.mark.parametrize('std,locale', [
-    [MockEncoding('ascii'), 'ascii'],
-    [MockEncoding('ascii'), object()],
-    [MockEncoding(AttributeError), 'ascii'],
-    [MockEncoding(AttributeError), object()],
-    [MockEncoding(IOError), 'ascii'],
-    [MockEncoding(IOError), object()]
+    [MockEncoding('ascii'), lambda: 'ascii'],
+    [MockEncoding('ascii'), lambda: raiseOrReturn(Exception)],
+    [MockEncoding(AttributeError), lambda: 'ascii'],
+    [MockEncoding(AttributeError), lambda: raiseOrReturn(Exception)],
+    [MockEncoding(IOError), lambda: 'ascii'],
+    [MockEncoding(IOError), lambda: raiseOrReturn(Exception)]
 ])
 def test_detect_console_encoding_fallback_to_default(monkeypatch, std, locale):
     # When both the stdout/stdin encoding and locale preferred encoding checks
