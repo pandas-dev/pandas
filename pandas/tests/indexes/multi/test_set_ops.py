@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (CategoricalIndex, DatetimeIndex, MultiIndex, PeriodIndex,
-                    Series, TimedeltaIndex)
+from pandas import MultiIndex, Series
 
 
 def test_setops_errorcases(idx):
@@ -27,29 +25,18 @@ def test_intersection_base(idx):
     second = idx[:3]
     intersect = first.intersection(second)
 
-    if isinstance(idx, CategoricalIndex):
-        pass
-    else:
-        assert tm.equalContents(intersect, second)
+    assert tm.equalContents(intersect, second)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        if isinstance(idx, PeriodIndex):
-            msg = "can only call with other PeriodIndex-ed objects"
-            with tm.assert_raises_regex(ValueError, msg):
-                result = first.intersection(case)
-        elif isinstance(idx, CategoricalIndex):
-            pass
-        else:
-            result = first.intersection(case)
-            assert tm.equalContents(result, second)
+        result = first.intersection(case)
+        assert tm.equalContents(result, second)
 
-    if isinstance(idx, MultiIndex):
-        msg = "other must be a MultiIndex or a list of tuples"
-        with tm.assert_raises_regex(TypeError, msg):
-            result = first.intersection([1, 2, 3])
+    msg = "other must be a MultiIndex or a list of tuples"
+    with tm.assert_raises_regex(TypeError, msg):
+        result = first.intersection([1, 2, 3])
 
 
 def test_union_base(idx):
@@ -63,20 +50,12 @@ def test_union_base(idx):
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        if isinstance(idx, PeriodIndex):
-            msg = "can only call with other PeriodIndex-ed objects"
-            with tm.assert_raises_regex(ValueError, msg):
-                result = first.union(case)
-        elif isinstance(idx, CategoricalIndex):
-            pass
-        else:
-            result = first.union(case)
-            assert tm.equalContents(result, everything)
+        result = first.union(case)
+        assert tm.equalContents(result, everything)
 
-    if isinstance(idx, MultiIndex):
-        msg = "other must be a MultiIndex or a list of tuples"
-        with tm.assert_raises_regex(TypeError, msg):
-            result = first.union([1, 2, 3])
+    msg = "other must be a MultiIndex or a list of tuples"
+    with tm.assert_raises_regex(TypeError, msg):
+        result = first.union([1, 2, 3])
 
 
 def test_difference_base(idx):
@@ -85,63 +64,37 @@ def test_difference_base(idx):
     answer = idx[4:]
     result = first.difference(second)
 
-    if isinstance(idx, CategoricalIndex):
-        pass
-    else:
-        assert tm.equalContents(result, answer)
+    assert tm.equalContents(result, answer)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        if isinstance(idx, PeriodIndex):
-            msg = "can only call with other PeriodIndex-ed objects"
-            with tm.assert_raises_regex(ValueError, msg):
-                result = first.difference(case)
-        elif isinstance(idx, CategoricalIndex):
-            pass
-        elif isinstance(idx, (DatetimeIndex, TimedeltaIndex)):
-            assert result.__class__ == answer.__class__
-            tm.assert_numpy_array_equal(result.sort_values().asi8,
-                                        answer.sort_values().asi8)
-        else:
-            result = first.difference(case)
-            assert tm.equalContents(result, answer)
+        result = first.difference(case)
+        assert tm.equalContents(result, answer)
 
-    if isinstance(idx, MultiIndex):
-        msg = "other must be a MultiIndex or a list of tuples"
-        with tm.assert_raises_regex(TypeError, msg):
-            result = first.difference([1, 2, 3])
+    msg = "other must be a MultiIndex or a list of tuples"
+    with tm.assert_raises_regex(TypeError, msg):
+        result = first.difference([1, 2, 3])
 
 
 def test_symmetric_difference(idx):
     first = idx[1:]
     second = idx[:-1]
-    if isinstance(idx, CategoricalIndex):
-        pass
-    else:
-        answer = idx[[0, -1]]
-        result = first.symmetric_difference(second)
-        assert tm.equalContents(result, answer)
+    answer = idx[[0, -1]]
+    result = first.symmetric_difference(second)
+    assert tm.equalContents(result, answer)
 
     # GH 10149
     cases = [klass(second.values)
              for klass in [np.array, Series, list]]
     for case in cases:
-        if isinstance(idx, PeriodIndex):
-            msg = "can only call with other PeriodIndex-ed objects"
-            with tm.assert_raises_regex(ValueError, msg):
-                result = first.symmetric_difference(case)
-        elif isinstance(idx, CategoricalIndex):
-            pass
-        else:
-            result = first.symmetric_difference(case)
-            assert tm.equalContents(result, answer)
+        result = first.symmetric_difference(case)
+        assert tm.equalContents(result, answer)
 
-    if isinstance(idx, MultiIndex):
-        msg = "other must be a MultiIndex or a list of tuples"
-        with tm.assert_raises_regex(TypeError, msg):
-            first.symmetric_difference([1, 2, 3])
+    msg = "other must be a MultiIndex or a list of tuples"
+    with tm.assert_raises_regex(TypeError, msg):
+        first.symmetric_difference([1, 2, 3])
 
 
 def test_empty(idx):
