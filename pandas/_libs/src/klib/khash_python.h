@@ -19,7 +19,20 @@ khint64_t PANDAS_INLINE asint64(double key) {
   memcpy(&val, &key, sizeof(double));
   return val;
 }
-#define kh_float64_hash_func(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
+
+// correct for all inputs but not -0.0 and NaNs
+#define kh_float64_hash_func_0_NAN(key) (khint32_t)((asint64(key))>>33^(asint64(key))^(asint64(key))<<11)
+
+// correct for all inputs but not NaNs
+#define kh_float64_hash_func_NAN(key) ((key) == 0.0 ?                       \
+                                        kh_float64_hash_func_0_NAN(0.0) : \
+                                        kh_float64_hash_func_0_NAN(key))
+
+// correct for all
+#define kh_float64_hash_func(key) ((key) != (key) ?                       \
+                                   kh_float64_hash_func_NAN(Py_NAN) :     \
+                                   kh_float64_hash_func_NAN(key))
+
 #define kh_float64_hash_equal(a, b) ((a) == (b) || ((b) != (b) && (a) != (a)))
 
 #define KHASH_MAP_INIT_FLOAT64(name, khval_t)								\
