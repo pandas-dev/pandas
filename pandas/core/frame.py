@@ -70,8 +70,7 @@ from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
-                                   create_block_manager_from_blocks,
-                                   try_cast_result)
+                                   create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
@@ -4963,10 +4962,6 @@ class DataFrame(NDFrame):
 
         new_data = [func(left.iloc[:, n], right.iloc[n])
                     for n in range(len(left.columns))]
-
-        if try_cast:
-            new_data = [try_cast_result(left.iloc[:, n], new_data[n])
-                        for n in range(len(left.columns))]
 
         if left.columns.is_unique:
             new_data = {left.columns[n]: new_data[n]
