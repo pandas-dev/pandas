@@ -4932,29 +4932,20 @@ class DataFrame(NDFrame):
                                  copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
-        # TODO: `func` passed here is wrapped in core.ops; if we are
-        # dispatching to Series implementation, should we pass unwrapped?
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index), (left.columns, right.index)
 
-        new_data = [func(left.iloc[:, n], right.iloc[n])
+        # Note: we use iloc instead of loc for compat with
+        # case with non-unique columns; same reason why we pin columns
+        # to result below instead of passing it to the constructor.
+        new_data = {n: func(left.iloc[:, n], right.iloc[n])
                     for n in range(len(left.columns))]
 
-        if left.columns.is_unique:
-            new_data = {left.columns[n]: new_data[n]
-                        for n in range(len(left.columns))}
-            result = self._constructor(new_data,
-                                       index=left.index, columns=left.columns,
-                                       copy=False)
-            return result
-
-        else:
-            new_data = {i: new_data[i] for i in range(len(new_data))}
-            result = self._constructor(new_data, index=left.index, copy=False)
-            result.columns = left.columns
-            return result
+        result = self._constructor(new_data, index=left.index, copy=False)
+        result.columns = left.columns
+        return result
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         new_data = self._data.eval(func=func, other=other,
