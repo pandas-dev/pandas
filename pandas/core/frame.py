@@ -4941,7 +4941,7 @@ class DataFrame(NDFrame):
         # case with non-unique columns; same reason why we pin columns
         # to result below instead of passing it to the constructor.
         new_data = {n: func(left.iloc[:, n], right.iloc[n])
-                    for n in range(len(left.columns))]
+                    for n in range(len(left.columns))}
 
         result = self._constructor(new_data, index=left.index, copy=False)
         result.columns = left.columns
