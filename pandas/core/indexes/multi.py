@@ -1452,7 +1452,7 @@ class MultiIndex(Index):
         return MultiIndex(new_levels, new_labels,
                           names=self.names, sortorder=self.sortorder,
                           verify_integrity=False,
-                          tolerance=tolerance)
+                          tolerance=self.tolerance)
 
     def remove_unused_levels(self):
         """

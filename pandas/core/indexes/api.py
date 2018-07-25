@@ -101,10 +101,9 @@ def _union_indexes(indexes, sort=True, tolerance=None):
         return Index(
             lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
-    tolerance = indexes[0]._choose_tolerance(indexes[1:], tolerance)
     if kind == 'special':
         result = indexes[0]
-
+        tolerance = result._choose_tolerance(indexes[1:], tolerance=tolerance)
         if hasattr(result, 'union_many'):
             return result.union_many(indexes[1:], tolerance=tolerance)
         else:
@@ -113,6 +112,7 @@ def _union_indexes(indexes, sort=True, tolerance=None):
             return result
     elif kind == 'array':
         index = indexes[0]
+        tolerance = index._choose_tolerance(indexes[1:], tolerance=tolerance)
         for other in indexes[1:]:
             if not index.equals(other, tolerance=tolerance):
 
