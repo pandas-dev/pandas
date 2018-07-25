@@ -17,12 +17,12 @@ import pytest
 import sys
 
 
-
-@pytest.mark.parametrize('plotting_method',
+@pytest.mark.parametrize(
+    'plotting_method',
     ['line', 'bar', 'barh', 'box', 'density',
      'area', 'pie', 'scatter', 'hexbin',
-     pytest.param('kde', marks=pytest.mark.skipif('scipy' in sys.modules,
-                                            reason='kde requires scipy'))
+     pytest.param('kde', marks=pytest.mark.skipif(
+         'scipy' in sys.modules, reason='kde requires scipy'))
      ])
 @td.skip_if_no_mpl
 def test_no_double_plot_for_first_group(plotting_method):
