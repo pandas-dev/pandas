@@ -7513,6 +7513,10 @@ class NDFrame(PandasObject, SelectionMixin):
             msg = "rank does not make sense when ndim > 2"
             raise NotImplementedError(msg)
 
+        if na_option not in {'keep', 'top', 'bottom'}:
+            msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+            raise ValueError(msg)
+
         def ranker(data):
             ranks = algos.rank(data.values, axis=axis, method=method,
                                ascending=ascending, na_option=na_option,

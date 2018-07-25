@@ -248,6 +248,17 @@ def test_rank_avg_even_vals():
 def test_rank_object_raises(ties_method, ascending, na_option,
                             pct, vals):
     df = DataFrame({'key': ['foo'] * 5, 'val': vals})
+
+    with tm.assert_raises_regex(TypeError, "not callable"):
+        df.groupby('key').rank(method=ties_method,
+                               ascending=ascending,
+                               na_option='bad', pct=pct)
+
+    with tm.assert_raises_regex(TypeError, "not callable"):
+        df.groupby('key').rank(method=ties_method,
+                               ascending=ascending,
+                               na_option=True, pct=pct)
+
     with tm.assert_raises_regex(TypeError, "not callable"):
         df.groupby('key').rank(method=ties_method,
                                ascending=ascending,
