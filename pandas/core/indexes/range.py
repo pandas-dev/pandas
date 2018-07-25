@@ -17,7 +17,7 @@ from pandas.compat.numpy import function as nv
 
 import pandas.core.common as com
 from pandas.core import ops
-from pandas.core.indexes.base import Index, _index_shared_docs
+from pandas.core.indexes.base import Index, _index_shared_docs, ensure_index
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
@@ -80,7 +80,8 @@ class RangeIndex(Int64Index):
             if name is None:
                 name = start.name
             return cls._simple_new(name=name,
-                                   **dict(start._get_data_as_items()))
+                                   **dict(start._get_data_as_items(),
+                                          tolerance=tolerance))
 
         # validate the arguments
         def ensure_int(value, field):
@@ -174,7 +175,8 @@ class RangeIndex(Int64Index):
 
     @cache_readonly
     def _int64index(self):
-        return Int64Index(self._data, name=self.name, fastpath=True)
+        return Int64Index(self._data, name=self.name, fastpath=True,
+                          tolerance=self.tolerance)
 
     def _get_data_as_items(self):
         """ return a list of tuples of start, stop, step """
@@ -321,6 +323,7 @@ class RangeIndex(Int64Index):
         if isinstance(other, RangeIndex):
             ls = len(self)
             lo = len(other)
+            # FIXME: intolerant
             return (ls == lo == 0 or
                     ls == lo == 1 and
                     self._start == other._start or
@@ -428,13 +431,12 @@ class RangeIndex(Int64Index):
         union : Index
         """
         self._assert_can_do_setop(other)
+        other = ensure_index(other)
         tolerance = self._choose_tolerance([other], tolerance=tolerance)
         if len(other) == 0 or self.equals(other, tolerance=tolerance):
-            # FIXME: intolerant
-            return self
+            return self._shallow_copy(tolerance=tolerance)
         if len(self) == 0:
-            # FIXME: intolerant
-            return other
+            return other._shallow_copy(tolerance=tolerance)
         if isinstance(other, RangeIndex):
             # FIXME: intolerant (how should I implement this?)
             start_s, step_s = self._start, self._step

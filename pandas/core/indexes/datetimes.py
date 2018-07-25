@@ -64,7 +64,7 @@ def _wrap_field_accessor(name):
         result = fget(self)
         if is_bool_dtype(result):
             return result
-        return Index(result, name=self.name)
+        return Index(result, name=self.name, tolerance=self.tolerance)
 
     f.__name__ = name
     f.__doc__ = fget.__doc__
@@ -76,7 +76,7 @@ def _wrap_in_index(name):
 
     def func(self, *args, **kwargs):
         result = meth(self, *args, **kwargs)
-        return Index(result, name=self.name)
+        return Index(result, name=self.name, tolerance=self.tolerance)
 
     func.__doc__ = meth.__doc__
     func.__name__ = name

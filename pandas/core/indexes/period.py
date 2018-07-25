@@ -811,6 +811,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 np.ndarray.__setstate__(self, state)
 
             self._data = data
+            self.tolerance = None
 
         else:
             raise Exception("invalid pickle state")

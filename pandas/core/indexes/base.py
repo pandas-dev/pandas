@@ -293,7 +293,7 @@ class Index(IndexOpsMixin, PandasObject):
             # coerce to the object dtype
             data = data.astype(object)
             return Index(data, dtype=object, copy=copy, name=name,
-                         **kwargs)
+                         tolerance=tolerance, **kwargs)
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
@@ -306,7 +306,8 @@ class Index(IndexOpsMixin, PandasObject):
                                        dtype=dtype, tolerance=tolerance,
                                        **kwargs)
                 if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
+                    return Index(result.to_pydatetime(), dtype=_o_dtype,
+                                 tolerance=tolerance)
                 else:
                     return result
 
@@ -316,7 +317,8 @@ class Index(IndexOpsMixin, PandasObject):
                 result = TimedeltaIndex(data, copy=copy, name=name,
                                         tolerance=tolerance, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
+                    return Index(result.to_pytimedelta(), dtype=_o_dtype,
+                                 tolerance=tolerance)
                 else:
                     return result
 
@@ -468,7 +470,8 @@ class Index(IndexOpsMixin, PandasObject):
                     # 10697
                     from .multi import MultiIndex
                     return MultiIndex.from_tuples(
-                        data, names=name or kwargs.get('names'))
+                        data, names=name or kwargs.get('names'),
+                        tolerance=tolerance)
             # other iterable of some kind
             subarr = com.asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name,
@@ -1925,6 +1928,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if isinstance(state, dict):
             self._data = state.pop('data')
+            self.tolerance = state.pop('tolerance', None)
             for k, v in compat.iteritems(state):
                 setattr(self, k, v)
 
@@ -1940,6 +1944,7 @@ class Index(IndexOpsMixin, PandasObject):
                 data = np.empty(state)
                 np.ndarray.__setstate__(data, state)
 
+            self.tolerance = None
             self._data = data
             self._reset_identity()
         else:
@@ -2430,6 +2435,10 @@ class Index(IndexOpsMixin, PandasObject):
         """Similar to equals, but check that other comparable attributes are
         also equal
         """
+        # FIXME: Should two indexes with different tolerances but are
+        # otherwise identical be considered identical?
+        # FIXME: Should this equality check take into account tolerances,
+        # or should it be forced to be strict (tolerance=0)?
         return (self.equals(other) and
                 all((getattr(self, c, None) == getattr(other, c, None)
                      for c in self._comparables)) and
@@ -4563,7 +4572,7 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None:
             self._validate_index_level(level)
         result = super(Index, self).unique()
-        return self._shallow_copy(result)
+        return self._shallow_copy(result, tolerance=self.tolerance)
 
     def drop_duplicates(self, keep='first'):
         """

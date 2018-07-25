@@ -988,7 +988,7 @@ class IntervalIndex(IntervalMixin, Index):
                 self.closed == other.closed)
 
     def _setop(op_name):
-        def func(self, other):
+        def func(self, other, tolerance=None):
             other = self._as_like_interval_index(other)
 
             # GH 19016: ensure set op will not return a prohibited dtype
@@ -999,8 +999,10 @@ class IntervalIndex(IntervalMixin, Index):
                        'objects that have compatible dtypes')
                 raise TypeError(msg.format(op=op_name))
 
-            result = getattr(self._multiindex, op_name)(other._multiindex)
+            result = getattr(self._multiindex, op_name)(other._multiindex,
+                                                        tolerance=tolerance)
             result_name = self.name if self.name == other.name else None
+            result_tolerance = result.tolerance
 
             # GH 19101: ensure empty results have correct dtype
             if result.empty:
@@ -1009,7 +1011,8 @@ class IntervalIndex(IntervalMixin, Index):
                 result = result.values
 
             return type(self).from_tuples(result, closed=self.closed,
-                                          name=result_name)
+                                          name=result_name,
+                                          tolerance=result_tolerance)
         return func
 
     union = _setop('union')

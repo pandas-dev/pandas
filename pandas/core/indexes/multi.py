@@ -1569,12 +1569,13 @@ class MultiIndex(Index):
 
             nd_state, own_state = state
             levels, labels, sortorder, names = own_state
+            tolerance = None
 
         self._set_levels([Index(x) for x in levels], validate=False)
         self._set_labels(labels)
         self._set_names(names)
         self.sortorder = sortorder
-        self.tolerance = None
+        self.tolerance = tolerance
         self._verify_integrity()
         self._reset_identity()
 
