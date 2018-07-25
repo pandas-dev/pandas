@@ -229,7 +229,7 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
 Parsing Datetime Strings with Timezone Offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Before, parsing datetime strings with UTC offsets with :func:`to_datetime`
+Previously, parsing datetime strings with UTC offsets with :func:`to_datetime`
 or :class:`DatetimeIndex` would automatically convert the datetime to UTC
 without timezone localization. This is inconsistent from parsing the same
 datetime string with :class:`Timestamp` which would preserve the UTC
@@ -248,7 +248,7 @@ UTC offset (:issue:`17697`, :issue:`11736`)
     In [3]: pd.Timestamp("2015-11-18 15:30:00+05:30")
     Out[3]: Timestamp('2015-11-18 15:30:00+0530', tz='pytz.FixedOffset(330)')
 
-    # Different UTC offsets would automatically converted the datetimes to UTC (without a UTC timezone)
+    # Different UTC offsets would automatically convert the datetimes to UTC (without a UTC timezone)
     In [4]: pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
     Out[4]: DatetimeIndex(['2015-11-18 10:00:00', '2015-11-18 10:00:00'], dtype='datetime64[ns]', freq=None)
 

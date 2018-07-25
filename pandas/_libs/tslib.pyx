@@ -471,6 +471,23 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
     Handles datetime.date, datetime.datetime, np.datetime64 objects, numeric,
     strings
 
+    Parameters
+    ----------
+    values : ndarray of object
+         date-like objects to convert
+    errors : str, default 'raise'
+         error behavior when parsing
+    dayfirst : bool, default False
+         dayfirst parsing behavior when encountering datetime strings
+    yearfirst : bool, default False
+         yearfirst parsing behavior when encountering datetime strings
+    format : str, default None
+         format of the string to parse
+    utc : bool, default None
+         indicator whether the dates should be UTC
+    require_iso8601 : bool, default False
+         indicator whether the datetime string should be iso8601
+
     Returns
     -------
     tuple (ndarray, tzoffset)
@@ -610,29 +627,31 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
-                        tz = py_dt.tzinfo
                     except Exception:
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
                         raise TypeError("invalid string coercion to datetime")
 
-                    try:
-                        if tz is not None:
-                            seen_datetime_offset = 1
-                            if tz is dateutil_utc():
-                                # dateutil.tz.tzutc has no _offset attribute
-                                # Just add the 0 offset explicitly
-                                out_tzoffset_vals.add(0)
-                            else:
-                                # dateutil.tz.tzoffset objects cannot be hashed
-                                # store the total_seconds() instead
-                                offset_seconds = tz._offset.total_seconds()
-                                out_tzoffset_vals.add(offset_seconds)
+                    # If the dateutil parser returned tzinfo, capture it
+                    # to check if all arguments have the same tzinfo
+                    tz = py_dt.tzinfo
+                    if tz is not None:
+                        seen_datetime_offset = 1
+                        if tz is dateutil_utc():
+                            # dateutil.tz.tzutc has no _offset attribute
+                            # Just add the 0 offset explicitly
+                            out_tzoffset_vals.add(0)
                         else:
-                            # Add a marker for naive string, to track if we are
-                            # parsing mixed naive and aware strings
-                            out_tzoffset_vals.add('naive')
+                            # dateutil.tz.tzoffset objects cannot be hashed
+                            # store the total_seconds() instead
+                            offset_seconds = tz._offset.total_seconds()
+                            out_tzoffset_vals.add(offset_seconds)
+                    else:
+                        # Add a marker for naive string, to track if we are
+                        # parsing mixed naive and aware strings
+                        out_tzoffset_vals.add('naive')
+                    try:
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
                     except OutOfBoundsDatetime:
@@ -712,8 +731,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             #    (with individual dateutil.tzoffsets) are returned
             is_same_offsets = len(out_tzoffset_vals) == 1
             if not is_same_offsets:
-                result, tz_out = array_to_datetime_object(values, is_raise,
-                                                          dayfirst, yearfirst)
+                return array_to_datetime_object(values, is_raise,
+                                                dayfirst, yearfirst)
             else:
                 tz_offset = out_tzoffset_vals.pop()
                 tz_out = pytz.FixedOffset(tz_offset / 60.)
@@ -751,6 +770,21 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
 
     Attempts to parse datetime strings with dateutil to return an array
     of datetime objects
+
+    Parameters
+    ----------
+    values : ndarray of object
+         date-like objects to convert
+    is_raise : bool
+         error behavior when parsing
+    dayfirst : bool, default False
+         dayfirst parsing behavior when encountering datetime strings
+    yearfirst : bool, default False
+         yearfirst parsing behavior when encountering datetime strings
+
+    Returns
+    -------
+    tuple (ndarray, None)
     """
     cdef:
         Py_ssize_t i, n = len(values)
@@ -760,6 +794,9 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
 
     oresult = np.empty(n, dtype=object)
 
+    # We return an object array and only attempt to parse:
+    # 1) NaT or NaT-like values
+    # 2) datetime strings, which we return as datetime.datetime
     for i in range(n):
         val = values[i]
         if checknull_with_nat(val):
