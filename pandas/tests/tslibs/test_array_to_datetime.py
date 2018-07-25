@@ -70,9 +70,11 @@ class TestArrayToDatetime(object):
             np_array_datetime64_compat(expected, dtype='M8[ns]'))
 
     @pytest.mark.parametrize('dt_string, expected_tz', [
+        ['01-01-2013 08:00:00+08:00', pytz.FixedOffset(480)],
         ['2013-01-01T08:00:00.000000000+0800', pytz.FixedOffset(480)],
-        ['2012-12-31T16:00:00.000000000-0800', pytz.FixedOffset(-480)]])
-    def test_parsing_iso_timezone_offsets(self, dt_string, expected_tz):
+        ['2012-12-31T16:00:00.000000000-0800', pytz.FixedOffset(-480)],
+        ['12-31-2012 23:00:00-01:00', pytz.FixedOffset(-60)]])
+    def test_parsing_timezone_offsets(self, dt_string, expected_tz):
         # All of these datetime strings with offsets are equivalent
         # to the same datetime after the timezone offset is added
         arr = np.array(['01-01-2013 00:00:00'], dtype=object)
@@ -83,16 +85,13 @@ class TestArrayToDatetime(object):
         tm.assert_numpy_array_equal(result, expected)
         assert result_tz is expected_tz
 
-    def test_parse_non_iso_timezone_offsets(self):
-        # Non-ISO 8601 datetime strings will not return a timezone offset
-        # as a limitation of the C parser. tzinfo will be populated though
-        arr = np.array(['01-01-2013 08:00:00+08:00'], dtype=object)
+    def test_parsing_non_iso_timezone_offset(self):
+        dt_string = '01-01-2013T00:00:00.000000000+0000'
+        arr = np.array([dt_string], dtype=object)
         result, result_tz = tslib.array_to_datetime(arr)
-        expected = np.array([datetime(2013, 1, 1, 8, 0,
-                                      tzinfo=tzoffset(None, 28800))],
-                            dtype=object)
+        expected = np.array([np.datetime64('2013-01-01 00:00:00.000000000')])
         tm.assert_numpy_array_equal(result, expected)
-        assert result_tz is None
+        assert result_tz is pytz.FixedOffset(0)
 
     def test_parsing_different_timezone_offsets(self):
         # GH 17697

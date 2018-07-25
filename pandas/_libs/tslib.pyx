@@ -19,6 +19,7 @@ import numpy as np
 cnp.import_array()
 
 import pytz
+from dateutil.tz import tzutc as dateutil_utc
 
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
@@ -490,6 +491,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint is_coerce = errors=='coerce'
         _TSObject _ts
         int out_local=0, out_tzoffset=0
+        float offset_seconds
         set out_tzoffset_vals = set()
 
     # specify error conditions
@@ -608,6 +610,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
+                        tz = py_dt.tzinfo
                     except Exception:
                         if is_coerce:
                             iresult[i] = NPY_NAT
@@ -615,9 +618,17 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         raise TypeError("invalid string coercion to datetime")
 
                     try:
-                        if py_dt.tzinfo is not None:
+                        if tz is not None:
                             seen_datetime_offset = 1
-                            out_tzoffset_vals.add(py_dt.tzinfo)
+                            if tz is dateutil_utc():
+                                # dateutil.tz.tzutc has no _offset attribute
+                                # Just add the 0 offset explicitly
+                                out_tzoffset_vals.add(0)
+                            else:
+                                # dateutil.tz.tzoffset objects cannot be hashed
+                                # store the total_seconds() instead
+                                offset_seconds = tz._offset.total_seconds()
+                                out_tzoffset_vals.add(offset_seconds)
                         else:
                             # Add a marker for naive string, to track if we are
                             # parsing mixed naive and aware strings
@@ -641,8 +652,11 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     value = dtstruct_to_dt64(&dts)
                     if out_local == 1:
                         seen_datetime_offset = 1
+                        # Store the out_tzoffset in seconds
+                        # since we store the total_seconds of
+                        # dateutil.tz.tzoffset objects
+                        out_tzoffset_vals.add(out_tzoffset * 60.)
                         tz = pytz.FixedOffset(out_tzoffset)
-                        out_tzoffset_vals.add(tz)
                         value = tz_convert_single(value, tz, 'UTC')
                     else:
                         # Add a marker for naive string, to track if we are
@@ -696,13 +710,13 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             # 2) If the offsets are different, then force the parsing down the
             #    object path where an array of datetimes
             #    (with individual dateutil.tzoffsets) are returned
-
             is_same_offsets = len(out_tzoffset_vals) == 1
             if not is_same_offsets:
                 result, tz_out = array_to_datetime_object(values, is_raise,
                                                           dayfirst, yearfirst)
             else:
-                tz_out = out_tzoffset_vals.pop()
+                tz_offset = out_tzoffset_vals.pop()
+                tz_out = pytz.FixedOffset(tz_offset / 60.)
         return result, tz_out
     except OutOfBoundsDatetime:
         if is_raise:
