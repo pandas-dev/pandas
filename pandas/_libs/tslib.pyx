@@ -19,7 +19,7 @@ import numpy as np
 cnp.import_array()
 
 import pytz
-from dateutil.tz import tzutc as dateutil_utc
+from dateutil.tz import tzlocal, tzutc as dateutil_utc
 
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
@@ -639,9 +639,15 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     if tz is not None:
                         seen_datetime_offset = 1
                         if tz is dateutil_utc():
-                            # dateutil.tz.tzutc has no _offset attribute
+                            # dateutil.tz.tzutc has no offset-like attribute
                             # Just add the 0 offset explicitly
                             out_tzoffset_vals.add(0)
+                        elif tz == tzlocal():
+                            # is comparison fails unlike other dateutil.tz
+                            # objects. Also, dateutil.tz.tzlocal has no
+                            # _offset attribute like tzoffset
+                            offset_seconds = tz._dst_offset.total_seconds()
+                            out_tzoffset_vals.add(offset_seconds)
                         else:
                             # dateutil.tz.tzoffset objects cannot be hashed
                             # store the total_seconds() instead
