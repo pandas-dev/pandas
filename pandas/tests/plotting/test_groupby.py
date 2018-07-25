@@ -16,15 +16,15 @@ import pandas as pd
 import pytest
 import sys
 
-from matplotlib.pyplot import plt
 
-@td._skip_if_no_mpl
+
 @pytest.mark.parametrize('plotting_method',
     ['line', 'bar', 'barh', 'box', 'density',
      'area', 'pie', 'scatter', 'hexbin',
      pytest.param('kde', marks=pytest.mark.skipif('scipy' in sys.modules,
                                             reason='kde requires scipy'))
      ])
+@td.skip_if_no_mpl
 def test_no_double_plot_for_first_group(plotting_method):
     class extGroupByPlot(pd.core.groupby.groupby.GroupByPlot):
         def __init__(self, groupby):
