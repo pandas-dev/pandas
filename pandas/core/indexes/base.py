@@ -446,7 +446,7 @@ class Index(IndexOpsMixin, PandasObject):
                                               **kwargs)
                     elif inferred == 'period':
                         try:
-                            return PeriodIndex(subarr, name=name, 
+                            return PeriodIndex(subarr, name=name,
                                                tolerance=tolerance, **kwargs)
                         except IncompatibleFrequency:
                             pass

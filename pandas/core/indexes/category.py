@@ -78,7 +78,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
                 copy=False, name=None, fastpath=False, tolerance=None):
         if fastpath:
-            return cls._simple_new(data, name=name, dtype=dtype, tolerance=tolerance)
+            return cls._simple_new(data, name=name, dtype=dtype,
+                                   tolerance=tolerance)
 
         if name is None and hasattr(data, 'name'):
             name = data.name

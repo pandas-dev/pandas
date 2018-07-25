@@ -955,15 +955,16 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return to_timedelta(self.asi8 - self.to_period(freq)
                             .to_timestamp().asi8)
 
-    def union_many(self, others):
+    def union_many(self, others, tolerance=None):
         """
         A bit of a hack to accelerate unioning a collection of indexes
         """
         this = self
+        tolerance = self._choose_tolerance(others, tolerance=tolerance)
 
         for other in others:
             if not isinstance(this, DatetimeIndex):
-                this = Index.union(this, other)
+                this = Index.union(this, other, tolerance=tolerance)
                 continue
 
             if not isinstance(other, DatetimeIndex):
@@ -975,10 +976,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             this, other = this._maybe_utc_convert(other)
 
             if this._can_fast_union(other):
-                this = this._fast_union(other)
+                this = this._fast_union(other, tolerance)
             else:
                 tz = this.tz
-                this = Index.union(this, other)
+                this = Index.union(this, other, tolerance=tolerance)
                 if isinstance(this, DatetimeIndex):
                     this._tz = timezones.tz_standardize(tz)
 

@@ -411,7 +411,7 @@ class RangeIndex(Int64Index):
             old_t, t = t, old_t - quotient * t
         return old_r, old_s, old_t
 
-    def union(self, other):
+    def union(self, other, tolerance=None):
         """
         Form the union of two Index objects and sorts if possible
 
@@ -425,11 +425,15 @@ class RangeIndex(Int64Index):
         """
         # FIXME: intolerant
         self._assert_can_do_setop(other)
-        if len(other) == 0 or self.equals(other):
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+        if len(other) == 0 or self.equals(other, tolerance=tolerance):
+            # FIXME: intolerant
             return self
         if len(self) == 0:
+            # FIXME: intolerant
             return other
         if isinstance(other, RangeIndex):
+            # FIXME: intolerant (how should I implement this?)
             start_s, step_s = self._start, self._step
             end_s = self._start + self._step * (len(self) - 1)
             start_o, step_o = other._start, other._step
@@ -450,23 +454,27 @@ class RangeIndex(Int64Index):
                 if ((start_s - start_o) % step_s == 0 and
                         (start_s - end_o) <= step_s and
                         (start_o - end_s) <= step_s):
-                    return RangeIndex(start_r, end_r + step_s, step_s)
+                    return RangeIndex(start_r, end_r + step_s, step_s,
+                                      tolerance=tolerance)
                 if ((step_s % 2 == 0) and
                         (abs(start_s - start_o) <= step_s / 2) and
                         (abs(end_s - end_o) <= step_s / 2)):
-                    return RangeIndex(start_r, end_r + step_s / 2, step_s / 2)
+                    return RangeIndex(start_r, end_r + step_s / 2, step_s / 2,
+                                      tolerance=tolerance)
             elif step_o % step_s == 0:
                 if ((start_o - start_s) % step_s == 0 and
                         (start_o + step_s >= start_s) and
                         (end_o - step_s <= end_s)):
-                    return RangeIndex(start_r, end_r + step_s, step_s)
+                    return RangeIndex(start_r, end_r + step_s, step_s,
+                                      tolerance=tolerance)
             elif step_s % step_o == 0:
                 if ((start_s - start_o) % step_o == 0 and
                         (start_s + step_o >= start_o) and
                         (end_s - step_o <= end_o)):
-                    return RangeIndex(start_r, end_r + step_o, step_o)
+                    return RangeIndex(start_r, end_r + step_o, step_o,
+                                      tolerance=tolerance)
 
-        return self._int64index.union(other)
+        return self._int64index.union(other, tolerance=tolerance)
 
     @Appender(_index_shared_docs['join'])
     def join(self, other, how='left', level=None, return_indexers=False,

@@ -224,7 +224,8 @@ class MultiIndex(Index):
         if len(levels) == 0:
             raise ValueError('Must pass non-zero number of levels/labels')
         if tolerance is not None:
-            raise ValueError("MultiIndex does not support non-None tolerances yet")
+            raise ValueError("MultiIndex does not support non-None"
+                             " tolerances yet")
 
         result = object.__new__(MultiIndex)
 
@@ -2192,7 +2193,8 @@ class MultiIndex(Index):
             raise NotImplementedError('only the default get_loc method is '
                                       'currently supported for MultiIndex')
         if tolerance is not None:
-            raise NotImplementedError("Tolerance is not supported for MultiIndex")
+            raise NotImplementedError("Tolerance is not supported for"
+                                      " MultiIndex")
 
         def _maybe_to_slice(loc):
             """convert integer indexer to boolean mask or slice if possible"""
