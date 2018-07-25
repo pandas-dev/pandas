@@ -316,7 +316,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _validate_frequency(cls, index, freq, **kwargs):
         """
         Validate that a frequency is compatible with the values of a given
-        DatetimeIndex or TimedeltaIndex
+        Datetime Array/Index or Timedelta Array/Index
 
         Parameters
         ----------
