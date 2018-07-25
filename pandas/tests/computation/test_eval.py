@@ -10,7 +10,6 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 import pandas as pd
-from pandas.core import common as com
 from pandas.errors import PerformanceWarning
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
@@ -94,7 +93,7 @@ def _is_py3_complex_incompat(result, expected):
             np.isnan(result))
 
 
-_good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
+_good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
 
 
 @td.skip_if_no_ne
