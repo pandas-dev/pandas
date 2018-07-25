@@ -650,7 +650,7 @@ class IntervalIndex(IntervalMixin, Index):
         >>> overlapping_index.get_loc(1.5)
         array([0, 1], dtype=int64)
         """
-        # FIXME: mostly intolerant
+        # FIXME: intolerant
         self._check_method(method)
 
         original_key = key
@@ -660,7 +660,7 @@ class IntervalIndex(IntervalMixin, Index):
             if isinstance(key, Interval):
                 left = self._maybe_cast_slice_bound(key.left, 'left', None)
                 right = self._maybe_cast_slice_bound(key.right, 'right', None)
-                key = Interval(left, right, key.closed, tolerance=tolerance)
+                key = Interval(left, right, key.closed)
             else:
                 key = self._maybe_cast_slice_bound(key, 'left', None)
 

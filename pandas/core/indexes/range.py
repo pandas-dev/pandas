@@ -330,7 +330,7 @@ class RangeIndex(Int64Index):
 
         return super(RangeIndex, self).equals(other, tolerance=tolerance)
 
-    def intersection(self, other):
+    def intersection(self, other, tolerance=None):
         """
         Form the intersection of two Index objects. Sortedness of the result is
         not guaranteed
@@ -343,22 +343,25 @@ class RangeIndex(Int64Index):
         -------
         intersection : Index
         """
-        # FIXME: intolerant
         if not isinstance(other, RangeIndex):
-            return super(RangeIndex, self).intersection(other)
+            return super(RangeIndex, self).intersection(other,
+                                                        tolerance=tolerance)
 
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
         if not len(self) or not len(other):
-            return RangeIndex._simple_new(None)
+            return RangeIndex._simple_new(None, tolerance=tolerance)
 
         first = self[::-1] if self._step < 0 else self
         second = other[::-1] if other._step < 0 else other
+
+        # FIXME: intolerant
 
         # check whether intervals intersect
         # deals with in- and decreasing ranges
         int_low = max(first._start, second._start)
         int_high = min(first._stop, second._stop)
         if int_high <= int_low:
-            return RangeIndex._simple_new(None)
+            return RangeIndex._simple_new(None, tolerance=tolerance)
 
         # Method hint: linear Diophantine equation
         # solve intersection problem
@@ -368,14 +371,15 @@ class RangeIndex(Int64Index):
 
         # check whether element sets intersect
         if (first._start - second._start) % gcd:
-            return RangeIndex._simple_new(None)
+            return RangeIndex._simple_new(None, tolerance=tolerance)
 
         # calculate parameters for the RangeIndex describing the
         # intersection disregarding the lower bounds
         tmp_start = first._start + (second._start - first._start) * \
             first._step // gcd * s
         new_step = first._step * second._step // gcd
-        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True)
+        new_index = RangeIndex(tmp_start, int_high, new_step, fastpath=True,
+                               tolerance=tolerance)
 
         # adjust index to limiting interval
         new_index._start = new_index._min_fitting_element(int_low)
@@ -423,7 +427,6 @@ class RangeIndex(Int64Index):
         -------
         union : Index
         """
-        # FIXME: intolerant
         self._assert_can_do_setop(other)
         tolerance = self._choose_tolerance([other], tolerance=tolerance)
         if len(other) == 0 or self.equals(other, tolerance=tolerance):

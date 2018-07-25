@@ -2892,9 +2892,9 @@ class MultiIndex(Index):
 
         return self.__bounds
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined, other, tolerance):
         names = self.names if self.names == other.names else None
-        return MultiIndex.from_tuples(joined, names=names)
+        return MultiIndex.from_tuples(joined, names=names, tolerance=tolerance)
 
     @Appender(Index.isin.__doc__)
     def isin(self, values, level=None):

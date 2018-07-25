@@ -3983,7 +3983,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
-
+        tolerance = self._choose_tolerance([other])
+        # FIXME: intolerant
         left_idx, right_idx = _get_join_indexers([self._ndarray_values],
                                                  [other._ndarray_values],
                                                  how=how,
@@ -3996,7 +3997,7 @@ class Index(IndexOpsMixin, PandasObject):
         mask = left_idx == -1
         np.putmask(join_index, mask, other._ndarray_values.take(right_idx))
 
-        join_index = self._wrap_joined_index(join_index, other)
+        join_index = self._wrap_joined_index(join_index, other, tolerance)
 
         if return_indexers:
             return join_index, left_idx, right_idx
@@ -4133,9 +4134,12 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _join_monotonic(self, other, how='left', return_indexers=False):
-        if self.equals(other):
+    def _join_monotonic(self, other, how='left', return_indexers=False,
+                        tolerance=None):
+        tolerance = self._choose_tolerance([other], tolerance=tolerance)
+        if self.equals(other, tolerance=tolerance):
             ret_index = other if how == 'right' else self
+            # FIXME: intolerant, need to set the used tolerance
             if return_indexers:
                 return ret_index, None, None
             else:
@@ -4145,6 +4149,7 @@ class Index(IndexOpsMixin, PandasObject):
         ov = other._ndarray_values
 
         if self.is_unique and other.is_unique:
+            # FIXME: intolerant
             # We can perform much better than the general case
             if how == 'left':
                 join_index = self
@@ -4156,11 +4161,14 @@ class Index(IndexOpsMixin, PandasObject):
                 ridx = None
             elif how == 'inner':
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
-                join_index = self._wrap_joined_index(join_index, other)
+                join_index = self._wrap_joined_index(join_index, other,
+                                                     tolerance)
             elif how == 'outer':
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
-                join_index = self._wrap_joined_index(join_index, other)
+                join_index = self._wrap_joined_index(join_index, other,
+                                                     tolerance)
         else:
+            # FIXME: intolerant
             if how == 'left':
                 join_index, lidx, ridx = self._left_indexer(sv, ov)
             elif how == 'right':
@@ -4169,7 +4177,7 @@ class Index(IndexOpsMixin, PandasObject):
                 join_index, lidx, ridx = self._inner_indexer(sv, ov)
             elif how == 'outer':
                 join_index, lidx, ridx = self._outer_indexer(sv, ov)
-            join_index = self._wrap_joined_index(join_index, other)
+            join_index = self._wrap_joined_index(join_index, other, tolerance)
 
         if return_indexers:
             lidx = None if lidx is None else ensure_platform_int(lidx)
@@ -4178,9 +4186,9 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return join_index
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined, other, tolerance):
         name = self.name if self.name == other.name else None
-        return Index(joined, name=name)
+        return Index(joined, name=name, tolerance=tolerance)
 
     def _get_string_slice(self, key, use_lhs=True, use_rhs=True):
         # this is for partial string indexing,

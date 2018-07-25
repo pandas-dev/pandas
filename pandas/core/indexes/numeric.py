@@ -186,9 +186,9 @@ class Int64Index(NumericIndex):
         return (super(Int64Index, self)
                 ._convert_scalar_indexer(key, kind=kind))
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined, other, tolerance):
         name = self.name if self.name == other.name else None
-        return Int64Index(joined, name=name)
+        return Int64Index(joined, name=name, tolerance=tolerance)
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
@@ -263,9 +263,9 @@ class UInt64Index(NumericIndex):
             return keyarr.astype(np.uint64)
         return keyarr
 
-    def _wrap_joined_index(self, joined, other):
+    def _wrap_joined_index(self, joined, other, tolerance):
         name = self.name if self.name == other.name else None
-        return UInt64Index(joined, name=name)
+        return UInt64Index(joined, name=name, tolerance=tolerance)
 
     @classmethod
     def _assert_safe_casting(cls, data, subarr):
