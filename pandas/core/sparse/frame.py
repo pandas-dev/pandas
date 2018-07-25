@@ -585,14 +585,19 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
-        this, other = self.align(other, join='outer', axis=0,
-                                 level=level, copy=False)
+        new_index = self.index.union(other.index)
+        this = self
+        if self.index is not new_index:
+            this = self.reindex(new_index)
 
-        new_data = {}
+        if other.index is not new_index:
+            other = other.reindex(new_index)
+
         for col, series in compat.iteritems(this):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
+        fill_value = None
         if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
@@ -600,7 +605,7 @@ class SparseDataFrame(DataFrame):
                               np.float64(other.fill_value))
 
         return self._constructor(
-            new_data, index=this.index, columns=this.columns,
+            new_data, index=new_index, columns=self.columns,
             default_fill_value=fill_value).__finalize__(self)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
@@ -612,16 +617,19 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise NotImplementedError("'level' argument is not supported")
 
-        left, right = self.align(other, join='outer', axis=1,
-                                 level=level, copy=False)
-
         new_data = {}
-        for col in other.index.intersection(self.columns):
+
+        union = intersection = self.columns
+
+        if not union.equals(other.index):
+            union = other.index.union(self.columns)
+            intersection = other.index.intersection(self.columns)
+
+        for col in intersection:
             new_data[col] = func(self[col], float(other[col]))
-            # TODO: Why are we casting other[col] to float?
 
         return self._constructor(
-            new_data, index=left.index, columns=left.columns,
+            new_data, index=self.index, columns=union,
             default_fill_value=self.default_fill_value).__finalize__(self)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
