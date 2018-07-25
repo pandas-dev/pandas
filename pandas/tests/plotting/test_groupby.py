@@ -19,8 +19,9 @@ import sys
 
 @pytest.mark.parametrize(
     'plotting_method',
-    ['line', 'bar', 'barh', 'box', 'density',
+    ['line', 'bar', 'barh', 'box',
      'area', 'pie', 'scatter', 'hexbin',
+     pytest.param('density', marks=td.skip_if_no_scipy),
      pytest.param('kde', marks=td.skip_if_no_scipy)
      ])
 @td.skip_if_no_mpl
