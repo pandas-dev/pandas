@@ -22,6 +22,11 @@ cnp.import_array()
 cimport util
 from util cimport numeric, get_nat
 
+from khash cimport (khiter_t,
+                    kh_destroy_int64, kh_put_int64,
+                    kh_init_int64, kh_int64_t,
+                    kh_resize_int64, kh_get_int64)
+
 import missing
 
 cdef float64_t FP_ERR = 1e-13
@@ -69,6 +74,42 @@ class NegInfinity(object):
     __ne__ = lambda self, other: not isinstance(other, NegInfinity)
     __gt__ = lambda self, other: False
     __ge__ = lambda self, other: isinstance(other, NegInfinity)
+
+
+cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+    """
+    Efficiently find the unique first-differences of the given array.
+
+    Parameters
+    ----------
+    arr : ndarray[in64_t]
+
+    Returns
+    -------
+    result : ndarray[int64_t]
+        result is sorted
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t val
+        khiter_t k
+        kh_int64_t *table
+        int ret = 0
+        list uniques = []
+
+    table = kh_init_int64()
+    kh_resize_int64(table, 10)
+    for i in range(n - 1):
+        val = arr[i + 1] - arr[i]
+        k = kh_get_int64(table, val)
+        if k == table.n_buckets:
+            kh_put_int64(table, val, &ret)
+            uniques.append(val)
+    kh_destroy_int64(table)
+
+    result = np.array(uniques, dtype=np.int64)
+    result.sort()
+    return result
 
 
 @cython.wraparound(False)
