@@ -120,7 +120,7 @@ def _dt_array_cmp(cls, op):
                 self._assert_tzawareness_compat(other)
 
             result = meth(self, np.asarray(other))
-            result = com._values_from_object(result)
+            result = com.values_from_object(result)
 
             # Make sure to pass an array to result[...]; indexing with
             # Series breaks with older version of numpy

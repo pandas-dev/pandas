@@ -9,6 +9,16 @@ from pandas import CategoricalIndex, Index, MultiIndex
 from pandas.compat import range
 
 
+def assert_matching(actual, expected, check_dtype=False):
+    # avoid specifying internal representation
+    # as much as possible
+    assert len(actual) == len(expected)
+    for act, exp in zip(actual, expected):
+        act = np.asarray(act)
+        exp = np.asarray(exp)
+        tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
+
+
 def test_get_level_number_integer(idx):
     idx.names = [1, 0]
     assert idx._get_level_number(1) == 0
@@ -164,15 +174,6 @@ def test_set_levels(idx):
     levels = idx.levels
     new_levels = [[lev + 'a' for lev in level] for level in levels]
 
-    def assert_matching(actual, expected, check_dtype=False):
-        # avoid specifying internal representation
-        # as much as possible
-        assert len(actual) == len(expected)
-        for act, exp in zip(actual, expected):
-            act = np.asarray(act)
-            exp = np.asarray(exp)
-            tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
-
     # level changing [w/o mutation]
     ind2 = idx.set_levels(new_levels)
     assert_matching(ind2.levels, new_levels)
@@ -253,15 +254,6 @@ def test_set_labels(idx):
     major_labels = [(x + 1) % 3 for x in major_labels]
     minor_labels = [(x + 1) % 1 for x in minor_labels]
     new_labels = [major_labels, minor_labels]
-
-    def assert_matching(actual, expected):
-        # avoid specifying internal representation
-        # as much as possible
-        assert len(actual) == len(expected)
-        for act, exp in zip(actual, expected):
-            act = np.asarray(act)
-            exp = np.asarray(exp, dtype=np.int8)
-            tm.assert_numpy_array_equal(act, exp)
 
     # label changing [w/o mutation]
     ind2 = idx.set_labels(new_labels)
@@ -389,21 +381,22 @@ def test_set_names_with_nlevel_1(inplace):
     tm.assert_index_equal(result, expected)
 
 
-def test_set_levels_categorical():
+@pytest.mark.parametrize('ordered', [True, False])
+def test_set_levels_categorical(ordered):
     # GH13854
     index = MultiIndex.from_arrays([list("xyzx"), [0, 1, 2, 3]])
-    for ordered in [False, True]:
-        cidx = CategoricalIndex(list("bac"), ordered=ordered)
-        result = index.set_levels(cidx, 0)
-        expected = MultiIndex(levels=[cidx, [0, 1, 2, 3]],
-                              labels=index.labels)
-        tm.assert_index_equal(result, expected)
 
-        result_lvl = result.get_level_values(0)
-        expected_lvl = CategoricalIndex(list("bacb"),
-                                        categories=cidx.categories,
-                                        ordered=cidx.ordered)
-        tm.assert_index_equal(result_lvl, expected_lvl)
+    cidx = CategoricalIndex(list("bac"), ordered=ordered)
+    result = index.set_levels(cidx, 0)
+    expected = MultiIndex(levels=[cidx, [0, 1, 2, 3]],
+                          labels=index.labels)
+    tm.assert_index_equal(result, expected)
+
+    result_lvl = result.get_level_values(0)
+    expected_lvl = CategoricalIndex(list("bacb"),
+                                    categories=cidx.categories,
+                                    ordered=cidx.ordered)
+    tm.assert_index_equal(result_lvl, expected_lvl)
 
 
 def test_set_value_keeps_names():

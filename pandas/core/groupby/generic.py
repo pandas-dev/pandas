@@ -819,7 +819,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     # protect against callables without names
-                    columns.append(com._get_callable_name(f))
+                    columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}

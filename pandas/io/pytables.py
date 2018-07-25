@@ -3935,7 +3935,7 @@ class LegacyTable(Table):
                 tuple_index = long_index.values
 
                 unique_tuples = unique(tuple_index)
-                unique_tuples = com._asarray_tuplesafe(unique_tuples)
+                unique_tuples = com.asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
                 indexer = ensure_platform_int(indexer)

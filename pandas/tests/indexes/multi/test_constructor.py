@@ -234,29 +234,30 @@ def test_from_arrays_empty():
         tm.assert_index_equal(result, expected)
 
 
-def test_from_arrays_invalid_input():
+@pytest.mark.parametrize('invalid_array', [
+    (1),
+    ([1]),
+    ([1, 2]),
+    ([[1], 2]),
+    ('a'),
+    (['a']),
+    (['a', 'b']),
+    ([['a'], 'b']),
+])
+def test_from_arrays_invalid_input(invalid_array):
     invalid_inputs = [1, [1], [1, 2], [[1], 2],
                       'a', ['a'], ['a', 'b'], [['a'], 'b']]
     for i in invalid_inputs:
         pytest.raises(TypeError, MultiIndex.from_arrays, arrays=i)
 
 
-def test_from_arrays_different_lengths():
+@pytest.mark.parametrize('idx1, idx2', [
+    ([1, 2, 3], ['a', 'b']),
+    ([], ['a', 'b']),
+    ([1, 2, 3], [])
+])
+def test_from_arrays_different_lengths(idx1, idx2):
     # see gh-13599
-    idx1 = [1, 2, 3]
-    idx2 = ['a', 'b']
-    tm.assert_raises_regex(ValueError, '^all arrays must '
-                           'be same length$',
-                           MultiIndex.from_arrays, [idx1, idx2])
-
-    idx1 = []
-    idx2 = ['a', 'b']
-    tm.assert_raises_regex(ValueError, '^all arrays must '
-                           'be same length$',
-                           MultiIndex.from_arrays, [idx1, idx2])
-
-    idx1 = [1, 2, 3]
-    idx2 = []
     tm.assert_raises_regex(ValueError, '^all arrays must '
                            'be same length$',
                            MultiIndex.from_arrays, [idx1, idx2])
@@ -305,66 +306,87 @@ def test_from_tuples_index_values(idx):
     assert (result.values == idx.values).all()
 
 
-def test_from_product_empty():
+def test_from_product_empty_zero_levels():
     # 0 levels
     with tm.assert_raises_regex(
             ValueError, "Must pass non-zero number of levels/labels"):
         MultiIndex.from_product([])
 
-    # 1 level
+
+def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=['A'])
     expected = pd.Index([], name='A')
     tm.assert_index_equal(result.levels[0], expected)
 
-    # 2 levels
-    l1 = [[], ['foo', 'bar', 'baz'], []]
-    l2 = [[], [], ['a', 'b', 'c']]
-    names = ['A', 'B']
-    for first, second in zip(l1, l2):
-        result = MultiIndex.from_product([first, second], names=names)
-        expected = MultiIndex(levels=[first, second],
-                              labels=[[], []], names=names)
-        tm.assert_index_equal(result, expected)
 
+@pytest.mark.parametrize('first, second', [
+    ([], []),
+    (['foo', 'bar', 'baz'], []),
+    ([], ['a', 'b', 'c']),
+])
+def test_from_product_empty_two_levels(first, second):
+    names = ['A', 'B']
+    result = MultiIndex.from_product([first, second], names=names)
+    expected = MultiIndex(levels=[first, second],
+                          labels=[[], []], names=names)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize('N', list(range(4)))
+def test_from_product_empty_three_levels(N):
     # GH12258
     names = ['A', 'B', 'C']
-    for N in range(4):
-        lvl2 = lrange(N)
-        result = MultiIndex.from_product([[], lvl2, []], names=names)
-        expected = MultiIndex(levels=[[], lvl2, []],
-                              labels=[[], [], []], names=names)
-        tm.assert_index_equal(result, expected)
+    lvl2 = lrange(N)
+    result = MultiIndex.from_product([[], lvl2, []], names=names)
+    expected = MultiIndex(levels=[[], lvl2, []],
+                          labels=[[], [], []], names=names)
+    tm.assert_index_equal(result, expected)
 
 
-def test_from_product_invalid_input():
-    invalid_inputs = [1, [1], [1, 2], [[1], 2],
-                      'a', ['a'], ['a', 'b'], [['a'], 'b']]
-    for i in invalid_inputs:
-        pytest.raises(TypeError, MultiIndex.from_product, iterables=i)
+@pytest.mark.parametrize('invalid_input', [
+    1,
+    [1],
+    [1, 2],
+    [[1], 2],
+    'a',
+    ['a'],
+    ['a', 'b'],
+    [['a'], 'b'],
+])
+def test_from_product_invalid_input(invalid_input):
+    pytest.raises(TypeError, MultiIndex.from_product, iterables=invalid_input)
 
 
 def test_from_product_datetimeindex():
     dt_index = date_range('2000-01-01', periods=2)
     mi = pd.MultiIndex.from_product([[1, 2], dt_index])
-    etalon = construct_1d_object_array_from_listlike([(1, pd.Timestamp(
-        '2000-01-01')), (1, pd.Timestamp('2000-01-02')), (2, pd.Timestamp(
-            '2000-01-01')), (2, pd.Timestamp('2000-01-02'))])
+    etalon = construct_1d_object_array_from_listlike([
+        (1, pd.Timestamp('2000-01-01')),
+        (1, pd.Timestamp('2000-01-02')),
+        (2, pd.Timestamp('2000-01-01')),
+        (2, pd.Timestamp('2000-01-02')),
+    ])
     tm.assert_numpy_array_equal(mi.values, etalon)
 
 
-def test_from_product_index_series_categorical():
+@pytest.mark.parametrize('ordered', [False, True])
+@pytest.mark.parametrize('f', [
+    lambda x: x,
+    lambda x: pd.Series(x),
+    lambda x: x.values
+])
+def test_from_product_index_series_categorical(ordered, f):
     # GH13743
     first = ['foo', 'bar']
-    for ordered in [False, True]:
-        idx = pd.CategoricalIndex(list("abcaab"), categories=list("bac"),
-                                  ordered=ordered)
-        expected = pd.CategoricalIndex(list("abcaab") + list("abcaab"),
-                                       categories=list("bac"),
-                                       ordered=ordered)
 
-        for arr in [idx, pd.Series(idx), idx.values]:
-            result = pd.MultiIndex.from_product([first, arr])
-            tm.assert_index_equal(result.get_level_values(1), expected)
+    idx = pd.CategoricalIndex(list("abcaab"), categories=list("bac"),
+                              ordered=ordered)
+    expected = pd.CategoricalIndex(list("abcaab") + list("abcaab"),
+                                   categories=list("bac"),
+                                   ordered=ordered)
+
+    result = pd.MultiIndex.from_product([first, f(idx)])
+    tm.assert_index_equal(result.get_level_values(1), expected)
 
 
 def test_from_product():
@@ -409,19 +431,28 @@ def test_create_index_existing_name(idx):
     index = idx
     index.names = ['foo', 'bar']
     result = pd.Index(index)
-    tm.assert_index_equal(
-        result, Index(Index([('foo', 'one'), ('foo', 'two'),
-                             ('bar', 'one'), ('baz', 'two'),
-                             ('qux', 'one'), ('qux', 'two')],
-                            dtype='object'),
-                      names=['foo', 'bar']))
+    expected = Index(
+        Index([
+            ('foo', 'one'), ('foo', 'two'),
+            ('bar', 'one'), ('baz', 'two'),
+            ('qux', 'one'), ('qux', 'two')],
+            dtype='object'
+        ),
+        names=['foo', 'bar']
+    )
+    tm.assert_index_equal(result, expected)
 
     result = pd.Index(index, names=['A', 'B'])
-    tm.assert_index_equal(
-        result,
-        Index(Index([('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
-                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')],
-                    dtype='object'), names=['A', 'B']))
+    expected = Index(
+        Index([
+            ('foo', 'one'), ('foo', 'two'),
+            ('bar', 'one'), ('baz', 'two'),
+            ('qux', 'one'), ('qux', 'two')],
+            dtype='object'
+        ),
+        names=['A', 'B']
+    )
+    tm.assert_index_equal(result, expected)
 
 
 def test_tuples_with_name_string():
