@@ -13,12 +13,22 @@ from pandas.tests.plotting.common import TestPlotBase
 
 from itertools import count
 import pandas as pd
+import pytest
+import sys
 
+from matplotlib.pyplot import plt
 
-def test_no_double_plot_for_first_group():
+@td._skip_if_no_mpl
+@pytest.mark.parametrize('plotting_method',
+    ['line', 'bar', 'barh', 'box', 'density',
+     'area', 'pie', 'scatter', 'hexbin',
+     pytest.param('kde', marks=pytest.mark.skipif('scipy' in sys.modules,
+                                            reason='kde requires scipy'))
+     ])
+def test_no_double_plot_for_first_group(plotting_method):
     class extGroupByPlot(pd.core.groupby.groupby.GroupByPlot):
         def __init__(self, groupby):
-            super().__init__(groupby)
+            super(extGroupByPlot, self).__init__(groupby)
 
         def __getattr__(self, name):
             def attr(*args, **kwargs):
@@ -39,15 +49,9 @@ def test_no_double_plot_for_first_group():
     df = pd.DataFrame([[1, 2], [3, 4], [5, 6], [7, 8]], columns=['x', 'y'])
     df['cat'] = [1, 1, 1, 1]
     g = df.groupby('cat')
-    extra_plotting_methods = ['line', 'bar', 'barh',
-                              'box', 'kde', 'density',
-                              'area', 'pie', 'scatter',
-                              'hexbin']
-
-    for plotting_method in extra_plotting_methods:
-        eG = extGroupByPlot(g)
-        result = eG.__getattr__(plotting_method)(x='x', y='y')
-        assert result.iloc[0] == 1
+    eG = extGroupByPlot(g)
+    result = eG.__getattr__(plotting_method)(x='x', y='y')
+    assert result.iloc[0] == 1
 
 
 @td.skip_if_no_mpl
