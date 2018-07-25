@@ -5,6 +5,8 @@ Tests that the file header is properly handled or inferred
 during parsing for all of the parsers defined in parsers.py
 """
 
+from collections import namedtuple
+
 import pytest
 
 import numpy as np
@@ -149,6 +151,22 @@ two,7,8,9,10,11,12"""
         result = self.read_csv(StringIO(data), header=[0, 1], index_col=0)
         tm.assert_frame_equal(df, result)
 
+        # to_csv, tuples
+        result = self.read_csv(StringIO(data), skiprows=3,
+                               names=[('a', 'q'), ('a', 'r'), ('a', 's'),
+                                      ('b', 't'), ('c', 'u'), ('c', 'v')],
+                               index_col=0)
+        tm.assert_frame_equal(df, result)
+
+        # to_csv, namedtuples
+        TestTuple = namedtuple('names', ['first', 'second'])
+        result = self.read_csv(
+            StringIO(data), skiprows=3, index_col=0,
+            names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
+                   TestTuple('a', 's'), TestTuple('b', 't'),
+                   TestTuple('c', 'u'), TestTuple('c', 'v')])
+        tm.assert_frame_equal(df, result)
+
         # common
         data = """,a,a,a,b,c,c
 ,q,r,s,t,u,v
@@ -158,6 +176,22 @@ two,7,8,9,10,11,12"""
         result = self.read_csv(StringIO(data), header=[0, 1], index_col=0)
         tm.assert_frame_equal(df, result)
 
+        # common, tuples
+        result = self.read_csv(StringIO(data), skiprows=2,
+                               names=[('a', 'q'), ('a', 'r'), ('a', 's'),
+                                      ('b', 't'), ('c', 'u'), ('c', 'v')],
+                               index_col=0)
+        tm.assert_frame_equal(df, result)
+
+        # common, namedtuples
+        TestTuple = namedtuple('names', ['first', 'second'])
+        result = self.read_csv(
+            StringIO(data), skiprows=2, index_col=0,
+            names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
+                   TestTuple('a', 's'), TestTuple('b', 't'),
+                   TestTuple('c', 'u'), TestTuple('c', 'v')])
+        tm.assert_frame_equal(df, result)
+
         # common, no index_col
         data = """a,a,a,b,c,c
 q,r,s,t,u,v
@@ -165,6 +199,22 @@ q,r,s,t,u,v
 7,8,9,10,11,12"""
 
         result = self.read_csv(StringIO(data), header=[0, 1], index_col=None)
+        tm.assert_frame_equal(df.reset_index(drop=True), result)
+
+        # common, no index_col, tuples
+        result = self.read_csv(StringIO(data), skiprows=2,
+                               names=[('a', 'q'), ('a', 'r'), ('a', 's'),
+                                      ('b', 't'), ('c', 'u'), ('c', 'v')],
+                               index_col=None)
+        tm.assert_frame_equal(df.reset_index(drop=True), result)
+
+        # common, no index_col, namedtuples
+        TestTuple = namedtuple('names', ['first', 'second'])
+        result = self.read_csv(
+            StringIO(data), skiprows=2, index_col=None,
+            names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
+                   TestTuple('a', 's'), TestTuple('b', 't'),
+                   TestTuple('c', 'u'), TestTuple('c', 'v')])
         tm.assert_frame_equal(df.reset_index(drop=True), result)
 
         # malformed case 1
