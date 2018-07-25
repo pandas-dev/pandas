@@ -585,7 +585,9 @@ class TestSeriesAnalytics(TestData):
                    index=list('abcde'), name='foo')
         expected = Series(s.values.compress(cond),
                           index=list('ac'), name='foo')
-        tm.assert_series_equal(s.compress(cond), expected)
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.compress(cond)
+        tm.assert_series_equal(result, expected)
 
     def test_numpy_compress(self):
         cond = [True, False, True, False, False]
