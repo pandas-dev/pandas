@@ -1157,8 +1157,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             return series.take(locs)
 
         try:
-            return com._maybe_box(self, Index.get_value(self, series, key),
-                                  series, key)
+            return com.maybe_box(self, Index.get_value(self, series, key),
+                                 series, key)
         except KeyError:
             try:
                 loc = self._get_string_slice(key)
@@ -1177,9 +1177,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             key = Timestamp(key, tz=self.tz)
         elif not isinstance(key, Timestamp):
             key = Timestamp(key)
-        values = self._engine.get_value(com._values_from_object(series),
+        values = self._engine.get_value(com.values_from_object(series),
                                         key, tz=self.tz)
-        return com._maybe_box(self, values, series, key)
+        return com.maybe_box(self, values, series, key)
 
     def get_loc(self, key, method=None, tolerance=None):
         """

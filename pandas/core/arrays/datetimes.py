@@ -124,7 +124,7 @@ def _dt_array_cmp(cls, op):
                 self._assert_tzawareness_compat(other)
 
             result = meth(self, np.asarray(other))
-            result = com._values_from_object(result)
+            result = com.values_from_object(result)
 
             # Make sure to pass an array to result[...]; indexing with
             # Series breaks with older version of numpy
@@ -204,7 +204,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
     @classmethod
     def _generate_range(cls, start, end, periods, freq, tz=None,
                         normalize=False, ambiguous='raise', closed=None):
-        if com._count_not_none(start, end, periods, freq) != 3:
+        if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
         freq = to_offset(freq)
