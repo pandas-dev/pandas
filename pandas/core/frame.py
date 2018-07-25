@@ -4935,7 +4935,7 @@ class DataFrame(NDFrame):
         assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
-        assert left.columns.equals(right.index), (left.columns, right.index)
+        assert left.columns.equals(right.index)
 
         # Note: we use iloc instead of loc for compat with
         # case with non-unique columns; same reason why we pin columns
