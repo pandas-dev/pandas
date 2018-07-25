@@ -21,7 +21,7 @@ import sys
     'plotting_method',
     ['line', 'bar', 'barh', 'box', 'density',
      'area', 'pie', 'scatter', 'hexbin',
-     pytest.param('kde', marks=tm.skip_if_no_scipy)
+     pytest.param('kde', marks=td.skip_if_no_scipy)
      ])
 @td.skip_if_no_mpl
 def test_no_double_plot_for_first_group(plotting_method):
