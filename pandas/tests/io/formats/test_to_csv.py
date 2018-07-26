@@ -353,7 +353,7 @@ z
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
 
-    def test_compression_defaults_to_infer(tmpdir):
+    def test_compression_defaults_to_infer():
         """
         Test that to_csv defaults to inferring compression from paths.
         https://github.com/pandas-dev/pandas/pull/22011
