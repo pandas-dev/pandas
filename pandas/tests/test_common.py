@@ -256,41 +256,38 @@ def test_compression_size_fh(obj, method, compression_only):
         assert uncompressed > compressed
 
 
-@pytest.mark.parametrize('write_method, read_method', [
-    ('to_csv', pandas.read_csv),
-    ('to_json', pandas.read_json),
-    ('to_pickle', pandas.read_pickle),
+@pytest.mark.parametrize('write_method, write_kwargs, read_method', [
+    ('to_csv', {'index': False}, pandas.read_csv),
+    ('to_json', {}, pandas.read_json),
+    ('to_pickle', {}, pandas.read_pickle),
 ])
 def test_dataframe_compression_defaults_to_infer(
-        write_method, read_method, compression_only):
+        write_method, write_kwargs, read_method, compression_only):
     # Test that DataFrame.to_* methods default to inferring compression from
     # paths. https://github.com/pandas-dev/pandas/pull/22011
     input = DataFrame([[1.0, 0, -4.4], [3.4, 5, 2.4]], columns=['X', 'Y', 'Z'])
     extension = _compression_to_extension[compression_only]
-    kwargs = {}
-    if write_method == 'to_csv':
-        kwargs['index'] = False
     with tm.ensure_clean('compressed' + extension) as path:
         # assumes that compression='infer' is the default
-        getattr(input, write_method)(path, **kwargs)
+        getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
     tm.assert_frame_equal(output, input)
 
 
-@pytest.mark.parametrize('write_method, read_method', [
-    ('to_csv', pandas.Series.from_csv),
-    ('to_json', pandas.read_json),
-    ('to_pickle', pandas.read_pickle),
+@pytest.mark.parametrize('write_method, write_kwargs, read_method', [
+    ('to_csv', {}, pandas.Series.from_csv),
+    ('to_json', {'typ': 'series'}, pandas.read_json),
+    ('to_pickle', {}, pandas.read_pickle),
 ])
 def test_series_compression_defaults_to_infer(
-        write_method, read_method, compression_only):
+        write_method, write_kwargs, read_method, compression_only):
     # Test that Series.to_* methods default to inferring compression from
     # paths. https://github.com/pandas-dev/pandas/pull/22011
     input = Series(100 * [0, 5, -2, 10])
     extension = _compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
         # assumes that compression='infer' is the default
-        getattr(input, write_method)(path)
+        getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
     tm.assert_series_equal(output, input)
 
