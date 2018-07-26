@@ -779,6 +779,7 @@ class TestCategoricalDtypeParametrized(object):
 def test_registry(dtype):
     assert dtype in registry.dtypes
 
+
 @pytest.mark.parametrize('dtype', [DatetimeTZDtype, PeriodDtype])
 def test_pandas_registry(dtype):
     assert dtype not in registry.dtypes
