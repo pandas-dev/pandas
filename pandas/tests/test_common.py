@@ -11,7 +11,10 @@ from pandas import Series, DataFrame, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
 from pandas.core import ops
-from pandas.io.common import _get_handle
+from pandas.io.common import (
+    _compression_to_extension,
+    _get_handle,
+)
 import pandas.util.testing as tm
 
 
@@ -217,13 +220,23 @@ def test_standardize_mapping():
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
 def test_compression_size(obj, method, compression_only):
-
-    with tm.ensure_clean() as filename:
-        getattr(obj, method)(filename, compression=compression_only)
-        compressed = os.path.getsize(filename)
-        getattr(obj, method)(filename, compression=None)
-        uncompressed = os.path.getsize(filename)
-        assert uncompressed > compressed
+    """
+    Tests that compression is occurring by comparing to the bytes on disk of
+    the uncompressed file.
+    """
+    extension = _compression_to_extension[compression_only]
+    to_method = getattr(obj, method)
+    with tm.ensure_clean('no-compression') as path:
+        to_method(path, compression=None)
+        no_compression_size = os.path.getsize(path)
+    with tm.ensure_clean('explicit-compression' + extension) as path:
+        to_method(path, compression=compression_only)
+        explicit_compression_size = os.path.getsize(path)
+    with tm.ensure_clean('inferred-compression' + extension) as path:
+        to_method(path)  # assumes that compression='infer' is the default
+        inferred_compression_size = os.path.getsize(path)
+    assert (no_compression_size > explicit_compression_size ==
+            inferred_compression_size)
 
 
 @pytest.mark.parametrize('obj', [
@@ -233,7 +246,6 @@ def test_compression_size(obj, method, compression_only):
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_csv', 'to_json'])
 def test_compression_size_fh(obj, method, compression_only):
-
     with tm.ensure_clean() as filename:
         f, _handles = _get_handle(filename, 'w', compression=compression_only)
         with f:
