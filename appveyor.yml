@@ -20,12 +20,14 @@ environment:
   matrix:
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       CONDA_PY: "36"
       CONDA_NPY: "113"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
