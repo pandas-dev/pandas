@@ -56,6 +56,17 @@ cdef inline int64_t get_nat():
 # Type Checking
 
 cdef inline bint is_string_object(object obj) nogil:
+    """
+    Cython equivalent of `isinstance(val, compat.string_types)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_string : bool
+    """
     return PyString_Check(obj) or PyUnicode_Check(obj)
 
 
