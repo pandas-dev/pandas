@@ -3759,7 +3759,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, compression=None, date_format=None,
+               mode='w', encoding=None, compression='infer', date_format=None,
                decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
@@ -3790,7 +3790,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         compression : string, optional
             A string representing the compression to use in the output file.
             Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            used when the first argument is a filename. Defaults to 'infer'.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
