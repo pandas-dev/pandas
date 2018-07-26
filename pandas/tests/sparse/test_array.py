@@ -14,6 +14,11 @@ from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
 
 
+@pytest.fixture(params=["integer", "block"])
+def kind(request):
+    return request.param
+
+
 class TestSparseArray(object):
 
     def setup_method(self, method):
@@ -128,31 +133,32 @@ class TestSparseArray(object):
         assert arr.dtype == dtype
         assert exp.dtype == dtype
 
-    def test_sparseseries_roundtrip(self):
-        # GH 13999
-        for kind in ['integer', 'block']:
-            for fill in [1, np.nan, 0]:
-                arr = SparseArray([np.nan, 1, np.nan, 2, 3], kind=kind,
-                                  fill_value=fill)
-                res = SparseArray(SparseSeries(arr))
-                tm.assert_sp_array_equal(arr, res)
+    @pytest.mark.parametrize("fill", [1, np.nan, 0])
+    def test_sparse_series_round_trip(self, kind, fill):
+        # see gh-13999
+        arr = SparseArray([np.nan, 1, np.nan, 2, 3],
+                          kind=kind, fill_value=fill)
+        res = SparseArray(SparseSeries(arr))
+        tm.assert_sp_array_equal(arr, res)
 
-                arr = SparseArray([0, 0, 0, 1, 1, 2], dtype=np.int64,
-                                  kind=kind, fill_value=fill)
-                res = SparseArray(SparseSeries(arr), dtype=np.int64)
-                tm.assert_sp_array_equal(arr, res)
+        arr = SparseArray([0, 0, 0, 1, 1, 2], dtype=np.int64,
+                          kind=kind, fill_value=fill)
+        res = SparseArray(SparseSeries(arr), dtype=np.int64)
+        tm.assert_sp_array_equal(arr, res)
 
-                res = SparseArray(SparseSeries(arr))
-                tm.assert_sp_array_equal(arr, res)
+        res = SparseArray(SparseSeries(arr))
+        tm.assert_sp_array_equal(arr, res)
 
-            for fill in [True, False, np.nan]:
-                arr = SparseArray([True, False, True, True], dtype=np.bool,
-                                  kind=kind, fill_value=fill)
-                res = SparseArray(SparseSeries(arr))
-                tm.assert_sp_array_equal(arr, res)
+    @pytest.mark.parametrize("fill", [True, False, np.nan])
+    def test_sparse_series_round_trip2(self, kind, fill):
+        # see gh-13999
+        arr = SparseArray([True, False, True, True], dtype=np.bool,
+                          kind=kind, fill_value=fill)
+        res = SparseArray(SparseSeries(arr))
+        tm.assert_sp_array_equal(arr, res)
 
-                res = SparseArray(SparseSeries(arr))
-                tm.assert_sp_array_equal(arr, res)
+        res = SparseArray(SparseSeries(arr))
+        tm.assert_sp_array_equal(arr, res)
 
     def test_get_item(self):
 
@@ -388,18 +394,16 @@ class TestSparseArray(object):
         with tm.assert_raises_regex(ValueError, msg):
             arr.astype('i8')
 
-    def test_astype_all(self):
+    def test_astype_all(self, any_real_dtype):
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
+        typ = np.dtype(any_real_dtype).type
 
-        types = [np.float64, np.float32, np.int64,
-                 np.int32, np.int16, np.int8]
-        for typ in types:
-            res = arr.astype(typ)
-            assert res.dtype == typ
-            assert res.sp_values.dtype == typ
+        res = arr.astype(typ)
+        assert res.dtype == typ
+        assert res.sp_values.dtype == typ
 
-            tm.assert_numpy_array_equal(res.values, vals.astype(typ))
+        tm.assert_numpy_array_equal(res.values, vals.astype(typ))
 
     def test_set_fill_value(self):
         arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)
@@ -432,11 +436,13 @@ class TestSparseArray(object):
         with tm.assert_raises_regex(ValueError, msg):
             arr.fill_value = np.nan
 
-        # invalid
+    @pytest.mark.parametrize("val", [[1, 2, 3], np.array([1, 2]), (1, 2, 3)])
+    def test_set_fill_invalid_non_scalar(self, val):
+        arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
         msg = "fill_value must be a scalar"
-        for val in [[1, 2, 3], np.array([1, 2]), (1, 2, 3)]:
-            with tm.assert_raises_regex(ValueError, msg):
-                arr.fill_value = val
+
+        with tm.assert_raises_regex(ValueError, msg):
+            arr.fill_value = val
 
     def test_copy_shallow(self):
         arr2 = self.arr.copy(deep=False)
@@ -538,9 +544,13 @@ class TestSparseArray(object):
             # check numpy compat
             dense[4:, :]
 
-    def test_binary_operators(self):
+    @pytest.mark.parametrize("op", ["add", "sub", "mul",
+                                    "truediv", "floordiv", "pow"])
+    def test_binary_operators(self, op):
+        op = getattr(operator, op)
         data1 = np.random.randn(20)
         data2 = np.random.randn(20)
+
         data1[::2] = np.nan
         data2[::3] = np.nan
 
@@ -570,7 +580,7 @@ class TestSparseArray(object):
             res4 = op(first, 4)
             assert isinstance(res4, SparseArray)
 
-            # ignore this if the actual op raises (e.g. pow)
+            # Ignore this if the actual op raises (e.g. pow).
             try:
                 exp = op(first.values, 4)
                 exp_fv = op(first.fill_value, 4)
@@ -579,21 +589,26 @@ class TestSparseArray(object):
             except ValueError:
                 pass
 
-        def _check_inplace_op(op):
-            tmp = arr1.copy()
-            pytest.raises(NotImplementedError, op, tmp, arr2)
+        with np.errstate(all="ignore"):
+            for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
+                _check_op(op, first_arr, second_arr)
 
-        with np.errstate(all='ignore'):
-            bin_ops = [operator.add, operator.sub, operator.mul,
-                       operator.truediv, operator.floordiv, operator.pow]
-            for op in bin_ops:
-                _check_op(op, arr1, arr2)
-                _check_op(op, farr1, farr2)
+    @pytest.mark.parametrize("op", ["iadd", "isub", "imul",
+                                    "ifloordiv", "ipow",
+                                    "itruediv"])
+    def test_binary_operators_not_implemented(self, op):
+        data1 = np.random.randn(20)
+        data2 = np.random.randn(20)
 
-            inplace_ops = ['iadd', 'isub', 'imul', 'itruediv', 'ifloordiv',
-                           'ipow']
-            for op in inplace_ops:
-                _check_inplace_op(getattr(operator, op))
+        data1[::2] = np.nan
+        data2[::3] = np.nan
+
+        arr1 = SparseArray(data1)
+        arr2 = SparseArray(data2)
+
+        with np.errstate(all="ignore"):
+            with pytest.raises(NotImplementedError):
+                getattr(operator, op)(arr1, arr2)
 
     def test_pickle(self):
         def _check_roundtrip(obj):
@@ -810,51 +825,26 @@ class TestSparseArrayAnalytics(object):
         tm.assert_raises_regex(ValueError, msg, np.sum,
                                SparseArray(data), out=out)
 
-    def test_cumsum(self):
-        non_null_data = np.array([1, 2, 3, 4, 5], dtype=float)
-        non_null_expected = SparseArray(non_null_data.cumsum())
+    @pytest.mark.parametrize("data,expected", [
+        (np.array([1, 2, 3, 4, 5], dtype=float),  # non-null data
+         SparseArray(np.array([1.0, 3.0, 6.0, 10.0, 15.0]))),
+        (np.array([1, 2, np.nan, 4, 5], dtype=float),  # null data
+         SparseArray(np.array([1.0, 3.0, np.nan, 7.0, 12.0])))
+    ])
+    @pytest.mark.parametrize("numpy", [True, False])
+    def test_cumsum(self, data, expected, numpy):
+        cumsum = np.cumsum if numpy else lambda s: s.cumsum()
 
-        null_data = np.array([1, 2, np.nan, 4, 5], dtype=float)
-        null_expected = SparseArray(np.array([1.0, 3.0, np.nan, 7.0, 12.0]))
+        out = cumsum(SparseArray(data))
+        tm.assert_sp_array_equal(out, expected)
 
-        for data, expected in [
-            (null_data, null_expected),
-            (non_null_data, non_null_expected)
-        ]:
-            out = SparseArray(data).cumsum()
-            tm.assert_sp_array_equal(out, expected)
+        out = cumsum(SparseArray(data, fill_value=np.nan))
+        tm.assert_sp_array_equal(out, expected)
 
-            out = SparseArray(data, fill_value=np.nan).cumsum()
-            tm.assert_sp_array_equal(out, expected)
+        out = cumsum(SparseArray(data, fill_value=2))
+        tm.assert_sp_array_equal(out, expected)
 
-            out = SparseArray(data, fill_value=2).cumsum()
-            tm.assert_sp_array_equal(out, expected)
-
-            axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
-            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
-            with tm.assert_raises_regex(ValueError, msg):
-                SparseArray(data).cumsum(axis=axis)
-
-    def test_numpy_cumsum(self):
-        non_null_data = np.array([1, 2, 3, 4, 5], dtype=float)
-        non_null_expected = SparseArray(non_null_data.cumsum())
-
-        null_data = np.array([1, 2, np.nan, 4, 5], dtype=float)
-        null_expected = SparseArray(np.array([1.0, 3.0, np.nan, 7.0, 12.0]))
-
-        for data, expected in [
-            (null_data, null_expected),
-            (non_null_data, non_null_expected)
-        ]:
-            out = np.cumsum(SparseArray(data))
-            tm.assert_sp_array_equal(out, expected)
-
-            out = np.cumsum(SparseArray(data, fill_value=np.nan))
-            tm.assert_sp_array_equal(out, expected)
-
-            out = np.cumsum(SparseArray(data, fill_value=2))
-            tm.assert_sp_array_equal(out, expected)
-
+        if numpy:  # numpy compatibility checks.
             msg = "the 'dtype' parameter is not supported"
             tm.assert_raises_regex(ValueError, msg, np.cumsum,
                                    SparseArray(data), dtype=np.int64)
@@ -862,6 +852,11 @@ class TestSparseArrayAnalytics(object):
             msg = "the 'out' parameter is not supported"
             tm.assert_raises_regex(ValueError, msg, np.cumsum,
                                    SparseArray(data), out=out)
+        else:
+            axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
+            msg = "axis\\(={axis}\\) out of bounds".format(axis=axis)
+            with tm.assert_raises_regex(ValueError, msg):
+                SparseArray(data).cumsum(axis=axis)
 
     def test_mean(self):
         data = np.arange(10).astype(float)
