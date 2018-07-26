@@ -89,7 +89,7 @@ def _maybe_match_name(a, b):
 
     See also
     --------
-    pandas.core.common._consensus_name_attr
+    pandas.core.common.consensus_name_attr
     """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
@@ -1111,7 +1111,7 @@ def _arith_method_SERIES(cls, op, special):
                 dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
-                result[mask] = op(x[mask], com._values_from_object(y[mask]))
+                result[mask] = op(x[mask], com.values_from_object(y[mask]))
             else:
                 assert isinstance(x, np.ndarray)
                 result = np.empty(len(x), dtype=x.dtype)
@@ -1407,7 +1407,7 @@ def _comp_method_SERIES(cls, op, special):
                                 .format(typ=type(other)))
 
             # always return a full value series here
-            res_values = com._values_from_object(res)
+            res_values = com.values_from_object(res)
             return self._constructor(res_values, index=self.index,
                                      name=res_name, dtype='bool')
 

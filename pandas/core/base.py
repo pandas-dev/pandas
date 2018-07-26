@@ -581,7 +581,7 @@ class SelectionMixin(object):
                     results.append(colg.aggregate(a))
 
                     # make sure we find a good name
-                    name = com._get_callable_name(a) or a
+                    name = com.get_callable_name(a) or a
                     keys.append(name)
                 except (TypeError, DataError):
                     pass
@@ -856,7 +856,7 @@ class IndexOpsMixin(object):
         numpy.ndarray.tolist
         """
         if is_datetimelike(self._values):
-            return [com._maybe_box_datetimelike(x) for x in self._values]
+            return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array(self._values):
             return list(self._values)
         else:
