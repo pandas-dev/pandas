@@ -438,9 +438,13 @@ else:
 
 
 # enable coverage by building cython files by setting the environment variable
-# "PANDAS_CYTHON_COVERAGE" (with a Truthy value)
+
+# "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
+# with `--with-cython-coverage`enabled
 linetrace = os.environ.get('PANDAS_CYTHON_COVERAGE', False)
-CYTHON_TRACE = str(int(bool(linetrace)))
+if '--with-cython-coverage' in sys.argv:
+    linetrace = True
+    sys.argv.remove('--with-cython-coverage')
 
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
