@@ -466,7 +466,7 @@ class DataFrame(NDFrame):
                 arrays.loc[missing] = [v] * missing.sum()
 
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             columns = data_names = Index(keys)
             arrays = [data[k] for k in keys]
 
@@ -617,11 +617,11 @@ class DataFrame(NDFrame):
 
         # used by repr_html under IPython notebook or scripts ignore terminal
         # dims
-        if ignore_width or not com.in_interactive_session():
+        if ignore_width or not console.in_interactive_session():
             return True
 
         if (get_option('display.width') is not None or
-                com.in_ipython_frontend()):
+                console.in_ipython_frontend()):
             # check at least the column row for excessive width
             max_rows = 1
         else:
@@ -689,7 +689,7 @@ class DataFrame(NDFrame):
         # XXX: In IPython 3.x and above, the Qt console will not attempt to
         # display HTML, so this check can be removed when support for
         # IPython 2.x is no longer needed.
-        if com.in_qtconsole():
+        if console.in_qtconsole():
             # 'HTML output is disabled in QtConsole'
             return None
 
@@ -1100,13 +1100,13 @@ class DataFrame(NDFrame):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
                            ('data', lib.map_infer(self.values.ravel(),
-                                                  com._maybe_box_datetimelike)
+                                                  com.maybe_box_datetimelike)
                             .reshape(self.values.shape).tolist())))
         elif orient.lower().startswith('s'):
-            return into_c((k, com._maybe_box_datetimelike(v))
+            return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [into_c((k, com._maybe_box_datetimelike(v))
+            return [into_c((k, com.maybe_box_datetimelike(v))
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
@@ -2614,7 +2614,7 @@ class DataFrame(NDFrame):
 
         if takeable:
             series = self._iget_item_cache(col)
-            return com._maybe_box_datetimelike(series._values[index])
+            return com.maybe_box_datetimelike(series._values[index])
 
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -2746,7 +2746,7 @@ class DataFrame(NDFrame):
                 return result
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         # shortcut if the key is in columns
         try:
@@ -3183,7 +3183,7 @@ class DataFrame(NDFrame):
                 exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
-        return self.loc[com._get_info_slice(self, dtype_indexer)]
+        return self.loc[com.get_info_slice(self, dtype_indexer)]
 
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
@@ -3198,7 +3198,7 @@ class DataFrame(NDFrame):
         return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
         indexer = convert_to_index_sliceable(self, key)
@@ -3403,12 +3403,12 @@ class DataFrame(NDFrame):
         # >= 3.6 preserve order of kwargs
         if PY36:
             for k, v in kwargs.items():
-                data[k] = com._apply_if_callable(v, data)
+                data[k] = com.apply_if_callable(v, data)
         else:
             # <= 3.5: do all calculations first...
             results = OrderedDict()
             for k, v in kwargs.items():
-                results[k] = com._apply_if_callable(v, data)
+                results[k] = com.apply_if_callable(v, data)
 
             # <= 3.5 and earlier
             results = sorted(results.items())
@@ -3489,7 +3489,7 @@ class DataFrame(NDFrame):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
                 else:
-                    value = com._asarray_tuplesafe(value)
+                    value = com.asarray_tuplesafe(value)
             elif value.ndim == 2:
                 value = value.copy().T
             elif isinstance(value, Index):
@@ -7827,7 +7827,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = com._values_from_object(s)
+        values = com.values_from_object(s)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
@@ -7915,7 +7915,7 @@ def _homogenize(data, index, dtype=None):
                     oindex = index.astype('O')
 
                 if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                    v = com._dict_compat(v)
+                    v = com.dict_compat(v)
                 else:
                     v = dict(v)
                 v = lib.fast_multiget(v, oindex.values, default=np.nan)
