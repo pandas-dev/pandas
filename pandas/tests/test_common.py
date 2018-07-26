@@ -7,6 +7,7 @@ from functools import partial
 
 import numpy as np
 
+import pandas
 from pandas import Series, DataFrame, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
@@ -222,19 +223,12 @@ def test_standardize_mapping():
 def test_compression_size(obj, method, compression_only):
     # Tests that compression is occurring by comparing to the bytes on disk of
     # the uncompressed file.
-    extension = _compression_to_extension[compression_only]
-    to_method = getattr(obj, method)
-    with tm.ensure_clean('no-compression') as path:
-        to_method(path, compression=None)
-        no_compression_size = os.path.getsize(path)
-    with tm.ensure_clean('explicit-compression' + extension) as path:
-        to_method(path, compression=compression_only)
-        explicit_compression_size = os.path.getsize(path)
-    with tm.ensure_clean('inferred-compression' + extension) as path:
-        to_method(path)  # assumes that compression='infer' is the default
-        inferred_compression_size = os.path.getsize(path)
-    assert (no_compression_size > explicit_compression_size ==
-            inferred_compression_size)
+    with tm.ensure_clean() as filename:
+        getattr(obj, method)(filename, compression=compression_only)
+        compressed = os.path.getsize(filename)
+        getattr(obj, method)(filename, compression=None)
+        uncompressed = os.path.getsize(filename)
+        assert uncompressed > compressed
 
 
 @pytest.mark.parametrize('obj', [
@@ -244,6 +238,7 @@ def test_compression_size(obj, method, compression_only):
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_csv', 'to_json'])
 def test_compression_size_fh(obj, method, compression_only):
+
     with tm.ensure_clean() as filename:
         f, _handles = _get_handle(filename, 'w', compression=compression_only)
         with f:
@@ -259,6 +254,30 @@ def test_compression_size_fh(obj, method, compression_only):
         assert f.closed
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
+
+
+@pytest.mark.parametrize('input', [
+    DataFrame([[1.0, 0, -4.4],
+               [3.4, 5, 2.4]], columns=['X', 'Y', 'Z']),
+    Series([0, 1, 2, 4], name='X'),
+])
+@pytest.mark.parametrize('methods', [
+    ('to_csv', pandas.read_csv),
+    ('to_json', pandas.read_json),
+    ('to_pickle', pandas.read_pickle),
+])
+def test_compression_defaults_to_infer(input, methods, compression_only):
+    # Test that to_* methods default to inferring compression from paths.
+    # https://github.com/pandas-dev/pandas/pull/22011
+    write_method, read_method = methods
+    extension = _compression_to_extension[compression_only]
+    with tm.ensure_clean('compressed' + extension) as path:
+        # assumes that compression='infer' is the default
+        getattr(input, write_method)(path)
+        output = read_method(path, compression=compression_only)
+    assert_equals = (tm.assert_frame_equal if isinstance(input, DataFrame)
+                     else tm.assert_series_equal)
+    assert_equals(output, input)
 
 
 def test_compression_warning(compression_only):

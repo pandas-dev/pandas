@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import gzip
 import sys
 
 import pytest
@@ -352,15 +351,3 @@ z
             result = pd.read_csv(path, index_col=0,
                                  compression=read_compression)
             tm.assert_frame_equal(result, df)
-
-    def test_compression_defaults_to_infer():
-        """
-        Test that to_csv defaults to inferring compression from paths.
-        https://github.com/pandas-dev/pandas/pull/22011
-        """
-        df = DataFrame({"A": [1]})
-        with tm.ensure_clean('compressed.csv.gz') as path:
-            df.to_csv(path, index=False)
-            with gzip.open(path, 'rt') as read_file:
-                lines = read_file.read().splitlines()
-        assert lines == ['A', '1']
