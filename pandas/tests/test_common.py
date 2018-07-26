@@ -220,10 +220,8 @@ def test_standardize_mapping():
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
 def test_compression_size(obj, method, compression_only):
-    """
-    Tests that compression is occurring by comparing to the bytes on disk of
-    the uncompressed file.
-    """
+    # Tests that compression is occurring by comparing to the bytes on disk of
+    # the uncompressed file.
     extension = _compression_to_extension[compression_only]
     to_method = getattr(obj, method)
     with tm.ensure_clean('no-compression') as path:
@@ -264,17 +262,14 @@ def test_compression_size_fh(obj, method, compression_only):
 
 
 def test_compression_warning(compression_only):
-    """
-    Assert that passing a file object to to_csv while explicitly specifying a
-    compression protocol triggers a RuntimeWarning, as per
-    https://github.com/pandas-dev/pandas/issues/21227.
-
-    Note that pytest has an issue that causes assert_produces_warning to fail
-    in Python 2 if the warning has occurred in previous tests
-    (see https://git.io/fNEBm & https://git.io/fNEBC). Hence, should this test
-    fail in just Python 2 builds, it likely indicates that other tests are
-    producing RuntimeWarnings, thereby triggering the pytest bug.
-    """
+    # Assert that passing a file object to to_csv while explicitly specifying a
+    # compression protocol triggers a RuntimeWarning, as per
+    # https://github.com/pandas-dev/pandas/issues/21227.
+    # Note that pytest has an issue that causes assert_produces_warning to fail
+    # in Python 2 if the warning has occurred in previous tests
+    # (see https://git.io/fNEBm & https://git.io/fNEBC). Hence, should this
+    # test fail in just Python 2 builds, it likely indicates that other tests
+    # are producing RuntimeWarnings, thereby triggering the pytest bug.
     df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
                           [12.32112, 123123.2, 321321.2]],
                    columns=['X', 'Y', 'Z'])
