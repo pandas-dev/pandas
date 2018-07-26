@@ -14,7 +14,6 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     ensure_int64)
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.timedeltas import (
     TimedeltaArrayMixin, _is_convertible_to_td, _to_m8)
@@ -25,18 +24,17 @@ from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
 
 from pandas.tseries.frequencies import to_offset
-from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin)
+    TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas._libs import (lib, index as libindex,
-                          join as libjoin, Timedelta, NaT, iNaT)
+                          join as libjoin, Timedelta, NaT)
 
 
 def _wrap_field_accessor(name):
@@ -197,11 +195,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
 
-        if not isinstance(data, (np.ndarray, Index, ABCSeries)):
-            if is_scalar(data):
-                raise ValueError('TimedeltaIndex() must be called with a '
-                                 'collection of some kind, %s was passed'
-                                 % repr(data))
+        if is_scalar(data):
+            raise ValueError('TimedeltaIndex() must be called with a '
+                             'collection of some kind, {data} was passed'
+                             .format(data=repr(data)))
 
         # convert if not already
         if getattr(data, 'dtype', None) != _TD_DTYPE:
@@ -223,7 +220,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return subarr
 
     @classmethod
-    def _generate_range(cls, start, end, periods, name, freq, closed=None):
+    def _generate_range(cls, start, end, periods,
+                        name=None, freq=None, closed=None):
         # TimedeltaArray gets `name` via **kwargs, so we need to explicitly
         # override it if name is passed as a positional argument
         return super(TimedeltaIndex, cls)._generate_range(start, end,
@@ -262,37 +260,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
     def _evaluate_with_timedelta_like(self, other, op):
         result = TimedeltaArrayMixin._evaluate_with_timedelta_like(self, other,
                                                                    op)
-        if result is NotImplemented:
-            return NotImplemented
-        return Index(result, name=self.name, copy=False)
-
-    def _add_datelike(self, other):
-        # adding a timedeltaindex to a datetimelike
-        from pandas import Timestamp, DatetimeIndex
-        if isinstance(other, (DatetimeIndex, np.ndarray)):
-            # if other is an ndarray, we assume it is datetime64-dtype
-            # defer to implementation in DatetimeIndex
-            other = DatetimeIndex(other)
-            return other + self
-        else:
-            assert other is not NaT
-            other = Timestamp(other)
-            i8 = self.asi8
-            result = checked_add_with_arr(i8, other.value,
-                                          arr_mask=self._isnan)
-            result = self._maybe_mask_results(result, fill_value=iNaT)
-            return DatetimeIndex(result)
-
-    def _addsub_offset_array(self, other, op):
-        # Add or subtract Array-like of DateOffset objects
-        try:
-            # TimedeltaIndex can only operate with a subset of DateOffset
-            # subclasses.  Incompatible classes will raise AttributeError,
-            # which we re-raise as TypeError
-            return DatetimeIndexOpsMixin._addsub_offset_array(self, other, op)
-        except AttributeError:
-            raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
-                            .format(cls=type(self).__name__))
+        return wrap_arithmetic_op(self, other, result)
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
