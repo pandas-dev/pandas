@@ -274,21 +274,21 @@ def test_dataframe_compression_defaults_to_infer(
     tm.assert_frame_equal(output, input)
 
 
-@pytest.mark.parametrize('write_method, write_kwargs, read_method', [
-    ('to_csv', {}, pandas.Series.from_csv),
-    ('to_json', {'typ': 'series'}, pandas.read_json),
-    ('to_pickle', {}, pandas.read_pickle),
+@pytest.mark.parametrize('write_method, read_method, read_kwargs', [
+    ('to_csv', pandas.Series.from_csv, {}),
+    ('to_json', pandas.read_json, {'typ': 'series'}),
+    ('to_pickle', pandas.read_pickle, {}),
 ])
 def test_series_compression_defaults_to_infer(
-        write_method, write_kwargs, read_method, compression_only):
+        write_method, read_method, read_kwargs, compression_only):
     # Test that Series.to_* methods default to inferring compression from
     # paths. https://github.com/pandas-dev/pandas/pull/22011
     input = Series(100 * [0, 5, -2, 10])
     extension = _compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
         # assumes that compression='infer' is the default
-        getattr(input, write_method)(path, **write_kwargs)
-        output = read_method(path, compression=compression_only)
+        getattr(input, write_method)(path)
+        output = read_method(path, compression=compression_only, **read_kwargs)
     tm.assert_series_equal(output, input)
 
 
