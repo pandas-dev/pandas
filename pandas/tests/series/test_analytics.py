@@ -4,6 +4,7 @@
 from itertools import product
 from distutils.version import LooseVersion
 import operator
+import warnings
 import pytest
 
 from numpy import nan
@@ -595,15 +596,17 @@ class TestSeriesAnalytics(TestData):
                    index=list('abcde'), name='foo')
         expected = Series(s.values.compress(cond),
                           index=list('ac'), name='foo')
-        tm.assert_series_equal(np.compress(cond, s), expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_series_equal(np.compress(cond, s), expected)
 
-        msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.compress,
-                               cond, s, axis=1)
+        with warnings.catch_warnings(record=True):
+            msg = "the 'axis' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.compress,
+                                   cond, s, axis=1)
 
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.compress,
-                               cond, s, out=s)
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.compress,
+                                   cond, s, out=s)
 
     def test_round(self):
         self.ts.index.name = "index_name"
