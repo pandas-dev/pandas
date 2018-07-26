@@ -329,17 +329,6 @@ class TestBlockManager(object):
         assert create_mgr('a,b:f8; c,d: f4').is_mixed_type
         assert create_mgr('a,b:f8; c,d: object').is_mixed_type
 
-    def test_is_indexed_like(self):
-        mgr1 = create_mgr('a,b: f8')
-        mgr2 = create_mgr('a:i8; b:bool')
-        mgr3 = create_mgr('a,b,c: f8')
-        assert mgr1._is_indexed_like(mgr1)
-        assert mgr1._is_indexed_like(mgr2)
-        assert mgr1._is_indexed_like(mgr3)
-
-        assert not mgr1._is_indexed_like(mgr1.get_slice(
-            slice(-1), axis=1))
-
     def test_duplicate_ref_loc_failure(self):
         tmp_mgr = create_mgr('a:bool; a: f8')
 
@@ -395,15 +384,6 @@ class TestBlockManager(object):
         smgr = create_single_mgr('category')
         smgr2 = tm.round_trip_pickle(smgr)
         assert_series_equal(Series(smgr), Series(smgr2))
-
-    def test_get_scalar(self, mgr):
-        for item in mgr.items:
-            for i, index in enumerate(mgr.axes[1]):
-                res = mgr.get_scalar((item, index))
-                exp = mgr.get(item, fastpath=False)[i]
-                assert res == exp
-                exp = mgr.get(item).internal_values()[i]
-                assert res == exp
 
     def test_get(self):
         cols = Index(list('abc'))
