@@ -50,7 +50,7 @@ class Registry(object):
             dtype_type = dtype
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
-            if issubclass(dtype_type, (PandasExtensionDtype, ExtensionDtype)):
+            if issubclass(dtype_type, ExtensionDtype):
                 return dtype
 
             return None
@@ -823,7 +823,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 # register the dtypes in search order
-registry.register(DatetimeTZDtype)
-registry.register(PeriodDtype)
 registry.register(IntervalDtype)
 registry.register(CategoricalDtype)
+# TODO(extension): Add DatetimeTZDtype and PeriodDtype
