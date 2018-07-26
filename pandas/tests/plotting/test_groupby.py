@@ -28,10 +28,9 @@ def test_no_double_plot_for_first_group(plotting_method):
     import matplotlib.pyplot as plt
     df = pd.DataFrame({'cat': [1, 1, 2, 2],
                        'x': [1, 3, 5, 7], 'y': [2, 4, 6, 8]})
+    plt.close('all')
     df.groupby('cat').plot.__getattr__(plotting_method)(x='x', y='y')
     fig_nums = plt.get_fignums()
-    for fig_num in fig_nums:
-        plt.close()
     assert fig_nums == [1, 2]
 
 
