@@ -1200,7 +1200,8 @@ class TestToIterable(object):
      'datetime64[ns, US/Central]'),
     (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
     (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
-    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), pd.core.arrays.IntervalArray,
+     'interval'),
 ])
 def test_values_consistent(array, expected_type, dtype):
     l_values = pd.Series(array)._values
@@ -1214,6 +1215,8 @@ def test_values_consistent(array, expected_type, dtype):
         tm.assert_index_equal(l_values, r_values)
     elif pd.api.types.is_categorical(l_values):
         tm.assert_categorical_equal(l_values, r_values)
+    elif pd.api.types.is_interval_dtype(l_values):
+        tm.assert_interval_array_equal(l_values, r_values)
     else:
         raise TypeError("Unexpected type {}".format(type(l_values)))
 

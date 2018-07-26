@@ -13,7 +13,7 @@ AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                  'mad', 'std', 'var', 'sem']
 AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
 
-df_whitelist = frozenset([
+df_whitelist = [
     'last',
     'first',
     'mean',
@@ -48,9 +48,15 @@ df_whitelist = frozenset([
     'corr',
     'cov',
     'diff',
-])
+]
 
-s_whitelist = frozenset([
+
+@pytest.fixture(params=df_whitelist)
+def df_whitelist_fixture(request):
+    return request.param
+
+
+s_whitelist = [
     'last',
     'first',
     'mean',
@@ -89,7 +95,12 @@ s_whitelist = frozenset([
     'nsmallest',
     'is_monotonic_increasing',
     'is_monotonic_decreasing',
-])
+]
+
+
+@pytest.fixture(params=s_whitelist)
+def s_whitelist_fixture(request):
+    return request.param
 
 
 @pytest.fixture
@@ -127,6 +138,13 @@ def df_letters():
                           (df_whitelist, s_whitelist)))
 def test_groupby_whitelist(df_letters, obj, whitelist):
     df = df_letters
+    gb = obj.groupby(df.letters)
+
+    assert set(whitelist) == set(gb._apply_whitelist)
+
+
+def check_whitelist(obj, df, m):
+    # check the obj for a particular whitelist m
 
     # these are aliases so ok to have the alias __name__
     alias = {'bfill': 'backfill',
@@ -135,29 +153,38 @@ def test_groupby_whitelist(df_letters, obj, whitelist):
 
     gb = obj.groupby(df.letters)
 
-    assert whitelist == gb._apply_whitelist
-    for m in whitelist:
+    m = alias.get(m, m)
+    if m is None:
+        return
 
-        m = alias.get(m, m)
-        if m is None:
-            continue
+    f = getattr(type(gb), m)
 
-        f = getattr(type(gb), m)
+    # name
+    try:
+        n = f.__name__
+    except AttributeError:
+        return
+    assert n == m
 
-        # name
+    # qualname
+    if compat.PY3:
         try:
-            n = f.__name__
+            n = f.__qualname__
         except AttributeError:
-            continue
-        assert n == m
+            return
+        assert n.endswith(m)
 
-        # qualname
-        if compat.PY3:
-            try:
-                n = f.__qualname__
-            except AttributeError:
-                continue
-            assert n.endswith(m)
+
+def test_groupby_series_whitelist(df_letters, s_whitelist_fixture):
+    m = s_whitelist_fixture
+    df = df_letters
+    check_whitelist(df.letters, df, m)
+
+
+def test_groupby_frame_whitelist(df_letters, df_whitelist_fixture):
+    m = df_whitelist_fixture
+    df = df_letters
+    check_whitelist(df, df, m)
 
 
 @pytest.fixture

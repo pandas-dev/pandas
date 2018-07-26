@@ -8,7 +8,7 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
-from pandas.core.groupby.groupby import Grouper
+from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import Index, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
@@ -470,8 +470,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')

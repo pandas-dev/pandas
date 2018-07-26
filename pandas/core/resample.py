@@ -5,12 +5,13 @@ import copy
 from textwrap import dedent
 
 import pandas as pd
-from pandas.core.base import GroupByMixin
-
+from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.ops import BinGrouper
 from pandas.core.groupby.groupby import (
-    BinGrouper, Grouper, _GroupBy, GroupBy, SeriesGroupBy, groupby,
-    PanelGroupBy, _pipe_template
+    _GroupBy, GroupBy, groupby, _pipe_template
 )
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range

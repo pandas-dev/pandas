@@ -56,7 +56,7 @@ class Base(object):
             index.astype(dtype)
 
     def test_astype_invalid_dtype(self, index):
-        msg = 'data type "fake_dtype" not understood'
+        msg = "data type 'fake_dtype' not understood"
         with tm.assert_raises_regex(TypeError, msg):
             index.astype('fake_dtype')
 

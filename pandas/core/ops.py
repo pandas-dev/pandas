@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from pandas._libs import algos as libalgos, ops as libops
+from pandas._libs import lib, algos as libalgos, ops as libops
 
 from pandas import compat
 from pandas.util._decorators import Appender
@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_extension_array_dtype,
-    _ensure_object)
+    ensure_object)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
     construct_1d_object_array_from_listlike)
@@ -89,7 +89,7 @@ def _maybe_match_name(a, b):
 
     See also
     --------
-    pandas.core.common._consensus_name_attr
+    pandas.core.common.consensus_name_attr
     """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
@@ -135,6 +135,13 @@ def rfloordiv(left, right):
 
 
 def rmod(left, right):
+    # check if right is a string as % is the string
+    # formatting operation; this is a TypeError
+    # otherwise perform the op
+    if isinstance(right, compat.string_types):
+        raise TypeError("{typ} cannot perform the operation mod".format(
+            typ=type(left).__name__))
+
     return right % left
 
 
@@ -401,6 +408,52 @@ d  -1.0  NaN
 e  NaN  -2.0
 """
 
+_mod_example_FRAME = """
+**Using a scalar argument**
+
+>>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a", "b", "c", "d"],
+...                   columns=['one'])
+>>> df
+    one
+a   2.0
+b   4.0
+c   NaN
+d   6.2
+>>> df.mod(3, fill_value=-1)
+    one
+a   2.0
+b   1.0
+c   2.0
+d   0.2
+
+**Using a DataFrame argument**
+
+>>> df = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
+...                   index=['a', 'b', 'c', 'd'])
+>>> df
+    one   two
+a   NaN   NaN
+b   2.0   1.0
+c   3.0   1.0
+d   14.0  3.0
+>>> other = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
+...                           three=[np.nan, 10, np.nan, -7]),
+...                      index=['a', 'b', 'd', 'e'])
+>>> other
+    one three
+a   NaN NaN
+b   NaN 10.0
+d   6.0 NaN
+e   NaN -7.0
+>>> df.mod(other, fill_value=3)
+    one   three two
+a   NaN   NaN   NaN
+b   2.0   3.0   1.0
+c   0.0   NaN   1.0
+d   2.0   NaN   0.0
+e   NaN  -4.0   NaN
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -418,7 +471,7 @@ _op_descriptions = {
     'mod': {'op': '%',
             'desc': 'Modulo',
             'reverse': 'rmod',
-            'df_examples': None},
+            'df_examples': _mod_example_FRAME},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
@@ -972,7 +1025,7 @@ def _align_method_SERIES(left, right, align_asobject=False):
     return left, right
 
 
-def _construct_result(left, result, index, name, dtype):
+def _construct_result(left, result, index, name, dtype=None):
     """
     If the raw op result has a non-None name (e.g. it is an Index object) and
     the name argument is None, then passing name to the constructor will
@@ -984,7 +1037,7 @@ def _construct_result(left, result, index, name, dtype):
     return out
 
 
-def _construct_divmod_result(left, result, index, name, dtype):
+def _construct_divmod_result(left, result, index, name, dtype=None):
     """divmod returns a tuple of like indexed series instead of a single series.
     """
     constructor = left._constructor
@@ -1002,16 +1055,39 @@ def dispatch_to_extension_op(op, left, right):
 
     # The op calls will raise TypeError if the op is not defined
     # on the ExtensionArray
-    if is_extension_array_dtype(left):
-        res_values = op(left.values, right)
-    else:
-        # We know that left is not ExtensionArray and is Series and right is
-        # ExtensionArray.  Want to force ExtensionArray op to get called
-        res_values = op(list(left.values), right.values)
+    # TODO(jreback)
+    # we need to listify to avoid ndarray, or non-same-type extension array
+    # dispatching
 
+    if is_extension_array_dtype(left):
+
+        new_left = left.values
+        if isinstance(right, np.ndarray):
+
+            # handle numpy scalars, this is a PITA
+            # TODO(jreback)
+            new_right = lib.item_from_zerodim(right)
+            if is_scalar(new_right):
+                new_right = [new_right]
+            new_right = list(new_right)
+        elif is_extension_array_dtype(right) and type(left) != type(right):
+            new_right = list(new_right)
+        else:
+            new_right = right
+
+    else:
+
+        new_left = list(left.values)
+        new_right = right
+
+    res_values = op(new_left, new_right)
     res_name = get_op_result_name(left, right)
-    return left._constructor(res_values, index=left.index,
-                             name=res_name)
+
+    if op.__name__ == 'divmod':
+        return _construct_divmod_result(
+            left, res_values, left.index, res_name)
+
+    return _construct_result(left, res_values, left.index, res_name)
 
 
 def _arith_method_SERIES(cls, op, special):
@@ -1028,7 +1104,6 @@ def _arith_method_SERIES(cls, op, special):
 
     def na_op(x, y):
         import pandas.core.computation.expressions as expressions
-
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
@@ -1036,7 +1111,7 @@ def _arith_method_SERIES(cls, op, special):
                 dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
-                result[mask] = op(x[mask], com._values_from_object(y[mask]))
+                result[mask] = op(x[mask], com.values_from_object(y[mask]))
             else:
                 assert isinstance(x, np.ndarray)
                 result = np.empty(len(x), dtype=x.dtype)
@@ -1049,6 +1124,20 @@ def _arith_method_SERIES(cls, op, special):
         return result
 
     def safe_na_op(lvalues, rvalues):
+        """
+        return the result of evaluating na_op on the passed in values
+
+        try coercion to object type if the native types are not compatible
+
+        Parameters
+        ----------
+        lvalues : array-like
+        rvalues : array-like
+
+        Raises
+        ------
+        TypeError: invalid operation
+        """
         try:
             with np.errstate(all='ignore'):
                 return na_op(lvalues, rvalues)
@@ -1059,14 +1148,21 @@ def _arith_method_SERIES(cls, op, special):
             raise
 
     def wrapper(left, right):
-
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
 
-        if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+        if is_categorical_dtype(left):
+            raise TypeError("{typ} cannot perform the operation "
+                            "{op}".format(typ=type(left).__name__, op=str_rep))
+
+        elif (is_extension_array_dtype(left) or
+                is_extension_array_dtype(right)):
+            return dispatch_to_extension_op(op, left, right)
+
+        elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
@@ -1077,15 +1173,6 @@ def _arith_method_SERIES(cls, op, special):
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
-
-        elif is_categorical_dtype(left):
-            raise TypeError("{typ} cannot perform the operation "
-                            "{op}".format(typ=type(left).__name__, op=str_rep))
-
-        elif (is_extension_array_dtype(left) or
-              (is_extension_array_dtype(right) and
-               not is_categorical_dtype(right))):
-            return dispatch_to_extension_op(op, left, right)
 
         lvalues = left.values
         rvalues = right
@@ -1158,6 +1245,9 @@ def _comp_method_SERIES(cls, op, special):
     masker = _gen_eval_kwargs(op_name).get('masker', False)
 
     def na_op(x, y):
+        # TODO:
+        # should have guarantess on what x, y can be type-wise
+        # Extension Dtypes are not called here
 
         # dispatch to the categorical if we have a categorical
         # in either operand
@@ -1266,7 +1356,7 @@ def _comp_method_SERIES(cls, op, special):
 
         elif (is_extension_array_dtype(self) or
               (is_extension_array_dtype(other) and
-               not is_categorical_dtype(other))):
+               not is_scalar(other))):
             return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
@@ -1317,7 +1407,7 @@ def _comp_method_SERIES(cls, op, special):
                                 .format(typ=type(other)))
 
             # always return a full value series here
-            res_values = com._values_from_object(res)
+            res_values = com.values_from_object(res)
             return self._constructor(res_values, index=self.index,
                                      name=res_name, dtype='bool')
 
@@ -1341,8 +1431,8 @@ def _bool_method_SERIES(cls, op, special):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:
-                    x = _ensure_object(x)
-                    y = _ensure_object(y)
+                    x = ensure_object(x)
+                    y = ensure_object(y)
                     result = libops.vec_binop(x, y, op)
             else:
                 # let null fall thru

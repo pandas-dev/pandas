@@ -11,27 +11,31 @@ import pytest
 import dateutil
 import numpy as np
 
-import pandas as pd
-import pandas.tseries.offsets as offsets
+from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+
 import pandas.util.testing as tm
+from pandas.util.testing import (assert_series_equal, assert_almost_equal,
+                                 assert_frame_equal, assert_index_equal)
+
+import pandas as pd
+
 from pandas import (Series, DataFrame, Panel, Index, isna,
                     notna, Timestamp)
 
 from pandas.compat import range, lrange, zip, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
+import pandas.tseries.offsets as offsets
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Minute, BDay
+
 from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
-from pandas.tseries.offsets import Minute, BDay
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
 from pandas.core.resample import DatetimeIndex, TimeGrouper
 from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, assert_index_equal)
-from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 
 bday = BDay()
 

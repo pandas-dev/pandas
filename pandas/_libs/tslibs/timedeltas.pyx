@@ -183,7 +183,11 @@ cpdef convert_to_timedelta64(object ts, object unit):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
     elif is_string_object(ts):
-        ts = np.timedelta64(parse_timedelta_string(ts))
+        if len(ts) > 0 and ts[0] == 'P':
+            ts = parse_iso_format_string(ts)
+        else:
+            ts = parse_timedelta_string(ts)
+        ts = np.timedelta64(ts)
     elif hasattr(ts, 'delta'):
         ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
 
@@ -829,7 +833,37 @@ cdef class _Timedelta(timedelta):
 
     @property
     def asm8(self):
-        """ return a numpy timedelta64 array view of myself """
+        """
+        Return a numpy timedelta64 array scalar view.
+
+        Provides access to the array scalar view (i.e. a combination of the
+        value and the units) associated with the numpy.timedelta64().view(),
+        including a 64-bit integer representation of the timedelta in
+        nanoseconds (Python int compatible).
+
+        Returns
+        -------
+        numpy timedelta64 array scalar view
+            Array scalar view of the timedelta in nanoseconds.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.asm8
+        numpy.timedelta64(86520000003042,'ns')
+
+        >>> td = pd.Timedelta('2 min 3 s')
+        >>> td.asm8
+        numpy.timedelta64(123000000000,'ns')
+
+        >>> td = pd.Timedelta('3 ms 5 us')
+        >>> td.asm8
+        numpy.timedelta64(3005000,'ns')
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.asm8
+        numpy.timedelta64(42,'ns')
+        """
         return np.int64(self.value).view('m8[ns]')
 
     @property
