@@ -281,8 +281,8 @@ def test_dataframe_compression_defaults_to_infer(
     ('to_pickle', {}, pandas.read_pickle, {}),
 ])
 def test_series_compression_defaults_to_infer(
-        write_method, write_kwargs, read_method, read_kwargs, compression_only
-        ):
+        write_method, write_kwargs, read_method, read_kwargs,
+        compression_only):
     # Test that Series.to_* methods default to inferring compression from
     # paths. https://github.com/pandas-dev/pandas/pull/22011
     input = Series([0, 5, -2, 10], name='X')
