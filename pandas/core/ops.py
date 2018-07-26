@@ -1123,6 +1123,30 @@ def _arith_method_SERIES(cls, op, special):
         result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
         return result
 
+    def safe_na_op(lvalues, rvalues):
+        """
+        return the result of evaluating na_op on the passed in values
+
+        try coercion to object type if the native types are not compatible
+
+        Parameters
+        ----------
+        lvalues : array-like
+        rvalues : array-like
+
+        Raises
+        ------
+        TypeError: invalid operation
+        """
+        try:
+            with np.errstate(all='ignore'):
+                return na_op(lvalues, rvalues)
+        except Exception:
+            if is_object_dtype(lvalues):
+                return libalgos.arrmap_object(lvalues,
+                                              lambda x: op(x, rvalues))
+            raise
+
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
             return NotImplemented
@@ -1150,18 +1174,12 @@ def _arith_method_SERIES(cls, op, special):
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
-        elif is_object_dtype(left):
-            rvalues = right.values if isinstance(right, ABCSeries) else right
-            result = libalgos.arrmap_object(left.values,
-                                            lambda x: op(x, rvalues))
-
         lvalues = left.values
         rvalues = right
         if isinstance(rvalues, ABCSeries):
             rvalues = rvalues.values
 
-        with np.errstate(all='ignore'):
-            result = na_op(lvalues, rvalues)
+        result = safe_na_op(lvalues, rvalues)
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
@@ -1231,13 +1249,11 @@ def _comp_method_SERIES(cls, op, special):
         # should have guarantess on what x, y can be type-wise
         # Extension Dtypes are not called here
 
-        # dispatch to the categorical if we have a categorical
-        # in either operand
-        if is_categorical_dtype(y) and not is_scalar(y):
-            # The `not is_scalar(y)` check excludes the string "category"
-            return op(y, x)
+        # Checking that cases that were once handled here are no longer
+        # reachable.
+        assert not (is_categorical_dtype(y) and not is_scalar(y))
 
-        elif is_object_dtype(x.dtype):
+        if is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
 
         elif is_datetimelike_v_numeric(x, y):
@@ -1361,13 +1377,6 @@ def _comp_method_SERIES(cls, op, special):
             # rename is needed in case res_name is None and self.name
             # is not.
             return result.__finalize__(self).rename(res_name)
-
-        elif isinstance(other, pd.Categorical):
-            # ordering of checks matters; by this point we know
-            # that not is_categorical_dtype(self)
-            res_values = op(self.values, other)
-            return self._constructor(res_values, index=self.index,
-                                     name=res_name)
 
         elif is_scalar(other) and isna(other):
             # numpy does not like comparisons vs None
