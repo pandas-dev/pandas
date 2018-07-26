@@ -642,6 +642,13 @@ class TestPandasContainer(object):
         result = read_json(s.to_json(), typ='series', precise_float=True)
         assert_series_equal(result, s, check_index_type=False)
 
+    def test_series_with_dtype(self):
+        # GH 21986
+        s = Series([4.56, 4.56, 4.56])
+        result = read_json(s.to_json(), typ='series', dtype=int)
+        expected = Series([4] * 3)
+        assert_series_equal(result, expected)
+
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
         result = read_json(df.to_json(), precise_float=True)
