@@ -279,7 +279,7 @@ Passing ``utc=True`` will mimic the previous behavior but will correctly indicat
 that the dates have been converted to UTC
 
 .. ipython:: python
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
+    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
