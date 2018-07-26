@@ -16,6 +16,11 @@ class TestDatetimeArray(object):
         arr = DatetimeArrayMixin(dti)
         assert list(dti) == list(arr)
 
+        # Check that Index.__new__ knows what to do with DatetimeArray
+        dti2 = pd.Index(arr)
+        assert isinstance(dti2, pd.DatetimeIndex)
+        assert list(dti2) == list(arr)
+
     def test_astype_object(self, tz_naive_fixture):
         tz = tz_naive_fixture
         dti = pd.date_range('2016-01-01', periods=3, tz=tz)
@@ -32,6 +37,11 @@ class TestTimedeltaArray(object):
         arr = TimedeltaArrayMixin(tdi)
         assert list(arr) == list(tdi)
 
+        # Check that Index.__new__ knows what to do with TimedeltaArray
+        tdi2 = pd.Index(arr)
+        assert isinstance(tdi2, pd.TimedeltaIndex)
+        assert list(tdi2) == list(arr)
+
     def test_astype_object(self):
         tdi = pd.TimedeltaIndex(['1 Day', '3 Hours'])
         arr = TimedeltaArrayMixin(tdi)
@@ -47,6 +57,11 @@ class TestPeriodArray(object):
         pi = pd.period_range('2016', freq='Q', periods=3)
         arr = PeriodArrayMixin(pi)
         assert list(arr) == list(pi)
+
+        # Check that Index.__new__ knows what to do with TimedeltaArray
+        pi2 = pd.Index(arr)
+        assert isinstance(pi2, pd.PeriodIndex)
+        assert list(pi2) == list(arr)
 
     def test_astype_object(self):
         pi = pd.period_range('2016', freq='Q', periods=3)
