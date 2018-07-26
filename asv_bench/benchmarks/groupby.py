@@ -142,7 +142,7 @@ class Nth(object):
     def time_series_nth_any(self, dtype):
         self.df['values'].groupby(self.df['key']).nth(0, dropna='any')
 
-    def time_groupby_nth_all(self, dtype):
+    def time_series_nth_all(self, dtype):
         self.df['values'].groupby(self.df['key']).nth(0, dropna='all')
 
     def time_series_nth(self, dtype):

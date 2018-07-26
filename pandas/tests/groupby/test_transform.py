@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.util import testing as tm
 from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
 from pandas.core.dtypes.common import (
-    _ensure_platform_int, is_timedelta64_dtype)
+    ensure_platform_int, is_timedelta64_dtype)
 from pandas.compat import StringIO
 from pandas._libs import groupby
 
@@ -76,7 +76,7 @@ def test_transform_fast():
     grp = df.groupby('id')['val']
 
     values = np.repeat(grp.mean().values,
-                       _ensure_platform_int(grp.count().values))
+                       ensure_platform_int(grp.count().values))
     expected = pd.Series(values, index=df.index, name='val')
 
     result = grp.transform(np.mean)

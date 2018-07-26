@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, _ensure_index
+from pandas.core.index import Index, ensure_index
 from pandas.core.config import get_option, set_option
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -426,7 +426,7 @@ class DataFrameFormatter(TableFormatter):
         self.kwds = kwds
 
         if columns is not None:
-            self.columns = _ensure_index(columns)
+            self.columns = ensure_index(columns)
             self.frame = self.frame[self.columns]
         else:
             self.columns = frame.columns

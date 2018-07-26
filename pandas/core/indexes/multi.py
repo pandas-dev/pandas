@@ -14,8 +14,8 @@ from pandas import compat
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_platform_int,
+    ensure_int64,
+    ensure_platform_int,
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
@@ -36,7 +36,7 @@ from pandas.io.formats.printing import pprint_thing
 from pandas.core.config import get_option
 
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
+    Index, ensure_index,
     InvalidIndexError,
     _index_shared_docs)
 from pandas.core.indexes.frozen import (
@@ -302,13 +302,13 @@ class MultiIndex(Index):
 
         if level is None:
             new_levels = FrozenList(
-                _ensure_index(lev, copy=copy)._shallow_copy()
+                ensure_index(lev, copy=copy)._shallow_copy()
                 for lev in levels)
         else:
             level = [self._get_level_number(l) for l in level]
             new_levels = list(self._levels)
             for l, v in zip(level, levels):
-                new_levels[l] = _ensure_index(v, copy=copy)._shallow_copy()
+                new_levels[l] = ensure_index(v, copy=copy)._shallow_copy()
             new_levels = FrozenList(new_levels)
 
         if verify_integrity:
@@ -950,8 +950,8 @@ class MultiIndex(Index):
         from pandas.core.indexing import maybe_droplevels
 
         # Label-based
-        s = com._values_from_object(series)
-        k = com._values_from_object(key)
+        s = com.values_from_object(series)
+        k = com.values_from_object(key)
 
         def _try_mi(k):
             # TODO: what if a level contains tuples??
@@ -1227,7 +1227,7 @@ class MultiIndex(Index):
             else:
                 return 0
 
-        int64_labels = [_ensure_int64(lab) for lab in self.labels]
+        int64_labels = [ensure_int64(lab) for lab in self.labels]
         for k in range(self.nlevels, 0, -1):
             if libalgos.is_lexsorted(int64_labels[:k]):
                 return k
@@ -1431,7 +1431,7 @@ class MultiIndex(Index):
                     lev = lev.take(indexer)
 
                     # indexer to reorder the labels
-                    indexer = _ensure_int64(indexer)
+                    indexer = ensure_int64(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
                     lab = algos.take_1d(ri, lab)
 
@@ -1594,7 +1594,7 @@ class MultiIndex(Index):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.labels, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -1691,7 +1691,7 @@ class MultiIndex(Index):
 
         try:
             if not isinstance(labels, (np.ndarray, Index)):
-                labels = com._index_labels_to_array(labels)
+                labels = com.index_labels_to_array(labels)
             indexer = self.get_indexer(labels)
             mask = indexer == -1
             if mask.any():
@@ -1730,7 +1730,7 @@ class MultiIndex(Index):
         return self.delete(inds)
 
     def _drop_from_level(self, labels, level):
-        labels = com._index_labels_to_array(labels)
+        labels = com.index_labels_to_array(labels)
         i = self._get_level_number(level)
         index = self.levels[i]
         values = index.get_indexer(labels)
@@ -1895,7 +1895,7 @@ class MultiIndex(Index):
             if not ascending:
                 indexer = indexer[::-1]
 
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         new_labels = [lab.take(indexer) for lab in self.labels]
 
         new_index = MultiIndex(labels=new_labels, levels=self.levels,
@@ -1940,11 +1940,11 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
         method = missing.clean_reindex_fill_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
 
         # empty indexer
         if is_list_like(target) and not len(target):
-            return _ensure_platform_int(np.array([]))
+            return ensure_platform_int(np.array([]))
 
         if not isinstance(target, MultiIndex):
             try:
@@ -1973,7 +1973,7 @@ class MultiIndex(Index):
         else:
             indexer = self._engine.get_indexer(target)
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
@@ -2010,12 +2010,12 @@ class MultiIndex(Index):
                 target = type(idx)._simple_new(np.empty(0, dtype=idx.dtype),
                                                **attrs)
             else:
-                target = _ensure_index(target)
+                target = ensure_index(target)
             target, indexer, _ = self._join_level(target, level, how='right',
                                                   return_indexers=True,
                                                   keep_order=False)
         else:
-            target = _ensure_index(target)
+            target = ensure_index(target)
             if self.equals(target):
                 indexer = None
             else:
@@ -2399,7 +2399,7 @@ class MultiIndex(Index):
                 # selected
                 from pandas import Series
                 mapper = Series(indexer)
-                indexer = labels.take(_ensure_platform_int(indexer))
+                indexer = labels.take(ensure_platform_int(indexer))
                 result = Series(Index(indexer).isin(r).nonzero()[0])
                 m = result.map(mapper)._ndarray_values
 
@@ -2628,7 +2628,7 @@ class MultiIndex(Index):
             return False
 
         if not isinstance(other, MultiIndex):
-            other_vals = com._values_from_object(_ensure_index(other))
+            other_vals = com.values_from_object(ensure_index(other))
             return array_equivalent(self._ndarray_values, other_vals)
 
         if self.nlevels != other.nlevels:
@@ -2826,7 +2826,7 @@ class MultiIndex(Index):
                 lev_loc = level.get_loc(k)
 
             new_levels.append(level)
-            new_labels.append(np.insert(_ensure_int64(labels), loc, lev_loc))
+            new_labels.append(np.insert(ensure_int64(labels), loc, lev_loc))
 
         return MultiIndex(levels=new_levels, labels=new_labels,
                           names=self.names, verify_integrity=False)

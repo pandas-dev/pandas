@@ -51,9 +51,9 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     needs_i8_conversion,
     _get_dtype_from_object,
-    _ensure_float64,
-    _ensure_int64,
-    _ensure_platform_int,
+    ensure_float64,
+    ensure_int64,
+    ensure_platform_int,
     is_list_like,
     is_nested_list_like,
     is_iterator,
@@ -64,8 +64,8 @@ from pandas.core.dtypes.missing import isna, notna
 
 
 from pandas.core.generic import NDFrame, _shared_docs
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
-                               _ensure_index_from_sequences)
+from pandas.core.index import (Index, MultiIndex, ensure_index,
+                               ensure_index_from_sequences)
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
@@ -88,6 +88,7 @@ from pandas.util._validators import (validate_bool_kwarg,
 from pandas.core.indexes.period import PeriodIndex
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
+import pandas.core.indexes.base as ibase
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
@@ -136,8 +137,8 @@ _numeric_only_doc = """numeric_only : boolean, default None
 """
 
 _merge_doc = """
-Merge DataFrame objects by performing a database-style join operation by
-columns or indexes.
+Merge DataFrame or named Series objects by performing a database-style join
+operation by columns or indexes.
 
 If joining columns on columns, the DataFrame indexes *will be
 ignored*. Otherwise if joining indexes on indexes or indexes on a column or
@@ -145,7 +146,7 @@ columns, the index will be passed on.
 
 Parameters
 ----------%s
-right : DataFrame, Series or dict
+right : DataFrame or named Series
     Object to merge with.
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     Type of merge to be performed.
@@ -216,6 +217,7 @@ Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
 `right_on` parameters was added in version 0.23.0
+Support for merging named Series objects was added in version 0.24.0
 
 See Also
 --------
@@ -397,16 +399,16 @@ class DataFrame(NDFrame):
                     if is_named_tuple(data[0]) and columns is None:
                         columns = data[0]._fields
                     arrays, columns = _to_arrays(data, columns, dtype=dtype)
-                    columns = _ensure_index(columns)
+                    columns = ensure_index(columns)
 
                     # set the index
                     if index is None:
                         if isinstance(data[0], Series):
                             index = _get_names_from_index(data)
                         elif isinstance(data[0], Categorical):
-                            index = com._default_index(len(data[0]))
+                            index = ibase.default_index(len(data[0]))
                         else:
-                            index = com._default_index(len(data))
+                            index = ibase.default_index(len(data))
 
                     mgr = _arrays_to_mgr(arrays, columns, index, columns,
                                          dtype=dtype)
@@ -450,7 +452,7 @@ class DataFrame(NDFrame):
                 # raise ValueError if only scalars in dict
                 index = extract_index(arrays[~missing])
             else:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             # no obvious "empty" int column
             if missing.any() and not is_integer_dtype(dtype):
@@ -464,7 +466,7 @@ class DataFrame(NDFrame):
                 arrays.loc[missing] = [v] * missing.sum()
 
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             columns = data_names = Index(keys)
             arrays = [data[k] for k in keys]
 
@@ -491,14 +493,14 @@ class DataFrame(NDFrame):
             # return axes or defaults
 
             if index is None:
-                index = com._default_index(N)
+                index = ibase.default_index(N)
             else:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if columns is None:
-                columns = com._default_index(K)
+                columns = ibase.default_index(K)
             else:
-                columns = _ensure_index(columns)
+                columns = ensure_index(columns)
             return index, columns
 
         # we could have a categorical type passed or coerced to 'category'
@@ -615,11 +617,11 @@ class DataFrame(NDFrame):
 
         # used by repr_html under IPython notebook or scripts ignore terminal
         # dims
-        if ignore_width or not com.in_interactive_session():
+        if ignore_width or not console.in_interactive_session():
             return True
 
         if (get_option('display.width') is not None or
-                com.in_ipython_frontend()):
+                console.in_ipython_frontend()):
             # check at least the column row for excessive width
             max_rows = 1
         else:
@@ -687,7 +689,7 @@ class DataFrame(NDFrame):
         # XXX: In IPython 3.x and above, the Qt console will not attempt to
         # display HTML, so this check can be removed when support for
         # IPython 2.x is no longer needed.
-        if com.in_qtconsole():
+        if console.in_qtconsole():
             # 'HTML output is disabled in QtConsole'
             return None
 
@@ -1098,13 +1100,13 @@ class DataFrame(NDFrame):
             return into_c((('index', self.index.tolist()),
                            ('columns', self.columns.tolist()),
                            ('data', lib.map_infer(self.values.ravel(),
-                                                  com._maybe_box_datetimelike)
+                                                  com.maybe_box_datetimelike)
                             .reshape(self.values.shape).tolist())))
         elif orient.lower().startswith('s'):
-            return into_c((k, com._maybe_box_datetimelike(v))
+            return into_c((k, com.maybe_box_datetimelike(v))
                           for k, v in compat.iteritems(self))
         elif orient.lower().startswith('r'):
-            return [into_c((k, com._maybe_box_datetimelike(v))
+            return [into_c((k, com.maybe_box_datetimelike(v))
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
@@ -1236,7 +1238,7 @@ class DataFrame(NDFrame):
 
         # Make a copy of the input columns so we can modify it
         if columns is not None:
-            columns = _ensure_index(columns)
+            columns = ensure_index(columns)
 
         if is_iterator(data):
             if nrows == 0:
@@ -1265,7 +1267,7 @@ class DataFrame(NDFrame):
 
         if isinstance(data, dict):
             if columns is None:
-                columns = arr_columns = _ensure_index(sorted(data))
+                columns = arr_columns = ensure_index(sorted(data))
                 arrays = [data[k] for k in columns]
             else:
                 arrays = []
@@ -1281,15 +1283,15 @@ class DataFrame(NDFrame):
         elif isinstance(data, (np.ndarray, DataFrame)):
             arrays, columns = _to_arrays(data, columns)
             if columns is not None:
-                columns = _ensure_index(columns)
+                columns = ensure_index(columns)
             arr_columns = columns
         else:
             arrays, arr_columns = _to_arrays(data, columns,
                                              coerce_float=coerce_float)
 
-            arr_columns = _ensure_index(arr_columns)
+            arr_columns = ensure_index(arr_columns)
             if columns is not None:
-                columns = _ensure_index(columns)
+                columns = ensure_index(columns)
             else:
                 columns = arr_columns
 
@@ -1312,8 +1314,8 @@ class DataFrame(NDFrame):
                 try:
                     to_remove = [arr_columns.get_loc(field) for field in index]
                     index_data = [arrays[i] for i in to_remove]
-                    result_index = _ensure_index_from_sequences(index_data,
-                                                                names=index)
+                    result_index = ensure_index_from_sequences(index_data,
+                                                               names=index)
 
                     exclude.update(index)
                 except Exception:
@@ -1480,18 +1482,18 @@ class DataFrame(NDFrame):
 
         if orient == 'columns':
             if columns is not None:
-                columns = _ensure_index(columns)
+                columns = ensure_index(columns)
 
                 idict = dict(items)
                 if len(idict) < len(items):
-                    if not columns.equals(_ensure_index(keys)):
+                    if not columns.equals(ensure_index(keys)):
                         raise ValueError('With non-unique item names, passed '
                                          'columns must be identical')
                     arrays = values
                 else:
                     arrays = [idict[k] for k in columns if k in idict]
             else:
-                columns = _ensure_index(keys)
+                columns = ensure_index(keys)
                 arrays = values
 
             # GH 17312
@@ -1508,7 +1510,7 @@ class DataFrame(NDFrame):
             if columns is None:
                 raise TypeError("Must pass columns with orient='index'")
 
-            keys = _ensure_index(keys)
+            keys = ensure_index(keys)
 
             # GH 17312
             # Provide more informative error msg when scalar values passed
@@ -2612,7 +2614,7 @@ class DataFrame(NDFrame):
 
         if takeable:
             series = self._iget_item_cache(col)
-            return com._maybe_box_datetimelike(series._values[index])
+            return com.maybe_box_datetimelike(series._values[index])
 
         series = self._get_item_cache(col)
         engine = self.index._engine
@@ -2744,7 +2746,7 @@ class DataFrame(NDFrame):
                 return result
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         # shortcut if the key is in columns
         try:
@@ -3181,7 +3183,7 @@ class DataFrame(NDFrame):
                 exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
-        return self.loc[com._get_info_slice(self, dtype_indexer)]
+        return self.loc[com.get_info_slice(self, dtype_indexer)]
 
     def _box_item_values(self, key, values):
         items = self.columns[self.columns.get_loc(key)]
@@ -3196,7 +3198,7 @@ class DataFrame(NDFrame):
         return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         # see if we can slice the rows
         indexer = convert_to_index_sliceable(self, key)
@@ -3401,12 +3403,12 @@ class DataFrame(NDFrame):
         # >= 3.6 preserve order of kwargs
         if PY36:
             for k, v in kwargs.items():
-                data[k] = com._apply_if_callable(v, data)
+                data[k] = com.apply_if_callable(v, data)
         else:
             # <= 3.5: do all calculations first...
             results = OrderedDict()
             for k, v in kwargs.items():
-                results[k] = com._apply_if_callable(v, data)
+                results[k] = com.apply_if_callable(v, data)
 
             # <= 3.5 and earlier
             results = sorted(results.items())
@@ -3487,7 +3489,7 @@ class DataFrame(NDFrame):
                 if isinstance(value, list) and len(value) > 0:
                     value = maybe_convert_platform(value)
                 else:
-                    value = com._asarray_tuplesafe(value)
+                    value = com.asarray_tuplesafe(value)
             elif value.ndim == 2:
                 value = value.copy().T
             elif isinstance(value, Index):
@@ -4006,7 +4008,7 @@ class DataFrame(NDFrame):
                     to_remove.append(col)
             arrays.append(level)
 
-        index = _ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
             duplicates = index[index.duplicated()].unique()
@@ -4188,7 +4190,7 @@ class DataFrame(NDFrame):
                             values, mask, np.nan)
             return values
 
-        new_index = com._default_index(len(new_obj))
+        new_index = ibase.default_index(len(new_obj))
         if level is not None:
             if not isinstance(level, (tuple, list)):
                 level = [level]
@@ -4509,7 +4511,7 @@ class DataFrame(NDFrame):
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
-            indexer = _ensure_platform_int(indexer)
+            indexer = ensure_platform_int(indexer)
         else:
             from pandas.core.sorting import nargsort
 
@@ -6749,14 +6751,14 @@ class DataFrame(NDFrame):
         mat = numeric_df.values
 
         if method == 'pearson':
-            correl = libalgos.nancorr(_ensure_float64(mat), minp=min_periods)
+            correl = libalgos.nancorr(ensure_float64(mat), minp=min_periods)
         elif method == 'spearman':
-            correl = libalgos.nancorr_spearman(_ensure_float64(mat),
+            correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
         else:
             if min_periods is None:
                 min_periods = 1
-            mat = _ensure_float64(mat).T
+            mat = ensure_float64(mat).T
             corrf = nanops.get_corr_func(method)
             K = len(cols)
             correl = np.empty((K, K), dtype=float)
@@ -6886,7 +6888,7 @@ class DataFrame(NDFrame):
                 baseCov = np.cov(mat.T)
             baseCov = baseCov.reshape((len(cols), len(cols)))
         else:
-            baseCov = libalgos.nancorr(_ensure_float64(mat), cov=True,
+            baseCov = libalgos.nancorr(ensure_float64(mat), cov=True,
                                        minp=min_periods)
 
         return self._constructor(baseCov, index=idx, columns=cols)
@@ -7076,7 +7078,7 @@ class DataFrame(NDFrame):
             level = count_axis._get_level_number(level)
 
         level_index = count_axis.levels[level]
-        labels = _ensure_int64(count_axis.labels[level])
+        labels = ensure_int64(count_axis.labels[level])
         counts = lib.count_level_2d(mask, labels, len(level_index), axis=0)
 
         result = DataFrame(counts, index=level_index, columns=agg_axis)
@@ -7608,7 +7610,7 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     arrays = _homogenize(arrays, index, dtype)
 
     # from BlockManager perspective
-    axes = [_ensure_index(columns), _ensure_index(index)]
+    axes = [ensure_index(columns), ensure_index(index)]
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
@@ -7660,9 +7662,9 @@ def extract_index(data):
                            (lengths[0], len(index)))
                     raise ValueError(msg)
             else:
-                index = com._default_index(lengths[0])
+                index = ibase.default_index(lengths[0])
 
-    return _ensure_index(index)
+    return ensure_index(index)
 
 
 def _prep_ndarray(values, copy=True):
@@ -7734,7 +7736,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
                                          dtype=dtype)
     elif isinstance(data[0], Categorical):
         if columns is None:
-            columns = com._default_index(len(data))
+            columns = ibase.default_index(len(data))
         return data, columns
     elif (isinstance(data, (np.ndarray, Series, Index)) and
           data.dtype.names is not None):
@@ -7758,11 +7760,11 @@ def _masked_rec_array_to_mgr(data, index, columns, dtype, copy):
     if index is None:
         index = _get_names_from_index(fdata)
         if index is None:
-            index = com._default_index(len(data))
-    index = _ensure_index(index)
+            index = ibase.default_index(len(data))
+    index = ensure_index(index)
 
     if columns is not None:
-        columns = _ensure_index(columns)
+        columns = ensure_index(columns)
     arrays, arr_columns = _to_arrays(fdata, columns)
 
     # fill if needed
@@ -7790,8 +7792,8 @@ def _reorder_arrays(arrays, arr_columns, columns):
     # reorder according to the columns
     if (columns is not None and len(columns) and arr_columns is not None and
             len(arr_columns)):
-        indexer = _ensure_index(arr_columns).get_indexer(columns)
-        arr_columns = _ensure_index([arr_columns[i] for i in indexer])
+        indexer = ensure_index(arr_columns).get_indexer(columns)
+        arr_columns = ensure_index([arr_columns[i] for i in indexer])
         arrays = [arrays[i] for i in indexer]
     return arrays, arr_columns
 
@@ -7818,14 +7820,14 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     for s in data:
         index = getattr(s, 'index', None)
         if index is None:
-            index = com._default_index(len(s))
+            index = ibase.default_index(len(s))
 
         if id(index) in indexer_cache:
             indexer = indexer_cache[id(index)]
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = com._values_from_object(s)
+        values = com.values_from_object(s)
         aligned_values.append(algorithms.take_1d(values, indexer))
 
     values = np.vstack(aligned_values)
@@ -7855,7 +7857,7 @@ def _list_of_dict_to_arrays(data, columns, coerce_float=False, dtype=None):
 
 def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     if columns is None:
-        columns = com._default_index(len(content))
+        columns = ibase.default_index(len(content))
     else:
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
@@ -7878,7 +7880,7 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
 def _get_names_from_index(data):
     has_some_name = any(getattr(s, 'name', None) is not None for s in data)
     if not has_some_name:
-        return com._default_index(len(data))
+        return ibase.default_index(len(data))
 
     index = lrange(len(data))
     count = 0
@@ -7913,7 +7915,7 @@ def _homogenize(data, index, dtype=None):
                     oindex = index.astype('O')
 
                 if isinstance(index, (DatetimeIndex, TimedeltaIndex)):
-                    v = com._dict_compat(v)
+                    v = com.dict_compat(v)
                 else:
                     v = dict(v)
                 v = lib.fast_multiget(v, oindex.values, default=np.nan)

@@ -444,6 +444,7 @@ Reindexing / Selection / Label manipulation
 
    Series.align
    Series.drop
+   Series.droplevel
    Series.drop_duplicates
    Series.duplicated
    Series.equals
@@ -1063,6 +1064,7 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.droplevel
    DataFrame.pivot
    DataFrame.pivot_table
    DataFrame.reorder_levels
@@ -1870,8 +1872,6 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
-    PeriodIndex.tz_convert
-    PeriodIndex.tz_localize
 
 Scalars
 -------

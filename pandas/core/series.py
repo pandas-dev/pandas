@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_scalar,
     _is_unorderable_exception,
-    _ensure_platform_int,
+    ensure_platform_int,
     pandas_dtype)
 from pandas.core.dtypes.generic import (
     ABCSparseArray, ABCDataFrame, ABCIndexClass)
@@ -51,7 +51,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               Float64Index, _ensure_index)
+                               Float64Index, ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
@@ -71,6 +71,8 @@ import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
+import pandas.core.indexes.base as ibase
+
 import pandas.io.formats.format as fmt
 from pandas.util._decorators import (
     Appender, deprecate, deprecate_kwarg, Substitution)
@@ -187,7 +189,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
 
             if index is not None:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if data is None:
                 data = {}
@@ -234,13 +236,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`index` argument.  `copy` must '
                                          'be False.')
 
-            elif is_extension_array_dtype(data) and dtype is not None:
-                if not data.dtype.is_dtype(dtype):
-                    raise ValueError("Cannot specify a dtype '{}' with an "
-                                     "extension array of a different "
-                                     "dtype ('{}').".format(dtype,
-                                                            data.dtype))
-
+            elif is_extension_array_dtype(data):
+                pass
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
@@ -256,7 +253,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = com._default_index(len(data))
+                index = ibase.default_index(len(data))
             elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't
@@ -373,7 +370,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ override generic, we want to set the _typ here """
 
         if not fastpath:
-            labels = _ensure_index(labels)
+            labels = ensure_index(labels)
 
         is_all_dates = labels.is_all_dates
         if is_all_dates:
@@ -513,10 +510,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return selected slices of an array along given axis as a Series
 
+        .. deprecated:: 0.24.0
+
         See also
         --------
         numpy.ndarray.compress
         """
+        msg = ("Series.compress(condition) is deprecated. "
+               "Use Series[condition] instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
 
@@ -769,7 +771,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._get_values(slobj)
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
         try:
             result = self.index.get_value(self, key)
 
@@ -887,7 +889,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._values[indexer]
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         def setitem(key, value):
             try:
@@ -993,7 +995,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key = key.values
         else:
-            key = com._asarray_tuplesafe(key)
+            key = com.asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
@@ -1045,7 +1047,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_value(self, label, takeable=False):
         if takeable is True:
-            return com._maybe_box_datetimelike(self._values[label])
+            return com.maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
     _get_value.__doc__ = get_value.__doc__
 
@@ -1202,7 +1204,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
-            new_index = com._default_index(len(self))
+            new_index = ibase.default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -1421,7 +1423,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nobs : int or Series (if level specified)
         """
         if level is None:
-            return notna(com._values_from_object(self)).sum()
+            return notna(com.values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1725,7 +1727,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(com.values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1795,7 +1797,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(com.values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1838,7 +1840,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         nv.validate_round(args, kwargs)
-        result = com._values_from_object(self).round(decimals)
+        result = com.values_from_object(self).round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
@@ -2006,7 +2008,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com._values_from_object(self), periods)
+        result = algorithms.diff(com.values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1):
@@ -2079,7 +2081,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
-            sorter = _ensure_platform_int(sorter)
+            sorter = ensure_platform_int(sorter)
         return self._values.searchsorted(Series(value)._values,
                                          side=side, sorter=sorter)
 
@@ -2500,7 +2502,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bad = isna(arr)
 
         good = ~bad
-        idx = com._default_index(len(self))
+        idx = ibase.default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
 
@@ -2676,7 +2678,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             indexer = nargsort(index, kind=kind, ascending=ascending,
                                na_position=na_position)
 
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         new_index = index.take(indexer)
         new_index = new_index._sort_levels_monotonic()
 
@@ -3537,7 +3539,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(generic._shared_docs['_take'])
     def _take(self, indices, axis=0, is_copy=False):
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
 
         if is_categorical_dtype(self):
@@ -4094,7 +4096,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             elif is_extension_array_dtype(dtype):
                 # create an extension array from its dtype
                 array_type = dtype.construct_array_type()
-                subarr = array_type(subarr, copy=copy)
+                subarr = array_type(subarr, dtype=dtype, copy=copy)
 
             elif dtype is not None and raise_cast_failure:
                 raise
@@ -4131,10 +4133,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = data
 
         if dtype is not None and not data.dtype.is_dtype(dtype):
-            msg = ("Cannot coerce extension array to dtype '{typ}'. "
-                   "Do the coercion before passing to the constructor "
-                   "instead.".format(typ=dtype))
-            raise ValueError(msg)
+            subarr = data.astype(dtype)
 
         if copy:
             subarr = data.copy()
@@ -4196,7 +4195,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         if isinstance(data, np.ndarray):
             raise Exception('Data must be 1-dimensional')
         else:
-            subarr = com._asarray_tuplesafe(data, dtype=dtype)
+            subarr = com.asarray_tuplesafe(data, dtype=dtype)
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.

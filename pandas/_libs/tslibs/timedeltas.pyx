@@ -183,7 +183,11 @@ cpdef convert_to_timedelta64(object ts, object unit):
             ts = cast_from_unit(ts, unit)
             ts = np.timedelta64(ts)
     elif is_string_object(ts):
-        ts = np.timedelta64(parse_timedelta_string(ts))
+        if len(ts) > 0 and ts[0] == 'P':
+            ts = parse_iso_format_string(ts)
+        else:
+            ts = parse_timedelta_string(ts)
+        ts = np.timedelta64(ts)
     elif hasattr(ts, 'delta'):
         ts = np.timedelta64(delta_to_nanoseconds(ts), 'ns')
 

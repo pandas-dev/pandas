@@ -98,8 +98,8 @@ class CSSToExcelConverter(object):
             'border': self.build_border(props),
             'fill': self.build_fill(props),
             'font': self.build_font(props),
+            'number_format': self.build_number_format(props),
         }
-        # TODO: support number format
         # TODO: handle cell width and height: needs support in pandas.io.excel
 
         def remove_none(d):
@@ -313,6 +313,9 @@ class CSSToExcelConverter(object):
         except KeyError:
             warnings.warn('Unhandled color format: {val!r}'.format(val=val),
                           CSSWarning)
+
+    def build_number_format(self, props):
+        return {'format_code': props.get('number-format')}
 
 
 class ExcelFormatter(object):

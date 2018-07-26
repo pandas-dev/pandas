@@ -9,7 +9,7 @@ from pandas._libs.tslibs.timedeltas import (convert_to_timedelta64,
                                             array_to_timedelta64)
 
 from pandas.core.dtypes.common import (
-    _ensure_object,
+    ensure_object,
     is_integer_dtype,
     is_timedelta64_dtype,
     is_list_like)
@@ -171,7 +171,7 @@ def _convert_listlike(arg, unit='ns', box=True, errors='raise', name=None):
             'timedelta64[ns]', copy=False)
     else:
         try:
-            value = array_to_timedelta64(_ensure_object(arg),
+            value = array_to_timedelta64(ensure_object(arg),
                                          unit=unit, errors=errors)
             value = value.astype('timedelta64[ns]', copy=False)
         except ValueError:

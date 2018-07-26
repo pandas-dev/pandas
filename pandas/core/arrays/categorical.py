@@ -17,9 +17,9 @@ from pandas.core.dtypes.cast import (
     coerce_indexer_dtype)
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_object,
-    _ensure_platform_int,
+    ensure_int64,
+    ensure_object,
+    ensure_platform_int,
     is_extension_array_dtype,
     is_dtype_equal,
     is_datetimelike,
@@ -43,6 +43,7 @@ from pandas.util._decorators import (
 
 import pandas.core.algorithms as algorithms
 
+from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
@@ -488,8 +489,8 @@ class Categorical(ExtensionArray, PandasObject):
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars):
-        return Categorical(scalars)
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return Categorical(scalars, dtype=dtype)
 
     def copy(self):
         """ Copy constructor. """
@@ -1221,7 +1222,7 @@ class Categorical(ExtensionArray, PandasObject):
         if codes.ndim > 1:
             raise NotImplementedError("Categorical with ndim > 1.")
         if np.prod(codes.shape) and (periods != 0):
-            codes = np.roll(codes, _ensure_platform_int(periods), axis=0)
+            codes = np.roll(codes, ensure_platform_int(periods), axis=0)
             if periods > 0:
                 codes[:periods] = -1
             else:
@@ -1887,7 +1888,7 @@ class Categorical(ExtensionArray, PandasObject):
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()
         max_width = get_option("display.width") or width
-        if com.in_ipython_frontend():
+        if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
         levstring = ""
@@ -2137,7 +2138,7 @@ class Categorical(ExtensionArray, PandasObject):
         if dropna:
             good = self._codes != -1
             values = self._codes[good]
-        values = sorted(htable.mode_int64(_ensure_int64(values), dropna))
+        values = sorted(htable.mode_int64(ensure_int64(values), dropna))
         result = self._constructor(values=values, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
@@ -2431,8 +2432,8 @@ def _get_codes_for_values(values, categories):
 
     from pandas.core.algorithms import _get_data_algo, _hashtables
     if not is_dtype_equal(values.dtype, categories.dtype):
-        values = _ensure_object(values)
-        categories = _ensure_object(categories)
+        values = ensure_object(values)
+        categories = ensure_object(categories)
 
     (hash_klass, vec_klass), vals = _get_data_algo(values, _hashtables)
     (_, _), cats = _get_data_algo(categories, _hashtables)

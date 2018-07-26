@@ -526,7 +526,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     """
     cdef:
         ndarray[int64_t] trans, deltas
-        int64_t delta, local_val
+        int64_t local_val
         Py_ssize_t pos
 
     assert obj.tzinfo is None
@@ -542,22 +542,23 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        pos = trans.searchsorted(obj.value, side='right') - 1
-
-        # static/pytz/dateutil specific code
         if is_fixed_offset(tz):
-            # statictzinfo
-            assert len(deltas) == 1, len(deltas)
+            # static/fixed tzinfo; in this case we know len(deltas) == 1
+            # This can come back with `typ` of either "fixed" or None
             dt64_to_dtstruct(obj.value + deltas[0], &obj.dts)
-        elif treat_tz_as_pytz(tz):
+        elif typ == 'pytz':
+            # i.e. treat_tz_as_pytz(tz)
+            pos = trans.searchsorted(obj.value, side='right') - 1
             tz = tz._tzinfos[tz._transition_info[pos]]
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
-        elif treat_tz_as_dateutil(tz):
+        elif typ == 'dateutil':
+            # i.e. treat_tz_as_dateutil(tz)
+            pos = trans.searchsorted(obj.value, side='right') - 1
             dt64_to_dtstruct(obj.value + deltas[pos], &obj.dts)
         else:
-            # TODO: this case is never reached in the tests, but get_dst_info
-            #   has a path that returns typ = None and empty deltas.
-            #   --> Is this path possible?
+            # Note: as of 2018-07-17 all tzinfo objects that are _not_
+            # either pytz or dateutil have is_fixed_offset(tz) == True,
+            # so this branch will never be reached.
             pass
 
     obj.tzinfo = tz
@@ -1126,6 +1127,7 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
         ndarray[int64_t] trans, deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
+        int64_t delta
 
     if is_utc(tz):
         with nogil:
@@ -1147,17 +1149,17 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
         # Adjust datetime64 timestamp, recompute datetimestruct
         trans, deltas, typ = get_dst_info(tz)
 
-        pos = trans.searchsorted(stamps, side='right') - 1
-
-        # statictzinfo
         if typ not in ['pytz', 'dateutil']:
+            # static/fixed; in this case we know that len(delta) == 1
+            delta = deltas[0]
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
+                dt64_to_dtstruct(stamps[i] + delta, &dts)
                 result[i] = _normalized_stamp(&dts)
         else:
+            pos = trans.searchsorted(stamps, side='right') - 1
             for i in range(n):
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
@@ -1207,7 +1209,7 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
         Py_ssize_t i, n = len(stamps)
         ndarray[int64_t] trans, deltas
         npy_datetimestruct dts
-        int64_t local_val
+        int64_t local_val, delta
 
     if tz is None or is_utc(tz):
         for i in range(n):
@@ -1223,12 +1225,22 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
     else:
         trans, deltas, typ = get_dst_info(tz)
 
-        for i in range(n):
-            # Adjust datetime64 timestamp, recompute datetimestruct
-            pos = trans.searchsorted(stamps[i]) - 1
+        if typ not in ['pytz', 'dateutil']:
+            # static/fixed; in this case we know that len(delta) == 1
+            delta = deltas[0]
+            for i in range(n):
+                # Adjust datetime64 timestamp, recompute datetimestruct
+                dt64_to_dtstruct(stamps[i] + delta, &dts)
+                if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                    return False
 
-            dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
-            if (dts.hour + dts.min + dts.sec + dts.us) > 0:
-                return False
+        else:
+            for i in range(n):
+                # Adjust datetime64 timestamp, recompute datetimestruct
+                pos = trans.searchsorted(stamps[i]) - 1
+
+                dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
+                if (dts.hour + dts.min + dts.sec + dts.us) > 0:
+                    return False
 
     return True

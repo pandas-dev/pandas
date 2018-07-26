@@ -19,6 +19,9 @@ cdef extern from "compat_helper.h":
                                Py_ssize_t *slicelength) except -1
 
 
+from algos import ensure_int64
+
+
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef slice _as_slice
@@ -390,7 +393,7 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
     start = 0
     cur_blkno = blknos[start]
 
-    if group == False:
+    if group is False:
         for i in range(1, n):
             if blknos[i] != cur_blkno:
                 yield cur_blkno, slice(start, i)
@@ -436,3 +439,26 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                         i += 1
 
                 yield blkno, result
+
+
+def get_blkno_placements(blknos, blk_count, group=True):
+    """
+
+    Parameters
+    ----------
+    blknos : array of int64
+    blk_count : int
+    group : bool
+
+    Returns
+    -------
+    iterator
+        yield (BlockPlacement, blkno)
+
+    """
+
+    blknos = ensure_int64(blknos)
+
+    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
+    for blkno, indexer in get_blkno_indexers(blknos, group):
+        yield blkno, BlockPlacement(indexer)

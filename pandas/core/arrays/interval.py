@@ -19,7 +19,7 @@ from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
                                         ABCSeries, ABCIntervalIndex,
                                         ABCInterval)
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.indexes.base import Index, _ensure_index
+from pandas.core.indexes.base import Index, ensure_index
 from pandas.util._decorators import Appender
 from pandas.util._doctools import _WritableDoc
 
@@ -145,8 +145,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         result = IntervalMixin.__new__(cls)
 
         closed = closed or 'right'
-        left = _ensure_index(left, copy=copy)
-        right = _ensure_index(right, copy=copy)
+        left = ensure_index(left, copy=copy)
+        right = ensure_index(right, copy=copy)
 
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
@@ -191,8 +191,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars):
-        return cls(scalars)
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -984,7 +984,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         examples='',
     ))
     def to_tuples(self, na_tuple=True):
-        tuples = com._asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com.asarray_tuplesafe(zip(self.left, self.right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)

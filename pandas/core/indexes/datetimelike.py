@@ -17,7 +17,7 @@ from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timestamps import round_ns
 
 from pandas.core.dtypes.common import (
-    _ensure_int64,
+    ensure_int64,
     is_dtype_equal,
     is_float,
     is_integer,
@@ -391,7 +391,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_int64(indices)
+        indices = ensure_int64(indices)
 
         maybe_slice = lib.maybe_indices_to_slice(indices, len(self))
         if isinstance(maybe_slice, slice):
@@ -789,9 +789,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         start = self[0] + n * self.freq
         end = self[-1] + n * self.freq
         attribs = self._get_attributes_dict()
-        attribs['start'] = start
-        attribs['end'] = end
-        return type(self)(**attribs)
+        return self._generate_range(start=start, end=end, periods=None,
+                                    **attribs)
 
     def repeat(self, repeats, *args, **kwargs):
         """

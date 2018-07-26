@@ -27,9 +27,9 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_datetimelike,
     is_interval_dtype, is_scalar, is_list_like,
-    _ensure_platform_int, _ensure_object,
-    _ensure_float64, _ensure_uint64,
-    _ensure_int64)
+    ensure_platform_int, ensure_object,
+    ensure_float64, ensure_uint64,
+    ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -73,32 +73,32 @@ def _ensure_data(values, dtype=None):
     # we check some simple dtypes first
     try:
         if is_object_dtype(dtype):
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            return _ensure_int64(values), 'int64', 'int64'
+            return ensure_int64(values), 'int64', 'int64'
         elif (is_unsigned_integer_dtype(values) or
               is_unsigned_integer_dtype(dtype)):
-            return _ensure_uint64(values), 'uint64', 'uint64'
+            return ensure_uint64(values), 'uint64', 'uint64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
-            return _ensure_float64(values), 'float64', 'float64'
+            return ensure_float64(values), 'float64', 'float64'
         elif is_object_dtype(values) and dtype is None:
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
             with catch_warnings(record=True):
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             return values, 'float64', 'float64'
 
     except (TypeError, ValueError):
         # if we are trying to coerce to a dtype
         # and it is incompat this will fall thru to here
-        return _ensure_object(values), 'object', 'object'
+        return ensure_object(values), 'object', 'object'
 
     # datetimelike
     if (needs_i8_conversion(values) or
@@ -129,13 +129,13 @@ def _ensure_data(values, dtype=None):
 
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
-        values = _ensure_int64(values)
+        values = ensure_int64(values)
 
         return values, dtype, 'int64'
 
     # we have failed, return object
     values = np.asarray(values)
-    return _ensure_object(values), 'object', 'object'
+    return ensure_object(values), 'object', 'object'
 
 
 def _reconstruct_data(values, dtype, original):
@@ -262,7 +262,7 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = com._asarray_tuplesafe(values)
+    values = com.asarray_tuplesafe(values)
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
     to_match, _, _ = _ensure_data(to_match, dtype)
     table = htable(min(len(to_match), 1000000))
@@ -412,7 +412,7 @@ def isin(comps, values):
         # handle categoricals
         return comps._values.isin(values)
 
-    comps = com._values_from_object(comps)
+    comps = com.values_from_object(comps)
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
@@ -475,7 +475,7 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     labels = table.get_labels(values, uniques, 0, na_sentinel,
                               na_value=na_value)
 
-    labels = _ensure_platform_int(labels)
+    labels = ensure_platform_int(labels)
     uniques = uniques.to_array()
     return labels, uniques
 
@@ -1309,7 +1309,7 @@ def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -1450,7 +1450,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             return func
 
     def func(arr, indexer, out, fill_value=np.nan):
-        indexer = _ensure_int64(indexer)
+        indexer = ensure_int64(indexer)
         _take_nd_object(arr, indexer, out, axis=axis, fill_value=fill_value,
                         mask_info=mask_info)
 
@@ -1609,7 +1609,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = _ensure_int64(indexer, copy=False)
+        indexer = ensure_int64(indexer, copy=False)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False
@@ -1687,11 +1687,11 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         if row_idx is None:
             row_idx = np.arange(arr.shape[0], dtype=np.int64)
         else:
-            row_idx = _ensure_int64(row_idx)
+            row_idx = ensure_int64(row_idx)
         if col_idx is None:
             col_idx = np.arange(arr.shape[1], dtype=np.int64)
         else:
-            col_idx = _ensure_int64(col_idx)
+            col_idx = ensure_int64(col_idx)
         indexer = row_idx, col_idx
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()

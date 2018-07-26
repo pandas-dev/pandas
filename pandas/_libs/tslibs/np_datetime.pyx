@@ -147,6 +147,9 @@ cdef inline void td64_to_tdstruct(int64_t td64,
 
 cdef inline int64_t pydatetime_to_dt64(datetime val,
                                        npy_datetimestruct *dts):
+    """
+    Note we are assuming that the datetime object is timezone-naive.
+    """
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -158,8 +161,7 @@ cdef inline int64_t pydatetime_to_dt64(datetime val,
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int64_t pydate_to_dt64(date val,
-                                   npy_datetimestruct *dts):
+cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)

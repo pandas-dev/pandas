@@ -13,11 +13,12 @@ import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
                     Series, Categorical, TimedeltaIndex, SparseArray)
 from pandas.compat import OrderedDict, lrange
-from pandas.core.internals import (BlockPlacement, SingleBlockManager,
+from pandas.core.internals import (SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
 import pandas as pd
+from pandas._libs.internals import BlockPlacement
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  randn, assert_series_equal)
 from pandas.compat import zip, u

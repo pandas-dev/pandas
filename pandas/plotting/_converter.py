@@ -324,7 +324,7 @@ class DatetimeConverter(dates.DateConverter):
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
-                values = com._asarray_tuplesafe(values)
+                values = com.asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):
                 return values
