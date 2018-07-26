@@ -27,7 +27,7 @@ try:
     import scipy
     _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
                          LooseVersion('0.19.0'))
-except:
+except ImportError:
     _is_scipy_ge_0190 = False
 
 

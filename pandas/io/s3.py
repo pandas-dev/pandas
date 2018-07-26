@@ -3,7 +3,7 @@ from pandas import compat
 try:
     import s3fs
     from botocore.exceptions import NoCredentialsError
-except:
+except ImportError:
     raise ImportError("The s3fs library is required to handle s3 files")
 
 if compat.PY3:

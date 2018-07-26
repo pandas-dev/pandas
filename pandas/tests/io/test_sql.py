@@ -468,7 +468,7 @@ class PandasSQLTest(object):
             with self.pandasSQL.run_transaction() as trans:
                 trans.execute(ins_sql)
                 raise Exception('error')
-        except:
+        except Exception:
             # ignore raised exception
             pass
         res = self.pandasSQL.read_query('SELECT * FROM test_trans')

@@ -9,9 +9,6 @@
 from libc.math cimport log
 
 import numpy as np
-cimport numpy as cnp
-from numpy cimport double_t
-cnp.import_array()
 
 
 # MSVC does not have log2!
@@ -26,11 +23,11 @@ from random import random
 
 cdef class Node:
     # cdef public:
-    #    double_t value
+    #    double value
     #    list next
     #    list width
 
-    def __init__(self, double_t value, list next, list width):
+    def __init__(self, double value, list next, list width):
         self.value = value
         self.next = next
         self.width = width
