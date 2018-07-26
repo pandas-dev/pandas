@@ -372,7 +372,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-
     @Appender(DatetimeArrayMixin._generate_range.__doc__)
     def _generate_range(cls, start, end, periods, name=None, freq=None,
                         tz=None, normalize=False, ambiguous='raise',

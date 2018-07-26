@@ -593,7 +593,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         return algorithms.isin(self.asi8, values.asi8)
 
-
     def repeat(self, repeats, *args, **kwargs):
         """
         Analogous to ndarray.repeat

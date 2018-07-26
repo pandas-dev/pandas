@@ -238,7 +238,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif is_extension_array_dtype(data):
                 pass
-
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))

@@ -274,7 +274,6 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
 
-
         elif (is_datetime64_any_dtype(data) or
               (dtype is not None and is_datetime64_any_dtype(dtype)) or
                 'tz' in kwargs):

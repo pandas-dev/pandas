@@ -31,9 +31,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 from pandas.tseries.frequencies import to_offset
-
 from pandas.tseries.offsets import Tick, Day, generate_range
-
 
 from pandas.core.arrays import datetimelike as dtl
 
@@ -189,7 +187,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             tz = values.tz
 
         freq, freq_infer = dtl.maybe_infer_freq(freq)
-
 
         # if dtype has an embedded tz, capture it
         tz = dtl.validate_tz_from_dtype(dtype, tz)
@@ -1312,4 +1309,3 @@ def _maybe_normalize_endpoints(start, end, normalize):
             _normalized = _normalized and end.time() == _midnight
 
     return start, end, _normalized
-

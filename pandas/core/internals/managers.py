@@ -992,7 +992,6 @@ class BlockManager(PandasObject):
                                          ndim=1)],
             self.axes[1])
 
-
     def delete(self, item):
         """
         Delete selected item (items if non-unique) in-place.
@@ -1386,7 +1385,6 @@ class BlockManager(PandasObject):
         new_axes[0] = new_items
 
         return self.__class__(_consolidate(new_blocks), new_axes)
-
 
     def equals(self, other):
         self_axes, other_axes = self.axes, other.axes
