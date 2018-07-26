@@ -163,7 +163,7 @@ class CSVFormatter(object):
             close = False
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=encoding,
+                                     encoding=self.encoding,
                                      compression=self.compression)
             close = True
 
@@ -173,10 +173,10 @@ class CSVFormatter(object):
                                  doublequote=self.doublequote,
                                  escapechar=self.escapechar,
                                  quotechar=self.quotechar)
-            if encoding == 'ascii':
+            if self.encoding == 'ascii':
                 self.writer = csvlib.writer(f, **writer_kwargs)
             else:
-                writer_kwargs['encoding'] = encoding
+                writer_kwargs['encoding'] = self.encoding
                 self.writer = UnicodeWriter(f, **writer_kwargs)
 
             self._save()
@@ -189,7 +189,7 @@ class CSVFormatter(object):
                     self.path_or_buf.write(buf)
                 else:
                     f, handles = _get_handle(self.path_or_buf, self.mode,
-                                             encoding=encoding,
+                                             encoding=self.encoding,
                                              compression=self.compression)
                     f.write(buf)
                     close = True
