@@ -35,8 +35,6 @@ def test_no_double_plot_for_first_group(plotting_method):
 
                 def f(self):
                     getattr(self.plot, name)(*args, **kwargs)
-                    # I have no idea why this is needed twice
-                    counter = next(counter_obj)
                     counter = next(counter_obj)
                     return counter
 
@@ -50,7 +48,7 @@ def test_no_double_plot_for_first_group(plotting_method):
     g = df.groupby('cat')
     eG = extGroupByPlot(g)
     result = eG.__getattr__(plotting_method)(x='x', y='y')
-    assert result.iloc[0] == 1
+    assert result.iloc[0] == 0
 
 
 @td.skip_if_no_mpl
