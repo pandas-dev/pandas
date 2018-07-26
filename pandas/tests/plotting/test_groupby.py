@@ -24,6 +24,7 @@ import pytest
      ])
 @td.skip_if_no_mpl
 def test_no_double_plot_for_first_group(plotting_method):
+    # GH-21943
     import matplotlib.pyplot as plt
     df = pd.DataFrame({'cat': [1, 1, 2, 2],
                        'x': [1, 3, 5, 7], 'y': [2, 4, 6, 8]})
