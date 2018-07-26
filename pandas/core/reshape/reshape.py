@@ -716,7 +716,8 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
 
 
 def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
-                columns=None, sparse=False, drop_first=False, dtype=None):
+                columns=None, sparse=False, drop_first=False, dtype=None,
+                categories=None):
     """
     Convert categorical variable into dummy/indicator variables
 
@@ -852,6 +853,9 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
         if prefix is None:
             prefix = data_to_encode.columns
 
+        if categories is None:
+            categories = [None for _ in data_to_encode.columns]
+
         # validate separators
         if isinstance(prefix_sep, compat.string_types):
             prefix_sep = cycle([prefix_sep])
@@ -870,12 +874,13 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             # columns to prepend to result.
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for (col, pre, sep) in zip(data_to_encode.iteritems(), prefix,
-                                   prefix_sep):
+        for (col, pre, sep, cat) in zip(data_to_encode.iteritems(), prefix,
+                                   prefix_sep, categories):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(col[1], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
-                                    drop_first=drop_first, dtype=dtype)
+                                    drop_first=drop_first, dtype=dtype,
+                                    categories=cat)
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
     else:
@@ -887,9 +892,10 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
 
 def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
-                    sparse=False, drop_first=False, dtype=None):
+                    sparse=False, drop_first=False, dtype=None,
+                    categories=None):
     # Series avoids inconsistent NaN handling
-    codes, levels = _factorize_from_iterable(Series(data))
+    codes, levels = _factorize_from_iterable(Series(data), categories)
 
     if dtype is None:
         dtype = np.uint8

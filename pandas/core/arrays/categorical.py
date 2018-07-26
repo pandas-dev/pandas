@@ -2489,7 +2489,7 @@ def _convert_to_list_like(list_like):
         return [list_like]
 
 
-def _factorize_from_iterable(values):
+def _factorize_from_iterable(values, categories=None):
     """
     Factorize an input `values` into `categories` and `codes`. Preserves
     categorical dtype in `categories`.
@@ -2520,7 +2520,7 @@ def _factorize_from_iterable(values):
                                       ordered=values.ordered)
         codes = values.codes
     else:
-        cat = Categorical(values, ordered=True)
+        cat = Categorical(values, ordered=True, categories=categories)
         categories = cat.categories
         codes = cat.codes
     return codes, categories
