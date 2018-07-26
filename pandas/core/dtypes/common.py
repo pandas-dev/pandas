@@ -1729,7 +1729,7 @@ def is_extension_dtype(dtype):
 
     Parameters
     ----------
-    arr : object
+    dtype : dtype
 
     Returns
     -------
