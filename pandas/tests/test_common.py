@@ -267,11 +267,8 @@ def test_compression_warning(compression_only):
                           [12.32112, 123123.2, 321321.2]],
                    columns=['X', 'Y', 'Z'])
     with tm.ensure_clean() as filename:
-        import logging
-        logging.warning('debug_1: {}'.format(compression_only))
         f, _handles = _get_handle(filename, 'w', compression=compression_only)
         with tm.assert_produces_warning(RuntimeWarning,
                                         check_stacklevel=False):
             with f:
-                logging.warning('debug_2: {}'.format(compression_only))
                 df.to_csv(f, compression=compression_only)
