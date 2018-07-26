@@ -85,12 +85,15 @@ class TestDataFrameIndexing(TestData):
         assert self.frame.get('foo') is None
         assert_series_equal(self.frame.get('foo', self.frame['B']),
                             self.frame['B'])
-        # None
-        # GH 5652
-        for df in [DataFrame(), DataFrame(columns=list('AB')),
-                   DataFrame(columns=list('AB'), index=range(3))]:
-            result = df.get(None)
-            assert result is None
+
+    @pytest.mark.parametrize("df", [
+        DataFrame(),
+        DataFrame(columns=list("AB")),
+        DataFrame(columns=list("AB"), index=range(3))
+    ])
+    def test_get_none(self, df):
+        # see gh-5652
+        assert df.get(None) is None
 
     def test_loc_iterable(self):
         idx = iter(['A', 'B', 'C'])
@@ -472,11 +475,6 @@ class TestDataFrameIndexing(TestData):
         assert smaller['col10'].dtype == np.object_
         assert (smaller['col10'] == ['1', '2']).all()
 
-        # with a dtype
-        for dtype in ['int32', 'int64', 'float32', 'float64']:
-            self.frame[dtype] = np.array(arr, dtype=dtype)
-            assert self.frame[dtype].dtype.name == dtype
-
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
         df.iloc[0] = np.nan
@@ -486,6 +484,13 @@ class TestDataFrameIndexing(TestData):
         df = DataFrame([[0, 0]])
         df.loc[0] = np.nan
         assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize("dtype", ["int32", "int64", "float32", "float64"])
+    def test_setitem_dtype(self, dtype):
+        arr = randn(len(self.frame))
+
+        self.frame[dtype] = np.array(arr, dtype=dtype)
+        assert self.frame[dtype].dtype.name == dtype
 
     def test_setitem_tuple(self):
         self.frame['A', 'B'] = self.frame['A']
@@ -746,18 +751,20 @@ class TestDataFrameIndexing(TestData):
         result.loc[result.b.isna(), 'a'] = result.a
         assert_frame_equal(result, df)
 
-    def test_setitem_empty_frame_with_boolean(self):
-        # Test for issue #10126
+    @pytest.mark.parametrize("dtype", ["float", "int64"])
+    @pytest.mark.parametrize("kwargs", [
+        dict(),
+        dict(index=[1]),
+        dict(columns=["A"])
+    ])
+    def test_setitem_empty_frame_with_boolean(self, dtype, kwargs):
+        # see gh-10126
+        kwargs["dtype"] = dtype
+        df = DataFrame(**kwargs)
 
-        for dtype in ('float', 'int64'):
-            for df in [
-                    pd.DataFrame(dtype=dtype),
-                    pd.DataFrame(dtype=dtype, index=[1]),
-                    pd.DataFrame(dtype=dtype, columns=['A']),
-            ]:
-                df2 = df.copy()
-                df[df > df2] = 47
-                assert_frame_equal(df, df2)
+        df2 = df.copy()
+        df[df > df2] = 47
+        assert_frame_equal(df, df2)
 
     def test_setitem_scalars_no_index(self):
         # GH16823 / 17894
@@ -2007,48 +2014,54 @@ class TestDataFrameIndexing(TestData):
         except Exception as e:
             assert type(e) != UnboundLocalError
 
-    def test_reindex_methods(self):
-        df = pd.DataFrame({'x': list(range(5))})
+    @pytest.mark.parametrize("method,expected_values", [
+        ("nearest", [0, 1, 1, 2]),
+        ("pad", [np.nan, 0, 1, 1]),
+        ("backfill", [0, 1, 2, 2])
+    ])
+    def test_reindex_methods(self, method, expected_values):
+        df = pd.DataFrame({"x": list(range(5))})
         target = np.array([-0.1, 0.9, 1.1, 1.5])
 
-        for method, expected_values in [('nearest', [0, 1, 1, 2]),
-                                        ('pad', [np.nan, 0, 1, 1]),
-                                        ('backfill', [0, 1, 2, 2])]:
-            expected = pd.DataFrame({'x': expected_values}, index=target)
-            actual = df.reindex(target, method=method)
-            assert_frame_equal(expected, actual)
-
-            actual = df.reindex_like(df, method=method, tolerance=0)
-            assert_frame_equal(df, actual)
-            actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
-            assert_frame_equal(df, actual)
-
-            actual = df.reindex(target, method=method, tolerance=1)
-            assert_frame_equal(expected, actual)
-            actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
-            assert_frame_equal(expected, actual)
-
-            e2 = expected[::-1]
-            actual = df.reindex(target[::-1], method=method)
-            assert_frame_equal(e2, actual)
-
-            new_order = [3, 0, 2, 1]
-            e2 = expected.iloc[new_order]
-            actual = df.reindex(target[new_order], method=method)
-            assert_frame_equal(e2, actual)
-
-            switched_method = ('pad' if method == 'backfill'
-                               else 'backfill' if method == 'pad'
-                               else method)
-            actual = df[::-1].reindex(target, method=switched_method)
-            assert_frame_equal(expected, actual)
-
-        expected = pd.DataFrame({'x': [0, 1, 1, np.nan]}, index=target)
-        actual = df.reindex(target, method='nearest', tolerance=0.2)
+        expected = pd.DataFrame({'x': expected_values}, index=target)
+        actual = df.reindex(target, method=method)
         assert_frame_equal(expected, actual)
 
-        expected = pd.DataFrame({'x': [0, np.nan, 1, np.nan]}, index=target)
-        actual = df.reindex(target, method='nearest',
+        actual = df.reindex_like(df, method=method, tolerance=0)
+        assert_frame_equal(df, actual)
+        actual = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
+        assert_frame_equal(df, actual)
+
+        actual = df.reindex(target, method=method, tolerance=1)
+        assert_frame_equal(expected, actual)
+        actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
+        assert_frame_equal(expected, actual)
+
+        e2 = expected[::-1]
+        actual = df.reindex(target[::-1], method=method)
+        assert_frame_equal(e2, actual)
+
+        new_order = [3, 0, 2, 1]
+        e2 = expected.iloc[new_order]
+        actual = df.reindex(target[new_order], method=method)
+        assert_frame_equal(e2, actual)
+
+        switched_method = ('pad' if method == 'backfill'
+                           else 'backfill' if method == 'pad'
+                           else method)
+        actual = df[::-1].reindex(target, method=switched_method)
+        assert_frame_equal(expected, actual)
+
+    def test_reindex_methods_nearest_special(self):
+        df = pd.DataFrame({"x": list(range(5))})
+        target = np.array([-0.1, 0.9, 1.1, 1.5])
+
+        expected = pd.DataFrame({"x": [0, 1, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method="nearest", tolerance=0.2)
+        assert_frame_equal(expected, actual)
+
+        expected = pd.DataFrame({"x": [0, np.nan, 1, np.nan]}, index=target)
+        actual = df.reindex(target, method="nearest",
                             tolerance=[0.5, 0.01, 0.4, 0.1])
         assert_frame_equal(expected, actual)
 
@@ -2599,59 +2612,56 @@ class TestDataFrameIndexing(TestData):
         expected = df[df['a'] == 1].reindex(df.index)
         assert_frame_equal(result, expected)
 
-    def test_where_array_like(self):
+    @pytest.mark.parametrize("klass", [list, tuple, np.array])
+    def test_where_array_like(self, klass):
         # see gh-15414
-        klasses = [list, tuple, np.array]
-
-        df = DataFrame({'a': [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         cond = [[False], [True], [True]]
-        expected = DataFrame({'a': [np.nan, 2, 3]})
+        expected = DataFrame({"a": [np.nan, 2, 3]})
 
-        for klass in klasses:
-            result = df.where(klass(cond))
-            assert_frame_equal(result, expected)
+        result = df.where(klass(cond))
+        assert_frame_equal(result, expected)
 
-        df['b'] = 2
-        expected['b'] = [2, np.nan, 2]
+        df["b"] = 2
+        expected["b"] = [2, np.nan, 2]
         cond = [[False, True], [True, False], [True, True]]
 
-        for klass in klasses:
-            result = df.where(klass(cond))
-            assert_frame_equal(result, expected)
+        result = df.where(klass(cond))
+        assert_frame_equal(result, expected)
 
-    def test_where_invalid_input(self):
+    @pytest.mark.parametrize("cond", [
+        [[1], [0], [1]],
+        Series([[2], [5], [7]]),
+        DataFrame({"a": [2, 5, 7]}),
+        [["True"], ["False"], ["True"]],
+        [[Timestamp("2017-01-01")],
+         [pd.NaT], [Timestamp("2017-01-02")]]
+    ])
+    def test_where_invalid_input_single(self, cond):
         # see gh-15414: only boolean arrays accepted
-        df = DataFrame({'a': [1, 2, 3]})
+        df = DataFrame({"a": [1, 2, 3]})
         msg = "Boolean array expected for the condition"
 
-        conds = [
-            [[1], [0], [1]],
-            Series([[2], [5], [7]]),
-            DataFrame({'a': [2, 5, 7]}),
-            [["True"], ["False"], ["True"]],
-            [[Timestamp("2017-01-01")],
-             [pd.NaT], [Timestamp("2017-01-02")]]
-        ]
+        with tm.assert_raises_regex(ValueError, msg):
+            df.where(cond)
 
-        for cond in conds:
-            with tm.assert_raises_regex(ValueError, msg):
-                df.where(cond)
+    @pytest.mark.parametrize("cond", [
+        [[0, 1], [1, 0], [1, 1]],
+        Series([[0, 2], [5, 0], [4, 7]]),
+        [["False", "True"], ["True", "False"],
+         ["True", "True"]],
+        DataFrame({"a": [2, 5, 7], "b": [4, 8, 9]}),
+        [[pd.NaT, Timestamp("2017-01-01")],
+         [Timestamp("2017-01-02"), pd.NaT],
+         [Timestamp("2017-01-03"), Timestamp("2017-01-03")]]
+    ])
+    def test_where_invalid_input_multiple(self, cond):
+        # see gh-15414: only boolean arrays accepted
+        df = DataFrame({"a": [1, 2, 3], "b": [2, 2, 2]})
+        msg = "Boolean array expected for the condition"
 
-        df['b'] = 2
-        conds = [
-            [[0, 1], [1, 0], [1, 1]],
-            Series([[0, 2], [5, 0], [4, 7]]),
-            [["False", "True"], ["True", "False"],
-             ["True", "True"]],
-            DataFrame({'a': [2, 5, 7], 'b': [4, 8, 9]}),
-            [[pd.NaT, Timestamp("2017-01-01")],
-             [Timestamp("2017-01-02"), pd.NaT],
-             [Timestamp("2017-01-03"), Timestamp("2017-01-03")]]
-        ]
-
-        for cond in conds:
-            with tm.assert_raises_regex(ValueError, msg):
-                df.where(cond)
+        with tm.assert_raises_regex(ValueError, msg):
+            df.where(cond)
 
     def test_where_dataframe_col_match(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]])
@@ -2690,9 +2700,7 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(out, expected)
 
     def test_where_bug(self):
-
-        # GH 2793
-
+        # see gh-2793
         df = DataFrame({'a': [1.0, 2.0, 3.0, 4.0], 'b': [
                        4.0, 3.0, 2.0, 1.0]}, dtype='float64')
         expected = DataFrame({'a': [np.nan, np.nan, 3.0, 4.0], 'b': [
@@ -2704,25 +2712,25 @@ class TestDataFrameIndexing(TestData):
         result.where(result > 2, np.nan, inplace=True)
         assert_frame_equal(result, expected)
 
-        # mixed
-        for dtype in ['int16', 'int8', 'int32', 'int64']:
-            df = DataFrame({'a': np.array([1, 2, 3, 4], dtype=dtype),
-                            'b': np.array([4.0, 3.0, 2.0, 1.0],
-                                          dtype='float64')})
+    def test_where_bug_mixed(self, sint_dtype):
+        # see gh-2793
+        df = DataFrame({"a": np.array([1, 2, 3, 4], dtype=sint_dtype),
+                        "b": np.array([4.0, 3.0, 2.0, 1.0],
+                                      dtype="float64")})
 
-            expected = DataFrame({'a': [np.nan, np.nan, 3.0, 4.0],
-                                  'b': [4.0, 3.0, np.nan, np.nan]},
-                                 dtype='float64')
+        expected = DataFrame({"a": [np.nan, np.nan, 3.0, 4.0],
+                              "b": [4.0, 3.0, np.nan, np.nan]},
+                             dtype="float64")
 
-            result = df.where(df > 2, np.nan)
-            assert_frame_equal(result, expected)
+        result = df.where(df > 2, np.nan)
+        assert_frame_equal(result, expected)
 
-            result = df.copy()
-            result.where(result > 2, np.nan, inplace=True)
-            assert_frame_equal(result, expected)
+        result = df.copy()
+        result.where(result > 2, np.nan, inplace=True)
+        assert_frame_equal(result, expected)
 
-        # transpositional issue
-        # GH7506
+    def test_where_bug_transposition(self):
+        # see gh-7506
         a = DataFrame({0: [1, 2], 1: [3, 4], 2: [5, 6]})
         b = DataFrame({0: [np.nan, 8], 1: [9, np.nan], 2: [np.nan, np.nan]})
         do_not_replace = b.isna() | (a > b)
