@@ -638,7 +638,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     tz = py_dt.tzinfo
                     if tz is not None:
                         seen_datetime_offset = 1
-                        if tz is dateutil_utc():
+                        if tz == dateutil_utc():
                             # dateutil.tz.tzutc has no offset-like attribute
                             # Just add the 0 offset explicitly
                             out_tzoffset_vals.add(0)
