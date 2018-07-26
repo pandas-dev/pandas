@@ -9,7 +9,7 @@ from pandas._libs.tslibs import conversion
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
     DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
-    IntervalDtypeType, ExtensionDtype)
+    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
@@ -1709,17 +1709,9 @@ def is_extension_array_dtype(arr_or_dtype):
     Third-party libraries may implement arrays or types satisfying
     this interface as well.
     """
-    from pandas.core.arrays import ExtensionArray
-
-    if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
-        arr_or_dtype = arr_or_dtype._values
-
-    try:
-        arr_or_dtype = pandas_dtype(arr_or_dtype)
-    except TypeError:
-        pass
-
-    return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
+    dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+    return (isinstance(dtype, ExtensionDtype) or
+            registry.find(dtype) is not None)
 
 
 def is_complex_dtype(arr_or_dtype):
@@ -2004,7 +1996,7 @@ def pandas_dtype(dtype):
         return result
 
     # un-registered extension types
-    elif isinstance(dtype, ExtensionDtype):
+    elif isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
         return dtype
 
     # try a numpy dtype
