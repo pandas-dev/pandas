@@ -4,7 +4,7 @@ from datetime import timedelta
 import numpy as np
 
 from pandas._libs import tslibs
-from pandas._libs.tslibs import Timedelta, NaT
+from pandas._libs.tslibs import Timedelta, Timestamp, NaT, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
@@ -16,8 +16,9 @@ from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
+from pandas.core.algorithms import checked_add_with_arr
 
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.offsets import Tick
 from pandas.tseries.frequencies import to_offset
 
 from . import datetimelike as dtl
@@ -54,10 +55,11 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-def _td_array_cmp(opname, cls):
+def _td_array_cmp(cls, op):
     """
     Wrap comparison operations to convert timedelta-like to timedelta64
     """
+    opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
@@ -80,7 +82,7 @@ def _td_array_cmp(opname, cls):
         else:
             other = type(self)(other).values
             result = meth(self, other)
-            result = com._values_from_object(result)
+            result = com.values_from_object(result)
 
             o_mask = np.array(isna(other))
             if o_mask.any():
@@ -126,32 +128,30 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     def __new__(cls, values, freq=None, start=None, end=None, periods=None,
                 closed=None):
-        if (freq is not None and not isinstance(freq, DateOffset) and
-                freq != 'infer'):
-            freq = to_offset(freq)
 
-        periods = dtl.validate_periods(periods)
+        freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if values is None:
+            # TODO: Remove this block and associated kwargs; GH#20535
             if freq is None and com._any_none(periods, start, end):
                 raise ValueError('Must provide freq argument if no data is '
                                  'supplied')
-            else:
-                return cls._generate_range(start, end, periods, freq,
-                                           closed=closed)
+            periods = dtl.validate_periods(periods)
+            return cls._generate_range(start, end, periods, freq,
+                                       closed=closed)
 
         result = cls._simple_new(values, freq=freq)
-        if freq == 'infer':
+        if freq_infer:
             inferred = result.inferred_freq
             if inferred:
-                result._freq = to_offset(inferred)
+                result.freq = to_offset(inferred)
 
         return result
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
         # **kwargs are for compat with TimedeltaIndex, which includes `name`
-        if com._count_not_none(start, end, periods, freq) != 3:
+        if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
 
@@ -161,23 +161,12 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         if end is not None:
             end = Timedelta(end)
 
-        left_closed = False
-        right_closed = False
-
         if start is None and end is None:
             if closed is not None:
                 raise ValueError("Closed has to be None if not both of start"
                                  "and end are defined")
 
-        if closed is None:
-            left_closed = True
-            right_closed = True
-        elif closed == "left":
-            left_closed = True
-        elif closed == "right":
-            right_closed = True
-        else:
-            raise ValueError("Closed has to be either 'left', 'right' or None")
+        left_closed, right_closed = dtl.validate_endpoints(closed)
 
         if freq is not None:
             index = _generate_regular_range(start, end, periods, freq)
@@ -196,6 +185,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
+
+    _create_comparison_method = classmethod(_td_array_cmp)
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)
@@ -240,6 +231,36 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         return type(self)(new_values, freq='infer')
 
+    def _add_datelike(self, other):
+        # adding a timedeltaindex to a datetimelike
+        from pandas.core.arrays import DatetimeArrayMixin
+        if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            # defer to implementation in DatetimeIndex
+            if not isinstance(other, DatetimeArrayMixin):
+                other = DatetimeArrayMixin(other)
+            return other + self
+        else:
+            assert other is not NaT
+            other = Timestamp(other)
+            i8 = self.asi8
+            result = checked_add_with_arr(i8, other.value,
+                                          arr_mask=self._isnan)
+            result = self._maybe_mask_results(result, fill_value=iNaT)
+            return DatetimeArrayMixin(result)
+
+    def _addsub_offset_array(self, other, op):
+        # Add or subtract Array-like of DateOffset objects
+        try:
+            # TimedeltaIndex can only operate with a subset of DateOffset
+            # subclasses.  Incompatible classes will raise AttributeError,
+            # which we re-raise as TypeError
+            return dtl.DatetimeLikeArrayMixin._addsub_offset_array(self, other,
+                                                                   op)
+        except AttributeError:
+            raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
+
     def _evaluate_with_timedelta_like(self, other, op):
         if isinstance(other, ABCSeries):
             # GH#19042
@@ -265,19 +286,6 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
                 return result
 
         return NotImplemented
-
-    # ----------------------------------------------------------------
-    # Comparison Methods
-
-    @classmethod
-    def _add_comparison_methods(cls):
-        """add in comparison methods"""
-        cls.__eq__ = _td_array_cmp('__eq__', cls)
-        cls.__ne__ = _td_array_cmp('__ne__', cls)
-        cls.__lt__ = _td_array_cmp('__lt__', cls)
-        cls.__gt__ = _td_array_cmp('__gt__', cls)
-        cls.__le__ = _td_array_cmp('__le__', cls)
-        cls.__ge__ = _td_array_cmp('__ge__', cls)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
@@ -392,7 +400,8 @@ class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
         return result
 
 
-TimedeltaArrayMixin._add_comparison_methods()
+TimedeltaArrayMixin._add_comparison_ops()
+TimedeltaArrayMixin._add_datetimelike_methods()
 
 
 # ---------------------------------------------------------------------

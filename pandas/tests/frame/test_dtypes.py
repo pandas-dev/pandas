@@ -9,7 +9,7 @@ from datetime import timedelta
 import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     Categorical, compat, concat, option_context)
-from pandas.compat import u, PY2
+from pandas.compat import u
 from pandas import _np_version_under1p14
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
@@ -356,9 +356,10 @@ class TestDataFrameDataTypes(TestData):
         expected = df3.reindex(columns=[])
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype", [str, "str", np.string_, "S1",
-                  "unicode", np.unicode_, "U1"] + ([unicode] if PY2 else []))
+    @pytest.mark.parametrize("dtype", [
+        str, "str", np.string_, "S1", "unicode", np.unicode_, "U1",
+        compat.text_type
+    ])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame({"a": list("abc"),

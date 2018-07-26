@@ -191,8 +191,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars):
-        return cls(scalars)
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -984,7 +984,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         examples='',
     ))
     def to_tuples(self, na_tuple=True):
-        tuples = com._asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com.asarray_tuplesafe(zip(self.left, self.right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)

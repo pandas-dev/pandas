@@ -651,7 +651,8 @@ def astype_nansafe(arr, dtype, copy=True):
 
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
-        return dtype.array_type._from_sequence(arr, copy=copy)
+        return dtype.construct_array_type()._from_sequence(
+            arr, dtype=dtype, copy=copy)
 
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)

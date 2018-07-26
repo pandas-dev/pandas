@@ -43,6 +43,7 @@ from pandas.util._decorators import (
 
 import pandas.core.algorithms as algorithms
 
+from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
@@ -488,8 +489,8 @@ class Categorical(ExtensionArray, PandasObject):
         return Categorical
 
     @classmethod
-    def _from_sequence(cls, scalars):
-        return Categorical(scalars)
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return Categorical(scalars, dtype=dtype)
 
     def copy(self):
         """ Copy constructor. """
@@ -1887,7 +1888,7 @@ class Categorical(ExtensionArray, PandasObject):
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()
         max_width = get_option("display.width") or width
-        if com.in_ipython_frontend():
+        if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
         levstring = ""

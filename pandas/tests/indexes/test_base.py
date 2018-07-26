@@ -3,7 +3,7 @@
 import pytest
 
 from datetime import datetime, timedelta
-
+from decimal import Decimal
 from collections import defaultdict
 
 import pandas.util.testing as tm
@@ -864,12 +864,46 @@ class TestIndex(Base):
         expected = Index(['1a', '1b', '1c'])
         tm.assert_index_equal('1' + index, expected)
 
-    def test_sub(self):
+    def test_sub_fail(self):
         index = self.strIndex
         pytest.raises(TypeError, lambda: index - 'a')
         pytest.raises(TypeError, lambda: index - index)
         pytest.raises(TypeError, lambda: index - index.tolist())
         pytest.raises(TypeError, lambda: index.tolist() - index)
+
+    def test_sub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(0), Decimal(1)])
+
+        result = index - Decimal(1)
+        tm.assert_index_equal(result, expected)
+
+        result = index - pd.Index([Decimal(1), Decimal(1)])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index - 'foo'
+
+        with pytest.raises(TypeError):
+            index - np.array([2, 'foo'])
+
+    def test_rsub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(1), Decimal(0)])
+
+        result = Decimal(2) - index
+        tm.assert_index_equal(result, expected)
+
+        result = np.array([Decimal(2), Decimal(2)]) - index
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            'foo' - index
+
+        with pytest.raises(TypeError):
+            np.array([True, pd.Timestamp.now()]) - index
 
     def test_map_identity_mapping(self):
         # GH 12766

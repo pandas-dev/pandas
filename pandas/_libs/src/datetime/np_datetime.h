@@ -31,7 +31,7 @@ extern const npy_datetimestruct _NS_MAX_DTS;
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
-int convert_pydatetime_to_datetimestruct(PyDateTime_Date *obj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out);
 
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
