@@ -1114,6 +1114,7 @@ def _arith_method_SERIES(cls, op, special):
                 result[mask] = op(x[mask], com.values_from_object(y[mask]))
             else:
                 assert isinstance(x, np.ndarray)
+                assert lib.is_scalar(y)
                 result = np.empty(len(x), dtype=x.dtype)
                 mask = notna(x)
                 result[mask] = op(x[mask], y)
@@ -1160,6 +1161,7 @@ def _arith_method_SERIES(cls, op, special):
 
         elif (is_extension_array_dtype(left) or
                 is_extension_array_dtype(right)):
+            # TODO: should this include `not is_scalar(right)`?
             return dispatch_to_extension_op(op, left, right)
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
