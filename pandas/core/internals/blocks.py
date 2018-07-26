@@ -1610,12 +1610,12 @@ class Block(PandasObject):
 
             if len(values) == 0:
                 if lib.is_scalar(q):
-                    return self._na_value
+                    return self.fill_value
                 else:
-                    return np.array([self._na_value] * len(q),
+                    return np.array([self.fill_value] * len(q),
                                     dtype=values.dtype)
 
-            return np.percentile(values, q, **kw)
+            return com.percentile(values, q, **kw)
 
         def _nanpercentile(values, q, axis, **kw):
 
@@ -1635,7 +1635,7 @@ class Block(PandasObject):
                     result = np.array(result, dtype=values.dtype, copy=False).T
                     return result
             else:
-                return np.percentile(values, q, axis=axis, **kw)
+                return com.percentile(values, q, axis=axis, **kw)
 
         from pandas import Float64Index
         is_empty = values.shape[axis] == 0
@@ -2134,7 +2134,7 @@ class DatetimeLikeBlockMixin(object):
 
     @property
     def fill_value(self):
-        return tslibs.iNaT
+        return tslibs.NaT.asm8
 
     def get_values(self, dtype=None):
         """
@@ -2198,25 +2198,21 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         """
 
         values_mask = isna(values)
-        values = values.view('i8')
         other_mask = False
 
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datelike_scalar(other):
-            other = tslibs.iNaT
+        if is_null_datelike_scalar(other):
+            other = tslibs.NaT.asm8
             other_mask = True
         elif isinstance(other, Timedelta):
             other_mask = isna(other)
-            other = other.value
+            other = other.asm8
         elif isinstance(other, timedelta):
-            other = Timedelta(other).value
-        elif isinstance(other, np.timedelta64):
-            other_mask = isna(other)
-            other = Timedelta(other).value
+            other = np.timedelta64(other)
+        elif isinstance(other, (np.timedelta64, np.ndarray)):
+            pass
         elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
             other_mask = isna(other)
-            other = other.astype('i8', copy=False).view('i8')
+            other = getattr(other, 'values', other)
         else:
             # coercion issues
             # let higher levels handle
@@ -2698,24 +2694,25 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
 
         values_mask = isna(values)
-        values = values.view('i8')
         other_mask = False
 
-        if isinstance(other, bool):
-            raise TypeError
-        elif is_null_datelike_scalar(other):
-            other = tslibs.iNaT
+        if getattr(other, 'tz', None) is not None:
+            raise TypeError("cannot coerce a Timestamp with a tz on a "
+                            "naive Block")
+
+        if is_null_datelike_scalar(other):
+            other = tslibs.NaT.asm8
             other_mask = True
-        elif isinstance(other, (datetime, np.datetime64, date)):
-            other = self._box_func(other)
-            if getattr(other, 'tz') is not None:
-                raise TypeError("cannot coerce a Timestamp with a tz on a "
-                                "naive Block")
+        elif isinstance(other, tslibs.Timestamp):
             other_mask = isna(other)
-            other = other.asm8.view('i8')
+            other = other.asm8
+        elif isinstance(other, date):
+            other = np.datetime64(other)
+        elif isinstance(other, (np.datetime64, np.ndarray)):
+            pass
         elif hasattr(other, 'dtype') and is_datetime64_dtype(other):
             other_mask = isna(other)
-            other = other.astype('i8', copy=False).view('i8')
+            other = getattr(other, 'values', other)
         else:
             # coercion issues
             # let higher levels handle

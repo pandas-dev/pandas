@@ -308,7 +308,7 @@ class TestDatetimeBlock(object):
                 date(2010, 10, 10))
         for val in vals:
             coerced = block._try_coerce_args(block.values, val)[2]
-            assert np.int64 == type(coerced)
+            assert np.datetime64 == type(coerced)
             assert pd.Timestamp('2010-10-10') == pd.Timestamp(coerced)
 
 
@@ -1250,14 +1250,20 @@ class TestCanHoldElement(object):
     ], ids=lambda x: x.__name__)
     def test_binop_other(self, op, value, dtype):
         skip = {(operator.add, 'bool'),
+                (operator.add, '<M8[ns]'),
                 (operator.sub, 'bool'),
                 (operator.mul, 'bool'),
+                (operator.mul, '<m8[ns]'),
+                (operator.mul, '<M8[ns]'),
                 (operator.truediv, 'bool'),
+                (operator.truediv, '<M8[ns]'),
                 (operator.mod, 'i8'),
                 (operator.mod, 'complex128'),
                 (operator.mod, '<M8[ns]'),
                 (operator.mod, '<m8[ns]'),
-                (operator.pow, 'bool')}
+                (operator.pow, 'bool'),
+                (operator.pow, '<m8[ns]'),
+                (operator.pow, '<M8[ns]')}
         if (op, dtype) in skip:
             pytest.skip("Invalid combination {},{}".format(op, dtype))
         e = DummyElement(value, dtype)
