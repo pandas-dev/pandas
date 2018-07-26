@@ -256,28 +256,43 @@ def test_compression_size_fh(obj, method, compression_only):
         assert uncompressed > compressed
 
 
-@pytest.mark.parametrize('input', [
-    DataFrame([[1.0, 0, -4.4],
-               [3.4, 5, 2.4]], columns=['X', 'Y', 'Z']),
-    Series([0, 1, 2, 4], name='X'),
-])
-@pytest.mark.parametrize('methods', [
+@pytest.mark.parametrize('write_method, read_method', [
     ('to_csv', pandas.read_csv),
     ('to_json', pandas.read_json),
     ('to_pickle', pandas.read_pickle),
 ])
-def test_compression_defaults_to_infer(input, methods, compression_only):
-    # Test that to_* methods default to inferring compression from paths.
-    # https://github.com/pandas-dev/pandas/pull/22011
-    write_method, read_method = methods
+def test_dataframe_compression_defaults_to_infer(
+        write_method, read_method, compression_only):
+    # Test that DataFrame.to_* methods default to inferring compression from
+    # paths. https://github.com/pandas-dev/pandas/pull/22011
+    input = DataFrame([[1.0, 0, -4.4], [3.4, 5, 2.4]], columns=['X', 'Y', 'Z'])
+    extension = _compression_to_extension[compression_only]
+    kwargs = {}
+    if write_method == 'to_csv':
+        kwargs['index'] = False
+    with tm.ensure_clean('compressed' + extension) as path:
+        # assumes that compression='infer' is the default
+        getattr(input, write_method)(path, **kwargs)
+        output = read_method(path, compression=compression_only)
+    tm.assert_frame_equal(output, input)
+
+
+@pytest.mark.parametrize('write_method, read_method', [
+    ('to_csv', pandas.Series.from_csv),
+    ('to_json', pandas.read_json),
+    ('to_pickle', pandas.read_pickle),
+])
+def test_series_compression_defaults_to_infer(
+        write_method, read_method, compression_only):
+    # Test that Series.to_* methods default to inferring compression from
+    # paths. https://github.com/pandas-dev/pandas/pull/22011
+    input = Series(100 * [0, 5, -2, 10])
     extension = _compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
         # assumes that compression='infer' is the default
         getattr(input, write_method)(path)
         output = read_method(path, compression=compression_only)
-    assert_equals = (tm.assert_frame_equal if isinstance(input, DataFrame)
-                     else tm.assert_series_equal)
-    assert_equals(output, input)
+    tm.assert_series_equal(output, input)
 
 
 def test_compression_warning(compression_only):
