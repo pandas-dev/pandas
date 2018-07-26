@@ -9,7 +9,8 @@ from pandas._libs.tslibs import conversion
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
     DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
-    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype)
+    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype,
+    _pandas_registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
@@ -1991,7 +1992,7 @@ def pandas_dtype(dtype):
         return dtype
 
     # registered extension types
-    result = registry.find(dtype)
+    result = _pandas_registry.find(dtype) or registry.find(dtype)
     if result is not None:
         return result
 
