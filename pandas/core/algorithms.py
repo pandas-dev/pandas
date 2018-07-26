@@ -18,8 +18,7 @@ from pandas.core.dtypes.common import (
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
     is_object_dtype,
-    is_extension_array,
-    is_extension_dtype,
+    is_extension_array_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
@@ -154,7 +153,7 @@ def _reconstruct_data(values, dtype, original):
     Index for extension types, otherwise ndarray casted to dtype
     """
     from pandas import Index
-    if is_extension_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
@@ -358,7 +357,7 @@ def unique(values):
 
     values = _ensure_arraylike(values)
 
-    if is_extension_array(values):
+    if is_extension_array_dtype(values):
         # Dispatch to extension dtype's unique.
         return values.unique()
 
@@ -611,7 +610,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     values = _ensure_arraylike(values)
     original = values
 
-    if is_extension_array(values):
+    if is_extension_array_dtype(values):
         values = getattr(values, '_values', values)
         labels, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
@@ -706,7 +705,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_extension_array(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -1592,7 +1591,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
     # dispatch to internal type takes
-    if is_extension_array(arr):
+    if is_extension_array_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)

@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_sequence,
     is_list_like,
-    is_extension_array)
+    is_extension_array_dtype)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 import pandas.core.common as com
@@ -1278,8 +1278,8 @@ def assert_series_equal(left, right, check_dtype=True,
     elif is_interval_dtype(left) or is_interval_dtype(right):
         assert_interval_array_equal(left.values, right.values)
 
-    elif (is_extension_array(left) and not is_categorical_dtype(left) and
-          is_extension_array(right) and not is_categorical_dtype(right)):
+    elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
+          is_extension_array_dtype(right) and not is_categorical_dtype(right)):
         return assert_extension_array_equal(left.values, right.values)
 
     else:

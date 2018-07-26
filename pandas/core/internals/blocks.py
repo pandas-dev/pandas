@@ -32,7 +32,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_float_dtype,
     is_numeric_v_string_like, is_extension_type,
-    is_extension_array,
+    is_extension_array_dtype,
     is_list_like,
     is_re,
     is_re_compilable,
@@ -2416,7 +2416,7 @@ class ObjectBlock(Block):
                     # TODO(ExtensionArray): remove is_extension_type
                     # when all extension arrays have been ported.
                     is_extension_type(value) or
-                    is_extension_array(value))
+                    is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -3174,7 +3174,7 @@ def get_block_type(values, dtype=None):
         cls = ComplexBlock
     elif is_categorical(values):
         cls = CategoricalBlock
-    elif is_extension_array(values):
+    elif is_extension_array_dtype(values):
         cls = ExtensionBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetimetz(values)

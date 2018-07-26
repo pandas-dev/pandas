@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_extension_type,
-    is_extension_array)
+    is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
 from pandas.errors import AbstractMethodError
@@ -749,7 +749,7 @@ class IndexOpsMixin(object):
 
         - categorical -> codes
         """
-        if is_extension_array(self):
+        if is_extension_array_dtype(self):
             return self.values._ndarray_values
         return self.values
 
@@ -857,7 +857,7 @@ class IndexOpsMixin(object):
         """
         if is_datetimelike(self._values):
             return [com.maybe_box_datetimelike(x) for x in self._values]
-        elif is_extension_array(self._values):
+        elif is_extension_array_dtype(self._values):
             return list(self._values)
         else:
             return self._values.tolist()

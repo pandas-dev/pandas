@@ -33,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_scalar,
-    is_extension_array,
+    is_extension_array_dtype,
     ensure_object)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
@@ -1059,7 +1059,7 @@ def dispatch_to_extension_op(op, left, right):
     # we need to listify to avoid ndarray, or non-same-type extension array
     # dispatching
 
-    if is_extension_array(left):
+    if is_extension_array_dtype(left):
 
         new_left = left.values
         if isinstance(right, np.ndarray):
@@ -1070,7 +1070,7 @@ def dispatch_to_extension_op(op, left, right):
             if is_scalar(new_right):
                 new_right = [new_right]
             new_right = list(new_right)
-        elif is_extension_array(right) and type(left) != type(right):
+        elif is_extension_array_dtype(right) and type(left) != type(right):
             new_right = list(new_right)
         else:
             new_right = right
@@ -1158,8 +1158,8 @@ def _arith_method_SERIES(cls, op, special):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
-        elif (is_extension_array(left) or
-              is_extension_array(right)):
+        elif (is_extension_array_dtype(left) or
+                is_extension_array_dtype(right)):
             return dispatch_to_extension_op(op, left, right)
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
@@ -1354,8 +1354,8 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
-        elif (is_extension_array(self) or
-              (is_extension_array(other) and
+        elif (is_extension_array_dtype(self) or
+              (is_extension_array_dtype(other) and
                not is_scalar(other))):
             return dispatch_to_extension_op(op, self, other)
 

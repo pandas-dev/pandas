@@ -15,7 +15,7 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_complex_dtype,
                      is_string_like_dtype, is_bool_dtype,
                      is_integer_dtype, is_dtype_equal,
-                     is_extension_array,
+                     is_extension_array_dtype,
                      needs_i8_conversion, ensure_object,
                      pandas_dtype,
                      is_scalar,
@@ -190,7 +190,7 @@ def _isna_ndarraylike(obj):
     values = getattr(obj, 'values', obj)
     dtype = values.dtype
 
-    if is_extension_array(obj):
+    if is_extension_array_dtype(obj):
         if isinstance(obj, (ABCIndexClass, ABCSeries)):
             values = obj._values
         else:
@@ -502,7 +502,7 @@ def na_value_for_dtype(dtype, compat=True):
     """
     dtype = pandas_dtype(dtype)
 
-    if is_extension_array(dtype):
+    if is_extension_array_dtype(dtype):
         return dtype.na_value
     if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
             is_timedelta64_dtype(dtype) or is_period_dtype(dtype)):
@@ -522,7 +522,7 @@ def remove_na_arraylike(arr):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    if is_extension_array(arr):
+    if is_extension_array_dtype(arr):
         return arr[notna(arr)]
     else:
         return arr[notna(lib.values_from_object(arr))]

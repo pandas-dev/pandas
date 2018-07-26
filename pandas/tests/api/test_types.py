@@ -30,8 +30,6 @@ class TestTypes(Base):
                'is_dict_like', 'is_iterator', 'is_file_like',
                'is_list_like', 'is_hashable', 'is_array_like',
                'is_named_tuple',
-               'is_extension_dtype',
-               'is_extension_array',
                'pandas_dtype', 'union_categoricals', 'infer_dtype']
     deprecated = ['is_any_int_dtype', 'is_floating_dtype', 'is_sequence']
     dtypes = ['CategoricalDtype', 'DatetimeTZDtype',

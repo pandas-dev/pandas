@@ -21,8 +21,7 @@ from pandas.core.dtypes.common import (
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type,
-    is_extension_array,
-    is_extension_dtype,
+    is_extension_array_dtype,
     is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
@@ -237,7 +236,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`index` argument.  `copy` must '
                                          'be False.')
 
-            elif is_extension_array(data):
+            elif is_extension_array_dtype(data):
                 pass
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
@@ -2272,7 +2271,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         if is_categorical_dtype(self.values):
             pass
-        elif is_extension_array(self.values):
+        elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
             # if the type is compatible with the calling EA
             try:
@@ -4094,7 +4093,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 # that Categorical is the only array type for 'category'.
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
-            elif is_extension_dtype(dtype):
+            elif is_extension_array_dtype(dtype):
                 # create an extension array from its dtype
                 array_type = dtype.construct_array_type()
                 subarr = array_type(subarr, dtype=dtype, copy=copy)

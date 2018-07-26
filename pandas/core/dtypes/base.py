@@ -6,9 +6,9 @@ from pandas.errors import AbstractMethodError
 
 
 class _DtypeOpsMixin(object):
-    # Not all of pandas' extension dtypes are compatible with
+    # Not all of pandas' extension dtypes are compatibile with
     # the new ExtensionArray interface. This means PandasExtensionDtype
-    # can't subclass ExtensionDtype yet, as is_extension_dtype would
+    # can't subclass ExtensionDtype yet, as is_extension_array_dtype would
     # incorrectly say that these types are extension types.
     #
     # In the interim, we put methods that are shared between the two base

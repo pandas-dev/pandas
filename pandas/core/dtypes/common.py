@@ -1688,12 +1688,12 @@ def is_extension_type(arr):
     return False
 
 
-def is_extension_array(arr):
-    """Check if an array object is a pandas extension array type.
+def is_extension_array_dtype(arr_or_dtype):
+    """Check if an object is a pandas extension array type.
 
     Parameters
     ----------
-    arr : object
+    arr_or_dtype : object
 
     Returns
     -------
@@ -1701,56 +1701,25 @@ def is_extension_array(arr):
 
     Notes
     -----
-    This checks whether an array object implements the pandas extension
+    This checks whether an object implements the pandas extension
     array interface. In pandas, this includes:
 
     * Categorical
-    * Interval
 
-    Third-party libraries may implement arrays satisfying
+    Third-party libraries may implement arrays or types satisfying
     this interface as well.
-
-    See Also
-    --------
-    is_extension_dtype : Similar method for dtypes.
     """
-    from pandas.core.dtypes.base import ExtensionDtype
+    from pandas.core.arrays import ExtensionArray
+
+    if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
+        arr_or_dtype = arr_or_dtype._values
 
     try:
-        dtype = getattr(arr, 'dtype')
-    except AttributeError:
-        return False
+        arr_or_dtype = pandas_dtype(arr_or_dtype)
+    except TypeError:
+        pass
 
-    return isinstance(dtype, ExtensionDtype)
-
-
-def is_extension_dtype(dtype):
-    """Check if a dtype object is a pandas extension dtype.
-
-    Parameters
-    ----------
-    dtype : dtype
-
-    Returns
-    -------
-    bool
-
-    Notes
-    -----
-    This checks whether a dtype object implements the pandas extension
-    array interface. In pandas, this includes:
-
-    * CategoricalDtype
-    * IntervalDtype
-
-    Third-party libraries may implement dtypes satisfying
-    this interface as well.
-
-    See Also
-    --------
-    is_extension_array : Similar method for arrays.
-    """
-    return isinstance(dtype, ExtensionDtype)
+    return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
 
 
 def is_complex_dtype(arr_or_dtype):

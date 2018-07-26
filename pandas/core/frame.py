@@ -40,7 +40,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_extension_type,
-    is_extension_array,
+    is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
     is_bool_dtype,
@@ -517,7 +517,7 @@ class DataFrame(NDFrame):
             index, columns = _get_axes(len(values), 1)
             return _arrays_to_mgr([values], columns, index, columns,
                                   dtype=dtype)
-        elif (is_datetimetz(values) or is_extension_array(values)):
+        elif (is_datetimetz(values) or is_extension_array_dtype(values)):
             # GH19157
             if columns is None:
                 columns = [0]
@@ -3507,7 +3507,7 @@ class DataFrame(NDFrame):
             value = maybe_cast_to_datetime(value, value.dtype)
 
         # return internal types directly
-        if is_extension_type(value) or is_extension_array(value):
+        if is_extension_type(value) or is_extension_array_dtype(value):
             return value
 
         # broadcast across multiple columns if necessary

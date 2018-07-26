@@ -12,7 +12,7 @@ from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
                      is_extension_type,
-                     is_extension_dtype,
+                     is_extension_array_dtype,
                      is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
@@ -294,7 +294,7 @@ def maybe_promote(dtype, fill_value=np.nan):
     elif is_datetimetz(dtype):
         if isna(fill_value):
             fill_value = iNaT
-    elif is_extension_dtype(dtype) and isna(fill_value):
+    elif is_extension_array_dtype(dtype) and isna(fill_value):
         fill_value = dtype.na_value
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
@@ -332,7 +332,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if is_extension_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetimetz(dtype):
         pass
@@ -650,7 +650,7 @@ def astype_nansafe(arr, dtype, copy=True):
         need to be very careful as the result shape could change! """
 
     # dispatch on extension dtype if needed
-    if is_extension_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         return dtype.construct_array_type()._from_sequence(
             arr, dtype=dtype, copy=copy)
 

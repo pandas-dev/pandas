@@ -44,8 +44,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
-    is_extension_array,
-    is_extension_dtype,
+    is_extension_array_dtype,
     is_hashable,
     is_iterator, is_list_like,
     is_scalar)
@@ -276,7 +275,7 @@ class Index(IndexOpsMixin, PandasObject):
                                  closed=closed)
 
         # extension dtype
-        elif is_extension_array(data) or is_extension_dtype(dtype):
+        elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
 
@@ -1192,7 +1191,7 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
 
-        elif is_extension_dtype(dtype):
+        elif is_extension_array_dtype(dtype):
             return Index(np.asarray(self), dtype=dtype, copy=copy)
 
         try:
