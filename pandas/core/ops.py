@@ -1123,30 +1123,6 @@ def _arith_method_SERIES(cls, op, special):
         result = missing.fill_zeros(result, x, y, op_name, fill_zeros)
         return result
 
-    def safe_na_op(lvalues, rvalues):
-        """
-        return the result of evaluating na_op on the passed in values
-
-        try coercion to object type if the native types are not compatible
-
-        Parameters
-        ----------
-        lvalues : array-like
-        rvalues : array-like
-
-        Raises
-        ------
-        TypeError: invalid operation
-        """
-        try:
-            with np.errstate(all='ignore'):
-                return na_op(lvalues, rvalues)
-        except Exception:
-            if is_object_dtype(lvalues):
-                return libalgos.arrmap_object(lvalues,
-                                              lambda x: op(x, rvalues))
-            raise
-
     def wrapper(left, right):
         if isinstance(right, ABCDataFrame):
             return NotImplemented
@@ -1174,12 +1150,18 @@ def _arith_method_SERIES(cls, op, special):
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
+        elif is_object_dtype(left):
+            rvalues = right.values if isinstance(right, ABCSeries) else right
+            result = libalgos.arrmap_object(left.values,
+                                            lambda x: op(x, rvalues))
+
         lvalues = left.values
         rvalues = right
         if isinstance(rvalues, ABCSeries):
             rvalues = rvalues.values
 
-        result = safe_na_op(lvalues, rvalues)
+        with np.errstate(all='ignore'):
+            result = na_op(lvalues, rvalues)
         return construct_result(left, result,
                                 index=left.index, name=res_name, dtype=None)
 
@@ -1313,7 +1295,7 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
-        if is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
             if (isinstance(other, datetime.date) and
@@ -1355,8 +1337,9 @@ def _comp_method_SERIES(cls, op, special):
                                      name=res_name)
 
         elif (is_extension_array_dtype(self) or
-              (is_extension_array_dtype(other) and
-               not is_scalar(other))):
+              (is_extension_array_dtype(other) and not is_scalar(other))):
+            # Note: the `not is_scalar(other)` condition rules out
+            # e.g. other == "category"
             return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
@@ -1514,6 +1497,41 @@ def _flex_method_SERIES(cls, op, special):
 
 # -----------------------------------------------------------------------------
 # DataFrame
+
+def dispatch_to_series(left, right, func):
+    """
+    Evaluate the frame operation func(left, right) by evaluating
+    column-by-column, dispatching to the Series implementation.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : scalar or DataFrame
+    func : arithmetic or comparison operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # Note: we use iloc to access columns for compat with cases
+    #       with non-unique columns.
+    if lib.is_scalar(right):
+        new_data = {i: func(left.iloc[:, i], right)
+                    for i in range(len(left.columns))}
+    elif isinstance(right, ABCDataFrame):
+        assert right._indexed_same(left)
+        new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
+                    for i in range(len(left.columns))}
+    else:
+        # Remaining cases have less-obvious dispatch rules
+        raise NotImplementedError
+
+    result = left._constructor(new_data, index=left.index, copy=False)
+    # Pin columns instead of passing to constructor for compat with
+    # non-unique columns case
+    result.columns = left.columns
+    return result
+
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                           level=None, try_cast=True):
