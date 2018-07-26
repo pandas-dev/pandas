@@ -1539,7 +1539,7 @@ cdef class _Period(object):
         See Also
         --------
         Period.year : Return the calendar year of the period.
-        
+
         Examples
         --------
         If the natural and fiscal year are the same, `qyear` and `year` will
