@@ -21,8 +21,13 @@ from pandas.core.dtypes.missing import notna
 from pandas.core.dtypes.generic import (
     ABCMultiIndex, ABCPeriodIndex, ABCDatetimeIndex, ABCIndexClass)
 
-from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
-                              _stringify_path)
+from pandas.io.common import (
+    _expand_user,
+    _get_handle,
+    _infer_compression,
+    _stringify_path,
+    UnicodeWriter,
+)
 
 
 class CSVFormatter(object):
@@ -51,7 +56,7 @@ class CSVFormatter(object):
         self.index_label = index_label
         self.mode = mode
         self.encoding = encoding
-        self.compression = compression
+        self.compression = _infer_compression(self.path_or_buf, compression)
 
         if quoting is None:
             quoting = csvlib.QUOTE_MINIMAL
