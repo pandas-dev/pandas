@@ -18,6 +18,7 @@ cdef extern from "Python.h":
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
+    ctypedef signed long long int64_t
 
 cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyTimedeltaArrType_Type
@@ -122,7 +123,7 @@ cdef inline bint is_bool_object(object obj) nogil:
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
 
 
-cdef inline bint is_timedelta64_object(object val) nogil:
+cdef inline bint is_timedelta64_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, np.timedelta64)`
 
@@ -137,7 +138,7 @@ cdef inline bint is_timedelta64_object(object val) nogil:
     return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
 
 
-cdef inline bint is_datetime64_object(object val) nogil:
+cdef inline bint is_datetime64_object(object obj) nogil:
     """
     Cython equivalent of `isinstance(val, np.datetime64)`
 

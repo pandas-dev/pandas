@@ -70,6 +70,7 @@ cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
 
     assign_value_1d(arr, i, value)
 
+
 cdef inline set_value_at(ndarray arr, object loc, object value):
     """Sets a value into the array after checking that the array is mutable.
     """
