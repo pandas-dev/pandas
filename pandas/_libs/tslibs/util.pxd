@@ -1,7 +1,6 @@
 cimport numpy as cnp
 cnp.import_array()
 
-cimport cpython
 from cpython cimport PyTypeObject
 
 
