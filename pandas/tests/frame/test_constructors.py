@@ -865,12 +865,6 @@ class TestDataFrameConstructors(TestData):
         dm = DataFrame(index=np.arange(10))
         assert dm.values.shape == (10, 0)
 
-        # corner, silly
-        # TODO: Fix this Exception to be better...
-        with tm.assert_raises_regex(ValueError, 'constructor not '
-                                    'properly called'):
-            DataFrame((1, 2, 3))
-
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
         with tm.assert_raises_regex(ValueError, 'cast'):
@@ -952,6 +946,17 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame([array.array('i', range(10)),
                             array.array('i', range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_constructor_iterable(self):
+        # GH 21987
+        class Iter():
+            def __iter__(self):
+                for i in range(10):
+                    yield [1, 2, 3]
+
+        expected = DataFrame([[1, 2, 3]] * 10)
+        result = DataFrame(Iter())
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_iterator(self):
 
@@ -1373,10 +1378,6 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame([[np.nan, 1], [1, 0]], dtype=np.int64)
         expected = DataFrame([[np.nan, 1], [1, 0]])
         tm.assert_frame_equal(df, expected)
-
-    def test_constructor_iterator_failure(self):
-        with tm.assert_raises_regex(TypeError, 'iterator'):
-            DataFrame(iter([1, 2, 3]))
 
     def test_constructor_column_duplicates(self):
         # it works! #2079

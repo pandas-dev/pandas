@@ -16,7 +16,6 @@ import functools
 import collections
 import itertools
 import sys
-import types
 import warnings
 from textwrap import dedent
 
@@ -75,7 +74,8 @@ from pandas.core.series import Series
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
-                           OrderedDict, raise_with_traceback)
+                           OrderedDict, raise_with_traceback,
+                           string_and_binary_types)
 from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
@@ -267,7 +267,7 @@ class DataFrame(NDFrame):
 
     Parameters
     ----------
-    data : numpy ndarray (structured or homogeneous), dict, or DataFrame
+    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
@@ -391,8 +391,11 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
-        elif isinstance(data, (list, types.GeneratorType)):
-            if isinstance(data, types.GeneratorType):
+
+        # For data is list-like, or Iterable (will consume into list)
+        elif (isinstance(data, collections.Iterable)
+              and not isinstance(data, string_and_binary_types)):
+            if not isinstance(data, collections.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -417,8 +420,6 @@ class DataFrame(NDFrame):
                                              copy=copy)
             else:
                 mgr = self._init_dict({}, index, columns, dtype=dtype)
-        elif isinstance(data, collections.Iterator):
-            raise TypeError("data argument can't be an iterator")
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
