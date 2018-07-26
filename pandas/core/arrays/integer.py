@@ -76,7 +76,7 @@ class _IntegerDtype(ExtensionDtype):
                         "'{}'".format(cls, string))
 
 
-def to_integer_array(values, dtype=None):
+def integer_array(values, dtype=None, copy=False):
     """
     Infer and return an integer array of the values.
 
@@ -94,7 +94,8 @@ def to_integer_array(values, dtype=None):
     ------
     TypeError if incompatible types
     """
-    return IntegerArray(values, dtype=dtype, copy=False)
+    values, mask = coerce_to_array(values, dtype=dtype, copy=copy)
+    return IntegerArray(values, mask)
 
 
 def safe_cast(values, dtype, copy):
@@ -206,7 +207,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def dtype(self):
         return _dtypes[str(self._data.dtype)]
 
-    def __init__(self, values, mask=None, dtype=None, copy=False):
+    def __init__(self, values, mask, copy=False):
         """
         Parameters
         ----------
@@ -219,25 +220,33 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         -------
         IntegerArray
         """
-        self._data, self._mask = coerce_to_array(
-            values, dtype=dtype, mask=mask, copy=copy)
+        if not (isinstance(values, np.ndarray)
+                and np.issubdtype(values.dtype, np.integer)):
+            raise TypeError("values should be integer numpy array")
+        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
+            raise TypeError("mask should be boolean numpy array")
+
+        if copy:
+            values = values.copy()
+            mask = mask.copy()
+
+        self._data = values
+        self._mask = mask
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls(scalars, dtype=dtype, copy=copy)
+        return integer_array(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls(values, dtype=original.dtype)
+        return integer_array(values, dtype=original.dtype)
 
     def __getitem__(self, item):
         if is_integer(item):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
-        return type(self)(self._data[item],
-                          mask=self._mask[item],
-                          dtype=self.dtype)
+        return type(self)(self._data[item], self._mask[item])
 
     def _coerce_to_ndarray(self):
         """
@@ -294,7 +303,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             result[fill_mask] = fill_value
             mask = mask ^ fill_mask
 
-        return type(self)(result, mask=mask, dtype=self.dtype, copy=False)
+        return type(self)(result, mask, copy=False)
 
     def copy(self, deep=False):
         data, mask = self._data, self._mask
@@ -304,7 +313,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         else:
             data = data.copy()
             mask = mask.copy()
-        return type(self)(data, mask, dtype=self.dtype, copy=False)
+        return type(self)(data, mask, copy=False)
 
     def __setitem__(self, key, value):
         _is_scalar = is_scalar(value)
@@ -356,7 +365,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     def _concat_same_type(cls, to_concat):
         data = np.concatenate([x._data for x in to_concat])
         mask = np.concatenate([x._mask for x in to_concat])
-        return cls(data, mask=mask, dtype=to_concat[0].dtype)
+        return cls(data, mask)
 
     def astype(self, dtype, copy=True):
         """Cast to a NumPy array or IntegerArray with 'dtype'.
@@ -386,8 +395,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         if isinstance(dtype, _IntegerDtype):
             result = self._data.astype(dtype.numpy_dtype,
                                        casting='same_kind', copy=False)
-            return type(self)(result, mask=self._mask,
-                              dtype=dtype, copy=False)
+            return type(self)(result, mask=self._mask, copy=False)
 
         # coerce
         data = self._coerce_to_ndarray()
@@ -523,7 +531,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             result[mask] = np.nan
             return result
 
-        return type(self)(result, mask=mask, dtype=self.dtype, copy=False)
+        return type(self)(result, mask, copy=False)
 
     @classmethod
     def _create_arithmetic_method(cls, op):

@@ -9,7 +9,7 @@ from pandas.api.types import (
 from pandas.core.dtypes.generic import ABCIndexClass
 
 from pandas.core.arrays import (
-    to_integer_array, IntegerArray)
+    integer_array, IntegerArray)
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
     UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
@@ -31,12 +31,12 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return IntegerArray(make_data(), dtype=dtype)
+    return integer_array(make_data(), dtype=dtype)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return IntegerArray([np.nan, 1], dtype=dtype)
+    return integer_array([np.nan, 1], dtype=dtype)
 
 
 @pytest.fixture
@@ -49,12 +49,12 @@ def data_repeated(data):
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return IntegerArray([1, 2, 0], dtype=dtype)
+    return integer_array([1, 2, 0], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return IntegerArray([1, np.nan, 0], dtype=dtype)
+    return integer_array([1, np.nan, 0], dtype=dtype)
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def data_for_grouping(dtype):
     a = 0
     c = 2
     na = np.nan
-    return IntegerArray([b, b, na, na, a, a, b, c], dtype=dtype)
+    return integer_array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
 def test_dtypes(dtype):
@@ -494,8 +494,7 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         else:
             other = all_data
 
-        result = pd.Index(IntegerArray(other,
-                                       dtype=all_data.dtype))
+        result = pd.Index(integer_array(other, dtype=all_data.dtype))
         expected = pd.Index(other, dtype=object)
 
         self.assert_index_equal(result, expected)
@@ -584,14 +583,14 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         msg = "cannot safely"
         arr = [1.2, 2.3, 3.7]
         with tm.assert_raises_regex(TypeError, msg):
-            IntegerArray(arr, dtype=dtype)
+            integer_array(arr, dtype=dtype)
 
         with tm.assert_raises_regex(TypeError, msg):
             pd.Series(arr).astype(dtype)
 
         arr = [1.2, 2.3, 3.7, np.nan]
         with tm.assert_raises_regex(TypeError, msg):
-            IntegerArray(arr, dtype=dtype)
+            integer_array(arr, dtype=dtype)
 
         with tm.assert_raises_regex(TypeError, msg):
             pd.Series(arr).astype(dtype)
@@ -658,7 +657,7 @@ def test_conversions(data_missing):
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):
-        to_integer_array(values)
+        integer_array(values)
 
 
 @pytest.mark.parametrize(
@@ -669,8 +668,8 @@ def test_to_integer_array_error(values):
         (np.array([1, np.nan]), 'int8', Int8Dtype)])
 def test_to_integer_array(values, to_dtype, result_dtype):
     # convert existing arrays to IntegerArrays
-    result = to_integer_array(values, dtype=to_dtype)
-    expected = IntegerArray(values, dtype=result_dtype())
+    result = integer_array(values, dtype=to_dtype)
+    expected = integer_array(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
 
 

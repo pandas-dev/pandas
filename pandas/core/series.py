@@ -4095,7 +4095,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                      ordered=dtype.ordered)
             elif is_extension_array_dtype(dtype):
                 # create an extension array from its dtype
-                array_type = dtype.construct_array_type()
+                array_type = dtype.construct_array_type()._from_sequence
                 subarr = array_type(subarr, dtype=dtype, copy=copy)
 
             elif dtype is not None and raise_cast_failure:

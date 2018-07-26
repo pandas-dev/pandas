@@ -94,7 +94,7 @@ class BaseMissingTests(BaseExtensionTests):
         fill_value = data_missing[1]
 
         if method == 'ffill':
-            data_missing = type(data_missing)(data_missing[::-1])
+            data_missing = data_missing[::-1]
 
         result = pd.Series(data_missing).fillna(method=method)
         expected = pd.Series(
