@@ -816,7 +816,7 @@ cdef array_to_datetime_object(ndarray[object] values, bint is_raise,
                                                    yearfirst=yearfirst)
                 pydatetime_to_dt64(oresult[i], &dts)
                 check_dts_bounds(&dts)
-            except Exception:
+            except (ValueError, OverflowError):
                 if is_raise:
                     raise
                 return values, None
