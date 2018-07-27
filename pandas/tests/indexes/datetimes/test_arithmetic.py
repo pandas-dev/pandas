@@ -305,6 +305,7 @@ class TestDatetimeIndexComparisons(object):
         tm.assert_numpy_array_equal(result, expected)
 
     def test_dti_cmp_str(self, tz_naive_fixture):
+        # GH#22074
         # regardless of tz, we expect these comparisons are valid
         tz = tz_naive_fixture
         rng = date_range('1/1/2000', periods=10, tz=tz)
@@ -337,6 +338,7 @@ class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('other', ['foo', 99, 4.0,
                                        object(), timedelta(days=2)])
     def test_dti_cmp_scalar_invalid(self, other, tz_naive_fixture):
+        # GH#22074
         tz = tz_naive_fixture
         rng = date_range('1/1/2000', periods=10, tz=tz)
 
@@ -370,6 +372,7 @@ class TestDatetimeIndexComparisons(object):
         pd.timedelta_range('1D', periods=10).asi8.view('m8[ns]')
     ], ids=lambda x: type(x).__name__)
     def test_dti_cmp_tdi_tzawareness(self, other):
+        # GH#22074
         # reversion test that we _don't_ call _assert_tzawareness_compat
         # when comparing against TimedeltaIndex
         dti = date_range('2000-01-01', periods=10, tz='Asia/Tokyo')
@@ -392,6 +395,7 @@ class TestDatetimeIndexComparisons(object):
             dti >= other
 
     def test_dti_cmp_object_dtype(self):
+        # GH#22074
         dti = date_range('2000-01-01', periods=10, tz='Asia/Tokyo')
 
         other = dti.astype('O')
