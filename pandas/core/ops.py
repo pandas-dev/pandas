@@ -1288,7 +1288,7 @@ def _comp_method_SERIES(cls, op, special):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
 
         elif is_datetimelike_v_numeric(x, y):
-            raise TypeError("invalid type comparison")
+            return invalid_comparison(x, y, op)
 
         else:
 

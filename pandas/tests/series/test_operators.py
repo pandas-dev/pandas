@@ -238,8 +238,15 @@ class TestSeriesComparisons(object):
         s2 = Series(date_range('20010101', periods=5))
 
         for (x, y) in [(s, s2), (s2, s)]:
-            pytest.raises(TypeError, lambda: x == y)
-            pytest.raises(TypeError, lambda: x != y)
+
+            result = x == y
+            expected = Series([False] * 5)
+            assert_series_equal(result, expected)
+
+            result = x != y
+            expected = Series([True] * 5)
+            assert_series_equal(result, expected)
+
             pytest.raises(TypeError, lambda: x >= y)
             pytest.raises(TypeError, lambda: x > y)
             pytest.raises(TypeError, lambda: x < y)
