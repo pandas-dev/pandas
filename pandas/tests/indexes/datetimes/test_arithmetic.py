@@ -364,6 +364,33 @@ class TestDatetimeIndexComparisons(object):
         expected = rng == rng
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize('other', [
+        pd.timedelta_range('1D', periods=10),
+        pd.timedelta_range('1D', periods=10).to_series(),
+        pd.timedelta_range('1D', periods=10).asi8.view('m8[ns]')
+    ], ids=lambda x: type(x).__name__)
+    def test_dti_cmp_tdi_tzawareness(self, other):
+        # reversion test that we _don't_ call _assert_tzawareness_compat
+        # when comparing against TimedeltaIndex
+        dti = date_range('2000-01-01', periods=10, tz='Asia/Tokyo')
+
+        result = dti == other
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti != other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            dti < other
+        with pytest.raises(TypeError):
+            dti <= other
+        with pytest.raises(TypeError):
+            dti > other
+        with pytest.raises(TypeError):
+            dti >= other
+
 
 class TestDatetimeIndexArithmetic(object):
 

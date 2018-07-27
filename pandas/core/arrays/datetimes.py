@@ -18,7 +18,7 @@ from pandas import compat
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
-    is_datetimelike,
+    is_object_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -121,15 +121,15 @@ def _dt_array_cmp(cls, op):
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
-                if opname == '__eq__':
-                    return np.zeros(shape=self.shape, dtype=bool)
-                elif opname == '__ne__':
-                    return np.ones(shape=self.shape, dtype=bool)
-                raise TypeError('%s type object %s' %
-                                (type(other), str(other)))
+                return ops.invalid_comparison(self, other, op)
 
-            if is_datetimelike(other):
+            if is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 self._assert_tzawareness_compat(other)
+            elif is_object_dtype(other):
+                raise NotImplementedError
+            else:
+                # e.g. is_timedelta64_dtype(other)
+                return ops.invalid_comparison(self, other, op)
 
             result = meth(self, np.asarray(other))
             result = com.values_from_object(result)

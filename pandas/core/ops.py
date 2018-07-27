@@ -800,14 +800,13 @@ def invalid_comparison(left, right, op):
     Parameters
     ----------
     left : array-like
-    right : scalar
+    right : scalar, array-like
     op : operator.{eq, ne, lt, le, gt}
 
     Raises
     ------
     TypeError : on inequality comparisons
     """
-    assert lib.is_scalar(right)  # other cases handled later
     if op is operator.eq:
         res_values = np.zeros(left.shape, dtype=bool)
     elif op is operator.ne:
