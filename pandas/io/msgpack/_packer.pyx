@@ -1,10 +1,16 @@
 # coding: utf-8
 # cython: embedsignature=True
 
-from cpython cimport *
-from libc.stdlib cimport *
-from libc.string cimport *
-from libc.limits cimport *
+from cpython cimport (
+    PyFloat_Check, PyLong_Check, PyInt_Check,
+    PyDict_CheckExact, PyDict_Check,
+    PyTuple_Check, PyList_Check,
+    PyCallable_Check,
+    PyUnicode_Check, PyBytes_Check,
+    PyBytes_AsString,
+    PyBytes_FromStringAndSize,
+    PyUnicode_AsEncodedString)
+from libc.stdlib cimport free, malloc
 
 from pandas.io.msgpack.exceptions import PackValueError
 from pandas.io.msgpack import ExtType
