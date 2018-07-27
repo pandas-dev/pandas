@@ -777,10 +777,9 @@ class Block(PandasObject):
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
-        """ replace the to_replace value with value, possible to create new
+        """replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
-        It is used in ObjectBlocks.  It is here for API
-        compatibility.
+        It is used in ObjectBlocks.  It is here for API compatibility.
         """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
