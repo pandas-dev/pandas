@@ -32,14 +32,14 @@ _INT64_DTYPE = np.dtype(np.int64)
 # oh the troubles to reduce import time
 _is_scipy_sparse = None
 
-_ensure_float64 = algos.ensure_float64
-_ensure_float32 = algos.ensure_float32
+ensure_float64 = algos.ensure_float64
+ensure_float32 = algos.ensure_float32
 
 _ensure_datetime64ns = conversion.ensure_datetime64ns
 _ensure_timedelta64ns = conversion.ensure_timedelta64ns
 
 
-def _ensure_float(arr):
+def ensure_float(arr):
     """
     Ensure that an array object has a float dtype if possible.
 
@@ -59,16 +59,16 @@ def _ensure_float(arr):
     return arr
 
 
-_ensure_uint64 = algos.ensure_uint64
-_ensure_int64 = algos.ensure_int64
-_ensure_int32 = algos.ensure_int32
-_ensure_int16 = algos.ensure_int16
-_ensure_int8 = algos.ensure_int8
-_ensure_platform_int = algos.ensure_platform_int
-_ensure_object = algos.ensure_object
+ensure_uint64 = algos.ensure_uint64
+ensure_int64 = algos.ensure_int64
+ensure_int32 = algos.ensure_int32
+ensure_int16 = algos.ensure_int16
+ensure_int8 = algos.ensure_int8
+ensure_platform_int = algos.ensure_platform_int
+ensure_object = algos.ensure_object
 
 
-def _ensure_categorical(arr):
+def ensure_categorical(arr):
     """
     Ensure that an array-like object is a Categorical (if not already).
 
@@ -1714,6 +1714,11 @@ def is_extension_array_dtype(arr_or_dtype):
     if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
         arr_or_dtype = arr_or_dtype._values
 
+    try:
+        arr_or_dtype = pandas_dtype(arr_or_dtype)
+    except TypeError:
+        pass
+
     return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
 
 
@@ -1804,6 +1809,9 @@ def _get_dtype(arr_or_dtype):
     TypeError : The passed in object is None.
     """
 
+    # TODO(extension)
+    # replace with pandas_dtype
+
     if arr_or_dtype is None:
         raise TypeError("Cannot deduce dtype from null object")
     if isinstance(arr_or_dtype, np.dtype):
@@ -1851,6 +1859,8 @@ def _get_dtype_type(arr_or_dtype):
                passed in array or dtype object.
     """
 
+    # TODO(extension)
+    # replace with pandas_dtype
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
@@ -1976,7 +1986,17 @@ def pandas_dtype(dtype):
     Returns
     -------
     np.dtype or a pandas dtype
+
+    Raises
+    ------
+    TypeError if not a dtype
+
     """
+    # short-circuit
+    if isinstance(dtype, np.ndarray):
+        return dtype.dtype
+    elif isinstance(dtype, np.dtype):
+        return dtype
 
     # registered extension types
     result = registry.find(dtype)
@@ -1984,13 +2004,19 @@ def pandas_dtype(dtype):
         return result
 
     # un-registered extension types
-    if isinstance(dtype, ExtensionDtype):
+    elif isinstance(dtype, ExtensionDtype):
         return dtype
 
+    # try a numpy dtype
+    # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except (TypeError, ValueError):
-        raise
+    except Exception:
+        # we don't want to force a repr of the non-string
+        if not isinstance(dtype, string_types):
+            raise TypeError("data type not understood")
+        raise TypeError("data type '{}' not understood".format(
+            dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
@@ -2000,6 +2026,6 @@ def pandas_dtype(dtype):
     if dtype in [object, np.object_, 'object', 'O']:
         return npdtype
     elif npdtype.kind == 'O':
-        raise TypeError('dtype {dtype} not understood'.format(dtype=dtype))
+        raise TypeError("dtype '{}' not understood".format(dtype))
 
     return npdtype

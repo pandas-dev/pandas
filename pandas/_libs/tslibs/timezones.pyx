@@ -188,7 +188,7 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cpdef ndarray unbox_utcoffsets(object transinfo):
+cpdef ndarray[int64_t, ndim=1] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
         ndarray[int64_t] arr
@@ -216,6 +216,8 @@ cdef object get_dst_info(object tz):
     """
     cache_key = tz_cache_key(tz)
     if cache_key is None:
+        # e.g. pytz.FixedOffset, matplotlib.dates._UTC,
+        # psycopg2.tz.FixedOffsetTimezone
         num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
         return (np.array([NPY_NAT + 1], dtype=np.int64),
                 np.array([num], dtype=np.int64),
@@ -256,12 +258,18 @@ cdef object get_dst_info(object tz):
                                   dtype='i8') * 1000000000
                 typ = 'fixed'
             else:
-                trans = np.array([], dtype='M8[ns]')
-                deltas = np.array([], dtype='i8')
-                typ = None
+                # 2018-07-12 this is not reached in the tests, and this case
+                # is not handled in any of the functions that call
+                # get_dst_info.  If this case _were_ hit the calling
+                # functions would then hit an IndexError because they assume
+                # `deltas` is non-empty.
+                # (under the just-deleted code that returned empty arrays)
+                raise AssertionError("dateutil tzinfo is not a FixedOffset "
+                                     "and has an empty `_trans_list`.", tz)
 
         else:
             # static tzinfo
+            # TODO: This case is not hit in tests (2018-07-17); is it possible?
             trans = np.array([NPY_NAT + 1], dtype=np.int64)
             num = int(get_utcoffset(tz, None).total_seconds()) * 1000000000
             deltas = np.array([num], dtype=np.int64)

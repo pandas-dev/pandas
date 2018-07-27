@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 import numpy as np
 import warnings
 
-from pandas._libs import tslib, lib
-from pandas._libs.tslib import iNaT
+from pandas._libs import tslib, lib, tslibs
+from pandas._libs.tslibs import iNaT
 from pandas.compat import string_types, text_type, PY3
-from .common import (_ensure_object, is_bool, is_integer, is_float,
+from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
                      is_extension_type,
@@ -25,8 +25,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_bool_dtype, is_scalar,
                      is_string_dtype, _string_dtypes,
                      pandas_dtype,
-                     _ensure_int8, _ensure_int16,
-                     _ensure_int32, _ensure_int64,
+                     ensure_int8, ensure_int16,
+                     ensure_int32, ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
 from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
@@ -85,7 +85,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, string_types):
         if dtype == 'infer':
-            inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
+            inferred_type = lib.infer_dtype(ensure_object(result.ravel()))
             if inferred_type == 'boolean':
                 dtype = 'bool'
             elif inferred_type == 'integer':
@@ -278,14 +278,14 @@ def maybe_promote(dtype, fill_value=np.nan):
         else:
             if issubclass(dtype.type, np.datetime64):
                 try:
-                    fill_value = tslib.Timestamp(fill_value).value
+                    fill_value = tslibs.Timestamp(fill_value).value
                 except Exception:
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
                     fill_value = iNaT
             elif issubclass(dtype.type, np.timedelta64):
                 try:
-                    fill_value = tslib.Timedelta(fill_value).value
+                    fill_value = tslibs.Timedelta(fill_value).value
                 except Exception:
                     # as for datetimes, cannot upcast to object
                     fill_value = iNaT
@@ -393,8 +393,8 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         dtype = np.object_
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = tslib.Timestamp(val)
-        if val is tslib.NaT or val.tz is None:
+        val = tslibs.Timestamp(val)
+        if val is tslibs.NaT or val.tz is None:
             dtype = np.dtype('M8[ns]')
         else:
             if pandas_dtype:
@@ -405,7 +405,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = tslib.Timedelta(val).value
+        val = tslibs.Timedelta(val).value
         dtype = np.dtype('m8[ns]')
 
     elif is_bool(val):
@@ -602,12 +602,12 @@ def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
     length = len(categories)
     if length < _int8_max:
-        return _ensure_int8(indexer)
+        return ensure_int8(indexer)
     elif length < _int16_max:
-        return _ensure_int16(indexer)
+        return ensure_int16(indexer)
     elif length < _int32_max:
-        return _ensure_int32(indexer)
-    return _ensure_int64(indexer)
+        return ensure_int32(indexer)
+    return ensure_int64(indexer)
 
 
 def coerce_to_dtypes(result, dtypes):
@@ -625,7 +625,7 @@ def coerce_to_dtypes(result, dtypes):
             if isna(r):
                 pass
             elif dtype == _NS_DTYPE:
-                r = tslib.Timestamp(r)
+                r = tslibs.Timestamp(r)
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
@@ -651,7 +651,8 @@ def astype_nansafe(arr, dtype, copy=True):
 
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
-        return dtype.array_type._from_sequence(arr, copy=copy)
+        return dtype.construct_array_type()._from_sequence(
+            arr, dtype=dtype, copy=copy)
 
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
@@ -679,7 +680,7 @@ def astype_nansafe(arr, dtype, copy=True):
 
     elif is_timedelta64_dtype(arr):
         if is_object_dtype(dtype):
-            return tslib.ints_to_pytimedelta(arr.view(np.int64))
+            return tslibs.ints_to_pytimedelta(arr.view(np.int64))
         elif dtype == np.int64:
             return arr.view(dtype)
 
@@ -948,7 +949,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         except Exception:
             return v.reshape(shape)
 
-    inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
+    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == 'date' and convert_dates:
         value = try_datetime(v)

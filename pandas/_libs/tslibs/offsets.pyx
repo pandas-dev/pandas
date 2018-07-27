@@ -11,7 +11,6 @@ from cpython.datetime cimport (PyDateTime_IMPORT, PyDateTime_CheckExact,
 PyDateTime_IMPORT
 
 from dateutil.relativedelta import relativedelta
-from pytz import UTC
 
 import numpy as np
 cimport numpy as cnp
@@ -24,9 +23,8 @@ from util cimport is_string_object, is_integer_object
 from ccalendar import MONTHS, DAYS
 from ccalendar cimport get_days_in_month, dayofweek
 from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
-from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
-from np_datetime cimport (pandas_datetimestruct,
+from np_datetime cimport (npy_datetimestruct,
                           dtstruct_to_dt64, dt64_to_dtstruct)
 
 # ---------------------------------------------------------------------
@@ -256,10 +254,10 @@ def _validate_business_time(t_input):
 
 relativedelta_kwds = set([
     'years', 'months', 'weeks', 'days',
-    'year', 'month', 'week', 'day', 'weekday',
+    'year', 'month', 'day', 'weekday',
     'hour', 'minute', 'second', 'microsecond',
     'nanosecond', 'nanoseconds',
-    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'])
+    'hours', 'minutes', 'seconds', 'microseconds'])
 
 
 def _determine_offset(kwds):
@@ -335,8 +333,6 @@ class _BaseOffset(object):
         except AttributeError:
             # other is not a DateOffset object
             return False
-
-        return self._params == other._params
 
     def __ne__(self, other):
         return not self == other
@@ -550,14 +546,14 @@ cpdef datetime shift_day(datetime other, int days):
     return localize_pydatetime(shifted, tz)
 
 
-cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
-    """new year number after shifting pandas_datetimestruct number of months"""
+cdef inline int year_add_months(npy_datetimestruct dts, int months) nogil:
+    """new year number after shifting npy_datetimestruct number of months"""
     return dts.year + (dts.month + months - 1) / 12
 
 
-cdef inline int month_add_months(pandas_datetimestruct dts, int months) nogil:
+cdef inline int month_add_months(npy_datetimestruct dts, int months) nogil:
     """
-    New month number after shifting pandas_datetimestruct
+    New month number after shifting npy_datetimestruct
     number of months.
     """
     cdef int new_month = (dts.month + months) % 12
@@ -586,7 +582,7 @@ def shift_quarters(int64_t[:] dtindex, int quarters,
     """
     cdef:
         Py_ssize_t i
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll, months_since, n, compare_day
         bint roll_check
@@ -728,7 +724,7 @@ def shift_months(int64_t[:] dtindex, int months, object day=None):
     """
     cdef:
         Py_ssize_t i
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int count = len(dtindex)
         int months_to_roll
         bint roll_check

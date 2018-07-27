@@ -1,6 +1,5 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
-import operator
-
 cimport cython
 from cython cimport Py_ssize_t
 
@@ -486,7 +485,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
 
 def clean_index_list(list obj):
     """
-    Utility used in pandas.core.index._ensure_index
+    Utility used in pandas.core.index.ensure_index
     """
     cdef:
         Py_ssize_t i, n = len(obj)
@@ -754,4 +753,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
     return result
 
 
-include "inference.pyx"
+include "src/inference.pyx"

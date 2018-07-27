@@ -1,9 +1,10 @@
-from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
+from numpy cimport ndarray
 cimport numpy as cnp
 cnp.import_array()
 
 cimport cpython
 from cpython cimport PyTypeObject
+
 
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
@@ -63,13 +64,13 @@ cdef inline bint is_datetime64_object(object obj) nogil:
 
 # --------------------------------------------------------------------
 
-cdef extern from "numpy_helper.h":
+cdef extern from "../src/numpy_helper.h":
     void set_array_not_contiguous(ndarray ao)
 
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     cnp.int64_t get_nat()
     object get_value_1d(ndarray, Py_ssize_t)
-    char *get_c_string(object) except NULL
+    const char *get_c_string(object) except NULL
     object char_to_string(char*)
 
 ctypedef fused numeric:
@@ -86,7 +87,7 @@ ctypedef fused numeric:
     cnp.float32_t
     cnp.float64_t
 
-cdef extern from "headers/stdint.h":
+cdef extern from "../src/headers/stdint.h":
     enum: UINT8_MAX
     enum: UINT16_MAX
     enum: UINT32_MAX
@@ -99,6 +100,7 @@ cdef extern from "headers/stdint.h":
     enum: INT32_MIN
     enum: INT64_MAX
     enum: INT64_MIN
+
 
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
@@ -118,6 +120,7 @@ cdef inline object get_value_at(ndarray arr, object loc):
         raise IndexError('index out of bounds')
 
     return get_value_1d(arr, i)
+
 
 cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
     """Sets a value into the array without checking the writeable flag.
@@ -153,11 +156,13 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
 
+
 cdef inline bint _checknull(object val):
     try:
         return val is None or (cpython.PyFloat_Check(val) and val != val)
     except ValueError:
         return False
+
 
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'

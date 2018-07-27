@@ -12,7 +12,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
-    _ensure_int64)
+    ensure_int64)
 
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
@@ -335,7 +335,7 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             bins = unique_bins
 
     side = 'left' if right else 'right'
-    ids = _ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
         # Numpy 1.9 support: ensure this mask is a Numpy array

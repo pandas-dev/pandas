@@ -581,7 +581,7 @@ class SelectionMixin(object):
                     results.append(colg.aggregate(a))
 
                     # make sure we find a good name
-                    name = com._get_callable_name(a) or a
+                    name = com.get_callable_name(a) or a
                     keys.append(name)
                 except (TypeError, DataError):
                     pass
@@ -646,53 +646,6 @@ class SelectionMixin(object):
         otherwise return the arg
         """
         return self._builtin_table.get(arg, arg)
-
-
-class GroupByMixin(object):
-    """ provide the groupby facilities to the mixed object """
-
-    @staticmethod
-    def _dispatch(name, *args, **kwargs):
-        """ dispatch to apply """
-
-        def outer(self, *args, **kwargs):
-            def f(x):
-                x = self._shallow_copy(x, groupby=self._groupby)
-                return getattr(x, name)(*args, **kwargs)
-            return self._groupby.apply(f)
-        outer.__name__ = name
-        return outer
-
-    def _gotitem(self, key, ndim, subset=None):
-        """
-        sub-classes to define
-        return a sliced object
-
-        Parameters
-        ----------
-        key : string / list of selections
-        ndim : 1,2
-            requested ndim of result
-        subset : object, default None
-            subset to act on
-        """
-        # create a new object to prevent aliasing
-        if subset is None:
-            subset = self.obj
-
-        # we need to make a shallow copy of ourselves
-        # with the same groupby
-        kwargs = dict([(attr, getattr(self, attr))
-                       for attr in self._attributes])
-        self = self.__class__(subset,
-                              groupby=self._groupby[key],
-                              parent=self,
-                              **kwargs)
-        self._reset_cache()
-        if subset.ndim == 2:
-            if is_scalar(key) and key in subset or is_list_like(key):
-                self._selection = key
-        return self
 
 
 class IndexOpsMixin(object):
@@ -903,7 +856,7 @@ class IndexOpsMixin(object):
         numpy.ndarray.tolist
         """
         if is_datetimelike(self._values):
-            return [com._maybe_box_datetimelike(x) for x in self._values]
+            return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
         else:

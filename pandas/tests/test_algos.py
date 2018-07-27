@@ -7,6 +7,7 @@ from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
 from itertools import permutations
+import struct
 from pandas import (Series, Categorical, CategoricalIndex,
                     Timestamp, DatetimeIndex, Index, IntervalIndex)
 import pandas as pd
@@ -217,8 +218,8 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(result[0],
                                     np.array(expected_label, dtype=np.intp))
 
-        expected_level_array = com._asarray_tuplesafe(expected_level,
-                                                      dtype=object)
+        expected_level_array = com.asarray_tuplesafe(expected_level,
+                                                     dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):
@@ -231,8 +232,9 @@ class TestFactorize(object):
 
         pytest.raises(TypeError, algos.factorize, x17[::-1], sort=True)
 
-    def test_uint64_factorize(self):
+    def test_uint64_factorize(self, writable):
         data = np.array([2**63, 1, 2**63], dtype=np.uint64)
+        data.setflags(write=writable)
         exp_labels = np.array([0, 1, 0], dtype=np.intp)
         exp_uniques = np.array([2**63, 1], dtype=np.uint64)
 
@@ -498,6 +500,25 @@ class TestUnique(object):
         expected = np.array(['foo', None], dtype=object)
 
         tm.assert_numpy_array_equal(result, expected, strict_nan=True)
+
+    def test_signed_zero(self):
+        # GH 21866
+        a = np.array([-0.0, 0.0])
+        result = pd.unique(a)
+        expected = np.array([-0.0])  # 0.0 and -0.0 are equivalent
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_different_nans(self):
+        # GH 21866
+        # create different nans from bit-patterns:
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+        a = np.array([NAN1, NAN2])  # NAN1 and NAN2 are equivalent
+        result = pd.unique(a)
+        expected = np.array([np.nan])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestIsin(object):
@@ -1085,6 +1106,31 @@ class TestHashTable(object):
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
                                                             dtype=np.int64))
+
+    def test_add_signed_zeros(self):
+        # GH 21866 inconsistent hash-function for float64
+        # default hash-function would lead to different hash-buckets
+        # for 0.0 and -0.0 if there are more than 2^30 hash-buckets
+        # but this would mean 16GB
+        N = 4  # 12 * 10**8 would trigger the error, if you have enough memory
+        m = ht.Float64HashTable(N)
+        m.set_item(0.0, 0)
+        m.set_item(-0.0, 0)
+        assert len(m) == 1  # 0.0 and -0.0 are equivalent
+
+    def test_add_different_nans(self):
+        # GH 21866 inconsistent hash-function for float64
+        # create different nans from bit-patterns:
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+        # default hash function would lead to different hash-buckets
+        # for NAN1 and NAN2 even if there are only 4 buckets:
+        m = ht.Float64HashTable()
+        m.set_item(NAN1, 0)
+        m.set_item(NAN2, 0)
+        assert len(m) == 1  # NAN1 and NAN2 are equivalent
 
     def test_lookup_overflow(self, writable):
         xs = np.array([1, 2, 2**63], dtype=np.uint64)

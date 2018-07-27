@@ -6,7 +6,7 @@ from distutils.version import LooseVersion
 
 import numpy as np
 from pandas import compat
-from pandas._libs import tslib, lib
+from pandas._libs import tslibs, lib
 from pandas.core.dtypes.common import (
     _get_dtype,
     is_float, is_scalar,
@@ -190,13 +190,13 @@ def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
                 return -np.inf
     else:
         if fill_value_typ is None:
-            return tslib.iNaT
+            return tslibs.iNaT
         else:
             if fill_value_typ == '+inf':
                 # need the max int here
                 return _int64_max
             else:
-                return tslib.iNaT
+                return tslibs.iNaT
 
 
 def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
@@ -205,7 +205,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     if isfinite:
         mask = _isfinite(values)
     else:
@@ -268,7 +268,7 @@ def _wrap_results(result, dtype):
 
     if is_datetime64_dtype(dtype):
         if not isinstance(result, np.ndarray):
-            result = tslib.Timestamp(result)
+            result = tslibs.Timestamp(result)
         else:
             result = result.view(dtype)
     elif is_timedelta64_dtype(dtype):
@@ -278,7 +278,7 @@ def _wrap_results(result, dtype):
             if np.fabs(result) > _int64_max:
                 raise ValueError("overflow in timedelta operation")
 
-            result = tslib.Timedelta(result, unit='ns')
+            result = tslibs.Timedelta(result, unit='ns')
         else:
             result = result.astype('i8').view(dtype)
 
@@ -440,7 +440,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     dtype = values.dtype
     mask = isna(values)
     if is_any_int_dtype(values):
@@ -549,7 +549,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -607,7 +607,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -722,7 +722,7 @@ def _maybe_null_out(result, axis, mask, min_count=1):
             else:
                 # GH12941, use None to auto cast null
                 result[null_mask] = None
-    elif result is not tslib.NaT:
+    elif result is not tslibs.NaT:
         null_mask = mask.size - mask.sum()
         if null_mask < min_count:
             result = np.nan

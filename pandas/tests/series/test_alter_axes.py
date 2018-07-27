@@ -295,3 +295,15 @@ class TestSeriesAlterAxes(TestData):
         s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
         with tm.assert_raises_regex(KeyError, 'not found'):
             s.reset_index('wrong', drop=True)
+
+    def test_droplevel(self):
+        # GH20342
+        ser = pd.Series([1, 2, 3, 4])
+        ser.index = pd.MultiIndex.from_arrays([(1, 2, 3, 4), (5, 6, 7, 8)],
+                                              names=['a', 'b'])
+        expected = ser.reset_index('b', drop=True)
+        result = ser.droplevel('b', axis='index')
+        assert_series_equal(result, expected)
+        # test that droplevel raises ValueError on axis != 0
+        with pytest.raises(ValueError):
+            ser.droplevel(1, axis='columns')

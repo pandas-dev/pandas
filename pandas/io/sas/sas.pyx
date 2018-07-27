@@ -104,7 +104,8 @@ cdef ndarray[uint8_t, ndim=1] rle_decompress(
             raise ValueError("unknown control byte: {byte}"
                              .format(byte=control_byte))
 
-    if len(result) != result_length:
+    # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
+    if <Py_ssize_t>len(result) != <Py_ssize_t>result_length:
         raise ValueError("RLE: {got} != {expect}".format(got=len(result),
                                                          expect=result_length))
 
@@ -186,11 +187,13 @@ cdef ndarray[uint8_t, ndim=1] rdc_decompress(
         else:
             raise ValueError("unknown RDC command")
 
-    if len(outbuff) != result_length:
+    # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
+    if <Py_ssize_t>len(outbuff) != <Py_ssize_t>result_length:
         raise ValueError("RDC: {got} != {expect}\n"
                          .format(got=len(outbuff), expect=result_length))
 
     return np.asarray(outbuff)
+
 
 cdef enum ColumnTypes:
     column_type_decimal = 1
@@ -203,6 +206,7 @@ cdef int page_mix_types_0 = const.page_mix_types[0]
 cdef int page_mix_types_1 = const.page_mix_types[1]
 cdef int page_data_type = const.page_data_type
 cdef int subheader_pointers_offset = const.subheader_pointers_offset
+
 
 cdef class Parser(object):
 

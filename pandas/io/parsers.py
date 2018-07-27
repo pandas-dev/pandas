@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
-    is_integer, _ensure_object,
+    is_integer, ensure_object,
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
@@ -25,7 +25,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _ensure_index_from_sequences)
+                               ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.arrays import Categorical
@@ -60,11 +60,16 @@ Additional help can be found in the `online docs for IO Tools
 
 Parameters
 ----------
-filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
-object with a read() method (such as a file handle or StringIO)
-    The string could be a URL. Valid URL schemes include http, ftp, s3, and
-    file. For file URLs, a host is expected. For instance, a local file could
-    be file://localhost/path/to/table.csv
+filepath_or_buffer : str, path object, or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: file://localhost/path/to/table.csv.
+
+    If you want to pass in a path object, pandas accepts either
+    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+    By file-like object, we refer to objects with a ``read()`` method, such as
+    a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
 %s
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -1521,7 +1526,7 @@ class ParserBase(object):
             arrays.append(arr)
 
         names = self.index_names
-        index = _ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1889,7 +1894,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = _ensure_index_from_sequences(arrays)
+            index = ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -3005,7 +3010,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools.to_datetime(
-                    _ensure_object(strs),
+                    ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
@@ -3222,7 +3227,7 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
-        index = _ensure_index_from_sequences(data, names=index_names)
+        index = ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
 
         for i, n in enumerate(index_col):

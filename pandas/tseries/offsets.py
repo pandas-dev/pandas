@@ -13,7 +13,7 @@ import pandas.core.common as com
 
 # import after tools, dateutil check
 from dateutil.easter import easter
-from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
+from pandas._libs import tslibs, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
 from pandas._libs.tslibs import (
@@ -60,8 +60,8 @@ def as_timestamp(obj):
 def apply_wraps(func):
     @functools.wraps(func)
     def wrapper(self, other):
-        if other is tslib.NaT:
-            return tslib.NaT
+        if other is tslibs.NaT:
+            return tslibs.NaT
         elif isinstance(other, (timedelta, Tick, DateOffset)):
             # timedelta path
             return func(self, other)
@@ -89,7 +89,7 @@ def apply_wraps(func):
                 if not isinstance(self, Nano) and result.nanosecond != nano:
                     if result.tz is not None:
                         # convert to UTC
-                        value = tslib.tz_convert_single(
+                        value = conversion.tz_convert_single(
                             result.value, 'UTC', result.tz)
                     else:
                         value = result.value
@@ -103,7 +103,7 @@ def apply_wraps(func):
 
             if self.normalize:
                 # normalize_date returns normal datetime
-                result = tslib.normalize_date(result)
+                result = tslibs.normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
                 result = conversion.localize_pydatetime(result, tz)
@@ -158,6 +158,54 @@ class DateOffset(BaseOffset):
     date + BDay(0) == BDay.rollforward(date)
 
     Since 0 is a bit weird, we suggest avoiding its use.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of time periods the offset represents.
+    normalize : bool, default False
+        Whether to round the result of a DateOffset addition down to the
+        previous midnight.
+    **kwds
+        Temporal parameter that add to or replace the offset value.
+
+        Parameters that **add** to the offset (like Timedelta):
+
+        - years
+        - months
+        - weeks
+        - days
+        - hours
+        - minutes
+        - seconds
+        - microseconds
+        - nanoseconds
+
+        Parameters that **replace** the offset value:
+
+        - year
+        - month
+        - day
+        - weekday
+        - hour
+        - minute
+        - second
+        - microsecond
+        - nanosecond
+
+    See Also
+    --------
+    dateutil.relativedelta.relativedelta
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=3)
+    Timestamp('2017-04-01 09:10:11')
+
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(month=3)
+    Timestamp('2017-03-01 09:10:11')
     """
     _params = cache_readonly(BaseOffset._params.fget)
     _use_relativedelta = False

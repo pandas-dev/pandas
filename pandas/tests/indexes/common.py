@@ -886,7 +886,7 @@ class Base(object):
                 assert not idx.hasnans
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if len(index) == 0:
                     continue
@@ -928,7 +928,7 @@ class Base(object):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT

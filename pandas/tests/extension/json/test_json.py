@@ -1,5 +1,7 @@
 import operator
 import collections
+import random
+import string
 
 import pytest
 
@@ -8,9 +10,16 @@ import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
 from pandas.tests.extension import base
 
-from .array import JSONArray, JSONDtype, make_data
+from .array import JSONArray, JSONDtype
 
 pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
+
+
+def make_data():
+    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    return [collections.UserDict([
+        (random.choice(string.ascii_letters), random.randint(0, 100))
+        for _ in range(random.randint(0, 10))]) for _ in range(100)]
 
 
 @pytest.fixture
@@ -203,7 +212,8 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
-    @pytest.mark.xfail
+
+    @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):
         """This currently fails in NumPy on np.array(self, dtype=str) with
 

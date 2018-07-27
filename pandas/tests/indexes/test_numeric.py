@@ -13,7 +13,7 @@ from pandas import (date_range, Series, Index, Float64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas._libs.tslib import Timestamp, Timedelta
+from pandas._libs.tslibs import Timestamp, Timedelta
 
 from pandas.tests.indexes.common import Base
 

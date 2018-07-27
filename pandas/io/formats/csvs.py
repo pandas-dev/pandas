@@ -9,18 +9,20 @@ import warnings
 
 import csv as csvlib
 from zipfile import ZipFile
+
 import numpy as np
 
-from pandas.core.dtypes.missing import notna
-from pandas.core.index import Index, MultiIndex
+from pandas._libs import writers as libwriters
+
 from pandas import compat
-from pandas.compat import (StringIO, range, zip)
+from pandas.compat import StringIO, range, zip
+
+from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.generic import (
+    ABCMultiIndex, ABCPeriodIndex, ABCDatetimeIndex, ABCIndexClass)
 
 from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
-from pandas._libs import writers as libwriters
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.period import PeriodIndex
 
 
 class CSVFormatter(object):
@@ -68,7 +70,7 @@ class CSVFormatter(object):
         self.date_format = date_format
 
         self.tupleize_cols = tupleize_cols
-        self.has_mi_columns = (isinstance(obj.columns, MultiIndex) and
+        self.has_mi_columns = (isinstance(obj.columns, ABCMultiIndex) and
                                not self.tupleize_cols)
 
         # validate mi options
@@ -78,7 +80,7 @@ class CSVFormatter(object):
                                 "columns")
 
         if cols is not None:
-            if isinstance(cols, Index):
+            if isinstance(cols, ABCIndexClass):
                 cols = cols.to_native_types(na_rep=na_rep,
                                             float_format=float_format,
                                             date_format=date_format,
@@ -90,7 +92,7 @@ class CSVFormatter(object):
         # update columns to include possible multiplicity of dupes
         # and make sure sure cols is just a list of labels
         cols = self.obj.columns
-        if isinstance(cols, Index):
+        if isinstance(cols, ABCIndexClass):
             cols = cols.to_native_types(na_rep=na_rep,
                                         float_format=float_format,
                                         date_format=date_format,
@@ -111,8 +113,9 @@ class CSVFormatter(object):
         self.chunksize = int(chunksize)
 
         self.data_index = obj.index
-        if (isinstance(self.data_index, (DatetimeIndex, PeriodIndex)) and
+        if (isinstance(self.data_index, (ABCDatetimeIndex, ABCPeriodIndex)) and
                 date_format is not None):
+            from pandas import Index
             self.data_index = Index([x.strftime(date_format) if notna(x) else
                                      '' for x in self.data_index])
 
@@ -197,7 +200,8 @@ class CSVFormatter(object):
         header = self.header
         encoded_labels = []
 
-        has_aliases = isinstance(header, (tuple, list, np.ndarray, Index))
+        has_aliases = isinstance(header, (tuple, list, np.ndarray,
+                                          ABCIndexClass))
         if not (has_aliases or self.header):
             return
         if has_aliases:
@@ -214,7 +218,7 @@ class CSVFormatter(object):
             # should write something for index label
             if index_label is not False:
                 if index_label is None:
-                    if isinstance(obj.index, MultiIndex):
+                    if isinstance(obj.index, ABCMultiIndex):
                         index_label = []
                         for i, name in enumerate(obj.index.names):
                             if name is None:
@@ -227,7 +231,7 @@ class CSVFormatter(object):
                         else:
                             index_label = [index_label]
                 elif not isinstance(index_label,
-                                    (list, tuple, np.ndarray, Index)):
+                                    (list, tuple, np.ndarray, ABCIndexClass)):
                     # given a string for a DF with Index
                     index_label = [index_label]
 
