@@ -445,56 +445,18 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         def sparse_arithmetic_method(self, other):
             op_name = op.__name__
-            other_index = None
-            fill_value = self.fill_value
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 other = getattr(other, 'values', other)
 
             if isinstance(other, SparseArray):
-                msg = "Must have the same fill value: '{} != {}'"
-                if not self._fill_value_matches(other.fill_value):
-                    raise TypeError(msg.format(self.fill_value, other.fill_value))
-
-                with np.errstate(all='ignore'):
-                    new_fill_value = op(self.fill_value, other.fill_value)
-
-                if not self._fill_value_matches(new_fill_value):
-                    raise TypeError("Operation changed the fill value!")
-
                 return _sparse_array_op(self, other, op, op_name)
+            else:
+                with np.errstate(all='ignore'):
+                    fill_value = op(self.fill_value, other)
+                    result = op(self.sp_values, other)
 
-                # So we know that op(fill_value, fill_value) == fill_value
-                # But, that doesn't tell us anything about what will remain sparse.
-                # So... I guess we have to look at the union of indices?
-                # Optimization: for null_fill_value, we just need the intersection...
-
-            # elif getattr(other, 'ndim', 0) > 1:
-            #     raise NotImplementedError(
-            #         "can only perform ops with 1-d structures")
-            # elif is_list_like(other):
-            #     raise ValueError("Convert 'other' to a SparseArray...")
-            #     other = np.asarray(other)
-            #     if not other.ndim:
-            #         other = other.item()
-            #     elif other.ndim == 1:
-            #         if not (is_float_dtype(other) or is_integer_dtype(other)):
-            #             raise TypeError(
-            #                 "can only perform ops with numeric values")
-            # else:
-            #     if not (is_float(other) or is_integer(other)):
-            #         raise TypeError("can only perform ops with numeric values")
-
-            with np.errstate(all='ignore'):
-                result = op(self._data, other)
-
-            # divmod returns a tuple
-            if op_name == 'divmod':
-                div, mod = result
-                return (self._maybe_mask_result(div, mask, other, 'floordiv'),
-                        self._maybe_mask_result(mod, mask, other, 'mod'))
-
-            return self._maybe_mask_result(result, mask, other, op_name)
+                return type(self)(result, sp_index=self.sp_index, fill_value=fill_value)
 
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(sparse_arithmetic_method, name, cls)

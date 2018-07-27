@@ -148,7 +148,13 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestArithmeticOps(base.BaseArithmeticOpsTests):
-    pass
+    series_scalar_exc = None
+    frame_scalar_exc = None
+    divmod_exc = None
+
+    def test_error(self, data, all_arithmetic_operators):
+        # not sure
+        pass
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

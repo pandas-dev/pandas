@@ -20,12 +20,12 @@ class BaseOpsUtil(BaseExtensionTests):
 
         return op
 
-    def check_opname(self, s, op_name, other, exc=NotImplementedError):
+    def check_opname(self, s, op_name, other, exc=Exception):
         op = self.get_op_from_name(op_name)
 
         self._check_op(s, op, other, exc)
 
-    def _check_op(self, s, op, other, exc=NotImplementedError):
+    def _check_op(self, s, op, other, exc=Exception):
         if exc is None:
             result = op(s, other)
             expected = s.combine(other, op)
@@ -34,7 +34,7 @@ class BaseOpsUtil(BaseExtensionTests):
             with pytest.raises(exc):
                 op(s, other)
 
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+    def _check_divmod_op(self, s, op, other, exc=Exception):
         # divmod has multiple return values, so check separatly
         if exc is None:
             result_div, result_mod = op(s, other)
@@ -51,33 +51,38 @@ class BaseOpsUtil(BaseExtensionTests):
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
     """Various Series and DataFrame arithmetic ops methods."""
+    series_scalar_exc = TypeError
+    frame_scalar_exc = TypeError
+    series_array_exc = TypeError
+    divmod_exc = TypeError
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
         op_name = all_arithmetic_operators
         s = pd.Series(data)
-        self.check_opname(s, op_name, s.iloc[0], exc=TypeError)
+        self.check_opname(s, op_name, s.iloc[0], exc=self.series_scalar_exc)
 
     @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
         df = pd.DataFrame({'A': data})
-        self.check_opname(df, op_name, data[0], exc=TypeError)
+        self.check_opname(df, op_name, data[0], exc=self.frame_scalar_exc)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         s = pd.Series(data)
-        self.check_opname(s, op_name, [s.iloc[0]] * len(s), exc=TypeError)
+        self.check_opname(s, op_name, [s.iloc[0]] * len(s), exc=self.series_array_exc)
 
     def test_divmod(self, data):
         s = pd.Series(data)
-        self._check_divmod_op(s, divmod, 1, exc=TypeError)
-        self._check_divmod_op(1, ops.rdivmod, s, exc=TypeError)
+        self._check_divmod_op(s, divmod, 1, exc=self.divmod_exc)
+        self._check_divmod_op(1, ops.rdivmod, s, exc=self.divmod_exc)
 
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
+        # What is this testing?
         op_name = all_arithmetic_operators
         with pytest.raises(AttributeError):
             getattr(data, op_name)
