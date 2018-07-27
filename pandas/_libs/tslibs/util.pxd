@@ -1,5 +1,3 @@
-cimport numpy as cnp
-cnp.import_array()
 
 from cpython cimport PyTypeObject
 
@@ -18,6 +16,7 @@ cdef extern from "Python.h":
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
     ctypedef signed long long int64_t
+    int _import_array() except -1
 
 cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyTimedeltaArrType_Type
@@ -50,6 +49,10 @@ cdef extern from "../src/headers/stdint.h":
 
 cdef inline int64_t get_nat():
     return INT64_MIN
+
+
+cdef inline int import_array() except -1:
+    _import_array()
 
 
 # --------------------------------------------------------------------

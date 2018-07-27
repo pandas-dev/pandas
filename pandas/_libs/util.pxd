@@ -2,6 +2,7 @@ from tslibs.util cimport *
 
 from cython cimport Py_ssize_t
 
+cimport numpy as cnp
 from numpy cimport ndarray
 
 
