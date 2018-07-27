@@ -109,31 +109,6 @@ def test_slice_locs_not_contained():
     assert result == (0, len(index))
 
 
-def test_insert_base(idx):
-
-    result = idx[1:4]
-
-    # test 0th element
-    assert idx[0:4].equals(result.insert(0, idx[0]))
-
-
-def test_delete_base(idx):
-
-    expected = idx[1:]
-    result = idx.delete(0)
-    assert result.equals(expected)
-    assert result.name == expected.name
-
-    expected = idx[:-1]
-    result = idx.delete(-1)
-    assert result.equals(expected)
-    assert result.name == expected.name
-
-    with pytest.raises((IndexError, ValueError)):
-        # either depending on numpy version
-        result = idx.delete(len(idx))
-
-
 def test_putmask_with_wrong_mask(idx):
     # GH18368
 

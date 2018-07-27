@@ -1091,7 +1091,7 @@ class NDFrame(PandasObject, SelectionMixin):
             raise TypeError('rename() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
 
-        if com._count_not_none(*axes.values()) == 0:
+        if com.count_not_none(*axes.values()) == 0:
             raise TypeError('must pass an index to rename')
 
         # renamer function if passed a dict
@@ -1266,7 +1266,7 @@ class NDFrame(PandasObject, SelectionMixin):
                    for a in self._AXIS_ORDERS)
 
     def __neg__(self):
-        values = com._values_from_object(self)
+        values = com.values_from_object(self)
         if is_bool_dtype(values):
             arr = operator.inv(values)
         elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
@@ -1278,7 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.__array_wrap__(arr)
 
     def __pos__(self):
-        values = com._values_from_object(self)
+        values = com.values_from_object(self)
         if (is_bool_dtype(values) or is_period_arraylike(values)):
             arr = values
         elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
@@ -1291,7 +1291,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __invert__(self):
         try:
-            arr = operator.inv(com._values_from_object(self))
+            arr = operator.inv(com.values_from_object(self))
             return self.__array_wrap__(arr)
         except Exception:
 
@@ -1588,7 +1588,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         # Validate keys
-        keys = com._maybe_make_list(keys)
+        keys = com.maybe_make_list(keys)
         invalid_keys = [k for k in keys if not
                         self._is_label_or_level_reference(k, axis=axis)]
 
@@ -1754,7 +1754,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Array Interface
 
     def __array__(self, dtype=None):
-        return com._values_from_object(self)
+        return com.values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
@@ -3189,7 +3189,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
             if not is_list_like(new_values) or self.ndim == 1:
-                return com._maybe_box_datetimelike(new_values)
+                return com.maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
                 new_values, index=self.columns,
@@ -3329,7 +3329,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Case for non-unique axis
         else:
-            labels = ensure_object(com._index_labels_to_array(labels))
+            labels = ensure_object(com.index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
@@ -3894,7 +3894,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _needs_reindex_multi(self, axes, method, level):
         """Check if we do need a multi reindex."""
-        return ((com._count_not_none(*axes.values()) == self._AXIS_LEN) and
+        return ((com.count_not_none(*axes.values()) == self._AXIS_LEN) and
                 method is None and level is None and not self._is_mixed_type)
 
     def _reindex_multi(self, axes, copy, fill_value):
@@ -4068,7 +4068,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = com._count_not_none(items, like, regex)
+        nkw = com.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
@@ -4314,7 +4314,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_length = self.shape[axis]
 
         # Process random_state argument
-        rs = com._random_state(random_state)
+        rs = com.random_state(random_state)
 
         # Check weights for compliance
         if weights is not None:
@@ -7520,6 +7520,10 @@ class NDFrame(PandasObject, SelectionMixin):
             msg = "rank does not make sense when ndim > 2"
             raise NotImplementedError(msg)
 
+        if na_option not in {'keep', 'top', 'bottom'}:
+            msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+            raise ValueError(msg)
+
         def ranker(data):
             ranks = algos.rank(data.values, axis=axis, method=method,
                                ascending=ascending, na_option=na_option,
@@ -7752,7 +7756,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         # align the cond to same shape as myself
-        cond = com._apply_if_callable(cond, self)
+        cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
         else:
@@ -7822,7 +7826,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         if try_quick:
 
                             try:
-                                new_other = com._values_from_object(self)
+                                new_other = com.values_from_object(self)
                                 new_other = new_other.copy()
                                 new_other[icond] = other
                                 other = new_other
@@ -8019,7 +8023,7 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 errors = 'ignore'
 
-        other = com._apply_if_callable(other, self)
+        other = com.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level,
                            errors=errors, try_cast=try_cast)
 
@@ -8041,7 +8045,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 errors = 'ignore'
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        cond = com._apply_if_callable(cond, self)
+        cond = com.apply_if_callable(cond, self)
 
         # see gh-21891
         if not hasattr(cond, "__invert__"):
@@ -8989,7 +8993,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)) - 1)
         rs = rs.reindex_like(data)
         if freq is None:
-            mask = isna(com._values_from_object(data))
+            mask = isna(com.values_from_object(data))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -9920,7 +9924,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         else:
             axis = self._get_axis_number(axis)
 
-        y = com._values_from_object(self).copy()
+        y = com.values_from_object(self).copy()
 
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):

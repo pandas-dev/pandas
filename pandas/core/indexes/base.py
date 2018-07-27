@@ -274,6 +274,26 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
 
+        elif (is_datetime64_any_dtype(data) or
+              (dtype is not None and is_datetime64_any_dtype(dtype)) or
+                'tz' in kwargs):
+            from pandas import DatetimeIndex
+            result = DatetimeIndex(data, copy=copy, name=name,
+                                   dtype=dtype, **kwargs)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                return Index(result.to_pydatetime(), dtype=_o_dtype)
+            else:
+                return result
+
+        elif (is_timedelta64_dtype(data) or
+              (dtype is not None and is_timedelta64_dtype(dtype))):
+            from pandas import TimedeltaIndex
+            result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is not None and _o_dtype == dtype:
+                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            else:
+                return result
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
@@ -290,27 +310,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
-            if (is_datetime64_any_dtype(data) or
-                (dtype is not None and is_datetime64_any_dtype(dtype)) or
-                    'tz' in kwargs):
-                from pandas import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name,
-                                       dtype=dtype, **kwargs)
-                if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
-                else:
-                    return result
-
-            elif (is_timedelta64_dtype(data) or
-                  (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas import TimedeltaIndex
-                result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-                if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
-                else:
-                    return result
-
             if dtype is not None:
                 try:
 
@@ -381,9 +380,9 @@ class Index(IndexOpsMixin, PandasObject):
             elif issubclass(data.dtype.type, np.bool) or is_bool_dtype(data):
                 subarr = data.astype('object')
             else:
-                subarr = com._asarray_tuplesafe(data, dtype=object)
+                subarr = com.asarray_tuplesafe(data, dtype=object)
 
-            # _asarray_tuplesafe does not always copy underlying data,
+            # asarray_tuplesafe does not always copy underlying data,
             # so need to make sure that this happens
             if copy:
                 subarr = subarr.copy()
@@ -449,7 +448,7 @@ class Index(IndexOpsMixin, PandasObject):
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get('names'))
             # other iterable of some kind
-            subarr = com._asarray_tuplesafe(data, dtype=object)
+            subarr = com.asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
 
     """
@@ -1712,7 +1711,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
         return keyarr
 
     _index_shared_docs['_convert_index_indexer'] = """
@@ -2007,7 +2006,7 @@ class Index(IndexOpsMixin, PandasObject):
         if com.is_bool_indexer(key):
             key = np.asarray(key)
 
-        key = com._values_from_object(key)
+        key = com.values_from_object(key)
         result = getitem(key)
         if not is_scalar(result):
             return promote(result)
@@ -2373,8 +2372,8 @@ class Index(IndexOpsMixin, PandasObject):
             return other.equals(self)
 
         try:
-            return array_equivalent(com._values_from_object(self),
-                                    com._values_from_object(other))
+            return array_equivalent(com.values_from_object(self),
+                                    com.values_from_object(other))
         except Exception:
             return False
 
@@ -3078,8 +3077,8 @@ class Index(IndexOpsMixin, PandasObject):
                 elif is_integer(key):
                     return s[key]
 
-        s = com._values_from_object(series)
-        k = com._values_from_object(key)
+        s = com.values_from_object(series)
+        k = com.values_from_object(key)
 
         k = self._convert_scalar_indexer(k, kind='getitem')
         try:
@@ -3112,8 +3111,8 @@ class Index(IndexOpsMixin, PandasObject):
         Fast lookup of value from 1-dimensional ndarray. Only use this if you
         know what you're doing
         """
-        self._engine.set_value(com._values_from_object(arr),
-                               com._values_from_object(key), value)
+        self._engine.set_value(com.values_from_object(arr),
+                               com.values_from_object(key), value)
 
     def _get_level_values(self, level):
         """
@@ -4438,7 +4437,7 @@ class Index(IndexOpsMixin, PandasObject):
             If not all of the labels are found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
-        labels = com._index_labels_to_array(labels, dtype=arr_dtype)
+        labels = com.index_labels_to_array(labels, dtype=arr_dtype)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
         if mask.any():
@@ -4731,7 +4730,7 @@ class Index(IndexOpsMixin, PandasObject):
             if len(self) != len(other):
                 raise ValueError("cannot evaluate a numeric op with "
                                  "unequal lengths")
-            other = com._values_from_object(other)
+            other = com.values_from_object(other)
             if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")

@@ -143,7 +143,7 @@ class SparseDataFrame(DataFrame):
             columns = ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             columns = Index(keys)
 
         if index is None:
