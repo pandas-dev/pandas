@@ -324,7 +324,7 @@ class TestDataFrameApply(TestData):
         result1 = df.apply(Series.describe, axis=1)
         expected1 = DataFrame({i: v.describe()
                                for i, v in compat.iteritems(df.T)},
-                              columns=df.columns).T
+                              columns=df.index).T
         assert_frame_equal(result1, expected1)
 
     def test_apply_modify_traceback(self):
