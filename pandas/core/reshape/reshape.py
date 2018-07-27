@@ -875,7 +875,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
         for (col, pre, sep, cat) in zip(data_to_encode.iteritems(), prefix,
-                                   prefix_sep, categories):
+                                        prefix_sep, categories):
             # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(col[1], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
