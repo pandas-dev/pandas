@@ -658,6 +658,18 @@ class TestBusinessDateRange(object):
         tm.assert_index_equal(result_1, expected_1)
         tm.assert_index_equal(result_2, expected_2)
 
+    @pytest.mark.parametrize('closed', ['left', 'right'])
+    def test_bdays_and_open_boundaries(self, closed):
+        # GH 6673
+        start = '2018-07-21'  # Saturday
+        end = '2018-07-29'  # Sunday
+        result = pd.date_range(start, end, freq='B', closed=closed)
+
+        bday_start = '2018-07-23'  # Monday
+        bday_end = '2018-07-27'  # Friday
+        expected = pd.date_range(bday_start, bday_end, freq='D')
+        tm.assert_index_equal(result, expected)
+
 
 class TestCustomDateRange(object):
 
