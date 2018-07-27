@@ -6004,7 +6004,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 # {'A': NA} -> 0
                 elif not is_list_like(value):
                     keys = [(k, src) for k, src in compat.iteritems(to_replace)
-                            if k in self and len(src) > 0]
+                            if k in self]
                     keys_len = len(keys) - 1
                     for i, (k, src) in enumerate(keys):
                         convert = i == keys_len
@@ -6018,8 +6018,7 @@ class NDFrame(PandasObject, SelectionMixin):
                     raise TypeError('value argument must be scalar, dict, or '
                                     'Series')
 
-            # [NA, ''] -> [0, 'missing']
-            elif is_list_like(to_replace):
+            elif is_list_like(to_replace):  # [NA, ''] -> [0, 'missing']
                 if is_list_like(value):
                     if len(to_replace) != len(value):
                         raise ValueError('Replacement lists must match '
@@ -6031,8 +6030,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                                        inplace=inplace,
                                                        regex=regex)
 
-                # [NA, ''] -> 0
-                elif len(to_replace) > 0:
+                else:  # [NA, ''] -> 0
                     new_data = self._data.replace(to_replace=to_replace,
                                                   value=value, inplace=inplace,
                                                   regex=regex)
