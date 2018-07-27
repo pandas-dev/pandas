@@ -221,8 +221,7 @@ def test_standardize_mapping():
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
 def test_compression_size(obj, method, compression_only):
-    # Tests that compression is occurring by comparing to the bytes on disk of
-    # the uncompressed file.
+
     with tm.ensure_clean() as filename:
         getattr(obj, method)(filename, compression=compression_only)
         compressed = os.path.getsize(filename)
@@ -264,11 +263,10 @@ def test_compression_size_fh(obj, method, compression_only):
 def test_dataframe_compression_defaults_to_infer(
         write_method, write_kwargs, read_method, compression_only):
     # Test that DataFrame.to_* methods default to inferring compression from
-    # paths. https://github.com/pandas-dev/pandas/pull/22011
+    # paths. GH 22004
     input = DataFrame([[1.0, 0, -4.4], [3.4, 5, 2.4]], columns=['X', 'Y', 'Z'])
     extension = _compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
-        # assumes that compression='infer' is the default
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only)
     tm.assert_frame_equal(output, input)
@@ -284,11 +282,10 @@ def test_series_compression_defaults_to_infer(
         write_method, write_kwargs, read_method, read_kwargs,
         compression_only):
     # Test that Series.to_* methods default to inferring compression from
-    # paths. https://github.com/pandas-dev/pandas/pull/22011
+    # paths. GH 22004
     input = Series([0, 5, -2, 10], name='X')
     extension = _compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
-        # assumes that compression='infer' is the default
         getattr(input, write_method)(path, **write_kwargs)
         output = read_method(path, compression=compression_only, **read_kwargs)
     tm.assert_series_equal(output, input, check_names=False)
@@ -296,8 +293,7 @@ def test_series_compression_defaults_to_infer(
 
 def test_compression_warning(compression_only):
     # Assert that passing a file object to to_csv while explicitly specifying a
-    # compression protocol triggers a RuntimeWarning, as per
-    # https://github.com/pandas-dev/pandas/issues/21227.
+    # compression protocol triggers a RuntimeWarning, as per GH 21227.
     # Note that pytest has an issue that causes assert_produces_warning to fail
     # in Python 2 if the warning has occurred in previous tests
     # (see https://git.io/fNEBm & https://git.io/fNEBC). Hence, should this
