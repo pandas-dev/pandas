@@ -1920,8 +1920,8 @@ class Period(_Period):
         return cls._from_ordinal(ordinal, freq)
 
 
-cdef int64_t _ordinal_from_fields(year, month, quarter, day,
-                                  hour, minute, second, freq):
+cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
+                                  int hour, int minute, int second, freq):
     base, mult = get_freq_code(freq)
     if quarter is not None:
         year, month = quarter_to_myear(year, quarter, freq)
