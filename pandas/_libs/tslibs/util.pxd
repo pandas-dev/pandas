@@ -27,6 +27,9 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
 
+cdef extern from  "numpy/npy_common.h":
+    int64_t NPY_MIN_INT64
+
 
 cdef extern from "../src/numpy_helper.h":
     object char_to_string(char*)
@@ -44,11 +47,11 @@ cdef extern from "../src/headers/stdint.h":
     enum: INT32_MAX
     enum: INT32_MIN
     enum: INT64_MAX
-    int64_t INT64_MIN
+    enum: INT64_MIN
 
 
 cdef inline int64_t get_nat():
-    return INT64_MIN
+    return NPY_MIN_INT64
 
 
 cdef inline int import_array() except -1:
