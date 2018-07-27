@@ -14,13 +14,14 @@ from pandas import compat
 from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
 
-from pandas.core.arrays.base import ExtensionArray
-from pandas.core.dtypes.generic import ABCSparseSeries
+from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
+from pandas.core.dtypes.generic import ABCSparseSeries, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
     is_integer_dtype,
+    is_float_dtype,
     is_bool_dtype,
     is_list_like,
     is_string_dtype,
@@ -62,12 +63,15 @@ def _sparse_array_op(left, right, op, name):
         name = name[2:-2]
 
     # dtype used to find corresponding sparse method
-    if not is_dtype_equal(left.dtype, right.dtype):
-        dtype = find_common_type([left.dtype, right.dtype])
+    ltype = left.dtype.subdtype
+    rtype = right.dtype.subdtype
+
+    if not is_dtype_equal(ltype, rtype):
+        dtype = find_common_type([ltype, rtype])
         left = left.astype(dtype)
         right = right.astype(dtype)
     else:
-        dtype = left.dtype
+        dtype = ltype
 
     # dtype the result must have
     result_dtype = None
@@ -98,7 +102,7 @@ def _sparse_array_op(left, right, op, name):
             right_sp_values = right.sp_values.view(np.uint8)
             result_dtype = np.bool
         else:
-            opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype)
+            opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype.__name__)
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
 
@@ -126,11 +130,10 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
-    return SparseArray(data, sparse_index=sparse_index,
-                       fill_value=fill_value, dtype=dtype)
+    return SparseArray(data, sp_index=sparse_index, fill_value=fill_value)
 
 
-class SparseArray(PandasObject, ExtensionArray):
+class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def __init__(self, data, sp_index=None, fill_value=np.nan, kind='block'):
 
@@ -147,6 +150,10 @@ class SparseArray(PandasObject, ExtensionArray):
         self._sparse_values = sparse_values
         self._dtype = SparseDtype(sparse_values.dtype)
         self.fill_value = fill_value
+
+    def __setitem__(self, key, value):
+        # I suppose we could allow setting of non-fill_value elements.
+        raise NotImplementedError("SparseArray is not mutable.")
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -177,6 +184,12 @@ class SparseArray(PandasObject, ExtensionArray):
     @property
     def _null_fill_value(self):
         return isna(self.fill_value)
+
+    def _fill_value_matches(self, fill_value):
+        if self._null_fill_value:
+            return pd.isna(fill_value)
+        else:
+            return self.fill_value == fill_value
 
     @property
     def nbytes(self):
@@ -223,10 +236,25 @@ class SparseArray(PandasObject, ExtensionArray):
         return type(self)(new_values, self.sp_index, fill_value=fill_value)
 
     def unique(self):
-        return pd.unique(self.sp_values)
+        # The EA API currently expects unique to return the same EA.
+        # That doesn't really make sense for sparse.
+        # Can we have it expect Union[EA, ndarray]?
+        return type(self)(pd.unique(self.sp_values))
 
     def factorize(self, na_sentinel=-1):
-        return pd.factorize(self.sp_values)
+        # hhhhhhhhhhhhhhhhhhhhhhhhhhhhmmmm
+        # Ok. here's the plan...
+        # We known that we'll share the same sparsity
+        # so factorize our known values
+        # and then rebuild using the same sparse index?
+        if na_sentinel > 0:
+            raise ValueError("na_sentinel must be less than 0. Got {}".format(na_sentinel))
+
+        known, uniques = pd.factorize(self.sp_values)
+        new = SparseArray(known, sp_index=self.sp_index, fill_value=na_sentinel)
+        # ah, but we have to go to sparse :/
+        # so we're backwards in our sparsity her.
+        return np.asarray(new), type(self)(uniques)
 
     def value_counts(self, dropna=True):
         """
@@ -409,7 +437,100 @@ class SparseArray(PandasObject, ExtensionArray):
 
         return cls(data, sp_index=sp_index)
 
-    # --------
+    # ------------------------------------------------------------------------
+    # Ops
+    # ------------------------------------------------------------------------
+
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        def sparse_arithmetic_method(self, other):
+            op_name = op.__name__
+            other_index = None
+            fill_value = self.fill_value
+
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                other = getattr(other, 'values', other)
+
+            if isinstance(other, SparseArray):
+                msg = "Must have the same fill value: '{} != {}'"
+                if not self._fill_value_matches(other.fill_value):
+                    raise TypeError(msg.format(self.fill_value, other.fill_value))
+
+                with np.errstate(all='ignore'):
+                    new_fill_value = op(self.fill_value, other.fill_value)
+
+                if not self._fill_value_matches(new_fill_value):
+                    raise TypeError("Operation changed the fill value!")
+
+                return _sparse_array_op(self, other, op, op_name)
+
+                # So we know that op(fill_value, fill_value) == fill_value
+                # But, that doesn't tell us anything about what will remain sparse.
+                # So... I guess we have to look at the union of indices?
+                # Optimization: for null_fill_value, we just need the intersection...
+
+            # elif getattr(other, 'ndim', 0) > 1:
+            #     raise NotImplementedError(
+            #         "can only perform ops with 1-d structures")
+            # elif is_list_like(other):
+            #     raise ValueError("Convert 'other' to a SparseArray...")
+            #     other = np.asarray(other)
+            #     if not other.ndim:
+            #         other = other.item()
+            #     elif other.ndim == 1:
+            #         if not (is_float_dtype(other) or is_integer_dtype(other)):
+            #             raise TypeError(
+            #                 "can only perform ops with numeric values")
+            # else:
+            #     if not (is_float(other) or is_integer(other)):
+            #         raise TypeError("can only perform ops with numeric values")
+
+            with np.errstate(all='ignore'):
+                result = op(self._data, other)
+
+            # divmod returns a tuple
+            if op_name == 'divmod':
+                div, mod = result
+                return (self._maybe_mask_result(div, mask, other, 'floordiv'),
+                        self._maybe_mask_result(mod, mask, other, 'mod'))
+
+            return self._maybe_mask_result(result, mask, other, op_name)
+
+        name = '__{name}__'.format(name=op.__name__)
+        return compat.set_function_name(sparse_arithmetic_method, name, cls)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        def cmp_method(self, other):
+
+            op_name = op.__name__
+            mask = None
+            if isinstance(other, IntegerArray):
+                other, mask = other._data, other._mask
+            elif is_list_like(other):
+                other = np.asarray(other)
+                if other.ndim > 0 and len(self) != len(other):
+                    raise ValueError('Lengths must match to compare')
+
+            # numpy will show a DeprecationWarning on invalid elementwise
+            # comparisons, this will raise in the future
+            with warnings.catch_warnings(record=True):
+                with np.errstate(all='ignore'):
+                    result = op(self._data, other)
+
+            # nans propagate
+            if mask is None:
+                mask = self._mask
+            else:
+                mask = self._mask | mask
+
+            result[mask] = True if op_name == 'ne' else False
+            return result
+
+        name = '__{name}__'.format(name=op.__name__)
+        return compat.set_function_name(cmp_method, name, cls)
+
+    # ----------
     # Formatting
     # -----------
     def __unicode__(self):
@@ -417,6 +538,10 @@ class SparseArray(PandasObject, ExtensionArray):
              self=printing.pprint_thing(self),
              fill=printing.pprint_thing(self.fill_value),
              index=printing.pprint_thing(self.sp_index))
+
+SparseArray._add_arithmetic_ops()
+SparseArray._add_comparison_ops()
+
 
 # class SparseArray(PandasObject, np.ndarray, ExtensionArray):
 #     """Data structure for labeled, sparse floating point 1-D data

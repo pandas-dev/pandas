@@ -23,6 +23,10 @@ class SparseDtype(ExtensionDtype):
         return self.dtype.type
 
     @property
+    def subdtype(self):
+        return self.type
+
+    @property
     def name(self):
         return 'Sparse[{}]'.format(self.dtype.name)
 
