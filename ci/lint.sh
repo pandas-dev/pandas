@@ -131,18 +131,15 @@ if [ "$LINT" ]; then
     fi
     echo "Check for non-standard imports DONE"
 
-    echo "Check for use of lists instead of generators in built-in Python functions"
+    echo "Check unnecessary comprehensions"
 
     # Example: Avoid `any([i for i in some_iterator])` in favor of `any(i for i in some_iterator)`
-    #
-    # Check the following functions:
-    # any(), all(), sum(), max(), min(), list(), dict(), set(), frozenset(), tuple(), str.join()
-    grep -R --include="*.py*" -E "[^_](any|all|sum|max|min|list|dict|set|frozenset|tuple|join)\(\[.* for .* in .*\]\)" pandas
+    flake8 pandas --filename=*.py* --select="C400,C401,C402,C403,C404,C407,C411"
 
     if [ $? = "0" ]; then
         RET=1
     fi
-    echo "Check for use of lists instead of generators in built-in Python functions DONE"
+    echo "Check unnecessary comprehensions DONE"
 
     echo "Check for incorrect sphinx directives"
     SPHINX_DIRECTIVES=$(echo \

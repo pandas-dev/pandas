@@ -1429,10 +1429,8 @@ class Panel(NDFrame):
     @staticmethod
     def _extract_axes_for_slice(self, axes):
         """ return the slice dictionary for these axes """
-        return dict((self._AXIS_SLICEMAP[i], a)
-                    for i, a in zip(
-                        self._AXIS_ORDERS[self._AXIS_LEN - len(axes):],
-                        axes))
+        return {self._AXIS_SLICEMAP[i]: a for i, a in
+                zip(self._AXIS_ORDERS[self._AXIS_LEN - len(axes):], axes)}
 
     @staticmethod
     def _prep_ndarray(self, values, copy=True):
@@ -1480,11 +1478,10 @@ class Panel(NDFrame):
                 adj_frames[k] = v
 
         axes = self._AXIS_ORDERS[1:]
-        axes_dict = dict((a, ax) for a, ax in zip(axes, self._extract_axes(
-            self, adj_frames, axes, intersect=intersect)))
+        axes_dict = {a: ax for a, ax in zip(axes, self._extract_axes(
+                     self, adj_frames, axes, intersect=intersect))}
 
-        reindex_dict = dict(
-            [(self._AXIS_SLICEMAP[a], axes_dict[a]) for a in axes])
+        reindex_dict = {self._AXIS_SLICEMAP[a]: axes_dict[a] for a in axes}
         reindex_dict['copy'] = False
         for key, frame in compat.iteritems(adj_frames):
             if frame is not None:

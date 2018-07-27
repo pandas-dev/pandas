@@ -601,7 +601,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = set(interval.closed for interval in to_concat)
+        closed = {interval.closed for interval in to_concat}
         if len(closed) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed.pop()

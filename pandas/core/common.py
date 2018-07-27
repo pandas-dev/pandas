@@ -307,8 +307,7 @@ def dict_compat(d):
     dict
 
     """
-    return dict((maybe_box_datetimelike(key), value)
-                for key, value in iteritems(d))
+    return {maybe_box_datetimelike(key): value for key, value in iteritems(d)}
 
 
 def standardize_mapping(into):

@@ -8833,7 +8833,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ldesc = [describe_1d(s) for _, s in data.iteritems()]
         # set a convenient order for rows
         names = []
-        ldesc_indexes = sorted([x.index for x in ldesc], key=len)
+        ldesc_indexes = sorted(x.index for x in ldesc, key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:
                 if name not in names:

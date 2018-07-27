@@ -21,8 +21,8 @@ _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = DataFrame(dict((k, v.astype(np.int64))
-                           for k, v in compat.iteritems(_seriesd)))
+_intframe = DataFrame({k: v.astype(np.int64)
+                       for k, v in compat.iteritems(_seriesd)})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
