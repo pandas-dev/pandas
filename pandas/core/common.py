@@ -431,11 +431,3 @@ def _pipe(obj, func, *args, **kwargs):
         return func(*args, **kwargs)
     else:
         return func(obj, *args, **kwargs)
-
-
-# TODO: np.percentile not support datetime64, should be fixed in upsteam.
-def percentile(values, q, **kw):
-    if values.dtype.kind == 'M':
-        return np.percentile(values.view('i8'), q, **kw).astype(values.dtype)
-    else:
-        return np.percentile(values, q, **kw)

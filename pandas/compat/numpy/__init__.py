@@ -68,6 +68,22 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
     return np.array(arr, *args, **kwargs)
 
 
+# np.percentile should support datetime64 in upsteam. numpy/numpy#11620
+# TODO: change the version if the bug fixed
+if _nlv >= '99.99.99':
+    np_percentile_compat = np.percentile
+else:
+    def np_percentile_compat(values, q, **kw):
+        '''
+        provide compat for np.percentile supporting datetime64
+        '''
+        if values.dtype.kind == 'M':
+            result = np.percentile(values.view('i8'), q, **kw)
+            return result.astype(values.dtype)
+        else:
+            return np.percentile(values, q, **kw)
+
+
 __all__ = ['np',
            '_np_version_under1p10',
            '_np_version_under1p11',

@@ -11,6 +11,7 @@ from pandas._libs.tslibs import conversion, Timedelta
 
 from pandas import compat
 from pandas.compat import range, zip
+from pandas.compat.numpy import np_percentile_compat
 
 from pandas.util._validators import validate_bool_kwarg
 
@@ -1601,7 +1602,7 @@ class Block(PandasObject):
                     return np.array([self.fill_value] * len(q),
                                     dtype=values.dtype)
 
-            return com.percentile(values, q, **kw)
+            return np_percentile_compat(values, q, **kw)
 
         def _nanpercentile(values, q, axis, **kw):
 
@@ -1621,7 +1622,7 @@ class Block(PandasObject):
                     result = np.array(result, dtype=values.dtype, copy=False).T
                     return result
             else:
-                return com.percentile(values, q, axis=axis, **kw)
+                return np_percentile_compat(values, q, axis=axis, **kw)
 
         from pandas import Float64Index
         is_empty = values.shape[axis] == 0
