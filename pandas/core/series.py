@@ -6,7 +6,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import types
+import collections
 import warnings
 from textwrap import dedent
 
@@ -144,7 +144,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     Parameters
     ----------
-    data : array-like, dict, or scalar value
+    data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series
 
         .. versionchanged :: 0.23.0
@@ -238,12 +238,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif is_extension_array_dtype(data):
                 pass
-            elif (isinstance(data, types.GeneratorType) or
-                  (compat.PY3 and isinstance(data, map))):
-                data = list(data)
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
+            # If data is Iterable but not list-like, consume into list.
+            elif (isinstance(data, collections.Iterable)
+                  and not isinstance(data, collections.Sized)):
+                data = list(data)
             else:
 
                 # handle sparse passed here (and force conversion)
