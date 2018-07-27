@@ -3,7 +3,7 @@
 # at https://github.com/veorq/SipHash
 
 import cython
-cimport numpy as cnp
+
 import numpy as np
 from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
 
