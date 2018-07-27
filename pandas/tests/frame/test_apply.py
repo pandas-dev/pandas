@@ -323,7 +323,7 @@ class TestDataFrameApply(TestData):
 
         result1 = df.apply(Series.describe, axis=1)
         expected1 = DataFrame({i: v.describe()
-                               for i, v in compat.iteritems(df)},
+                               for i, v in compat.iteritems(df.T)},
                               columns=df.columns).T
         assert_frame_equal(result1, expected1)
 
