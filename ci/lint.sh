@@ -134,6 +134,7 @@ if [ "$LINT" ]; then
     echo "Check unnecessary comprehensions"
 
     # Example: Avoid `any([i for i in some_iterator])` in favor of `any(i for i in some_iterator)`
+    # https://pypi.org/project/flake8-comprehensions/
     flake8 pandas --filename=*.py* --select="C400,C401,C402,C403,C404,C407,C411"
 
     if [ $? = "0" ]; then
