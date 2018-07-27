@@ -99,7 +99,7 @@ def _dt_array_cmp(cls, op):
         meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
-            if isinstance(other, datetime):
+            if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
 
@@ -151,6 +151,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
+
+    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
+    # by returning NotImplemented
+    timetuple = None
 
     # -----------------------------------------------------------------
     # Constructors

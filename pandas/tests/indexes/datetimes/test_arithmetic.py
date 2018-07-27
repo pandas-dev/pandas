@@ -278,6 +278,20 @@ class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
+    @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
+                                       Timestamp('2016-01-01'),
+                                       np.datetime64('2016-01-01')])
+    def test_scalar_comparison_tzawareness(self, op, other, tz_aware_fixture):
+        tz = tz_aware_fixture
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        with pytest.raises(TypeError):
+            op(dti, other)
+        with pytest.raises(TypeError):
+            op(other, dti)
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
     def test_nat_comparison_tzawareness(self, op):
         # GH#19276
         # tzaware DatetimeIndex should not raise when compared to NaT
