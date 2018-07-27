@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core import ops
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick, Day, generate_range
@@ -103,7 +104,12 @@ def _dt_array_cmp(cls, op):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
 
-            other = _to_m8(other, tz=self.tz)
+            try:
+                other = _to_m8(other, tz=self.tz)
+            except ValueError:
+                # string that cannot be parsed to Timestamp
+                return ops.invalid_comparison(self, other, op)
+
             result = meth(self, other)
             if isna(other):
                 result.fill(nat_result)

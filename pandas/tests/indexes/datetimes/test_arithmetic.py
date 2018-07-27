@@ -304,12 +304,77 @@ class TestDatetimeIndexComparisons(object):
         result = op(dti.tz_localize('US/Pacific'), pd.NaT)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_dti_cmp_int_raises(self):
+    def test_dti_cmp_str(self, tz_naive_fixture):
+        # regardless of tz, we expect these comparisons are valid
+        tz = tz_naive_fixture
+        rng = date_range('1/1/2000', periods=10, tz=tz)
+        other = '1/1/2000'
+
+        result = rng == other
+        expected = np.array([True] + [False] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng != other
+        expected = np.array([False] + [True] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng < other
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng <= other
+        expected = np.array([True] + [False] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng > other
+        expected = np.array([False] + [True] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng >= other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_dti_cmp_str_invalid(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        rng = date_range('1/1/2000', periods=10, tz=tz)
+        other = 'foo'
+
+        result = rng == other
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng != other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            rng < other
+        with pytest.raises(TypeError):
+            rng <= other
+        with pytest.raises(TypeError):
+            rng > other
+        with pytest.raises(TypeError):
+            rng >= other
+
+    def test_dti_cmp_int(self):
         rng = date_range('1/1/2000', periods=10)
 
-        # raise TypeError for now
+        result = rng == rng[3].value
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng != rng[3].value
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
         with pytest.raises(TypeError):
             rng < rng[3].value
+        with pytest.raises(TypeError):
+            rng <= rng[3].value
+        with pytest.raises(TypeError):
+            rng > rng[3].value
+        with pytest.raises(TypeError):
+            rng >= rng[3].value
 
     def test_dti_cmp_list(self):
         rng = date_range('1/1/2000', periods=10)
