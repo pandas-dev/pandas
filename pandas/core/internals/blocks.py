@@ -68,7 +68,6 @@ from pandas.core.arrays import Categorical
 from pandas.core.sparse.array import SparseArray
 
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import check_setitem_lengths
 
 from pandas.io.formats.printing import pprint_thing
@@ -738,7 +737,7 @@ class Block(PandasObject):
                 type(other).__name__,
                 type(self).__name__.lower().replace('Block', '')))
 
-        return values, False, other, False
+        return values, other
 
     def _try_coerce_result(self, result):
         """ reverse of try_coerce_args """
@@ -789,8 +788,7 @@ class Block(PandasObject):
         # try to replace, if we raise an error, convert to ObjectBlock and
         # retry
         try:
-            values, _, to_replace, _ = self._try_coerce_args(self.values,
-                                                             to_replace)
+            values, to_replace = self._try_coerce_args(self.values, to_replace)
             mask = missing.mask_missing(values, to_replace)
             if filter is not None:
                 filtered_out = ~self.mgr_locs.isin(filter)
@@ -841,7 +839,7 @@ class Block(PandasObject):
         # coerce if block dtype can store value
         values = self.values
         try:
-            values, _, value, _ = self._try_coerce_args(values, value)
+            values, value = self._try_coerce_args(values, value)
             # can keep its own dtype
             if hasattr(value, 'dtype') and is_dtype_equal(values.dtype,
                                                           value.dtype):
@@ -973,7 +971,7 @@ class Block(PandasObject):
             new = self.fill_value
 
         if self._can_hold_element(new):
-            _, _, new, _ = self._try_coerce_args(new_values, new)
+            _, new = self._try_coerce_args(new_values, new)
 
             if transpose:
                 new_values = new_values.T
@@ -1181,7 +1179,7 @@ class Block(PandasObject):
                     return [self.copy()]
 
         values = self.values if inplace else self.values.copy()
-        values, _, fill_value, _ = self._try_coerce_args(values, fill_value)
+        values, fill_value = self._try_coerce_args(values, fill_value)
         values = missing.interpolate_2d(values, method=method, axis=axis,
                                         limit=limit, fill_value=fill_value,
                                         dtype=self.dtype)
@@ -1348,7 +1346,7 @@ class Block(PandasObject):
 
         # coerce/transpose the args if needed
         try:
-            values, values_mask, other, other_mask = self._try_coerce_args(
+            values, other = self._try_coerce_args(
                 transf(values), other)
         except TypeError:
             block = self.coerce_to_target_dtype(orig_other)
@@ -1378,17 +1376,6 @@ class Block(PandasObject):
                 result = func(values, other)
             else:
                 result = func(values, other)
-
-            # mask if needed
-            if isinstance(values_mask, np.ndarray) and values_mask.any():
-                result = result.astype('float64', copy=False)
-                result[values_mask] = np.nan
-            if other_mask is True:
-                result = result.astype('float64', copy=False)
-                result[:] = np.nan
-            elif isinstance(other_mask, np.ndarray) and other_mask.any():
-                result = result.astype('float64', copy=False)
-                result[other_mask.ravel()] = np.nan
 
             return result
 
@@ -1493,8 +1480,7 @@ class Block(PandasObject):
             if cond.ravel().all():
                 return values
 
-            values, values_mask, other, other_mask = self._try_coerce_args(
-                values, other)
+            values, other = self._try_coerce_args(values, other)
 
             try:
                 return self._try_coerce_result(expressions.where(
@@ -2125,10 +2111,6 @@ class DatetimeLikeBlockMixin(object):
     """Mixin class for DatetimeBlock and DatetimeTZBlock."""
 
     @property
-    def _holder(self):
-        return DatetimeIndex
-
-    @property
     def _na_value(self):
         return tslibs.NaT
 
@@ -2145,6 +2127,32 @@ class DatetimeLikeBlockMixin(object):
                                  self._box_func).reshape(self.values.shape)
         return self.values
 
+    def _try_coerce_args(self, values, other):
+        self._validate_tz(other)
+
+        if is_null_datelike_scalar(other):
+            other = self.fill_value
+        elif isinstance(other, (Timedelta, tslibs.Timestamp)):
+            other = other.asm8
+        elif isinstance(other, timedelta):
+            other = np.timedelta64(other)
+        elif isinstance(other, date):
+            other = np.datetime64(other)
+        elif isinstance(other, (np.timedelta64, np.datetime64, np.ndarray)):
+            pass
+        elif (hasattr(other, 'dtype')
+              and (is_timedelta64_dtype(other) or is_datetime64_dtype(other))):
+            other = getattr(other, 'values', other)
+        else:
+            # coercion issues
+            # let higher levels handle
+            raise TypeError
+
+        return values, other
+
+    def _validate_tz(self, other):
+        pass
+
 
 class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
     __slots__ = ()
@@ -2158,10 +2166,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
 
         super(TimeDeltaBlock, self).__init__(values,
                                              placement=placement, ndim=ndim)
-
-    @property
-    def _holder(self):
-        return TimedeltaIndex
 
     @property
     def _box_func(self):
@@ -2181,55 +2185,6 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         if is_integer(value) and not isinstance(value, np.timedelta64):
             value = Timedelta(value, unit='s')
         return super(TimeDeltaBlock, self).fillna(value, **kwargs)
-
-    def _try_coerce_args(self, values, other):
-        """
-        Coerce values and other to int64, with null values converted to
-        iNaT. values is always ndarray-like, other may not be
-
-        Parameters
-        ----------
-        values : ndarray-like
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type values, values mask, base-type other, other mask
-        """
-
-        values_mask = isna(values)
-        other_mask = False
-
-        if is_null_datelike_scalar(other):
-            other = tslibs.NaT.asm8
-            other_mask = True
-        elif isinstance(other, Timedelta):
-            other_mask = isna(other)
-            other = other.asm8
-        elif isinstance(other, timedelta):
-            other = np.timedelta64(other)
-        elif isinstance(other, (np.timedelta64, np.ndarray)):
-            pass
-        elif hasattr(other, 'dtype') and is_timedelta64_dtype(other):
-            other_mask = isna(other)
-            other = getattr(other, 'values', other)
-        else:
-            # coercion issues
-            # let higher levels handle
-            raise TypeError
-
-        return values, values_mask, other, other_mask
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args / try_operate """
-        if isinstance(result, np.ndarray):
-            mask = isna(result)
-            if result.dtype.kind in ['i', 'f', 'O']:
-                result = result.astype('m8[ns]')
-            result[mask] = tslibs.iNaT
-        elif isinstance(result, (np.integer, np.float)):
-            result = self._box_func(result)
-        return result
 
     def should_store(self, value):
         return issubclass(value.dtype.type, np.timedelta64)
@@ -2403,7 +2358,7 @@ class ObjectBlock(Block):
             # to store DatetimeTZBlock as object
             other = other.astype(object).values
 
-        return values, False, other, False
+        return values, other
 
     def should_store(self, value):
         return not (issubclass(value.dtype.type,
@@ -2623,6 +2578,7 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
     __slots__ = ()
     is_datetime = True
     _can_hold_na = True
+    tz = None
 
     def __init__(self, values, placement, ndim=None):
         values = self._maybe_coerce_values(values)
@@ -2646,6 +2602,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         """
         if values.dtype != _NS_DTYPE:
             values = conversion.ensure_datetime64ns(values)
+
+        if isinstance(values, DatetimeIndex):
+            values = values.values
+
         return values
 
     def _astype(self, dtype, mgr=None, **kwargs):
@@ -2676,61 +2636,10 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
         return (is_integer(element) or isinstance(element, datetime) or
                 isna(element))
 
-    def _try_coerce_args(self, values, other):
-        """
-        Coerce values and other to dtype 'i8'. NaN and NaT convert to
-        the smallest i8, and will correctly round-trip to NaT if converted
-        back in _try_coerce_result. values is always ndarray-like, other
-        may not be
-
-        Parameters
-        ----------
-        values : ndarray-like
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type values, values mask, base-type other, other mask
-        """
-
-        values_mask = isna(values)
-        other_mask = False
-
+    def _validate_tz(self, other):
         if getattr(other, 'tz', None) is not None:
-            raise TypeError("cannot coerce a Timestamp with a tz on a "
-                            "naive Block")
-
-        if is_null_datelike_scalar(other):
-            other = tslibs.NaT.asm8
-            other_mask = True
-        elif isinstance(other, tslibs.Timestamp):
-            other_mask = isna(other)
-            other = other.asm8
-        elif isinstance(other, date):
-            other = np.datetime64(other)
-        elif isinstance(other, (np.datetime64, np.ndarray)):
-            pass
-        elif hasattr(other, 'dtype') and is_datetime64_dtype(other):
-            other_mask = isna(other)
-            other = getattr(other, 'values', other)
-        else:
-            # coercion issues
-            # let higher levels handle
-            raise TypeError
-
-        return values, values_mask, other, other_mask
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                try:
-                    result = result.astype('M8[ns]')
-                except ValueError:
-                    pass
-        elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = self._box_func(result)
-        return result
+            raise TypeError(
+                'Cannot operate with naive Timestamp and Timestamp with tz')
 
     @property
     def _box_func(self):
@@ -2777,7 +2686,7 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
     _concatenator = staticmethod(_concat._concat_datetime)
     is_datetimetz = True
 
-    def __init__(self, values, placement, ndim=2, dtype=None):
+    def __init__(self, values, placement, ndim=2, dtype=None, tz=None):
         # XXX: This will end up calling _maybe_coerce_values twice
         # when dtype is not None. It's relatively cheap (just an isinstance)
         # but it'd nice to avoid.
@@ -2787,6 +2696,11 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # and just use DatetimeBlock's.
         if dtype is not None:
             values = self._maybe_coerce_values(values, dtype=dtype)
+
+        self.tz = tz if tz is not None else getattr(values, 'tz', self.tz)
+        if self.tz is None:
+            raise ValueError("cannot create a DatetimeTZBlock without a tz")
+
         super(DatetimeTZBlock, self).__init__(values, placement=placement,
                                               ndim=ndim)
 
@@ -2805,16 +2719,13 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         -------
         values : ndarray[datetime64ns]
         """
-        if not isinstance(values, self._holder):
-            values = self._holder(values)
-
         if dtype is not None:
             if isinstance(dtype, compat.string_types):
                 dtype = DatetimeTZDtype.construct_from_string(dtype)
             values = values._shallow_copy(tz=dtype.tz)
 
-        if values.tz is None:
-            raise ValueError("cannot create a DatetimeTZBlock without a tz")
+        if isinstance(values, DatetimeIndex):
+            values = values.values
 
         return values
 
@@ -2824,18 +2735,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # check the ndarray values of the DatetimeIndex values
         return self.values.values.base is not None
 
-    def copy(self, deep=True, mgr=None):
-        """ copy constructor """
-        values = self.values
-        if deep:
-            values = values.copy(deep=True)
-        return self.make_block_same_class(values)
-
     def external_values(self):
         """ we internally represent the data as a DatetimeIndex, but for
         external compat with ndarray, export as a ndarray of Timestamps
         """
-        return self.values.astype('datetime64[ns]').values
+        # XXX: should convert with tz?
+        return self.values
 
     def get_values(self, dtype=None):
         # return object dtype as Timestamps with the zones
@@ -2853,71 +2758,36 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             return self.values[loc]
         return self.values[slicer]
 
-    def _try_coerce_args(self, values, other):
-        """
-        localize and return i8 for the values
+    def _validate_tz(self, other):
+        if is_null_datelike_scalar(other):
+            return
 
-        Parameters
-        ----------
-        values : ndarray-like
-        other : ndarray-like or scalar
-
-        Returns
-        -------
-        base-type values, values mask, base-type other, other mask
-        """
-        values_mask = _block_shape(isna(values), ndim=self.ndim)
-        # asi8 is a view, needs copy
-        values = _block_shape(values.asi8, ndim=self.ndim)
-        other_mask = False
-
-        if isinstance(other, ABCSeries):
-            other = self._holder(other)
-            other_mask = isna(other)
-
-        if isinstance(other, bool):
-            raise TypeError
-        elif (is_null_datelike_scalar(other) or
-              (lib.is_scalar(other) and isna(other))):
-            other = tslibs.iNaT
-            other_mask = True
-        elif isinstance(other, self._holder):
-            if other.tz != self.values.tz:
-                raise ValueError("incompatible or non tz-aware value")
-            other_mask = _block_shape(isna(other), ndim=self.ndim)
-            other = _block_shape(other.asi8, ndim=self.ndim)
-        elif isinstance(other, (np.datetime64, datetime, date)):
-            other = tslibs.Timestamp(other)
-            tz = getattr(other, 'tz', None)
-
-            # test we can have an equal time zone
-            if tz is None or str(tz) != str(self.values.tz):
-                raise ValueError("incompatible or non tz-aware value")
-            other_mask = isna(other)
-            other = other.value
-        else:
-            raise TypeError
-
-        return values, values_mask, other, other_mask
-
-    def _try_coerce_result(self, result):
-        """ reverse of try_coerce_args """
-        if isinstance(result, np.ndarray):
-            if result.dtype.kind in ['i', 'f', 'O']:
-                result = result.astype('M8[ns]')
-        elif isinstance(result, (np.integer, np.float, np.datetime64)):
-            result = tslibs.Timestamp(result, tz=self.values.tz)
-        if isinstance(result, np.ndarray):
-            # allow passing of > 1dim if its trivial
-            if result.ndim > 1:
-                result = result.reshape(np.prod(result.shape))
-            result = self.values._shallow_copy(result)
-
-        return result
+        other_tz = getattr(other, 'tz', None)
+        if other_tz is None:
+            raise TypeError(
+                'Cannot operate with Timestamp with tz and naive Timestamp')
+        elif other_tz != self.tz:
+            raise TypeError('Cannot operate with Timestamp with different tz')
 
     @property
     def _box_func(self):
         return lambda x: tslibs.Timestamp(x, tz=self.dtype.tz)
+
+    def should_store(self, value):
+        return (issubclass(value.dtype.type, np.datetime64) and
+                is_datetimetz(value))
+
+    def make_block_same_class(self, values, placement=None, ndim=None,
+                              dtype=None):
+        """ Wrap given values in a block of same type as self. """
+        if dtype is not None:
+            # issue 19431 fastparquet is passing this
+            warnings.warn("dtype argument is deprecated, will be removed "
+                          "in a future release.", DeprecationWarning)
+        if placement is None:
+            placement = self.mgr_locs
+        return make_block(values, placement=placement, ndim=ndim,
+                          klass=self.__class__, dtype=dtype, tz=self.tz)
 
     def shift(self, periods, axis=0, mgr=None):
         """ shift the block by periods """
@@ -3188,7 +3058,7 @@ def get_block_type(values, dtype=None):
 
 
 def make_block(values, placement, klass=None, ndim=None, dtype=None,
-               fastpath=None):
+               fastpath=None, **kwargs):
     if fastpath is not None:
         # GH#19265 pyarrow is passing this
         warnings.warn("fastpath argument is deprecated, will be removed "
@@ -3198,8 +3068,8 @@ def make_block(values, placement, klass=None, ndim=None, dtype=None,
         klass = get_block_type(values, dtype)
 
     elif klass is DatetimeTZBlock and not is_datetimetz(values):
-        return klass(values, ndim=ndim,
-                     placement=placement, dtype=dtype)
+        return klass(values, ndim=ndim, placement=placement, dtype=dtype,
+                     **kwargs)
 
     return klass(values, ndim=ndim, placement=placement)
 

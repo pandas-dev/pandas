@@ -1772,6 +1772,7 @@ def form_blocks(arrays, names, axes):
         blocks.extend(datetime_blocks)
 
     if len(items_dict['DatetimeTZBlock']):
+        # TODO: same tz can share one block
         dttz_blocks = [make_block(array,
                                   klass=DatetimeTZBlock,
                                   placement=[i])
