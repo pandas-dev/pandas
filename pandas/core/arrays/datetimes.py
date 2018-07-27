@@ -117,21 +117,23 @@ def _dt_array_cmp(cls, op):
             return ops.invalid_comparison(self, other, op)
         else:
             if isinstance(other, list):
+                # FIXME: This can break for object-dtype with mixed types
                 other = type(self)(other)
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
                 return ops.invalid_comparison(self, other, op)
 
-            if is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
-                self._assert_tzawareness_compat(other)
-            elif is_object_dtype(other):
-                raise NotImplementedError
-            else:
+            if is_object_dtype(other):
+                result = op(self.astype('O'), np.array(other))
+            elif not (is_datetime64_dtype(other) or
+                      is_datetime64tz_dtype(other)):
                 # e.g. is_timedelta64_dtype(other)
                 return ops.invalid_comparison(self, other, op)
+            else:
+                self._assert_tzawareness_compat(other)
+                result = meth(self, np.asarray(other))
 
-            result = meth(self, np.asarray(other))
             result = com.values_from_object(result)
 
             # Make sure to pass an array to result[...]; indexing with

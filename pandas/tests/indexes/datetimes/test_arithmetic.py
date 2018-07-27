@@ -391,6 +391,28 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             dti >= other
 
+    def test_dti_cmp_object_dtype(self):
+        dti = date_range('2000-01-01', periods=10, tz='Asia/Tokyo')
+
+        other = dti.astype('O')
+
+        result = dti == other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        other = dti.tz_localize(None)
+        with pytest.raises(TypeError):
+            # tzawareness failure
+            dti != other
+
+        other = np.array(list(dti[:5]) + [Timedelta(days=1)] * 5)
+        result = dti == other
+        expected = np.array([True] * 5 + [False] * 5)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            dti >= other
+
 
 class TestDatetimeIndexArithmetic(object):
 

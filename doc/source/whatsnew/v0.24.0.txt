@@ -464,6 +464,7 @@ Timezones
 - Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`????`)
 - Bug in :class:`DatetimeIndex` comparisons where string comparisons incorrectly raises ``TypeError`` (:issue:`????`)
 - Bug in :class:`DatetimeIndex` comparisons when comparing against ``timedelta64[ns]`` dtyped arrays; in some cases ``TypeError`` was incorrectly raised, in others it incorrectly failed to raise (:issue:`????`)
+- Bug in :class:`DatetimeIndex` comparisons when comparing against object-dtyped arrays (:issue:`????`)
 
 Offsets
 ^^^^^^^
