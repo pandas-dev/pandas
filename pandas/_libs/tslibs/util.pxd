@@ -44,7 +44,7 @@ cdef extern from "../src/headers/stdint.h":
     enum: INT32_MAX
     enum: INT32_MIN
     enum: INT64_MAX
-    enum: INT64_MIN
+    int64_t INT64_MIN
 
 
 cdef inline int64_t get_nat():
