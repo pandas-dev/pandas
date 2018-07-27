@@ -38,13 +38,6 @@ PANDAS_INLINE const char* get_c_string(PyObject* obj) {
 #endif
 }
 
-PANDAS_INLINE PyObject* char_to_string(const char* data) {
-#if PY_VERSION_HEX >= 0x03000000
-    return PyUnicode_FromString(data);
-#else
-    return PyString_FromString(data);
-#endif
-}
 
 void set_array_not_contiguous(PyArrayObject* ao) {
     // Numpy>=1.8-compliant equivalent to:

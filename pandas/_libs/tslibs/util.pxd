@@ -1,6 +1,18 @@
 
 from cpython cimport PyTypeObject
 
+cdef extern from *:
+    """
+    PyObject* char_to_string(const char* data) {
+    #if PY_VERSION_HEX >= 0x03000000
+        return PyUnicode_FromString(data);
+    #else
+        return PyString_FromString(data);
+    #endif
+    }
+    """
+    object char_to_string(const char* data)
+
 
 cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
@@ -29,10 +41,6 @@ cdef extern from "numpy/ndarrayobject.h":
 
 cdef extern from  "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
-
-
-cdef extern from "../src/numpy_helper.h":
-    object char_to_string(char*)
 
 
 cdef extern from "../src/headers/stdint.h":
@@ -77,6 +85,23 @@ cdef inline bint is_string_object(object obj) nogil:
 
 
 cdef inline bint is_integer_object(object obj) nogil:
+    """
+    Cython equivalent of
+
+    `isinstance(val, (int, long, np.integer)) and not isinstance(val, bool)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_integer : bool
+
+    Notes
+    -----
+    This counts np.timedelta64 objects as integers.
+    """
     return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
 
 
