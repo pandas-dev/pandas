@@ -233,7 +233,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = com._try_sort(data.columns)
+        #     columns = com.try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -2428,7 +2428,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com._try_sort(data.columns)):
+    for i, col in enumerate(com.try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)

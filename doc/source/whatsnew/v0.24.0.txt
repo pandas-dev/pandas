@@ -179,7 +179,7 @@ Other Enhancements
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
 - :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
--
+- :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -382,7 +382,7 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
--
+- :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -390,7 +390,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
--
+- Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 -
 -
 
@@ -474,6 +474,7 @@ Numeric
 
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 - Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
+- Fixed bug in :func:`unique` handled signed zeros inconsistently: for some inputs 0.0 and -0.0 were treated as equal and for some inputs as different. Now they are treated as equal for all inputs (:issue:`21866`)
 -
 -
 
@@ -513,7 +514,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Removed compatibility for MultiIndex pickles prior to version 0.8.0; compatibility with MultiIndex pickles from version 0.13 forward is maintained (:issue:`21654`)
 -
 -
 

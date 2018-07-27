@@ -256,36 +256,40 @@ class TestCategoricalConstructors(object):
         cat = Categorical([0, 1, 2], categories=xrange(3))
         tm.assert_categorical_equal(cat, exp)
 
-    def test_constructor_with_datetimelike(self):
+    @pytest.mark.parametrize("dtl", [
+        date_range("1995-01-01 00:00:00", periods=5, freq="s"),
+        date_range("1995-01-01 00:00:00", periods=5,
+                   freq="s", tz="US/Eastern"),
+        timedelta_range("1 day", periods=5, freq="s")
+    ])
+    def test_constructor_with_datetimelike(self, dtl):
+        # see gh-12077
+        # constructor with a datetimelike and NaT
 
-        # 12077
-        # constructor wwth a datetimelike and NaT
+        s = Series(dtl)
+        c = Categorical(s)
 
-        for dtl in [date_range('1995-01-01 00:00:00', periods=5, freq='s'),
-                    date_range('1995-01-01 00:00:00', periods=5,
-                               freq='s', tz='US/Eastern'),
-                    timedelta_range('1 day', periods=5, freq='s')]:
+        expected = type(dtl)(s)
+        expected.freq = None
 
-            s = Series(dtl)
-            c = Categorical(s)
-            expected = type(dtl)(s)
-            expected.freq = None
-            tm.assert_index_equal(c.categories, expected)
-            tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype='int8'))
+        tm.assert_index_equal(c.categories, expected)
+        tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
 
-            # with NaT
-            s2 = s.copy()
-            s2.iloc[-1] = NaT
-            c = Categorical(s2)
-            expected = type(dtl)(s2.dropna())
-            expected.freq = None
-            tm.assert_index_equal(c.categories, expected)
+        # with NaT
+        s2 = s.copy()
+        s2.iloc[-1] = NaT
+        c = Categorical(s2)
 
-            exp = np.array([0, 1, 2, 3, -1], dtype=np.int8)
-            tm.assert_numpy_array_equal(c.codes, exp)
+        expected = type(dtl)(s2.dropna())
+        expected.freq = None
 
-            result = repr(c)
-            assert 'NaT' in result
+        tm.assert_index_equal(c.categories, expected)
+
+        exp = np.array([0, 1, 2, 3, -1], dtype=np.int8)
+        tm.assert_numpy_array_equal(c.codes, exp)
+
+        result = repr(c)
+        assert "NaT" in result
 
     def test_constructor_from_index_series_datetimetz(self):
         idx = date_range('2015-01-01 10:00', freq='D', periods=3,

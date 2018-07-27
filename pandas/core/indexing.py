@@ -112,7 +112,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def __getitem__(self, key):
         if type(key) is tuple:
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
             try:
                 values = self.obj._get_value(*key)
@@ -126,7 +126,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            key = com._apply_if_callable(key, self.obj)
+            key = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(key, axis=axis)
 
     def _get_label(self, label, axis=None):
@@ -186,10 +186,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
         else:
-            key = com._apply_if_callable(key, self.obj)
+            key = com.apply_if_callable(key, self.obj)
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
@@ -1474,7 +1474,7 @@ class _IXIndexer(_NDFrameIndexer):
             keyarr = labels._convert_index_indexer(key)
         else:
             # asarray can be unsafe, NumPy strings are weird
-            keyarr = com._asarray_tuplesafe(key)
+            keyarr = com.asarray_tuplesafe(key)
 
         if is_integer_dtype(keyarr):
             # Cast the indexer to uint64 if possible so
@@ -1494,7 +1494,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
     def __getitem__(self, key):
         if type(key) is tuple:
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
             try:
                 if self._is_scalar_access(key):
@@ -1506,7 +1506,7 @@ class _LocationIndexer(_NDFrameIndexer):
             # we by definition only have the 0th axis
             axis = self.axis or 0
 
-            maybe_callable = com._apply_if_callable(key, self.obj)
+            maybe_callable = com.apply_if_callable(key, self.obj)
             return self._getitem_axis(maybe_callable, axis=axis)
 
     def _is_scalar_access(self, key):
@@ -2282,11 +2282,11 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):
-            key = tuple(com._apply_if_callable(x, self.obj)
+            key = tuple(com.apply_if_callable(x, self.obj)
                         for x in key)
         else:
             # scalar callable may return tuple
-            key = com._apply_if_callable(key, self.obj)
+            key = com.apply_if_callable(key, self.obj)
 
         if not isinstance(key, tuple):
             key = self._tuplify(key)

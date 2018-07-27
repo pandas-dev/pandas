@@ -375,7 +375,7 @@ class SparseSeries(Series):
             # Could not hash item, must be array-like?
             pass
 
-        key = com._values_from_object(key)
+        key = com.values_from_object(key)
         if self.index.nlevels > 1 and isinstance(key, tuple):
             # to handle MultiIndex labels
             key = self.index.get_loc(key)
