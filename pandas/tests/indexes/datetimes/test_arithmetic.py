@@ -334,10 +334,11 @@ class TestDatetimeIndexComparisons(object):
         expected = np.array([True] * 10)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_dti_cmp_str_invalid(self, tz_naive_fixture):
+    @pytest.mark.parametrize('other', ['foo', 99, 4.0,
+                                       object(), timedelta(days=2)])
+    def test_dti_cmp_scalar_invalid(self, other, tz_naive_fixture):
         tz = tz_naive_fixture
         rng = date_range('1/1/2000', periods=10, tz=tz)
-        other = 'foo'
 
         result = rng == other
         expected = np.array([False] * 10)
@@ -355,26 +356,6 @@ class TestDatetimeIndexComparisons(object):
             rng > other
         with pytest.raises(TypeError):
             rng >= other
-
-    def test_dti_cmp_int(self):
-        rng = date_range('1/1/2000', periods=10)
-
-        result = rng == rng[3].value
-        expected = np.array([False] * 10)
-        tm.assert_numpy_array_equal(result, expected)
-
-        result = rng != rng[3].value
-        expected = np.array([True] * 10)
-        tm.assert_numpy_array_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            rng < rng[3].value
-        with pytest.raises(TypeError):
-            rng <= rng[3].value
-        with pytest.raises(TypeError):
-            rng > rng[3].value
-        with pytest.raises(TypeError):
-            rng >= rng[3].value
 
     def test_dti_cmp_list(self):
         rng = date_range('1/1/2000', periods=10)

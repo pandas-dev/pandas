@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from pytz import utc
 
-from pandas._libs import tslib
+from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import (
     normalize_date,
@@ -113,6 +113,8 @@ def _dt_array_cmp(cls, op):
             result = meth(self, other)
             if isna(other):
                 result.fill(nat_result)
+        elif lib.is_scalar(other):
+            return ops.invalid_comparison(self, other, op)
         else:
             if isinstance(other, list):
                 other = type(self)(other)
