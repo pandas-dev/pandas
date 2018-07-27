@@ -2,8 +2,7 @@
 # cython: boundscheck=False, initializedcheck=False
 
 import numpy as np
-cimport numpy as cnp
-from numpy cimport uint8_t, uint16_t, int8_t, int64_t, ndarray
+from numpy cimport uint8_t, uint16_t, int64_t, ndarray
 import sas_constants as const
 
 # rle_decompress decompresses data using a Run Length Encoding

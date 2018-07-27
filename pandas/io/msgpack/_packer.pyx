@@ -80,7 +80,7 @@ cdef class Packer(object):
     cdef object _berrors
     cdef char *encoding
     cdef char *unicode_errors
-    cdef bool use_float
+    cdef bint use_float
     cdef bint autoreset
 
     def __cinit__(self):
