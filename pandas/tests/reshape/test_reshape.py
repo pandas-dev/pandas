@@ -302,6 +302,26 @@ class TestGetDummies(object):
         expected.sort_index(axis=1)
         assert_frame_equal(result, expected)
 
+    def test_dataframe_dummies_unicode(self):
+        df = pd.DataFrame(({u'ä': ['a']}))
+        result = get_dummies(df)
+        expected = pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)
+        assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({'x': [u'ä']})
+        result = pd.get_dummies(df)
+        expected = pd.DataFrame({u'x_ä': [1]}, dtype=np.uint8)
+        assert_frame_equal(result, expected)
+
+        df = pd.DataFrame({'x': ['a']})
+        result = pd.get_dummies(df, prefix=u'ä')
+        expected = pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)
+        assert_frame_equal(result, expected)
+
+        result = pd.get_dummies(df, prefix_sep=u'ä')
+        expected = pd.DataFrame({u'xäa': [1]}, dtype=np.uint8)
+        assert_frame_equal(result, expected)
+
     def test_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
