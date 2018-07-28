@@ -438,9 +438,12 @@ else:
 
 
 # enable coverage by building cython files by setting the environment variable
-# "PANDAS_CYTHON_COVERAGE" (with a Truthy value)
+# "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
+# with `--with-cython-coverage`enabled
 linetrace = os.environ.get('PANDAS_CYTHON_COVERAGE', False)
-CYTHON_TRACE = str(int(bool(linetrace)))
+if '--with-cython-coverage' in sys.argv:
+    linetrace = True
+    sys.argv.remove('--with-cython-coverage')
 
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
@@ -491,7 +494,6 @@ def srcpath(name=None, suffix='.pyx', subdir='src'):
 if suffix == '.pyx':
     lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src')
                    for f in lib_depends]
-    lib_depends.append('pandas/_libs/util.pxd')
 else:
     lib_depends = []
 
@@ -507,7 +509,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
 
-tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
+tseries_depends = np_datetime_headers
 
 
 ext_data = {

@@ -70,7 +70,7 @@ cdef extern from "../src/numpy_helper.h":
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     cnp.int64_t get_nat()
     object get_value_1d(ndarray, Py_ssize_t)
-    char *get_c_string(object) except NULL
+    const char *get_c_string(object) except NULL
     object char_to_string(char*)
 
 ctypedef fused numeric:

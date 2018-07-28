@@ -819,7 +819,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     # protect against callables without names
-                    columns.append(com._get_callable_name(f))
+                    columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}
@@ -1207,7 +1207,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or 0)
+        out = np.bincount(ids[mask], minlength=ngroups or None)
 
         return Series(out,
                       index=self.grouper.result_index,

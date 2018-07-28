@@ -179,7 +179,7 @@ Other Enhancements
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
 - :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
--
+- :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -372,6 +372,7 @@ Other API Changes
 - Trying to reindex a ``DataFrame`` with a non unique ``MultiIndex`` now raises a ``ValueError`` instead of an ``Exception`` (:issue:`21770`)
 - :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 - :class:`Index` subtraction will attempt to operate element-wise instead of raising ``TypeError`` (:issue:`19369`)
+- :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -381,7 +382,7 @@ Deprecations
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
--
+- :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -389,7 +390,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
--
+- Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 -
 -
 
@@ -473,7 +474,10 @@ Numeric
 
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 - Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
--
+- Fixed bug in :func:`unique` handled signed zeros inconsistently: for some inputs 0.0 and -0.0 were treated as equal and for some inputs as different. Now they are treated as equal for all inputs (:issue:`21866`)
+- Bug in :meth:`DataFrame.agg`, :meth:`DataFrame.transform` and :meth:`DataFrame.apply` where,
+  when supplied with a list of functions and ``axis=1`` (e.g. ``df.apply(['sum', 'mean'], axis=1)``),
+  a ``TypeError`` was wrongly raised. For all three methods such calculation are now done correctly. (:issue:`16679`).
 -
 
 Strings
@@ -512,7 +516,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Removed compatibility for MultiIndex pickles prior to version 0.8.0; compatibility with MultiIndex pickles from version 0.13 forward is maintained (:issue:`21654`)
 -
 -
 
@@ -534,11 +538,11 @@ Groupby/Resample/Rolling
 
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
--
--
-
+- Bug where ``ValueError`` is wrongly raised when calling :func:`~pandas.core.groupby.SeriesGroupBy.count` method of a
+  ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
+-
 
 Sparse
 ^^^^^^
