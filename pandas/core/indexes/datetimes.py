@@ -170,6 +170,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     nanosecond
     date
     time
+    timetz
     dayofyear
     weekofyear
     week
