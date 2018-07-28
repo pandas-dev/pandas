@@ -72,8 +72,8 @@ class TestSeriesPeriod(object):
     # ---------------------------------------------------------------------
     # NaT support
 
-    """
-    # ToDo: Enable when support period dtype
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
+                       strict=True)
     def test_NaT_scalar(self):
         series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
 
@@ -83,11 +83,12 @@ class TestSeriesPeriod(object):
         series[2] = val
         assert isna(series[2])
 
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
+                       strict=True)
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
         expected = Series([NaT])
         tm.assert_series_equal(result, expected)
-    """
 
     def test_set_none_nan(self):
         # currently Period is stored as object dtype, not as NaT
