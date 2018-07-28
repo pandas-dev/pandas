@@ -391,6 +391,7 @@ Removal of prior version deprecations/changes
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
+- :meth: `~pandas.DataFrame.from_items` has been refactored and the deprecation warning from v0.23.0 has been removed (i.e. it is no longer deprecated)
 -
 -
 
