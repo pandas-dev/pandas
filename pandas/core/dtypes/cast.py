@@ -838,7 +838,12 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
 
     # Soft conversions
     if datetime:
-        values = lib.maybe_convert_objects(values, convert_datetime=datetime)
+        # GH 20380
+        try:
+            values = lib.maybe_convert_objects(values,
+                                               convert_datetime=datetime)
+        except ValueError:
+            pass
 
     if timedelta and is_object_dtype(values.dtype):
         # Object check to ensure only run if previous did not convert
