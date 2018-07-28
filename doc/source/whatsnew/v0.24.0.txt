@@ -475,7 +475,9 @@ Numeric
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 - Bug in :func:`factorize` fails with read-only array (:issue:`12813`)
 - Fixed bug in :func:`unique` handled signed zeros inconsistently: for some inputs 0.0 and -0.0 were treated as equal and for some inputs as different. Now they are treated as equal for all inputs (:issue:`21866`)
--
+- Bug in :meth:`DataFrame.agg`, :meth:`DataFrame.transform` and :meth:`DataFrame.apply` where,
+  when supplied with a list of functions and ``axis=1`` (e.g. ``df.apply(['sum', 'mean'], axis=1)``),
+  a ``TypeError`` was wrongly raised. For all three methods such calculation are now done correctly. (:issue:`16679`).
 -
 
 Strings
@@ -536,11 +538,11 @@ Groupby/Resample/Rolling
 
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
--
--
-
+- Bug where ``ValueError`` is wrongly raised when calling :func:`~pandas.core.groupby.SeriesGroupBy.count` method of a
+  ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
+-
 
 Sparse
 ^^^^^^
