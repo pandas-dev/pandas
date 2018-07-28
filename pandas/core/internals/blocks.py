@@ -809,8 +809,7 @@ class Block(PandasObject):
                                  inplace=inplace,
                                  filter=filter,
                                  regex=regex,
-                                 # GH 20380 without convert
-                                 convert=False)
+                                 convert=convert)
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
