@@ -992,15 +992,15 @@ class Block(PandasObject):
             #
             # TODO: this prob needs some better checking
             # for 2D cases
-            if ((is_list_like(new) and
-                 np.any(mask[mask]) and
+            if ((is_list_like(new) and np.any(mask[mask]) and
                  getattr(new, 'ndim', 1) == 1)):
-
+                # GH 19266 and GH 21977
                 if not (mask.shape[-1] == len(new) or
                         mask[mask].shape[-1] == len(new) or
                         len(new) == 1):
-                    raise ValueError("cannot assign mismatch "
-                                     "length to masked array")
+                    raise NotImplementedError(
+                        "Replace with array-like of mismatch length to masked "
+                        "array is not supported.")
 
             np.putmask(new_values, mask, new)
 
