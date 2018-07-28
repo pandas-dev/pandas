@@ -3,6 +3,7 @@
 import pytest
 import os
 import collections
+import string
 from functools import partial
 
 import numpy as np
@@ -12,6 +13,7 @@ import pandas.core.common as com
 from pandas.core import ops
 from pandas.io.common import _get_handle
 import pandas.util.testing as tm
+import pandas as pd
 
 
 def test_get_callable_name():
@@ -165,3 +167,10 @@ def test_compression_warning(compression_only):
                                         check_stacklevel=False):
             with f:
                 df.to_csv(f, compression=compression_only)
+
+
+def test_git_version():
+    # GH 21295
+    git_version = pd.__git_version__
+    assert len(git_version) == 40
+    assert all(c in string.hexdigits for c in git_version)
