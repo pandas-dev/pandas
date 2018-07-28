@@ -9193,16 +9193,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ewm = ewm
 
-        @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
-        def transform(self, func, *args, **kwargs):
-            result = self.agg(func, *args, **kwargs)
-            if is_scalar(result) or len(result) != len(self):
-                raise ValueError("transforms cannot produce "
-                                 "aggregated results")
+    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, *args, **kwargs):
+        result = self.agg(func, *args, **kwargs)
+        if is_scalar(result) or len(result) != len(self):
+            raise ValueError("transforms cannot produce "
+                             "aggregated results")
 
-            return result
-
-        cls.transform = transform
+        return result
 
     # ----------------------------------------------------------------------
     # Misc methods
