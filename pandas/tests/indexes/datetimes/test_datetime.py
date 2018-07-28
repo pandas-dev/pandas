@@ -135,13 +135,13 @@ class TestDatetimeIndex(object):
         stderr = sys.stderr
         sys.stderr = c
         try:
-            out = dti.map(lambda x: pd.Period(year=x.year,
-                                          month=x.month, freq='M'))
+            dti.map(lambda x: pd.Period(year=x.year,
+                                        month=x.month, freq='M'))
         finally:
             sys.stderr = stderr
 
         cv = c.getvalue()
-        assert cv == ''        
+        assert cv == ''
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
