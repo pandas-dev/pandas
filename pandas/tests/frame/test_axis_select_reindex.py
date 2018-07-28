@@ -677,26 +677,9 @@ class TestDataFrameSelectReindex(TestData):
     @pytest.mark.parametrize('meth', ['pad', 'bfill'])
     @pytest.mark.parametrize('ax', [0, 1, None])
     @pytest.mark.parametrize('fax', [0, 1])
-    def test_align_fill_method_inner(self, meth, ax, fax):
-        self._check_align_fill('inner', meth, ax, fax)
-
-    @pytest.mark.parametrize('meth', ['pad', 'bfill'])
-    @pytest.mark.parametrize('ax', [0, 1, None])
-    @pytest.mark.parametrize('fax', [0, 1])
-    def test_align_fill_method_outer(self, meth, ax, fax):
-        self._check_align_fill('outer', meth, ax, fax)
-
-    @pytest.mark.parametrize('meth', ['pad', 'bfill'])
-    @pytest.mark.parametrize('ax', [0, 1, None])
-    @pytest.mark.parametrize('fax', [0, 1])
-    def test_align_fill_method_left(self, meth, ax, fax):
-        self._check_align_fill('left', meth, ax, fax)
-
-    @pytest.mark.parametrize('meth', ['pad', 'bfill'])
-    @pytest.mark.parametrize('ax', [0, 1, None])
-    @pytest.mark.parametrize('fax', [0, 1])
-    def test_align_fill_method_right(self, meth, ax, fax):
-        self._check_align_fill('right', meth, ax, fax)
+    @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
+    def test_align_fill_method(self, how, meth, ax, fax):
+        self._check_align_fill(how, meth, ax, fax)
 
     def _check_align_fill(self, kind, meth, ax, fax):
         left = self.frame.iloc[0:4, :10]
