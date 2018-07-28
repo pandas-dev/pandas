@@ -24,7 +24,8 @@ from pandas.core.dtypes.cast import (
     find_common_type,
     construct_1d_object_array_from_listlike,
     construct_1d_ndarray_preserving_na,
-    construct_1d_arraylike_from_scalar)
+    construct_1d_arraylike_from_scalar,
+    astype_nansafe)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -456,3 +457,14 @@ class TestCommonTypes(object):
 def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
     result = construct_1d_ndarray_preserving_na(values, dtype=dtype)
     tm.assert_numpy_array_equal(result, expected)
+
+@pytest.mark.parametrize('arr, dtype, expected', [
+    (np.array(['0:0:1'], dtype='object'), 'timedelta64[ns]', 'timedelta64[ns]'),
+    (np.array(['0:0:1'], dtype='object'), 'timedelta64', 'timedelta64'),
+    (np.array(['2000'], dtype='object'), 'datetime64[ns]', 'datetime64[ns]'),
+    (np.array(['2000'], dtype='object'), 'datetime64', 'datetime64'),
+])
+def test_astype_nansafe(arr, dtype, expected):
+    # GH #22100
+    result = astype_nansafe(arr, dtype)
+    is_dtype_equal(arr.dtype, expected)
