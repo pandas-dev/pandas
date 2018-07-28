@@ -802,12 +802,15 @@ class Block(PandasObject):
                                     copy=not inplace) for b in blocks]
             return blocks
         except (TypeError, ValueError):
-
             # try again with a compatible block
             block = self.astype(object)
-            return block.replace(
-                to_replace=original_to_replace, value=value, inplace=inplace,
-                filter=filter, regex=regex, convert=convert)
+            return block.replace(to_replace=original_to_replace,
+                                 value=value,
+                                 inplace=inplace,
+                                 filter=filter,
+                                 regex=regex,
+                                 # GH 20380 without convert
+                                 convert=False)
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
