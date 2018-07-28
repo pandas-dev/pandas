@@ -547,14 +547,12 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(res, expec)
         assert res.a.dtype == np.object_
 
-    def test_replace_regex_metachar(self):
-        metachars = '[]', '()', r'\d', r'\w', r'\s'
-
-        for metachar in metachars:
-            df = DataFrame({'a': [metachar, 'else']})
-            result = df.replace({'a': {metachar: 'paren'}})
-            expected = DataFrame({'a': ['paren', 'else']})
-            assert_frame_equal(result, expected)
+    @pytest.mark.parametrize('metachar', ['[]', '()', r'\d', r'\w', r'\s'])
+    def test_replace_regex_metachar(self, metachar):
+        df = DataFrame({'a': [metachar, 'else']})
+        result = df.replace({'a': {metachar: 'paren'}})
+        expected = DataFrame({'a': ['paren', 'else']})
+        assert_frame_equal(result, expected)
 
     def test_replace(self):
         self.tsframe['A'][:5] = nan

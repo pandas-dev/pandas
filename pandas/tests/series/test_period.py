@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -75,19 +76,19 @@ class TestSeriesPeriod(object):
     @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
                        strict=True)
     def test_NaT_scalar(self):
-        series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
+        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype='period[D]')
 
         val = series[3]
-        assert isna(val)
+        assert pd.isna(val)
 
         series[2] = val
-        assert isna(series[2])
+        assert pd.isna(series[2])
 
     @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
                        strict=True)
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
-        expected = Series([NaT])
+        expected = Series([pd.NaT])
         tm.assert_series_equal(result, expected)
 
     def test_set_none_nan(self):
