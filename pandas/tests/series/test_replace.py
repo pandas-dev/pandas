@@ -138,9 +138,9 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(result, expected)
 
         # GH 19266
-        with tm.assert_raises_regex(ValueError, 'mismatch length'):
+        with tm.assert_raises_regex(NotImplementedError, 'Replace with array'):
             s.replace({np.nan: []})
-        with tm.assert_raises_regex(ValueError, 'mismatch length'):
+        with tm.assert_raises_regex(NotImplementedError, 'Replace with array'):
             s.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_mixed_types(self):
