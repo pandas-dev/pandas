@@ -38,7 +38,6 @@ PANDAS_INLINE const char* get_c_string(PyObject* obj) {
 #endif
 }
 
-
 void set_array_not_contiguous(PyArrayObject* ao) {
     // Numpy>=1.8-compliant equivalent to:
     //  ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
