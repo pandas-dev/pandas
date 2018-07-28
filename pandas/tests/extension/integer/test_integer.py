@@ -645,10 +645,45 @@ def test_conversions(data_missing):
             assert type(r) == type(e)
 
 
+def test_integer_array_constructor():
+    values = np.array([1, 2, 3, 4], dtype='int64')
+    mask = np.array([False, False, False, True], dtype='bool')
+
+    result = IntegerArray(values, mask)
+    expected = integer_array([1, 2, 3, np.nan], dtype='int64')
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError):
+        IntegerArray(values.tolist(), mask)
+
+    with pytest.raises(TypeError):
+        IntegerArray(values, mask.tolist())
+
+    with pytest.raises(TypeError):
+        IntegerArray(values.astype(float), mask)
+
+    with pytest.raises(TypeError):
+        IntegerArray(values)
+
+
+def test_integer_array_constructor_copy():
+    values = np.array([1, 2, 3, 4], dtype='int64')
+    mask = np.array([False, False, False, True], dtype='bool')
+
+    result = IntegerArray(values, mask)
+    assert result._data is values
+    assert result._mask is mask
+
+    result = IntegerArray(values, mask, copy=True)
+    assert result._data is not values
+    assert result._mask is not mask
+
+
 @pytest.mark.parametrize(
     'values',
     [
         ['foo', 'bar'],
+        ['1', '2'],
         'foo',
         1,
         1.0,
@@ -660,6 +695,15 @@ def test_to_integer_array_error(values):
         integer_array(values)
 
 
+def test_to_integer_array_float():
+    result = integer_array([1., 2.])
+    expected = integer_array([1, 2])
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        integer_array([1.5, 2.])
+
+
 @pytest.mark.parametrize(
     'values, to_dtype, result_dtype',
     [
@@ -669,6 +713,7 @@ def test_to_integer_array_error(values):
 def test_to_integer_array(values, to_dtype, result_dtype):
     # convert existing arrays to IntegerArrays
     result = integer_array(values, dtype=to_dtype)
+    assert result.dtype == result_dtype()
     expected = integer_array(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
 

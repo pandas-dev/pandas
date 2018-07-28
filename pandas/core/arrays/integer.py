@@ -11,6 +11,7 @@ from pandas.compat import set_function_name
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
     is_integer, is_scalar, is_float,
+    is_bool_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -85,6 +86,7 @@ def integer_array(values, dtype=None, copy=False):
     values : 1D list-like
     dtype : dtype, optional
         dtype to coerce
+    copy : boolean, default False
 
     Returns
     -------
@@ -198,9 +200,26 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
 class IntegerArray(ExtensionArray, ExtensionOpsMixin):
     """
-    We represent an IntegerArray with 2 numpy arrays
+    Array of integer (optional missing) values.
+
+    We represent an IntegerArray with 2 numpy arrays:
+
     - data: contains a numpy integer array of the appropriate dtype
-    - mask: a boolean array holding a mask on the data, False is missing
+    - mask: a boolean array holding a mask on the data, True is missing
+
+    To construct an IntegerArray from generic array-like input, use
+    ``integer_array`` function instead.
+
+    Parameters
+    ----------
+    values : integer 1D numpy array
+    mask : boolean 1D numpy array
+    copy : bool, default False
+
+    Returns
+    -------
+    IntegerArray
+
     """
 
     @cache_readonly
@@ -208,23 +227,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return _dtypes[str(self._data.dtype)]
 
     def __init__(self, values, mask, copy=False):
-        """
-        Parameters
-        ----------
-        values : 1D list-like / IntegerArray
-        mask : 1D list-like, optional
-        dtype : subclass of _IntegerDtype, optional
-        copy : bool, default False
-
-        Returns
-        -------
-        IntegerArray
-        """
         if not (isinstance(values, np.ndarray)
-                and np.issubdtype(values.dtype, np.integer)):
-            raise TypeError("values should be integer numpy array")
-        if not (isinstance(mask, np.ndarray) and mask.dtype == np.bool_):
-            raise TypeError("mask should be boolean numpy array")
+                and is_integer_dtype(values.dtype)):
+            raise TypeError("values should be integer numpy array. Use "
+                            "the 'integer_array' function instead")
+        if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):
+            raise TypeError("mask should be boolean numpy array. Use "
+                            "the 'integer_array' function instead")
 
         if copy:
             values = values.copy()
