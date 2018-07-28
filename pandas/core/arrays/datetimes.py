@@ -839,8 +839,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             timestamps = self._local_timestamps()
         else:
             timestamps = self.asi8
-
         return tslib.ints_to_pydatetime(timestamps, box="time")
+
+    @property
+    def timetz(self):
+        """
+        Returns numpy array of datetime.time. The time part of the Timestamps.
+        """
+        return tslib.ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self):
