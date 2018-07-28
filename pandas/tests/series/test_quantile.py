@@ -123,7 +123,7 @@ class TestSeriesQuantile(TestData):
          pd.Timestamp('2011-01-03', tz='US/Eastern')],
         [pd.Timedelta('1 days'), pd.Timedelta('2 days'),
          pd.Timedelta('3 days')],
-         # NaT
+        # NaT
         [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'),
          pd.Timestamp('2011-01-03'), pd.NaT],
         [pd.Timestamp('2011-01-01', tz='US/Eastern'),
