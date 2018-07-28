@@ -464,30 +464,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_comparison_method(cls, op):
         def cmp_method(self, other):
-
             op_name = op.__name__
-            mask = None
-            if isinstance(other, IntegerArray):
-                other, mask = other._data, other._mask
-            elif is_list_like(other):
-                other = np.asarray(other)
-                if other.ndim > 0 and len(self) != len(other):
-                    raise ValueError('Lengths must match to compare')
 
-            # numpy will show a DeprecationWarning on invalid elementwise
-            # comparisons, this will raise in the future
-            with warnings.catch_warnings(record=True):
-                with np.errstate(all='ignore'):
-                    result = op(self._data, other)
+            if isinstance(other, (ABCSeries, ABCIndexClass)):
+                other = getattr(other, 'values', other)
 
-            # nans propagate
-            if mask is None:
-                mask = self._mask
+            if isinstance(other, SparseArray):
+                return _sparse_array_op(self, other, op, op_name)
             else:
-                mask = self._mask | mask
+                with np.errstate(all='ignore'):
+                    fill_value = op(self.fill_value, other)
+                    result = op(self.sp_values, other)
 
-            result[mask] = True if op_name == 'ne' else False
-            return result
+                return type(self)(result, sp_index=self.sp_index, fill_value=fill_value)
 
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(cmp_method, name, cls)

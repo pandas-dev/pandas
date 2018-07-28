@@ -1,5 +1,3 @@
-import string
-
 import pytest
 import pandas as pd
 import numpy as np
@@ -7,6 +5,7 @@ import numpy as np
 from pandas.core.sparse.dtype import SparseDtype
 from pandas import SparseArray
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -158,7 +157,25 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    pass
+
+    def _compare_other(self, s, data, op_name, other):
+        op = self.get_op_from_name(op_name)
+
+        # array
+        result = pd.Series(op(data, other))
+        assert result.dtype == 'Sparse[bool]'
+
+        expected = pd.Series(
+            pd.SparseArray(op(np.asarray(data), np.asarray(other)),
+                           fill_value=result.values.fill_value)
+        )
+
+        tm.assert_series_equal(result, expected)
+
+        # series
+        s = pd.Series(data)
+        result = op(s, other)
+        tm.assert_series_equal(result, expected)
 
 
 def test_slice():
