@@ -1114,7 +1114,7 @@ def _arith_method_SERIES(cls, op, special):
                 result[mask] = op(x[mask], com.values_from_object(y[mask]))
             else:
                 assert isinstance(x, np.ndarray)
-                assert lib.is_scalar(y)
+                assert is_scalar(y)
                 result = np.empty(len(x), dtype=x.dtype)
                 mask = notna(x)
                 result[mask] = op(x[mask], y)
