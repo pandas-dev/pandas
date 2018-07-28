@@ -213,12 +213,12 @@ def test_where_unsafe():
     def f():
         s[mask] = [5, 4, 3, 2, 1]
 
-    pytest.raises(ValueError, f)
+    pytest.raises(Exception, f)
 
     def f():
         s[mask] = [0] * 5
 
-    pytest.raises(ValueError, f)
+    pytest.raises(Exception, f)
 
     # dtype changes
     s = Series([1, 2, 3, 4])
