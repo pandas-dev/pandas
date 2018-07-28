@@ -1249,28 +1249,30 @@ class TestCanHoldElement(object):
         operator.pow,
     ], ids=lambda x: x.__name__)
     def test_binop_other(self, op, value, dtype):
-        skip = {(operator.add, 'bool'),
-                (operator.add, '<M8[ns]'),
-                (operator.sub, 'bool'),
-                (operator.mul, 'bool'),
-                (operator.mul, '<m8[ns]'),
-                (operator.mul, '<M8[ns]'),
-                (operator.truediv, 'bool'),
-                (operator.truediv, '<M8[ns]'),
-                (operator.mod, 'i8'),
-                (operator.mod, 'complex128'),
-                (operator.mod, '<M8[ns]'),
-                (operator.mod, '<m8[ns]'),
-                (operator.pow, 'bool'),
-                (operator.pow, '<m8[ns]'),
-                (operator.pow, '<M8[ns]')}
-        if (op, dtype) in skip:
-            pytest.skip("Invalid combination {},{}".format(op, dtype))
+        invalid = {
+            operator.add: ['<M8[ns]'],
+            operator.sub: ['bool'],
+            operator.mul: ['<m8[ns]', '<M8[ns]'],
+            operator.truediv: ['bool', '<M8[ns]'],
+            operator.mod: ['complex128', '<m8[ns]', '<M8[ns]'],
+            operator.pow: ['bool', '<m8[ns]', '<M8[ns]'],
+        }
         e = DummyElement(value, dtype)
-        s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
-        result = op(s, e).dtypes
-        expected = op(s, value).dtypes
-        assert_series_equal(result, expected)
+        df = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
+
+        # XXX: op(df, e) will but should not raise:
+        # TypeError: Could not operate DummyElement(1, int64) with block
+        # values 'bool' object has no attribute 'any'
+        if (op, dtype) == (operator.mod, 'i8'):
+            pytest.skip('fake fail')
+
+        if dtype in invalid[op]:
+            with pytest.raises(TypeError):
+                op(df, value)
+        else:
+            result = op(df, e).dtypes
+            expected = op(df, value).dtypes
+            assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('typestr, holder', [
