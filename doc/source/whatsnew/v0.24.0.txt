@@ -225,6 +225,18 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
    idx.values.astype(object)
 
 
+.. _whatsnew_0240.api_breaking.sparse_values:
+
+``SparseArray`` is now an ``ExtensionArray``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This has some notable changes
+
+- ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`
+- :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values,
+  not just the non-fill-value values (:issue:`todo`)
+
+
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
