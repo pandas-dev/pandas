@@ -731,6 +731,16 @@ class TestDatetimeIndexTimezones(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', [
+        dateutil.tz.gettz('US/Eastern'), dateutil.tz.gettz('US/Pacific'), dateutil.tz.gettz('UTC')])
+    def test_timetz_accessor(self, tz):
+        # GH21358
+        expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
+
+        index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], tz=tz)
+        result = index.timetz
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_dti_drop_dont_lose_tz(self):
         # GH#2621
         ind = date_range("2012-12-01", periods=10, tz="utc")
