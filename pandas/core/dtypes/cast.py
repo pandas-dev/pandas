@@ -712,7 +712,8 @@ def astype_nansafe(arr, dtype, copy=True):
     elif is_object_dtype(arr):
 
         # work around NumPy brokenness, #1987
-        if np.issubdtype(dtype.type, np.integer) and not is_datetime64_dtype(dtype) and not is_timedelta64_dtype(dtype):
+        is_time = is_datetime64_dtype(dtype) or is_timedelta64_dtype(dtype)
+        if np.issubdtype(dtype.type, np.integer) and not is_time:
             return lib.astype_intsafe(arr.ravel(), dtype).reshape(arr.shape)
 
         # if we have a datetime/timedelta array of objects
