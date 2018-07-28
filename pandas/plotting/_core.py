@@ -1805,8 +1805,10 @@ def _plot(data, x=None, y=None, subplots=False,
                         except (IndexError, KeyError, TypeError):
                             pass
 
-                if y == x:
-                    data[y] = data.index
+                if type(y) == type(x):
+                    if y == x:
+                        data[y] = data.index
+
                 # don't overwrite
                 data = data[y].copy()
 
