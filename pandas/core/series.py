@@ -2392,17 +2392,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
-        if sorter is not None:
-            sorter = ensure_platform_int(sorter)
-        if not is_extension_type(self._values):
-            # numpy searchsorted is only fast if value is of same dtype as the
-            # searched array. Below we ensure that value has the right dtype,
-            # and is not 0-dimensional.
-            value = np.asarray(value, dtype=self._values.dtype)
-            value = value[..., np.newaxis] if value.ndim == 0 else value
+        result = com.searchsorted(self._values, value,
+                                  side=side, sorter=sorter)
 
-        result = self._values.searchsorted(value, side=side, sorter=sorter)
-        return result[0] if is_scalar(value) else result
+        if is_scalar(value):
+            return result if is_scalar(result) else result[0]
+        return result
 
     # -------------------------------------------------------------------
     # Combination

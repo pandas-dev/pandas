@@ -1525,8 +1525,12 @@ class IndexOpsMixin(object):
     @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
     def searchsorted(self, value, side='left', sorter=None):
-        # needs coercion on the key (DatetimeIndex does already)
-        return self._values.searchsorted(value, side=side, sorter=sorter)
+        result = com.searchsorted(self._values, value,
+                                  side=side, sorter=sorter)
+
+        if is_scalar(value):
+            return result if is_scalar(result) else result[0]
+        return result
 
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
