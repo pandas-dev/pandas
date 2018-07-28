@@ -245,7 +245,7 @@ class TestSeriesAlterAxes(TestData):
         expected = s.copy()
         expected.index = list('abcd')
 
-        for axis in 0, 'index':
+        for axis in [0, 'index']:
             # inplace=True
             # The FutureWarning comes from the fact that we would like to have
             # inplace default to False some day
@@ -266,7 +266,7 @@ class TestSeriesAlterAxes(TestData):
         tm.assert_series_equal(result, expected)
 
         # wrong values for the "axis" parameter
-        for axis in 2, 'foo':
+        for axis in [2, 'foo']:
             with tm.assert_raises_regex(ValueError, 'No axis named'):
                 s.set_axis(list('abcd'), axis=axis, inplace=False)
 
@@ -276,7 +276,7 @@ class TestSeriesAlterAxes(TestData):
         expected = s.copy()
         expected.index = list('abcd')
 
-        for axis in 0, 'index':
+        for axis in [0, 'index']:
             with tm.assert_produces_warning(FutureWarning):
                 result = s.set_axis(0, list('abcd'), inplace=False)
             tm.assert_series_equal(result, expected)
