@@ -50,7 +50,7 @@ import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
 from pandas._libs import (lib, index as libindex, tslib as libts,
-                          join as libjoin, Timestamp, Timedelta)
+                          join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
 

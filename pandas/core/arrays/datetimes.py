@@ -1235,11 +1235,9 @@ def _generate_regular_range(cls, start, end, periods, freq):
         tz = None
         if isinstance(start, Timestamp):
             tz = start.tz
-            start = start.to_pydatetime()
 
         if isinstance(end, Timestamp):
             tz = end.tz
-            end = end.to_pydatetime()
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
