@@ -12,50 +12,6 @@ import pandas.util.testing as tm
 from pandas import Timedelta
 
 
-def assert_equal(left, right, **kwargs):
-    """
-    Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
-
-    Parameters
-    ----------
-    left : Index, Series, or DataFrame
-    right : Index, Series, or DataFrame
-    **kwargs
-    """
-    if isinstance(left, pd.Index):
-        tm.assert_index_equal(left, right, **kwargs)
-    elif isinstance(left, pd.Series):
-        tm.assert_series_equal(left, right, **kwargs)
-    elif isinstance(left, pd.DataFrame):
-        tm.assert_frame_equal(left, right, **kwargs)
-    else:
-        raise NotImplementedError(type(left))
-
-
-def box_expected(expected, box_cls):
-    """
-    Helper function to wrap the expected output of a test in a given box_class.
-
-    Parameters
-    ----------
-    expected : np.ndarray, Index, Series
-    box_cls : {Index, Series, DataFrame}
-
-    Returns
-    -------
-    subclass of box_cls
-    """
-    if box_cls is pd.Index:
-        expected = pd.Index(expected)
-    elif box_cls is pd.Series:
-        expected = pd.Series(expected)
-    elif box_cls is pd.DataFrame:
-        expected = pd.Series(expected).to_frame()
-    else:
-        raise NotImplementedError(box_cls)
-    return expected
-
-
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Timedelta Scalar
 
@@ -88,14 +44,14 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
 
         expected = pd.timedelta_range('1 days', '10 days')
 
-        index = box_expected(index, box)
-        expected = box_expected(expected, box)
+        index = tm.box_expected(index, box)
+        expected = tm.box_expected(expected, box)
 
         result = index * scalar_td
-        assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         commute = scalar_td * index
-        assert_equal(commute, expected)
+        tm.assert_equal(commute, expected)
 
     @pytest.mark.parametrize('box', [pd.Index, pd.Series, pd.DataFrame])
     @pytest.mark.parametrize('index', [
@@ -118,11 +74,11 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
 
         expected = pd.TimedeltaIndex(['1 Day', '12 Hours'])
 
-        index = box_expected(index, box)
-        expected = box_expected(expected, box)
+        index = tm.box_expected(index, box)
+        expected = tm.box_expected(expected, box)
 
         result = scalar_td / index
-        assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError):
             index / scalar_td
@@ -150,7 +106,7 @@ class TestTimedeltaArraylikeInvalidArithmeticOps(object):
         td1 = pd.Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
 
-        td1 = box_expected(td1, box)
+        td1 = tm.box_expected(td1, box)
 
         # check that we are getting a TypeError
         # with 'operate' (from core/ops.py) for the ops that are not
