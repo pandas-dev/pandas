@@ -459,13 +459,17 @@ def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
     tm.assert_numpy_array_equal(result, expected)
 
 
-@pytest.mark.parametrize('arr, dtype', [
-    (np.array(['0:0:1'], dtype='object'), 'timedelta64[ns]'),
-    (np.array(['0:0:1'], dtype='object'), 'timedelta64'),
-    (np.array(['2000'], dtype='object'), 'datetime64[ns]'),
-    (np.array(['2000'], dtype='object'), 'datetime64'),
+@pytest.mark.parametrize('arr, dtype, expected', [
+    (np.array(['0:0:1'], dtype='object'),
+     'timedelta64[ns]', 'timedelta64[ns]'),
+    (np.array(['0:0:1'], dtype='object'),
+     'timedelta64', 'float64'),
+    (np.array(['2000'], dtype='object'),
+     'datetime64[ns]', 'datetime64[ns]'),
+    (np.array(['2000'], dtype='object'),
+     'datetime64', 'datetime64[ns]'),
 ])
-def test_astype_nansafe(arr, dtype):
+def test_astype_nansafe(arr, dtype, expected):
     # GH #22100
     result = astype_nansafe(arr, dtype)
-    is_dtype_equal(result.dtype, dtype)
+    assert is_dtype_equal(result.dtype, expected)
