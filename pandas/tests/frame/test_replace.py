@@ -776,7 +776,15 @@ class TestDataFrameReplace(TestData):
         # GH 20380
         (DataFrame({'dt': [datetime(3017, 12, 20)], 'str': ['foo']}),
          'foo', 'bar',
-         DataFrame({'dt': [datetime(3017, 12, 20)], 'str': ['bar']}))
+         DataFrame({'dt': [datetime(3017, 12, 20)], 'str': ['bar']})),
+        (DataFrame({'A': date_range('20130101', periods=3, tz='US/Eastern'),
+                    'B': [0, np.nan, 2]}),
+         Timestamp('20130102', tz='US/Eastern'),
+         Timestamp('20130104', tz='US/Eastern'),
+         DataFrame({'A': [Timestamp('20130101', tz='US/Eastern'),
+                          Timestamp('20130104', tz='US/Eastern'),
+                          Timestamp('20130103', tz='US/Eastern')],
+                    'B': [0, np.nan, 2]}))
     ])
     def test_replace_dtypes(self, frame, to_replace, value, expected):
         result = getattr(frame, 'replace')(to_replace, value)
