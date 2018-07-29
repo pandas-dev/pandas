@@ -695,6 +695,27 @@ def test_to_integer_array_error(values):
         integer_array(values)
 
 
+def test_to_integer_array_inferred_dtype():
+    # if values has dtype -> respect it
+    result = integer_array(np.array([1, 2], dtype='int8'))
+    assert result.dtype == Int8Dtype()
+    result = integer_array(np.array([1, 2], dtype='int32'))
+    assert result.dtype == Int32Dtype()
+
+    # if values have no dtype -> always int64
+    result = integer_array([1, 2])
+    assert result.dtype == Int64Dtype()
+
+
+def test_to_integer_array_dtype_keyword():
+    result = integer_array([1, 2], dtype='int8')
+    assert result.dtype == Int8Dtype()
+
+    # if values has dtype -> override it
+    result = integer_array(np.array([1, 2], dtype='int8'), dtype='int32')
+    assert result.dtype == Int32Dtype()
+
+
 def test_to_integer_array_float():
     result = integer_array([1., 2.])
     expected = integer_array(np.array([1, 2], dtype='int64'))
