@@ -697,7 +697,7 @@ def test_to_integer_array_error(values):
 
 def test_to_integer_array_float():
     result = integer_array([1., 2.])
-    expected = integer_array([1, 2])
+    expected = integer_array(np.array([1, 2], dtype='int64'))
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
