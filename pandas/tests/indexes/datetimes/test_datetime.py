@@ -9,7 +9,7 @@ from datetime import date
 import dateutil
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.compat import lrange, StringIO
+from pandas.compat import lrange
 from pandas import (DatetimeIndex, Index, date_range, DataFrame,
                     Timestamp, offsets)
 
@@ -127,20 +127,15 @@ class TestDatetimeIndex(object):
         exp = Index([f(x) for x in rng], dtype='<U8')
         tm.assert_index_equal(result, exp)
 
+    @tm.capture_stderr
     def test_map_fallthrough(self):
         # GH#22067, check we don't get warnings about silently ignored errors
         dti = date_range('2017-01-01', '2018-01-01', freq='B')
 
-        c = StringIO()
-        stderr = sys.stderr
-        sys.stderr = c
-        try:
-            dti.map(lambda x: pd.Period(year=x.year,
-                                        month=x.month, freq='M'))
-        finally:
-            sys.stderr = stderr
+        dti.map(lambda x: pd.Period(year=x.year,
+                                    month=x.month, freq='M'))
 
-        cv = c.getvalue()
+        cv = sys.stderr.getvalue()
         assert cv == ''
 
     def test_iteration_preserves_tz(self):
