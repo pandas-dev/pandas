@@ -132,8 +132,7 @@ class TestDatetimeIndex(object):
         # GH#22067, check we don't get warnings about silently ignored errors
         dti = date_range('2017-01-01', '2018-01-01', freq='B')
 
-        dti.map(lambda x: pd.Period(year=x.year,
-                                    month=x.month, freq='M'))
+        dti.map(lambda x: pd.Period(year=x.year, month=x.month, freq='M'))
 
         cv = sys.stderr.getvalue()
         assert cv == ''
