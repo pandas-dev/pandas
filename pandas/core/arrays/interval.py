@@ -401,7 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     msg = ('{name}.from_tuples received an invalid '
                            'item, {tpl}').format(name=name, tpl=d)
                     raise TypeError(msg)
-                lhs, rhs = d
             left.append(lhs)
             right.append(rhs)
 

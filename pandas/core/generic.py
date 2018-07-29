@@ -1084,7 +1084,8 @@ class NDFrame(PandasObject, SelectionMixin):
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            # Validate the axis
+            self._get_axis_number(axis)
 
         if kwargs:
             raise TypeError('rename() got an unexpected keyword '
@@ -5299,6 +5300,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.copy(deep=deep)
 
     def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
         if memo is None:
             memo = {}
         return self.copy(deep=True)
