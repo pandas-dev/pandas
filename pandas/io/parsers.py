@@ -3147,8 +3147,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | _NA_VALUES
 
             na_values[k] = v
-        na_fvalues = dict((k, _floatify_na_values(v))
-                          for k, v in na_values.items())
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]

@@ -194,8 +194,8 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([[isinstance(x, dict)
-                for x in compat.itervalues(y)] for y in data]):
+        if any([isinstance(x, dict)
+                for x in compat.itervalues(y)] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:

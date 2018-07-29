@@ -519,8 +519,8 @@ def test_groupby_multiple_columns(df, op):
         for n1, gp1 in data.groupby('A'):
             for n2, gp2 in gp1.groupby('B'):
                 expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
-        expected = dict((k, DataFrame(v))
-                        for k, v in compat.iteritems(expected))
+        expected = {k: DataFrame(v)
+                    for k, v in compat.iteritems(expected)}
         expected = Panel.fromDict(expected).swapaxes(0, 1)
         expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 

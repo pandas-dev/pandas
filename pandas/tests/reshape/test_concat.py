@@ -1542,14 +1542,13 @@ class TestConcatenate(ConcatenateBase):
                     return DataFrame(np.random.randn(index, cols),
                                      index=["I%s" % i for i in range(index)],
                                      columns=["C%s" % i for i in range(cols)])
-                return Panel(dict(("Item%s" % x, df())
-                                  for x in ['A', 'B', 'C']))
+                return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
 
             panel1 = make_panel()
             panel2 = make_panel()
 
-            panel2 = panel2.rename_axis(dict((x, "%s_1" % x)
-                                             for x in panel2.major_axis),
+            panel2 = panel2.rename_axis({x: "%s_1" % x
+                                         for x in panel2.major_axis},
                                         axis=1)
 
             panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)

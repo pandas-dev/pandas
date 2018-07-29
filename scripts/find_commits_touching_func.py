@@ -91,7 +91,7 @@ def get_hits(defname, files=()):
         # remove comment lines
         lines = [x for x in lines if not re.search("^\w+\s*\(.+\)\s*#", x)]
         hits = set(map(lambda x: x.split(" ")[0], lines))
-        cs.update(set(Hit(commit=c, path=f) for c in hits))
+        cs.update({Hit(commit=c, path=f) for c in hits})
 
     return cs
 

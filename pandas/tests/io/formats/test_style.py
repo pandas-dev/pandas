@@ -250,11 +250,11 @@ class TestStyler(object):
             for slice_ in slices:
                 result = self.df.style.apply(self.h, axis=ax, subset=slice_,
                                              foo='baz')._compute().ctx
-                expected = dict(((r, c), ['color: baz'])
-                                for r, row in enumerate(self.df.index)
-                                for c, col in enumerate(self.df.columns)
-                                if row in self.df.loc[slice_].index and
-                                col in self.df.loc[slice_].columns)
+                expected = {(r, c): ['color: baz']
+                            for r, row in enumerate(self.df.index)
+                            for c, col in enumerate(self.df.columns)
+                            if row in self.df.loc[slice_].index and
+                            col in self.df.loc[slice_].columns}
                 assert result == expected
 
     def test_applymap_subset(self):
@@ -267,11 +267,11 @@ class TestStyler(object):
 
         for slice_ in slices:
             result = self.df.style.applymap(f, subset=slice_)._compute().ctx
-            expected = dict(((r, c), ['foo: bar'])
-                            for r, row in enumerate(self.df.index)
-                            for c, col in enumerate(self.df.columns)
-                            if row in self.df.loc[slice_].index and
-                            col in self.df.loc[slice_].columns)
+            expected = {(r, c): ['foo: bar']
+                        for r, row in enumerate(self.df.index)
+                        for c, col in enumerate(self.df.columns)
+                        if row in self.df.loc[slice_].index and
+                        col in self.df.loc[slice_].columns}
             assert result == expected
 
     def test_where_with_one_style(self):
@@ -282,10 +282,9 @@ class TestStyler(object):
         style1 = 'foo: bar'
 
         result = self.df.style.where(f, style1)._compute().ctx
-        expected = dict(((r, c),
-                        [style1 if f(self.df.loc[row, col]) else ''])
-                        for r, row in enumerate(self.df.index)
-                        for c, col in enumerate(self.df.columns))
+        expected = {(r, c): [style1 if f(self.df.loc[row, col]) else '']
+                    for r, row in enumerate(self.df.index)
+                    for c, col in enumerate(self.df.columns)}
         assert result == expected
 
     def test_where_subset(self):
@@ -303,12 +302,12 @@ class TestStyler(object):
         for slice_ in slices:
             result = self.df.style.where(f, style1, style2,
                                          subset=slice_)._compute().ctx
-            expected = dict(((r, c),
-                            [style1 if f(self.df.loc[row, col]) else style2])
-                            for r, row in enumerate(self.df.index)
-                            for c, col in enumerate(self.df.columns)
-                            if row in self.df.loc[slice_].index and
-                            col in self.df.loc[slice_].columns)
+            expected = {(r, c):
+                        [style1 if f(self.df.loc[row, col]) else style2]
+                        for r, row in enumerate(self.df.index)
+                        for c, col in enumerate(self.df.columns)
+                        if row in self.df.loc[slice_].index and
+                        col in self.df.loc[slice_].columns}
             assert result == expected
 
     def test_where_subset_compare_with_applymap(self):

@@ -197,4 +197,4 @@ class TestS3(object):
         with caplog.at_level(logging.DEBUG, logger='s3fs.core'):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
-            assert ((0, 5505024) in set(x.args[-2:] for x in caplog.records))
+            assert ((0, 5505024) in {x.args[-2:] for x in caplog.records})

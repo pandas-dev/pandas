@@ -43,8 +43,7 @@ class GroupByMixin(object):
 
         # we need to make a shallow copy of ourselves
         # with the same groupby
-        kwargs = dict([(attr, getattr(self, attr))
-                       for attr in self._attributes])
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
         self = self.__class__(subset,
                               groupby=self._groupby[key],
                               parent=self,

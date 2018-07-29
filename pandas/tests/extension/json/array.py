@@ -160,7 +160,7 @@ class JSONArray(ExtensionArray):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
         return type(self)([
-            dict(x) for x in list(set(tuple(d.items()) for d in self.data))
+            dict(x) for x in list({tuple(d.items()) for d in self.data})
         ])
 
     @classmethod
@@ -176,5 +176,5 @@ class JSONArray(ExtensionArray):
         # Disable NumPy's shape inference by including an empty tuple...
         # If all the elemnts of self are the same size P, NumPy will
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + list(tuple(x.items()) for x in self)
+        frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]

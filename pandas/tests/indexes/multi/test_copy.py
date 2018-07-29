@@ -83,4 +83,4 @@ def test_copy_method_kwargs(deep, kwarg, value):
     if kwarg == 'names':
         assert getattr(idx_copy, kwarg) == value
     else:
-        assert list(list(i) for i in getattr(idx_copy, kwarg)) == value
+        assert [list(i) for i in getattr(idx_copy, kwarg)] == value

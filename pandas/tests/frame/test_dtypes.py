@@ -397,8 +397,8 @@ class TestDataFrameDataTypes(TestData):
     def test_dtypes_gh8722(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
-        expected = Series(dict((k, v.dtype)
-                               for k, v in compat.iteritems(self.mixed_frame)),
+        expected = Series({k: v.dtype
+                           for k, v in compat.iteritems(self.mixed_frame)},
                           index=result.index)
         assert_series_equal(result, expected)
 
@@ -439,8 +439,8 @@ class TestDataFrameDataTypes(TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            assert (list(set(s.dtype.name for
-                             _, s in compat.iteritems(df)))[0] == v)
+            assert (list({s.dtype.name for
+                          _, s in compat.iteritems(df)})[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
