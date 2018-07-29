@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 
 from pandas._libs import tslib, lib, tslibs
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime
 from pandas.compat import string_types, text_type, PY3
 from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -838,11 +838,12 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
 
     # Soft conversions
     if datetime:
-        # GH 20380
+        # GH 20380, when datetime is beyond year 2262, hence outside
+        # bound of nanosecond-resolution 64-bit integers.
         try:
             values = lib.maybe_convert_objects(values,
                                                convert_datetime=datetime)
-        except ValueError:
+        except OutOfBoundsDatetime:
             pass
 
     if timedelta and is_object_dtype(values.dtype):
