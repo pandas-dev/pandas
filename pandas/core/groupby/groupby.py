@@ -2076,18 +2076,15 @@ class GroupBy(_GroupBy):
                                                      limit=limit, freq=freq,
                                                      axis=axis))
         if fill_method:
-            new = DataFrameGroupBy(self._obj_with_exclusions,
-                                   grouper=self.grouper)
+            new = copy.copy(self)
             new.obj = getattr(new, fill_method)(limit=limit)
             new._reset_cache()
         else:
             new = self
 
         obj = new.obj.drop(self.grouper.names, axis=1)
-        shifted = new.shift(periods=periods, freq=freq).\
-            drop(self.grouper.names, axis=1)
+        shifted = new.shift(periods=periods, freq=freq)
         return (obj / shifted) - 1
-
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

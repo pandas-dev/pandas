@@ -724,13 +724,15 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
+    (1, None, None), (1, None, 1),
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
     (-1, 'bfill', None), (-1, 'bfill', 1),
 ])
 def test_pct_change(test_series, shuffle, periods, fill_method, limit):
-    vals = [3, np.nan, 1, 2, 4, 10, np.nan, 4]
+    # GH  21200, 21621
+    vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ['a', 'b']
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({'key': key_v, 'vals': vals * 2})
@@ -738,21 +740,25 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
         order = np.random.RandomState(seed=42).permutation(len(df))
         df = df.reindex(order).reset_index(drop=True)
 
-    df = getattr(df.groupby('key'), fill_method)(limit=limit)
-    grp = df.groupby('key')
-    exp = grp['vals'].shift(0) / grp['vals'].shift(periods) - 1
-    exp = exp.to_frame('vals')
+    if fill_method:
+        df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
+        grp = df_g.groupby('key')
+    else:
+        grp = df.groupby('key')
+
+    expected = grp['vals'].obj / grp['vals'].shift(periods) - 1
+    expected = expected.to_frame('vals')
 
     if test_series:
-        result = grp['vals'].pct_change(periods=periods,
-                                        fill_method=fill_method,
-                                        limit=limit)
-        tm.assert_series_equal(result, exp.loc[:, 'vals'])
+        result = df.groupby('key')['vals'].pct_change(periods=periods,
+                                                      fill_method=fill_method,
+                                                      limit=limit)
+        tm.assert_series_equal(result, expected.loc[:, 'vals'])
     else:
-        result = grp.pct_change(periods=periods,
-                                fill_method=fill_method,
-                                limit=limit)
-        tm.assert_frame_equal(result, exp)
+        result = df.groupby('key').pct_change(periods=periods,
+                                              fill_method=fill_method,
+                                              limit=limit)
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
