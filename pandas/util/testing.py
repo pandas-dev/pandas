@@ -1348,8 +1348,8 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
-        If True, ignore the order of rows & columns.
-        Note: Index (row) labels must match their respective rows
+        If True, ignore the order of index & columns.
+        Note: row labels must match their respective rows
         (same as in columns) - same labels must be with the same data
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
