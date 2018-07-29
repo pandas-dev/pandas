@@ -10,7 +10,7 @@ from numpy import random
 import numpy as np
 
 from pandas.compat import lrange, lzip, u
-from pandas import (compat, DataFrame, Series, Index, MultiIndex,
+from pandas import (compat, DataFrame, Series, Index, MultiIndex, Categorical,
                     date_range, isna)
 import pandas as pd
 
@@ -1129,6 +1129,19 @@ class TestDataFrameSelectReindex(TestData):
 
         assert_frame_equal(result, expected)
 
+    def test_reindex_multi_categorical_time(self):
+        # https://github.com/pandas-dev/pandas/issues/21390
+        midx = pd.MultiIndex.from_product(
+            [Categorical(['a', 'b', 'c']),
+             Categorical(date_range("2012-01-01", periods=3, freq='H'))])
+        df = pd.DataFrame({'a': range(len(midx))}, index=midx)
+        df2 = df.iloc[[0, 1, 2, 3, 4, 5, 6, 8]]
+
+        result = df2.reindex(midx)
+        expected = pd.DataFrame(
+            {'a': [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
+        assert_frame_equal(result, expected)
+
     data = [[1, 2, 3], [1, 2, 3]]
 
     @pytest.mark.parametrize('actual', [
@@ -1151,3 +1164,18 @@ class TestDataFrameSelectReindex(TestData):
         expected_no_err = actual.T.drop('c', axis=1, level=level,
                                         errors='ignore')
         assert_frame_equal(expected_no_err.T, actual)
+
+    @pytest.mark.parametrize('index', [[1, 2, 3], [1, 1, 2]])
+    @pytest.mark.parametrize('drop_labels', [[], [1], [2]])
+    def test_drop_empty_list(self, index, drop_labels):
+        # GH 21494
+        expected_index = [i for i in index if i not in drop_labels]
+        frame = pd.DataFrame(index=index).drop(drop_labels)
+        tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
+
+    @pytest.mark.parametrize('index', [[1, 2, 3], [1, 2, 2]])
+    @pytest.mark.parametrize('drop_labels', [[1, 4], [4, 5]])
+    def test_drop_non_empty_list(self, index, drop_labels):
+        # GH 21494
+        with tm.assert_raises_regex(KeyError, 'not found in axis'):
+            pd.DataFrame(index=index).drop(drop_labels)

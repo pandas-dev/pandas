@@ -258,6 +258,57 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodIndexArithmetic(object):
+    # ---------------------------------------------------------------
+    # __add__/__sub__ with PeriodIndex
+    # PeriodIndex + other is defined for integers and timedelta-like others
+    # PeriodIndex - other is defined for integers, timedelta-like others,
+    #   and PeriodIndex (with matching freq)
+
+    def test_pi_add_iadd_pi_raises(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+
+        # An earlier implementation of PeriodIndex addition performed
+        # a set operation (union).  This has since been changed to
+        # raise a TypeError. See GH#14164 and GH#13077 for historical
+        # reference.
+        with pytest.raises(TypeError):
+            rng + other
+
+        with pytest.raises(TypeError):
+            rng += other
+
+    def test_pi_sub_isub_pi(self):
+        # GH#20049
+        # For historical reference see GH#14164, GH#13077.
+        # PeriodIndex subtraction originally performed set difference,
+        # then changed to raise TypeError before being implemented in GH#20049
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+
+        off = rng.freq
+        expected = pd.Index([-5 * off] * 5)
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+
+        rng -= other
+        tm.assert_index_equal(rng, expected)
+
+    def test_pi_sub_pi_with_nat(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = rng[1:].insert(0, pd.NaT)
+        assert other[1:].equals(rng[1:])
+
+        result = rng - other
+        off = rng.freq
+        expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
+        tm.assert_index_equal(result, expected)
+
+    def test_pi_sub_pi_mismatched_freq(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='H', periods=5)
+        with pytest.raises(period.IncompatibleFrequency):
+            rng - other
 
     # -------------------------------------------------------------
     # Invalid Operations
@@ -379,17 +430,6 @@ class TestPeriodIndexArithmetic(object):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - pi
 
-    def test_pi_add_iadd_pi_raises(self):
-        rng = pd.period_range('1/1/2000', freq='D', periods=5)
-        other = pd.period_range('1/6/2000', freq='D', periods=5)
-
-        # previously performed setop union, now raises TypeError (GH14164)
-        with pytest.raises(TypeError):
-            rng + other
-
-        with pytest.raises(TypeError):
-            rng += other
-
     def test_pi_add_iadd_int(self, one):
         # Variants of `one` for #19012
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
@@ -419,18 +459,6 @@ class TestPeriodIndexArithmetic(object):
         exp = rng + (-five)
         tm.assert_index_equal(result, exp)
 
-    def test_pi_sub_isub_pi_raises(self):
-        # previously performed setop, now raises TypeError (GH14164)
-        # TODO needs to wait on #13077 for decision on result type
-        rng = pd.period_range('1/1/2000', freq='D', periods=5)
-        other = pd.period_range('1/6/2000', freq='D', periods=5)
-
-        with pytest.raises(TypeError):
-            rng - other
-
-        with pytest.raises(TypeError):
-            rng -= other
-
     def test_pi_sub_isub_offset(self):
         # offset
         # DateOffset
@@ -448,6 +476,31 @@ class TestPeriodIndexArithmetic(object):
 
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
+
+    # ---------------------------------------------------------------
+    # __add__/__sub__ with integer arrays
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd])
+    def test_pi_add_intarray(self, box, op):
+        # GH#19959
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
+        other = box([4, -1])
+        result = op(pi, other)
+        expected = pd.PeriodIndex([pd.Period('2016Q1'), pd.Period('NaT')])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_pi_sub_intarray(self, box):
+        # GH#19959
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
+        other = box([4, -1])
+        result = pi - other
+        expected = pd.PeriodIndex([pd.Period('2014Q1'), pd.Period('NaT')])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - pi
 
     # ---------------------------------------------------------------
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)
@@ -705,11 +758,12 @@ class TestPeriodIndexSeriesMethods(object):
 
         self._check(idx + 2, lambda x: x - 2, idx)
         result = idx - Period('2011-01', freq='M')
-        exp = pd.Index([0, 1, 2, 3], name='idx')
+        off = idx.freq
+        exp = pd.Index([0 * off, 1 * off, 2 * off, 3 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = Period('2011-01', freq='M') - idx
-        exp = pd.Index([0, -1, -2, -3], name='idx')
+        exp = pd.Index([0 * off, -1 * off, -2 * off, -3 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
@@ -839,14 +893,15 @@ class TestPeriodIndexSeriesMethods(object):
                           freq='M', name='idx')
 
         result = idx - pd.Period('2012-01', freq='M')
-        exp = pd.Index([-12, -11, -10, -9], name='idx')
+        off = idx.freq
+        exp = pd.Index([-12 * off, -11 * off, -10 * off, -9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = np.subtract(idx, pd.Period('2012-01', freq='M'))
         tm.assert_index_equal(result, exp)
 
         result = pd.Period('2012-01', freq='M') - idx
-        exp = pd.Index([12, 11, 10, 9], name='idx')
+        exp = pd.Index([12 * off, 11 * off, 10 * off, 9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = np.subtract(pd.Period('2012-01', freq='M'), idx)
@@ -873,11 +928,12 @@ class TestPeriodIndexSeriesMethods(object):
                           freq='M', name='idx')
 
         result = idx - pd.Period('2012-01', freq='M')
-        exp = pd.Index([-12, np.nan, -10, -9], name='idx')
+        off = idx.freq
+        exp = pd.Index([-12 * off, pd.NaT, -10 * off, -9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = pd.Period('2012-01', freq='M') - idx
-        exp = pd.Index([12, np.nan, 10, 9], name='idx')
+        exp = pd.Index([12 * off, pd.NaT, 10 * off, 9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')

@@ -305,6 +305,18 @@ class TestTimedeltaIndexArithmetic(object):
         with pytest.raises(TypeError):
             p - idx
 
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
+    @pytest.mark.parametrize('tdi_freq', [None, 'H'])
+    def test_dti_sub_pi(self, tdi_freq, pi_freq, op):
+        # GH#20049 subtracting PeriodIndex should raise TypeError
+        tdi = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=tdi_freq)
+        dti = pd.Timestamp('2018-03-07 17:16:40') + tdi
+        pi = dti.to_period(pi_freq)
+        with pytest.raises(TypeError):
+            op(dti, pi)
+
     # -------------------------------------------------------------
     # TimedeltaIndex.shift is used by __add__/__sub__
 
@@ -541,6 +553,45 @@ class TestTimedeltaIndexArithmetic(object):
         expected = timedelta_range('1 days 08:00:00', freq='H', periods=10)
         rng -= one
         tm.assert_index_equal(rng, expected)
+
+    # -------------------------------------------------------------
+    # __add__/__sub__ with integer arrays
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_add_integer_array(self, box):
+        # GH#19959
+        rng = timedelta_range('1 days 09:00:00', freq='H', periods=3)
+        other = box([4, 3, 2])
+        expected = TimedeltaIndex(['1 day 13:00:00'] * 3)
+        result = rng + other
+        tm.assert_index_equal(result, expected)
+        result = other + rng
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_sub_integer_array(self, box):
+        # GH#19959
+        rng = timedelta_range('9H', freq='H', periods=3)
+        other = box([4, 3, 2])
+        expected = TimedeltaIndex(['5H', '7H', '9H'])
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+        result = other - rng
+        tm.assert_index_equal(result, -expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_addsub_integer_array_no_freq(self, box):
+        # GH#19959
+        tdi = TimedeltaIndex(['1 Day', 'NaT', '3 Hours'])
+        other = box([14, -1, 16])
+        with pytest.raises(NullFrequencyError):
+            tdi + other
+        with pytest.raises(NullFrequencyError):
+            other + tdi
+        with pytest.raises(NullFrequencyError):
+            tdi - other
+        with pytest.raises(NullFrequencyError):
+            other - tdi
 
     # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like

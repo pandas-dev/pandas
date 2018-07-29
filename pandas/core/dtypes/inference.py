@@ -6,7 +6,7 @@ import numpy as np
 from collections import Iterable
 from numbers import Number
 from pandas.compat import (PY2, string_types, text_type,
-                           string_and_binary_types)
+                           string_and_binary_types, re_type)
 from pandas._libs import lib
 
 is_bool = lib.is_bool
@@ -216,7 +216,7 @@ def is_re(obj):
     False
     """
 
-    return isinstance(obj, re._pattern_type)
+    return isinstance(obj, re_type)
 
 
 def is_re_compilable(obj):
@@ -278,10 +278,17 @@ def is_list_like(obj):
     False
     >>> is_list_like(1)
     False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
     """
 
     return (isinstance(obj, Iterable) and
-            not isinstance(obj, string_and_binary_types))
+            # we do not count strings/unicode/bytes as list-like
+            not isinstance(obj, string_and_binary_types) and
+            # exclude zero-dimensional numpy arrays, effectively scalars
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
 
 
 def is_array_like(obj):

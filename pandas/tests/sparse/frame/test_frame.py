@@ -227,7 +227,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_from_unknown_type(self):
         # GH 19393
-        class Unknown:
+        class Unknown(object):
             pass
         with pytest.raises(TypeError,
                            message='SparseDataFrame called with unknown type '
@@ -629,9 +629,30 @@ class TestSparseDataFrame(SharedWithSparse):
 
         a = self.frame.iloc[:5, :3]
         b = self.frame.iloc[5:]
-        appended = a.append(b)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # Stacklevel is set for pd.concat, not append
+            appended = a.append(b)
         tm.assert_sp_frame_equal(appended.iloc[:, :3], self.frame.iloc[:, :3],
                                  exact_indices=False)
+
+        a = a[['B', 'C', 'A']].head(2)
+        b = b.head(2)
+
+        expected = pd.SparseDataFrame({
+            "B": [0., 1, None, 3],
+            "C": [0., 1, 5, 6],
+            "A": [None, None, 2, 3],
+            "D": [None, None, 5, None],
+        }, index=a.index | b.index, columns=['B', 'C', 'A', 'D'])
+        with tm.assert_produces_warning(None):
+            appended = a.append(b, sort=False)
+
+        tm.assert_frame_equal(appended, expected)
+
+        with tm.assert_produces_warning(None):
+            appended = a.append(b, sort=True)
+
+        tm.assert_sp_frame_equal(appended, expected[['A', 'B', 'C', 'D']])
 
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],

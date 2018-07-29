@@ -5,7 +5,6 @@ import re
 cimport cython
 
 cimport numpy as cnp
-from numpy cimport int64_t
 cnp.import_array()
 
 from util cimport is_integer_object, is_string_object
@@ -20,7 +19,7 @@ opattern = re.compile(
     r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
 )
 
-_INVALID_FREQ_ERROR = "Invalid frequency: {0}"
+INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 # ---------------------------------------------------------------------
 # Period codes
@@ -220,7 +219,7 @@ cpdef _period_str_to_code(freqstr):
     try:
         return _period_code_map[freqstr]
     except KeyError:
-        raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freqstr))
 
 
 cpdef str get_freq_str(base, mult=1):

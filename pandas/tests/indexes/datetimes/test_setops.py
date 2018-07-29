@@ -357,7 +357,7 @@ class TestBusinessDatetimeIndex(object):
         expected = rng[10:25]
         tm.assert_index_equal(the_int, expected)
         assert isinstance(the_int, DatetimeIndex)
-        assert the_int.offset == rng.offset
+        assert the_int.freq == rng.freq
 
         the_int = rng1.intersection(rng2.view(DatetimeIndex))
         tm.assert_index_equal(the_int, expected)

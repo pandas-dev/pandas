@@ -88,6 +88,46 @@ class TestSeriesComparison(object):
 
 
 class TestTimestampSeriesComparison(object):
+    def test_dt64_ser_cmp_date_warning(self):
+        # https://github.com/pandas-dev/pandas/issues/21359
+        # Remove this test and enble invalid test below
+        ser = pd.Series(pd.date_range('20010101', periods=10), name='dates')
+        date = ser.iloc[0].to_pydatetime().date()
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ser == date
+        expected = pd.Series([True] + [False] * 9, name='dates')
+        tm.assert_series_equal(result, expected)
+        assert "Comparing Series of datetimes " in str(m[0].message)
+        assert "will not compare equal" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ser != date
+        tm.assert_series_equal(result, ~expected)
+        assert "will not compare equal" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ser <= date
+        tm.assert_series_equal(result, expected)
+        assert "a TypeError will be raised" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ser < date
+        tm.assert_series_equal(result, pd.Series([False] * 10, name='dates'))
+        assert "a TypeError will be raised" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ser >= date
+        tm.assert_series_equal(result, pd.Series([True] * 10, name='dates'))
+        assert "a TypeError will be raised" in str(m[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ser > date
+        tm.assert_series_equal(result, pd.Series([False] + [True] * 9,
+                                                 name='dates'))
+        assert "a TypeError will be raised" in str(m[0].message)
+
+    @pytest.mark.skip(reason="GH-21359")
     def test_dt64ser_cmp_date_invalid(self):
         # GH#19800 datetime.date comparison raises to
         # match DatetimeIndex/Timestamp.  This also matches the behavior
@@ -117,40 +157,43 @@ class TestTimestampSeriesComparison(object):
         expected = Series([x > val for x in ser])
         tm.assert_series_equal(result, expected)
 
-    def test_timestamp_compare_series(self):
-        # make sure we can compare Timestamps on the right AND left hand side
-        # GH#4982
-        ser = pd.Series(pd.date_range('20010101', periods=10), name='dates')
+    @pytest.mark.parametrize("left,right", [
+        ("lt", "gt"),
+        ("le", "ge"),
+        ("eq", "eq"),
+        ("ne", "ne"),
+    ])
+    def test_timestamp_compare_series(self, left, right):
+        # see gh-4982
+        # Make sure we can compare Timestamps on the right AND left hand side.
+        ser = pd.Series(pd.date_range("20010101", periods=10), name="dates")
         s_nat = ser.copy(deep=True)
 
-        ser[0] = pd.Timestamp('nat')
-        ser[3] = pd.Timestamp('nat')
+        ser[0] = pd.Timestamp("nat")
+        ser[3] = pd.Timestamp("nat")
 
-        ops = {'lt': 'gt', 'le': 'ge', 'eq': 'eq', 'ne': 'ne'}
+        left_f = getattr(operator, left)
+        right_f = getattr(operator, right)
 
-        for left, right in ops.items():
-            left_f = getattr(operator, left)
-            right_f = getattr(operator, right)
+        # No NaT
+        expected = left_f(ser, pd.Timestamp("20010109"))
+        result = right_f(pd.Timestamp("20010109"), ser)
+        tm.assert_series_equal(result, expected)
 
-            # no nats
-            expected = left_f(ser, pd.Timestamp('20010109'))
-            result = right_f(pd.Timestamp('20010109'), ser)
-            tm.assert_series_equal(result, expected)
+        # NaT
+        expected = left_f(ser, pd.Timestamp("nat"))
+        result = right_f(pd.Timestamp("nat"), ser)
+        tm.assert_series_equal(result, expected)
 
-            # nats
-            expected = left_f(ser, pd.Timestamp('nat'))
-            result = right_f(pd.Timestamp('nat'), ser)
-            tm.assert_series_equal(result, expected)
+        # Compare to Timestamp with series containing NaT
+        expected = left_f(s_nat, pd.Timestamp("20010109"))
+        result = right_f(pd.Timestamp("20010109"), s_nat)
+        tm.assert_series_equal(result, expected)
 
-            # compare to timestamp with series containing nats
-            expected = left_f(s_nat, pd.Timestamp('20010109'))
-            result = right_f(pd.Timestamp('20010109'), s_nat)
-            tm.assert_series_equal(result, expected)
-
-            # compare to nat with series containing nats
-            expected = left_f(s_nat, pd.Timestamp('nat'))
-            result = right_f(pd.Timestamp('nat'), s_nat)
-            tm.assert_series_equal(result, expected)
+        # Compare to NaT with series containing NaT
+        expected = left_f(s_nat, pd.Timestamp("nat"))
+        result = right_f(pd.Timestamp("nat"), s_nat)
+        tm.assert_series_equal(result, expected)
 
     def test_timestamp_equality(self):
         # GH#11034
@@ -477,8 +520,9 @@ class TestPeriodSeriesArithmetic(object):
         assert ser.dtype == object
 
         per = pd.Period('2015-01-10', freq='D')
+        off = per.freq
         # dtype will be object because of original dtype
-        expected = pd.Series([9, 8], name='xxx', dtype=object)
+        expected = pd.Series([9 * off, 8 * off], name='xxx', dtype=object)
         tm.assert_series_equal(per - ser, expected)
         tm.assert_series_equal(ser - per, -1 * expected)
 
@@ -486,7 +530,7 @@ class TestPeriodSeriesArithmetic(object):
                         pd.Period('2015-01-04', freq='D')], name='xxx')
         assert s2.dtype == object
 
-        expected = pd.Series([4, 2], name='xxx', dtype=object)
+        expected = pd.Series([4 * off, 2 * off], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - ser, expected)
         tm.assert_series_equal(ser - s2, -1 * expected)
 
@@ -847,22 +891,3 @@ class TestTimedeltaSeriesMultiplicationDivision(object):
             td1 * scalar_td
         with tm.assert_raises_regex(TypeError, pattern):
             scalar_td * td1
-
-
-class TestTimedeltaSeriesInvalidArithmeticOps(object):
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
-    def test_td64series_pow_invalid(self, scalar_td):
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # check that we are getting a TypeError
-        # with 'operate' (from core/ops.py) for the ops that are not
-        # defined
-        pattern = 'operate|unsupported|cannot|not supported'
-        with tm.assert_raises_regex(TypeError, pattern):
-            scalar_td ** td1
-        with tm.assert_raises_regex(TypeError, pattern):
-            td1 ** scalar_td

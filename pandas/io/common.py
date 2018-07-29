@@ -5,7 +5,7 @@ import csv
 import codecs
 import mmap
 from contextlib import contextmanager, closing
-from zipfile import ZipFile
+import zipfile
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
@@ -88,7 +88,7 @@ def _is_url(url):
     """
     try:
         return parse_url(url).scheme in _VALID_URLS
-    except:
+    except Exception:
         return False
 
 
@@ -165,7 +165,15 @@ def is_s3_url(url):
     """Check for an s3, s3n, or s3a url"""
     try:
         return parse_url(url).scheme in ['s3', 's3n', 's3a']
-    except:  # noqa
+    except Exception:
+        return False
+
+
+def is_gcs_url(url):
+    """Check for a gcs url"""
+    try:
+        return parse_url(url).scheme in ['gcs', 'gs']
+    except Exception:
         return False
 
 
@@ -207,6 +215,13 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                                          encoding=encoding,
                                          compression=compression,
                                          mode=mode)
+
+    if is_gcs_url(filepath_or_buffer):
+        from pandas.io import gcs
+        return gcs.get_filepath_or_buffer(filepath_or_buffer,
+                                          encoding=encoding,
+                                          compression=compression,
+                                          mode=mode)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,
@@ -252,10 +267,12 @@ def _infer_compression(filepath_or_buffer, compression):
 
     Parameters
     ----------
-    filepath_or_buf :
+    filepath_or_buffer :
         a path (str) or buffer
-    compression : str or None
-        the compression method including None for no compression and 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
 
     Returns
     -------
@@ -307,8 +324,10 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     mode : str
         mode to open path_or_buf with
     encoding : str or None
-    compression : str or None
-        Supported compression protocols are gzip, bz2, zip, and xz
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default None
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
@@ -334,6 +353,9 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     # Convert pathlib.Path/py.path.local or string
     path_or_buf = _stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, compat.string_types)
+
+    if is_path:
+        compression = _infer_compression(path_or_buf, compression)
 
     if compression:
 
@@ -428,7 +450,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     return f, handles
 
 
-class BytesZipFile(ZipFile, BytesIO):
+class BytesZipFile(zipfile.ZipFile, BytesIO):
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
@@ -437,13 +459,17 @@ class BytesZipFile(ZipFile, BytesIO):
     bytes strings into a member of the archive.
     """
     # GH 17778
-    def __init__(self, file, mode='r', **kwargs):
+    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
-        super(BytesZipFile, self).__init__(file, mode, **kwargs)
+        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
         super(BytesZipFile, self).writestr(self.filename, data)
+
+    @property
+    def closed(self):
+        return self.fp is None
 
 
 class MMapWrapper(BaseIterator):
@@ -534,7 +560,7 @@ else:
             row = next(self.reader)
             return [compat.text_type(s, "utf-8") for s in row]
 
-    class UnicodeWriter:
+    class UnicodeWriter(object):
 
         """
         A CSV writer which will write rows to CSV file "f",

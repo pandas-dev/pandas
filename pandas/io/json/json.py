@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 import pandas._libs.json as json
-from pandas._libs.tslib import iNaT
+from pandas._libs.tslibs import iNaT
 from pandas.compat import StringIO, long, u, to_str
 from pandas import compat, isna
 from pandas import Series, DataFrame, to_datetime, MultiIndex
@@ -231,9 +231,9 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     Parameters
     ----------
     path_or_buf : a valid JSON string or file-like, default: None
-        The string could be a URL. Valid URL schemes include http, ftp, s3, and
-        file. For file URLs, a host is expected. For instance, a local file
-        could be ``file://localhost/path/to/table.json``
+        The string could be a URL. Valid URL schemes include http, ftp, s3,
+        gcs, and file. For file URLs, a host is expected. For instance, a local
+        file could be ``file://localhost/path/to/table.json``
 
     orient : string,
         Indication of expected JSON string format.
@@ -547,7 +547,7 @@ class JsonReader(BaseIterator):
 
         if typ == 'series' or obj is None:
             if not isinstance(dtype, bool):
-                dtype = dict(data=dtype)
+                kwargs['dtype'] = dtype
             obj = SeriesParser(json, **kwargs).parse()
 
         return obj

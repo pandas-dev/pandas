@@ -7,6 +7,17 @@ and latex files. This module also applies to display formatting.
 from __future__ import print_function
 # pylint: disable=W0141
 
+from functools import partial
+
+import numpy as np
+
+from pandas._libs import lib
+from pandas._libs.tslibs import NaT, iNaT, Timestamp, Timedelta
+from pandas._libs.tslib import format_array_from_datetime
+
+from pandas import compat
+from pandas.compat import StringIO, lzip, map, zip, u
+
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
@@ -22,92 +33,83 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_list_like)
-from pandas.core.dtypes.generic import ABCSparseArray
+from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas import compat
-from pandas.compat import (StringIO, lzip, map, zip, u)
-
-from pandas.io.formats.terminal import get_terminal_size
+from pandas.core.index import Index, ensure_index
 from pandas.core.config import get_option, set_option
-from pandas.io.common import (_expand_user, _stringify_path)
-from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas._libs import lib
-
-from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
-                                format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-import pandas as pd
-import numpy as np
 
-from functools import partial
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.io.common import _expand_user, _stringify_path
+from pandas.io.formats.printing import adjoin, justify, pprint_thing
+
 
 common_docstring = """
-    Parameters
-    ----------
-    buf : StringIO-like, optional
-        buffer to write to
-    columns : sequence, optional
-        the subset of columns to write; default None writes all columns
-    col_space : int, optional
-        the minimum width of each column
-    header : bool, optional
-        %(header)s
-    index : bool, optional
-        whether to print index (row) labels, default True
-    na_rep : string, optional
-        string representation of NAN to use, default 'NaN'
-    formatters : list or dict of one-parameter functions, optional
-        formatter functions to apply to columns' elements by position or name,
-        default None. The result of each function must be a unicode string.
-        List must be of length equal to the number of columns.
-    float_format : one-parameter function, optional
-        formatter function to apply to columns' elements if they are floats,
-        default None. The result of this function must be a unicode string.
-    sparsify : bool, optional
-        Set to False for a DataFrame with a hierarchical index to print every
-        multiindex key at each row, default True
-    index_names : bool, optional
-        Prints the names of the indexes, default True
-    line_width : int, optional
-        Width to wrap a line in characters, default no wrap
-    table_id : str, optional
-        id for the <table> element create by to_html
+        Parameters
+        ----------
+        buf : StringIO-like, optional
+            Buffer to write to.
+        columns : sequence, optional, default None
+            The subset of columns to write. Writes all columns by default.
+        col_space : int, optional
+            The minimum width of each column.
+        header : bool, optional
+            %(header)s.
+        index : bool, optional, default True
+            Whether to print index (row) labels.
+        na_rep : str, optional, default 'NaN'
+            String representation of NAN to use.
+        formatters : list or dict of one-param. functions, optional
+            Formatter functions to apply to columns' elements by position or
+            name.
+            The result of each function must be a unicode string.
+            List must be of length equal to the number of columns.
+        float_format : one-parameter function, optional, default None
+            Formatter function to apply to columns' elements if they are
+            floats. The result of this function must be a unicode string.
+        sparsify : bool, optional, default True
+            Set to False for a DataFrame with a hierarchical index to print
+            every multiindex key at each row.
+        index_names : bool, optional, default True
+            Prints the names of the indexes.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from
+            the print configuration (controlled by set_option), 'right' out
+            of the box. Valid values are
 
-        .. versionadded:: 0.23.0"""
+            * left
+            * right
+            * center
+            * justify
+            * justify-all
+            * start
+            * end
+            * inherit
+            * match-parent
+            * initial
+            * unset.
+        max_rows : int, optional
+            Maximum number of rows to display in the console.
+        max_cols : int, optional
+            Maximum number of columns to display in the console.
+        show_dimensions : bool, default False
+            Display DataFrame dimensions (number of rows by number of columns).
+    """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "justify-all", "start", "end", "inherit",
                              "match-parent", "initial", "unset")
 
-justify_docstring = """
-    justify : str, default None
-        How to justify the column labels. If None uses the option from
-        the print configuration (controlled by set_option), 'right' out
-        of the box. Valid values are
-
-        * left
-        * right
-        * center
-        * justify
-        * justify-all
-        * start
-        * end
-        * inherit
-        * match-parent
-        * initial
-        * unset
-"""
-
 return_docstring = """
+        Returns
+        -------
+        str (or unicode, depending on data and options)
+            String representation of the dataframe.
+    """
 
-    Returns
-    -------
-    formatted : string (or unicode, depending on data and options)"""
-
-docstring_to_string = common_docstring + justify_docstring + return_docstring
+docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
@@ -244,7 +246,7 @@ class SeriesFormatter(object):
 
     def _get_formatted_index(self):
         index = self.tr_series.index
-        is_multi = isinstance(index, MultiIndex)
+        is_multi = isinstance(index, ABCMultiIndex)
 
         if is_multi:
             have_header = any(name for name in index.names)
@@ -381,7 +383,7 @@ class DataFrameFormatter(TableFormatter):
     """
 
     __doc__ = __doc__ if __doc__ else ''
-    __doc__ += common_docstring + justify_docstring + return_docstring
+    __doc__ += common_docstring + return_docstring
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
@@ -424,7 +426,7 @@ class DataFrameFormatter(TableFormatter):
         self.kwds = kwds
 
         if columns is not None:
-            self.columns = _ensure_index(columns)
+            self.columns = ensure_index(columns)
             self.frame = self.frame[self.columns]
         else:
             self.columns = frame.columns
@@ -493,8 +495,6 @@ class DataFrameFormatter(TableFormatter):
                                 frame.iloc[:, -col_num:]), axis=1)
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows_adj == 0:
-                row_num = len(frame)
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
@@ -514,7 +514,6 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a list of columns (as lists of strings).
         """
         frame = self.tr_frame
-
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)
@@ -625,7 +624,8 @@ class DataFrameFormatter(TableFormatter):
                 max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
-                adj_dif = dif
+                # '+ 1' to avoid too wide repr (GH PR #17023)
+                adj_dif = dif + 1
                 col_lens = Series([Series(ele).apply(len).max()
                                    for ele in strcols])
                 n_cols = len(col_lens)
@@ -635,10 +635,14 @@ class DataFrameFormatter(TableFormatter):
                     mid = int(round(n_cols / 2.))
                     mid_ix = col_lens.index[mid]
                     col_len = col_lens[mid_ix]
-                    adj_dif -= (col_len + 1)  # adjoin adds one
+                    # adjoin adds one
+                    adj_dif -= (col_len + 1)
                     col_lens = col_lens.drop(mid_ix)
                     n_cols = len(col_lens)
-                max_cols_adj = n_cols - self.index  # subtract index column
+                # subtract index column
+                max_cols_adj = n_cols - self.index
+                # GH-21180. Ensure that we print at least two.
+                max_cols_adj = max(max_cols_adj, 2)
                 self.max_cols_adj = max_cols_adj
 
                 # Call again _chk_truncate to cut frame appropriately
@@ -760,7 +764,7 @@ class DataFrameFormatter(TableFormatter):
 
         columns = frame.columns
 
-        if isinstance(columns, MultiIndex):
+        if isinstance(columns, ABCMultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes._values
@@ -777,7 +781,7 @@ class DataFrameFormatter(TableFormatter):
 
             str_columns = list(zip(*[[space_format(x, y) for y in x]
                                      for x in fmt_columns]))
-            if self.sparsify:
+            if self.sparsify and len(str_columns):
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
@@ -816,7 +820,7 @@ class DataFrameFormatter(TableFormatter):
 
         fmt = self._get_formatter('__index__')
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, ABCMultiIndex):
             fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
                                      names=show_index_names, formatter=fmt)
         else:
@@ -842,7 +846,7 @@ class DataFrameFormatter(TableFormatter):
     def _get_column_name_list(self):
         names = []
         columns = self.frame.columns
-        if isinstance(columns, MultiIndex):
+        if isinstance(columns, ABCMultiIndex):
             names.extend('' if name is None else name
                          for name in columns.names)
         else:
@@ -929,7 +933,7 @@ class GenericArrayFormatter(object):
             if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
-                elif x is pd.NaT:
+                elif x is NaT:
                     return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):
@@ -1407,7 +1411,7 @@ def _trim_zeros(str_floats, na_rep='NaN'):
 
 
 def _has_names(index):
-    if isinstance(index, MultiIndex):
+    if isinstance(index, ABCMultiIndex):
         return com._any_not_none(*index.names)
     else:
         return index.name is not None

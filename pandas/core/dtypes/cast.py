@@ -5,13 +5,14 @@ from datetime import datetime, timedelta
 import numpy as np
 import warnings
 
-from pandas._libs import tslib, lib
-from pandas._libs.tslib import iNaT
+from pandas._libs import tslib, lib, tslibs
+from pandas._libs.tslibs import iNaT
 from pandas.compat import string_types, text_type, PY3
-from .common import (_ensure_object, is_bool, is_integer, is_float,
+from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
                      is_extension_type,
+                     is_extension_array_dtype,
                      is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
@@ -19,12 +20,13 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_dtype_equal,
                      is_float_dtype, is_complex_dtype,
                      is_integer_dtype,
+                     is_unsigned_integer_dtype,
                      is_datetime_or_timedelta_dtype,
                      is_bool_dtype, is_scalar,
                      is_string_dtype, _string_dtypes,
                      pandas_dtype,
-                     _ensure_int8, _ensure_int16,
-                     _ensure_int32, _ensure_int64,
+                     ensure_int8, ensure_int16,
+                     ensure_int32, ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
 from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
@@ -83,7 +85,7 @@ def maybe_downcast_to_dtype(result, dtype):
 
     if isinstance(dtype, string_types):
         if dtype == 'infer':
-            inferred_type = lib.infer_dtype(_ensure_object(result.ravel()))
+            inferred_type = lib.infer_dtype(ensure_object(result.ravel()))
             if inferred_type == 'boolean':
                 dtype = 'bool'
             elif inferred_type == 'integer':
@@ -254,7 +256,6 @@ def maybe_upcast_putmask(result, mask, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
-
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
@@ -277,14 +278,14 @@ def maybe_promote(dtype, fill_value=np.nan):
         else:
             if issubclass(dtype.type, np.datetime64):
                 try:
-                    fill_value = tslib.Timestamp(fill_value).value
+                    fill_value = tslibs.Timestamp(fill_value).value
                 except Exception:
                     # the proper thing to do here would probably be to upcast
                     # to object (but numpy 1.6.1 doesn't do this properly)
                     fill_value = iNaT
             elif issubclass(dtype.type, np.timedelta64):
                 try:
-                    fill_value = tslib.Timedelta(fill_value).value
+                    fill_value = tslibs.Timedelta(fill_value).value
                 except Exception:
                     # as for datetimes, cannot upcast to object
                     fill_value = iNaT
@@ -293,6 +294,8 @@ def maybe_promote(dtype, fill_value=np.nan):
     elif is_datetimetz(dtype):
         if isna(fill_value):
             fill_value = iNaT
+    elif is_extension_array_dtype(dtype) and isna(fill_value):
+        fill_value = dtype.na_value
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -329,7 +332,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if is_categorical_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetimetz(dtype):
         pass
@@ -390,8 +393,8 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         dtype = np.object_
 
     elif isinstance(val, (np.datetime64, datetime)):
-        val = tslib.Timestamp(val)
-        if val is tslib.NaT or val.tz is None:
+        val = tslibs.Timestamp(val)
+        if val is tslibs.NaT or val.tz is None:
             dtype = np.dtype('M8[ns]')
         else:
             if pandas_dtype:
@@ -402,7 +405,7 @@ def infer_dtype_from_scalar(val, pandas_dtype=False):
         val = val.value
 
     elif isinstance(val, (np.timedelta64, timedelta)):
-        val = tslib.Timedelta(val).value
+        val = tslibs.Timedelta(val).value
         dtype = np.dtype('m8[ns]')
 
     elif is_bool(val):
@@ -599,12 +602,12 @@ def coerce_indexer_dtype(indexer, categories):
     """ coerce the indexer input array to the smallest dtype possible """
     length = len(categories)
     if length < _int8_max:
-        return _ensure_int8(indexer)
+        return ensure_int8(indexer)
     elif length < _int16_max:
-        return _ensure_int16(indexer)
+        return ensure_int16(indexer)
     elif length < _int32_max:
-        return _ensure_int32(indexer)
-    return _ensure_int64(indexer)
+        return ensure_int32(indexer)
+    return ensure_int64(indexer)
 
 
 def coerce_to_dtypes(result, dtypes):
@@ -622,7 +625,7 @@ def coerce_to_dtypes(result, dtypes):
             if isna(r):
                 pass
             elif dtype == _NS_DTYPE:
-                r = tslib.Timestamp(r)
+                r = tslibs.Timestamp(r)
             elif dtype == _TD_DTYPE:
                 r = _coerce_scalar_to_timedelta_type(r)
             elif dtype == np.bool_:
@@ -645,6 +648,12 @@ def coerce_to_dtypes(result, dtypes):
 def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
+
+    # dispatch on extension dtype if needed
+    if is_extension_array_dtype(dtype):
+        return dtype.construct_array_type()._from_sequence(
+            arr, dtype=dtype, copy=copy)
+
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
 
@@ -671,7 +680,7 @@ def astype_nansafe(arr, dtype, copy=True):
 
     elif is_timedelta64_dtype(arr):
         if is_object_dtype(dtype):
-            return tslib.ints_to_pytimedelta(arr.view(np.int64))
+            return tslibs.ints_to_pytimedelta(arr.view(np.int64))
         elif dtype == np.int64:
             return arr.view(dtype)
 
@@ -940,7 +949,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         except Exception:
             return v.reshape(shape)
 
-    inferred_type = lib.infer_datetimelike_array(_ensure_object(v))
+    inferred_type = lib.infer_datetimelike_array(ensure_object(v))
 
     if inferred_type == 'date' and convert_dates:
         value = try_datetime(v)
@@ -1225,3 +1234,116 @@ def construct_1d_object_array_from_listlike(values):
     result = np.empty(len(values), dtype='object')
     result[:] = values
     return result
+
+
+def construct_1d_ndarray_preserving_na(values, dtype=None, copy=False):
+    """
+    Construct a new ndarray, coercing `values` to `dtype`, preserving NA.
+
+    Parameters
+    ----------
+    values : Sequence
+    dtype : numpy.dtype, optional
+    copy : bool, default False
+        Note that copies may still be made with ``copy=False`` if casting
+        is required.
+
+    Returns
+    -------
+    arr : ndarray[dtype]
+
+    Examples
+    --------
+    >>> np.array([1.0, 2.0, None], dtype='str')
+    array(['1.0', '2.0', 'None'], dtype='<U4')
+
+    >>> construct_1d_ndarray_preserving_na([1.0, 2.0, None], dtype='str')
+
+
+    """
+    subarr = np.array(values, dtype=dtype, copy=copy)
+
+    if dtype is not None and dtype.kind in ("U", "S"):
+        # GH-21083
+        # We can't just return np.array(subarr, dtype='str') since
+        # NumPy will convert the non-string objects into strings
+        # Including NA values. Se we have to go
+        # string -> object -> update NA, which requires an
+        # additional pass over the data.
+        na_values = isna(values)
+        subarr2 = subarr.astype(object)
+        subarr2[na_values] = np.asarray(values, dtype=object)[na_values]
+        subarr = subarr2
+
+    return subarr
+
+
+def maybe_cast_to_integer_array(arr, dtype, copy=False):
+    """
+    Takes any dtype and returns the casted version, raising for when data is
+    incompatible with integer/unsigned integer dtypes.
+
+    .. versionadded:: 0.24.0
+
+    Parameters
+    ----------
+    arr : array-like
+        The array to cast.
+    dtype : str, np.dtype
+        The integer dtype to cast the array to.
+    copy: boolean, default False
+        Whether to make a copy of the array before returning.
+
+    Returns
+    -------
+    int_arr : ndarray
+        An array of integer or unsigned integer dtype
+
+    Raises
+    ------
+    OverflowError : the dtype is incompatible with the data
+    ValueError : loss of precision has occurred during casting
+
+    Examples
+    --------
+    If you try to coerce negative values to unsigned integers, it raises:
+
+    >>> Series([-1], dtype="uint64")
+    Traceback (most recent call last):
+        ...
+    OverflowError: Trying to coerce negative values to unsigned integers
+
+    Also, if you try to coerce float values to integers, it raises:
+
+    >>> Series([1, 2, 3.5], dtype="int64")
+    Traceback (most recent call last):
+        ...
+    ValueError: Trying to coerce float values to integers
+    """
+
+    try:
+        if not hasattr(arr, "astype"):
+            casted = np.array(arr, dtype=dtype, copy=copy)
+        else:
+            casted = arr.astype(dtype, copy=copy)
+    except OverflowError:
+        raise OverflowError("The elements provided in the data cannot all be "
+                            "casted to the dtype {dtype}".format(dtype=dtype))
+
+    if np.array_equal(arr, casted):
+        return casted
+
+    # We do this casting to allow for proper
+    # data and dtype checking.
+    #
+    # We didn't do this earlier because NumPy
+    # doesn't handle `uint64` correctly.
+    arr = np.asarray(arr)
+
+    if is_unsigned_integer_dtype(dtype) and (arr < 0).any():
+        raise OverflowError("Trying to coerce negative values "
+                            "to unsigned integers")
+
+    if is_integer_dtype(dtype) and (is_float_dtype(arr) or
+                                    is_object_dtype(arr)):
+        raise ValueError("Trying to coerce float values to integers")

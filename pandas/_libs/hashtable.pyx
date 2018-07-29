@@ -39,7 +39,6 @@ from khash cimport (
     kh_put_pymap, kh_resize_pymap)
 
 
-from util cimport _checknan
 cimport util
 
 from missing cimport checknull

@@ -28,6 +28,8 @@ cdef extern from "numpy/arrayobject.h":
         cdef object fields
         cdef tuple names
 
+from missing cimport is_null_datetime64, is_null_timedelta64, is_null_period
+
 from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
 
 # core.common import for fast inference checks
@@ -572,40 +574,6 @@ cpdef object infer_datetimelike_array(object arr):
         # for timedelta as too much ambiguity
 
     return 'mixed'
-
-
-cdef inline bint is_null_datetime64(v):
-    # determine if we have a null for a datetime (or integer versions),
-    # excluding np.timedelta64('nat')
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    elif util.is_datetime64_object(v):
-        return v.view('int64') == iNaT
-    return False
-
-
-cdef inline bint is_null_timedelta64(v):
-    # determine if we have a null for a timedelta (or integer versions),
-    # excluding np.datetime64('nat')
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    elif util.is_timedelta64_object(v):
-        return v.view('int64') == iNaT
-    return False
-
-
-cdef inline bint is_null_period(v):
-    # determine if we have a null for a Period (or integer versions),
-    # excluding np.datetime64('nat') and np.timedelta64('nat')
-    if util._checknull(v):
-        return True
-    elif v is NaT:
-        return True
-    return False
 
 
 cdef inline bint is_datetime(object o):
@@ -1225,7 +1193,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] idatetimes
         ndarray[int64_t] itimedeltas
         Seen seen = Seen()
-        object val, onan
+        object val
         float64_t fval, fnan
 
     n = len(objects)
@@ -1244,7 +1212,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         timedeltas = np.empty(n, dtype='m8[ns]')
         itimedeltas = timedeltas.view(np.int64)
 
-    onan = np.nan
     fnan = np.nan
 
     for i from 0 <= i < n:
