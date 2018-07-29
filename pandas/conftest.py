@@ -126,7 +126,7 @@ def all_arithmetic_operators(request):
 # use sorted as dicts in py<3.6 have random order, which xdist doesn't like
 _cython_table = sorted(((key, value) for key, value in
                         pd.core.base.SelectionMixin._cython_table.items()),
-                       key=lambda x: x[0].__class__.__name__)
+                       key=lambda x: x[0].__name__)
 
 
 @pytest.fixture(params=_cython_table)

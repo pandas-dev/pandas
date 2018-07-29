@@ -276,8 +276,8 @@ class TestDataFrameIndexing(TestData):
 
             data = df._get_numeric_data()
             bif = df[df > 0]
-            bifw = DataFrame(dict((c, np.where(data[c] > 0, data[c], np.nan))
-                                  for c in data.columns),
+            bifw = DataFrame({c: np.where(data[c] > 0, data[c], np.nan)
+                              for c in data.columns},
                              index=data.index, columns=data.columns)
 
             # add back other columns to compare
@@ -2506,9 +2506,9 @@ class TestDataFrameIndexing(TestData):
             _check_get(df, cond)
 
         # upcasting case (GH # 2794)
-        df = DataFrame(dict((c, Series([1] * 3, dtype=c))
-                            for c in ['float32', 'float64',
-                                      'int32', 'int64']))
+        df = DataFrame({c: Series([1] * 3, dtype=c)
+                        for c in ['float32', 'float64',
+                                  'int32', 'int64']})
         df.iloc[1, :] = 0
         result = df.where(df >= 0).get_dtype_counts()
 

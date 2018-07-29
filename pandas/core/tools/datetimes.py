@@ -1,5 +1,5 @@
 from functools import partial
-from datetime import datetime, timedelta, time
+from datetime import datetime, time
 from collections import MutableMapping
 
 import numpy as np
@@ -858,24 +858,3 @@ def to_time(arg, format=None, infer_time_format=False, errors='raise'):
         return _convert_listlike(arg, format)
 
     return _convert_listlike(np.array([arg]), format)[0]
-
-
-def format(dt):
-    """Returns date in YYYYMMDD format."""
-    return dt.strftime('%Y%m%d')
-
-
-OLE_TIME_ZERO = datetime(1899, 12, 30, 0, 0, 0)
-
-
-def ole2datetime(oledt):
-    """function for converting excel date to normal date format"""
-    val = float(oledt)
-
-    # Excel has a bug where it thinks the date 2/29/1900 exists
-    # we just reject any date before 3/1/1900.
-    if val < 61:
-        msg = "Value is outside of acceptable range: {value}".format(value=val)
-        raise ValueError(msg)
-
-    return OLE_TIME_ZERO + timedelta(days=val)
