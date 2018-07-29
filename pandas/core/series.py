@@ -182,7 +182,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     data = data.astype(dtype)
                 else:
                     # need to copy to avoid aliasing issues
-                    data = data._values.copy()
+                    # GH21907
+                    if isinstance(data, DatetimeIndex):
+                        data = data.copy(deep=True)
+                    else:
+                        data = data._values.copy()
                 copy = False
 
             elif isinstance(data, np.ndarray):
