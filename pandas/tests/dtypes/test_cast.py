@@ -462,8 +462,6 @@ def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
 @pytest.mark.parametrize('arr, dtype, expected', [
     (np.array(['0:0:1'], dtype='object'),
      'timedelta64[ns]', 'timedelta64[ns]'),
-    (np.array(['0:0:1'], dtype='object'),
-     'timedelta64', 'float64'),
     (np.array(['2000'], dtype='object'),
      'datetime64[ns]', 'datetime64[ns]'),
     (np.array(['2000'], dtype='object'),
