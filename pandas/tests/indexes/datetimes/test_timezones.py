@@ -732,7 +732,8 @@ class TestDatetimeIndexTimezones(object):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('tz', [
-        dateutil.tz.gettz('US/Eastern'), dateutil.tz.gettz('US/Pacific'), dateutil.tz.gettz('UTC')])
+        dateutil.tz.gettz('US/Eastern'), dateutil.tz.gettz('US/Pacific'),
+        dateutil.tz.gettz('UTC')])
     def test_timetz_accessor(self, tz):
         # GH21358
         expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
