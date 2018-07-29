@@ -107,7 +107,8 @@ class Docstring(object):
 
     @property
     def is_function_or_method(self):
-        return inspect.isfunction(self.method_obj)
+        # TODO(py27): revert ismethod to isfunction
+        return inspect.ismethod(self.method_obj)
 
     @property
     def source_file_name(self):
