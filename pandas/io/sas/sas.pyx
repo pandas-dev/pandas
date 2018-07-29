@@ -232,7 +232,8 @@ cdef class Parser(object):
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        const uint8_t[:] (*decompress)(int result_length, const uint8_t[:] inbuff)
+        const uint8_t[:] (*decompress)(int result_length,
+                                       const uint8_t[:] inbuff)
         object parser
 
     def __init__(self, object parser):
