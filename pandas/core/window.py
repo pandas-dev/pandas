@@ -625,7 +625,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 
@@ -933,7 +933,8 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index=index)
+        # Validate the index
+        self._get_index(index=index)
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -2467,7 +2468,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com._count_not_none(comass, span, halflife, alpha)
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha "
                          "are mutually exclusive")

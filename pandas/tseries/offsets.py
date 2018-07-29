@@ -2375,7 +2375,7 @@ def generate_range(start=None, end=None, periods=None,
             cur = next_date
 
 
-prefix_mapping = dict((offset._prefix, offset) for offset in [
+prefix_mapping = {offset._prefix: offset for offset in [
     YearBegin,                 # 'AS'
     YearEnd,                   # 'A'
     BYearBegin,                # 'BAS'
@@ -2407,4 +2407,4 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
-])
+]}

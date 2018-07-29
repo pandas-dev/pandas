@@ -55,7 +55,7 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
 def _get_combined_index(indexes, intersect=False, sort=False):
     # TODO: handle index names!
-    indexes = com._get_distinct_objs(indexes)
+    indexes = com.get_distinct_objs(indexes)
     if len(indexes) == 0:
         index = Index([])
     elif len(indexes) == 1:
@@ -130,7 +130,7 @@ def _sanitize_and_check(indexes):
 
     if list in kinds:
         if len(kinds) > 1:
-            indexes = [Index(com._try_sort(x))
+            indexes = [Index(com.try_sort(x))
                        if not isinstance(x, Index) else
                        x for x in indexes]
             kinds.remove(list)
@@ -147,8 +147,8 @@ def _get_consensus_names(indexes):
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
-    consensus_names = set(tuple(i.names) for i in indexes
-                          if com._any_not_none(*i.names))
+    consensus_names = {tuple(i.names) for i in indexes
+                       if com._any_not_none(*i.names)}
     if len(consensus_names) == 1:
         return list(list(consensus_names)[0])
     return [None] * indexes[0].nlevels

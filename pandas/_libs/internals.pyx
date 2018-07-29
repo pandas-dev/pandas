@@ -19,6 +19,9 @@ cdef extern from "compat_helper.h":
                                Py_ssize_t *slicelength) except -1
 
 
+from algos import ensure_int64
+
+
 cdef class BlockPlacement:
     # __slots__ = '_as_slice', '_as_array', '_len'
     cdef slice _as_slice
@@ -29,6 +32,8 @@ cdef class BlockPlacement:
     def __init__(self, val):
         cdef slice slc
 
+        self._as_slice = None
+        self._as_array = None
         self._has_slice = False
         self._has_array = False
 
@@ -141,6 +146,7 @@ cdef class BlockPlacement:
             other_int = <Py_ssize_t>other
 
             if other_int == 0:
+                # BlockPlacement is treated as immutable
                 return self
 
             start, stop, step, l = slice_get_indices_ex(s)
@@ -152,33 +158,21 @@ cdef class BlockPlacement:
                 raise ValueError("iadd causes length change")
 
             if stop < 0:
-                self._as_slice = slice(start, None, step)
+                val = slice(start, None, step)
             else:
-                self._as_slice = slice(start, stop, step)
+                val = slice(start, stop, step)
 
-            self._has_array = False
-            self._as_array = None
+            return BlockPlacement(val)
         else:
             newarr = self.as_array + other
             if (newarr < 0).any():
                 raise ValueError("iadd causes length change")
 
-            self._as_array = newarr
-            self._has_array = True
-            self._has_slice = False
-            self._as_slice = None
-
-        return self
-
-    cdef BlockPlacement copy(self):
-        cdef slice s = self._ensure_has_slice()
-        if s is not None:
-            return BlockPlacement(s)
-        else:
-            return BlockPlacement(self._as_array)
+            val = newarr
+            return BlockPlacement(val)
 
     def add(self, other):
-        return self.copy().iadd(other)
+        return self.iadd(other)
 
     def sub(self, other):
         return self.add(-other)
@@ -436,3 +430,26 @@ def get_blkno_indexers(int64_t[:] blknos, bint group=True):
                         i += 1
 
                 yield blkno, result
+
+
+def get_blkno_placements(blknos, blk_count, group=True):
+    """
+
+    Parameters
+    ----------
+    blknos : array of int64
+    blk_count : int
+    group : bool
+
+    Returns
+    -------
+    iterator
+        yield (BlockPlacement, blkno)
+
+    """
+
+    blknos = ensure_int64(blknos)
+
+    # FIXME: blk_count is unused, but it may avoid the use of dicts in cython
+    for blkno, indexer in get_blkno_indexers(blknos, group):
+        yield blkno, BlockPlacement(indexer)

@@ -401,7 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     msg = ('{name}.from_tuples received an invalid '
                            'item, {tpl}').format(name=name, tpl=d)
                     raise TypeError(msg)
-                lhs, rhs = d
             left.append(lhs)
             right.append(rhs)
 
@@ -601,7 +600,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = set(interval.closed for interval in to_concat)
+        closed = {interval.closed for interval in to_concat}
         if len(closed) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed.pop()
@@ -984,7 +983,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         examples='',
     ))
     def to_tuples(self, na_tuple=True):
-        tuples = com._asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com.asarray_tuplesafe(zip(self.left, self.right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)

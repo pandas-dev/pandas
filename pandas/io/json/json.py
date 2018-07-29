@@ -547,7 +547,7 @@ class JsonReader(BaseIterator):
 
         if typ == 'series' or obj is None:
             if not isinstance(dtype, bool):
-                dtype = dict(data=dtype)
+                kwargs['dtype'] = dtype
             obj = SeriesParser(json, **kwargs).parse()
 
         return obj

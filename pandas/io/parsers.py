@@ -60,11 +60,16 @@ Additional help can be found in the `online docs for IO Tools
 
 Parameters
 ----------
-filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
-object with a read() method (such as a file handle or StringIO)
-    The string could be a URL. Valid URL schemes include http, ftp, s3, and
-    file. For file URLs, a host is expected. For instance, a local file could
-    be file://localhost/path/to/table.csv
+filepath_or_buffer : str, path object, or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: file://localhost/path/to/table.csv.
+
+    If you want to pass in a path object, pandas accepts either
+    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+    By file-like object, we refer to objects with a ``read()`` method, such as
+    a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
 %s
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -3142,8 +3147,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | _NA_VALUES
 
             na_values[k] = v
-        na_fvalues = dict((k, _floatify_na_values(v))
-                          for k, v in na_values.items())
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
