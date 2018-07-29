@@ -21,9 +21,9 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
 
 
-_POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
-                             for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
-                                       'int32', 'uint32', 'int64', 'uint64']])
+_POSSIBLY_CAST_DTYPES = {np.dtype(t).name
+                         for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
+                                   'int32', 'uint32', 'int64', 'uint64']}
 
 _NS_DTYPE = conversion.NS_DTYPE
 _TD_DTYPE = conversion.TD_DTYPE

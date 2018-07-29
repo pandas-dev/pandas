@@ -2521,8 +2521,8 @@ class TestMomentsConsistency(Base):
         frame2.values[:] = np.random.randn(*frame2.shape)
 
         res3 = getattr(self.frame.rolling(window=10), method)(frame2)
-        exp = DataFrame(dict((k, getattr(self.frame[k].rolling(
-            window=10), method)(frame2[k])) for k in self.frame))
+        exp = DataFrame({k: getattr(self.frame[k].rolling(
+            window=10), method)(frame2[k]) for k in self.frame})
         tm.assert_frame_equal(res3, exp)
 
     def test_ewmcov(self):
