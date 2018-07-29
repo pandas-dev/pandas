@@ -133,7 +133,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if name is None:
             name = self.name
         cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=self.ordered)
+                                     ordered=ordered)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
