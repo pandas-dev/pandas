@@ -21,9 +21,9 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
 
 
-_POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
-                             for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
-                                       'int32', 'uint32', 'int64', 'uint64']])
+_POSSIBLY_CAST_DTYPES = {np.dtype(t).name
+                         for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
+                                   'int32', 'uint32', 'int64', 'uint64']}
 
 _NS_DTYPE = conversion.NS_DTYPE
 _TD_DTYPE = conversion.TD_DTYPE
@@ -302,6 +302,34 @@ def is_offsetlike(arr_or_obj):
           is_object_dtype(arr_or_obj)):
         return all(isinstance(x, ABCDateOffset) for x in arr_or_obj)
     return False
+
+
+def is_period(arr):
+    """
+    Check whether an array-like is a periodical index.
+
+    Parameters
+    ----------
+    arr : array-like
+        The array-like to check.
+
+    Returns
+    -------
+    boolean : Whether or not the array-like is a periodical index.
+
+    Examples
+    --------
+    >>> is_period([1, 2, 3])
+    False
+    >>> is_period(pd.Index([1, 2, 3]))
+    False
+    >>> is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
+    True
+    """
+
+    # TODO: do we need this function?
+    # It seems like a repeat of is_period_arraylike.
+    return isinstance(arr, ABCPeriodIndex) or is_period_arraylike(arr)
 
 
 def is_datetime64_dtype(arr_or_dtype):
