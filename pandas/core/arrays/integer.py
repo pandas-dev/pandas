@@ -136,6 +136,11 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     -------
     tuple of (values, mask)
     """
+    # if values is integer numpy array, preserve it's dtype
+    if dtype is None and hasattr(values, 'dtype'):
+        if is_integer_dtype(values.dtype):
+            dtype = values.dtype
+
     if dtype is not None:
         if not issubclass(type(dtype), _IntegerDtype):
             try:
@@ -177,10 +182,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     # infer dtype if needed
     if dtype is None:
-        if is_integer_dtype(values):
-            dtype = values.dtype
-        else:
-            dtype = np.dtype('int64')
+        dtype = np.dtype('int64')
     else:
         dtype = dtype.type
 

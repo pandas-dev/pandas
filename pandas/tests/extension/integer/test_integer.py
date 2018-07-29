@@ -718,11 +718,15 @@ def test_to_integer_array_dtype_keyword():
 
 def test_to_integer_array_float():
     result = integer_array([1., 2.])
-    expected = integer_array(np.array([1, 2], dtype='int64'))
+    expected = integer_array([1, 2])
     tm.assert_extension_array_equal(result, expected)
 
     with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
         integer_array([1.5, 2.])
+
+    # for float dtypes, the itemsize is not preserved
+    result = integer_array(np.array([1., 2.], dtype='float32'))
+    assert result.dtype == Int64Dtype()
 
 
 @pytest.mark.parametrize(
