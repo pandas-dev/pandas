@@ -1248,7 +1248,7 @@ class Block(PandasObject):
         if fill_tuple is None:
             fill_value = self.fill_value
             new_values = algos.take_nd(values, indexer, axis=axis,
-                                       allow_fill=False)
+                                       allow_fill=False, fill_value=fill_value)
         else:
             fill_value = fill_tuple[0]
             new_values = algos.take_nd(values, indexer, axis=axis,
@@ -2699,7 +2699,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         values_mask = isna(values)
         values = values.view('i8')
-        other_mask = False
 
         if isinstance(other, bool):
             raise TypeError
@@ -2872,11 +2871,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         values_mask = _block_shape(isna(values), ndim=self.ndim)
         # asi8 is a view, needs copy
         values = _block_shape(values.asi8, ndim=self.ndim)
-        other_mask = False
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
-            other_mask = isna(other)
 
         if isinstance(other, bool):
             raise TypeError

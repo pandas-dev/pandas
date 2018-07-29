@@ -67,7 +67,7 @@ def is_terminal():
 
 
 def _get_terminal_size_windows():
-    res = None
+
     try:
         from ctypes import windll, create_string_buffer
 

@@ -597,7 +597,6 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
-        fill_value = None
         if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:

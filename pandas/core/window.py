@@ -933,7 +933,8 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index=index)
+        # Validate the index
+        self._get_index(index=index)
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window

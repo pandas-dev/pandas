@@ -181,10 +181,6 @@ def _parse_float_vec(vec):
     # number sans exponent
     ieee1 = xport1 & 0x00ffffff
 
-    # Get the second half of the ibm number into the second half of
-    # the ieee number
-    ieee2 = xport2
-
     # The fraction bit to the left of the binary point in the ieee
     # format was set and the number was shifted 0, 1, 2, or 3
     # places. This will tell us how to adjust the ibm exponent to be a
