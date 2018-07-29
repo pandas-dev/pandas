@@ -232,6 +232,7 @@ a : int
     The number of apples.
 b : int
     The number of bananas.
+
 """
     assert_raises(ValueError, NumpyDocString, doc_text)
 
