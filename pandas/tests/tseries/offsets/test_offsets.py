@@ -29,7 +29,6 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth, Tick)
-from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
@@ -43,19 +42,6 @@ from .common import assert_offset_equal, assert_onOffset
 ####
 # Misc function tests
 ####
-
-
-def test_format():
-    actual = format(datetime(2008, 1, 15))
-    assert actual == '20080115'
-
-
-def test_ole2datetime():
-    actual = ole2datetime(60000)
-    assert actual == datetime(2064, 4, 8)
-
-    with pytest.raises(ValueError):
-        ole2datetime(60)
 
 
 def test_to_m8():

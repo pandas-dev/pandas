@@ -3,14 +3,7 @@ import numpy as np
 from pandas.core.dtypes.common import is_list_like
 
 from pandas.compat import reduce
-from pandas.core.index import Index
 from pandas.core import common as com
-
-
-def match(needles, haystack):
-    haystack = Index(haystack)
-    needles = Index(needles)
-    return haystack.get_indexer(needles)
 
 
 def cartesian_product(X):
