@@ -152,10 +152,33 @@ DataFrames in IPython Notebook" built with SlickGrid.
 `Spyder <https://www.spyder-ide.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Spyder is a cross-platform Qt-based open-source Python IDE with
-editing, testing, debugging, and introspection features.
-Spyder can now introspect and display Pandas DataFrames and show
-both "column wise min/max and global min/max coloring."
+Spyder is a cross-platform PyQt-based IDE combining the editing, analysis,
+debugging and profiling functionality of a software development tool with the
+data exploration, interactive execution, deep inspection and rich visualization
+capabilities of a scientific environment like MATLAB or Rstudio.
+
+Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
+allows users to view, manipulate and edit pandas Index, DateTimeIndex, Series,
+TimeSeries and DataFrame objects with a full GUI, including the ability to
+sort by column, copy and modify individual values, display a "heatmap"
+per-column or globally, convert column data types and more, all with user- or
+automatically-adjustable column-widths and display formatting.
+The Variable Explorer also allows renaming and duplicating pandas objects,
+adding new columns, copying them to the clipboard as plain text (TSV), pasting
+them into  different Spyder/IPython sessions, and saving and loading
+one or multiple in a session to and from a file in lossless native format.
+Spyder can import data from a variety of plain text and binary files
+or the clipboard into a new pandas DataFrame, via a sophisticated import wizard
+offering options to handle column and row separators, skipping rows, and
+comments, and the ability to transpose, type-convert and preview the results.
+
+Most pandas classes, methods and data attributes can be autocompleted in
+Spyder's `Editor <https://docs.spyder-ide.org/editor.html>`__ and
+`IPython Console <https://docs.spyder-ide.org/ipythonconsole.html>__,
+and Spyder's `Help pane<https://docs.spyder-ide.org/help.html>__ can retrieve
+and render Numpydoc documentation on pandas objects in rich text with Sphinx
+both automatically and on-demand.
+
 
 .. _ecosystem.api:
 
