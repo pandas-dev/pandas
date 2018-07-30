@@ -660,6 +660,7 @@ Reshaping
 - Bug in :meth:`Series.mask` and :meth:`DataFrame.mask` with ``list`` conditionals (:issue:`21891`)
 - Bug in :meth:`DataFrame.replace` raises RecursionError when converting OutOfBounds ``datetime64[ns, tz]`` (:issue:`20380`)
 - :func:`pandas.core.groupby.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
+- Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
 -
 
 Build Changes
