@@ -631,7 +631,7 @@ class Categorical(ExtensionArray, PandasObject):
             categorical. If not given, the resulting categorical will be
             unordered.
         """
-        codes = np.asarray(codes)
+        codes = np.asarray(codes)  # #21767
         if not is_integer_dtype(codes):
             msg = "codes need to be array-like integers"
             if is_float_dtype(codes):
