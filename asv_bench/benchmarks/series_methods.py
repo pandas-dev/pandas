@@ -27,15 +27,26 @@ class SeriesConstructor(object):
 class IsIn(object):
 
     goal_time = 0.2
-    params = ['int64', 'object']
+    params = ['int64', 'object', 'float64']
     param_names = ['dtype']
 
     def setup(self, dtype):
         self.s = Series(np.random.randint(1, 10, 100000)).astype(dtype)
         self.values = [1, 2]
+        self.small = Series(np.random.randint(1, 10, 10)).astype(dtype)
+        self.many_different_values = np.arange(10**6).astype(dtype)
+        self.few_different_values = np.zeros(10**6).astype(dtype)
 
     def time_isin(self, dtypes):
         self.s.isin(self.values)
+
+    def time_isin_many_different(self, dtypes):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.many_different_values)
+
+    def time_isin_few_different(self, dtypes):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.few_different_values)
 
 
 class IsInForObjects(object):
