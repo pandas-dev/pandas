@@ -174,8 +174,9 @@ def _concat_compat(to_concat, axis=0):
         return _concat_datetime(to_concat, axis=axis, typs=typs)
 
     # these are mandated to handle empties as well
-    elif 'sparse' in typs:
-        return _concat_sparse(to_concat, axis=axis, typs=typs)
+    # TODO: delete _concat_sparse?
+    # elif 'sparse' in typs:
+    #     return _concat_sparse(to_concat, axis=axis, typs=typs)
 
     extensions = [is_extension_array_dtype(x) for x in to_concat]
     if any(extensions) and axis == 1:
