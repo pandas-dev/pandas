@@ -1029,7 +1029,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    display_only : bool, default True
+    displayed_only : bool, default True
         Whether elements with "display: none" should be parsed
 
         .. versionadded:: 0.23.0
