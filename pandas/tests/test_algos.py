@@ -633,6 +633,7 @@ class TestIsin(object):
         tm.assert_numpy_array_equal(expected, result)
 
     def test_different_nans_as_float64(self):
+        # GH 21866
         # create different nans from bit-patterns,
         # these nans will land in different buckets in the hash-table
         # if no special care is taken
