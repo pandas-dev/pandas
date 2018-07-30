@@ -332,7 +332,8 @@ class TestUnique(object):
 
         dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000+0000',
                                    '2015-01-01T00:00:00.000000000+0000',
-                                   '2015-01-01T00:00:00.000000000+0000'])
+                                   '2015-01-01T00:00:00.000000000+0000'],
+                                  box=False)
         result = algos.unique(dt_index)
         tm.assert_numpy_array_equal(result, expected)
         assert result.dtype == expected.dtype
