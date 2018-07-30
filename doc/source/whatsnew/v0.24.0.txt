@@ -224,6 +224,62 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
    np.asarray(idx)
    idx.values.astype(object)
 
+.. _whatsnew_0240.api.timezone_offset_parsing:
+
+Parsing Datetime Strings with Timezone Offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, parsing datetime strings with UTC offsets with :func:`to_datetime`
+or :class:`DatetimeIndex` would automatically convert the datetime to UTC
+without timezone localization. This is inconsistent from parsing the same
+datetime string with :class:`Timestamp` which would preserve the UTC
+offset in the ``tz`` attribute. Now, :func:`to_datetime` preserves the UTC
+offset in the ``tz`` attribute when all the datetime strings have the same
+UTC offset (:issue:`17697`, :issue:`11736`)
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+
+    In [2]: pd.to_datetime("2015-11-18 15:30:00+05:30")
+    Out[2]: Timestamp('2015-11-18 10:00:00')
+
+    In [3]: pd.Timestamp("2015-11-18 15:30:00+05:30")
+    Out[3]: Timestamp('2015-11-18 15:30:00+0530', tz='pytz.FixedOffset(330)')
+
+    # Different UTC offsets would automatically convert the datetimes to UTC (without a UTC timezone)
+    In [4]: pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
+    Out[4]: DatetimeIndex(['2015-11-18 10:00:00', '2015-11-18 10:00:00'], dtype='datetime64[ns]', freq=None)
+
+*Current Behavior*:
+
+.. ipython:: python
+
+    pd.to_datetime("2015-11-18 15:30:00+05:30")
+    pd.Timestamp("2015-11-18 15:30:00+05:30")
+
+Parsing datetime strings with the same UTC offset will preserve the UTC offset in the ``tz``
+
+.. ipython:: python
+
+    pd.to_datetime(["2015-11-18 15:30:00+05:30"] * 2)
+
+Parsing datetime strings with different UTC offsets will now create an Index of
+``datetime.datetime`` objects with different UTC offsets
+
+.. ipython:: python
+
+    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"])
+    idx
+    idx[0]
+    idx[1]
+
+Passing ``utc=True`` will mimic the previous behavior but will correctly indicate
+that the dates have been converted to UTC
+
+.. ipython:: python
+    pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -439,6 +495,7 @@ Datetimelike
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
 - Fixed bug where :meth:`Timestamp.resolution` incorrectly returned 1-microsecond ``timedelta`` instead of 1-nanosecond :class:`Timedelta` (:issue:`21336`,:issue:`21365`)
+- Bug in :func:`to_datetime` that did not consistently return an :class:`Index` when ``box=True`` was specified (:issue:`21864`)
 
 Timedelta
 ^^^^^^^^^

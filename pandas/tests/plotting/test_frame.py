@@ -1126,10 +1126,10 @@ class TestDataFramePlots(TestPlotBase):
                           columns=['A label', 'B label', 'C label'])
 
         ax = df.plot.hexbin('A label', 'B label', gridsize=12)
-        assert all([vis.get_visible() for vis in
-                    ax.xaxis.get_minorticklabels()])
-        assert all([vis.get_visible() for vis in
-                    ax.xaxis.get_majorticklabels()])
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_minorticklabels())
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_majorticklabels())
         assert ax.xaxis.get_label().get_visible()
 
     @pytest.mark.slow

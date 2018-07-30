@@ -317,8 +317,8 @@ class TestDatetimeIndexTimezones(object):
         result = index.tz_localize(tz=tz, errors='coerce')
         test_times = ['2015-03-08 01:00-05:00', 'NaT',
                       '2015-03-08 03:00-04:00']
-        dti = DatetimeIndex(test_times)
-        expected = dti.tz_localize('UTC').tz_convert('US/Eastern')
+        dti = to_datetime(test_times, utc=True)
+        expected = dti.tz_convert('US/Eastern')
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tz', [pytz.timezone('US/Eastern'),
