@@ -1385,6 +1385,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         -------
         sp : SparseSeries
         """
+        # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
         return SparseSeries(self, kind=kind,
                             fill_value=fill_value).__finalize__(self)

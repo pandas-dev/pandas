@@ -31,6 +31,7 @@ from pandas.core.dtypes.cast import (
     astype_nansafe, find_common_type, infer_dtype_from_scalar,
     construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
+from pandas.core.missing import interpolate_2d
 
 import pandas._libs.sparse as splib
 import pandas._libs.lib as lib
@@ -130,26 +131,32 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
-    return SparseArray(data, sp_index=sparse_index, fill_value=fill_value)
+    return SparseArray(data, sparse_index=sparse_index, fill_value=fill_value)
 
 
 class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
-    def __init__(self, data, sp_index=None, fill_value=np.nan, kind='block'):
+    def __init__(self, data, sparse_index=None, fill_value=np.nan, kind='block',
+                 dtype=None, copy=False):
 
-        if sp_index is None:
+        if sparse_index is None:
             sparse_values, sparse_index, fill_value = make_sparse(
                 data, kind=kind, fill_value=fill_value
             )
         else:
             # TODO: validate
             sparse_values = np.asarray(data)
-            sparse_index = sp_index
+            sparse_index = sparse_index
+
+        # TODO: dtype and copy are unused
 
         self._sparse_index = sparse_index
         self._sparse_values = sparse_values
         self._dtype = SparseDtype(sparse_values.dtype)
         self.fill_value = fill_value
+
+    def __array__(self):
+        pass
 
     def __setitem__(self, key, value):
         # I suppose we could allow setting of non-fill_value elements.
@@ -219,7 +226,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return mask
 
     def fillna(self, value=None, method=None, limit=None):
+        # TODO: discussion on what the return type should be.
+        # Does it make sense to always return a SparseArray?
+        # We *could* have the return type depend on whether self.fill_value is NA.
+        # But I think that's probably a bad idea...
         if method is not None:
+            filled = interpolate_2d(np.asarray(self))
             raise NotImplementedError("'method' is not supported in "
                                       "'SparseArray.fillna'.")
 
@@ -251,7 +263,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             raise ValueError("na_sentinel must be less than 0. Got {}".format(na_sentinel))
 
         known, uniques = pd.factorize(self.sp_values)
-        new = SparseArray(known, sp_index=self.sp_index, fill_value=na_sentinel)
+        new = SparseArray(known, sparse_index=self.sp_index, fill_value=na_sentinel)
         # ah, but we have to go to sparse :/
         # so we're backwards in our sparsity her.
         return np.asarray(new), type(self)(uniques)
@@ -412,7 +424,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             values = self.sp_values
             index = self.sp_index
 
-        return type(self)(values, sp_index=index)
+        return type(self)(values, sparse_index=index)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
@@ -435,7 +447,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         indices = np.concatenate(indices)
         sp_index = IntIndex(length, indices)
 
-        return cls(data, sp_index=sp_index)
+        return cls(data, sparse_index=sp_index)
 
     # ------------------------------------------------------------------------
     # Ops
@@ -456,7 +468,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     fill_value = op(self.fill_value, other)
                     result = op(self.sp_values, other)
 
-                return type(self)(result, sp_index=self.sp_index, fill_value=fill_value)
+                return type(self)(result, sparse_index=self.sp_index, fill_value=fill_value)
 
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(sparse_arithmetic_method, name, cls)
@@ -476,7 +488,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                     fill_value = op(self.fill_value, other)
                     result = op(self.sp_values, other)
 
-                return type(self)(result, sp_index=self.sp_index, fill_value=fill_value)
+                return type(self)(result, sparse_index=self.sp_index, fill_value=fill_value)
 
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(cmp_method, name, cls)
