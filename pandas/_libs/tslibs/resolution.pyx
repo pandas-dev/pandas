@@ -5,9 +5,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t
-cnp.import_array()
 
 from util cimport is_string_object, get_nat
 

@@ -25,8 +25,6 @@ import pytz
 from cython cimport Py_ssize_t
 from cpython cimport PyFloat_Check
 
-cimport cython
-
 import numpy as np
 from numpy cimport ndarray, int64_t
 
