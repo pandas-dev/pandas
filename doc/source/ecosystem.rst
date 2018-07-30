@@ -149,8 +149,8 @@ for pandas ``display.`` settings.
 qgrid is "an interactive grid for sorting and filtering
 DataFrames in IPython Notebook" built with SlickGrid.
 
-`Spyder <https://github.com/spyder-ide/spyder/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Spyder <https://www.spyder-ide.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spyder is a cross-platform Qt-based open-source Python IDE with
 editing, testing, debugging, and introspection features.
