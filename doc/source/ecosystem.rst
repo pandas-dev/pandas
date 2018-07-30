@@ -158,8 +158,8 @@ data exploration, interactive execution, deep inspection and rich visualization
 capabilities of a scientific environment like MATLAB or Rstudio.
 
 Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
-allows users to view, manipulate and edit pandas Index, DateTimeIndex, Series,
-TimeSeries and DataFrame objects with a full GUI, including the ability to
+allows users to view, manipulate and edit pandas Index, DatetimeIndex, Series,
+and DataFrame objects with a full GUI, including the ability to
 sort by column, copy and modify individual values, display a "heatmap"
 per-column or globally, convert column data types and more, all with user- or
 automatically-adjustable column-widths and display formatting.
