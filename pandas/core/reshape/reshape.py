@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, text_type, zip
+from pandas.compat import range, text_type, zip, u
 from pandas import compat
 from functools import partial
 import itertools
@@ -923,11 +923,17 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     number_of_cols = len(levels)
 
+    py2_prefix_sep_is_unicode = isinstance(prefix_sep, text_type)
     if prefix is not None:
-        dummy_strs = [u'{prefix}{sep}{level}' if isinstance(v, text_type)
-                      else '{prefix}{sep}{level}' for v in levels]
-        dummy_cols = [dummy_str.format(prefix=prefix, sep=prefix_sep, level=v)
-                      for dummy_str, v in zip(dummy_strs, levels)]
+        py2_prefix_is_unicode = isinstance(prefix, text_type)
+        dummy_cols = []
+        for level in levels:
+            fstr = '{prefix}{sep}{level}'
+            if py2_prefix_sep_is_unicode or py2_prefix_is_unicode or \
+               isinstance(level, text_type):
+                fstr = u(fstr)
+            dummy_cols.append(fstr.format(
+                prefix=prefix, sep=prefix_sep, level=level))
     else:
         dummy_cols = levels
 
