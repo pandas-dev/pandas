@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pytest
 import collections
 from functools import partial
 
 import numpy as np
+import pytest
 
 from pandas import Series, Timestamp
-import pandas.core.common as com
-from pandas.core import ops
+from pandas.core import (
+    _maybe_match_name,
+    common as com,
+)
 
 
 def test_get_callable_name():
@@ -74,7 +76,7 @@ def test_random_state():
     (Series([1], name='x'), [2], 'x'),
     ([1], Series([2], name='y'), 'y')])
 def test_maybe_match_name(left, right, expected):
-    assert ops._maybe_match_name(left, right) == expected
+    assert _maybe_match_name(left, right) == expected
 
 
 def test_dict_compat():
