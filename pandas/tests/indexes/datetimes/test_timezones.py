@@ -740,6 +740,7 @@ class TestDatetimeIndexTimezones(object):
 
         index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], tz=tz)
         result = index.timetz
+
         tm.assert_numpy_array_equal(result, expected)
 
     def test_dti_drop_dont_lose_tz(self):
