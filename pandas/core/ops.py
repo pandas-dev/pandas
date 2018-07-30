@@ -398,166 +398,166 @@ e  NaN  -2.0
 """
 
 _eq_example_FRAME = """
->>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [100, 200, 300]},
-...                     columns=['tool', 'score'])
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
 >>> df1
-     tool  score
-0  python    100
-1       r    200
-2   julia    300
->>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [300, 200, 100]},
-...                     columns=['tool', 'score'])
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
 >>> df2
-     tool  score
-0  python    300
-1       r    200
-2   julia    100
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
 >>> df1.eq(df2)
-   tool  score
-0  True  False
-1  True   True
-2  True  False
+   company   cost  revenue
+0     True  False    False
+1     True  False     True
+2     True  False    False
+3    False  False    False
 """
 
 _ne_example_FRAME = """
->>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [100, 200, 300]},
-...                     columns=['tool', 'score'])
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
 >>> df1
-     tool  score
-0  python    100
-1       r    200
-2   julia    300
->>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [300, 200, 100]},
-...                     columns=['tool', 'score'])
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
 >>> df2
-     tool  score
-0  python    300
-1       r    200
-2   julia    100
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
 >>> df1.ne(df2)
-    tool  score
-0  False   True
-1  False  False
-2  False   True
+   company  cost  revenue
+0    False  True     True
+1    False  True    False
+2    False  True     True
+3     True  True     True
 """
 
 _lt_example_FRAME = """
->>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [100, 200, 300]},
-...                     columns=['tool', 'score'])
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
 >>> df1
-     tool  score
-0  python    100
-1       r    200
-2   julia    300
->>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [300, 200, 100]},
-...                     columns=['tool', 'score'])
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
 >>> df2
-     tool  score
-0  python    300
-1       r    200
-2   julia    100
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
 >>> df1.lt(df2)
-    tool  score
-0  False   True
-1  False  False
-2  False  False
+   company   cost  revenue
+0    False  False     True
+1    False  False    False
+2    False  False    False
+3    False  False    False
 """
 
 _le_example_FRAME = """
->>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [100, 200, 300]},
-...                     columns=['tool', 'score'])
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
 >>> df1
-     tool  score
-0  python    100
-1       r    200
-2   julia    300
->>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [300, 200, 100]},
-...                     columns=['tool', 'score'])
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
 >>> df2
-     tool  score
-0  python    300
-1       r    200
-2   julia    100
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
 >>> df1.le(df2)
-   tool  score
-0  True   True
-1  True   True
-2  True  False
+   company   cost  revenue
+0     True  False     True
+1     True  False     True
+2     True  False    False
+3    False  False    False
 """
 
 _gt_example_FRAME = """
->>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [100, 200, 300]},
-...                     columns=['tool', 'score'])
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
 >>> df1
-     tool  score
-0  python    100
-1       r    200
-2   julia    300
->>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [300, 200, 100]},
-...                     columns=['tool', 'score'])
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
 >>> df2
-     tool  score
-0  python    300
-1       r    200
-2   julia    100
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
 >>> df1.gt(df2)
-    tool  score
-0  False  False
-1  False  False
-2  False   True
+   company   cost  revenue
+0    False  False    False
+1    False  False    False
+2    False  False     True
+3    False  False    False
 """
 
 _ge_example_FRAME = """
->>> df1 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [100, 200, 300]},
-...                     columns=['tool', 'score'])
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
 >>> df1
-     tool  score
-0  python    100
-1       r    200
-2   julia    300
->>> df2 = pd.DataFrame({'tool': ['python', 'r', 'julia'],
-...                     'score': [300, 200, 100]},
-...                     columns=['tool', 'score'])
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
 >>> df2
-     tool  score
-0  python    300
-1       r    200
-2   julia    100
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
 >>> df1.ge(df2)
-   tool  score
-0  True  False
-1  True   True
-2  True   True
+   company   cost  revenue
+0     True  False    False
+1     True  False     True
+2     True  False     True
+3    False  False    False
 """
 
 _comp_others = """
-DataFrame.eq : Return DataFrame of boolean values equal to the
-    elementwise rows or columns of one DataFrame to another
-DataFrame.ne : Return DataFrame of boolean values not equal to
-    the elementwise rows or columns of one DataFrame to another
-DataFrame.le : Return DataFrame of boolean values less than or
-    equal the elementwise rows or columns of one DataFrame
-    to another
-DataFrame.lt : Return DataFrame of boolean values strictly less
-    than the elementwise rows or columns of one DataFrame to
-    another
-DataFrame.ge : Return DataFrame of boolean values greater than or
-    equal to the elementwise rows or columns of one DataFrame to
-    another
-DataFrame.gt : Return DataFrame of boolean values strictly greater
-    than to the elementwise rows or columns of one DataFrame to
-    another
+DataFrame.eq : Compare DataFrames for equality elementwise
+DataFrame.ne : Compare DataFrames for inequality elementwise
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise
 """
 
 _op_descriptions = {
@@ -598,17 +598,17 @@ _op_descriptions = {
     # Comparison Operators
     'eq': {'op': '==',
            'desc': 'Equal to',
-           'reverse': 'ne',
+           'reverse': None,
            'df_examples': _eq_example_FRAME,
            'others': _comp_others},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
-           'reverse': 'eq',
+           'reverse': None,
            'df_examples': _ne_example_FRAME,
            'others': _comp_others},
     'lt': {'op': '<',
            'desc': 'Less than',
-           'reverse': 'ge',
+           'reverse': None,
            'df_examples': _lt_example_FRAME,
            'others': _comp_others},
     'le': {'op': '<=',
@@ -618,12 +618,12 @@ _op_descriptions = {
            'others': _comp_others},
     'gt': {'op': '>',
            'desc': 'Greater than',
-           'reverse': 'le',
+           'reverse': None,
            'df_examples': _gt_example_FRAME,
            'others': _comp_others},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
-           'reverse': 'lt',
+           'reverse': None,
            'df_examples': _ge_example_FRAME,
            'others': _comp_others}}
 
@@ -754,30 +754,36 @@ DataFrame.{reverse}
 _flex_comp_doc_FRAME = """
 Flexible wrappers to comparison operators (specifically ``{name}``).
 
-Wrappers (``eq``, ``ne``, ``le``, ``lt``, ``ge``, ``gt``) are equivalent to
-operators (``==``, ``=!``, ``<=``, ``<``, ``>=``, ``>``) with support to choose
+Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose
 axis (rows or columns) for comparison.
 
 Parameters
 ----------
 other : DataFrame
-axis : {{0, 1, 'columns', 'rows'}}
+    Any structured DataFrame. Can be different number of columns or rows.
+axis : int or str, optional
+    Axis to target. Can be either the axis name ('index', 'rows',
+    'columns') or number (0, 1).
 level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
+    Broadcast across a level, matching Index values on the passed
+    MultiIndex level.
 
 Returns
 -------
-result : DataFrame
-    Consisting of boolean values
-
-Examples
---------
-{df_examples}
+result : DataFrame of bool
+    Result of the comparison.
 
 See also
 --------
 {reverse}
+
+Notes
+--------
+Mismatched indices will be unioned together.
+
+Examples
+--------
+{df_examples}
 """
 
 _flex_doc_PANEL = """
