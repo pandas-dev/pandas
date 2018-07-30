@@ -8,6 +8,17 @@ RET=0
 
 if [ "$LINT" ]; then
 
+    # We're ignoring the following codes across the board
+    #E402,  # module level import not at top of file
+    #E731,  # do not assign a lambda expression, use a def
+    #E741,  # do not use variables named 'l', 'O', or 'I'
+    #W503,  # line break before binary operator
+    #C405,  # Unnecessary (list/tuple) literal - rewrite as a set literal.
+    #C406,  # Unnecessary (list/tuple) literal - rewrite as a dict literal.
+    #C408,  # Unnecessary (dict/list/tuple) call - rewrite as a literal.
+    #C409,  # Unnecessary (list/tuple) passed to tuple() - (remove the outer call to tuple()/rewrite as a tuple literal).
+    #C410   # Unnecessary (list/tuple) passed to list() - (remove the outer call to list()/rewrite as a list literal).
+
     # pandas/_libs/src is C code, so no need to search there.
     echo "Linting *.py"
     flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C405,C406,C408,C409,C410,E402,E731,E741,W503
