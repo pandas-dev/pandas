@@ -24,7 +24,7 @@ class TestTypes(Base):
                'is_object_dtype', 'is_scalar', 'is_sparse',
                'is_string_dtype', 'is_signed_integer_dtype',
                'is_timedelta64_dtype', 'is_timedelta64_ns_dtype',
-               'is_unsigned_integer_dtype',
+               'is_unsigned_integer_dtype', 'is_period',
                'is_period_dtype', 'is_interval', 'is_interval_dtype',
                'is_re', 'is_re_compilable',
                'is_dict_like', 'is_iterator', 'is_file_like',

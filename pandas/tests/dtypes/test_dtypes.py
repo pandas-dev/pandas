@@ -13,7 +13,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_categorical,
     is_datetime64tz_dtype, is_datetimetz,
-    is_period_dtype,
+    is_period_dtype, is_period,
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
@@ -363,15 +363,20 @@ class TestPeriodDtype(Base):
 
         assert is_period_dtype(pidx.dtype)
         assert is_period_dtype(pidx)
+        assert is_period(pidx)
 
         s = Series(pidx, name='A')
         # dtypes
         # series results in object dtype currently,
+        # is_period checks period_arraylike
         assert not is_period_dtype(s.dtype)
         assert not is_period_dtype(s)
+        assert is_period(s)
 
         assert not is_period_dtype(np.dtype('float64'))
         assert not is_period_dtype(1.0)
+        assert not is_period(np.dtype('float64'))
+        assert not is_period(1.0)
 
     def test_empty(self):
         dt = PeriodDtype()

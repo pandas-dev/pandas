@@ -171,6 +171,12 @@ def test_is_datetimetz():
     assert com.is_datetimetz(s)
 
 
+def test_is_period():
+    assert not com.is_period([1, 2, 3])
+    assert not com.is_period(pd.Index([1, 2, 3]))
+    assert com.is_period(pd.PeriodIndex(["2017-01-01"], freq="D"))
+
+
 def test_is_datetime64_dtype():
     assert not com.is_datetime64_dtype(object)
     assert not com.is_datetime64_dtype([1, 2, 3])
