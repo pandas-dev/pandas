@@ -1567,7 +1567,7 @@ def get_level_lengths(levels, sentinel=''):
     if len(levels) == 0:
         return []
 
-    control = [True for x in levels[0]]
+    control = [True] * len(levels[0])
 
     result = []
     for level in levels:

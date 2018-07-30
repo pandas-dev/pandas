@@ -305,7 +305,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     # everything to a str first, which means we treat
                     # {'1', '2'} the same as {'1', 2}
                     # find a better solution
-                    cat_array = np.array([hash(x) for x in categories])
                     hashed = hash((tuple(categories), ordered))
                     return hashed
             cat_array = hash_array(np.asarray(categories), categorize=False)
