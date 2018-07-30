@@ -180,6 +180,7 @@ Other Enhancements
 - :func:`~DataFrame.to_csv` and :func:`~DataFrame.to_json` now support ``compression='infer'`` to infer compression based on filename (:issue:`15008`)
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
+- :class:`DatetimeIndex` gained timetz attribute. Returns time with timezone information (:issue:`21358`)
 
 .. _whatsnew_0240.api_breaking:
 
