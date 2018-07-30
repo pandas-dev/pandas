@@ -985,7 +985,7 @@ _rank2d_functions = {
 }
 
 
-def quantile(x, q, interpolation_method='fraction'):
+def quantile(x, q, bounded=True, interpolation_method='fraction'):
     """
     Compute sample quantile or quantiles of the input array. For example, q=0.5
     computes the median.
@@ -1002,6 +1002,9 @@ def quantile(x, q, interpolation_method='fraction'):
         Values from which to extract score.
     q : scalar or array
         Percentile at which to extract score.
+    bounded : bool, optional
+        Whether to use the min/max of the distribution as the lower/upper
+        bounds or use -inf/inf.
     interpolation_method : {'fraction', 'lower', 'higher'}, optional
         This optional parameter specifies the interpolation method to use,
         when the desired quantile lies between two data points `i` and `j`:
@@ -1038,6 +1041,12 @@ def quantile(x, q, interpolation_method='fraction'):
         return a + (b - a) * fraction
 
     def _get_score(at):
+        if not bounded:
+            if at == 0:
+                return -np.inf
+            elif at == 1:
+                return np.inf
+
         if len(values) == 0:
             return np.nan
 

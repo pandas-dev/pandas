@@ -238,7 +238,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                                 series_index, name, dtype)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
+def qcut(x, q, labels=None, retbins=False, precision=3, bounded=True, 
+         duplicates='raise'):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -260,6 +261,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
         is given as a scalar.
     precision : int, optional
         The precision at which to store and display the bins labels
+    bounded : bool, optional
+        Whether to use the min/max of the distribution as the lower/upper
+        bounds or use -inf/inf.
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
 
@@ -301,7 +305,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
         quantiles = np.linspace(0, 1, q + 1)
     else:
         quantiles = q
-    bins = algos.quantile(x, quantiles)
+    bins = algos.quantile(x, quantiles, bounded=bounded)
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
                               dtype=dtype, duplicates=duplicates)
