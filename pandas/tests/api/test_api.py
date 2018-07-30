@@ -15,7 +15,7 @@ class Base(object):
         # ignored ones
         # compare vs the expected
 
-        result = sorted([f for f in dir(namespace) if not f.startswith('_')])
+        result = sorted(f for f in dir(namespace) if not f.startswith('_'))
         if ignored is not None:
             result = sorted(list(set(result) - set(ignored)))
 

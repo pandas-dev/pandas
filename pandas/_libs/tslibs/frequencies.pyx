@@ -2,8 +2,6 @@
 # cython: profile=False
 import re
 
-cimport cython
-
 cimport numpy as cnp
 cnp.import_array()
 

@@ -919,7 +919,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # GH19671
             v = tslib.array_to_datetime(v,
                                         require_iso8601=True,
-                                        errors='raise')
+                                        errors='raise')[0]
         except ValueError:
 
             # we might have a sequence of the same-datetimes with tz's

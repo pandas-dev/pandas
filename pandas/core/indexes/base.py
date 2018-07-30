@@ -993,6 +993,12 @@ class Index(IndexOpsMixin, PandasObject):
         return self.copy(**kwargs)
 
     def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
         if memo is None:
             memo = {}
         return self.copy(deep=True)
@@ -1641,11 +1647,11 @@ class Index(IndexOpsMixin, PandasObject):
         # if we are mixed and have integers
         try:
             if is_positional and self.is_mixed():
-                # TODO: i, j are not used anywhere
+                # Validate start & stop
                 if start is not None:
-                    i = self.get_loc(start)  # noqa
+                    self.get_loc(start)
                 if stop is not None:
-                    j = self.get_loc(stop)  # noqa
+                    self.get_loc(stop)
                 is_positional = False
         except KeyError:
             if self.inferred_type == 'mixed-integer-float':
