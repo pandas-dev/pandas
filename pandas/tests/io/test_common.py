@@ -2,18 +2,18 @@
     Tests for the pandas.io.common functionalities
 """
 import mmap
-import pytest
 import os
-from os.path import isabs
+import pytest
 
 import pandas as pd
-import pandas.util.testing as tm
+import pandas.io.common as cmn
 import pandas.util._test_decorators as td
-
-from pandas.io import common
-from pandas.compat import is_platform_windows, StringIO, FileNotFoundError
-
-from pandas import read_csv, concat
+import pandas.util.testing as tm
+from pandas.compat import (
+    is_platform_windows,
+    StringIO,
+    FileNotFoundError,
+)
 
 
 class CustomFSPath(object):
@@ -55,24 +55,24 @@ bar2,12,13,14,15
 
     def test_expand_user(self):
         filename = '~/sometest'
-        expanded_name = common._expand_user(filename)
+        expanded_name = cmn._expand_user(filename)
 
         assert expanded_name != filename
-        assert isabs(expanded_name)
+        assert os.path.isabs(expanded_name)
         assert os.path.expanduser(filename) == expanded_name
 
     def test_expand_user_normal_path(self):
         filename = '/somefolder/sometest'
-        expanded_name = common._expand_user(filename)
+        expanded_name = cmn._expand_user(filename)
 
         assert expanded_name == filename
         assert os.path.expanduser(filename) == expanded_name
 
     @td.skip_if_no('pathlib')
     def test_stringify_path_pathlib(self):
-        rel_path = common._stringify_path(Path('.'))
+        rel_path = cmn._stringify_path(Path('.'))
         assert rel_path == '.'
-        redundant_path = common._stringify_path(Path('foo//bar'))
+        redundant_path = cmn._stringify_path(Path('foo//bar'))
         assert redundant_path == os.path.join('foo', 'bar')
 
     @td.skip_if_no('py.path')
@@ -80,11 +80,11 @@ bar2,12,13,14,15
         path = os.path.join('foo', 'bar')
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
-        assert common._stringify_path(lpath) == abs_path
+        assert cmn._stringify_path(lpath) == abs_path
 
     def test_stringify_path_fspath(self):
         p = CustomFSPath('foo/bar.csv')
-        result = common._stringify_path(p)
+        result = cmn._stringify_path(p)
         assert result == 'foo/bar.csv'
 
     @pytest.mark.parametrize('extension,expected', [
@@ -97,36 +97,36 @@ bar2,12,13,14,15
     @pytest.mark.parametrize('path_type', path_types)
     def test_infer_compression_from_path(self, extension, expected, path_type):
         path = path_type('foo/bar.csv' + extension)
-        compression = common._infer_compression(path, compression='infer')
+        compression = cmn._infer_compression(path, compression='infer')
         assert compression == expected
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
-        filepath_or_buffer, _, _, should_close = common.get_filepath_or_buffer(
+        filepath_or_buffer, _, _, should_close = cmn.get_filepath_or_buffer(
             filename)
         assert filepath_or_buffer != filename
-        assert isabs(filepath_or_buffer)
+        assert os.path.isabs(filepath_or_buffer)
         assert os.path.expanduser(filename) == filepath_or_buffer
         assert not should_close
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
-        filepath_or_buffer, _, _, should_close = common.get_filepath_or_buffer(
+        filepath_or_buffer, _, _, should_close = cmn.get_filepath_or_buffer(
             input_buffer)
         assert filepath_or_buffer == input_buffer
         assert not should_close
 
     def test_iterator(self):
-        reader = read_csv(StringIO(self.data1), chunksize=1)
-        result = concat(reader, ignore_index=True)
-        expected = read_csv(StringIO(self.data1))
+        reader = pd.read_csv(StringIO(self.data1), chunksize=1)
+        result = pd.concat(reader, ignore_index=True)
+        expected = pd.read_csv(StringIO(self.data1))
         tm.assert_frame_equal(result, expected)
 
         # GH12153
-        it = read_csv(StringIO(self.data1), chunksize=1)
+        it = pd.read_csv(StringIO(self.data1), chunksize=1)
         first = next(it)
         tm.assert_frame_equal(first, expected.iloc[[0]])
-        tm.assert_frame_equal(concat(it), expected.iloc[1:])
+        tm.assert_frame_equal(pd.concat(it), expected.iloc[1:])
 
     @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
         (pd.read_csv, 'os', FileNotFoundError, 'csv'),
@@ -246,18 +246,18 @@ class TestMMapWrapper(object):
             msg = "[Errno 22]"
             err = mmap.error
 
-        tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
+        tm.assert_raises_regex(err, msg, cmn.MMapWrapper, non_file)
 
         target = open(mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
         tm.assert_raises_regex(
-            ValueError, msg, common.MMapWrapper, target)
+            ValueError, msg, cmn.MMapWrapper, target)
 
     def test_get_attr(self, mmap_file):
         with open(mmap_file, 'r') as target:
-            wrapper = common.MMapWrapper(target)
+            wrapper = cmn.MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
         attrs = [attr for attr in attrs
@@ -271,7 +271,7 @@ class TestMMapWrapper(object):
 
     def test_next(self, mmap_file):
         with open(mmap_file, 'r') as target:
-            wrapper = common.MMapWrapper(target)
+            wrapper = cmn.MMapWrapper(target)
             lines = target.readlines()
 
         for line in lines:
@@ -285,4 +285,100 @@ class TestMMapWrapper(object):
             df = tm.makeDataFrame()
             df.to_csv(path)
             with tm.assert_raises_regex(ValueError, 'Unknown engine'):
-                read_csv(path, engine='pyt')
+                pd.read_csv(path, engine='pyt')
+
+
+@pytest.mark.parametrize('obj', [
+    pd.DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                 columns=['X', 'Y', 'Z']),
+    pd.Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
+@pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
+def test_compression_size(obj, method, compression_only):
+
+    with tm.ensure_clean() as path:
+        getattr(obj, method)(path, compression=compression_only)
+        compressed = os.path.getsize(path)
+        getattr(obj, method)(path, compression=None)
+        uncompressed = os.path.getsize(path)
+        assert uncompressed > compressed
+
+
+@pytest.mark.parametrize('obj', [
+    pd.DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                        [12.32112, 123123.2, 321321.2]],
+                 columns=['X', 'Y', 'Z']),
+    pd.Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
+@pytest.mark.parametrize('method', ['to_csv', 'to_json'])
+def test_compression_size_fh(obj, method, compression_only):
+
+    with tm.ensure_clean() as path:
+        f, handles = cmn._get_handle(path, 'w', compression=compression_only)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
+        compressed = os.path.getsize(path)
+    with tm.ensure_clean() as path:
+        f, handles = cmn._get_handle(path, 'w', compression=None)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
+        uncompressed = os.path.getsize(path)
+        assert uncompressed > compressed
+
+
+@pytest.mark.parametrize('write_method, write_kwargs, read_method', [
+    ('to_csv', {'index': False}, pd.read_csv),
+    ('to_json', {}, pd.read_json),
+    ('to_pickle', {}, pd.read_pickle),
+])
+def test_dataframe_compression_defaults_to_infer(
+        write_method, write_kwargs, read_method, compression_only):
+    # Test that DataFrame.to_* methods default to inferring compression from
+    # paths. GH 22004
+    input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=['X', 'Y', 'Z'])
+    extension = cmn._compression_to_extension[compression_only]
+    with tm.ensure_clean('compressed' + extension) as path:
+        getattr(input, write_method)(path, **write_kwargs)
+        output = read_method(path, compression=compression_only)
+    tm.assert_frame_equal(output, input)
+
+
+@pytest.mark.parametrize('write_method,write_kwargs,read_method,read_kwargs', [
+    ('to_csv', {'index': False, 'header': True},
+     pd.read_csv, {'squeeze': True}),
+    ('to_json', {}, pd.read_json, {'typ': 'series'}),
+    ('to_pickle', {}, pd.read_pickle, {}),
+])
+def test_series_compression_defaults_to_infer(
+        write_method, write_kwargs, read_method, read_kwargs,
+        compression_only):
+    # Test that Series.to_* methods default to inferring compression from
+    # paths. GH 22004
+    input = pd.Series([0, 5, -2, 10], name='X')
+    extension = cmn._compression_to_extension[compression_only]
+    with tm.ensure_clean('compressed' + extension) as path:
+        getattr(input, write_method)(path, **write_kwargs)
+        output = read_method(path, compression=compression_only, **read_kwargs)
+    tm.assert_series_equal(output, input, check_names=False)
+
+
+def test_compression_warning(compression_only):
+    # Assert that passing a file object to to_csv while explicitly specifying a
+    # compression protocol triggers a RuntimeWarning, as per GH 21227.
+    # Note that pytest has an issue that causes assert_produces_warning to fail
+    # in Python 2 if the warning has occurred in previous tests
+    # (see https://git.io/fNEBm & https://git.io/fNEBC). Hence, should this
+    # test fail in just Python 2 builds, it likely indicates that other tests
+    # are producing RuntimeWarnings, thereby triggering the pytest bug.
+    df = pd.DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                             [12.32112, 123123.2, 321321.2]],
+                      columns=['X', 'Y', 'Z'])
+    with tm.ensure_clean() as path:
+        f, handles = cmn._get_handle(path, 'w', compression=compression_only)
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        check_stacklevel=False):
+            with f:
+                df.to_csv(f, compression=compression_only)

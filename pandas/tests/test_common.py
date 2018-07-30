@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-import os
 import collections
 from functools import partial
 
 import numpy as np
 
-import pandas
-from pandas import Series, DataFrame, Timestamp
+from pandas import Series, Timestamp
 import pandas.core.common as com
 from pandas.core import ops
-from pandas.io.common import (
-    _compression_to_extension,
-    _get_handle,
-)
-import pandas.util.testing as tm
 
 
 def test_get_callable_name():
@@ -115,99 +108,3 @@ def test_standardize_mapping():
 
     dd = collections.defaultdict(list)
     assert isinstance(com.standardize_mapping(dd), partial)
-
-
-@pytest.mark.parametrize('obj', [
-    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
-                     [12.32112, 123123.2, 321321.2]],
-              columns=['X', 'Y', 'Z']),
-    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
-@pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
-def test_compression_size(obj, method, compression_only):
-
-    with tm.ensure_clean() as filename:
-        getattr(obj, method)(filename, compression=compression_only)
-        compressed = os.path.getsize(filename)
-        getattr(obj, method)(filename, compression=None)
-        uncompressed = os.path.getsize(filename)
-        assert uncompressed > compressed
-
-
-@pytest.mark.parametrize('obj', [
-    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
-                     [12.32112, 123123.2, 321321.2]],
-              columns=['X', 'Y', 'Z']),
-    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
-@pytest.mark.parametrize('method', ['to_csv', 'to_json'])
-def test_compression_size_fh(obj, method, compression_only):
-
-    with tm.ensure_clean() as filename:
-        f, _handles = _get_handle(filename, 'w', compression=compression_only)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
-        compressed = os.path.getsize(filename)
-    with tm.ensure_clean() as filename:
-        f, _handles = _get_handle(filename, 'w', compression=None)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
-        uncompressed = os.path.getsize(filename)
-        assert uncompressed > compressed
-
-
-@pytest.mark.parametrize('write_method, write_kwargs, read_method', [
-    ('to_csv', {'index': False}, pandas.read_csv),
-    ('to_json', {}, pandas.read_json),
-    ('to_pickle', {}, pandas.read_pickle),
-])
-def test_dataframe_compression_defaults_to_infer(
-        write_method, write_kwargs, read_method, compression_only):
-    # Test that DataFrame.to_* methods default to inferring compression from
-    # paths. GH 22004
-    input = DataFrame([[1.0, 0, -4.4], [3.4, 5, 2.4]], columns=['X', 'Y', 'Z'])
-    extension = _compression_to_extension[compression_only]
-    with tm.ensure_clean('compressed' + extension) as path:
-        getattr(input, write_method)(path, **write_kwargs)
-        output = read_method(path, compression=compression_only)
-    tm.assert_frame_equal(output, input)
-
-
-@pytest.mark.parametrize('write_method,write_kwargs,read_method,read_kwargs', [
-    ('to_csv', {'index': False, 'header': True},
-     pandas.read_csv, {'squeeze': True}),
-    ('to_json', {}, pandas.read_json, {'typ': 'series'}),
-    ('to_pickle', {}, pandas.read_pickle, {}),
-])
-def test_series_compression_defaults_to_infer(
-        write_method, write_kwargs, read_method, read_kwargs,
-        compression_only):
-    # Test that Series.to_* methods default to inferring compression from
-    # paths. GH 22004
-    input = Series([0, 5, -2, 10], name='X')
-    extension = _compression_to_extension[compression_only]
-    with tm.ensure_clean('compressed' + extension) as path:
-        getattr(input, write_method)(path, **write_kwargs)
-        output = read_method(path, compression=compression_only, **read_kwargs)
-    tm.assert_series_equal(output, input, check_names=False)
-
-
-def test_compression_warning(compression_only):
-    # Assert that passing a file object to to_csv while explicitly specifying a
-    # compression protocol triggers a RuntimeWarning, as per GH 21227.
-    # Note that pytest has an issue that causes assert_produces_warning to fail
-    # in Python 2 if the warning has occurred in previous tests
-    # (see https://git.io/fNEBm & https://git.io/fNEBC). Hence, should this
-    # test fail in just Python 2 builds, it likely indicates that other tests
-    # are producing RuntimeWarnings, thereby triggering the pytest bug.
-    df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
-                          [12.32112, 123123.2, 321321.2]],
-                   columns=['X', 'Y', 'Z'])
-    with tm.ensure_clean() as filename:
-        f, _handles = _get_handle(filename, 'w', compression=compression_only)
-        with tm.assert_produces_warning(RuntimeWarning,
-                                        check_stacklevel=False):
-            with f:
-                df.to_csv(f, compression=compression_only)
