@@ -7,6 +7,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
+from dateutil.tz.tz import tzoffset
 from datetime import datetime, time
 from distutils.version import LooseVersion
 
@@ -483,7 +484,7 @@ class TestToDatetime(object):
 
         # dtype coercion
         i = pd.DatetimeIndex([
-            '2000-01-01 08:00:00+00:00'
+            '2000-01-01 08:00:00'
         ], tz=psycopg2.tz.FixedOffsetTimezone(offset=-300, name=None))
         assert is_datetime64_ns_dtype(i)
 
@@ -576,6 +577,48 @@ class TestToDatetime(object):
         msg = "Cannot use '%W' or '%U' without day and year"
         with tm.assert_raises_regex(ValueError, msg):
             pd.to_datetime(date, format=format)
+
+    def test_iso_8601_strings_with_same_offset(self):
+        # GH 17697, 11736
+        ts_str = "2015-11-18 15:30:00+05:30"
+        result = to_datetime(ts_str)
+        expected = Timestamp(ts_str)
+        assert result == expected
+
+        expected = DatetimeIndex([Timestamp(ts_str)] * 2)
+        result = to_datetime([ts_str] * 2)
+        tm.assert_index_equal(result, expected)
+
+        result = DatetimeIndex([ts_str] * 2)
+        tm.assert_index_equal(result, expected)
+
+    def test_iso_8601_strings_with_different_offsets(self):
+        # GH 17697, 11736
+        ts_strings = ["2015-11-18 15:30:00+05:30",
+                      "2015-11-18 16:30:00+06:30",
+                      NaT]
+        result = to_datetime(ts_strings)
+        expected = np.array([datetime(2015, 11, 18, 15, 30,
+                                      tzinfo=tzoffset(None, 19800)),
+                             datetime(2015, 11, 18, 16, 30,
+                                      tzinfo=tzoffset(None, 23400)),
+                             NaT],
+                            dtype=object)
+        # GH 21864
+        expected = Index(expected)
+        tm.assert_index_equal(result, expected)
+
+        result = to_datetime(ts_strings, utc=True)
+        expected = DatetimeIndex([Timestamp(2015, 11, 18, 10),
+                                  Timestamp(2015, 11, 18, 10),
+                                  NaT], tz='UTC')
+        tm.assert_index_equal(result, expected)
+
+    def test_non_iso_strings_with_tz_offset(self):
+        result = to_datetime(['March 1, 2018 12:00:00+0400'] * 2)
+        expected = DatetimeIndex([datetime(2018, 3, 1, 12,
+                                           tzinfo=pytz.FixedOffset(240))] * 2)
+        tm.assert_index_equal(result, expected)
 
 
 class TestToDatetimeUnit(object):
@@ -978,14 +1021,19 @@ class TestToDatetimeMisc(object):
         # assert result == expected
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_to_datetime_unprocessable_input(self, cache):
+    @pytest.mark.parametrize('box, klass, assert_method', [
+        [True, Index, 'assert_index_equal'],
+        [False, np.array, 'assert_numpy_array_equal']
+    ])
+    def test_to_datetime_unprocessable_input(self, cache, box, klass,
+                                             assert_method):
         # GH 4928
-        tm.assert_numpy_array_equal(
-            to_datetime([1, '1'], errors='ignore', cache=cache),
-            np.array([1, '1'], dtype='O')
-        )
+        # GH 21864
+        result = to_datetime([1, '1'], errors='ignore', cache=cache, box=box)
+        expected = klass(np.array([1, '1'], dtype='O'))
+        getattr(tm, assert_method)(result, expected)
         pytest.raises(TypeError, to_datetime, [1, '1'], errors='raise',
-                      cache=cache)
+                      cache=cache, box=box)
 
     def test_to_datetime_other_datetime64_units(self):
         # 5/25/2012
@@ -1031,7 +1079,7 @@ class TestToDatetimeMisc(object):
             else:
                 expected[i] = parse_date(val)
 
-        result = tslib.array_to_datetime(strings)
+        result = tslib.array_to_datetime(strings)[0]
         tm.assert_almost_equal(result, expected)
 
         result2 = to_datetime(strings, cache=cache)
@@ -1046,7 +1094,9 @@ class TestToDatetimeMisc(object):
                                           cache=cache))
 
         result = to_datetime(malformed, errors='ignore', cache=cache)
-        tm.assert_numpy_array_equal(result, malformed)
+        # GH 21864
+        expected = Index(malformed)
+        tm.assert_index_equal(result, expected)
 
         pytest.raises(ValueError, to_datetime, malformed, errors='raise',
                       cache=cache)
@@ -1495,23 +1545,19 @@ class TestDatetimeParsingWrappers(object):
         assert res == expected_arr
 
     @pytest.mark.parametrize('cache', [True, False])
-    def test_parsers_timezone_minute_offsets_roundtrip(self, cache):
+    @pytest.mark.parametrize('dt_string, tz, dt_string_repr', [
+        ('2013-01-01 05:45+0545', pytz.FixedOffset(345),
+         "Timestamp('2013-01-01 05:45:00+0545', tz='pytz.FixedOffset(345)')"),
+        ('2013-01-01 05:30+0530', pytz.FixedOffset(330),
+         "Timestamp('2013-01-01 05:30:00+0530', tz='pytz.FixedOffset(330)')")])
+    def test_parsers_timezone_minute_offsets_roundtrip(self, cache, dt_string,
+                                                       tz, dt_string_repr):
         # GH11708
         base = to_datetime("2013-01-01 00:00:00", cache=cache)
-        dt_strings = [
-            ('2013-01-01 05:45+0545',
-             "Asia/Katmandu",
-             "Timestamp('2013-01-01 05:45:00+0545', tz='Asia/Katmandu')"),
-            ('2013-01-01 05:30+0530',
-             "Asia/Kolkata",
-             "Timestamp('2013-01-01 05:30:00+0530', tz='Asia/Kolkata')")
-        ]
-
-        for dt_string, tz, dt_string_repr in dt_strings:
-            dt_time = to_datetime(dt_string, cache=cache)
-            assert base == dt_time
-            converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
-            assert dt_string_repr == repr(converted_time)
+        base = base.tz_localize('UTC').tz_convert(tz)
+        dt_time = to_datetime(dt_string, cache=cache)
+        assert base == dt_time
+        assert dt_string_repr == repr(dt_time)
 
 
 @pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
