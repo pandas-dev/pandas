@@ -16,7 +16,6 @@ import functools
 import collections
 import itertools
 import sys
-import types
 import warnings
 from textwrap import dedent
 
@@ -75,7 +74,8 @@ from pandas.core.series import Series
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
-                           OrderedDict, raise_with_traceback)
+                           OrderedDict, raise_with_traceback,
+                           string_and_binary_types)
 from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
@@ -267,7 +267,7 @@ class DataFrame(NDFrame):
 
     Parameters
     ----------
-    data : numpy ndarray (structured or homogeneous), dict, or DataFrame
+    data : ndarray (structured or homogeneous), Iterable, dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
 
         .. versionchanged :: 0.23.0
@@ -391,8 +391,11 @@ class DataFrame(NDFrame):
             else:
                 mgr = self._init_ndarray(data, index, columns, dtype=dtype,
                                          copy=copy)
-        elif isinstance(data, (list, types.GeneratorType)):
-            if isinstance(data, types.GeneratorType):
+
+        # For data is list-like, or Iterable (will consume into list)
+        elif (isinstance(data, collections.Iterable)
+              and not isinstance(data, string_and_binary_types)):
+            if not isinstance(data, collections.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -417,8 +420,6 @@ class DataFrame(NDFrame):
                                              copy=copy)
             else:
                 mgr = self._init_dict({}, index, columns, dtype=dtype)
-        elif isinstance(data, collections.Iterator):
-            raise TypeError("data argument can't be an iterator")
         else:
             try:
                 arr = np.array(data, dtype=dtype, copy=copy)
@@ -1749,9 +1750,9 @@ class DataFrame(NDFrame):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default None
             If 'infer' and `path_or_buf` is path-like, then detect compression
-            from the following extensions: '.gz', '.bz2' or '.xz'
+            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
             (otherwise no compression).
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
@@ -6069,18 +6070,33 @@ class DataFrame(NDFrame):
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
-        # TODO: flipped axis
         result = None
-        if axis == 0:
-            try:
-                result, how = self._aggregate(func, axis=0, *args, **kwargs)
-            except TypeError:
-                pass
+        try:
+            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+        except TypeError:
+            pass
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
         return result
 
+    def _aggregate(self, arg, axis=0, *args, **kwargs):
+        if axis == 1:
+            # NDFrame.aggregate returns a tuple, and we need to transpose
+            # only result
+            result, how = (super(DataFrame, self.T)
+                           ._aggregate(arg, *args, **kwargs))
+            result = result.T if result is not None else result
+            return result, how
+        return super(DataFrame, self)._aggregate(arg, *args, **kwargs)
+
     agg = aggregate
+
+    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, axis=0, *args, **kwargs):
+        axis = self._get_axis_number(axis)
+        if axis == 1:
+            return super(DataFrame, self.T).transform(func, *args, **kwargs).T
+        return super(DataFrame, self).transform(func, *args, **kwargs)
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):

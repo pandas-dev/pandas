@@ -401,7 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     msg = ('{name}.from_tuples received an invalid '
                            'item, {tpl}').format(name=name, tpl=d)
                     raise TypeError(msg)
-                lhs, rhs = d
             left.append(lhs)
             right.append(rhs)
 
@@ -601,7 +600,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = set(interval.closed for interval in to_concat)
+        closed = {interval.closed for interval in to_concat}
         if len(closed) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed.pop()
@@ -815,7 +814,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 

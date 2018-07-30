@@ -891,22 +891,3 @@ class TestTimedeltaSeriesMultiplicationDivision(object):
             td1 * scalar_td
         with tm.assert_raises_regex(TypeError, pattern):
             scalar_td * td1
-
-
-class TestTimedeltaSeriesInvalidArithmeticOps(object):
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
-    def test_td64series_pow_invalid(self, scalar_td):
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # check that we are getting a TypeError
-        # with 'operate' (from core/ops.py) for the ops that are not
-        # defined
-        pattern = 'operate|unsupported|cannot|not supported'
-        with tm.assert_raises_regex(TypeError, pattern):
-            scalar_td ** td1
-        with tm.assert_raises_regex(TypeError, pattern):
-            td1 ** scalar_td

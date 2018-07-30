@@ -222,7 +222,6 @@ class HTMLFormatter(TableFormatter):
             return row
 
         self.write('<thead>', indent)
-        row = []
 
         indent += self.indent_delta
 
@@ -370,7 +369,7 @@ class HTMLFormatter(TableFormatter):
         for i in range(nrows):
 
             if truncate_v and i == (self.fmt.tr_row_num):
-                str_sep_row = ['...' for ele in row]
+                str_sep_row = ['...'] * len(row)
                 self.write_tr(str_sep_row, indent, self.indent_delta,
                               tags=None, nindex_levels=1)
 
