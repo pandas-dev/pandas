@@ -81,13 +81,6 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    num_rows = (data.reindex(columns=index).drop_duplicates().shape[0]
-                if index else 1)
-    num_cols = (data.reindex(columns=columns).drop_duplicates().shape[0]
-                if columns else 1)
-    if num_rows * num_cols * len(values) > (2 ** 31 - 1):
-        raise ValueError('Pivot table is too big, causing int32 overflow')
-
     grouped = data.groupby(keys)
     agged = grouped.agg(aggfunc)
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
