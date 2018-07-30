@@ -306,6 +306,9 @@ Previous Behavior:
 
 Current Behavior:
 
+Calling :attr:`Series.dt.end_time` will now result in a time of '23:59:59.999999999' as
+is the case with :attr:`Period.end_time`, for example
+
 .. ipython:: python
 
    p = pd.Period('2017-01-01', 'D')
