@@ -12,6 +12,7 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_datetime_or_timedelta_dtype,
+    is_integer_dtype,
     ensure_int64)
 
 import pandas.core.algorithms as algos
@@ -238,7 +239,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                                 series_index, name, dtype)
 
 
-def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
+def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise',
+         bounded=True):
     """
     Quantile-based discretization function. Discretize variable into
     equal-sized buckets based on rank or based on sample quantiles. For example
@@ -262,6 +264,9 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
         The precision at which to store and display the bins labels
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
+    bounded : bool, optional
+        Use the min/max of the distribution as the lower/upper bounds if True,
+        otherwise use -inf/inf. Ignored if dtype is datetime/timedelta.
 
         .. versionadded:: 0.20.0
 
@@ -302,6 +307,12 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
     else:
         quantiles = q
     bins = algos.quantile(x, quantiles)
+    if not bounded and not dtype:
+        if is_integer_dtype(bins):
+            bins = bins.astype(np.float64)
+        bins[0] = -np.inf
+        bins[-1] = np.inf
+        pass
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
                               dtype=dtype, duplicates=duplicates)

@@ -17,6 +17,8 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+- :func: qcut now accepts ``bounded`` as a keyword argument, allowing for unbounded quantiles such that the lower/upper bounds are -inf/inf (:issue:`17282`)
+
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support

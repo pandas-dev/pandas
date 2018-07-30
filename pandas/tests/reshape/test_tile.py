@@ -479,6 +479,14 @@ class TestCut(object):
         tm.assert_categorical_equal(cut(hundred_elements, array_1),
                                     cut(hundred_elements, array_2))
 
+    def test_qcut_unbounded(self):
+        labels = qcut(range(5), 4, bounded=False)
+        left = labels.categories.left.values
+        right = labels.categories.right.values
+        expected = np.array([-np.inf, 1.0, 2.0, 3.0, np.inf])
+        tm.assert_numpy_array_equal(left, expected[:-1])
+        tm.assert_numpy_array_equal(right, expected[1:])
+
 
 class TestDatelike(object):
 
@@ -641,3 +649,20 @@ class TestDatelike(object):
         s = Series(arg)
         result, result_bins = qcut(s, 2, retbins=True)
         tm.assert_index_equal(result_bins, expected_bins)
+
+    @pytest.mark.parametrize('bins', [3, np.linspace(0, 1, 4)])
+    def test_datetimetz_qcut_unbounded(self, bins):
+        # GH 19872
+        tz = 'US/Eastern'
+        s = Series(date_range('20130101', periods=3, tz=tz))
+        result = qcut(s, bins, bounded=False)
+        expected = (
+            Series(IntervalIndex([
+                Interval(Timestamp('2012-12-31 23:59:59.999999999', tz=tz),
+                         Timestamp('2013-01-01 16:00:00', tz=tz)),
+                Interval(Timestamp('2013-01-01 16:00:00', tz=tz),
+                         Timestamp('2013-01-02 08:00:00', tz=tz)),
+                Interval(Timestamp('2013-01-02 08:00:00', tz=tz),
+                         Timestamp('2013-01-03 00:00:00', tz=tz))]))
+            .astype(CDT(ordered=True)))
+        tm.assert_series_equal(result, expected)
