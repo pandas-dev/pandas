@@ -241,13 +241,13 @@ class Categorical(ExtensionArray, PandasObject):
         categories will be replaced with NaN.
     categories : Index-like (unique), optional
         The unique categories for this categorical. If not given, the
-        categories are assumed to be the unique values of values (sorted, if
+        categories are assumed to be the unique values of `values` (sorted, if
         possible, otherwise in the order in which they appear).
     ordered : boolean, (default False)
         Whether or not this categorical is treated as a ordered categorical.
         If True, the resulting categorical will be ordered.
         An ordered categorical respects, when sorted, the order of its
-        'categories' attribute (which in turn is the 'categories' argument, if
+        `categories` attribute (which in turn is the `categories` argument, if
         provided).
     dtype : CategoricalDtype
         An instance of ``CategoricalDtype`` to use for this categorical
