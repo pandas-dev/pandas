@@ -481,7 +481,8 @@ class TestCategoricalConstructors(object):
         categories = ['a', 'b', 'c']
 
         with tm.assert_produces_warning(FutureWarning):
-            Categorical.from_codes(codes, categories)
+            cat = Categorical.from_codes(codes, categories)
+        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype='i1'))
 
         codes = [1.1, 2.0, 0]  # non-integer
         with pytest.raises(ValueError):
