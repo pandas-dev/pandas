@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-cimport cython
 from cython cimport Py_ssize_t
 
 from cpython cimport PyFloat_Check, PyUnicode_Check
@@ -37,8 +36,7 @@ from tslibs.np_datetime import OutOfBoundsDatetime
 from tslibs.parsing import parse_datetime_string
 
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                               treat_tz_as_pytz, get_dst_info)
+from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
