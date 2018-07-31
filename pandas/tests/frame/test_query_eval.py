@@ -1029,11 +1029,10 @@ class TestDataFrameEvalWithFrame(object):
         expect = self.frame.a[self.frame.a < 1] + self.frame.b
         assert_series_equal(res, expect)
 
-    def test_invalid_type_for_operator_raises(self, parser, engine):
+    @pytest.mark.parametrize('op', ['+', '-', '*', '/'])
+    def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({'a': [1, 2], 'b': ['c', 'd']})
-        ops = '+', '-', '*', '/'
-        for op in ops:
-            with tm.assert_raises_regex(TypeError,
-                                        r"unsupported operand type\(s\) "
-                                        "for .+: '.+' and '.+'"):
-                df.eval('a {0} b'.format(op), engine=engine, parser=parser)
+        with tm.assert_raises_regex(TypeError,
+                                    r"unsupported operand type\(s\) "
+                                    "for .+: '.+' and '.+'"):
+            df.eval('a {0} b'.format(op), engine=engine, parser=parser)

@@ -1321,7 +1321,7 @@ class Week(DateOffset):
             roll = self.n
 
         base = (base_period + roll).to_timestamp(how='end')
-        return base + off
+        return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
