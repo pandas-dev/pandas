@@ -22,9 +22,9 @@ class Registry(object):
     --------
     registry.register(MyExtensionDtype)
     """
-    dtypes = []
+    def __init__(self):
+        self.dtypes = []
 
-    @classmethod
     def register(self, dtype):
         """
         Parameters
@@ -50,7 +50,7 @@ class Registry(object):
             dtype_type = dtype
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
-            if issubclass(dtype_type, (PandasExtensionDtype, ExtensionDtype)):
+            if issubclass(dtype_type, ExtensionDtype):
                 return dtype
 
             return None
@@ -65,6 +65,9 @@ class Registry(object):
 
 
 registry = Registry()
+# TODO(Extension): remove the second registry once all internal extension
+# dtypes are real extension dtypes.
+_pandas_registry = Registry()
 
 
 class PandasExtensionDtype(_DtypeOpsMixin):
@@ -822,7 +825,7 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
 
 # register the dtypes in search order
-registry.register(DatetimeTZDtype)
-registry.register(PeriodDtype)
 registry.register(IntervalDtype)
 registry.register(CategoricalDtype)
+_pandas_registry.register(DatetimeTZDtype)
+_pandas_registry.register(PeriodDtype)
