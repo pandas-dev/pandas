@@ -21,7 +21,7 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
 import pandas as pd
 
 from pandas import (Series, DataFrame, Panel, Index, isna,
-                    notna, Timestamp)
+                    notna, Timestamp, Timedelta)
 
 from pandas.compat import range, lrange, zip, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
@@ -1702,12 +1702,14 @@ class TestDatetimeIndex(Base):
         result = df.resample('M').mean()
         expected = df.resample(
             'M', kind='period').mean().to_timestamp(how='end')
+        expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('M', closed='left').mean()
         exp = df.tshift(1, freq='D').resample('M', kind='period').mean()
         exp = exp.to_timestamp(how='end')
 
+        exp.index = exp.index + Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, exp)
 
         rng = date_range('1/1/2012', '4/1/2012', freq='100min')
@@ -1716,12 +1718,14 @@ class TestDatetimeIndex(Base):
         result = df.resample('Q').mean()
         expected = df.resample(
             'Q', kind='period').mean().to_timestamp(how='end')
+        expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('Q', closed='left').mean()
         expected = df.tshift(1, freq='D').resample('Q', kind='period',
                                                    closed='left').mean()
         expected = expected.to_timestamp(how='end')
+        expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
@@ -2473,7 +2477,7 @@ class TestPeriodIndex(Base):
         ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
 
         result = ts.resample('A-DEC', kind='timestamp').mean()
-        expected = ts.to_timestamp(how='end').resample('A-DEC').mean()
+        expected = ts.to_timestamp(how='start').resample('A-DEC').mean()
         assert_series_equal(result, expected)
 
     def test_resample_to_quarterly(self):
