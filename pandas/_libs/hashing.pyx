@@ -3,14 +3,13 @@
 # at https://github.com/veorq/SipHash
 
 import cython
+from cpython cimport PyBytes_Check, PyUnicode_Check
+from libc.stdlib cimport malloc, free
 
 import numpy as np
 from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
 
-from util cimport _checknull
-from cpython cimport (PyBytes_Check,
-                      PyUnicode_Check)
-from libc.stdlib cimport malloc, free
+from util cimport is_nan
 
 DEF cROUNDS = 2
 DEF dROUNDS = 4
@@ -65,7 +64,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
             data = <bytes>val
         elif PyUnicode_Check(val):
             data = <bytes>val.encode(encoding)
-        elif _checknull(val):
+        elif val is None or is_nan(val):
             # null, stringify and encode
             data = <bytes>str(val).encode(encoding)
 

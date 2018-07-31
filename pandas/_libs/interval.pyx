@@ -391,7 +391,7 @@ cpdef intervals_to_interval_bounds(ndarray intervals,
 
     for i in range(len(intervals)):
         interval = intervals[i]
-        if util._checknull(interval):
+        if interval is None or util.is_nan(interval):
             left[i] = np.nan
             right[i] = np.nan
             continue

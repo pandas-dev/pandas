@@ -13,7 +13,7 @@ import numpy as np
 from numpy cimport ndarray, uint8_t
 
 
-from util cimport UINT8_MAX, _checknull
+from util cimport UINT8_MAX, is_nan
 
 from missing cimport checknull
 
@@ -190,13 +190,13 @@ def scalar_binop(ndarray[object] values, object val, object op):
         object x
 
     result = np.empty(n, dtype=object)
-    if _checknull(val):
+    if val is None or is_nan(val):
         result.fill(val)
         return result
 
     for i in range(n):
         x = values[i]
-        if _checknull(x):
+        if x is None or is_nan(x):
             result[i] = x
         else:
             result[i] = op(x, val)
@@ -237,9 +237,9 @@ def vec_binop(ndarray[object] left, ndarray[object] right, object op):
         try:
             result[i] = op(x, y)
         except TypeError:
-            if _checknull(x):
+            if x is None or is_nan(x):
                 result[i] = x
-            elif _checknull(y):
+            elif y is None or is_nan(y):
                 result[i] = y
             else:
                 raise
