@@ -154,7 +154,7 @@ class TestDataFrameToCSV(TestData):
             self.tzframe.to_csv(path)
             result = pd.read_csv(path, index_col=0, parse_dates=['A'])
 
-            converter = lambda c: to_datetime(result[c]).dt.tz_localize(
+            converter = lambda c: to_datetime(result[c]).dt.tz_convert(
                 'UTC').dt.tz_convert(self.tzframe[c].dt.tz)
             result['B'] = converter('B')
             result['C'] = converter('C')
@@ -1027,12 +1027,11 @@ class TestDataFrameToCSV(TestData):
                 time_range = np.array(range(len(i)), dtype='int64')
                 df = DataFrame({'A': time_range}, index=i)
                 df.to_csv(path, index=True)
-
                 # we have to reconvert the index as we
                 # don't parse the tz's
                 result = read_csv(path, index_col=0)
-                result.index = to_datetime(result.index).tz_localize(
-                    'UTC').tz_convert('Europe/London')
+                result.index = to_datetime(result.index, utc=True).tz_convert(
+                    'Europe/London')
                 assert_frame_equal(result, df)
 
         # GH11619
@@ -1043,9 +1042,9 @@ class TestDataFrameToCSV(TestData):
         with ensure_clean('csv_date_format_with_dst') as path:
             df.to_csv(path, index=True)
             result = read_csv(path, index_col=0)
-            result.index = to_datetime(result.index).tz_localize(
-                'UTC').tz_convert('Europe/Paris')
-            result['idx'] = to_datetime(result['idx']).astype(
+            result.index = to_datetime(result.index, utc=True).tz_convert(
+                'Europe/Paris')
+            result['idx'] = to_datetime(result['idx'], utc=True).astype(
                 'datetime64[ns, Europe/Paris]')
             assert_frame_equal(result, df)
 
