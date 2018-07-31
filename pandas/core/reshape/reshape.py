@@ -126,6 +126,10 @@ class _Unstacker(object):
         self.removed_level = self.new_index_levels.pop(self.level)
         self.removed_level_full = index.levels[self.level]
 
+        # Bug fix GH 20601
+        # If the data frame is too big,
+        # the number of unique index combination will cause int32 overflow
+        # We want to check and raise an error before this happens
         num_rows = np.max([index_level.size for index_level
                            in self.new_index_levels])
         num_columns = self.removed_level.size
