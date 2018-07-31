@@ -888,7 +888,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     trans, deltas, typ = get_dst_info(tz)
 
-    tdata = <int64_t*> trans.data
+    tdata = <int64_t*> cnp.PyArray_DATA(trans)
     ntrans = len(trans)
 
     result_a = np.empty(n, dtype=np.int64)
