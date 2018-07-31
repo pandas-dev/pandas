@@ -384,8 +384,8 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)",
-                       strict=True)
+    # TODO: This doesn't fail on all systems; track down which
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
