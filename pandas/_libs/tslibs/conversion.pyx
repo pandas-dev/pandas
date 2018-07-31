@@ -525,7 +525,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     Sets obj.tzinfo inplace, alters obj.dts inplace.
     """
     cdef:
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         int64_t local_val
         Py_ssize_t pos
 
@@ -632,14 +633,15 @@ cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
         Py_ssize_t n = len(values)
         Py_ssize_t i, j, pos
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] tt, trans, deltas
+        ndarray[int64_t] tt, trans
+        int64_t[:] deltas
         ndarray[Py_ssize_t] posn
         int64_t v
 
     trans, deltas, typ = get_dst_info(tz)
     if not to_utc:
         # We add `offset` below instead of subtracting it
-        deltas = -1 * deltas
+        deltas = -1 * deltas.base  # `.base` to access underlying ndarray
 
     tt = values[values != NPY_NAT]
     if not len(tt):
@@ -728,7 +730,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     converted: int64
     """
     cdef:
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         Py_ssize_t pos
         int64_t v, offset, utc_date
         npy_datetimestruct dts
@@ -843,7 +846,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     localized : ndarray[int64_t]
     """
     cdef:
-        ndarray[int64_t] trans, deltas, idx_shifted
+        ndarray[int64_t] trans, idx_shifted
+        int64_t[:] deltas
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
@@ -1124,7 +1128,8 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
         ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t delta
@@ -1190,7 +1195,7 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
+def is_date_array_normalized(int64_t[:] stamps, tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
@@ -1207,7 +1212,8 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
     """
     cdef:
         Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         npy_datetimestruct dts
         int64_t local_val, delta
 

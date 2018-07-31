@@ -77,8 +77,7 @@ cdef inline object create_time_from_ts(
     return time(dts.hour, dts.min, dts.sec, dts.us)
 
 
-def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
-                       box="datetime"):
+def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
@@ -102,7 +101,9 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
 
     cdef:
         Py_ssize_t i, n = len(arr)
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
+        Py_ssize_t pos
         npy_datetimestruct dts
         object dt
         int64_t value, delta
