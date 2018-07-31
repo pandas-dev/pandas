@@ -500,7 +500,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 
-- Fixed bug where :meth:`DataFrame.astype` could not convert timedelta and datetime strings (:issue:`#22100`)
+- Fixed bug where :meth:`DataFrame.astype` could not convert timedelta strings (:issue:`#22100`)
 -
 -
 
