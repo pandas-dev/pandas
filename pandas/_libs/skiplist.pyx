@@ -5,6 +5,7 @@
 # Link: http://code.activestate.com/recipes/576930/
 
 # Cython version: Wes McKinney
+from random import random
 
 from libc.math cimport log
 
@@ -16,8 +17,6 @@ import numpy as np
 cdef double Log2(double x):
     return log(x) / log(2.)
 
-
-from random import random
 
 # TODO: optimize this, make less messy
 
@@ -32,8 +31,10 @@ cdef class Node:
         self.next = next
         self.width = width
 
+
 # Singleton terminator node
 NIL = Node(np.inf, [], [])
+
 
 cdef class IndexableSkiplist:
     """
