@@ -1786,7 +1786,11 @@ def _plot(data, x=None, y=None, subplots=False,
                     x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
-                data = data.set_index(x)
+                if y is not None:
+                    if x in y:
+                        data = data.set_index(x, drop=False)
+                else:
+                    data = data.set_index(x)
 
             if y is not None:
                 # check if we have y as int or list of ints
@@ -1804,10 +1808,6 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-
-                if type(y) == type(x):
-                    if y == x:
-                        data[y] = data.index
 
                 # don't overwrite
                 data = data[y].copy()
