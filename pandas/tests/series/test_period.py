@@ -5,7 +5,6 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas import Series, period_range, DataFrame, Period
-import pytest
 
 
 def _permute(obj):
