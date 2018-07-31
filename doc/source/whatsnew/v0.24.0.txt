@@ -529,7 +529,7 @@ Plotting
 ^^^^^^^^
 
 - Bug in :func:`DataFrame.plot.scatter` and :func:`DataFrame.plot.hexbin` caused x-axis label and ticklabels to disappear when colorbar was on in IPython inline backend (:issue:`10611`, :issue:`10678`, and :issue:`20455`)
-- Bug in :func:`DataFrameGroupBy.plot.scatter()` resulted in the first group being plotted twice (:issue:`21609`)
+- Bug in ``DataFrameGroupBy.plot.scatter`` resulted in the first group being plotted twice (:issue:`21609`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^

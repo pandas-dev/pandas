@@ -311,6 +311,11 @@ class GroupByPlot(PandasObject):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
+            # GH-21609
+            # naming the function in order to later determine
+            # if it requires skipping during fast_apply
+            # some functions (e.g. scatter) would
+            # create spurious extra plots if fast path is taken
             f.__name__ = name
             return self._groupby.apply(f)
         return attr
@@ -597,7 +602,6 @@ b  2""")
             # exception below
             if name in base.plotting_methods:
                 return self.apply(curried)
-
             try:
                 return self.apply(curried_with_axis)
             except Exception:
