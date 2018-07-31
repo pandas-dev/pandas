@@ -184,7 +184,8 @@ sort : boolean, default False
     the order of the join keys depends on the join type (how keyword).
 suffixes : 2-length sequence (tuple, list, ...)
     Suffix to apply to overlapping column names in the left and right
-    side, respectively.
+    side, respectively. If (False, False), overlapping
+    column names raise an error.
 copy : boolean, default True
     If False, avoid copy if possible.
 indicator : boolean or string, default False
@@ -254,6 +255,23 @@ Examples
 3  foo        5  foo        8
 4  bar        2  bar        6
 5  baz        3  baz        7
+
+>>> A.merge(B, left_on='lkey', right_on='rkey', how='outer',
+    suffixes=('_left', '_right'))
+  lkey  value_left rkey  value_right
+0  foo           1  foo            5
+1  foo           1  foo            8
+2  foo           5  foo            5
+3  foo           5  foo            8
+4  bar           2  bar            6
+5  baz           3  baz            7
+
+>>> A.merge(B, left_on='lkey', right_on='rkey', how='outer',
+    suffixes=(False, False))
+Traceback (most recent call last):
+    ...
+ValueError: columns overlap but no suffix specified:
+    Index(['value'], dtype='object')
 """
 
 # -----------------------------------------------------------------------
