@@ -134,7 +134,6 @@ class NDFrameGroupBy(GroupBy):
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                newb = result._data.blocks[0]
 
             finally:
 
@@ -1207,7 +1206,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or 0)
+        out = np.bincount(ids[mask], minlength=ngroups or None)
 
         return Series(out,
                       index=self.grouper.result_index,

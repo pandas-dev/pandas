@@ -824,15 +824,6 @@ class MultiIndex(Index):
         self._tuples = lib.fast_zip(values)
         return self._tuples
 
-    # fml
-    @property
-    def _is_v1(self):
-        return False
-
-    @property
-    def _is_v2(self):
-        return False
-
     @property
     def _has_complex_internals(self):
         # to disable groupby tricks
@@ -912,8 +903,8 @@ class MultiIndex(Index):
             if stringify and not isinstance(k, compat.string_types):
                 k = str(k)
             return k
-        key = tuple([f(k, stringify)
-                     for k, stringify in zip(key, self._have_mixed_levels)])
+        key = tuple(f(k, stringify)
+                    for k, stringify in zip(key, self._have_mixed_levels))
         return hash_tuple(key)
 
     @Appender(Index.duplicated.__doc__)
@@ -2842,22 +2833,6 @@ class MultiIndex(Index):
         new_labels = [np.delete(lab, loc) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names, verify_integrity=False)
-
-    get_major_bounds = slice_locs
-
-    __bounds = None
-
-    @property
-    def _bounds(self):
-        """
-        Return or compute and return slice points for level 0, assuming
-        sortedness
-        """
-        if self.__bounds is None:
-            inds = np.arange(len(self.levels[0]))
-            self.__bounds = self.labels[0].searchsorted(inds)
-
-        return self.__bounds
 
     def _wrap_joined_index(self, joined, other):
         names = self.names if self.names == other.names else None

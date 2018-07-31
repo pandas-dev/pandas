@@ -583,7 +583,6 @@ class BaseGrouper(object):
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
-                chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
                                comp_ids, is_datetimelike, **kwargs)
         else:
