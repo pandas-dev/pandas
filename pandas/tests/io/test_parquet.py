@@ -216,7 +216,8 @@ def test_options_get_engine(fp, pa):
 
 
 @pytest.mark.xfail(is_platform_windows() or is_platform_mac(),
-                   reason="reading pa metadata failing on Windows/mac")
+                   reason="reading pa metadata failing on Windows/mac",
+                   strict=True)
 def test_cross_engine_pa_fp(df_cross_compat, pa, fp):
     # cross-compat with differing reading/writing engines
 
@@ -383,7 +384,8 @@ class TestParquetPyArrow(Base):
 
         check_round_trip(df, pa)
 
-    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)")
+    @pytest.mark.xfail(reason="pyarrow fails on this (ARROW-1883)",
+                       strict=True)
     def test_basic_subset_columns(self, pa, df_full):
         # GH18628
 
