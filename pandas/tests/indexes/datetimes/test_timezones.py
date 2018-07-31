@@ -731,11 +731,13 @@ class TestDatetimeIndexTimezones(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
-    @pytest.mark.parametrize('tz', [
-        dateutil.tz.gettz('US/Eastern'), dateutil.tz.gettz('US/Pacific'),
-        dateutil.tz.gettz('UTC')])
-    def test_timetz_accessor(self, tz):
+    def test_timetz_accessor(self, tz_naive_fixture):
         # GH21358
+        if tz_naive_fixture is not None:
+            tz = dateutil.tz.gettz(tz_naive_fixture)
+        else:
+            tz = None
+
         expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
 
         index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], tz=tz)
