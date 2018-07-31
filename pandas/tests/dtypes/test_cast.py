@@ -460,12 +460,9 @@ def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
 
 
 @pytest.mark.parametrize('arr, dtype, expected', [
-    (np.array(['0:0:1'], dtype='object'),
-     'timedelta64[ns]', 'timedelta64[ns]'),
-    (np.array(['2000'], dtype='object'),
-     'datetime64[ns]', 'datetime64[ns]'),
-    (np.array(['2000'], dtype='object'),
-     'datetime64', 'datetime64[ns]'),
+    (np.array(['0:0:1'], dtype='O'), 'm8[ns]', 'm8[ns]'),
+    (np.array(['2000'], dtype='O'), 'M8[ns]', 'M8[ns]'),
+    (np.array(['2000'], dtype='O'), 'M8', 'M8[ns]'),
 ])
 def test_astype_nansafe(arr, dtype, expected):
     # GH #22100
