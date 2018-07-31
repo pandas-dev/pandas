@@ -1892,6 +1892,22 @@ def _consolidate(blocks):
 
 
 def _maybe_compare(a, b, regex=False):
+    """
+    Compare two array_like inputs of the same shape or two scalar values
+
+    Calls operator.eq or re.match, depending on regex argument. If regex is
+    True, perform an element-wise regex matching.
+
+    Parameters
+    ----------
+    a : array_like or scalar
+    b : array_like or scalar
+    regex : bool
+
+    Returns
+    -------
+    mask : array_like of bool
+    """
     if not regex:
         op = lambda x: operator.eq(x, b)
     else:

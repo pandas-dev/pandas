@@ -2503,7 +2503,30 @@ class ObjectBlock(Block):
 
     def _replace_single(self, to_replace, value, inplace=False, filter=None,
                         regex=False, convert=True, mgr=None, mask=None):
+        """
+        Replace elements by the given value.
 
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool
+            Perform inplace modification, default is False.
+        filter : list
+        regex : bool
+            If true, perform regular expression substitution.
+        convert : bool
+            If true, try to coerce any object types to better types.
+        mgr : BlockManager
+        mask : array-like of bool
+            True indicate corresponding element is ignored.
+
+        Returns
+        -------
+        a new block, the result after replacing
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         # to_replace is regex compilable
