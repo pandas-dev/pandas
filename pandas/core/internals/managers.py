@@ -20,8 +20,7 @@ from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
     is_numeric_v_string_like, is_extension_type,
     is_extension_array_dtype,
-    is_scalar,
-    is_re_compilable)
+    is_scalar)
 from pandas.core.dtypes.cast import (
     maybe_promote,
     infer_dtype_from_scalar,
@@ -580,8 +579,6 @@ class BlockManager(PandasObject):
             if hasattr(s, 'asm8'):
                 return _maybe_compare(maybe_convert_objects(values),
                                       getattr(s, 'asm8'), reg)
-            if reg and is_re_compilable(s):
-                return _maybe_compare(values, s, reg)
             return _maybe_compare(values, s, reg)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
