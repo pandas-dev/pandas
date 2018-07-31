@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import operator
 
 import pytest
 import numpy as np
@@ -13,7 +12,6 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     Series,
                     Timestamp, Timedelta)
 from pandas.errors import PerformanceWarning, NullFrequencyError
-from pandas.core import ops
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
@@ -269,53 +267,6 @@ class TestTimedeltaIndexMultiplicationDivision(object):
 
 class TestTimedeltaIndexArithmetic(object):
     # Addition and Subtraction Operations
-
-    # -------------------------------------------------------------
-    # Invalid Operations
-
-    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
-    @pytest.mark.parametrize('op', [operator.add, ops.radd,
-                                    operator.sub, ops.rsub])
-    def test_tdi_add_sub_float(self, op, other):
-        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
-        tdi = dti - dti.shift(1)
-        with pytest.raises(TypeError):
-            op(tdi, other)
-
-    def test_tdi_add_str_invalid(self):
-        # GH 13624
-        tdi = TimedeltaIndex(['1 day', '2 days'])
-
-        with pytest.raises(TypeError):
-            tdi + 'a'
-        with pytest.raises(TypeError):
-            'a' + tdi
-
-    @pytest.mark.parametrize('freq', [None, 'H'])
-    def test_tdi_sub_period(self, freq):
-        # GH#13078
-        # not supported, check TypeError
-        p = pd.Period('2011-01-01', freq='D')
-
-        idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
-
-        with pytest.raises(TypeError):
-            idx - p
-
-        with pytest.raises(TypeError):
-            p - idx
-
-    @pytest.mark.parametrize('op', [operator.add, ops.radd,
-                                    operator.sub, ops.rsub])
-    @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
-    @pytest.mark.parametrize('tdi_freq', [None, 'H'])
-    def test_dti_sub_pi(self, tdi_freq, pi_freq, op):
-        # GH#20049 subtracting PeriodIndex should raise TypeError
-        tdi = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=tdi_freq)
-        dti = pd.Timestamp('2018-03-07 17:16:40') + tdi
-        pi = dti.to_period(pi_freq)
-        with pytest.raises(TypeError):
-            op(dti, pi)
 
     # -------------------------------------------------------------
     # TimedeltaIndex.shift is used by __add__/__sub__
@@ -625,29 +576,6 @@ class TestTimedeltaIndexArithmetic(object):
         expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
         rng -= delta
         tm.assert_index_equal(rng, expected)
-
-    # -------------------------------------------------------------
-    # Binary operations TimedeltaIndex and datetime-like
-
-    def test_tdi_sub_timestamp_raises(self):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-        msg = "cannot subtract a datelike from a TimedeltaIndex"
-        with tm.assert_raises_regex(TypeError, msg):
-            idx - Timestamp('2011-01-01')
-
-    def test_tdi_add_timestamp(self):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-
-        result = idx + Timestamp('2011-01-01')
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-        tm.assert_index_equal(result, expected)
-
-    def test_tdi_radd_timestamp(self):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-
-        result = Timestamp('2011-01-01') + idx
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-        tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
