@@ -1041,9 +1041,10 @@ class TestMethods(object):
             dt1 + dt2
 
     boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
+    ids = ['identity', 'Series', 'Index']
 
-    @pytest.mark.parametrize('lbox', boxes)
-    @pytest.mark.parametrize('rbox', boxes)
+    @pytest.mark.parametrize('lbox', boxes, ids=ids)
+    @pytest.mark.parametrize('rbox', boxes, ids=ids)
     def test_add_timestamp_raises(self, rbox, lbox):
         # GH # 17983
         ts = pd.Timestamp('2017')

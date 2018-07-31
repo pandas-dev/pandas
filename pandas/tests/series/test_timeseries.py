@@ -78,7 +78,8 @@ class TestTimeSeries(TestData):
         assert_series_equal(shifted2, shifted3)
         assert_series_equal(ps, shifted2.shift(-1, 'B'))
 
-        pytest.raises(ValueError, ps.shift, freq='D')
+        with pytest.raises(ValueError):
+            ps.shift(freq='D')
 
         # legacy support
         shifted4 = ps.shift(1, freq='B')
@@ -109,7 +110,8 @@ class TestTimeSeries(TestData):
         # incompat tz
         s2 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                tz='CET'), name='foo')
-        pytest.raises(TypeError, lambda: s - s2)
+        with pytest.raises(TypeError):
+            s - s2
 
     def test_shift2(self):
         ts = Series(np.random.randn(5),
@@ -168,7 +170,8 @@ class TestTimeSeries(TestData):
         shifted3 = ps.tshift(freq=BDay())
         assert_series_equal(shifted, shifted3)
 
-        pytest.raises(ValueError, ps.tshift, freq='M')
+        with pytest.raises(ValueError):
+            ps.tshift(freq='M')
 
         # DatetimeIndex
         shifted = self.ts.tshift(1)
@@ -187,7 +190,8 @@ class TestTimeSeries(TestData):
         assert_series_equal(unshifted, inferred_ts)
 
         no_freq = self.ts[[0, 5, 7]]
-        pytest.raises(ValueError, no_freq.tshift)
+        with pytest.raises(ValueError):
+            no_freq.tshift()
 
     def test_truncate(self):
         offset = BDay()
@@ -459,7 +463,8 @@ class TestTimeSeries(TestData):
         assert_series_equal(a, a + b)
         assert_series_equal(a, a - b)
         assert_series_equal(a, b + a)
-        pytest.raises(TypeError, lambda x, y: x - y, b, a)
+        with pytest.raises(TypeError):
+            b - a
 
     def test_contiguous_boolean_preserve_freq(self):
         rng = date_range('1/1/2000', '3/1/2000', freq='B')
@@ -791,16 +796,19 @@ class TestTimeSeries(TestData):
     def test_between_time_types(self):
         # GH11818
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
-        pytest.raises(ValueError, rng.indexer_between_time,
-                      datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+        with pytest.raises(ValueError):
+            rng.indexer_between_time(datetime(2010, 1, 2, 1),
+                                     datetime(2010, 1, 2, 5))
 
         frame = DataFrame({'A': 0}, index=rng)
-        pytest.raises(ValueError, frame.between_time,
-                      datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+        with pytest.raises(ValueError):
+            frame.between_time(datetime(2010, 1, 2, 1),
+                               datetime(2010, 1, 2, 5))
 
         series = Series(0, index=rng)
-        pytest.raises(ValueError, series.between_time,
-                      datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
+        with pytest.raises(ValueError):
+            series.between_time(datetime(2010, 1, 2, 1),
+                                datetime(2010, 1, 2, 5))
 
     @td.skip_if_has_locale
     def test_between_time_formats(self):
@@ -921,40 +929,40 @@ class TestTimeSeries(TestData):
         idx_p = tm.round_trip_pickle(idx)
         tm.assert_index_equal(idx, idx_p)
 
-    def test_setops_preserve_freq(self):
-        for tz in [None, 'Asia/Tokyo', 'US/Eastern']:
-            rng = date_range('1/1/2000', '1/1/2002', name='idx', tz=tz)
+    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo', 'US/Eastern'])
+    def test_setops_preserve_freq(self, tz):
+        rng = date_range('1/1/2000', '1/1/2002', name='idx', tz=tz)
 
-            result = rng[:50].union(rng[50:100])
-            assert result.name == rng.name
-            assert result.freq == rng.freq
-            assert result.tz == rng.tz
+        result = rng[:50].union(rng[50:100])
+        assert result.name == rng.name
+        assert result.freq == rng.freq
+        assert result.tz == rng.tz
 
-            result = rng[:50].union(rng[30:100])
-            assert result.name == rng.name
-            assert result.freq == rng.freq
-            assert result.tz == rng.tz
+        result = rng[:50].union(rng[30:100])
+        assert result.name == rng.name
+        assert result.freq == rng.freq
+        assert result.tz == rng.tz
 
-            result = rng[:50].union(rng[60:100])
-            assert result.name == rng.name
-            assert result.freq is None
-            assert result.tz == rng.tz
+        result = rng[:50].union(rng[60:100])
+        assert result.name == rng.name
+        assert result.freq is None
+        assert result.tz == rng.tz
 
-            result = rng[:50].intersection(rng[25:75])
-            assert result.name == rng.name
-            assert result.freqstr == 'D'
-            assert result.tz == rng.tz
+        result = rng[:50].intersection(rng[25:75])
+        assert result.name == rng.name
+        assert result.freqstr == 'D'
+        assert result.tz == rng.tz
 
-            nofreq = DatetimeIndex(list(rng[25:75]), name='other')
-            result = rng[:50].union(nofreq)
-            assert result.name is None
-            assert result.freq == rng.freq
-            assert result.tz == rng.tz
+        nofreq = DatetimeIndex(list(rng[25:75]), name='other')
+        result = rng[:50].union(nofreq)
+        assert result.name is None
+        assert result.freq == rng.freq
+        assert result.tz == rng.tz
 
-            result = rng[:50].intersection(nofreq)
-            assert result.name is None
-            assert result.freq == rng.freq
-            assert result.tz == rng.tz
+        result = rng[:50].intersection(nofreq)
+        assert result.name is None
+        assert result.freq == rng.freq
+        assert result.tz == rng.tz
 
     def test_min_max(self):
         rng = date_range('1/1/2000', '12/31/2000')
