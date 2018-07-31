@@ -1757,6 +1757,7 @@ class DataFrame(NDFrame):
             (otherwise no compression).
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
+
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
