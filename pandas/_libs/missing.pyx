@@ -113,7 +113,7 @@ cpdef bint checknull_old(object val):
     elif util.is_array(val):
         return False
     else:
-        return util._checknull(val)
+        return val is None or util.is_nan(val)
 
 
 cdef inline bint _check_none_nan_inf_neginf(object val):
