@@ -1755,9 +1755,9 @@ class DataFrame(NDFrame):
             If 'infer' and `path_or_buf` is path-like, then detect compression
             from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
             (otherwise no compression).
+
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
-
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file

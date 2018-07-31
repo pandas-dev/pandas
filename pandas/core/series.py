@@ -3799,9 +3799,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             A string representing the compression to use in the output file.
             Allowed values are None, 'gzip', 'bz2', 'zip', 'xz', and 'infer'.
             This input is only used when the first argument is a filename.
+
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
-
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'

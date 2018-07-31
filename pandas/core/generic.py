@@ -1999,7 +1999,6 @@ class NDFrame(PandasObject, SelectionMixin):
             like.
 
             .. versionadded:: 0.19.0
-
         compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
                        default 'infer'
             A string representing the compression to use in the output file,
@@ -2008,7 +2007,6 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.21.0
             .. versionchanged:: 0.24.0
                'infer' option added and set to default
-
         index : boolean, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
