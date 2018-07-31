@@ -16,8 +16,6 @@ The full license is in the LICENSE file, distributed with this software.
 #include "numpy/arrayscalars.h"
 
 
-PANDAS_INLINE npy_int64 get_nat(void) { return NPY_MIN_INT64; }
-
 PANDAS_INLINE int assign_value_1d(PyArrayObject* ap, Py_ssize_t _i,
                                   PyObject* v) {
     npy_intp i = (npy_intp)_i;
@@ -40,16 +38,10 @@ PANDAS_INLINE const char* get_c_string(PyObject* obj) {
 #endif
 }
 
-PANDAS_INLINE PyObject* char_to_string(const char* data) {
-#if PY_VERSION_HEX >= 0x03000000
-    return PyUnicode_FromString(data);
-#else
-    return PyString_FromString(data);
-#endif
-}
-
 void set_array_not_contiguous(PyArrayObject* ao) {
-    ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
+    // Numpy>=1.8-compliant equivalent to:
+    //  ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
+    PyArray_CLEARFLAGS(ao, (NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS));
 }
 
 #endif  // PANDAS__LIBS_SRC_NUMPY_HELPER_H_
