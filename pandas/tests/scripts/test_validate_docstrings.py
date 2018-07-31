@@ -527,10 +527,10 @@ class TestValidator(object):
          ('a short summary in a single line should be present',)),
         # Parameters tests
         ('BadParameters', 'missing_params',
-         ('Parameters {\'**kwargs\'} not documented',)),
+         ('Parameters {**kwargs} not documented',)),
         ('BadParameters', 'bad_colon_spacing',
-         ('Parameters {\'kind\'} not documented',
-          'Unknown parameters {\'kind: str\'}',
+         ('Parameters {kind} not documented',
+          'Unknown parameters {kind: str}',
           'Parameter "kind: str" has no type')),
         ('BadParameters', 'no_description_period',
          ('Parameter "kind" description should finish with "."',)),

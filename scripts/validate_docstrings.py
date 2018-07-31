@@ -38,6 +38,7 @@ from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
+from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
@@ -107,8 +108,9 @@ class Docstring(object):
 
     @property
     def is_function_or_method(self):
-        # TODO(py27): revert ismethod to isfunction
-        return inspect.ismethod(self.method_obj)
+        # TODO(py27): remove ismethod
+        return (inspect.isfunction(self.method_obj)
+                or inspect.ismethod(self.method_obj))
 
     @property
     def source_file_name(self):
@@ -211,10 +213,11 @@ class Docstring(object):
         doc_params = tuple(self.doc_parameters)
         missing = set(signature_params) - set(doc_params)
         if missing:
-            errs.append('Parameters {!r} not documented'.format(missing))
+            errs.append(
+                'Parameters {} not documented'.format(pprint_thing(missing)))
         extra = set(doc_params) - set(signature_params)
         if extra:
-            errs.append('Unknown parameters {!r}'.format(extra))
+            errs.append('Unknown parameters {}'.format(pprint_thing(extra)))
         if (not missing and not extra and signature_params != doc_params
                 and not (not signature_params and not doc_params)):
             errs.append('Wrong parameters order. ' +
