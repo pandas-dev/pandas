@@ -2538,7 +2538,10 @@ def _factorize_from_iterable(values):
                                       ordered=values.ordered)
         codes = values.codes
     else:
-        cat = Categorical(values, ordered=True)
+        # The value of ordered is irrelevant since we don't use cat as such,
+        # but only the resulting categories, the order of which is independent
+        # from ordered. Set ordered to False as default due to issue #15457
+        cat = Categorical(values, ordered=False)
         categories = cat.categories
         codes = cat.codes
     return codes, categories

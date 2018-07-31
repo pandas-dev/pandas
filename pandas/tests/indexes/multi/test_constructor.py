@@ -313,6 +313,13 @@ def test_from_product_empty_zero_levels():
         MultiIndex.from_product([])
 
 
+def test_set_index_tuple():
+    # test for fix of issue #15457, where the following raised a TypeError
+    result = pd.MultiIndex.from_arrays([[2, 4], [1, (1, 2)]])
+    expected = pd.MultiIndex.from_tuples([(2, 4), (1, (1, 2))])
+    assert result == expected
+
+
 def test_from_product_empty_one_level():
     result = MultiIndex.from_product([[]], names=['A'])
     expected = pd.Index([], name='A')
