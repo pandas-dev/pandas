@@ -635,24 +635,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                     # If the dateutil parser returned tzinfo, capture it
                     # to check if all arguments have the same tzinfo
-                    tz = py_dt.tzinfo
+                    tz = py_dt.utcoffset()
                     if tz is not None:
                         seen_datetime_offset = 1
-                        if tz == dateutil_utc():
-                            # dateutil.tz.tzutc has no offset-like attribute
-                            # Just add the 0 offset explicitly
-                            out_tzoffset_vals.add(0)
-                        elif tz == tzlocal():
-                            # is comparison fails unlike other dateutil.tz
-                            # objects. Also, dateutil.tz.tzlocal has no
-                            # _offset attribute like tzoffset
-                            offset_seconds = tz._dst_offset.total_seconds()
-                            out_tzoffset_vals.add(offset_seconds)
-                        else:
-                            # dateutil.tz.tzoffset objects cannot be hashed
-                            # store the total_seconds() instead
-                            offset_seconds = tz._offset.total_seconds()
-                            out_tzoffset_vals.add(offset_seconds)
+                        # dateutil timezone objects cannot be hashed, so store
+                        # the UTC offsets in seconds instead
+                        out_tzoffset_vals.add(tz.total_seconds())
                     else:
                         # Add a marker for naive string, to track if we are
                         # parsing mixed naive and aware strings
