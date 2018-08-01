@@ -38,6 +38,17 @@ def delta(request):
     return request.param
 
 
+@pytest.fixture(params=[timedelta(minutes=5, seconds=4),
+                        Timedelta('5m4s'),
+                        Timedelta('5m4s').to_timedelta64()],
+                ids=lambda x: type(x).__name__)
+def scalar_td(request):
+    """
+    Several variants of Timedelta scalars representing 5 minutes and 4 seconds
+    """
+    return request.param
+
+
 @pytest.fixture(params=[pd.Index, Series, pd.DataFrame],
                 ids=lambda x: x.__name__)
 def box(request):
@@ -51,8 +62,13 @@ def box(request):
 @pytest.fixture(params=[
     pd.Index,
     Series,
-    pytest.param(pd.DataFrame, marks=pytest.mark.xfail(strict=True))])
+    pytest.param(pd.DataFrame,
+                 marks=pytest.mark.xfail(strict=True))]
+    ids=lambda x: x.__name__)
 def box_df_fail(request):
+    """
+    Fixture equivalent to `box` fixture but xfailing the DataFrame case.
+    """
     return request.param
 
 
@@ -498,8 +514,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
         else:
             assert result.dtypes[0] == 'timedelta64[ns]'
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     def test_td64arr_sub_NaT(self, box):
         # GH#18808
         ser = Series([NaT, Timedelta('1s')])
@@ -517,6 +531,145 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
     # ------------------------------------------------------------------
+    # Multiplication
+    # organized with scalar others first, then array-like
+
+    def test_td64arr_mul_int(self, box_df_fail):
+        box = box_df_fail  # DataFrame op returns object instead of m8[ns]
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        idx = tm.box_expected(idx, box)
+
+        result = idx * 1
+        tm.assert_equal(result, idx)
+
+        result = 1 * idx
+        tm.assert_equal(result, idx)
+
+    def test_td64arr_mul_tdlike_scalar_raises(self, delta, box):
+        if box is pd.DataFrame and not isinstance(delta, pd.DateOffset):
+            pytest.xfail(reason="returns m8[ns] instead of raising")
+
+        rng = pd.timedelta_range('1 days', '10 days', name='foo')
+        rng = tm.box_expected(rng, box)
+        with pytest.raises(TypeError):
+            rng * delta
+
+    def test_tdi_mul_int_array_zerodim(self, box_df_fail):
+        box = box_df_fail  # DataFrame op returns object dtype
+        rng5 = np.arange(5, dtype='int64')
+        idx = TimedeltaIndex(rng5)
+        expected = TimedeltaIndex(rng5 * 5)
+
+        idx = tm.box_expected(idx, box)
+        expected = tm.box_expected(expected, box)
+
+        result = idx * np.array(5, dtype='int64')
+        tm.assert_equal(result, expected)
+
+    def test_tdi_mul_int_array(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+        rng5 = np.arange(5, dtype='int64')
+        idx = TimedeltaIndex(rng5)
+        expected = TimedeltaIndex(rng5 ** 2)
+
+        idx = tm.box_expected(idx, box)
+        expected = tm.box_expected(expected, box)
+
+        result = idx * rng5
+        tm.assert_equal(result, expected)
+
+    def test_tdi_mul_int_series(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        expected = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
+
+        idx = tm.box_expected(idx, box)
+
+        box2 = pd.Series if box is pd.Index else box
+        expected = tm.box_expected(expected, box2)
+
+        result = idx * pd.Series(np.arange(5, dtype='int64'))
+        tm.assert_equal(result, expected)
+
+    def test_tdi_mul_float_series(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        idx = tm.box_expected(idx, box)
+
+        rng5f = np.arange(5, dtype='float64')
+        expected = TimedeltaIndex(rng5f * (rng5f + 0.1))
+        box2 = pd.Series if box is pd.Index else box
+        expected = tm.box_expected(expected, box2)
+
+        result = idx * Series(rng5f + 0.1)
+        tm.assert_equal(result, expected)
+
+    # TODO: Put Series/DataFrame in others?
+    @pytest.mark.parametrize('other', [
+        np.arange(1, 11),
+        pd.Int64Index(range(1, 11)),
+        pd.UInt64Index(range(1, 11)),
+        pd.Float64Index(range(1, 11)),
+        pd.RangeIndex(1, 11)
+    ], ids=lambda x: type(x).__name__)
+    def test_tdi_rmul_arraylike(self, other, box_df_fail):
+        # RangeIndex fails to return NotImplemented, for others
+        # DataFrame tries to broadcast incorrectly
+        box = box_df_fail
+
+        tdi = TimedeltaIndex(['1 Day'] * 10)
+        expected = pd.timedelta_range('1 days', '10 days')
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = other * tdi
+        tm.assert_equal(result, expected)
+        commute = tdi * other
+        tm.assert_equal(commute, expected)
+
+    # ------------------------------------------------------------------
+    # __div__
+
+    def test_td64arr_div_nat_invalid(self, box_df_fail):
+        # don't allow division by NaT (maybe could in the future)
+        box = box_df_fail  # DataFrame returns all-NaT instead of raising
+        rng = pd.timedelta_range('1 days', '10 days', name='foo')
+        rng = tm.box_expected(rng, box)
+        with pytest.raises(TypeError):
+            rng / pd.NaT
+
+    def test_td64arr_div_int(self, box_df_fail):
+        box = box_df_fail  # DataFrame returns object dtype instead of m8[ns]
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        idx = tm.box_expected(idx, box)
+
+        result = idx / 1
+        tm.assert_equal(result, idx)
+
+    def test_tdi_div_tdlike_scalar(self, delta, box_df_fail):
+        box = box_df_fail  # DataFrame op returns m8[ns] instead of float64
+        rng = pd.timedelta_range('1 days', '10 days', name='foo')
+        expected = pd.Float64Index((np.arange(10) + 1) * 12, name='foo')
+
+        rng = tm.box_expected(rng, box)
+        expected = tm.box_expected(expected, box)
+
+        result = rng / delta
+        tm.assert_equal(result, expected)
+
+    def test_tdi_div_tdlike_scalar_with_nat(self, delta, box_df_fail):
+        box = box_df_fail  # DataFrame op returns m8[ns] instead of float64
+        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        expected = pd.Float64Index([12, np.nan, 24], name='foo')
+
+        rng = tm.box_expected(rng, box)
+        expected = tm.box_expected(expected, box)
+
+        result = rng / delta
+        tm.assert_equal(result, expected)
+
+    # ------------------------------------------------------------------
     # __floordiv__, __rfloordiv__
 
     @pytest.mark.parametrize('box', [
@@ -527,10 +680,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                                     "m8[ns] instead of f8",
                                              strict=True))
     ], ids=lambda x: x.__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
     def test_td64arr_floordiv_tdscalar(self, box, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -551,10 +700,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
                      marks=pytest.mark.xfail(reason="Incorrectly casts to f8",
                                              strict=True))
     ], ids=lambda x: x.__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
     def test_td64arr_rfloordiv_tdscalar(self, box, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -576,10 +721,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                                     "instead of f8",
                                              strict=True))
     ], ids=lambda x: x.__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
     def test_td64arr_rfloordiv_tdscalar_explicit(self, box, scalar_td):
         # GH#18831
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -649,10 +790,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                                     "rmul OK",
                                              strict=True))
     ], ids=lambda x: x.__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
     def test_td64arr_mul_tdscalar_invalid(self, box, scalar_td):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
@@ -869,10 +1006,6 @@ class TestTimedeltaArraylikeInvalidArithmeticOps(object):
                                                     "instead of TypeError",
                                              strict=True))
     ])
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
     def test_td64arr_pow_invalid(self, scalar_td, box):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
