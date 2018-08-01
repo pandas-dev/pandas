@@ -615,6 +615,24 @@ class TestIsin(object):
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_same_object_is_in(self):
+        # GH 22160
+        # nan is special, because out of a is a doesn't follow a == a
+        comps = ['ss', np.nan]
+        values = [np.nan]
+        expected = np.array([False, True])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_no_cast(self):
+        # GH 22160
+        # ensure 42 is not casted to string
+        comps = ['ss', 42]
+        values = ['42']
+        expected = np.array([False, False])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
