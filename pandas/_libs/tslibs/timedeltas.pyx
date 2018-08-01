@@ -13,7 +13,7 @@ from cpython cimport PyUnicode_Check, Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, ndarray
+from numpy cimport int64_t
 cnp.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
@@ -83,7 +83,7 @@ _no_input = object()
 # ----------------------------------------------------------------------
 # API
 
-def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
+def ints_to_pytimedelta(int64_t[:] arr, box=False):
     """
     convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
     True)
@@ -101,7 +101,7 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t value
-        ndarray[object] result = np.empty(n, dtype=object)
+        object[:] result = np.empty(n, dtype=object)
 
     for i in range(n):
 
@@ -114,7 +114,7 @@ def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
             else:
                 result[i] = timedelta(microseconds=int(value) / 1000)
 
-    return result
+    return result.base  # .base to access underlying np.ndarray
 
 
 # ----------------------------------------------------------------------
@@ -199,7 +199,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
     return ts.astype('timedelta64[ns]')
 
 
-cpdef array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
+cpdef array_to_timedelta64(object[:] values, unit='ns', errors='raise'):
     """
     Convert an ndarray to an array of timedeltas. If errors == 'coerce',
     coerce non-convertible objects to NaT. Otherwise, raise.
@@ -207,7 +207,7 @@ cpdef array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
 
     cdef:
         Py_ssize_t i, n
-        ndarray[int64_t] iresult
+        int64_t[:] iresult
 
     if errors not in ('ignore', 'raise', 'coerce'):
         raise ValueError("errors must be one of 'ignore', "
@@ -233,7 +233,7 @@ cpdef array_to_timedelta64(ndarray[object] values, unit='ns', errors='raise'):
                 else:
                     raise
 
-    return iresult
+    return iresult.base  # .base to access underlying np.ndarray
 
 
 cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:

@@ -31,7 +31,7 @@ cdef int RESO_DAY = 6
 
 # ----------------------------------------------------------------------
 
-cpdef resolution(ndarray[int64_t] stamps, tz=None):
+cpdef resolution(int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -42,11 +42,12 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
     return _reso_local(stamps, tz)
 
 
-cdef _reso_local(ndarray[int64_t] stamps, object tz):
+cdef _reso_local(int64_t[:] stamps, object tz):
     cdef:
         Py_ssize_t i, n = len(stamps)
         int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta
