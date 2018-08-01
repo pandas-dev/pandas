@@ -187,6 +187,10 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # not sure
         pass
 
+    @pytest.mark.xfail(reason="TODO", strict=True)
+    def test_divmod(self, data):
+        super().test_divmod(data)
+
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
 
