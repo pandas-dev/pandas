@@ -156,8 +156,20 @@ class TestDataFrameOperators(TestData):
         def check(df, df2):
 
             for (x, y) in [(df, df2), (df2, df)]:
-                pytest.raises(TypeError, lambda: x == y)
-                pytest.raises(TypeError, lambda: x != y)
+                # we expect the result to match Series comparisons for
+                # == and !=, inequalities should raise
+                result = x == y
+                expected = DataFrame({col: x[col] == y[col]
+                                      for col in x.columns},
+                                     index=x.index, columns=x.columns)
+                assert_frame_equal(result, expected)
+
+                result = x != y
+                expected = DataFrame({col: x[col] != y[col]
+                                      for col in x.columns},
+                                     index=x.index, columns=x.columns)
+                assert_frame_equal(result, expected)
+
                 pytest.raises(TypeError, lambda: x >= y)
                 pytest.raises(TypeError, lambda: x > y)
                 pytest.raises(TypeError, lambda: x < y)

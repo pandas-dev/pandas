@@ -356,7 +356,8 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(period.IncompatibleFrequency):
             tdarr - rng
 
-    @pytest.mark.xfail(reason='op with TimedeltaIndex raises, with ndarray OK')
+    @pytest.mark.xfail(reason='op with TimedeltaIndex raises, with ndarray OK',
+                       strict=True)
     def test_pi_add_sub_td64_array_tick(self):
         rng = pd.period_range('1/1/2000', freq='Q', periods=3)
         dti = pd.date_range('2016-01-01', periods=3)

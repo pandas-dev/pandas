@@ -150,7 +150,8 @@ class Numeric(Base):
         result = 2.0**idx
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__')
+    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__',
+                       strict=True)
     def test_divmod_series(self):
         idx = self.create_index()
 
