@@ -27,6 +27,8 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar, is_iterator,
     is_dict_like)
@@ -633,8 +635,21 @@ class Categorical(ExtensionArray, PandasObject):
             categorical. If not given, the resulting categorical will be
             unordered.
         """
+        codes = np.asarray(codes)  # #21767
+        if not is_integer_dtype(codes):
+            msg = "codes need to be array-like integers"
+            if is_float_dtype(codes):
+                icodes = codes.astype('i8')
+                if (icodes == codes).all():
+                    msg = None
+                    codes = icodes
+                    warn(("float codes will be disallowed in the future and "
+                          "raise a ValueError"), FutureWarning, stacklevel=2)
+            if msg:
+                raise ValueError(msg)
+
         try:
-            codes = coerce_indexer_dtype(np.asarray(codes), categories)
+            codes = coerce_indexer_dtype(codes, categories)
         except (ValueError, TypeError):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
