@@ -28,6 +28,16 @@ def tdser():
     return Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
+@pytest.fixture(params=[pd.Index, Series, pd.DataFrame],
+                ids=lambda x: x.__name__)
+def box(request):
+    """
+    Several array-like containers that should have effectively identical
+    behavior with respect to arithmetic operations.
+    """
+    return request.param
+
+
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Timedelta Scalar
 
@@ -69,7 +79,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         commute = scalar_td * index
         tm.assert_equal(commute, expected)
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame])
     @pytest.mark.parametrize('index', [
         pd.Int64Index(range(1, 3)),
         pd.UInt64Index(range(1, 3)),
@@ -109,8 +118,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
     # -------------------------------------------------------------
     # Invalid Operations
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     def test_td64arr_add_str_invalid(self, box):
         # GH#13624
         tdi = TimedeltaIndex(['1 day', '2 days'])
@@ -121,8 +128,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError):
             'a' + tdi
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub],
@@ -186,8 +191,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
     # -------------------------------------------------------------
     # Binary operations td64 arraylike and datetime-like
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     def test_td64arr_sub_timestamp_raises(self, box):
         idx = TimedeltaIndex(['1 day', '2 day'])
         idx = tm.box_expected(idx, box)
@@ -280,8 +283,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(err):
             tdser - Series([2, 3, 4])
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds',
                        strict=True)
     def test_td64arr_rsub_int_series_invalid(self, box, tdser):
@@ -326,8 +327,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(err):
             ser - pd.Index(other)
 
-    @pytest.mark.parametrize('box', [pd.Index, Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
     def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar, tdser):
 
@@ -579,7 +578,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     # ------------------------------------------------------------------
-    # Operations with timedelta-like others
+    # Operations with invalid others
 
     @pytest.mark.parametrize('box', [
         pd.Index,
@@ -608,6 +607,20 @@ class TestTimedeltaArraylikeMulDivOps(object):
             td1 * scalar_td
         with tm.assert_raises_regex(TypeError, pattern):
             scalar_td * td1
+
+    def test_td64arr_mul_too_short_raises(self, box):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        idx = tm.box_expected(idx, box)
+        with pytest.raises(TypeError):
+            idx * idx[:3]
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
+
+    def test_td64arr_mul_td64arr_raises(self, box):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        idx = tm.box_expected(idx, box)
+        with pytest.raises(TypeError):
+            idx * idx
 
     # ------------------------------------------------------------------
     # Operations with numeric others
@@ -675,8 +688,10 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                        'float64', 'float32', 'float16'])
     @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
                                         pd.Index([20, 30, 40]),
-                                        Series([20, 30, 40])])
-    def test_td64arr_mul_numeric_array(self, box, vector, dtype, tdser):
+                                        Series([20, 30, 40])],
+                             ids=lambda x: type(x).__name__)
+    @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
+    def test_td64arr_rmul_numeric_array(self, op, box, vector, dtype, tdser):
         # GH#4521
         # divide/multiply by integers
         vector = vector.astype(dtype)
@@ -689,37 +704,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         box = Series if (box is pd.Index and type(vector) is Series) else box
         expected = tm.box_expected(expected, box)
 
-        result = tdser * vector
-        tm.assert_equal(result, expected)
-
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="broadcasts along "
-                                                    "wrong axis",
-                                             strict=True))
-    ], ids=lambda x: x.__name__)
-    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
-                                       'uint64', 'uint32', 'uint16', 'uint8',
-                                       'float64', 'float32', 'float16'])
-    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
-                                        pd.Index([20, 30, 40]),
-                                        Series([20, 30, 40])],
-                             ids=lambda x: type(x).__name__)
-    def test_td64arr_rmul_numeric_array(self, box, vector, dtype, tdser):
-        # GH#4521
-        # divide/multiply by integers
-        vector = vector.astype(dtype)
-
-        expected = Series(['1180 Days', '1770 Days', 'NaT'],
-                          dtype='timedelta64[ns]')
-
-        tdser = tm.box_expected(tdser, box)
-        box = Series if (box is pd.Index and type(vector) is Series) else box
-        expected = tm.box_expected(expected, box)
-
-        result = vector * tdser
+        result = op(vector, tdser)
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('box', [
@@ -787,11 +772,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     # TODO: Should we be parametrizing over types for `ser` too?
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pd.DataFrame
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])

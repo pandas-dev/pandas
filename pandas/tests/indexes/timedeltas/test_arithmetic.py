@@ -163,18 +163,6 @@ class TestTimedeltaIndexMultiplicationDivision(object):
         result = idx * rng5
         tm.assert_index_equal(result, didx)
 
-    def test_tdi_mul_dti_raises(self):
-        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
-        with pytest.raises(TypeError):
-            idx * idx
-
-    def test_tdi_mul_too_short_raises(self):
-        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
-        with pytest.raises(TypeError):
-            idx * TimedeltaIndex(np.arange(3))
-        with pytest.raises(ValueError):
-            idx * np.array([1, 2])
-
     def test_tdi_mul_int_series(self):
         idx = TimedeltaIndex(np.arange(5, dtype='int64'))
         didx = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
