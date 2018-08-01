@@ -11,7 +11,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.core import ops
-from pandas.errors import NullFrequencyError
+from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas import (
     timedelta_range,
@@ -549,6 +549,43 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
         result = rng - delta
         tm.assert_equal(result, expected)
+
+    # ------------------------------------------------------------------
+    # __add__/__sub__ with DateOffsets and arrays of DateOffsets
+
+    @pytest.mark.parametrize('box', [
+        pd.Index,
+        pytest.param(Series,
+                     marks=pytest.mark.xfail(reason="Index fails to return "
+                                                    "NotImplemented on "
+                                                    "reverse op", strict=True)),
+        pytest.param(pd.DataFrame,
+                     marks=pytest.mark.xfail(reason="Tries to broadcast "
+                                                    "incorrectly",
+                                             strict=True, raises=ValueError))
+    ], ids=lambda x: x.__name__)
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_tdi_add_offset_index(self, names, box):
+        # GH#18849, GH#19744
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+                             name=names[0])
+        other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
+                         name=names[1])
+
+        expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
+                                  freq='infer', name=names[2])
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi + other
+        tm.assert_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + tdi
+        tm.assert_equal(res2, expected)
 
 
 class TestTimedeltaArraylikeMulDivOps(object):

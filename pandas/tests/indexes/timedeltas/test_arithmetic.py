@@ -183,27 +183,6 @@ class TestTimedeltaIndexArithmetic(object):
 
     # -------------------------------------------------------------
 
-    @pytest.mark.parametrize('names', [(None, None, None),
-                                       ('foo', 'bar', None),
-                                       ('foo', 'foo', 'foo')])
-    def test_tdi_add_offset_index(self, names):
-        # GH#18849, GH#19744
-        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
-                             name=names[0])
-        other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
-                         name=names[1])
-
-        expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
-                                  freq='infer', name=names[2])
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res = tdi + other
-        tm.assert_index_equal(res, expected)
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res2 = other + tdi
-        tm.assert_index_equal(res2, expected)
-
     def test_tdi_add_offset_array(self):
         # GH#18849
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
