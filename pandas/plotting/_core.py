@@ -3345,9 +3345,9 @@ class FramePlotMethods(BasePlotMethods):
         Parameters
         ----------
         x : label or position, optional
-            Index, coordinates for X axis.
+            Coordinates for the X axis. By default uses the index.
         y : label or position, optional
-            Index, coordinates for Y axis.
+            Column to plot. By default uses all columns.
         stacked : boolean, default True
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
@@ -3375,7 +3375,8 @@ class FramePlotMethods(BasePlotMethods):
             ...     'sales': [3, 2, 3, 9, 10, 6],
             ...     'signups': [5, 5, 6, 12, 14, 13],
             ...     'visits': [20, 42, 28, 62, 81, 50],
-            ... })
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
             >>> ax = df.plot.area()
 
         Area plots are stacked by default. To produce an unstacked plot,
@@ -3388,7 +3389,8 @@ class FramePlotMethods(BasePlotMethods):
             ...     'sales': [3, 2, 3, 9, 10, 6],
             ...     'signups': [5, 5, 6, 12, 14, 13],
             ...     'visits': [20, 42, 28, 62, 81, 50],
-            ... })
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
             >>> ax = df.plot.area(stacked=False)
 
         Draw an area plot for each metric:
@@ -3400,10 +3402,9 @@ class FramePlotMethods(BasePlotMethods):
             ...     'sales': [3, 2, 3, 9, 10, 6],
             ...     'signups': [5, 5, 6, 12, 14, 13],
             ...     'visits': [20, 42, 28, 62, 81, 50],
-            ... })
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
             >>> ax = df.plot.area(y='sales')
-            >>> ax = df.plot.area(y='signups')
-            >>> ax = df.plot.area(y='visits')
 
         Draw with a different `x`:
 
@@ -3414,7 +3415,8 @@ class FramePlotMethods(BasePlotMethods):
             ...     'sales': [3, 2, 3],
             ...     'visits': [20, 42, 28],
             ...     'day': ['Monday', 'Tuesday', 'Wednesday'],
-            ... })
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
             >>> ax = df.plot.area(x='day')
         """
         return self(kind='area', x=x, y=y, **kwds)
