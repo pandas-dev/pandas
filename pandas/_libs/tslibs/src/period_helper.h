@@ -19,7 +19,6 @@ frequency conversion routines.
 #endif
 
 #include <Python.h>
-//#include "../../src/headers/stdint.h"
 #include "limits.h"
 #include "numpy/ndarraytypes.h"
 
