@@ -1,7 +1,7 @@
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import Registry
+from pandas.core.dtypes.dtypes import registry
 from pandas import compat
 
 
@@ -12,23 +12,19 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def kind(self):
-        return self.dtype.kind
-
-    @property
-    def dtype(self):
-        return self._dtype
+        return self.subdtype.kind
 
     @property
     def type(self):
-        return self.dtype.type
+        return self.subdtype.type
 
     @property
     def subdtype(self):
-        return self.type
+        return self._dtype
 
     @property
     def name(self):
-        return 'Sparse[{}]'.format(self.dtype.name)
+        return 'Sparse[{}]'.format(self.subdtype.name)
 
     def __repr__(self):
         return self.name
@@ -69,4 +65,4 @@ class SparseDtype(ExtensionDtype):
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
 
 
-Registry.register(SparseDtype)
+registry.register(SparseDtype)

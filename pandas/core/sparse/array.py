@@ -155,8 +155,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._dtype = SparseDtype(sparse_values.dtype)
         self.fill_value = fill_value
 
-    def __array__(self):
-        pass
+    def __array__(self, dtype=None, copy=True):
+        out = np.full(self.shape, self.fill_value, dtype=dtype)
+        out[self.sp_index.to_int_index().indices] = self.sp_values
+        return out
 
     def __setitem__(self, key, value):
         # I suppose we could allow setting of non-fill_value elements.
@@ -208,11 +210,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         Dense values
         """
-        output = np.empty(len(self), dtype=self.dtype)
-        int_index = self.sp_index.to_int_index()
-        output.fill(self.fill_value)
-        output.put(int_index.indices, self.sp_values)
-        return output
+        return np.asarray(self)
 
     def isna(self):
         if isna(self.fill_value):
@@ -448,6 +446,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         sp_index = IntIndex(length, indices)
 
         return cls(data, sparse_index=sp_index)
+
+    def astype(self, dtype=None, copy=True):
+        dtype = np.dtype(dtype)
+        sp_values = astype_nansafe(self.sp_values, dtype, copy=copy)
+
+        try:
+            if is_bool_dtype(dtype):
+                # to avoid np.bool_ dtype
+                fill_value = bool(self.fill_value)
+            else:
+                fill_value = dtype.type(self.fill_value)
+        except ValueError:
+            msg = 'unable to coerce current fill_value {fill} to {dtype} dtype'
+            raise ValueError(msg.format(fill=self.fill_value, dtype=dtype))
+        return type(self)(sp_values, self.sp_index, fill_value=fill_value)
 
     # ------------------------------------------------------------------------
     # Ops
