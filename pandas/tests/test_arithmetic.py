@@ -28,6 +28,16 @@ def tdser():
     return Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
+@pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
+                        np.timedelta64(2, 'h'), Timedelta(hours=2)],
+                ids=str)
+def delta(request):
+    """
+    Several ways of representing two hours
+    """
+    return request.param
+
+
 @pytest.fixture(params=[pd.Index, Series, pd.DataFrame],
                 ids=lambda x: x.__name__)
 def box(request):
@@ -35,6 +45,13 @@ def box(request):
     Several array-like containers that should have effectively identical
     behavior with respect to arithmetic operations.
     """
+    return request.param
+
+@pytest.fixture(params=[
+    pd.Index,
+    Series,
+    pytest.param(pd.DataFrame, marks=pytest.mark.xfail(strict=True))])
+def box_df_fail(request):
     return request.param
 
 
@@ -575,6 +592,24 @@ class TestTimedeltaArraylikeMulDivOps(object):
         # We can test __rfloordiv__ using this syntax,
         # see `test_timedelta_rfloordiv`
         result = td1.__rfloordiv__(scalar_td)
+        tm.assert_equal(result, expected)
+
+    def test_td64arr_floordiv_int(self, box_df_fail):
+        box = box_df_fail  # DataFrame returns object dtype
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        idx = tm.box_expected(idx, box)
+        result = idx // 1
+        tm.assert_equal(result, idx)
+
+    def test_td64arr_floordiv_tdlike_scalar(self, delta, box_df_fail):
+        box = box_df_fail  # DataFrame returns m8[ns] instead of int64 dtype
+        tdi = pd.timedelta_range('1 days', '10 days', name='foo')
+        expected = pd.Int64Index((np.arange(10) + 1) * 12, name='foo')
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = tdi // delta
         tm.assert_equal(result, expected)
 
     # ------------------------------------------------------------------

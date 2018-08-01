@@ -223,18 +223,6 @@ class TestTimedeltaIndexMultiplicationDivision(object):
     # -------------------------------------------------------------
     # TimedeltaIndex.__floordiv__
 
-    def test_tdi_floordiv_int(self):
-        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-    def test_tdi_floordiv_tdlike_scalar(self, delta):
-        tdi = timedelta_range('1 days', '10 days', name='foo')
-        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
-
-        result = tdi // delta
-        tm.assert_index_equal(result, expected, exact=False)
-
     @pytest.mark.parametrize('scalar_td', [
         timedelta(minutes=10, seconds=7),
         Timedelta('10m7s'),
