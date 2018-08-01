@@ -652,7 +652,7 @@ Reshaping
 - Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
 - Bug in :meth:`Series.mask` and :meth:`DataFrame.mask` with ``list`` conditionals (:issue:`21891`)
--
+- Bug in :meth:`DataFrame.replace` raises RecursionError when converting OutOfBounds ``datetime64[ns, tz]`` (:issue:`20380`)
 -
 
 Build Changes
