@@ -369,8 +369,14 @@ class IntervalIndex(IntervalMixin, Index):
 
     @property
     def itemsize(self):
-        # Avoid materializing ndarray[Interval]
-        return self._data.itemsize
+        msg = ('IntervalIndex.itemsize is deprecated and will be removed in '
+               'a future version')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        # supress the warning from the underlying left/right itemsize
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            return self.left.itemsize + self.right.itemsize
 
     def __len__(self):
         return len(self.left)
@@ -939,7 +945,6 @@ class IntervalIndex(IntervalMixin, Index):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 

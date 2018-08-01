@@ -9,7 +9,7 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, double_t, int64_t, float64_t
+from numpy cimport ndarray, double_t, int64_t, float64_t, float32_t
 cnp.import_array()
 
 
@@ -25,11 +25,11 @@ from skiplist cimport (skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef cnp.float32_t MINfloat32 = np.NINF
-cdef cnp.float64_t MINfloat64 = np.NINF
+cdef float32_t MINfloat32 = np.NINF
+cdef float64_t MINfloat64 = np.NINF
 
-cdef cnp.float32_t MAXfloat32 = np.inf
-cdef cnp.float64_t MAXfloat64 = np.inf
+cdef float32_t MAXfloat32 = np.inf
+cdef float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
