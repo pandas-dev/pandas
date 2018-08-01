@@ -1321,7 +1321,7 @@ class Week(DateOffset):
             roll = self.n
 
         base = (base_period + roll).to_timestamp(how='end')
-        return base + off
+        return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2375,7 +2375,7 @@ def generate_range(start=None, end=None, periods=None,
             cur = next_date
 
 
-prefix_mapping = dict((offset._prefix, offset) for offset in [
+prefix_mapping = {offset._prefix: offset for offset in [
     YearBegin,                 # 'AS'
     YearEnd,                   # 'A'
     BYearBegin,                # 'BAS'
@@ -2407,4 +2407,4 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
-])
+]}

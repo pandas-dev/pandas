@@ -599,13 +599,17 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
 
 class TestGroupby(BaseInteger, base.BaseGroupbyTests):
 
-    @pytest.mark.xfail(reason="groupby not working")
+    @pytest.mark.xfail(reason="groupby not working", strict=True)
     def test_groupby_extension_no_sort(self, data_for_grouping):
         super(TestGroupby, self).test_groupby_extension_no_sort(
             data_for_grouping)
 
-    @pytest.mark.xfail(reason="groupby not working")
-    @pytest.mark.parametrize('as_index', [True, False])
+    @pytest.mark.parametrize('as_index', [
+        pytest.param(True,
+                     marks=pytest.mark.xfail(reason="groupby not working",
+                                             strict=True)),
+        False
+    ])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping)

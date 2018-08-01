@@ -496,7 +496,8 @@ class TestDataFramePlots(TestPlotBase):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
-                       'datetime_mixed_tz')
+                              'datetime_mixed_tz',
+                       strict=True)
     def test_subplots_timeseries_y_axis_not_supported(self):
         """
         This test will fail for:
@@ -1126,10 +1127,10 @@ class TestDataFramePlots(TestPlotBase):
                           columns=['A label', 'B label', 'C label'])
 
         ax = df.plot.hexbin('A label', 'B label', gridsize=12)
-        assert all([vis.get_visible() for vis in
-                    ax.xaxis.get_minorticklabels()])
-        assert all([vis.get_visible() for vis in
-                    ax.xaxis.get_majorticklabels()])
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_minorticklabels())
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_majorticklabels())
         assert ax.xaxis.get_label().get_visible()
 
     @pytest.mark.slow

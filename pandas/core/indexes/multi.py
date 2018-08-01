@@ -903,8 +903,8 @@ class MultiIndex(Index):
             if stringify and not isinstance(k, compat.string_types):
                 k = str(k)
             return k
-        key = tuple([f(k, stringify)
-                     for k, stringify in zip(key, self._have_mixed_levels)])
+        key = tuple(f(k, stringify)
+                    for k, stringify in zip(key, self._have_mixed_levels))
         return hash_tuple(key)
 
     @Appender(Index.duplicated.__doc__)

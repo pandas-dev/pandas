@@ -647,7 +647,7 @@ class ExcelFile(object):
             if header is not None:
                 if is_list_like(header):
                     header_names = []
-                    control_row = [True for x in data[0]]
+                    control_row = [True] * len(data[0])
                     for row in header:
                         if is_integer(skiprows):
                             row += skiprows

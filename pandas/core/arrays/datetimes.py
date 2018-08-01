@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from pytz import utc
 
-from pandas._libs import tslib
+from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import (
     normalize_date,
@@ -18,7 +18,7 @@ from pandas import compat
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
-    is_datetimelike,
+    is_object_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core import ops
 
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Tick, Day, generate_range
@@ -99,31 +100,40 @@ def _dt_array_cmp(cls, op):
         meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
-            if isinstance(other, datetime):
+            if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
 
-            other = _to_m8(other, tz=self.tz)
+            try:
+                other = _to_m8(other, tz=self.tz)
+            except ValueError:
+                # string that cannot be parsed to Timestamp
+                return ops.invalid_comparison(self, other, op)
+
             result = meth(self, other)
             if isna(other):
                 result.fill(nat_result)
+        elif lib.is_scalar(other):
+            return ops.invalid_comparison(self, other, op)
         else:
             if isinstance(other, list):
+                # FIXME: This can break for object-dtype with mixed types
                 other = type(self)(other)
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
-                if opname == '__eq__':
-                    return np.zeros(shape=self.shape, dtype=bool)
-                elif opname == '__ne__':
-                    return np.ones(shape=self.shape, dtype=bool)
-                raise TypeError('%s type object %s' %
-                                (type(other), str(other)))
+                return ops.invalid_comparison(self, other, op)
 
-            if is_datetimelike(other):
+            if is_object_dtype(other):
+                result = op(self.astype('O'), np.array(other))
+            elif not (is_datetime64_dtype(other) or
+                      is_datetime64tz_dtype(other)):
+                # e.g. is_timedelta64_dtype(other)
+                return ops.invalid_comparison(self, other, op)
+            else:
                 self._assert_tzawareness_compat(other)
+                result = meth(self, np.asarray(other))
 
-            result = meth(self, np.asarray(other))
             result = com.values_from_object(result)
 
             # Make sure to pass an array to result[...]; indexing with
@@ -151,6 +161,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
+
+    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
+    # by returning NotImplemented
+    timetuple = None
 
     # -----------------------------------------------------------------
     # Constructors
@@ -1235,11 +1249,9 @@ def _generate_regular_range(cls, start, end, periods, freq):
         tz = None
         if isinstance(start, Timestamp):
             tz = start.tz
-            start = start.to_pydatetime()
 
         if isinstance(end, Timestamp):
             tz = end.tz
-            end = end.to_pydatetime()
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
