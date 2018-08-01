@@ -1131,7 +1131,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(df_blocks['float64'], df)
 
     @pytest.mark.xfail(reason='nan column names in _init_dict problematic '
-                              '(GH 16894)')
+                              '(GH#16894)',
+                       strict=True)
     def test_nan_columnname(self):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])
@@ -1257,8 +1258,8 @@ class TestSparseDataFrameAnalytics(object):
         for func in funcs:
             getattr(np, func)(self.frame)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)',
+                       strict=True)
     def test_quantile(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
@@ -1274,8 +1275,8 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_series_equal(result, dense_expected)
         tm.assert_sp_series_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)',
+                       strict=True)
     def test_quantile_multi(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]

@@ -621,8 +621,9 @@ class TestExpanding(Base):
     @pytest.mark.parametrize(
         'expander',
         [1, pytest.param('ls', marks=pytest.mark.xfail(
-                         reason='GH 16425 expanding with '
-                                'offset not supported'))])
+                         reason='GH#16425 expanding with '
+                                'offset not supported',
+                         strict=True))])
     def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames

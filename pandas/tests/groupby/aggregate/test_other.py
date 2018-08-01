@@ -487,7 +487,17 @@ def test_agg_structs_series(structure, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
+@pytest.mark.parametrize('observed', [
+    True,
+    pytest.param(False,
+                 marks=pytest.mark.xfail(reason="GH#18869: agg func not "
+                                                "called on empty groups.",
+                                         strict=True)),
+    pytest.param(None,
+                 marks=pytest.mark.xfail(reason="GH#18869: agg func not "
+                                                "called on empty groups.",
+                                         strict=True))
+])
 def test_agg_category_nansum(observed):
     categories = ['a', 'b', 'c']
     df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
