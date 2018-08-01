@@ -396,7 +396,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
         pd.Index,
         Series,
         pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="Tries to broadcast "
+                     marks=pytest.mark.xfail(reason="Attempts to broadcast "
                                                     "incorrectly",
                                              strict=True, raises=ValueError))
     ], ids=lambda x: x.__name__)
