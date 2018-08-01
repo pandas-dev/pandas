@@ -22,6 +22,8 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_integer_dtype,
     is_float_dtype,
+    is_extension_array_dtype,
+    pandas_dtype,
     is_bool_dtype,
     is_list_like,
     is_string_dtype,
@@ -448,20 +450,28 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return cls(data, sparse_index=sp_index)
 
     def astype(self, dtype=None, copy=True):
-        dtype = np.dtype(dtype)
-        sp_values = astype_nansafe(self.sp_values, dtype, copy=copy)
+        # TODO: Document API Change here: .astype(type) will densify
+        # for non-sparse types
 
-        try:
-            if is_bool_dtype(dtype):
-                # to avoid np.bool_ dtype
-                fill_value = bool(self.fill_value)
-            else:
-                fill_value = dtype.type(self.fill_value)
-        except ValueError:
-            msg = 'unable to coerce current fill_value {fill} to {dtype} dtype'
-            raise ValueError(msg.format(fill=self.fill_value, dtype=dtype))
-        return type(self)(sp_values, self.sp_index, fill_value=fill_value)
+        dtype = pandas_dtype(dtype)
 
+        if isinstance(dtype, SparseDtype):
+            # Sparse -> Sparse
+            sp_values = astype_nansafe(self.sp_values, dtype, copy=copy)
+            try:
+                if is_bool_dtype(dtype):
+                    # to avoid np.bool_ dtype
+                    fill_value = bool(self.fill_value)
+                else:
+                    fill_value = dtype.type(self.fill_value)
+            except ValueError:
+                msg = 'unable to coerce current fill_value {fill} to {dtype} dtype'
+                raise ValueError(msg.format(fill=self.fill_value, dtype=dtype))
+            return type(self)(sp_values, self.sp_index, fill_value=fill_value)
+        elif is_extension_array_dtype(dtype):
+            return dtype.construct_array_type()(self, copy=copy)
+        else:
+            return astype_nansafe(np.asarray(self), dtype=dtype)
     # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
