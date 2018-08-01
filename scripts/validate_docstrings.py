@@ -185,9 +185,9 @@ class Docstring(object):
     @property
     def signature_parameters(self):
         if inspect.isclass(self.method_obj):
-            if (hasattr(self.method_obj, '_accessors')
-                and self.method_name.split('.')[-1] in
-                self.method_obj._accessors):
+            if hasattr(self.method_obj, '_accessors') and (
+                    self.method_name.split('.')[-1] in
+                    self.method_obj._accessors):
                 # accessor classes have a signature but don't want to show this
                 return tuple()
         try:
