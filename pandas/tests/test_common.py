@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-import os
 import collections
 from functools import partial
 
 import numpy as np
+import pytest
 
-from pandas import Series, DataFrame, Timestamp
-import pandas.core.common as com
-from pandas.core import ops
-from pandas.io.common import _get_handle
-import pandas.util.testing as tm
+from pandas import Series, Timestamp
+from pandas.core import (
+    common as com,
+    ops,
+)
 
 
 def test_get_callable_name():
@@ -20,7 +19,7 @@ def test_get_callable_name():
     def fn(x):
         return x
 
-    lambda_ = lambda x: x
+    lambda_ = lambda x: x  # noqa: E731
     part1 = partial(fn)
     part2 = partial(part1)
 
@@ -111,57 +110,3 @@ def test_standardize_mapping():
 
     dd = collections.defaultdict(list)
     assert isinstance(com.standardize_mapping(dd), partial)
-
-
-@pytest.mark.parametrize('obj', [
-    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
-                     [12.32112, 123123.2, 321321.2]],
-              columns=['X', 'Y', 'Z']),
-    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
-@pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
-def test_compression_size(obj, method, compression_only):
-
-    with tm.ensure_clean() as filename:
-        getattr(obj, method)(filename, compression=compression_only)
-        compressed = os.path.getsize(filename)
-        getattr(obj, method)(filename, compression=None)
-        uncompressed = os.path.getsize(filename)
-        assert uncompressed > compressed
-
-
-@pytest.mark.parametrize('obj', [
-    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
-                     [12.32112, 123123.2, 321321.2]],
-              columns=['X', 'Y', 'Z']),
-    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
-@pytest.mark.parametrize('method', ['to_csv', 'to_json'])
-def test_compression_size_fh(obj, method, compression_only):
-
-    with tm.ensure_clean() as filename:
-        f, _handles = _get_handle(filename, 'w', compression=compression_only)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
-        compressed = os.path.getsize(filename)
-    with tm.ensure_clean() as filename:
-        f, _handles = _get_handle(filename, 'w', compression=None)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
-        uncompressed = os.path.getsize(filename)
-        assert uncompressed > compressed
-
-
-# GH 21227
-def test_compression_warning(compression_only):
-    df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
-                          [12.32112, 123123.2, 321321.2]],
-                   columns=['X', 'Y', 'Z'])
-    with tm.ensure_clean() as filename:
-        f, _handles = _get_handle(filename, 'w', compression=compression_only)
-        with tm.assert_produces_warning(RuntimeWarning,
-                                        check_stacklevel=False):
-            with f:
-                df.to_csv(f, compression=compression_only)
