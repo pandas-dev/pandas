@@ -477,6 +477,7 @@ Deprecations
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
 - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
+- :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -524,9 +525,7 @@ Bug Fixes
 Categorical
 ^^^^^^^^^^^
 
--
--
--
+- Bug in :meth:`Categorical.from_codes` where ``NaN`` values in `codes` were silently converted to ``0`` (:issue:`21767`). In the future this will raise a ``ValueError``. Also changes the behavior of `.from_codes([1.1, 2.0])`.
 
 Datetimelike
 ^^^^^^^^^^^^
