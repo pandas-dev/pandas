@@ -268,13 +268,17 @@ cdef class _Timestamp(datetime):
                                  "without freq.")
             return Timestamp((self.freq * other).apply(self), freq=self.freq)
 
-        elif PyDelta_Check(other) or hasattr(other, 'delta'):
-            # delta --> offsets.Tick
+        elif PyDelta_Check(other):
             nanos = delta_to_nanoseconds(other)
             result = Timestamp(self.value + nanos,
                                tz=self.tzinfo, freq=self.freq)
+            return result
+
+        elif hasattr(other, 'delta'):
+            # delta --> offsets.Tick
+            result = self.tz_localize(None) + other.delta
+            result = result.tz_localize(self.tz)
             if getattr(other, 'normalize', False):
-                # DateOffset
                 result = result.normalize()
             return result
 
