@@ -220,26 +220,6 @@ class TestTimedeltaIndexMultiplicationDivision(object):
         with pytest.raises(TypeError):
             rng / pd.NaT
 
-    # -------------------------------------------------------------
-    # TimedeltaIndex.__floordiv__
-
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=10, seconds=7),
-        Timedelta('10m7s'),
-        Timedelta('10m7s').to_timedelta64()])
-    def test_tdi_floordiv_timedelta_scalar(self, scalar_td):
-        # GH#19125
-        tdi = TimedeltaIndex(['00:05:03', '00:05:03', pd.NaT], freq=None)
-        expected = pd.Index([2.0, 2.0, np.nan])
-
-        res = tdi.__rfloordiv__(scalar_td)
-        tm.assert_index_equal(res, expected)
-
-        expected = pd.Index([0.0, 0.0, np.nan])
-
-        res = tdi // (scalar_td)
-        tm.assert_index_equal(res, expected)
-
 
 class TestTimedeltaIndexArithmetic(object):
     # Addition and Subtraction Operations
