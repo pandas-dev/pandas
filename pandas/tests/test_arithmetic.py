@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
+from pandas.compat import long
 from pandas.core import ops
 from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas._libs.tslibs import IncompatibleFrequency
@@ -301,6 +302,40 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with pytest.raises(TypeError):
             tdser - ts
 
+    def test_tdi_sub_dt64_array(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        dtarr = dti.values
+        expected = pd.DatetimeIndex(dtarr) - tdi
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        with pytest.raises(TypeError):
+            tdi - dtarr
+
+        # TimedeltaIndex.__rsub__
+        result = dtarr - tdi
+        tm.assert_equal(result, expected)
+
+    def test_tdi_add_dt64_array(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        dtarr = dti.values
+        expected = pd.DatetimeIndex(dtarr) + tdi
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = tdi + dtarr
+        tm.assert_equal(result, expected)
+        result = dtarr + tdi
+        tm.assert_equal(result, expected)
+
     # ------------------------------------------------------------------
     # Operations with int-like others
 
@@ -453,7 +488,39 @@ class TestTimedeltaArraylikeAddSubOps(object):
             vector - tdser
 
     # ------------------------------------------------------------------
-    # Operations with timedelta-like others (including DateOffsets)
+    # Operations with timedelta-like others
+
+    def test_td64arr_add_td64_array(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = 2 * tdi
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = tdi + tdarr
+        tm.assert_equal(result, expected)
+        result = tdarr + tdi
+        tm.assert_equal(result, expected)
+
+    def test_td64arr_sub_td64_array(self, box_df_fail):
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = 0 * tdi
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        result = tdi - tdarr
+        tm.assert_equal(result, expected)
+        result = tdarr - tdi
+        tm.assert_equal(result, expected)
 
     # TODO: parametrize over [add, sub, radd, rsub]?
     @pytest.mark.parametrize('box', [
@@ -1213,3 +1280,231 @@ class TestTimedeltaArraylikeInvalidArithmeticOps(object):
 
         with tm.assert_raises_regex(TypeError, pattern):
             td1 ** scalar_td
+
+
+# ------------------------------------------------------------------
+
+@pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
+                        pd.Int64Index(np.arange(5, dtype='int64')),
+                        pd.UInt64Index(np.arange(5, dtype='uint64'))],
+                ids=lambda x: type(x).__name__)
+def idx(request):
+    return request.param
+
+
+zeros = [box([0] * 5, dtype=dtype)
+         for box in [pd.Index, np.array]
+         for dtype in [np.int64, np.uint64, np.float64]]
+zeros.extend([np.array(0, dtype=dtype)
+              for dtype in [np.int64, np.uint64, np.float64]])
+zeros.extend([0, 0.0, long(0)])
+
+
+@pytest.fixture(params=zeros)
+def zero(request):
+    # For testing division by (or of) zero for Index with length 5, this
+    # gives several scalar-zeros and length-5 vector-zeros
+    return request.param
+
+
+class TestDivisionByZero(object):
+
+    def test_div_zero(self, zero, idx):
+        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                            dtype=np.float64)
+        result = idx / zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_floordiv_zero(self, zero, idx):
+        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                            dtype=np.float64)
+
+        result = idx // zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_mod_zero(self, zero, idx):
+        expected = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                            dtype=np.float64)
+        result = idx % zero
+        tm.assert_index_equal(result, expected)
+        ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
+        tm.assert_series_equal(ser_compat, Series(result))
+
+    def test_divmod_zero(self, zero, idx):
+
+        exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
+                          dtype=np.float64)
+        exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan],
+                           dtype=np.float64)
+
+        result = divmod(idx, zero)
+        tm.assert_index_equal(result[0], exleft)
+        tm.assert_index_equal(result[1], exright)
+
+    # ------------------------------------------------------------------
+
+    @pytest.mark.parametrize('dtype2', [
+        np.int64, np.int32, np.int16, np.int8,
+        np.float64, np.float32, np.float16,
+        np.uint64, np.uint32, np.uint16, np.uint8])
+    @pytest.mark.parametrize('dtype1', [np.int64, np.float64, np.uint64])
+    def test_ser_div_ser(self, dtype1, dtype2):
+        # no longer do integer div for any ops, but deal with the 0's
+        first = Series([3, 4, 5, 8], name='first').astype(dtype1)
+        second = Series([0, 0, 0, 3], name='second').astype(dtype2)
+
+        with np.errstate(all='ignore'):
+            expected = Series(first.values.astype(np.float64) / second.values,
+                              dtype='float64', name=None)
+        expected.iloc[0:3] = np.inf
+
+        result = first / second
+        tm.assert_series_equal(result, expected)
+        assert not result.equals(second / first)
+
+    def test_rdiv_zero_compat(self):
+        # GH#8674
+        zero_array = np.array([0] * 5)
+        data = np.random.randn(5)
+        expected = Series([0.] * 5)
+
+        result = zero_array / Series(data)
+        tm.assert_series_equal(result, expected)
+
+        result = Series(zero_array) / data
+        tm.assert_series_equal(result, expected)
+
+        result = Series(zero_array) / Series(data)
+        tm.assert_series_equal(result, expected)
+
+    def test_div_zero_inf_signs(self):
+        # GH#9144, inf signing
+        ser = Series([-1, 0, 1], name='first')
+        expected = Series([-np.inf, np.nan, np.inf], name='first')
+
+        result = ser / 0
+        tm.assert_series_equal(result, expected)
+
+    def test_rdiv_zero(self):
+        # GH#9144
+        ser = Series([-1, 0, 1], name='first')
+        expected = Series([0.0, np.nan, 0.0], name='first')
+
+        result = 0 / ser
+        tm.assert_series_equal(result, expected)
+
+    def test_floordiv_div(self):
+        # GH#9144
+        ser = Series([-1, 0, 1], name='first')
+
+        result = ser // 0
+        expected = Series([-np.inf, np.nan, np.inf], name='first')
+        tm.assert_series_equal(result, expected)
+
+    def test_df_div_zero_df(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+        result = df / df
+
+        first = pd.Series([1.0, 1.0, 1.0, 1.0])
+        second = pd.Series([np.nan, np.nan, np.nan, 1])
+        expected = pd.DataFrame({'first': first, 'second': second})
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_div_zero_array(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        first = pd.Series([1.0, 1.0, 1.0, 1.0])
+        second = pd.Series([np.nan, np.nan, np.nan, 1])
+        expected = pd.DataFrame({'first': first, 'second': second})
+
+        with np.errstate(all='ignore'):
+            arr = df.values.astype('float') / df.values
+        result = pd.DataFrame(arr, index=df.index,
+                              columns=df.columns)
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_div_zero_int(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        result = df / 0
+        expected = pd.DataFrame(np.inf, index=df.index, columns=df.columns)
+        expected.iloc[0:3, 1] = np.nan
+        tm.assert_frame_equal(result, expected)
+
+        # numpy has a slightly different (wrong) treatment
+        with np.errstate(all='ignore'):
+            arr = df.values.astype('float64') / 0
+        result2 = pd.DataFrame(arr, index=df.index,
+                               columns=df.columns)
+        tm.assert_frame_equal(result2, expected)
+
+    def test_df_div_zero_series_does_not_commute(self):
+        # integer div, but deal with the 0's (GH#9144)
+        df = pd.DataFrame(np.random.randn(10, 5))
+        ser = df[0]
+        res = ser / df
+        res2 = df / ser
+        assert not res.fillna(0).equals(res2.fillna(0))
+
+    # ------------------------------------------------------------------
+    # Mod By Zero
+
+    def test_df_mod_zero_df(self):
+        # GH#3590, modulo as ints
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        # this is technically wrong, as the integer portion is coerced to float
+        # ###
+        first = pd.Series([0, 0, 0, 0], dtype='float64')
+        second = pd.Series([np.nan, np.nan, np.nan, 0])
+        expected = pd.DataFrame({'first': first, 'second': second})
+        result = df % df
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_mod_zero_array(self):
+        # GH#3590, modulo as ints
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        # this is technically wrong, as the integer portion is coerced to float
+        # ###
+        first = pd.Series([0, 0, 0, 0], dtype='float64')
+        second = pd.Series([np.nan, np.nan, np.nan, 0])
+        expected = pd.DataFrame({'first': first, 'second': second})
+
+        # numpy has a slightly different (wrong) treatment
+        with np.errstate(all='ignore'):
+            arr = df.values % df.values
+        result2 = pd.DataFrame(arr, index=df.index,
+                               columns=df.columns, dtype='float64')
+        result2.iloc[0:3, 1] = np.nan
+        tm.assert_frame_equal(result2, expected)
+
+    def test_df_mod_zero_int(self):
+        # GH#3590, modulo as ints
+        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+
+        result = df % 0
+        expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result, expected)
+
+        # numpy has a slightly different (wrong) treatment
+        with np.errstate(all='ignore'):
+            arr = df.values.astype('float64') % 0
+        result2 = pd.DataFrame(arr, index=df.index, columns=df.columns)
+        tm.assert_frame_equal(result2, expected)
+
+    def test_df_mod_zero_series_does_not_commute(self):
+        # GH#3590, modulo as ints
+        # not commutative with series
+        df = pd.DataFrame(np.random.randn(10, 5))
+        ser = df[0]
+        res = ser % df
+        res2 = df % ser
+        assert not res.fillna(0).equals(res2.fillna(0))
