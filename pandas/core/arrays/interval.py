@@ -688,10 +688,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def shape(self):
         return self.left.shape
 
-    @property
-    def itemsize(self):
-        return self.left.itemsize + self.right.itemsize
-
     def take(self, indices, allow_fill=False, fill_value=None, axis=None,
              **kwargs):
         """

@@ -120,16 +120,15 @@ class TestDataFrameApply(TestData):
         rs = df.T.apply(lambda s: s[0], axis=0)
         assert_series_equal(rs, xp)
 
-    def test_with_string_args(self):
+    @pytest.mark.parametrize('arg', ['sum', 'mean', 'min', 'max', 'std'])
+    def test_with_string_args(self, arg):
+        result = self.frame.apply(arg)
+        expected = getattr(self.frame, arg)()
+        tm.assert_series_equal(result, expected)
 
-        for arg in ['sum', 'mean', 'min', 'max', 'std']:
-            result = self.frame.apply(arg)
-            expected = getattr(self.frame, arg)()
-            tm.assert_series_equal(result, expected)
-
-            result = self.frame.apply(arg, axis=1)
-            expected = getattr(self.frame, arg)(axis=1)
-            tm.assert_series_equal(result, expected)
+        result = self.frame.apply(arg, axis=1)
+        expected = getattr(self.frame, arg)(axis=1)
+        tm.assert_series_equal(result, expected)
 
     def test_apply_broadcast_deprecated(self):
         with tm.assert_produces_warning(FutureWarning):
