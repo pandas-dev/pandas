@@ -14,9 +14,12 @@ frequency conversion routines.
 #ifndef PANDAS__LIBS_SRC_PERIOD_HELPER_H_
 #define PANDAS__LIBS_SRC_PERIOD_HELPER_H_
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif
+
 #include <Python.h>
-#include "headers/stdint.h"
-#include "helper.h"
+//#include "../../src/headers/stdint.h"
 #include "limits.h"
 #include "numpy/ndarraytypes.h"
 
@@ -74,7 +77,7 @@ frequency conversion routines.
 
 #define FR_UND -10000 /* Undefined */
 
-#define INT_ERR_CODE INT32_MIN
+#define INT_ERR_CODE NPY_MIN_INT32
 
 typedef struct asfreq_info {
     int is_end;
