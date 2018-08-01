@@ -11,7 +11,7 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Int64Index,
                     to_timedelta, timedelta_range, date_range,
                     Series,
                     Timestamp, Timedelta)
-from pandas.errors import PerformanceWarning, NullFrequencyError
+from pandas.errors import NullFrequencyError
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
@@ -182,101 +182,6 @@ class TestTimedeltaIndexArithmetic(object):
             tdi.shift(2)
 
     # -------------------------------------------------------------
-
-    def test_tdi_add_offset_array(self):
-        # GH#18849
-        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
-        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
-
-        expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
-                                  freq='infer')
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res = tdi + other
-        tm.assert_index_equal(res, expected)
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res2 = other + tdi
-        tm.assert_index_equal(res2, expected)
-
-    @pytest.mark.parametrize('names', [(None, None, None),
-                                       ('foo', 'bar', None),
-                                       ('foo', 'foo', 'foo')])
-    def test_tdi_sub_offset_index(self, names):
-        # GH#18824, GH#19744
-        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
-                             name=names[0])
-        other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
-                         name=names[1])
-
-        expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
-                                  freq='infer', name=names[2])
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res = tdi - other
-        tm.assert_index_equal(res, expected)
-
-    def test_tdi_sub_offset_array(self):
-        # GH#18824
-        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
-        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
-
-        expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
-                                  freq='infer')
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res = tdi - other
-        tm.assert_index_equal(res, expected)
-
-    @pytest.mark.parametrize('names', [(None, None, None),
-                                       ('foo', 'bar', None),
-                                       ('foo', 'foo', 'foo')])
-    def test_tdi_with_offset_series(self, names):
-        # GH#18849
-        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
-                             name=names[0])
-        other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
-                       name=names[1])
-
-        expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))],
-                              name=names[2])
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res = tdi + other
-        tm.assert_series_equal(res, expected_add)
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res2 = other + tdi
-        tm.assert_series_equal(res2, expected_add)
-
-        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))],
-                              name=names[2])
-
-        with tm.assert_produces_warning(PerformanceWarning):
-            res3 = tdi - other
-        tm.assert_series_equal(res3, expected_sub)
-
-    @pytest.mark.parametrize('box', [np.array, pd.Index, pd.Series])
-    def test_tdi_add_sub_anchored_offset_arraylike(self, box):
-        # GH#18824
-        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
-
-        anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
-
-        # addition/subtraction ops with anchored offsets should issue
-        # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdi + anchored
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored + tdi
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdi - anchored
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored - tdi
 
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py

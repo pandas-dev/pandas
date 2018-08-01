@@ -558,7 +558,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
         pytest.param(Series,
                      marks=pytest.mark.xfail(reason="Index fails to return "
                                                     "NotImplemented on "
-                                                    "reverse op", strict=True)),
+                                                    "reverse op",
+                                             strict=True)),
         pytest.param(pd.DataFrame,
                      marks=pytest.mark.xfail(reason="Tries to broadcast "
                                                     "incorrectly",
@@ -567,7 +568,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_tdi_add_offset_index(self, names, box):
+    def test_td64arr_add_offset_index(self, names, box):
         # GH#18849, GH#19744
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
                              name=names[0])
@@ -586,6 +587,135 @@ class TestTimedeltaArraylikeAddSubOps(object):
         with tm.assert_produces_warning(PerformanceWarning):
             res2 = other + tdi
         tm.assert_equal(res2, expected)
+
+    # TODO: combine with test_td64arr_add_offset_index by parametrizing
+    # over second box?
+    def test_td64arr_add_offset_array(self, box_df_fail):
+        # GH#18849
+        box = box_df_fail  # tries to broadcast incorrectly
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+
+        expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
+                                  freq='infer')
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi + other
+        tm.assert_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + tdi
+        tm.assert_equal(res2, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_td64arr_sub_offset_index(self, names, box_df_fail):
+        # GH#18824, GH#19744
+        box = box_df_fail  # tries to broadcast incorrectly
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+                             name=names[0])
+        other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
+                         name=names[1])
+
+        expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
+                                  freq='infer', name=names[2])
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi - other
+        tm.assert_equal(res, expected)
+
+    def test_td64arr_sub_offset_array(self, box_df_fail):
+        # GH#18824
+        box = box_df_fail  # tries to broadcast incorrectly
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+
+        expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
+                                  freq='infer')
+
+        tdi = tm.box_expected(tdi, box)
+        expected = tm.box_expected(expected, box)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi - other
+        tm.assert_equal(res, expected)
+
+    @pytest.mark.parametrize('box', [
+        pd.Index,
+        pytest.param(Series,
+                     marks=pytest.mark.xfail(reason="object dtype Series "
+                                                    "fails to return "
+                                                    "NotImplemented",
+                                             strict=True, raises=TypeError)),
+        pytest.param(pd.DataFrame,
+                     marks=pytest.mark.xfail(reason="tries to broadcast "
+                                                    "incorrectly",
+                                             strict=True, raises=ValueError))
+    ], ids=lambda x: x.__name__)
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_td64arr_with_offset_series(self, names, box):
+        # GH#18849
+        box2 = Series if box is pd.Index else box
+
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+                             name=names[0])
+        other = Series([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
+                       name=names[1])
+
+        expected_add = Series([tdi[n] + other[n] for n in range(len(tdi))],
+                              name=names[2])
+        tdi = tm.box_expected(tdi, box)
+        expected_add = tm.box_expected(expected_add, box2)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi + other
+        tm.assert_equal(res, expected_add)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + tdi
+        tm.assert_equal(res2, expected_add)
+
+        # TODO: separate/parametrize add/sub test?
+        expected_sub = Series([tdi[n] - other[n] for n in range(len(tdi))],
+                              name=names[2])
+        expected_sub = tm.box_expected(expected_sub, box2)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res3 = tdi - other
+        tm.assert_equal(res3, expected_sub)
+
+    @pytest.mark.parametrize('obox', [np.array, pd.Index, pd.Series])
+    def test_td64arr_addsub_anchored_offset_arraylike(self, obox, box_df_fail):
+        # GH#18824
+        box = box_df_fail  # DataFrame tries to broadcast incorrectly
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+        tdi = tm.box_expected(tdi, box)
+
+        anchored = obox([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        # addition/subtraction ops with anchored offsets should issue
+        # a PerformanceWarning and _then_ raise a TypeError.
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi + anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored + tdi
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                tdi - anchored
+        with pytest.raises(TypeError):
+            with tm.assert_produces_warning(PerformanceWarning):
+                anchored - tdi
 
 
 class TestTimedeltaArraylikeMulDivOps(object):
