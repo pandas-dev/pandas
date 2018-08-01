@@ -134,7 +134,7 @@ class CSVFormatter(object):
         """
         Create the writer & save
         """
-        # GH 21227 internal compression is not used when file-like passed.
+        # GH21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, 'write'):
             msg = ("compression has no effect when passing file-like "
                    "object as input.")
@@ -148,7 +148,7 @@ class CSVFormatter(object):
         if is_zip:
             # zipfile doesn't support writing string to archive. uses string
             # buffer to receive csv writing and dump into zip compression
-            # file handle. GH 21241, 21118
+            # file handle. GH21241, GH21118
             f = StringIO()
             close = False
         elif hasattr(self.path_or_buf, 'write'):
@@ -176,7 +176,7 @@ class CSVFormatter(object):
 
         finally:
             if is_zip:
-                # GH 17778 handles zip compression separately.
+                # GH17778 handles zip compression separately.
                 buf = f.getvalue()
                 if hasattr(self.path_or_buf, 'write'):
                     self.path_or_buf.write(buf)

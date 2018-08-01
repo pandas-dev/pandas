@@ -53,8 +53,7 @@ def test_compression_size_fh(obj, method, compression_only):
 ])
 def test_dataframe_compression_defaults_to_infer(
         write_method, write_kwargs, read_method, compression_only):
-    # Test that DataFrame.to_* methods default to inferring compression from
-    # paths. GH 22004
+    # GH22004
     input = pd.DataFrame([[1.0, 0, -4], [3.4, 5, 2]], columns=['X', 'Y', 'Z'])
     extension = icom._compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
@@ -72,8 +71,7 @@ def test_dataframe_compression_defaults_to_infer(
 def test_series_compression_defaults_to_infer(
         write_method, write_kwargs, read_method, read_kwargs,
         compression_only):
-    # Test that Series.to_* methods default to inferring compression from
-    # paths. GH 22004
+    # GH22004
     input = pd.Series([0, 5, -2, 10], name='X')
     extension = icom._compression_to_extension[compression_only]
     with tm.ensure_clean('compressed' + extension) as path:
@@ -84,7 +82,7 @@ def test_series_compression_defaults_to_infer(
 
 def test_compression_warning(compression_only):
     # Assert that passing a file object to to_csv while explicitly specifying a
-    # compression protocol triggers a RuntimeWarning, as per GH 21227.
+    # compression protocol triggers a RuntimeWarning, as per GH21227.
     # Note that pytest has an issue that causes assert_produces_warning to fail
     # in Python 2 if the warning has occurred in previous tests
     # (see https://git.io/fNEBm & https://git.io/fNEBC). Hence, should this
