@@ -1387,8 +1387,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         # TODO: deprecate
         from pandas.core.sparse.series import SparseSeries
-        return SparseSeries(self, kind=kind,
-                            fill_value=fill_value).__finalize__(self)
+        from pandas.core.sparse.array import SparseArray
+
+        values = SparseArray(self, kind=kind, fill_value=fill_value)
+        return SparseSeries(values).__finalize__(self)
 
     def _set_name(self, name, inplace=False):
         """

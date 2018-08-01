@@ -8,7 +8,10 @@ from pandas import compat
 class SparseDtype(ExtensionDtype):
 
     def __init__(self, dtype=np.float64):
-        self._dtype = np.dtype(dtype)
+        if isinstance(dtype, type(self)):
+            self._dtype = dtype.subdtype
+        else:
+            self._dtype = np.dtype(dtype)
 
     @property
     def kind(self):

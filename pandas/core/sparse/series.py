@@ -65,126 +65,133 @@ class SparseSeries(Series):
     def __init__(self, data=None, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
-
-        # we are called internally, so short-circuit
-        if fastpath:
-
-            # data is an ndarray, index is defined
-
-            if not isinstance(data, SingleBlockManager):
-                data = SingleBlockManager(data, index, fastpath=True)
-            if copy:
-                data = data.copy()
-
-        else:
-
-            if data is None:
-                data = []
-
-            if isinstance(data, Series) and name is None:
-                name = data.name
-
-            if isinstance(data, SparseArray):
-                if index is not None:
-                    assert (len(index) == len(data))
-                sparse_index = data.sp_index
-                if fill_value is None:
-                    fill_value = data.fill_value
-
-                data = np.asarray(data)
-
-            elif isinstance(data, SparseSeries):
-                if index is None:
-                    index = data.index.view()
-                if fill_value is None:
-                    fill_value = data.fill_value
-                # extract the SingleBlockManager
-                data = data._data
-
-            elif isinstance(data, (Series, dict)):
-                data = Series(data, index=index)
-                index = data.index.view()
-
-                res = make_sparse(data, kind=kind, fill_value=fill_value)
-                data, sparse_index, fill_value = res
-
-            elif isinstance(data, (tuple, list, np.ndarray)):
-                # array-like
-                if sparse_index is None:
-                    res = make_sparse(data, kind=kind, fill_value=fill_value)
-                    data, sparse_index, fill_value = res
-                else:
-                    assert (len(data) == sparse_index.npoints)
-
-            elif isinstance(data, SingleBlockManager):
-                if dtype is not None:
-                    data = data.astype(dtype)
-                if index is None:
-                    index = data.index.view()
-                elif not data.index.equals(index) or copy:  # pragma: no cover
-                    # GH#19275 SingleBlockManager input should only be called
-                    # internally
-                    raise AssertionError('Cannot pass both SingleBlockManager '
-                                         '`data` argument and a different '
-                                         '`index` argument.  `copy` must '
-                                         'be False.')
-
-            else:
-                length = len(index)
-
-                if data == fill_value or (isna(data) and isna(fill_value)):
-                    if kind == 'block':
-                        sparse_index = BlockIndex(length, [], [])
-                    else:
-                        sparse_index = IntIndex(length, [])
-                    data = np.array([])
-
-                else:
-                    if kind == 'block':
-                        locs, lens = ([0], [length]) if length else ([], [])
-                        sparse_index = BlockIndex(length, locs, lens)
-                    else:
-                        sparse_index = IntIndex(length, index)
-                    v = data
-                    data = np.empty(length)
-                    data.fill(v)
-
-            if index is None:
-                index = ibase.default_index(sparse_index.length)
-            index = ensure_index(index)
-
-            # create/copy the manager
-            if isinstance(data, SingleBlockManager):
-
-                if copy:
-                    data = data.copy()
-            else:
-
-                # create a sparse array
-                if not isinstance(data, SparseArray):
-                    data = SparseArray(data, sparse_index=sparse_index,
-                                       fill_value=fill_value, dtype=dtype,
-                                       copy=copy)
-
-                data = SingleBlockManager(data, index)
-
-        generic.NDFrame.__init__(self, data)
-
-        self.index = index
-        self.name = name
+        super(SparseSeries, self).__init__(
+            SparseArray(data,
+                        sparse_index=sparse_index,
+                        kind=kind,
+                        fill_value=fill_value),
+            index=index, name=name, dtype=dtype,
+            copy=copy, fastpath=fastpath
+        )
+        # # we are called internally, so short-circuit
+        # if fastpath:
+        #
+        #     # data is an ndarray, index is defined
+        #
+        #     if not isinstance(data, SingleBlockManager):
+        #         data = SingleBlockManager(data, index, fastpath=True)
+        #     if copy:
+        #         data = data.copy()
+        #
+        # else:
+        #
+        #     if data is None:
+        #         data = []
+        #
+        #     if isinstance(data, Series) and name is None:
+        #         name = data.name
+        #
+        #     if isinstance(data, SparseArray):
+        #         if index is not None:
+        #             assert (len(index) == len(data))
+        #         sparse_index = data.sp_index
+        #         if fill_value is None:
+        #             fill_value = data.fill_value
+        #
+        #         data = np.asarray(data)
+        #
+        #     elif isinstance(data, SparseSeries):
+        #         if index is None:
+        #             index = data.index.view()
+        #         if fill_value is None:
+        #             fill_value = data.fill_value
+        #         # extract the SingleBlockManager
+        #         data = data._data
+        #
+        #     elif isinstance(data, (Series, dict)):
+        #         data = Series(data, index=index)
+        #         index = data.index.view()
+        #
+        #         res = make_sparse(data, kind=kind, fill_value=fill_value)
+        #         data, sparse_index, fill_value = res
+        #
+        #     elif isinstance(data, (tuple, list, np.ndarray)):
+        #         # array-like
+        #         if sparse_index is None:
+        #             res = make_sparse(data, kind=kind, fill_value=fill_value)
+        #             data, sparse_index, fill_value = res
+        #         else:
+        #             assert (len(data) == sparse_index.npoints)
+        #
+        #     elif isinstance(data, SingleBlockManager):
+        #         if dtype is not None:
+        #             data = data.astype(dtype)
+        #         if index is None:
+        #             index = data.index.view()
+        #         elif not data.index.equals(index) or copy:  # pragma: no cover
+        #             # GH#19275 SingleBlockManager input should only be called
+        #             # internally
+        #             raise AssertionError('Cannot pass both SingleBlockManager '
+        #                                  '`data` argument and a different '
+        #                                  '`index` argument.  `copy` must '
+        #                                  'be False.')
+        #
+        #     else:
+        #         length = len(index)
+        #
+        #         if data == fill_value or (isna(data) and isna(fill_value)):
+        #             if kind == 'block':
+        #                 sparse_index = BlockIndex(length, [], [])
+        #             else:
+        #                 sparse_index = IntIndex(length, [])
+        #             data = np.array([])
+        #
+        #         else:
+        #             if kind == 'block':
+        #                 locs, lens = ([0], [length]) if length else ([], [])
+        #                 sparse_index = BlockIndex(length, locs, lens)
+        #             else:
+        #                 sparse_index = IntIndex(length, index)
+        #             v = data
+        #             data = np.empty(length)
+        #             data.fill(v)
+        #
+        #     if index is None:
+        #         index = ibase.default_index(sparse_index.length)
+        #     index = ensure_index(index)
+        #
+        #     # create/copy the manager
+        #     if isinstance(data, SingleBlockManager):
+        #
+        #         if copy:
+        #             data = data.copy()
+        #     else:
+        #
+        #         # create a sparse array
+        #         if not isinstance(data, SparseArray):
+        #             data = SparseArray(data, sparse_index=sparse_index,
+        #                                fill_value=fill_value, dtype=dtype,
+        #                                copy=copy)
+        #
+        #         data = SingleBlockManager(data, index)
+        #
+        # generic.NDFrame.__init__(self, data)
+        #
+        # self.index = index
+        # self.name = name
 
     @property
     def values(self):
         """ return the array """
-        return self.block.values
+        return self._data.blocks[0].values
 
     def __array__(self, result=None):
         """ the array interface, return my values """
-        return self.block.values
+        return np.asarray(self.values)
 
     def get_values(self):
         """ same as values """
-        return self.block.to_dense().view()
+        return self.values.to_dense().view()
 
     @property
     def block(self):
@@ -192,15 +199,15 @@ class SparseSeries(Series):
 
     @property
     def fill_value(self):
-        return self.block.fill_value
+        return self.values.fill_value
 
     @fill_value.setter
     def fill_value(self, v):
-        self.block.fill_value = v
+        self.values.fill_value = v
 
     @property
     def sp_index(self):
-        return self.block.sp_index
+        return self.values.sp_index
 
     @property
     def sp_values(self):
@@ -251,7 +258,7 @@ class SparseSeries(Series):
                            fill_value=fill_value, kind=kind, copy=copy)
 
     def __len__(self):
-        return len(self.block)
+        return len(self.values)
 
     @property
     def shape(self):
@@ -356,7 +363,7 @@ class SparseSeries(Series):
 
     def _get_val_at(self, loc):
         """ forward to the array """
-        return self.block.values._get_val_at(loc)
+        return self.values._get_val_at(loc)
 
     def __getitem__(self, key):
         try:
@@ -583,6 +590,7 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
+        # TODO
         if not isinstance(new_index, splib.SparseIndex):
             raise TypeError('new index must be a SparseIndex')
 

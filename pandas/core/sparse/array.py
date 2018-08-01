@@ -139,6 +139,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
 class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     __array_priority__ = 15
+    _pandas_ftype = 'sparse'
 
     def __init__(self, data, sparse_index=None, fill_value=np.nan, kind='block',
                  dtype=None, copy=False):

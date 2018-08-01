@@ -38,7 +38,7 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock, SparseBlock,
+    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock, # SparseBlock,
     _extend_blocks, _merge_blocks, _safe_reshape,
     make_block, get_block_type)
 from .concat import (  # all for concatenate_block_managers
@@ -1827,7 +1827,7 @@ def _sparse_blockify(tuples, dtype=None):
     new_blocks = []
     for i, names, array in tuples:
         array = _maybe_to_sparse(array)
-        block = make_block(array, klass=SparseBlock, placement=[i])
+        block = make_block(array, placement=[i])
         new_blocks.append(block)
 
     return new_blocks
