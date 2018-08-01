@@ -533,6 +533,9 @@ Datetimelike
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
 - Fixed bug where :meth:`Timestamp.resolution` incorrectly returned 1-microsecond ``timedelta`` instead of 1-nanosecond :class:`Timedelta` (:issue:`21336`,:issue:`21365`)
 - Bug in :func:`to_datetime` that did not consistently return an :class:`Index` when ``box=True`` was specified (:issue:`21864`)
+- Bug in :class:`DatetimeIndex` comparisons where string comparisons incorrectly raises ``TypeError`` (:issue:`22074`)
+- Bug in :class:`DatetimeIndex` comparisons when comparing against ``timedelta64[ns]`` dtyped arrays; in some cases ``TypeError`` was incorrectly raised, in others it incorrectly failed to raise (:issue:`22074`)
+- Bug in :class:`DatetimeIndex` comparisons when comparing against object-dtyped arrays (:issue:`22074`)
 
 Timedelta
 ^^^^^^^^^
@@ -555,6 +558,7 @@ Timezones
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 - Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
 - Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
+- Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`22074`)
 
 Offsets
 ^^^^^^^
@@ -572,6 +576,7 @@ Numeric
 - Bug in :meth:`DataFrame.agg`, :meth:`DataFrame.transform` and :meth:`DataFrame.apply` where,
   when supplied with a list of functions and ``axis=1`` (e.g. ``df.apply(['sum', 'mean'], axis=1)``),
   a ``TypeError`` was wrongly raised. For all three methods such calculation are now done correctly. (:issue:`16679`).
+- Bug in :class:`Series` comparison against datetime-like scalars and arrays (:issue:`22074`)
 -
 
 Strings

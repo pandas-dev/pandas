@@ -463,9 +463,13 @@ class TestDataFrameQueryNumExprPandas(object):
         df = DataFrame({'dates': date_range('1/1/2012', periods=n),
                         'nondate': np.arange(n)})
 
-        ops = '==', '!=', '<', '>', '<=', '>='
+        result = df.query('dates == nondate', parser=parser, engine=engine)
+        assert len(result) == 0
 
-        for op in ops:
+        result = df.query('dates != nondate', parser=parser, engine=engine)
+        assert_frame_equal(result, df)
+
+        for op in ['<', '>', '<=', '>=']:
             with pytest.raises(TypeError):
                 df.query('dates %s nondate' % op, parser=parser, engine=engine)
 
