@@ -599,7 +599,7 @@ ext_data = {
         'include': []},
     '_libs.tslibs.nattype': {
         'pyxfile': '_libs/tslibs/nattype',
-         'include': []},
+        'include': []},
     '_libs.tslibs.np_datetime': {
         'pyxfile': '_libs/tslibs/np_datetime',
         'include': ts_include,
