@@ -3035,7 +3035,7 @@ class TestDST(object):
                       QuarterEnd: ['11/2/2012', '12/31/2012'],
                       BQuarterBegin: ['11/2/2012', '12/3/2012'],
                       BQuarterEnd: ['11/2/2012', '12/31/2012'],
-                      Day: ['11/4/2012', '11/4/2012 23:00']}.items()
+                      Day: ['11/4/2012', '11/5/2012']}.items()
 
     @pytest.mark.parametrize('tup', offset_classes)
     def test_all_offset_classes(self, tup):
