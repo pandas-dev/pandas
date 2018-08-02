@@ -1113,7 +1113,7 @@ def str_join(arr, sep):
     If any of the list items is not a string object, the result of the join
     will be `NaN`.
 
-    If the list does not contain string objects, performing a join will raise
+    If the Series does not contain string objects, performing a join will raise
     an AttributeError.
 
     See Also
@@ -1126,18 +1126,24 @@ def str_join(arr, sep):
 
     Example with a list that contains non-string elements.
 
-    >>> s = pd.Series(['lion', 1.1, np.nan, ['swan', 'fish']])
+    >>> s = pd.Series([['lion', 'elephant', 'zebra'],
+    ...            [1.1, 2.2, 3.3],
+    ...            ['cat', np.nan, 'dog'],
+    ...            ['cow', 4.5, 'goat'],
+    ...            ['duck', ['swan', 'fish'], 'guppy']])
     >>> s
-    0            lion
-    1             1.1
-    2             NaN
-    3    [swan, fish]
+    0        [lion, elephant, zebra]
+    1                [1.1, 2.2, 3.3]
+    2                [cat, nan, dog]
+    3               [cow, 4.5, goat]
+    4    [duck, [swan, fish], guppy]
     dtype: object
     >>> s.str.join('-')
-    0      l-i-o-n
-    1          NaN
-    2          NaN
-    3    swan-fish
+    0    lion-elephant-zebra
+    1                    NaN
+    2                    NaN
+    3                    NaN
+    4                    NaN
     dtype: object
     """
     return _na_map(sep.join, arr)
