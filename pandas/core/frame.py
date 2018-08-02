@@ -27,6 +27,7 @@ from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
     construct_1d_arraylike_from_scalar,
+    infer_dtype_from_scalar,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -3507,9 +3508,13 @@ class DataFrame(NDFrame):
                 value = maybe_infer_to_datetimelike(value)
 
         else:
-            # upcast the scalar
+            # cast ignores pandas dtypes. so save the dtype first
+            infer_dtype, _ = infer_dtype_from_scalar(
+                value, pandas_dtype=True)
+
+            # upcast
             value = cast_scalar_to_array(len(self.index), value)
-            value = maybe_cast_to_datetime(value, value.dtype)
+            value = maybe_cast_to_datetime(value, infer_dtype)
 
         # return internal types directly
         if is_extension_type(value) or is_extension_array_dtype(value):
