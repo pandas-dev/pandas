@@ -1176,7 +1176,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                        'float64', 'float32', 'float16'])
     @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
                                         pd.Index([20, 30, 40]),
-                                        Series([20, 30, 40])])
+                                        Series([20, 30, 40])],
+                             ids=lambda x: type(x).__name__)
     def test_td64arr_div_numeric_array(self, box, vector, dtype, tdser):
         # GH#4521
         # divide/multiply by integers
@@ -1292,8 +1293,8 @@ def idx(request):
     return request.param
 
 
-zeros = [box([0] * 5, dtype=dtype)
-         for box in [pd.Index, np.array]
+zeros = [box_cls([0] * 5, dtype=dtype)
+         for box_cls in [pd.Index, np.array]
          for dtype in [np.int64, np.uint64, np.float64]]
 zeros.extend([np.array(0, dtype=dtype)
               for dtype in [np.int64, np.uint64, np.float64]])
