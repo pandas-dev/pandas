@@ -423,13 +423,13 @@ cdef inline int month_to_quarter(int month):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
+def dt64arr_to_periodarr(int64_t[:] dtarr, int freq, tz=None):
     """
     Convert array of datetime64 values (passed in as 'i8' dtype) to a set of
     periods corresponding to desired frequency, per period convention.
     """
     cdef:
-        ndarray[int64_t] out
+        int64_t[:] out
         Py_ssize_t i, l
         npy_datetimestruct dts
 
@@ -447,18 +447,18 @@ def dt64arr_to_periodarr(ndarray[int64_t] dtarr, int freq, tz=None):
                 out[i] = get_period_ordinal(&dts, freq)
     else:
         out = localize_dt64arr_to_period(dtarr, freq, tz)
-    return out
+    return out.base  # .base to access underlying np.ndarray
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
+def periodarr_to_dt64arr(int64_t[:] periodarr, int freq):
     """
     Convert array to datetime64 values from a set of ordinals corresponding to
     periods per period convention.
     """
     cdef:
-        ndarray[int64_t] out
+        int64_t[:] out
         Py_ssize_t i, l
 
     l = len(periodarr)
@@ -472,7 +472,7 @@ def periodarr_to_dt64arr(ndarray[int64_t] periodarr, int freq):
                 continue
             out[i] = period_ordinal_to_dt64(periodarr[i], freq)
 
-    return out
+    return out.base  # .base to access underlying np.ndarray
 
 
 cpdef int64_t period_asfreq(int64_t ordinal, int freq1, int freq2, bint end):
@@ -556,7 +556,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
     if upsampling, choose to use start ('S') or end ('E') of period.
     """
     cdef:
-        ndarray[int64_t] result
+        int64_t[:] result
         Py_ssize_t i, n
         freq_conv_func func
         asfreq_info af_info
@@ -584,7 +584,7 @@ def period_asfreq_arr(ndarray[int64_t] arr, int freq1, int freq2, bint end):
                 raise ValueError("Unable to convert to desired frequency.")
             result[i] = val
 
-    return result
+    return result.base  # .base to access underlying np.ndarray
 
 
 cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
@@ -825,10 +825,10 @@ cdef int pdays_in_month(int64_t ordinal, int freq):
     return ccalendar.get_days_in_month(dts.year, dts.month)
 
 
-def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
+def get_period_field_arr(int code, int64_t[:] arr, int freq):
     cdef:
         Py_ssize_t i, sz
-        ndarray[int64_t] out
+        int64_t[:] out
         accessor f
 
     func = _get_accessor_func(code)
@@ -844,7 +844,7 @@ def get_period_field_arr(int code, ndarray[int64_t] arr, int freq):
             continue
         out[i] = func(arr[i], freq)
 
-    return out
+    return out.base  # .base to access underlying np.ndarray
 
 
 cdef accessor _get_accessor_func(int code):
@@ -875,10 +875,10 @@ cdef accessor _get_accessor_func(int code):
     return NULL
 
 
-def extract_ordinals(ndarray[object] values, freq):
+def extract_ordinals(object[:] values, freq):
     cdef:
         Py_ssize_t i, n = len(values)
-        ndarray[int64_t] ordinals = np.empty(n, dtype=np.int64)
+        int64_t[:] ordinals = np.empty(n, dtype=np.int64)
         object p
 
     freqstr = Period._maybe_convert_freq(freq).freqstr
@@ -904,10 +904,10 @@ def extract_ordinals(ndarray[object] values, freq):
                 else:
                     ordinals[i] = p.ordinal
 
-    return ordinals
+    return ordinals.base  # .base to access underlying np.ndarray
 
 
-def extract_freq(ndarray[object] values):
+def extract_freq(object[:] values):
     cdef:
         Py_ssize_t i, n = len(values)
         object p
@@ -930,12 +930,13 @@ def extract_freq(ndarray[object] values):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
-                                                 int freq, object tz):
+cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
+                                           int freq, object tz):
     cdef:
         Py_ssize_t n = len(stamps)
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas
+        int64_t[:] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val
