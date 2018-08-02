@@ -3162,3 +3162,24 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+@pytest.mark.parametrize('offset, factor', [
+    ['Day', 1],
+    ['Hour', 24],
+    ['Minute', 24 * 60],
+    ['Second', 24 * 60 * 60],
+    ['Milli', 8.64e7],
+    ['Micro', 8.64e10],
+    ['Nano', 8.64e13]
+])
+def test_tick_arithmetic(offset, factor):
+    # GH
+    # Tick classes (e.g. Day) should now respect calendar arithmetic
+    # The most evident examples are DST crossing
+    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+    expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+
+    tick = factor * getattr(offsets, offset)(1)
+    result = ts + tick
+    assert result == expected
