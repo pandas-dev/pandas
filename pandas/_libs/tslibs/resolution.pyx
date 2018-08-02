@@ -11,8 +11,7 @@ from util cimport is_string_object, get_nat
 
 from np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
-from timezones cimport (is_utc, is_tzlocal,
-                        maybe_get_tz, get_dst_info)
+from timezones cimport is_utc, is_tzlocal, maybe_get_tz, get_dst_info
 from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar cimport get_days_in_month
 

@@ -622,6 +622,7 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
 
+
 cdef parse_timezone_directive(object z):
     """
     Parse the '%z' directive and return a pytz.FixedOffset
