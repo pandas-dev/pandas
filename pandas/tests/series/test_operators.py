@@ -1433,6 +1433,20 @@ class TestSeriesOperators(TestData):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
+    def test_bool_ops_with_index(self):
+        # GH#19792
+        # TODO: reversed ops still raises, GH#22092
+        ser = Series([True, False, True])
+        idx = pd.Index([False, True, True])
+
+        result = ser & idx
+        expected = Series([False, False, True])
+        assert_series_equal(result, expected)
+
+        result = ser | idx
+        expected = Series([True, True, True])
+        assert_series_equal(result, expected)
+
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
         index = list('bca')
