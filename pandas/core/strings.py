@@ -1105,6 +1105,7 @@ def str_join(arr, sep):
     Returns
     -------
     Series/Index: object
+        The list entries concatenated by intervening occurrences of the delimiter.
 
     Notes
     -----
