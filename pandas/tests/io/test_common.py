@@ -131,7 +131,6 @@ bar2,12,13,14,15
 
     @pytest.mark.parametrize('reader, module, error_class, fn_ext', [
         (pd.read_csv, 'os', FileNotFoundError, 'csv'),
-        (pd.read_table, 'os', FileNotFoundError, 'csv'),
         (pd.read_fwf, 'os', FileNotFoundError, 'txt'),
         (pd.read_excel, 'xlrd', FileNotFoundError, 'xlsx'),
         (pd.read_feather, 'feather', Exception, 'feather'),
@@ -149,9 +148,14 @@ bar2,12,13,14,15
         with pytest.raises(error_class):
             reader(path)
 
+    def test_read_non_existant_read_table(self):
+        path = os.path.join(HERE, 'data', 'does_not_exist.' + 'csv')
+        with pytest.raises(FileNotFoundError):
+            with tm.assert_produces_warning(FutureWarning):
+                pd.read_table(path)
+
     @pytest.mark.parametrize('reader, module, path', [
         (pd.read_csv, 'os', ('io', 'data', 'iris.csv')),
-        (pd.read_table, 'os', ('io', 'data', 'iris.csv')),
         (pd.read_fwf, 'os', ('io', 'data', 'fixed_width_format.txt')),
         (pd.read_excel, 'xlrd', ('io', 'data', 'test1.xlsx')),
         (pd.read_feather, 'feather', ('io', 'data', 'feather-0_3_1.feather')),
@@ -170,6 +174,22 @@ bar2,12,13,14,15
         mypath = CustomFSPath(path)
         result = reader(mypath)
         expected = reader(path)
+
+        if path.endswith('.pickle'):
+            # categorical
+            tm.assert_categorical_equal(result, expected)
+        else:
+            tm.assert_frame_equal(result, expected)
+
+    def test_read_fspath_all_read_table(self, datapath):
+        path = datapath('io', 'data', 'iris.csv')
+
+        mypath = CustomFSPath(path)
+        with tm.assert_produces_warning(FutureWarning):
+            result = pd.read_table(mypath)
+        with tm.assert_produces_warning(FutureWarning):
+            expected = pd.read_table(path)
+
         if path.endswith('.pickle'):
             # categorical
             tm.assert_categorical_equal(result, expected)

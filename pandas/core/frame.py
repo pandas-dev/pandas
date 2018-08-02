@@ -1594,11 +1594,11 @@ class DataFrame(NDFrame):
                       "for from_csv when changing your function calls",
                       FutureWarning, stacklevel=2)
 
-        from pandas.io.parsers import read_table
-        return read_table(path, header=header, sep=sep,
-                          parse_dates=parse_dates, index_col=index_col,
-                          encoding=encoding, tupleize_cols=tupleize_cols,
-                          infer_datetime_format=infer_datetime_format)
+        from pandas.io.parsers import read_csv
+        return read_csv(path, header=header, sep=sep,
+                        parse_dates=parse_dates, index_col=index_col,
+                        encoding=encoding, tupleize_cols=tupleize_cols,
+                        infer_datetime_format=infer_datetime_format)
 
     def to_sparse(self, fill_value=None, kind='block'):
         """

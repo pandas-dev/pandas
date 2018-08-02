@@ -70,7 +70,9 @@ class TestCParserHighMemory(BaseParser, CParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = self.low_memory
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestCParserLowMemory(BaseParser, CParserTests):
@@ -88,7 +90,9 @@ class TestCParserLowMemory(BaseParser, CParserTests):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
         kwds['low_memory'] = True
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestPythonParser(BaseParser, PythonParserTests):
@@ -103,7 +107,9 @@ class TestPythonParser(BaseParser, PythonParserTests):
     def read_table(self, *args, **kwds):
         kwds = kwds.copy()
         kwds['engine'] = self.engine
-        return read_table(*args, **kwds)
+        with tm.assert_produces_warning(FutureWarning):
+            df = read_table(*args, **kwds)
+        return df
 
 
 class TestUnsortedUsecols(object):
