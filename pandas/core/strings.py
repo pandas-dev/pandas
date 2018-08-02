@@ -1127,10 +1127,10 @@ def str_join(arr, sep):
     Example with a list that contains non-string elements.
 
     >>> s = pd.Series([['lion', 'elephant', 'zebra'],
-    ...            [1.1, 2.2, 3.3],
-    ...            ['cat', np.nan, 'dog'],
-    ...            ['cow', 4.5, 'goat'],
-    ...            ['duck', ['swan', 'fish'], 'guppy']])
+    ...                [1.1, 2.2, 3.3],
+    ...                ['cat', np.nan, 'dog'],
+    ...                ['cow', 4.5, 'goat'],
+    ...                ['duck', ['swan', 'fish'], 'guppy']])
     >>> s
     0        [lion, elephant, zebra]
     1                [1.1, 2.2, 3.3]
