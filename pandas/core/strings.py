@@ -1855,6 +1855,7 @@ class StringMethods(NoNewAttributesMixin):
         # before the transformation...
         if use_codes and self._is_categorical:
             result = take_1d(result, self._orig.cat.codes)
+            result[isna(result)] = False
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
             return result
