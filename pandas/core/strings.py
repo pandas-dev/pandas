@@ -1123,7 +1123,6 @@ def str_join(arr, sep):
 
     Examples
     --------
-
     Example with a list that contains non-string elements.
 
     >>> s = pd.Series([['lion', 'elephant', 'zebra'],
@@ -1138,6 +1137,10 @@ def str_join(arr, sep):
     3               [cow, 4.5, goat]
     4    [duck, [swan, fish], guppy]
     dtype: object
+
+    Join all lists using a '-'. The lists containing object(s) of types other
+    than str will produce a NaN.
+
     >>> s.str.join('-')
     0    lion-elephant-zebra
     1                    NaN
