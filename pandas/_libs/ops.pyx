@@ -10,7 +10,8 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-from numpy cimport ndarray, uint8_t
+from numpy cimport ndarray, uint8_t, import_array
+import_array()
 
 
 from util cimport UINT8_MAX, is_nan

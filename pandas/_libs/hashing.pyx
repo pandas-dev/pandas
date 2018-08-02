@@ -7,7 +7,8 @@ from cpython cimport PyBytes_Check, PyUnicode_Check
 from libc.stdlib cimport malloc, free
 
 import numpy as np
-from numpy cimport uint8_t, uint32_t, uint64_t
+from numpy cimport uint8_t, uint32_t, uint64_t, import_array
+import_array()
 
 from util cimport is_nan
 

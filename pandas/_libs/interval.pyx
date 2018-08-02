@@ -12,6 +12,7 @@ from numpy cimport ndarray
 
 
 cimport util
+util.import_array()
 
 from tslibs import Timestamp
 from tslibs.timezones cimport tz_compare
