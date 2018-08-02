@@ -4898,7 +4898,7 @@ class DataFrame(NDFrame):
         new_index, new_columns = this.index, this.columns
 
         def _arith_op(left, right):
-            # For the mixed_type case where we iterate over columns,
+            # for the mixed_type case where we iterate over columns,
             # _arith_op(left, right) is equivalent to
             # left._binop(right, func, fill_value=fill_value)
             left, right = ops.fill_binop(left, right, fill_value)
@@ -4942,9 +4942,14 @@ class DataFrame(NDFrame):
         import pandas.core.computation.expressions as expressions
 
         def _compare(a, b):
-            return expressions.evaluate(func, str_rep, a, b)
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
 
-        return ops.dispatch_to_series(self, other, _compare)
+        new_data = expressions.evaluate(_compare, str_rep, self, other)
+        result = self._constructor(data=new_data, index=self.index,
+                                   copy=False)
+        result.columns = self.columns
+        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
