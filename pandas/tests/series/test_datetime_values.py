@@ -5,7 +5,7 @@ import locale
 import calendar
 import pytest
 
-from datetime import datetime, date
+from datetime import datetime, time, date
 
 import numpy as np
 import pandas as pd
@@ -15,6 +15,8 @@ from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
                     PeriodIndex, DatetimeIndex, TimedeltaIndex)
 import pandas.core.common as com
+
+import dateutil
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -458,4 +460,19 @@ class TestSeriesDatetimeValues(TestData):
         result = series - offset
         expected = pd.Series(pd.to_datetime([
             '2011-12-26', '2011-12-27', '2011-12-28']))
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_timetz_accessor(self, tz_naive_fixture):
+        # GH21358
+        if tz_naive_fixture is not None:
+            tz = dateutil.tz.gettz(tz_naive_fixture)
+        else:
+            tz = None
+
+        dtindex = pd.DatetimeIndex(['2014-04-04 23:56', '2014-07-18 21:24',
+                                    '2015-11-22 22:14'], tz=tz_naive_fixture)
+        s = Series(dtindex)
+        expected = Series([time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz),
+                           time(22, 14, tzinfo=tz)])
+        result = s.dt.timetz
         tm.assert_series_equal(result, expected)
