@@ -374,7 +374,8 @@ nan,B
         data = "idx,col1,col2\n1,3,4\n2,inf,-inf"
 
         # Don't fail with OverflowError with infs and int index column
-        out = self.read_csv(StringIO(data), index_col=[0], na_values=['inf', '-inf'])
+        out = self.read_csv(StringIO(data), index_col=[0],
+                            na_values=['inf', '-inf'])
         expected = DataFrame({"col1": [3, np.nan], "col2": [4, np.nan]},
                              index=Index([1, 2], name="idx"))
         tm.assert_frame_equal(out, expected)
