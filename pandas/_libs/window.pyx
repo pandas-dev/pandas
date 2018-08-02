@@ -9,11 +9,12 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, double_t, int64_t, float64_t
+from numpy cimport ndarray, double_t, int64_t, float64_t, float32_t
 cnp.import_array()
 
 
 cdef extern from "src/headers/cmath" namespace "std":
+    bint isnan(double) nogil
     int signbit(double) nogil
     double sqrt(double x) nogil
 
@@ -24,11 +25,11 @@ from skiplist cimport (skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef cnp.float32_t MINfloat32 = np.NINF
-cdef cnp.float64_t MINfloat64 = np.NINF
+cdef float32_t MINfloat32 = np.NINF
+cdef float64_t MINfloat64 = np.NINF
 
-cdef cnp.float32_t MAXfloat32 = np.inf
-cdef cnp.float64_t MAXfloat64 = np.inf
+cdef float32_t MAXfloat32 = np.inf
+cdef float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
@@ -653,16 +654,16 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
+    # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
+    if isnan(val):
+        return
 
-    # Not NaN
-    if val == val:
-        nobs[0] = nobs[0] + 1
-
-        # a part of Welford's method for the online variance-calculation
-        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-        delta = val - mean_x[0]
-        mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
+    nobs[0] = nobs[0] + 1
+    # a part of Welford's method for the online variance-calculation
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    delta = val - mean_x[0]
+    mean_x[0] = mean_x[0] + delta / nobs[0]
+    ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,

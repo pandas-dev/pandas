@@ -585,7 +585,9 @@ class TestSeriesAnalytics(TestData):
                    index=list('abcde'), name='foo')
         expected = Series(s.values.compress(cond),
                           index=list('ac'), name='foo')
-        tm.assert_series_equal(s.compress(cond), expected)
+        with tm.assert_produces_warning(FutureWarning):
+            result = s.compress(cond)
+        tm.assert_series_equal(result, expected)
 
     def test_numpy_compress(self):
         cond = [True, False, True, False, False]
@@ -2068,7 +2070,7 @@ class TestCategoricalSeriesAnalytics(object):
         "dtype",
         ["int_", "uint", "float_", "unicode_", "timedelta64[h]",
          pytest.param("datetime64[D]",
-                      marks=pytest.mark.xfail(reason="issue7996"))]
+                      marks=pytest.mark.xfail(reason="GH#7996", strict=True))]
     )
     @pytest.mark.parametrize("is_ordered", [True, False])
     def test_drop_duplicates_categorical_non_bool(self, dtype, is_ordered):

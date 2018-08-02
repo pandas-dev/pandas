@@ -218,7 +218,7 @@ def test_round_trip_current(current_pickle_data):
             with open(path, 'rb') as fh:
                 fh.seek(0)
                 return c_pickle.load(fh)
-    except:
+    except ImportError:
         c_pickler = None
         c_unpickler = None
 

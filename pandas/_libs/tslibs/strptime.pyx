@@ -25,10 +25,8 @@ import pytz
 from cython cimport Py_ssize_t
 from cpython cimport PyFloat_Check
 
-cimport cython
-
 import numpy as np
-from numpy cimport ndarray, int64_t
+from numpy cimport int64_t
 
 from datetime import date as datetime_date
 
@@ -62,7 +60,7 @@ cdef dict _parse_code_table = {'y': 0,
                                'z': 19}
 
 
-def array_strptime(ndarray[object] values, object fmt,
+def array_strptime(object[:] values, object fmt,
                    bint exact=True, errors='raise'):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -78,8 +76,8 @@ def array_strptime(ndarray[object] values, object fmt,
     cdef:
         Py_ssize_t i, n = len(values)
         npy_datetimestruct dts
-        ndarray[int64_t] iresult
-        ndarray[object] result_timezone
+        int64_t[:] iresult
+        object[:] result_timezone
         int year, month, day, minute, hour, second, weekday, julian
         int week_of_year, week_of_year_start, parse_code, ordinal
         int64_t us, ns
@@ -322,7 +320,7 @@ def array_strptime(ndarray[object] values, object fmt,
 
         result_timezone[i] = timezone
 
-    return result, result_timezone
+    return result, result_timezone.base
 
 
 """_getlang, LocaleTime, TimeRE, _calc_julian_from_U_or_W are vendored

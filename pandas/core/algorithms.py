@@ -262,7 +262,7 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = com._asarray_tuplesafe(values)
+    values = com.asarray_tuplesafe(values)
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
     to_match, _, _ = _ensure_data(to_match, dtype)
     table = htable(min(len(to_match), 1000000))
@@ -412,7 +412,7 @@ def isin(comps, values):
         # handle categoricals
         return comps._values.isin(values)
 
-    comps = com._values_from_object(comps)
+    comps = com.values_from_object(comps)
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)

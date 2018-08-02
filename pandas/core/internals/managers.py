@@ -82,7 +82,6 @@ class BlockManager(PandasObject):
     get_slice(slice_like, axis)
     get(label)
     iget(loc)
-    get_scalar(label_tup)
 
     take(indexer, axis)
     reindex_axis(new_labels, axis)
@@ -399,10 +398,10 @@ class BlockManager(PandasObject):
 
         # TODO(EA): may interfere with ExtensionBlock.setitem for blocks
         # with a .values attribute.
-        aligned_args = dict((k, kwargs[k])
-                            for k in align_keys
-                            if hasattr(kwargs[k], 'values') and
-                            not isinstance(kwargs[k], ABCExtensionArray))
+        aligned_args = {k: kwargs[k]
+                        for k in align_keys
+                        if hasattr(kwargs[k], 'values') and
+                        not isinstance(kwargs[k], ABCExtensionArray)}
 
         for b in self.blocks:
             if filter is not None:
@@ -993,21 +992,6 @@ class BlockManager(PandasObject):
                                          ndim=1)],
             self.axes[1])
 
-    def get_scalar(self, tup):
-        """
-        Retrieve single item
-        """
-        full_loc = [ax.get_loc(x) for ax, x in zip(self.axes, tup)]
-        blk = self.blocks[self._blknos[full_loc[0]]]
-        values = blk.values
-
-        # FIXME: this may return non-upcasted types?
-        if values.ndim == 1:
-            return values[full_loc[1]]
-
-        full_loc[0] = self._blklocs[full_loc[0]]
-        return values[tuple(full_loc)]
-
     def delete(self, item):
         """
         Delete selected item (items if non-unique) in-place.
@@ -1382,9 +1366,9 @@ class BlockManager(PandasObject):
                                     axis=axis, allow_dups=True)
 
     def merge(self, other, lsuffix='', rsuffix=''):
-        if not self._is_indexed_like(other):
-            raise AssertionError('Must have same axes to merge managers')
-
+        # We assume at this point that the axes of self and other match.
+        # This is only called from Panel.join, which reindexes prior
+        # to calling to ensure this assumption holds.
         l, r = items_overlap_with_suffix(left=self.items, lsuffix=lsuffix,
                                          right=other.items, rsuffix=rsuffix)
         new_items = _concat_indexes([l, r])
@@ -1401,19 +1385,6 @@ class BlockManager(PandasObject):
         new_axes[0] = new_items
 
         return self.__class__(_consolidate(new_blocks), new_axes)
-
-    def _is_indexed_like(self, other):
-        """
-        Check all axes except items
-        """
-        if self.ndim != other.ndim:
-            raise AssertionError(
-                'Number of dimensions must agree got {ndim} and '
-                '{oth_ndim}'.format(ndim=self.ndim, oth_ndim=other.ndim))
-        for ax, oax in zip(self.axes[1:], other.axes[1:]):
-            if not ax.equals(oax):
-                return False
-        return True
 
     def equals(self, other):
         self_axes, other_axes = self.axes, other.axes

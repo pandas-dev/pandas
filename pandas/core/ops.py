@@ -89,7 +89,7 @@ def _maybe_match_name(a, b):
 
     See also
     --------
-    pandas.core.common._consensus_name_attr
+    pandas.core.common.consensus_name_attr
     """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
@@ -788,6 +788,35 @@ def mask_cmp_op(x, y, op, allowed_types):
     return result
 
 
+def invalid_comparison(left, right, op):
+    """
+    If a comparison has mismatched types and is not necessarily meaningful,
+    follow python3 conventions by:
+
+        - returning all-False for equality
+        - returning all-True for inequality
+        - raising TypeError otherwise
+
+    Parameters
+    ----------
+    left : array-like
+    right : scalar, array-like
+    op : operator.{eq, ne, lt, le, gt}
+
+    Raises
+    ------
+    TypeError : on inequality comparisons
+    """
+    if op is operator.eq:
+        res_values = np.zeros(left.shape, dtype=bool)
+    elif op is operator.ne:
+        res_values = np.ones(left.shape, dtype=bool)
+    else:
+        raise TypeError("Invalid comparison between dtype={dtype} and {typ}"
+                        .format(dtype=left.dtype, typ=type(right).__name__))
+    return res_values
+
+
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
@@ -1111,7 +1140,7 @@ def _arith_method_SERIES(cls, op, special):
                 dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
-                result[mask] = op(x[mask], com._values_from_object(y[mask]))
+                result[mask] = op(x[mask], com.values_from_object(y[mask]))
             else:
                 assert isinstance(x, np.ndarray)
                 result = np.empty(len(x), dtype=x.dtype)
@@ -1259,7 +1288,7 @@ def _comp_method_SERIES(cls, op, special):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
 
         elif is_datetimelike_v_numeric(x, y):
-            raise TypeError("invalid type comparison")
+            return invalid_comparison(x, y, op)
 
         else:
 
@@ -1407,7 +1436,7 @@ def _comp_method_SERIES(cls, op, special):
                                 .format(typ=type(other)))
 
             # always return a full value series here
-            res_values = com._values_from_object(res)
+            res_values = com.values_from_object(res)
             return self._constructor(res_values, index=self.index,
                                      name=res_name, dtype='bool')
 
@@ -1789,7 +1818,7 @@ def _comp_method_PANEL(cls, op, special):
     def f(self, other, axis=None):
         # Validate the axis parameter
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            self._get_axis_number(axis)
 
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op, try_cast=False)

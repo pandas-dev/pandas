@@ -14,7 +14,7 @@ import pandas as pd
 from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
                     RangeIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex,
-                    isna, compat, concat, Timestamp)
+                    isna, compat, concat, Timestamp, _np_version_under1p15)
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -2104,9 +2104,9 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict((c, Series(np.random.randint(5), dtype=c))
-                                 for c in ['float32', 'float64', 'int32',
-                                           'int64', 'int16', 'int8']))
+            df1 = DataFrame({c: Series(np.random.randint(5), dtype=c)
+                             for c in ['float32', 'float64', 'int32',
+                                       'int64', 'int16', 'int8']})
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')
@@ -2191,6 +2191,10 @@ class TestHDFStore(Base):
             # this fails because we have a date in the object block......
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
+    @pytest.mark.skipif(
+        not _np_version_under1p15,
+        reason=("pytables conda build package needs build "
+                "with numpy 1.15: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591

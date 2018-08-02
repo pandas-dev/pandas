@@ -12,9 +12,7 @@ except ImportError:
     from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
 
 import numpy as np
-cimport numpy as cnp
 from numpy cimport ndarray, uint8_t
-cnp.import_array()
 
 
 ctypedef fused pandas_string:
