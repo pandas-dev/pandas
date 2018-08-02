@@ -470,7 +470,7 @@ class TestSeriesDatetimeValues(TestData):
             tz = None
 
         dtindex = pd.DatetimeIndex(['2014-04-04 23:56', '2014-07-18 21:24',
-                                    '2015-11-22 22:14'], tz=tz_naive_fixture)
+                                    '2015-11-22 22:14'], tz=tz)
         s = Series(dtindex)
         expected = Series([time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz),
                            time(22, 14, tzinfo=tz)])
