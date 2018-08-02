@@ -1110,8 +1110,11 @@ def str_join(arr, sep):
 
     Notes
     -----
-    If any of the lists does not contain string objects the result of the join
+    If any of the list items is not a string object, the result of the join
     will be `NaN`.
+
+    If the list does not contain string objects, performing a join will raise
+    an AttributeError.
 
     See Also
     --------
@@ -1130,10 +1133,6 @@ def str_join(arr, sep):
     2             NaN
     3    [swan, fish]
     dtype: object
-
-    Join all lists using an '-', the lists containing object(s) of types other
-    than str will become a NaN.
-
     >>> s.str.join('-')
     0      l-i-o-n
     1          NaN
