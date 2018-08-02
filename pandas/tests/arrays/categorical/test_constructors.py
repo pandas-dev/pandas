@@ -468,6 +468,26 @@ class TestCategoricalConstructors(object):
         with pytest.raises(ValueError):
             Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
 
+    def test_from_codes_with_nan_code(self):
+        # GH21767
+        codes = [1, 2, np.nan]
+        categories = ['a', 'b', 'c']
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, categories)
+
+    def test_from_codes_with_float(self):
+        # GH21767
+        codes = [1.0, 2.0, 0]  # integer, but in float dtype
+        categories = ['a', 'b', 'c']
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical.from_codes(codes, categories)
+        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype='i1'))
+
+        codes = [1.1, 2.0, 0]  # non-integer
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, categories)
+
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
         cats = ['a', 'b']
