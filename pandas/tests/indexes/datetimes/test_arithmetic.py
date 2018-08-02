@@ -278,6 +278,20 @@ class TestDatetimeIndexComparisons(object):
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
+    @pytest.mark.parametrize('other', [datetime(2016, 1, 1),
+                                       Timestamp('2016-01-01'),
+                                       np.datetime64('2016-01-01')])
+    def test_scalar_comparison_tzawareness(self, op, other, tz_aware_fixture):
+        tz = tz_aware_fixture
+        dti = pd.date_range('2016-01-01', periods=2, tz=tz)
+        with pytest.raises(TypeError):
+            op(dti, other)
+        with pytest.raises(TypeError):
+            op(other, dti)
+
+    @pytest.mark.parametrize('op', [operator.eq, operator.ne,
+                                    operator.gt, operator.ge,
+                                    operator.lt, operator.le])
     def test_nat_comparison_tzawareness(self, op):
         # GH#19276
         # tzaware DatetimeIndex should not raise when compared to NaT
@@ -290,12 +304,60 @@ class TestDatetimeIndexComparisons(object):
         result = op(dti.tz_localize('US/Pacific'), pd.NaT)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_dti_cmp_int_raises(self):
-        rng = date_range('1/1/2000', periods=10)
+    def test_dti_cmp_str(self, tz_naive_fixture):
+        # GH#22074
+        # regardless of tz, we expect these comparisons are valid
+        tz = tz_naive_fixture
+        rng = date_range('1/1/2000', periods=10, tz=tz)
+        other = '1/1/2000'
 
-        # raise TypeError for now
+        result = rng == other
+        expected = np.array([True] + [False] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng != other
+        expected = np.array([False] + [True] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng < other
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng <= other
+        expected = np.array([True] + [False] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng > other
+        expected = np.array([False] + [True] * 9)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng >= other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('other', ['foo', 99, 4.0,
+                                       object(), timedelta(days=2)])
+    def test_dti_cmp_scalar_invalid(self, other, tz_naive_fixture):
+        # GH#22074
+        tz = tz_naive_fixture
+        rng = date_range('1/1/2000', periods=10, tz=tz)
+
+        result = rng == other
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = rng != other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
         with pytest.raises(TypeError):
-            rng < rng[3].value
+            rng < other
+        with pytest.raises(TypeError):
+            rng <= other
+        with pytest.raises(TypeError):
+            rng > other
+        with pytest.raises(TypeError):
+            rng >= other
 
     def test_dti_cmp_list(self):
         rng = date_range('1/1/2000', periods=10)
@@ -303,6 +365,57 @@ class TestDatetimeIndexComparisons(object):
         result = rng == list(rng)
         expected = rng == rng
         tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('other', [
+        pd.timedelta_range('1D', periods=10),
+        pd.timedelta_range('1D', periods=10).to_series(),
+        pd.timedelta_range('1D', periods=10).asi8.view('m8[ns]')
+    ], ids=lambda x: type(x).__name__)
+    def test_dti_cmp_tdi_tzawareness(self, other):
+        # GH#22074
+        # reversion test that we _don't_ call _assert_tzawareness_compat
+        # when comparing against TimedeltaIndex
+        dti = date_range('2000-01-01', periods=10, tz='Asia/Tokyo')
+
+        result = dti == other
+        expected = np.array([False] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = dti != other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            dti < other
+        with pytest.raises(TypeError):
+            dti <= other
+        with pytest.raises(TypeError):
+            dti > other
+        with pytest.raises(TypeError):
+            dti >= other
+
+    def test_dti_cmp_object_dtype(self):
+        # GH#22074
+        dti = date_range('2000-01-01', periods=10, tz='Asia/Tokyo')
+
+        other = dti.astype('O')
+
+        result = dti == other
+        expected = np.array([True] * 10)
+        tm.assert_numpy_array_equal(result, expected)
+
+        other = dti.tz_localize(None)
+        with pytest.raises(TypeError):
+            # tzawareness failure
+            dti != other
+
+        other = np.array(list(dti[:5]) + [Timedelta(days=1)] * 5)
+        result = dti == other
+        expected = np.array([True] * 5 + [False] * 5)
+        tm.assert_numpy_array_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            dti >= other
 
 
 class TestDatetimeIndexArithmetic(object):

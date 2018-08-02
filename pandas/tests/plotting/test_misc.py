@@ -212,7 +212,6 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
-    @pytest.mark.xfail(reason="unreliable test")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates

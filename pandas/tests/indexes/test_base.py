@@ -491,8 +491,9 @@ class TestIndex(Base):
         with tm.assert_raises_regex(OverflowError, msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
-    @pytest.mark.xfail(reason="see gh-21311: Index "
-                              "doesn't enforce dtype argument")
+    @pytest.mark.xfail(reason="see GH#21311: Index "
+                              "doesn't enforce dtype argument",
+                       strict=True)
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with tm.assert_raises_regex(ValueError, msg):
@@ -1455,7 +1456,8 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH 20915")
+    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915",
+                       strict=True)
     def test_slice_ints_with_floats_raises(self):
         # int slicing with floats
         # GH 4892, these are all TypeErrors
