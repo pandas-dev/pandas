@@ -23,7 +23,6 @@ except:
 import pytz
 
 from cython cimport Py_ssize_t
-from cpython cimport PyFloat_Check
 
 import numpy as np
 from numpy cimport int64_t
