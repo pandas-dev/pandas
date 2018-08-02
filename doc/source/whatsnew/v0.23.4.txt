@@ -41,7 +41,7 @@ Bug Fixes
 
 **Indexing**
 
--
+- Fix OverflowError when trying to use 'inf' as na_value with int index column
 -
 
 **I/O**
