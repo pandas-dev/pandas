@@ -3176,10 +3176,13 @@ def test_last_week_of_month_on_offset():
 def test_tick_arithmetic(offset, factor):
     # GH 20633
     # Tick classes (e.g. Day) should now respect calendar arithmetic
-    # Test that calendar day is respected with a "fall back" DST transition
+    # Test that calendar day is respected by roundtripping across DST
+    tick = factor * getattr(offsets, offset)(1)
     ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
     expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
 
-    tick = factor * getattr(offsets, offset)(1)
     result = ts + tick
     assert result == expected
+
+    result = result - tick
+    assert result == ts
