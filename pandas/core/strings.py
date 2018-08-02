@@ -2063,6 +2063,7 @@ class StringMethods(NoNewAttributesMixin):
         See Also
         --------
         split : Split each string in the Series/Index
+        join : Join lists contained as elements in the Series/Index
 
         Examples
         --------
