@@ -2,10 +2,8 @@
 # cython: profile=False
 import re
 
-cimport numpy as cnp
-cnp.import_array()
-
-from util cimport is_integer_object, is_string_object
+from util cimport is_integer_object, is_string_object, import_array
+import_array()
 
 from ccalendar import MONTH_NUMBERS
 
