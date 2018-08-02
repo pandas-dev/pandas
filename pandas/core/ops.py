@@ -1311,7 +1311,7 @@ def _comp_method_SERIES(cls, op, special):
                 with np.errstate(all='ignore'):
                     result = method(y)
                 if result is NotImplemented:
-                    raise TypeError("invalid type comparison")
+                    return invalid_comparison(x, y, op)
             else:
                 result = op(x, y)
 
@@ -1706,7 +1706,10 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, na_op, try_cast=True)
+            pass_func = na_op
+            if is_scalar(lib.item_from_zerodim(other)):
+                pass_func = op
+            return self._combine_const(other, pass_func, try_cast=True)
 
     f.__name__ = op_name
 

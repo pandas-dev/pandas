@@ -206,10 +206,15 @@ class TestDataFrameOperators(TestData):
             right_f = getattr(operator, right)
 
             # no nats
-            expected = left_f(df, Timestamp('20010109'))
-            result = right_f(Timestamp('20010109'), df)
-            assert_frame_equal(result, expected)
-
+            if left in ['eq', 'ne']:
+                expected = left_f(df, Timestamp('20010109'))
+                result = right_f(Timestamp('20010109'), df)
+                assert_frame_equal(result, expected)
+            else:
+                with pytest.raises(TypeError):
+                    left_f(df, Timestamp('20010109'))
+                with pytest.raises(TypeError):
+                    right_f(Timestamp('20010109'), df)
             # nats
             expected = left_f(df, Timestamp('nat'))
             result = right_f(Timestamp('nat'), df)

@@ -2759,9 +2759,14 @@ class TestDataFrameIndexing(TestData):
                             C=np.random.randn(5)))
 
         stamp = datetime(2013, 1, 3)
-        result = df[df > stamp]
+        with pytest.raises(TypeError):
+            df > stamp
+
+        result = df[df.iloc[:, :-1] > stamp]
+
         expected = df.copy()
         expected.loc[[0, 1], 'A'] = np.nan
+        expected.loc[:, 'C'] = np.nan
         assert_frame_equal(result, expected)
 
     def test_where_none(self):
