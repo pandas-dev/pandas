@@ -37,8 +37,6 @@ import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
 
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
-
 
 class TestDataFrameIndexing(TestData):
 
@@ -3141,15 +3139,9 @@ class TestDataFrameIndexingDatetimeWithTZ(TestData):
         # issue #19843
         df = pd.DataFrame(index=(0, 1, 2))
         df['now'] = pd.Timestamp('20130101', tz='UTC')
-        assert isinstance(df.dtypes[0], DatetimeTZDtype)
-
-    def test_datetime_index_assignment(self):
-        # issue #19843
-        df = pd.DataFrame(index=(0, 1, 2))
-        di = pd.DatetimeIndex(
-            [pd.Timestamp('20130101', tz='UTC')]).repeat(len(df))
-        df['now'] = di
-        assert isinstance(df.dtypes[0], DatetimeTZDtype)
+        expected = pd.DataFrame(
+            {'now': pd.Timestamp('20130101', tz='UTC')}, index=[0, 1, 2])
+        tm.assert_frame_equal(df, expected)
 
 
 class TestDataFrameIndexingUInt64(TestData):
