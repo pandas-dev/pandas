@@ -22,6 +22,10 @@ This file implements string parsing and creation for NumPy datetime.
 #ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
 #define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif
+
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
  *

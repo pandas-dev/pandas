@@ -16,6 +16,10 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #define NO_IMPORT
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif
+
 #include <Python.h>
 #include <datetime.h>
 
