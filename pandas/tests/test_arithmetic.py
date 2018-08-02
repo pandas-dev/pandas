@@ -12,7 +12,6 @@ import pandas.util.testing as tm
 
 from pandas.core import ops
 from pandas.errors import NullFrequencyError
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas import (
     Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex)
 
