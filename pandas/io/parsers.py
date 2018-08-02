@@ -333,7 +333,7 @@ Read CSV (comma-separated) file into DataFrame
 _read_table_doc = """
 
 .. deprecated:: 0.24.0
-   Use :func:`pandas.read_csv` instead, passing `sep='\t'` if necessary.
+   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary.
 
 Read general delimited file into DataFrame
 
