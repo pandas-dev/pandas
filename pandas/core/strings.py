@@ -1105,7 +1105,8 @@ def str_join(arr, sep):
     Returns
     -------
     Series/Index: object
-        The list entries concatenated by intervening occurrences of the delimiter.
+        The list entries concatenated by intervening occurrences of the
+        delimiter.
 
     Notes
     -----
@@ -1139,11 +1140,10 @@ def str_join(arr, sep):
     than str will become a NaN.
 
     >>> s.str.join('-')
-    0    lion-elephant-zebra
-    1                    NaN
-    2                    NaN
-    3                    NaN
-    4                    NaN
+    0      l-i-o-n
+    1          NaN
+    2          NaN
+    3    swan-fish
     dtype: object
     """
     return _na_map(sep.join, arr)
