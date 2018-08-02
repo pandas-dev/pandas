@@ -1844,7 +1844,7 @@ class StringMethods(NoNewAttributesMixin):
             g = self.get(i)
 
     def _wrap_result(self, result, use_codes=True,
-                     name=None, expand=None):
+                     name=None, expand=None, na=np.nan):
 
         from pandas.core.index import Index, MultiIndex
 
@@ -1855,7 +1855,7 @@ class StringMethods(NoNewAttributesMixin):
         # before the transformation...
         if use_codes and self._is_categorical:
             result = take_1d(result, self._orig.cat.codes)
-            result[isna(result)] = False
+            result[isna(result)] = na
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
             return result
@@ -2467,7 +2467,7 @@ class StringMethods(NoNewAttributesMixin):
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
         result = str_contains(self._parent, pat, case=case, flags=flags, na=na,
                               regex=regex)
-        return self._wrap_result(result)
+        return self._wrap_result(result, na=na)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
