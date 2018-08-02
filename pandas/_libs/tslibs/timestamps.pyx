@@ -7,7 +7,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t
 cnp.import_array()
 
 from datetime import time as datetime_time
@@ -347,7 +347,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            ndarray out
+            int8_t out[1]
             int month_kw
 
         freq = self.freq
@@ -367,7 +367,7 @@ cdef class _Timestamp(datetime):
     cpdef _get_date_name_field(self, object field, object locale):
         cdef:
             int64_t val
-            ndarray out
+            object[:] out
 
         val = self._maybe_convert_value_to_local()
         out = get_date_name_field(np.array([val], dtype=np.int64),

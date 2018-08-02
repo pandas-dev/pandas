@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-cimport cython
 from cython cimport Py_ssize_t
 
 from cpython cimport PyFloat_Check, PyUnicode_Check
@@ -37,8 +36,7 @@ from tslibs.np_datetime import OutOfBoundsDatetime
 from tslibs.parsing import parse_datetime_string
 
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                               treat_tz_as_pytz, get_dst_info)
+from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
@@ -77,8 +75,7 @@ cdef inline object create_time_from_ts(
     return time(dts.hour, dts.min, dts.sec, dts.us)
 
 
-def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
-                       box="datetime"):
+def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
@@ -102,7 +99,9 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
 
     cdef:
         Py_ssize_t i, n = len(arr)
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
+        Py_ssize_t pos
         npy_datetimestruct dts
         object dt
         int64_t value, delta
