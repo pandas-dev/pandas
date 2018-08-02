@@ -113,6 +113,8 @@ def convert_pandas_type_to_json_field(arr, dtype=None):
             field['tz'] = arr.dt.tz.zone
         else:
             field['tz'] = arr.tz.zone
+    if hasattr(arr, 'describe'):
+        field['summary'] = arr.describe(include="all").to_dict()
     return field
 
 
