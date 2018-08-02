@@ -320,7 +320,11 @@ class DatetimeConverter(dates.DateConverter):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
+            if isinstance(values, ABCSeries):
+                # https://github.com/matplotlib/matplotlib/issues/11391
+                # Series was skipped. Convert to DatetimeIndex to get asi8
+                values = Index(values)
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
