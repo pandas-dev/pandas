@@ -276,8 +276,9 @@ cdef class _Timestamp(datetime):
 
         elif hasattr(other, 'delta'):
             # delta --> offsets.Tick
+            dst = bool(self.dst())
             result = self.tz_localize(None) + other.delta
-            result = result.tz_localize(self.tz)
+            result = result.tz_localize(self.tz, ambiguous=dst)
             if getattr(other, 'normalize', False):
                 result = result.normalize()
             return result
