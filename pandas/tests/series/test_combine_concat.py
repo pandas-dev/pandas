@@ -215,9 +215,10 @@ class TestSeriesCombine(TestData):
                           Series(dtype='object')]).dtype == 'object'
 
         # sparse
+        # TODO: move?
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(
             dtype='float64').to_sparse()])
-        assert result.dtype == np.float64
+        assert result.dtype == 'Sparse[float64]'
         assert result.ftype == 'float64:sparse'
 
         result = pd.concat([Series(dtype='float64').to_sparse(), Series(

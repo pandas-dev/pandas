@@ -143,6 +143,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def __init__(self, data, sparse_index=None, fill_value=np.nan, kind='block',
                  dtype=None, copy=False):
+        from pandas.core.internals import SingleBlockManager
+
+        if isinstance(data, SingleBlockManager):
+            data = data.internal_values()
 
         if sparse_index is None:
             sparse_values, sparse_index, fill_value = make_sparse(
