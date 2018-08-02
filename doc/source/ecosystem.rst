@@ -158,19 +158,13 @@ data exploration, interactive execution, deep inspection and rich visualization
 capabilities of a scientific environment like MATLAB or Rstudio.
 
 Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
-allows users to view, manipulate and edit pandas Index, DatetimeIndex, Series,
-and DataFrame objects with a full GUI, including the ability to
-sort by column, copy and modify individual values, display a "heatmap"
-per-column or globally, convert column data types and more, all with user- or
-automatically-adjustable column-widths and display formatting.
-The Variable Explorer also allows renaming and duplicating pandas objects,
-adding new columns, copying them to the clipboard as plain text (TSV), pasting
-them into  different Spyder/IPython sessions, and saving and loading
-one or multiple in a session to and from a file in lossless native format.
-Spyder can import data from a variety of plain text and binary files
-or the clipboard into a new pandas DataFrame, via a sophisticated import wizard
-offering options to handle column and row separators, skipping rows, and
-comments, and the ability to transpose, type-convert and preview the results.
+allows users to view, manipulate and edit pandas ``Index``, ``Series``,
+and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
+values, sorting, displaying a "heatmap", converting data types and more.
+Pandas objects can also be renamed, duplicated, new columns added,
+copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
+Spyder can also import data from a variety of plain text and binary files
+or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
 
 Most pandas classes, methods and data attributes can be autocompleted in
 Spyder's `Editor <https://docs.spyder-ide.org/editor.html>`__ and
