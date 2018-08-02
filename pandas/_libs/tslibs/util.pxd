@@ -240,4 +240,4 @@ cdef inline bint is_nan(object val):
     -------
     is_nan : bool
     """
-    return isinstance(val, float) and val != val
+    return is_float_object(val) and val != val
