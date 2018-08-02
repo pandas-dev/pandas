@@ -27,7 +27,7 @@ class TestFrameComparisons(object):
         df = pd.DataFrame(np.random.randn(8, 3), index=range(8),
                           columns=['A', 'B', 'C'])
 
-        result = df == None
+        result = df.__eq__(None)
         assert not result.any().any()
 
     def test_df_string_comparison(self):
