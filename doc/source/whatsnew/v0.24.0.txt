@@ -560,6 +560,7 @@ Timezones
 - Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
 - Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
 - Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`22074`)
+- Bug in ``DataFrame`` assignment with a timezone-aware scalar (:issue:`19843`)
 
 Offsets
 ^^^^^^^
