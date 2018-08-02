@@ -478,6 +478,7 @@ Deprecations
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
 - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
+- :func:`pandas.read_table` is deprecated. Instead, use :func:`pandas.read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -486,7 +487,7 @@ Removal of prior version deprecations/changes
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
--
+- Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 -
 
 .. _whatsnew_0240.performance:
@@ -629,8 +630,8 @@ I/O
 Plotting
 ^^^^^^^^
 
-- Bug in :func:'DataFrame.plot.scatter' and :func:'DataFrame.plot.hexbin' caused x-axis label and ticklabels to disappear when colorbar was on in IPython inline backend (:issue:`10611`, :issue:`10678`, and :issue:`20455`)
--
+- Bug in :func:`DataFrame.plot.scatter` and :func:`DataFrame.plot.hexbin` caused x-axis label and ticklabels to disappear when colorbar was on in IPython inline backend (:issue:`10611`, :issue:`10678`, and :issue:`20455`)
+- Bug in plotting a Series with datetimes using :func:`matplotlib.axes.Axes.scatter` (:issue:`22039`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
