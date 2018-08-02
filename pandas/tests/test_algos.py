@@ -617,16 +617,42 @@ class TestIsin(object):
 
     def test_same_object_is_in(self):
         # GH 22160
-        # nan is special, because out of a is a doesn't follow a == a
-        comps = ['ss', np.nan]
+        # nan is special, because from " a is b" doesn't follow "a == b"
+        # casting to -> np.float64 -> float-object will results in another nan-object
+        comps = [np.nan]  # could be casted to float64
         values = [np.nan]
-        expected = np.array([False, True])
+        expected = np.array([True])
         result = algos.isin(comps, values)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_different_nans(self):
+        # GH 22160
+        # the current behavior is:
+        #   * list, array of objects: isin() is False for different nan-objects
+        #   * array of float64s:      isin() is True for all nans
+        # this behavior might be changed in the future
+        #
+        # this test case only ensures it doesn't happen accidentally
+        #
+        comps = [float('nan')]  
+        values = [float('nan')]
+        assert comps[0] is not values[0]  # different nan-objects
+
+        # as list of python-objects:
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(np.array([False]), result)
+
+        # as object-array:
+        result = algos.isin(np.asarray(comps, dtype=np.object), np.asarray(values, dtype=np.object))
+        tm.assert_numpy_array_equal(np.array([False]), result)
+
+        #as float64-array:
+        result = algos.isin(np.asarray(comps, dtype=np.float64), np.asarray(values, dtype=np.float64))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
     def test_no_cast(self):
         # GH 22160
-        # ensure 42 is not casted to string
+        # ensure 42 is not casted to a string
         comps = ['ss', 42]
         values = ['42']
         expected = np.array([False, False])
