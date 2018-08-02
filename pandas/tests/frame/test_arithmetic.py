@@ -201,7 +201,8 @@ class TestFrameMulDiv(object):
 
 class TestFrameArithmetic(object):
 
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
+    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano',
+                       strict=True)
     def test_df_sub_datetime64_not_ns(self):
         df = pd.DataFrame(pd.date_range('20130101', periods=3))
         dt64 = np.datetime64('2013-01-01')
@@ -258,9 +259,10 @@ class TestPeriodFrameArithmetic(object):
         assert df['B'].dtype == object
 
         p = pd.Period('2015-03', freq='M')
+        off = p.freq
         # dtype will be object because of original dtype
-        exp = pd.DataFrame({'A': np.array([2, 1], dtype=object),
-                            'B': np.array([14, 13], dtype=object)})
+        exp = pd.DataFrame({'A': np.array([2 * off, 1 * off], dtype=object),
+                            'B': np.array([14 * off, 13 * off], dtype=object)})
         tm.assert_frame_equal(p - df, exp)
         tm.assert_frame_equal(df - p, -1 * exp)
 
@@ -271,7 +273,7 @@ class TestPeriodFrameArithmetic(object):
         assert df2['A'].dtype == object
         assert df2['B'].dtype == object
 
-        exp = pd.DataFrame({'A': np.array([4, 4], dtype=object),
-                            'B': np.array([16, 16], dtype=object)})
+        exp = pd.DataFrame({'A': np.array([4 * off, 4 * off], dtype=object),
+                            'B': np.array([16 * off, 16 * off], dtype=object)})
         tm.assert_frame_equal(df2 - df, exp)
         tm.assert_frame_equal(df - df2, -1 * exp)

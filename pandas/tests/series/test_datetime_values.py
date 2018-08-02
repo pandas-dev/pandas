@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import locale
+import calendar
 import pytest
 
 from datetime import datetime, date
@@ -32,7 +34,7 @@ class TestSeriesDatetimeValues(TestData):
         ok_for_dt = DatetimeIndex._datetimelike_ops
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
                              'tz_convert', 'normalize', 'strftime', 'round',
-                             'floor', 'ceil', 'weekday_name']
+                             'floor', 'ceil', 'day_name', 'month_name']
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = ['components', 'to_pytimedelta', 'total_seconds',
                              'round', 'floor', 'ceil']
@@ -253,11 +255,8 @@ class TestSeriesDatetimeValues(TestData):
 
         # trying to set a copy
         with pd.option_context('chained_assignment', 'raise'):
-
-            def f():
+            with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
-
-            pytest.raises(com.SettingWithCopyError, f)
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
@@ -273,6 +272,46 @@ class TestSeriesDatetimeValues(TestData):
         with tm.assert_raises_regex(AttributeError,
                                     "You cannot add any new attribute"):
             s.dt.xlabel = "a"
+
+    @pytest.mark.parametrize('time_locale', [
+        None] if tm.get_locales() is None else [None] + tm.get_locales())
+    def test_dt_accessor_datetime_name_accessors(self, time_locale):
+        # Test Monday -> Sunday and January -> December, in that sequence
+        if time_locale is None:
+            # If the time_locale is None, day-name and month_name should
+            # return the english attributes
+            expected_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
+                             'Friday', 'Saturday', 'Sunday']
+            expected_months = ['January', 'February', 'March', 'April', 'May',
+                               'June', 'July', 'August', 'September',
+                               'October', 'November', 'December']
+        else:
+            with tm.set_locale(time_locale, locale.LC_TIME):
+                expected_days = calendar.day_name[:]
+                expected_months = calendar.month_name[1:]
+
+        s = Series(DatetimeIndex(freq='D', start=datetime(1998, 1, 1),
+                                 periods=365))
+        english_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
+                        'Friday', 'Saturday', 'Sunday']
+        for day, name, eng_name in zip(range(4, 11),
+                                       expected_days,
+                                       english_days):
+            name = name.capitalize()
+            assert s.dt.weekday_name[day] == eng_name
+            assert s.dt.day_name(locale=time_locale)[day] == name
+        s = s.append(Series([pd.NaT]))
+        assert np.isnan(s.dt.day_name(locale=time_locale).iloc[-1])
+
+        s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
+        result = s.dt.month_name(locale=time_locale)
+        expected = Series([month.capitalize() for month in expected_months])
+        tm.assert_series_equal(result, expected)
+        for s_date, expected in zip(s, expected_months):
+            result = s_date.month_name(locale=time_locale)
+            assert result == expected.capitalize()
+        s = s.append(Series([pd.NaT]))
+        assert np.isnan(s.dt.month_name(locale=time_locale).iloc[-1])
 
     def test_strftime(self):
         # GH 10086
@@ -313,16 +352,16 @@ class TestSeriesDatetimeValues(TestData):
         datetime_index = date_range('20150301', periods=5)
         result = datetime_index.strftime("%Y/%m/%d")
 
-        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
-                             '2015/03/04', '2015/03/05'], dtype=np.object_)
+        expected = Index(['2015/03/01', '2015/03/02', '2015/03/03',
+                          '2015/03/04', '2015/03/05'], dtype=np.object_)
         # dtype may be S10 or U10 depending on python version
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_index_equal(result, expected)
 
         period_index = period_range('20150301', periods=5)
         result = period_index.strftime("%Y/%m/%d")
-        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
-                             '2015/03/04', '2015/03/05'], dtype='=U10')
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(['2015/03/01', '2015/03/02', '2015/03/03',
+                          '2015/03/04', '2015/03/05'], dtype='=U10')
+        tm.assert_index_equal(result, expected)
 
         s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14,
                                                               32, 1)])
@@ -378,12 +417,14 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(date_range('2000-01-01', periods=3))
         assert isinstance(s.dt, DatetimeProperties)
 
-        for s in [Series(np.arange(5)), Series(list('abcde')),
-                  Series(np.random.randn(5))]:
-            with tm.assert_raises_regex(AttributeError,
-                                        "only use .dt accessor"):
-                s.dt
-            assert not hasattr(s, 'dt')
+    @pytest.mark.parametrize('ser', [Series(np.arange(5)),
+                                     Series(list('abcde')),
+                                     Series(np.random.randn(5))])
+    def test_dt_accessor_invalid(self, ser):
+        # GH#9322 check that series with incorrect dtypes don't have attr
+        with tm.assert_raises_regex(AttributeError, "only use .dt accessor"):
+            ser.dt
+        assert not hasattr(ser, 'dt')
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))

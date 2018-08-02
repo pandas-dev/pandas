@@ -265,7 +265,7 @@ Individual columns can be parsed as a ``Categorical`` using a dict specification
 Categorical Concatenation
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`:13763`, issue:`13846`, :issue:`14173`)
+- A function :func:`union_categoricals` has been added for combining categoricals, see :ref:`Unioning Categoricals<categorical.union>` (:issue:`13361`, :issue:`13763`, :issue:`13846`, :issue:`14173`)
 
   .. ipython:: python
 
@@ -386,7 +386,7 @@ Google BigQuery Enhancements
 Fine-grained numpy errstate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previous versions of pandas would permanently silence numpy's ufunc error handling when ``pandas`` was imported. Pandas did this in order to silence the warnings that would arise from using numpy ufuncs on missing data, which are usually represented as ``NaN`` s. Unfortunately, this silenced legitimate warnings arising in non-pandas code in the application. Starting with 0.19.0, pandas will use the ``numpy.errstate`` context manager to silence these warnings in a more fine-grained manner, only around where these operations are actually used in the pandas codebase. (:issue:`13109`, :issue:`13145`)
+Previous versions of pandas would permanently silence numpy's ufunc error handling when ``pandas`` was imported. Pandas did this in order to silence the warnings that would arise from using numpy ufuncs on missing data, which are usually represented as ``NaN`` s. Unfortunately, this silenced legitimate warnings arising in non-pandas code in the application. Starting with 0.19.0, pandas will use the ``numpy.errstate`` context manager to silence these warnings in a more fine-grained manner, only around where these operations are actually used in the pandas code base. (:issue:`13109`, :issue:`13145`)
 
 After upgrading pandas, you may see *new* ``RuntimeWarnings`` being issued from your code. These are likely legitimate, and the underlying cause likely existed in the code when using previous versions of pandas that simply silenced the warning. Use `numpy.errstate <http://docs.scipy.org/doc/numpy/reference/generated/numpy.errstate.html>`__ around the source of the ``RuntimeWarning`` to control how these conditions are handled.
 
@@ -750,7 +750,7 @@ This will now convert integers/floats with the default unit of ``ns``.
 Bug fixes related to ``.to_datetime()``:
 
 - Bug in ``pd.to_datetime()`` when passing integers or floats, and no ``unit`` and ``errors='coerce'`` (:issue:`13180`).
-- Bug in ``pd.to_datetime()`` when passing invalid datatypes (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
+- Bug in ``pd.to_datetime()`` when passing invalid data types (e.g. bool); will now respect the ``errors`` keyword (:issue:`13176`)
 - Bug in ``pd.to_datetime()`` which overflowed on ``int8``, and ``int16`` dtypes (:issue:`13451`)
 - Bug in ``pd.to_datetime()`` raise ``AttributeError`` with ``NaN`` and the other string is not valid when ``errors='ignore'`` (:issue:`12424`)
 - Bug in ``pd.to_datetime()`` did not cast floats correctly when ``unit`` was specified, resulting in truncated datetime (:issue:`13834`)
@@ -1512,7 +1512,7 @@ Bug Fixes
 - Bug in ``.set_index`` raises ``AmbiguousTimeError`` if new index contains DST boundary and multi levels (:issue:`12920`)
 - Bug in ``.shift`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13926`)
 - Bug in ``pd.read_hdf()`` returns incorrect result when a ``DataFrame`` with a ``categorical`` column and a query which doesn't match any values (:issue:`13792`)
-- Bug in ``.iloc`` when indexing with a non lex-sorted MultiIndex (:issue:`13797`)
+- Bug in ``.iloc`` when indexing with a non lexsorted MultiIndex (:issue:`13797`)
 - Bug in ``.loc`` when indexing with date strings in a reverse sorted ``DatetimeIndex`` (:issue:`14316`)
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``.combine_first`` may return incorrect ``dtype`` (:issue:`7630`, :issue:`10567`)
@@ -1525,7 +1525,7 @@ Bug Fixes
 - Bug in invalid datetime parsing in ``to_datetime`` and ``DatetimeIndex`` may raise ``TypeError`` rather than ``ValueError`` (:issue:`11169`, :issue:`11287`)
 - Bug in ``Index`` created with tz-aware ``Timestamp`` and mismatched ``tz`` option incorrectly coerces timezone (:issue:`13692`)
 - Bug in ``DatetimeIndex`` with nanosecond frequency does not include timestamp specified with ``end`` (:issue:`13672`)
-- Bug in ```Series``` when setting a slice with a ```np.timedelta64``` (:issue:`14155`)
+- Bug in ```Series`` when setting a slice with a ``np.timedelta64`` (:issue:`14155`)
 - Bug in ``Index`` raises ``OutOfBoundsDatetime`` if ``datetime`` exceeds ``datetime64[ns]`` bounds, rather than coercing to ``object`` dtype (:issue:`13663`)
 - Bug in ``Index`` may ignore specified ``datetime64`` or ``timedelta64`` passed as ``dtype``  (:issue:`13981`)
 - Bug in ``RangeIndex`` can be created without no arguments rather than raises ``TypeError`` (:issue:`13793`)

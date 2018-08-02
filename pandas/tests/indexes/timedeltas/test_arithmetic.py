@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import pytest
 import numpy as np
 from datetime import timedelta
@@ -268,32 +269,6 @@ class TestTimedeltaIndexArithmetic(object):
     # Addition and Subtraction Operations
 
     # -------------------------------------------------------------
-    # Invalid Operations
-
-    def test_tdi_add_str_invalid(self):
-        # GH 13624
-        tdi = TimedeltaIndex(['1 day', '2 days'])
-
-        with pytest.raises(TypeError):
-            tdi + 'a'
-        with pytest.raises(TypeError):
-            'a' + tdi
-
-    @pytest.mark.parametrize('freq', [None, 'H'])
-    def test_tdi_sub_period(self, freq):
-        # GH#13078
-        # not supported, check TypeError
-        p = pd.Period('2011-01-01', freq='D')
-
-        idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
-
-        with pytest.raises(TypeError):
-            idx - p
-
-        with pytest.raises(TypeError):
-            p - idx
-
-    # -------------------------------------------------------------
     # TimedeltaIndex.shift is used by __add__/__sub__
 
     def test_tdi_shift_empty(self):
@@ -531,6 +506,45 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
+    # __add__/__sub__ with integer arrays
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_add_integer_array(self, box):
+        # GH#19959
+        rng = timedelta_range('1 days 09:00:00', freq='H', periods=3)
+        other = box([4, 3, 2])
+        expected = TimedeltaIndex(['1 day 13:00:00'] * 3)
+        result = rng + other
+        tm.assert_index_equal(result, expected)
+        result = other + rng
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_sub_integer_array(self, box):
+        # GH#19959
+        rng = timedelta_range('9H', freq='H', periods=3)
+        other = box([4, 3, 2])
+        expected = TimedeltaIndex(['5H', '7H', '9H'])
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+        result = other - rng
+        tm.assert_index_equal(result, -expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_tdi_addsub_integer_array_no_freq(self, box):
+        # GH#19959
+        tdi = TimedeltaIndex(['1 Day', 'NaT', '3 Hours'])
+        other = box([14, -1, 16])
+        with pytest.raises(NullFrequencyError):
+            tdi + other
+        with pytest.raises(NullFrequencyError):
+            other + tdi
+        with pytest.raises(NullFrequencyError):
+            tdi - other
+        with pytest.raises(NullFrequencyError):
+            other - tdi
+
+    # -------------------------------------------------------------
     # Binary operations TimedeltaIndex and timedelta-like
 
     def test_tdi_add_timedeltalike(self, delta):
@@ -562,29 +576,6 @@ class TestTimedeltaIndexArithmetic(object):
         expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
         rng -= delta
         tm.assert_index_equal(rng, expected)
-
-    # -------------------------------------------------------------
-    # Binary operations TimedeltaIndex and datetime-like
-
-    def test_tdi_sub_timestamp_raises(self):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-        msg = "cannot subtract a datelike from a TimedeltaIndex"
-        with tm.assert_raises_regex(TypeError, msg):
-            idx - Timestamp('2011-01-01')
-
-    def test_tdi_add_timestamp(self):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-
-        result = idx + Timestamp('2011-01-01')
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-        tm.assert_index_equal(result, expected)
-
-    def test_tdi_radd_timestamp(self):
-        idx = TimedeltaIndex(['1 day', '2 day'])
-
-        result = Timestamp('2011-01-01') + idx
-        expected = DatetimeIndex(['2011-01-02', '2011-01-03'])
-        tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]

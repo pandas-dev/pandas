@@ -3,6 +3,7 @@
 from __future__ import print_function
 from collections import deque
 from datetime import datetime
+from decimal import Decimal
 import operator
 
 import pytest
@@ -71,18 +72,18 @@ class TestDataFrameOperators(TestData):
                 assert (df + df).equals(df)
                 assert_frame_equal(df + df, df)
 
-    def test_ops_np_scalar(self):
-        vals, xs = np.random.rand(5, 3), [nan, 7, -23, 2.718, -3.14, np.inf]
+    @pytest.mark.parametrize('other', [nan, 7, -23, 2.718, -3.14, np.inf])
+    def test_ops_np_scalar(self, other):
+        vals = np.random.randn(5, 3)
         f = lambda x: DataFrame(x, index=list('ABCDE'),
                                 columns=['jim', 'joe', 'jolie'])
 
         df = f(vals)
 
-        for x in xs:
-            assert_frame_equal(df / np.array(x), f(vals / x))
-            assert_frame_equal(np.array(x) * df, f(vals * x))
-            assert_frame_equal(df + np.array(x), f(vals + x))
-            assert_frame_equal(np.array(x) - df, f(x - vals))
+        assert_frame_equal(df / np.array(other), f(vals / other))
+        assert_frame_equal(np.array(other) * df, f(vals * other))
+        assert_frame_equal(df + np.array(other), f(vals + other))
+        assert_frame_equal(np.array(other) - df, f(other - vals))
 
     def test_operators_boolean(self):
 
@@ -115,49 +116,60 @@ class TestDataFrameOperators(TestData):
             True, index=[1], columns=['A'])
         assert_frame_equal(result, DataFrame(1, index=[1], columns=['A']))
 
-        def f():
-            DataFrame(1.0, index=[1], columns=['A']) | DataFrame(
-                True, index=[1], columns=['A'])
-        pytest.raises(TypeError, f)
+        df1 = DataFrame(1.0, index=[1], columns=['A'])
+        df2 = DataFrame(True, index=[1], columns=['A'])
+        with pytest.raises(TypeError):
+            df1 | df2
 
-        def f():
-            DataFrame('foo', index=[1], columns=['A']) | DataFrame(
-                True, index=[1], columns=['A'])
-        pytest.raises(TypeError, f)
+        df1 = DataFrame('foo', index=[1], columns=['A'])
+        df2 = DataFrame(True, index=[1], columns=['A'])
+        with pytest.raises(TypeError):
+            df1 | df2
 
-    def test_operators_none_as_na(self):
+    @pytest.mark.parametrize('op', [operator.add, operator.sub,
+                                    operator.mul, operator.truediv])
+    def test_operators_none_as_na(self, op):
         df = DataFrame({"col1": [2, 5.0, 123, None],
                         "col2": [1, 2, 3, 4]}, dtype=object)
 
-        ops = [operator.add, operator.sub, operator.mul, operator.truediv]
-
         # since filling converts dtypes from object, changed expected to be
         # object
-        for op in ops:
-            filled = df.fillna(np.nan)
-            result = op(df, 3)
-            expected = op(filled, 3).astype(object)
-            expected[com.isna(expected)] = None
-            assert_frame_equal(result, expected)
+        filled = df.fillna(np.nan)
+        result = op(df, 3)
+        expected = op(filled, 3).astype(object)
+        expected[com.isna(expected)] = None
+        assert_frame_equal(result, expected)
 
-            result = op(df, df)
-            expected = op(filled, filled).astype(object)
-            expected[com.isna(expected)] = None
-            assert_frame_equal(result, expected)
+        result = op(df, df)
+        expected = op(filled, filled).astype(object)
+        expected[com.isna(expected)] = None
+        assert_frame_equal(result, expected)
 
-            result = op(df, df.fillna(7))
-            assert_frame_equal(result, expected)
+        result = op(df, df.fillna(7))
+        assert_frame_equal(result, expected)
 
-            result = op(df.fillna(7), df)
-            assert_frame_equal(result, expected, check_dtype=False)
+        result = op(df.fillna(7), df)
+        assert_frame_equal(result, expected, check_dtype=False)
 
     def test_comparison_invalid(self):
 
         def check(df, df2):
 
             for (x, y) in [(df, df2), (df2, df)]:
-                pytest.raises(TypeError, lambda: x == y)
-                pytest.raises(TypeError, lambda: x != y)
+                # we expect the result to match Series comparisons for
+                # == and !=, inequalities should raise
+                result = x == y
+                expected = DataFrame({col: x[col] == y[col]
+                                      for col in x.columns},
+                                     index=x.index, columns=x.columns)
+                assert_frame_equal(result, expected)
+
+                result = x != y
+                expected = DataFrame({col: x[col] != y[col]
+                                      for col in x.columns},
+                                     index=x.index, columns=x.columns)
+                assert_frame_equal(result, expected)
+
                 pytest.raises(TypeError, lambda: x >= y)
                 pytest.raises(TypeError, lambda: x > y)
                 pytest.raises(TypeError, lambda: x < y)
@@ -282,6 +294,17 @@ class TestDataFrameOperators(TestData):
         assert_frame_equal(-df, expected)
         assert_series_equal(-df['a'], expected['a'])
 
+    @pytest.mark.parametrize('df, expected', [
+        (np.array([1, 2], dtype=object), np.array([-1, -2], dtype=object)),
+        ([Decimal('1.0'), Decimal('2.0')], [Decimal('-1.0'), Decimal('-2.0')]),
+    ])
+    def test_neg_object(self, df, expected):
+        # GH 21380
+        df = pd.DataFrame({'a': df})
+        expected = pd.DataFrame({'a': expected})
+        assert_frame_equal(-df, expected)
+        assert_series_equal(-df['a'], expected['a'])
+
     @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': ['a', 'b']}),
         pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
@@ -307,6 +330,15 @@ class TestDataFrameOperators(TestData):
 
     @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': np.array([-1, 2], dtype=object)}),
+        pd.DataFrame({'a': [Decimal('-1.0'), Decimal('2.0')]}),
+    ])
+    def test_pos_object(self, df):
+        # GH 21380
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
     ])
     def test_pos_raises(self, df):
@@ -957,8 +989,11 @@ class TestDataFrameOperators(TestData):
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
 
-        pytest.raises(ValueError, df.__gt__, b_c)
-        pytest.raises(ValueError, df.values.__gt__, b_c)
+        with pytest.raises(ValueError):
+            df > b_c
+
+        with pytest.raises(ValueError):
+            df.values > b_c
 
         # ==
         expected = DataFrame([[False, False], [True, False], [False, False]])
@@ -977,7 +1012,9 @@ class TestDataFrameOperators(TestData):
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
 
-        pytest.raises(ValueError, lambda: df == b_c)
+        with pytest.raises(ValueError):
+            df == b_c
+
         assert df.values.shape != b_c.shape
 
         # with alignment

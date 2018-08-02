@@ -1,6 +1,5 @@
+# -*- coding: utf-8 -*-
 # cython: profile=False
-import operator
-
 cimport cython
 from cython cimport Py_ssize_t
 
@@ -157,7 +156,7 @@ def fast_unique_multiple(list arrays):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(list lists):
+def fast_unique_multiple_list(list lists, bint sort=True):
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -174,10 +173,11 @@ def fast_unique_multiple_list(list lists):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 
@@ -485,7 +485,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
 
 def clean_index_list(list obj):
     """
-    Utility used in pandas.core.index._ensure_index
+    Utility used in pandas.core.index.ensure_index
     """
     cdef:
         Py_ssize_t i, n = len(obj)
@@ -753,4 +753,4 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
     return result
 
 
-include "inference.pyx"
+include "src/inference.pyx"

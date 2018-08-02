@@ -11,6 +11,7 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+import importlib
 import sys
 import os
 import shutil
@@ -19,8 +20,6 @@ import argparse
 from contextlib import contextmanager
 import webbrowser
 import jinja2
-
-import pandas
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -78,9 +77,11 @@ class DocBuilder:
     All public methods of this class can be called as parameters of the
     script.
     """
-    def __init__(self, num_jobs=1, include_api=True, single_doc=None):
+    def __init__(self, num_jobs=1, include_api=True, single_doc=None,
+                 verbosity=0):
         self.num_jobs = num_jobs
         self.include_api = include_api
+        self.verbosity = verbosity
         self.single_doc = None
         self.single_doc_type = None
         if single_doc is not None:
@@ -120,7 +121,7 @@ class DocBuilder:
         """
         self.include_api = False
 
-        if single_doc == 'api.rst':
+        if single_doc == 'api.rst' or single_doc == 'api':
             self.single_doc_type = 'api'
             self.single_doc = 'api'
         elif os.path.exists(os.path.join(SOURCE_PATH, single_doc)):
@@ -132,7 +133,7 @@ class DocBuilder:
             self.single_doc = single_doc
         elif single_doc is not None:
             try:
-                obj = pandas
+                obj = pandas  # noqa: F821
                 for name in single_doc.split('.'):
                     obj = getattr(obj, name)
             except AttributeError:
@@ -223,12 +224,15 @@ class DocBuilder:
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ('html', 'latex'):
-            raise ValueError('kind must be html or latex, not {}'.format(kind))
+        if kind not in ('html', 'latex', 'spelling'):
+            raise ValueError('kind must be html, latex or '
+                             'spelling, not {}'.format(kind))
 
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
                      '-b{}'.format(kind),
+                     '-{}'.format(
+                         'v' * self.verbosity) if self.verbosity else '',
                      '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
                      '-Dexclude_patterns={}'.format(self.exclude_patterns),
                      SOURCE_PATH,
@@ -301,6 +305,18 @@ class DocBuilder:
                      '-q',
                      *fnames)
 
+    def spellcheck(self):
+        """Spell check the documentation."""
+        self._sphinx_build('spelling')
+        output_location = os.path.join('build', 'spelling', 'output.txt')
+        with open(output_location) as output:
+            lines = output.readlines()
+            if lines:
+                raise SyntaxError(
+                    'Found misspelled words.'
+                    ' Check pandas/doc/build/spelling/output.txt'
+                    ' for more details.')
+
 
 def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith('_')]
@@ -328,19 +344,32 @@ def main():
                                  'compile, e.g. "indexing", "DataFrame.join"'))
     argparser.add_argument('--python-path',
                            type=str,
-                           default=os.path.join(DOC_PATH, '..'),
+                           default=os.path.dirname(DOC_PATH),
                            help='path')
+    argparser.add_argument('-v', action='count', dest='verbosity', default=0,
+                           help=('increase verbosity (can be repeated), '
+                                 'passed to the sphinx build command'))
     args = argparser.parse_args()
 
     if args.command not in cmds:
         raise ValueError('Unknown command {}. Available options: {}'.format(
             args.command, ', '.join(cmds)))
 
+    # Below we update both os.environ and sys.path. The former is used by
+    # external libraries (namely Sphinx) to compile this module and resolve
+    # the import of `python_path` correctly. The latter is used to resolve
+    # the import within the module, injecting it into the global namespace
     os.environ['PYTHONPATH'] = args.python_path
+    sys.path.append(args.python_path)
+    globals()['pandas'] = importlib.import_module('pandas')
 
-    getattr(DocBuilder(args.num_jobs,
-                       not args.no_api,
-                       args.single), args.command)()
+    # Set the matplotlib backend to the non-interactive Agg backend for all
+    # child processes.
+    os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
+
+    builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
+                         args.verbosity)
+    getattr(builder, args.command)()
 
 
 if __name__ == '__main__':

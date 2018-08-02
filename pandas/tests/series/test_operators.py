@@ -136,10 +136,14 @@ class TestSeriesComparisons(object):
         assert ((~(f == a) == (f != a)).all())
 
         # non-equality is not comparable
-        pytest.raises(TypeError, lambda: a < b)
-        pytest.raises(TypeError, lambda: b < a)
-        pytest.raises(TypeError, lambda: a > b)
-        pytest.raises(TypeError, lambda: b > a)
+        with pytest.raises(TypeError):
+            a < b
+        with pytest.raises(TypeError):
+            b < a
+        with pytest.raises(TypeError):
+            a > b
+        with pytest.raises(TypeError):
+            b > a
 
     def test_comparison_tuples(self):
         # GH11339
@@ -204,20 +208,21 @@ class TestSeriesComparisons(object):
             # expected = f(val, s.dropna()).reindex(s.index)
             # assert_series_equal(result, expected)
 
-            # boolean &, |, ^ should work with object arrays and propagate NAs
+    @pytest.mark.parametrize('bool_op', [operator.and_,
+                                         operator.or_, operator.xor])
+    def test_bool_operators_with_nas(self, bool_op):
+        # boolean &, |, ^ should work with object arrays and propagate NAs
+        ser = Series(bdate_range('1/1/2000', periods=10), dtype=object)
+        ser[::2] = np.nan
 
-        ops = ['and_', 'or_', 'xor']
         mask = ser.isna()
-        for bool_op in ops:
-            func = getattr(operator, bool_op)
+        filled = ser.fillna(ser[0])
 
-            filled = ser.fillna(ser[0])
+        result = bool_op(ser < ser[9], ser > ser[3])
 
-            result = func(ser < ser[9], ser > ser[3])
-
-            expected = func(filled < filled[9], filled > filled[3])
-            expected[mask] = False
-            assert_series_equal(result, expected)
+        expected = bool_op(filled < filled[9], filled > filled[3])
+        expected[mask] = False
+        assert_series_equal(result, expected)
 
     def test_comparison_object_numeric_nas(self):
         ser = Series(np.random.randn(10), dtype=object)
@@ -238,8 +243,15 @@ class TestSeriesComparisons(object):
         s2 = Series(date_range('20010101', periods=5))
 
         for (x, y) in [(s, s2), (s2, s)]:
-            pytest.raises(TypeError, lambda: x == y)
-            pytest.raises(TypeError, lambda: x != y)
+
+            result = x == y
+            expected = Series([False] * 5)
+            assert_series_equal(result, expected)
+
+            result = x != y
+            expected = Series([True] * 5)
+            assert_series_equal(result, expected)
+
             pytest.raises(TypeError, lambda: x >= y)
             pytest.raises(TypeError, lambda: x > y)
             pytest.raises(TypeError, lambda: x < y)
@@ -248,27 +260,26 @@ class TestSeriesComparisons(object):
     def test_unequal_categorical_comparison_raises_type_error(self):
         # unequal comparison should raise for unordered cats
         cat = Series(Categorical(list("abc")))
-
-        def f():
+        with pytest.raises(TypeError):
             cat > "b"
 
-        pytest.raises(TypeError, f)
         cat = Series(Categorical(list("abc"), ordered=False))
-
-        def f():
+        with pytest.raises(TypeError):
             cat > "b"
-
-        pytest.raises(TypeError, f)
 
         # https://github.com/pandas-dev/pandas/issues/9836#issuecomment-92123057
         # and following comparisons with scalars not in categories should raise
         # for unequal comps, but not for equal/not equal
         cat = Series(Categorical(list("abc"), ordered=True))
 
-        pytest.raises(TypeError, lambda: cat < "d")
-        pytest.raises(TypeError, lambda: cat > "d")
-        pytest.raises(TypeError, lambda: "d" < cat)
-        pytest.raises(TypeError, lambda: "d" > cat)
+        with pytest.raises(TypeError):
+            cat < "d"
+        with pytest.raises(TypeError):
+            cat > "d"
+        with pytest.raises(TypeError):
+            "d" < cat
+        with pytest.raises(TypeError):
+            "d" > cat
 
         tm.assert_series_equal(cat == "d", Series([False, False, False]))
         tm.assert_series_equal(cat != "d", Series([True, True, True]))
@@ -365,11 +376,13 @@ class TestSeriesComparisons(object):
     def test_comparison_different_length(self):
         a = Series(['a', 'b', 'c'])
         b = Series(['b', 'a'])
-        pytest.raises(ValueError, a.__lt__, b)
+        with pytest.raises(ValueError):
+            a < b
 
         a = Series([1, 2])
         b = Series([2, 3, 4])
-        pytest.raises(ValueError, a.__eq__, b)
+        with pytest.raises(ValueError):
+            a == b
 
     def test_comparison_label_based(self):
 
@@ -448,7 +461,8 @@ class TestSeriesComparisons(object):
             assert_series_equal(result, expected)
 
         for v in [np.nan, 'foo']:
-            pytest.raises(TypeError, lambda: t | v)
+            with pytest.raises(TypeError):
+                t | v
 
         for v in [False, 0]:
             result = Series([True, False, True], index=index) | v
@@ -465,7 +479,8 @@ class TestSeriesComparisons(object):
             expected = Series([False, False, False], index=index)
             assert_series_equal(result, expected)
         for v in [np.nan]:
-            pytest.raises(TypeError, lambda: t & v)
+            with pytest.raises(TypeError):
+                t & v
 
     def test_comparison_flex_basic(self):
         left = pd.Series(np.random.randn(10))
@@ -827,16 +842,18 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt64 - obj
         assert_func(res, -expected)
 
-    def test_operators_datetimelike(self):
-        def run_ops(ops, get_ser, test_ser):
+    def test_operators_datetimelike_invalid(self, all_arithmetic_operators):
+        # these are all TypeEror ops
+        op_str = all_arithmetic_operators
+
+        def check(get_ser, test_ser):
 
             # check that we are getting a TypeError
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
-            for op_str in ops:
-                op = getattr(get_ser, op_str, None)
-                with tm.assert_raises_regex(TypeError, 'operate|cannot'):
-                    op(test_ser)
+            op = getattr(get_ser, op_str, None)
+            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
+                op(test_ser)
 
         # ## timedelta64 ###
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -848,38 +865,16 @@ class TestDatetimeSeriesArithmetic(object):
         dt1.iloc[2] = np.nan
         dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
                       Timestamp('20120104')])
-        ops = ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__',
-               '__pow__', '__radd__', '__rmul__', '__rfloordiv__',
-               '__rtruediv__', '__rdiv__', '__rpow__']
-        run_ops(ops, dt1, dt2)
-        dt1 - dt2
-        dt2 - dt1
+        if op_str not in ['__sub__', '__rsub__']:
+            check(dt1, dt2)
 
         # ## datetime64 with timetimedelta ###
-        ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
-               '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
-               '__rpow__']
-        run_ops(ops, dt1, td1)
-        dt1 + td1
-        td1 + dt1
-        dt1 - td1
-        # TODO: Decide if this ought to work.
-        # td1 - dt1
-
-        # ## timetimedelta with datetime64 ###
-        ops = ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__',
-               '__pow__', '__rmul__', '__rfloordiv__', '__rtruediv__',
-               '__rdiv__', '__rpow__']
-        run_ops(ops, td1, dt1)
-        td1 + dt1
-        dt1 + td1
+        # TODO(jreback) __rsub__ should raise?
+        if op_str not in ['__add__', '__radd__', '__sub__']:
+            check(dt1, td1)
 
         # 8260, 10763
         # datetime64 with tz
-        ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
-               '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
-               '__rpow__']
-
         tz = 'US/Eastern'
         dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                 tz=tz), name='foo')
@@ -888,7 +883,47 @@ class TestDatetimeSeriesArithmetic(object):
         td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
-        run_ops(ops, dt1, td1)
+
+        if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
+            check(dt2, td2)
+
+    def test_operators_datetimelike(self):
+
+        # ## timedelta64 ###
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # ## datetime64 ###
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
+        dt1.iloc[2] = np.nan
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
+        dt1 - dt2
+        dt2 - dt1
+
+        # ## datetime64 with timetimedelta ###
+        dt1 + td1
+        td1 + dt1
+        dt1 - td1
+        # TODO: Decide if this ought to work.
+        # td1 - dt1
+
+        # ## timetimedelta with datetime64 ###
+        td1 + dt1
+        dt1 + td1
+
+    def test_operators_datetimelike_with_timezones(self):
+
+        tz = 'US/Eastern'
+        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                                tz=tz), name='foo')
+        dt2 = dt1.copy()
+        dt2.iloc[2] = np.nan
+
+        td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
+        td2 = td1.copy()
+        td2.iloc[1] = np.nan
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
@@ -910,12 +945,14 @@ class TestDatetimeSeriesArithmetic(object):
         result = dt1 - td1[0]
         exp = (dt1.dt.tz_localize(None) - td1[0]).dt.tz_localize(tz)
         assert_series_equal(result, exp)
-        pytest.raises(TypeError, lambda: td1[0] - dt1)
+        with pytest.raises(TypeError):
+            td1[0] - dt1
 
         result = dt2 - td2[0]
         exp = (dt2.dt.tz_localize(None) - td2[0]).dt.tz_localize(tz)
         assert_series_equal(result, exp)
-        pytest.raises(TypeError, lambda: td2[0] - dt2)
+        with pytest.raises(TypeError):
+            td2[0] - dt2
 
         result = dt1 + td1
         exp = (dt1.dt.tz_localize(None) + td1).dt.tz_localize(tz)
@@ -933,8 +970,10 @@ class TestDatetimeSeriesArithmetic(object):
         exp = (dt2.dt.tz_localize(None) - td2).dt.tz_localize(tz)
         assert_series_equal(result, exp)
 
-        pytest.raises(TypeError, lambda: td1 - dt1)
-        pytest.raises(TypeError, lambda: td2 - dt2)
+        with pytest.raises(TypeError):
+            td1 - dt1
+        with pytest.raises(TypeError):
+            td2 - dt2
 
     def test_sub_single_tz(self):
         # GH12290
@@ -1133,25 +1172,23 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt - ser
         tm.assert_series_equal(res, -expected)
 
+    @pytest.mark.parametrize('op', ['__add__', '__radd__',
+                                    '__sub__', '__rsub__'])
     @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
-    def test_dt64_series_add_intlike(self, tz):
+    def test_dt64_series_add_intlike(self, tz, op):
         # GH#19123
         dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'], tz=tz)
         ser = Series(dti)
 
         other = Series([20, 30, 40], dtype='uint8')
 
-        pytest.raises(TypeError, ser.__add__, 1)
-        pytest.raises(TypeError, ser.__sub__, 1)
+        pytest.raises(TypeError, getattr(ser, op), 1)
 
-        pytest.raises(TypeError, ser.__add__, other)
-        pytest.raises(TypeError, ser.__sub__, other)
+        pytest.raises(TypeError, getattr(ser, op), other)
 
-        pytest.raises(TypeError, ser.__add__, other.values)
-        pytest.raises(TypeError, ser.__sub__, other.values)
+        pytest.raises(TypeError, getattr(ser, op), other.values)
 
-        pytest.raises(TypeError, ser.__add__, pd.Index(other))
-        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
+        pytest.raises(TypeError, getattr(ser, op), pd.Index(other))
 
 
 class TestSeriesOperators(TestData):
@@ -1465,11 +1502,16 @@ class TestSeriesOperators(TestData):
         expected = Series([1, 1, 3, 3], dtype='int32')
         assert_series_equal(res, expected)
 
-        pytest.raises(TypeError, lambda: s_1111 & 'a')
-        pytest.raises(TypeError, lambda: s_1111 & ['a', 'b', 'c', 'd'])
-        pytest.raises(TypeError, lambda: s_0123 & np.NaN)
-        pytest.raises(TypeError, lambda: s_0123 & 3.14)
-        pytest.raises(TypeError, lambda: s_0123 & [0.1, 4, 3.14, 2])
+        with pytest.raises(TypeError):
+            s_1111 & 'a'
+        with pytest.raises(TypeError):
+            s_1111 & ['a', 'b', 'c', 'd']
+        with pytest.raises(TypeError):
+            s_0123 & np.NaN
+        with pytest.raises(TypeError):
+            s_0123 & 3.14
+        with pytest.raises(TypeError):
+            s_0123 & [0.1, 4, 3.14, 2]
 
         # s_0123 will be all false now because of reindexing like s_tft
         if compat.PY3:
@@ -1512,14 +1554,16 @@ class TestSeriesOperators(TestData):
         def tester(a, b):
             return a & b
 
-        pytest.raises(TypeError, tester, s, datetime(2005, 1, 1))
+        with pytest.raises(TypeError):
+            s & datetime(2005, 1, 1)
 
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, datetime(2005, 1, 1)])
         s[::2] = np.nan
 
         expected = Series(True, index=s.index)
         expected[::2] = False
-        assert_series_equal(tester(s, list(s)), expected)
+        result = s & list(s)
+        assert_series_equal(result, expected)
 
         d = DataFrame({'A': s})
         # TODO: Fix this exception - needs to be fixed! (see GH5035)
@@ -1569,7 +1613,25 @@ class TestSeriesOperators(TestData):
         expected = op(1., arr.astype(float))
         assert_series_equal(result.astype(float), expected)
 
-    def test_operators_combine(self):
+    pairings = []
+    for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
+        fv = 0
+        lop = getattr(Series, op)
+        lequiv = getattr(operator, op)
+        rop = getattr(Series, 'r' + op)
+        # bind op at definition time...
+        requiv = lambda x, y, op=op: getattr(operator, op)(y, x)
+        pairings.append((lop, lequiv, fv))
+        pairings.append((rop, requiv, fv))
+    if compat.PY3:
+        pairings.append((Series.div, operator.truediv, 1))
+        pairings.append((Series.rdiv, lambda x, y: operator.truediv(y, x), 1))
+    else:
+        pairings.append((Series.div, operator.div, 1))
+        pairings.append((Series.rdiv, lambda x, y: operator.div(y, x), 1))
+
+    @pytest.mark.parametrize('op, equiv_op, fv', pairings)
+    def test_operators_combine(self, op, equiv_op, fv):
         def _check_fill(meth, op, a, b, fill_value=0):
             exp_index = a.index.union(b.index)
             a = a.reindex(exp_index)
@@ -1601,32 +1663,12 @@ class TestSeriesOperators(TestData):
         a = Series([nan, 1., 2., 3., nan], index=np.arange(5))
         b = Series([nan, 1, nan, 3, nan, 4.], index=np.arange(6))
 
-        pairings = []
-        for op in ['add', 'sub', 'mul', 'pow', 'truediv', 'floordiv']:
-            fv = 0
-            lop = getattr(Series, op)
-            lequiv = getattr(operator, op)
-            rop = getattr(Series, 'r' + op)
-            # bind op at definition time...
-            requiv = lambda x, y, op=op: getattr(operator, op)(y, x)
-            pairings.append((lop, lequiv, fv))
-            pairings.append((rop, requiv, fv))
-
-        if compat.PY3:
-            pairings.append((Series.div, operator.truediv, 1))
-            pairings.append((Series.rdiv, lambda x, y: operator.truediv(y, x),
-                             1))
-        else:
-            pairings.append((Series.div, operator.div, 1))
-            pairings.append((Series.rdiv, lambda x, y: operator.div(y, x), 1))
-
-        for op, equiv_op, fv in pairings:
-            result = op(a, b)
-            exp = equiv_op(a, b)
-            assert_series_equal(result, exp)
-            _check_fill(op, equiv_op, a, b, fill_value=fv)
-            # should accept axis=0 or axis='rows'
-            op(a, b, axis=0)
+        result = op(a, b)
+        exp = equiv_op(a, b)
+        assert_series_equal(result, exp)
+        _check_fill(op, equiv_op, a, b, fill_value=fv)
+        # should accept axis=0 or axis='rows'
+        op(a, b, axis=0)
 
     def test_operators_na_handling(self):
         from decimal import Decimal

@@ -12,7 +12,8 @@ from pandas.util._decorators import Appender
 
 class DirNamesMixin(object):
     _accessors = frozenset([])
-    _deprecations = frozenset(['asobject'])
+    _deprecations = frozenset(
+        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
     def _dir_deletions(self):
         """ delete unwanted __dir__ for this object """
@@ -148,6 +149,7 @@ def _register_accessor(name, cls):
                 UserWarning,
                 stacklevel=2)
         setattr(cls, name, CachedAccessor(name, accessor))
+        cls._accessors.add(name)
         return accessor
     return decorator
 
@@ -191,9 +193,9 @@ In your library code::
 
         @property
         def center(self):
-            # return the geographic center point of this DataFarme
-            lon = self._obj.latitude
-            lat = self._obj.longitude
+            # return the geographic center point of this DataFrame
+            lat = self._obj.latitude
+            lon = self._obj.longitude
             return (float(lon.mean()), float(lat.mean()))
 
         def plot(self):

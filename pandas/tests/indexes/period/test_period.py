@@ -366,6 +366,19 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(ValueError):
             period_range('2011-1-1', '2012-1-1', 'B')
 
+    def test_start_time(self):
+        # GH 17157
+        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
+        tm.assert_index_equal(index.start_time, expected_index)
+
+    def test_end_time(self):
+        # GH 17157
+        index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
+        expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
+        expected_index = expected_index.shift(1, freq='D').shift(-1, freq='ns')
+        tm.assert_index_equal(index.end_time, expected_index)
+
     def test_index_duplicate_periods(self):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq='A-JUN')
@@ -532,10 +545,9 @@ class TestPeriodIndex(DatetimeLike):
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self(self, how):
+    def test_join_self(self, join_type):
         index = period_range('1/1/2000', periods=10)
-        joined = index.join(index, how=how)
+        joined = index.join(index, how=join_type)
         assert index is joined
 
     def test_insert(self):

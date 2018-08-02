@@ -8,10 +8,10 @@ Cython implementations of functions resembling the stdlib calendar module
 cimport cython
 from cython cimport Py_ssize_t
 
-cimport numpy as cnp
 from numpy cimport int64_t, int32_t
-cnp.import_array()
 
+from locale import LC_TIME
+from strptime import LocaleTime
 
 # ----------------------------------------------------------------------
 # Constants
@@ -35,11 +35,18 @@ cdef int32_t* _month_offset = [
 # Canonical location for other modules to find name constants
 MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+# The first blank line is consistent with calendar.month_name in the calendar
+# standard library
+MONTHS_FULL = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+               'July', 'August', 'September', 'October', 'November',
+               'December']
 MONTH_NUMBERS = {name: num for num, name in enumerate(MONTHS)}
 MONTH_ALIASES = {(num + 1): name for num, name in enumerate(MONTHS)}
 MONTH_TO_CAL_NUM = {name: num + 1 for num, name in enumerate(MONTHS)}
 
 DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
+             'Saturday', 'Sunday']
 int_to_weekday = {num: name for num, name in enumerate(DAYS)}
 weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
@@ -199,3 +206,23 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 
     day_of_year = mo_off + day
     return day_of_year
+
+
+cpdef get_locale_names(object name_type, object locale=None):
+    """Returns an array of localized day or month names
+
+    Parameters
+    ----------
+    name_type : string, attribute of LocaleTime() in which to return localized
+        names
+    locale : string
+
+    Returns
+    -------
+    list of locale names
+
+    """
+    from pandas.util.testing import set_locale
+
+    with set_locale(locale, LC_TIME):
+        return getattr(LocaleTime(), name_type)

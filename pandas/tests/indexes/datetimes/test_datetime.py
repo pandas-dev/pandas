@@ -1,3 +1,5 @@
+import warnings
+import sys
 
 import pytest
 
@@ -125,6 +127,16 @@ class TestDatetimeIndex(object):
         exp = Index([f(x) for x in rng], dtype='<U8')
         tm.assert_index_equal(result, exp)
 
+    @tm.capture_stderr
+    def test_map_fallthrough(self):
+        # GH#22067, check we don't get warnings about silently ignored errors
+        dti = date_range('2017-01-01', '2018-01-01', freq='B')
+
+        dti.map(lambda x: pd.Period(year=x.year, month=x.month, freq='M'))
+
+        cv = sys.stderr.getvalue()
+        assert cv == ''
+
     def test_iteration_preserves_tz(self):
         # see gh-8890
         index = date_range("2012-01-01", periods=3, freq='H', tz='US/Eastern')
@@ -152,6 +164,17 @@ class TestDatetimeIndex(object):
             assert result._repr_base == expected._repr_base
             assert result == expected
 
+    @pytest.mark.parametrize('periods', [0, 9999, 10000, 10001])
+    def test_iteration_over_chunksize(self, periods):
+        # GH21012
+
+        index = date_range('2000-01-01 00:00:00', periods=periods, freq='min')
+        num = 0
+        for stamp in index:
+            assert index[num] == stamp
+            num += 1
+        assert num == len(index)
+
     def test_misc_coverage(self):
         rng = date_range('1/1/2000', periods=5)
         result = rng.groupby(rng.day)
@@ -178,7 +201,10 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
                              '2000-01-03', '2000-01-03', '2000-01-04'])
 
-        result = idx.get_duplicates()
+        with warnings.catch_warnings(record=True):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = DatetimeIndex(['2000-01-02', '2000-01-03'])
         tm.assert_index_equal(result, ex)
 
@@ -250,10 +276,9 @@ class TestDatetimeIndex(object):
         assert cols.dtype == joined.dtype
         tm.assert_numpy_array_equal(cols.values, joined.values)
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self(self, how):
+    def test_join_self(self, join_type):
         index = date_range('1/1/2000', periods=10)
-        joined = index.join(index, how=how)
+        joined = index.join(index, how=join_type)
         assert index is joined
 
     def assert_index_parameters(self, index):
@@ -274,8 +299,7 @@ class TestDatetimeIndex(object):
                                      freq=index.freq)
         self.assert_index_parameters(new_index)
 
-    @pytest.mark.parametrize('how', ['left', 'right', 'inner', 'outer'])
-    def test_join_with_period_index(self, how):
+    def test_join_with_period_index(self, join_type):
         df = tm.makeCustomDataframe(
             10, 10, data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type='p', r_idx_type='dt')
@@ -284,7 +308,7 @@ class TestDatetimeIndex(object):
         with tm.assert_raises_regex(ValueError,
                                     'can only call with other '
                                     'PeriodIndex-ed objects'):
-            df.columns.join(s.index, how=how)
+            df.columns.join(s.index, how=join_type)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',
@@ -331,8 +355,8 @@ class TestDatetimeIndex(object):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
-    def test_factorize_tz(self, tz):
+    def test_factorize_tz(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH#13750
         base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
         idx = base.repeat(5)

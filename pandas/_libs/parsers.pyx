@@ -445,10 +445,9 @@ cdef class TextReader:
         # suboptimal
         if usecols is not None:
             self.has_usecols = 1
-            if callable(usecols):
-                self.usecols = usecols
-            else:
-                self.usecols = set(usecols)
+            # GH-20558, validate usecols at higher level and only pass clean
+            # usecols into TextReader.
+            self.usecols = usecols
 
         # XXX
         if skipfooter > 0:
@@ -1045,7 +1044,7 @@ cdef class TextReader:
                 usecols = set()
                 if callable(self.usecols):
                     if self.usecols(name):
-                        usecols = set([i])
+                        usecols = {i}
                 else:
                     usecols = self.usecols
                 if self.has_usecols and not (i in usecols or

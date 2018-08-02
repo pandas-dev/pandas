@@ -7,7 +7,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t
 cnp.import_array()
 
 from datetime import time as datetime_time
@@ -21,15 +21,16 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    INT64_MAX)
 
 cimport ccalendar
-from conversion import tz_localize_to_utc, date_normalize
+from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
-from fields import get_date_field, get_start_end_field
+from fields import get_start_end_field, get_date_name_field
 from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct)
+                          npy_datetimestruct, dt64_to_dtstruct)
+from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -44,7 +45,7 @@ _no_input = object()
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
-                                            pandas_datetimestruct dts,
+                                            npy_datetimestruct dts,
                                             object tz, object freq):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
@@ -64,37 +65,43 @@ def round_ns(values, rounder, freq):
 
     Parameters
     ----------
-    values : int, :obj:`ndarray`
-    rounder : function
+    values : :obj:`ndarray`
+    rounder : function, eg. 'ceil', 'floor', 'round'
     freq : str, obj
 
     Returns
     -------
-    int or :obj:`ndarray`
+    :obj:`ndarray`
     """
-    from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
+
+    # GH21262 If the Timestamp is multiple of the freq str
+    # don't apply any rounding
+    mask = values % unit == 0
+    if mask.all():
+        return values
+    r = values.copy()
+
     if unit < 1000:
         # for nano rounding, work with the last 6 digits separately
         # due to float precision
         buff = 1000000
-        r = (buff * (values // buff) + unit *
-             (rounder((values % buff) * (1 / float(unit)))).astype('i8'))
+        r[~mask] = (buff * (values[~mask] // buff) +
+                    unit * (rounder((values[~mask] % buff) *
+                            (1 / float(unit)))).astype('i8'))
     else:
         if unit % 1000 != 0:
             msg = 'Precision will be lost using frequency: {}'
             warnings.warn(msg.format(freq))
-
         # GH19206
         # to deal with round-off when unit is large
         if unit >= 1e9:
             divisor = 10 ** int(np.log10(unit / 1e7))
         else:
             divisor = 10
-
-        r = (unit * rounder((values * (divisor / float(unit))) / divisor)
-             .astype('i8'))
-
+        r[~mask] = (unit * rounder((values[~mask] *
+                    (divisor / float(unit))) / divisor)
+                    .astype('i8'))
     return r
 
 
@@ -335,7 +342,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            ndarray out
+            int8_t out[1]
             int month_kw
 
         freq = self.freq
@@ -350,6 +357,16 @@ cdef class _Timestamp(datetime):
         val = self._maybe_convert_value_to_local()
         out = get_start_end_field(np.array([val], dtype=np.int64),
                                   field, freqstr, month_kw)
+        return out[0]
+
+    cpdef _get_date_name_field(self, object field, object locale):
+        cdef:
+            int64_t val
+            object[:] out
+
+        val = self._maybe_convert_value_to_local()
+        out = get_date_name_field(np.array([val], dtype=np.int64),
+                                  field, locale=locale)
         return out[0]
 
     @property
@@ -389,6 +406,15 @@ cdef class _Timestamp(datetime):
     @property
     def asm8(self):
         return np.datetime64(self.value, 'ns')
+
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
@@ -628,7 +654,6 @@ class Timestamp(_Timestamp):
             return NaT
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
@@ -639,7 +664,10 @@ class Timestamp(_Timestamp):
         else:
             value = self.value
 
-        r = round_ns(value, rounder, freq)
+        value = np.array([value], dtype=np.int64)
+
+        # Will only ever contain 1 element for timestamp
+        r = round_ns(value, rounder, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
@@ -690,6 +718,12 @@ class Timestamp(_Timestamp):
         """
         return self.tzinfo
 
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
+
     def __setstate__(self, state):
         self.value = state[0]
         self.freq = state[1]
@@ -714,12 +748,50 @@ class Timestamp(_Timestamp):
     def dayofweek(self):
         return self.weekday()
 
+    def day_name(self, locale=None):
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field('day_name', locale)
+
+    def month_name(self, locale=None):
+        """
+        Return the month name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field('month_name', locale)
+
     @property
     def weekday_name(self):
-        cdef dict wdays = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
-                           3: 'Thursday', 4: 'Friday', 5: 'Saturday',
-                           6: 'Sunday'}
-        return wdays[self.weekday()]
+        """
+        .. deprecated:: 0.23.0
+            Use ``Timestamp.day_name()`` instead
+        """
+        warnings.warn("`weekday_name` is deprecated and will be removed in a "
+                      "future version. Use `day_name` instead",
+                      FutureWarning)
+        return self.day_name()
 
     @property
     def dayofyear(self):
@@ -901,7 +973,7 @@ class Timestamp(_Timestamp):
         """
 
         cdef:
-            pandas_datetimestruct dts
+            npy_datetimestruct dts
             int64_t value, value_tz, offset
             object _tzinfo, result, k, v
             datetime ts_input
@@ -1020,7 +1092,7 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        normalized_value = date_normalize(
+        normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
 

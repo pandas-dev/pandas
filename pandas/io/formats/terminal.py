@@ -14,10 +14,11 @@ on linux, os x, windows and cygwin (windows).
 from __future__ import print_function
 
 import os
-import sys
 import shutil
+from pandas.compat import PY3
 
-__all__ = ['get_terminal_size']
+
+__all__ = ['get_terminal_size', 'is_terminal']
 
 
 def get_terminal_size():
@@ -29,7 +30,7 @@ def get_terminal_size():
     """
     import platform
 
-    if sys.version_info[0] >= 3:
+    if PY3:
         return shutil.get_terminal_size()
 
     current_os = platform.system()
@@ -48,8 +49,25 @@ def get_terminal_size():
     return tuple_xy
 
 
+def is_terminal():
+    """
+    Detect if Python is running in a terminal.
+
+    Returns True if Python is running in a terminal or False if not.
+    """
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        return True
+    else:
+        if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
+            return False
+        else:  # IPython in a terminal
+            return True
+
+
 def _get_terminal_size_windows():
-    res = None
+
     try:
         from ctypes import windll, create_string_buffer
 

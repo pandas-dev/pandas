@@ -81,20 +81,20 @@ The ``metadata`` field is ``None`` except for:
   omitted it is assumed to be nanoseconds.
 * ``categorical``: ``{'num_categories': K, 'ordered': is_ordered, 'type': $TYPE}``
 
-  * Here ``'type'`` is optional, and can be a nested pandas type specification
-    here (but not categorical)
+    * Here ``'type'`` is optional, and can be a nested pandas type specification
+      here (but not categorical)
 
 * ``unicode``: ``{'encoding': encoding}``
 
-  * The encoding is optional, and if not present is UTF-8
+    * The encoding is optional, and if not present is UTF-8
 
 * ``object``: ``{'encoding': encoding}``. Objects can be serialized and stored
   in ``BYTE_ARRAY`` Parquet columns. The encoding can be one of:
 
-  * ``'pickle'``
-  * ``'msgpack'``
-  * ``'bson'``
-  * ``'json'``
+    * ``'pickle'``
+    * ``'msgpack'``
+    * ``'bson'``
+    * ``'json'``
 
 * ``timedelta``: ``{'unit': 'ns'}``. The ``'unit'`` is optional, and if omitted
   it is assumed to be nanoseconds. This metadata is optional altogether
@@ -140,46 +140,3 @@ As an example of fully-formed metadata:
          'metadata': None}
     ],
     'pandas_version': '0.20.0'}
-
-.. _developer.register-accessors:
-
-Registering Custom Accessors
-----------------------------
-
-Libraries can use the decorators
-:func:`pandas.api.extensions.register_dataframe_accessor`,
-:func:`pandas.api.extensions.register_series_accessor`, and
-:func:`pandas.api.extensions.register_index_accessor`, to add additional "namespaces" to
-pandas objects. All of these follow a similar convention: you decorate a class, providing the name of attribute to add. The
-class's `__init__` method gets the object being decorated. For example:
-
-.. code-block:: python
-
-   @pd.api.extensions.register_dataframe_accessor("geo")
-   class GeoAccessor(object):
-       def __init__(self, pandas_obj):
-           self._obj = pandas_obj
-
-       @property
-       def center(self):
-           # return the geographic center point of this DataFarme
-           lon = self._obj.latitude
-           lat = self._obj.longitude
-           return (float(lon.mean()), float(lat.mean()))
-
-       def plot(self):
-           # plot this array's data on a map, e.g., using Cartopy
-           pass
-
-Now users can access your methods using the `geo` namespace:
-
-      >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
-      ...                    'latitude': np.linspace(0, 20)})
-      >>> ds.geo.center
-      (5.0, 10.0)
-      >>> ds.geo.plot()
-      # plots data on a map
-
-This can be a convenient way to extend pandas objects without subclassing them.
-If you write a custom accessor, make a pull request adding it to our
-:ref:`ecosystem` page.

@@ -6,7 +6,7 @@ import numpy as np
 from collections import Iterable
 from numbers import Number
 from pandas.compat import (PY2, string_types, text_type,
-                           string_and_binary_types)
+                           string_and_binary_types, re_type)
 from pandas._libs import lib
 
 is_bool = lib.is_bool
@@ -28,20 +28,37 @@ def is_number(obj):
     """
     Check if the object is a number.
 
+    Returns True when the object is a number, and False if is not.
+
     Parameters
     ----------
-    obj : The object to check.
+    obj : any type
+        The object to check if is a number.
 
     Returns
     -------
     is_number : bool
         Whether `obj` is a number or not.
 
+    See Also
+    --------
+    pandas.api.types.is_integer: checks a subgroup of numbers
+
     Examples
     --------
-    >>> is_number(1)
+    >>> pd.api.types.is_number(1)
     True
-    >>> is_number("foo")
+    >>> pd.api.types.is_number(7.15)
+    True
+
+    Booleans are valid because they are int subclass.
+
+    >>> pd.api.types.is_number(False)
+    True
+
+    >>> pd.api.types.is_number("foo")
+    False
+    >>> pd.api.types.is_number("5")
     False
     """
 
@@ -199,7 +216,7 @@ def is_re(obj):
     False
     """
 
-    return isinstance(obj, re._pattern_type)
+    return isinstance(obj, re_type)
 
 
 def is_re_compilable(obj):
@@ -261,10 +278,17 @@ def is_list_like(obj):
     False
     >>> is_list_like(1)
     False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
     """
 
     return (isinstance(obj, Iterable) and
-            not isinstance(obj, string_and_binary_types))
+            # we do not count strings/unicode/bytes as list-like
+            not isinstance(obj, string_and_binary_types) and
+            # exclude zero-dimensional numpy arrays, effectively scalars
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
 
 
 def is_array_like(obj):
