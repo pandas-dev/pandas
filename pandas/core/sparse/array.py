@@ -8,6 +8,7 @@ import numpy as np
 import warnings
 
 import pandas as pd
+import collections
 from pandas.core.base import PandasObject, IndexOpsMixin
 
 from pandas import compat
@@ -144,6 +145,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def __init__(self, data, sparse_index=None, fill_value=np.nan, kind='block',
                  dtype=None, copy=False):
         from pandas.core.internals import SingleBlockManager
+
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subdtype
 
         if isinstance(data, SingleBlockManager):
             data = data.internal_values()
@@ -443,6 +447,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if len(fill_value) > 1:
             raise ValueError("Cannot concatenate arrays with different fill values.")
+        else:
+            fill_value = list(fill_value)[0]
 
         values = []
         indices = []
@@ -486,6 +492,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return dtype.construct_array_type()(self, copy=copy)
         else:
             return astype_nansafe(np.asarray(self), dtype=dtype)
+
+    def map(self, mapper):
+        # this is used in apply.
+        # We get hit since we're an "is_extension_type" but regular extension types
+        # are not hit...
+        if isinstance(mapper, collections.Mapping):
+            fill_value = mapper.get(self.fill_value, self.fill_value)
+            sp_values = [mapper.get(x, None) for x in self.sp_values]
+        else:
+            fill_value = mapper(self.fill_value)
+            sp_values = [mapper(x) for x in self.sp_values]
+
+        # TODO: series?
+        return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
+
     # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
