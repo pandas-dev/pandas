@@ -505,6 +505,31 @@ class TestPeriodSeriesArithmetic(object):
         result = pd.tseries.offsets.Day() + ser
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('offset, factor', [
+        ['Day', 1],
+        ['Hour', 24],
+        ['Minute', 24 * 60],
+        ['Second', 24 * 60 * 60],
+        ['Milli', 8.64e7],
+        ['Micro', 8.64e10],
+        ['Nano', 8.64e13]
+    ])
+    def test_series_tick_arithmetic_dst_roundtrip(self, offset, factor):
+        # GH 20633
+        # Tick classes (e.g. Day) should now respect calendar arithmetic
+        # Test that calendar day is respected by roundtripping across DST
+        tick = factor * getattr(pd.offsets, offset)(1)
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        s = Series([ts])
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        expected = Series([expected])
+
+        result = s + tick
+        tm.assert_series_equal(result, expected)
+
+        result = result - tick
+        tm.assert_series_equal(result, s)
+
     def test_ops_series_period(self):
         # GH 13043
         ser = pd.Series([pd.Period('2015-01-01', freq='D'),

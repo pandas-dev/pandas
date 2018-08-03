@@ -2204,7 +2204,6 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
     def nanos(self):
         return delta_to_nanoseconds(self.delta)
 
-    # TODO: Should Tick have its own apply_index?
     def apply(self, other):
         # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
         if isinstance(other, Timestamp):
