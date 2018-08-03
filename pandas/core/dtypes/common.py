@@ -153,7 +153,8 @@ def is_sparse(arr):
     False
     """
     from pandas.core.sparse.array import SparseArray
-    return isinstance(arr, (SparseArray, ABCSparseSeries))
+    from pandas.core.sparse.dtype import SparseDtype
+    return isinstance(arr, (SparseArray, ABCSparseSeries, SparseDtype))
 
 
 def is_scipy_sparse(arr):

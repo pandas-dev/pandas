@@ -13,6 +13,10 @@ class SparseDtype(ExtensionDtype):
         else:
             self._dtype = np.dtype(dtype)
 
+    def __hash__(self):
+        # XXX: this needs to be part of the interface.
+        return hash(str(self))
+
     @property
     def kind(self):
         return self.subdtype.kind
