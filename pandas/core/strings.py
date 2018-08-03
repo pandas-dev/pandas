@@ -293,7 +293,8 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     See Also
     --------
     match : analogous, but stricter, relying on re.match instead of re.search
-    Series.str.startswith : Test if the start of each string element matches a pattern.
+    Series.str.startswith : Test if the start of each string element matches a
+        pattern.
     Series.str.endswith : Same as startswith, but tests the end of string.
 
     Examples
