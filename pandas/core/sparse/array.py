@@ -144,6 +144,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def __init__(self, data, sparse_index=None, fill_value=np.nan, kind='block',
                  dtype=None, copy=False):
+        if fill_value is None:
+            fill_value = np.nan
         from pandas.core.internals import SingleBlockManager
 
         if isinstance(dtype, SparseDtype):
