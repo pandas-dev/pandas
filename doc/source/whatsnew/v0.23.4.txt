@@ -41,7 +41,7 @@ Bug Fixes
 
 **Indexing**
 
-- Fix OverflowError when trying to use 'inf' as na_value with int index column
+- Fix ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
 -
 
 **I/O**
