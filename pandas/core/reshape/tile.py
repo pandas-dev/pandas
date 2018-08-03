@@ -264,11 +264,14 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise',
         The precision at which to store and display the bins labels
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
+
+        .. versionadded:: 0.20.0
+
     bounded : bool, optional
         Use the min/max of the distribution as the lower/upper bounds if True,
         otherwise use -inf/inf. Ignored if dtype is datetime/timedelta.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.24.0
 
     Returns
     -------

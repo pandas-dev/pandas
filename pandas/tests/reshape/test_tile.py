@@ -480,6 +480,7 @@ class TestCut(object):
                                     cut(hundred_elements, array_2))
 
     def test_qcut_unbounded(self):
+        # GH 17282
         labels = qcut(range(5), 4, bounded=False)
         left = labels.categories.left.values
         right = labels.categories.right.values
