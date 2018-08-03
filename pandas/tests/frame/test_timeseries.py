@@ -724,7 +724,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
             df.between_time(start_time='00:00', end_time='12:00')
 
     @pytest.mark.parametrize('axis', [
-        (), 'index', 'columns', ('index', 'columns'), 0, 1, (0,1)])
+        (), ('index',), ('columns',), ('index', 'columns'), (0,), (1,), (0,1)])
     def test_between_time_axis(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
@@ -743,7 +743,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
             assert len(selected) == exp_len
 
     @pytest.mark.parametrize('axis', [
-        (), 'index', 'columns', ('index', 'columns')])
+        (), ('index',), ('columns',), ('index', 'columns'), (0,), (1,), (0,1)])
     def test_between_time_axis_raises(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
@@ -752,12 +752,12 @@ class TestDataFrameTimeSeriesMethods(TestData):
         ts = DataFrame(rand_data, index=rng, columns=rng)
         stime, etime = ('08:00:00', '09:00:00')
 
-        if 'index' not in axis:
+        if 'index' not in axis and 0 not in axis:
             ts.index = mask
             pytest.raises(TypeError, ts.between_time, stime, etime)
             pytest.raises(TypeError, ts.between_time, stime, etime, axis=0)
 
-        if 'columns' not in axis:
+        if 'columns' not in axis and 1 not in axis:
             ts.columns = mask
             pytest.raises(TypeError, ts.between_time, stime, etime, axis=1)
 
