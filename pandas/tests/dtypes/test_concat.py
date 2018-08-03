@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 
 import pytest
 import pandas.core.dtypes.concat as _concat
-from pandas.core.dtypes.dtypes import (
-    DatetimeTZDtype
-)
-from pandas.core.sparse.dtype import SparseDtype
 from pandas import (
     Index, DatetimeIndex, PeriodIndex, TimedeltaIndex, Series, Period)
 
@@ -56,21 +51,3 @@ def test_get_dtype_kinds(klass, to_concat, expected):
 def test_get_dtype_kinds_period(to_concat, expected):
     result = _concat.get_dtype_kinds(to_concat)
     assert result == set(expected)
-
-
-@pytest.mark.parametrize('dtypes, expected', [
-    ([np.dtype('f8')], np.dtype('f8')),
-    ([np.dtype('f8'), np.dtype('f4')], np.dtype('f8')),
-    ([np.dtype('i8'), np.dtype('f4')], np.dtype('f8')),
-    ([np.dtype('U1'), np.dtype('S1')], np.dtype('O')),
-    # pandas extension
-    ([DatetimeTZDtype('ns', 'US/Central')], DatetimeTZDtype('ns', 'US/Central')),
-    ([DatetimeTZDtype('ns', 'US/Central')] * 2, DatetimeTZDtype('ns', 'US/Central')),
-    ([DatetimeTZDtype('ns', 'US/Central'), DatetimeTZDtype('ns', 'US/Eastern')],
-     np.dtype('O')),
-    ([SparseDtype('f8')], SparseDtype('f8')),
-    ([SparseDtype('f8'), np.dtype('f4')], SparseDtype('f8')),
-])
-def test_get_result_dtype(dtypes, expected):
-    result = _concat.get_result_dtype(*dtypes)
-    assert result == expected
