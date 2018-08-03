@@ -164,6 +164,15 @@ class TestSeriesApply(TestData):
         with tm.assert_produces_warning(FutureWarning):
             tsdf.A.agg({'foo': ['sum', 'mean']})
 
+    def test_apply_categorical_with_nan_values(self):
+        # GH 20714
+        s1 = pd.Series(['1-1', '1-1', np.NaN], dtype='category')
+        s1 = s1.apply(lambda x: x.split('-')[0])
+
+        s2 = pd.Series(['1', '1', np.NaN], dtype='category')
+
+        tm.assert_series_equal(s1, s2, check_dtype=False)
+
 
 class TestSeriesAggregate(TestData):
 

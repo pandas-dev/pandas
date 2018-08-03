@@ -1198,7 +1198,7 @@ class Categorical(ExtensionArray, PandasObject):
                                    categories=new_categories,
                                    ordered=self.ordered)
         except ValueError:
-            return np.take(new_categories, self._codes)
+            return take_1d(new_categories, self._codes)
 
     __eq__ = _cat_compare_op('__eq__')
     __ne__ = _cat_compare_op('__ne__')
