@@ -2470,7 +2470,9 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(df2, expected)
 
         df['foo'] = 'test'
-        msg = "boolean setting on mixed-type|not supported between"
+        msg = ("boolean setting on mixed-type|"
+               "not supported between|"
+               "unorderable types")
         with tm.assert_raises_regex(TypeError, msg):
             # TODO: This message should be the same in PY2/PY3
             df[df > 0.3] = 1
