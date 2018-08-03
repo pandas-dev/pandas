@@ -2813,7 +2813,7 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    str.len : Python built-in function returning the length (number of items) of an object.
+    str.len : Python built-in function returning the length of an object.
 
     Examples
     --------
@@ -2835,7 +2835,8 @@ class StringMethods(NoNewAttributesMixin):
     3    NaN
     dtype: float64
 
-    Returning the length (number of entries) of dictionaries, lists or tuples as integer values.
+    Returning the length (number of entries) of dictionaries, lists or
+    tuples as integer values.
 
     >>> s = pd.Series([{'foo':'bar'}, [2,3,5,7], ('one', 'two', 'three')])
     >>> s
