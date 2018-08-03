@@ -810,7 +810,6 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
     -------
     int64 ndarray of converted
     """
-
     cdef:
         int64_t[:] utc_dates, converted
 
