@@ -4956,12 +4956,6 @@ class DataFrame(NDFrame):
             result = self._constructor(new_data, index=self.index, copy=False)
             result.columns = self.columns
             return result
-        elif np.ndim(other) == 2 and other.shape == self.shape:
-            new_data = {i: func(self.iloc[:, i], other[:, i])
-                        for i in range(len(self.columns))}
-            result = self._constructor(new_data, index=self.index, copy=False)
-            result.columns = self.columns
-            return result
 
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,

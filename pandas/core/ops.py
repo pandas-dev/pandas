@@ -1327,6 +1327,10 @@ def _comp_method_SERIES(cls, op, special):
 
         res_name = get_op_result_name(self, other)
 
+        if isinstance(other, list):
+            # TODO: same for tuples?
+            other = np.asarray(other)
+
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
             return NotImplemented
@@ -1426,8 +1430,6 @@ def _comp_method_SERIES(cls, op, special):
 
         else:
             values = self.get_values()
-            if isinstance(other, list):
-                other = np.asarray(other)
 
             with np.errstate(all='ignore'):
                 res = na_op(values, other)
@@ -1706,10 +1708,7 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            pass_func = na_op
-            if is_scalar(lib.item_from_zerodim(other)):
-                pass_func = op
-            return self._combine_const(other, pass_func, try_cast=True)
+            return self._combine_const(other, na_op, try_cast=True)
 
     f.__name__ = op_name
 

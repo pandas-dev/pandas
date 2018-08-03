@@ -188,7 +188,9 @@ class TestTimedeltaArraylikeAddSubOps(object):
         idx = TimedeltaIndex(['1 day', '2 day'])
         idx = tm.box_expected(idx, box)
 
-        msg = "cannot subtract a datelike from|Could not operate"
+        msg = ("cannot subtract a datelike from|"
+               "Could not operate|"
+               "cannot perform operation")
         with tm.assert_raises_regex(TypeError, msg):
             idx - Timestamp('2011-01-01')
 
