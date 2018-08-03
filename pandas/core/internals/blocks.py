@@ -1689,26 +1689,27 @@ class Block(PandasObject):
                               placement=np.arange(len(result)),
                               ndim=ndim)
 
-    def _replace_coerce(self, mask=None, src=None, dst=None, inplace=True,
-                        convert=False, regex=False, mgr=None):
+    def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
+                        convert=False, mgr=None, mask=None):
         """
         Replace value corresponding to the given boolean array with another
         value.
 
         Parameters
         ----------
-        mask : array_like of bool
-            The mask of values to replace.
-        src : object
-            The value to replace. It is ignored if regex is False.
-        dst : object
-            The value to be replaced with.
-        convert : bool
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+        convert : bool, default True
             If true, try to coerce any object types to better types.
-        regex : bool
-            If true, search for element matching with the pattern in src.
-            Masked element is ignored.
-        mgr : BlockPlacement, optional
+        mgr : BlockManager, optional
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
 
         Returns
         -------
@@ -1717,10 +1718,10 @@ class Block(PandasObject):
 
         if mask.any():
             if not regex:
-                self = self.coerce_to_target_dtype(dst)
-                return self.putmask(mask, dst, inplace=inplace)
+                self = self.coerce_to_target_dtype(value)
+                return self.putmask(mask, value, inplace=inplace)
             else:
-                return self._replace_single(src, dst, inplace=inplace,
+                return self._replace_single(to_replace, value, inplace=inplace,
                                             regex=regex,
                                             convert=convert,
                                             mask=mask,
@@ -2512,15 +2513,15 @@ class ObjectBlock(Block):
             Scalar to replace or regular expression to match.
         value : object
             Replacement object.
-        inplace : bool
-            Perform inplace modification, default is False.
-        filter : list
-        regex : bool
+        inplace : bool, default False
+            Perform inplace modification.
+        filter : list, optional
+        regex : bool, default False
             If true, perform regular expression substitution.
-        convert : bool
+        convert : bool, default True
             If true, try to coerce any object types to better types.
-        mgr : BlockManager
-        mask : array-like of bool
+        mgr : BlockManager, optional
+        mask : array-like of bool, optional
             True indicate corresponding element is ignored.
 
         Returns
@@ -2603,39 +2604,36 @@ class ObjectBlock(Block):
             block = block.convert(by_item=True, numeric=False)
         return block
 
-    def _replace_coerce(self, mask=None, src=None, dst=None, inplace=True,
-                        convert=False, regex=False, mgr=None):
+    def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
+                        convert=False, mgr=None, mask=None):
         """
         Replace value corresponding to the given boolean array with another
         value.
 
         Parameters
         ----------
-        mask : array_like of bool
-            The mask of values to replace.
-        src : object
-            The value to replace. It is ignored if regex is False.
-        dst : object
-            The value to be replaced with.
-        convert : bool
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+        convert : bool, default True
             If true, try to coerce any object types to better types.
-        regex : bool
-            If true, search for element matching with the pattern in src.
-            Masked element is ignored.
-        mgr : BlockPlacement, optional
+        mgr : BlockManager, optional
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
 
         Returns
         -------
         A new block if there is anything to replace or the original block.
         """
         if mask.any():
-            block = super(ObjectBlock, self)._replace_coerce(mask=mask,
-                                                             src=src,
-                                                             dst=dst,
-                                                             inplace=inplace,
-                                                             convert=convert,
-                                                             regex=regex,
-                                                             mgr=mgr)
+            block = super(ObjectBlock, self)._replace_coerce(
+                to_replace=to_replace, value=value, inplace=inplace,
+                regex=regex, convert=convert, mgr=mgr, mask=mask)
             if convert:
                 block = [b.convert(by_item=True, numeric=False, copy=True)
                          for b in block]

@@ -573,13 +573,17 @@ class BlockManager(PandasObject):
         # figure out our mask a-priori to avoid repeated replacements
         values = self.as_array()
 
-        def comp(s, reg=False):
+        def comp(s, regex=False):
+            """
+            Generate a bool array by perform an equality check, or perform
+            an element-wise regular expression matching
+            """
             if isna(s):
                 return isna(values)
             if hasattr(s, 'asm8'):
-                return _maybe_compare(maybe_convert_objects(values),
-                                      getattr(s, 'asm8'), reg)
-            return _maybe_compare(values, s, reg)
+                return _compare_or_regex_match(maybe_convert_objects(values),
+                                               getattr(s, 'asm8'), regex)
+            return _compare_or_regex_match(values, s, regex)
 
         masks = [comp(s, regex) for i, s in enumerate(src_list)]
 
@@ -595,7 +599,7 @@ class BlockManager(PandasObject):
                 for b in rb:
                     m = masks[i][b.mgr_locs.indexer]
                     convert = i == src_len
-                    result = b._replace_coerce(mask=m, src=s, dst=d,
+                    result = b._replace_coerce(mask=m, to_replace=s, value=d,
                                                inplace=inplace,
                                                convert=convert, regex=regex,
                                                mgr=mgr)
@@ -1891,7 +1895,7 @@ def _consolidate(blocks):
     return new_blocks
 
 
-def _maybe_compare(a, b, regex=False):
+def _compare_or_regex_match(a, b, regex=False):
     """
     Compare two array_like inputs of the same shape or two scalar values
 
@@ -1902,7 +1906,7 @@ def _maybe_compare(a, b, regex=False):
     ----------
     a : array_like or scalar
     b : array_like or scalar
-    regex : bool
+    regex : bool, default False
 
     Returns
     -------
