@@ -12,6 +12,7 @@ import collections
 from pandas.core.base import PandasObject, IndexOpsMixin
 
 from pandas import compat
+from pandas.errors import PerformanceWarning
 from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
 
@@ -246,13 +247,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # We *could* have the return type depend on whether self.fill_value is NA.
         # But I think that's probably a bad idea...
         if method is not None:
-            filled = interpolate_2d(np.asarray(self))
-            raise NotImplementedError("'method' is not supported in "
-                                      "'SparseArray.fillna'.")
-
-        if limit is not None:
-            raise NotImplementedError("'limit' is not supported in "
-                                      "'SparseArray.fillna'.")
+            warnings.warn("Converting to dense in fillna with 'method'", PerformanceWarning)
+            filled = interpolate_2d(np.asarray(self), method=method, limit=limit)
+            return type(self)(filled, fill_value=self.fill_value)
 
         if issubclass(self.dtype.type, np.floating):
             value = float(value)
@@ -508,6 +505,26 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         # TODO: series?
         return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
+
+    def to_dense(self, fill=None):
+        """
+        Convert SparseArray to a NumPy array.
+
+        Parameters
+        ----------
+        fill: float, default None
+            .. deprecated:: 0.20.0
+               This argument is not respected by this function.
+
+        Returns
+        -------
+        arr : NumPy array
+        """
+        if fill is not None:
+            warnings.warn(("The 'fill' parameter has been deprecated and "
+                           "will be removed in a future version."),
+                          FutureWarning, stacklevel=2)
+        return np.asarray(self)
 
     # ------------------------------------------------------------------------
     # Ops

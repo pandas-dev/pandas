@@ -20,6 +20,7 @@ from pandas.core.series import remove_na
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
+from pandas.errors import PerformanceWarning
 
 from .common import TestData
 
@@ -774,16 +775,20 @@ class TestSeriesMissingData(TestData):
         s = Series(np.random.randn(10), index=index)
 
         ss = s[:2].reindex(index).to_sparse()
-        result = ss.fillna(method='pad', limit=5)
-        expected = ss.fillna(method='pad', limit=5)
+        # TODO: what is this test doing? why are result an expected
+        # the same call to fillna?
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = ss.fillna(method='pad', limit=5)
+            expected = ss.fillna(method='pad', limit=5)
         expected = expected.to_dense()
         expected[-3:] = np.nan
         expected = expected.to_sparse()
         assert_series_equal(result, expected)
 
         ss = s[-2:].reindex(index).to_sparse()
-        result = ss.fillna(method='backfill', limit=5)
-        expected = ss.fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = ss.fillna(method='backfill', limit=5)
+            expected = ss.fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()
