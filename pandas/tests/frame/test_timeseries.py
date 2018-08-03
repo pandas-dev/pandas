@@ -640,7 +640,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.at_time('00:00')
 
-    @pytest.mark.parametrize('axis', ['index', 'columns'])
+    @pytest.mark.parametrize('axis', ['index', 'columns', 0, 1])
     def test_at_time_axis(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
@@ -649,9 +649,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
 
-        if axis == 'index':
+        if axis in ['index', 0]:
             expected = ts.loc[indices, :]
-        elif axis == 'columns':
+        elif axis in ['columns', 1]:
             expected = ts.loc[:, indices]
 
         result = ts.at_time('9:30', axis=axis)
@@ -724,7 +724,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
             df.between_time(start_time='00:00', end_time='12:00')
 
     @pytest.mark.parametrize('axis', [
-        (), 'index', 'columns', ('index', 'columns')])
+        (), 'index', 'columns', ('index', 'columns'), 0, 1, (0,1)])
     def test_between_time_axis(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
@@ -732,12 +732,12 @@ class TestDataFrameTimeSeriesMethods(TestData):
         stime, etime = ('08:00:00', '09:00:00')
         exp_len = 7
 
-        if 'index' in axis:
+        if 'index' in axis or 0 in axis:
             ts.index = rng
             assert len(ts.between_time(stime, etime)) == exp_len
             assert len(ts.between_time(stime, etime, axis=0)) == exp_len
 
-        if 'columns' in axis:
+        if 'columns' in axis or 1 in axis:
             ts.columns = rng
             selected = ts.between_time(stime, etime, axis=1).columns
             assert len(selected) == exp_len
