@@ -3,6 +3,7 @@
 Testing that we work in the downstream packages
 """
 import subprocess
+import sys
 
 import pytest
 import numpy as np  # noqa
@@ -57,7 +58,7 @@ def test_xarray(df):
 
 def test_oo_optimizable():
     # GH 21071
-    subprocess.check_call(["python", "-OO", "-c", "import pandas"])
+    subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
 
 
 @tm.network
@@ -94,7 +95,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
-@pytest.mark.xfail(reason="0.7.0 pending")
+@pytest.mark.xfail(reason="0.7.0 pending", strict=True)
 @tm.network
 def test_pandas_datareader():
 
@@ -103,7 +104,6 @@ def test_pandas_datareader():
         'F', 'quandl', '2017-01-01', '2017-02-01')
 
 
-@pytest.mark.xfail(reaason="downstream install issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa

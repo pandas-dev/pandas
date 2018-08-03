@@ -16,7 +16,7 @@ from pandas import compat
 from pandas.compat import (range, lrange, PY3, StringIO, lzip,
                            zip, string_types, map, u)
 from pandas.core.dtypes.common import (
-    is_integer, _ensure_object,
+    is_integer, ensure_object,
     is_list_like, is_integer_dtype,
     is_float, is_dtype_equal,
     is_object_dtype, is_string_dtype,
@@ -25,7 +25,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.index import (Index, MultiIndex, RangeIndex,
-                               _ensure_index_from_sequences)
+                               ensure_index_from_sequences)
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
 from pandas.core.arrays import Categorical
@@ -60,11 +60,16 @@ Additional help can be found in the `online docs for IO Tools
 
 Parameters
 ----------
-filepath_or_buffer : str, pathlib.Path, py._path.local.LocalPath or any \
-object with a read() method (such as a file handle or StringIO)
-    The string could be a URL. Valid URL schemes include http, ftp, s3, and
-    file. For file URLs, a host is expected. For instance, a local file could
-    be file://localhost/path/to/table.csv
+filepath_or_buffer : str, path object, or file-like object
+    Any valid string path is acceptable. The string could be a URL. Valid
+    URL schemes include http, ftp, s3, and file. For file URLs, a host is
+    expected. A local file could be: file://localhost/path/to/table.csv.
+
+    If you want to pass in a path object, pandas accepts either
+    ``pathlib.Path`` or ``py._path.local.LocalPath``.
+
+    By file-like object, we refer to objects with a ``read()`` method, such as
+    a file handler (e.g. via builtin ``open`` function) or ``StringIO``.
 %s
 delim_whitespace : boolean, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\t'``) will be
@@ -326,6 +331,10 @@ Read CSV (comma-separated) file into DataFrame
 """ % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
 
 _read_table_doc = """
+
+.. deprecated:: 0.24.0
+   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary.
+
 Read general delimited file into DataFrame
 
 %s
@@ -535,9 +544,13 @@ _deprecated_args = {
 }
 
 
-def _make_parser_function(name, sep=','):
+def _make_parser_function(name, default_sep=','):
 
-    default_sep = sep
+    # prepare read_table deprecation
+    if name == "read_table":
+        sep = False
+    else:
+        sep = default_sep
 
     def parser_f(filepath_or_buffer,
                  sep=sep,
@@ -606,11 +619,24 @@ def _make_parser_function(name, sep=','):
                  memory_map=False,
                  float_precision=None):
 
+        # deprecate read_table GH21948
+        if name == "read_table":
+            if sep is False and delimiter is None:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead, passing sep='\\t'.",
+                              FutureWarning, stacklevel=2)
+            else:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead.",
+                              FutureWarning, stacklevel=2)
+            if sep is False:
+                sep = default_sep
+
         # Alias sep -> delimiter.
         if delimiter is None:
             delimiter = sep
 
-        if delim_whitespace and delimiter is not default_sep:
+        if delim_whitespace and delimiter != default_sep:
             raise ValueError("Specified a delimiter with both sep and"
                              " delim_whitespace=True; you can only"
                              " specify one.")
@@ -682,10 +708,10 @@ def _make_parser_function(name, sep=','):
     return parser_f
 
 
-read_csv = _make_parser_function('read_csv', sep=',')
+read_csv = _make_parser_function('read_csv', default_sep=',')
 read_csv = Appender(_read_csv_doc)(read_csv)
 
-read_table = _make_parser_function('read_table', sep='\t')
+read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_read_table_doc)(read_table)
 
 
@@ -1521,7 +1547,7 @@ class ParserBase(object):
             arrays.append(arr)
 
         names = self.index_names
-        index = _ensure_index_from_sequences(arrays, names)
+        index = ensure_index_from_sequences(arrays, names)
 
         return index
 
@@ -1889,7 +1915,7 @@ class CParserWrapper(ParserBase):
                                                  try_parse_dates=True)
                 arrays.append(values)
 
-            index = _ensure_index_from_sequences(arrays)
+            index = ensure_index_from_sequences(arrays)
 
             if self.usecols is not None:
                 names = self._filter_usecols(names)
@@ -3005,7 +3031,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
 
             try:
                 return tools.to_datetime(
-                    _ensure_object(strs),
+                    ensure_object(strs),
                     utc=None,
                     box=False,
                     dayfirst=dayfirst,
@@ -3142,8 +3168,7 @@ def _clean_na_values(na_values, keep_default_na=True):
                 v = set(v) | _NA_VALUES
 
             na_values[k] = v
-        na_fvalues = dict((k, _floatify_na_values(v))
-                          for k, v in na_values.items())
+        na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
     else:
         if not is_list_like(na_values):
             na_values = [na_values]
@@ -3209,12 +3234,22 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             col = columns[k] if is_integer(k) else k
             dtype[col] = v
 
-    if index_col is None or index_col is False:
+    # Even though we have no data, the "index" of the empty DataFrame
+    # could for example still be an empty MultiIndex. Thus, we need to
+    # check whether we have any index columns specified, via either:
+    #
+    # 1) index_col (column indices)
+    # 2) index_names (column names)
+    #
+    # Both must be non-null to ensure a successful construction. Otherwise,
+    # we have to create a generic emtpy Index.
+    if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
-        index = _ensure_index_from_sequences(data, names=index_names)
+        index = ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
+
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 

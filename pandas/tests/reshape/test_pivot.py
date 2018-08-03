@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from datetime import datetime, date, timedelta
 
@@ -14,6 +15,11 @@ from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    return request.param
 
 
 class TestPivotTable(object):
@@ -109,7 +115,6 @@ class TestPivotTable(object):
             index=exp_index)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('dropna', [True, False])
     def test_pivot_table_dropna_categoricals(self, dropna):
         # GH 15193
         categories = ['a', 'b', 'c', 'd']
@@ -134,6 +139,43 @@ class TestPivotTable(object):
             # add back the non observed to compare
             expected = expected.reindex(
                 columns=Categorical(categories)).astype('float')
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_with_non_observable_dropna(self, dropna):
+        # gh-21133
+        df = pd.DataFrame(
+            {'A': pd.Categorical([np.nan, 'low', 'high', 'low', 'high'],
+                                 categories=['low', 'high'],
+                                 ordered=True),
+             'B': range(5)})
+
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = pd.DataFrame(
+            {'B': [2, 3]},
+            index=pd.Index(
+                pd.Categorical.from_codes([0, 1],
+                                          categories=['low', 'high'],
+                                          ordered=True),
+                name='A'))
+
+        tm.assert_frame_equal(result, expected)
+
+        # gh-21378
+        df = pd.DataFrame(
+            {'A': pd.Categorical(['left', 'low', 'high', 'low', 'high'],
+                                 categories=['low', 'high', 'left'],
+                                 ordered=True),
+             'B': range(5)})
+
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = pd.DataFrame(
+            {'B': [2, 3, 0]},
+            index=pd.Index(
+                pd.Categorical.from_codes([0, 1, 2],
+                                          categories=['low', 'high', 'left'],
+                                          ordered=True),
+                name='A'))
 
         tm.assert_frame_equal(result, expected)
 
@@ -416,7 +458,8 @@ class TestPivotTable(object):
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.xfail(reason='MultiIndexed unstack with tuple names fails'
-                              'with KeyError #19966')
+                              'with KeyError GH#19966',
+                       strict=True)
     def test_pivot_with_multiindex(self):
         # issue #17160
         index = Index(data=[0, 1, 2, 3, 4, 5])
@@ -575,8 +618,9 @@ class TestPivotTable(object):
 
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.xfail(reason='GH 17035 (len of floats is casted back to '
-                              'floats)')
+    @pytest.mark.xfail(reason='GH#17035 (len of floats is casted back to '
+                              'floats)',
+                       strict=True)
     def test_margins_dtype_len(self):
         mi_val = list(product(['bar', 'foo'], ['one', 'two'])) + [('All', '')]
         mi = MultiIndex.from_tuples(mi_val, names=('A', 'B'))
@@ -1060,8 +1104,9 @@ class TestPivotTable(object):
         expected = pd.DataFrame(table.values, index=ix, columns=cols)
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
-                              'ints)')
+    @pytest.mark.xfail(reason='GH#17035 (np.mean of ints is casted back to '
+                              'ints)',
+                       strict=True)
     def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
@@ -1075,8 +1120,9 @@ class TestPivotTable(object):
         table = df.pivot_table('x', 'y', 'z', dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
-                              'ints)')
+    @pytest.mark.xfail(reason='GH#17035 (np.mean of ints is casted back to '
+                              'ints)',
+                       strict=True)
     def test_categorical_margins_category(self, observed):
         df = pd.DataFrame({'x': np.arange(8),
                            'y': np.arange(8) // 4,
@@ -1705,9 +1751,15 @@ class TestCrosstab(object):
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_dup_index_names(self):
-        # GH 13279, GH 18872
+        # GH 13279
         s = pd.Series(range(3), name='foo')
-        pytest.raises(ValueError, pd.crosstab, s, s)
+
+        result = pd.crosstab(s, s)
+        expected_index = pd.Index(range(3), name='foo')
+        expected = pd.DataFrame(np.eye(3, dtype=np.int64),
+                                index=expected_index,
+                                columns=expected_index)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("names", [['a', ('b', 'c')],
                                        [('a', 'b'), 'c']])

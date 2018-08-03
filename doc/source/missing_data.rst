@@ -105,7 +105,7 @@ Datetimes
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
 sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
-pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
+pandas objects provide compatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python
 
@@ -349,7 +349,7 @@ Interpolation
   The ``limit_area`` keyword argument was added.
 
 Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
-that, by default, performs linear interpolation at missing datapoints.
+that, by default, performs linear interpolation at missing data points.
 
 .. ipython:: python
    :suppress:

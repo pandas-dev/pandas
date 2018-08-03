@@ -519,8 +519,8 @@ def test_groupby_multiple_columns(df, op):
         for n1, gp1 in data.groupby('A'):
             for n2, gp2 in gp1.groupby('B'):
                 expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
-        expected = dict((k, DataFrame(v))
-                        for k, v in compat.iteritems(expected))
+        expected = {k: DataFrame(v)
+                    for k, v in compat.iteritems(expected)}
         expected = Panel.fromDict(expected).swapaxes(0, 1)
         expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
@@ -1260,17 +1260,17 @@ def test_groupby_sort_multi():
                     'd': np.random.randn(3)})
 
     tups = lmap(tuple, df[['a', 'b', 'c']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['a', 'b', 'c'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
 
     tups = lmap(tuple, df[['c', 'a', 'b']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['c', 'a', 'b'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups)
 
     tups = lmap(tuple, df[['b', 'c', 'a']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['b', 'c', 'a'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
 
@@ -1282,7 +1282,7 @@ def test_groupby_sort_multi():
 
     def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
         tups = lmap(tuple, df[keys].values)
-        tups = com._asarray_tuplesafe(tups)
+        tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
         for k, v in compat.iteritems(expected):
             assert (result[k] == v)
@@ -1674,3 +1674,22 @@ def test_tuple_correct_keyerror():
                                                           [3, 4]]))
     with tm.assert_raises_regex(KeyError, "(7, 8)"):
         df.groupby((7, 8)).mean()
+
+
+def test_groupby_agg_ohlc_non_first():
+    # GH 21716
+    df = pd.DataFrame([[1], [1]], columns=['foo'],
+                      index=pd.date_range('2018-01-01', periods=2, freq='D'))
+
+    expected = pd.DataFrame([
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1]
+    ], columns=pd.MultiIndex.from_tuples((
+        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
+        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
+        ('foo', 'sum', 'foo'))), index=pd.date_range(
+            '2018-01-01', periods=2, freq='D'))
+
+    result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
+
+    tm.assert_frame_equal(result, expected)

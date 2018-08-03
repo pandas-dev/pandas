@@ -542,11 +542,11 @@ Comparisons
 
 Comparing categorical data with other objects is possible in three cases:
 
- * Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
-   ...) of the same length as the categorical data.
- * All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-   another categorical Series, when ``ordered==True`` and the `categories` are the same.
- * All comparisons of a categorical data to a scalar.
+* Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
+  ...) of the same length as the categorical data.
+* All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
+  another categorical Series, when ``ordered==True`` and the `categories` are the same.
+* All comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
 categories or a categorical with any list-like object, will raise a ``TypeError``.

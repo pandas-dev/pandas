@@ -9,29 +9,32 @@ from datetime import datetime, date, time, MINYEAR, timedelta
 import os
 import abc
 import warnings
-import numpy as np
+from textwrap import fill
 from io import UnsupportedOperation
+from distutils.version import LooseVersion
+
+import numpy as np
+
+import pandas._libs.json as json
+from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.errors import EmptyDataError
+
+import pandas.compat as compat
+from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
+                           string_types, OrderedDict)
 
 from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool, is_list_like)
 
+from pandas.core import config
 from pandas.core.frame import DataFrame
+
 from pandas.io.parsers import TextParser
-from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES,
                               _stringify_path)
-import pandas._libs.json as json
-from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
-                           string_types, OrderedDict)
-from pandas.core import config
 from pandas.io.formats.printing import pprint_thing
-import pandas.compat as compat
-from warnings import warn
-from distutils.version import LooseVersion
-from pandas.util._decorators import Appender, deprecate_kwarg
-from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -46,7 +49,7 @@ Parameters
 io : string, path object (pathlib.Path or py._path.local.LocalPath),
     file-like object, pandas ExcelFile, or xlrd workbook.
     The string could be a URL. Valid URL schemes include http, ftp, s3,
-    and file. For file URLs, a host is expected. For instance, a local
+    gcs, and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx
 sheet_name : string, int, mixed list of strings/ints, or None, default 0
 
@@ -303,6 +306,16 @@ def read_excel(io,
                convert_float=True,
                **kwds):
 
+    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+        warnings.warn("The `sheetname` keyword is deprecated, use "
+                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+        sheet_name = kwds.pop("sheetname")
+
+    if 'sheet' in kwds:
+        raise TypeError("read_excel() got an unexpected keyword argument "
+                        "`sheet`")
+
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
@@ -517,9 +530,8 @@ class ExcelFile(object):
                                       "is not implemented")
 
         if parse_dates is True and index_col is None:
-
-            warn("The 'parse_dates=True' keyword of read_excel was provided"
-                 " without an 'index_col' keyword value.")
+            warnings.warn("The 'parse_dates=True' keyword of read_excel was "
+                          "provided without an 'index_col' keyword value.")
 
         import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
@@ -635,7 +647,7 @@ class ExcelFile(object):
             if header is not None:
                 if is_list_like(header):
                     header_names = []
-                    control_row = [True for x in data[0]]
+                    control_row = [True] * len(data[0])
                     for row in header:
                         if is_integer(skiprows):
                             row += skiprows
@@ -805,6 +817,10 @@ class ExcelWriter(object):
     datetime_format : string, default None
         Format string for datetime objects written into Excel files
         (e.g. 'YYYY-MM-DD HH:MM:SS')
+    mode : {'w' or 'a'}, default 'w'
+        File mode to use (write or append).
+
+    .. versionadded:: 0.24.0
 
     Notes
     -----
@@ -898,7 +914,8 @@ class ExcelWriter(object):
         pass
 
     def __init__(self, path, engine=None,
-                 date_format=None, datetime_format=None, **engine_kwargs):
+                 date_format=None, datetime_format=None, mode='w',
+                 **engine_kwargs):
         # validate that this engine can handle the extension
         if isinstance(path, string_types):
             ext = os.path.splitext(path)[-1]
@@ -919,6 +936,8 @@ class ExcelWriter(object):
             self.datetime_format = 'YYYY-MM-DD HH:MM:SS'
         else:
             self.datetime_format = datetime_format
+
+        self.mode = mode
 
     def __fspath__(self):
         return _stringify_path(self.path)
@@ -994,23 +1013,27 @@ class _OpenpyxlWriter(ExcelWriter):
     engine = 'openpyxl'
     supported_extensions = ('.xlsx', '.xlsm')
 
-    def __init__(self, path, engine=None, **engine_kwargs):
+    def __init__(self, path, engine=None, mode='w', **engine_kwargs):
         # Use the openpyxl module as the Excel writer.
         from openpyxl.workbook import Workbook
 
-        super(_OpenpyxlWriter, self).__init__(path, **engine_kwargs)
+        super(_OpenpyxlWriter, self).__init__(path, mode=mode, **engine_kwargs)
 
-        # Create workbook object with default optimized_write=True.
-        self.book = Workbook()
+        if self.mode == 'a':  # Load from existing workbook
+            from openpyxl import load_workbook
+            book = load_workbook(self.path)
+            self.book = book
+        else:
+            # Create workbook object with default optimized_write=True.
+            self.book = Workbook()
 
-        # Openpyxl 1.6.1 adds a dummy sheet. We remove it.
-        if self.book.worksheets:
-            try:
-                self.book.remove(self.book.worksheets[0])
-            except AttributeError:
+            if self.book.worksheets:
+                try:
+                    self.book.remove(self.book.worksheets[0])
+                except AttributeError:
 
-                # compat
-                self.book.remove_sheet(self.book.worksheets[0])
+                    # compat - for openpyxl <= 2.4
+                    self.book.remove_sheet(self.book.worksheets[0])
 
     def save(self):
         """
@@ -1444,11 +1467,16 @@ class _XlwtWriter(ExcelWriter):
     engine = 'xlwt'
     supported_extensions = ('.xls',)
 
-    def __init__(self, path, engine=None, encoding=None, **engine_kwargs):
+    def __init__(self, path, engine=None, encoding=None, mode='w',
+                 **engine_kwargs):
         # Use the xlwt module as the Excel writer.
         import xlwt
         engine_kwargs['engine'] = engine
-        super(_XlwtWriter, self).__init__(path, **engine_kwargs)
+
+        if mode == 'a':
+            raise ValueError('Append mode is not supported with xlwt!')
+
+        super(_XlwtWriter, self).__init__(path, mode=mode, **engine_kwargs)
 
         if encoding is None:
             encoding = 'ascii'
@@ -1714,13 +1742,18 @@ class _XlsxWriter(ExcelWriter):
     supported_extensions = ('.xlsx',)
 
     def __init__(self, path, engine=None,
-                 date_format=None, datetime_format=None, **engine_kwargs):
+                 date_format=None, datetime_format=None, mode='w',
+                 **engine_kwargs):
         # Use the xlsxwriter module as the Excel writer.
         import xlsxwriter
+
+        if mode == 'a':
+            raise ValueError('Append mode is not supported with xlsxwriter!')
 
         super(_XlsxWriter, self).__init__(path, engine=engine,
                                           date_format=date_format,
                                           datetime_format=datetime_format,
+                                          mode=mode,
                                           **engine_kwargs)
 
         self.book = xlsxwriter.Workbook(path, **engine_kwargs)

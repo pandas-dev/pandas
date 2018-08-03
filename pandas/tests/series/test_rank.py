@@ -183,6 +183,16 @@ class TestSeriesRank(TestData):
             exp_keep
         )
 
+        # Test invalid values for na_option
+        msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            na_ser.rank(na_option='bad', ascending=False)
+
+        # invalid type
+        with tm.assert_raises_regex(ValueError, msg):
+            na_ser.rank(na_option=True, ascending=False)
+
         # Test with pct=True
         na_ser = Series(['first', 'second', 'third', 'fourth', np.NaN]).astype(
             CategoricalDtype(['first', 'second', 'third', 'fourth'], True))
@@ -213,7 +223,8 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                         "int64 pending issue #16674")),
+                                "int64 pending issue GH#16674",
+                         strict=True)),
         ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
          'object')
     ])

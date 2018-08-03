@@ -3,7 +3,7 @@
 import pytest
 
 from datetime import datetime, timedelta
-
+from decimal import Decimal
 from collections import defaultdict
 
 import pandas.util.testing as tm
@@ -21,7 +21,7 @@ from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, RangeIndex, isna)
-from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
+from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -329,7 +329,7 @@ class TestIndex(Base):
     ])
     def test_constructor_simple_new(self, vals, dtype):
         index = Index(vals, name=dtype)
-        result = index._simple_new(index, dtype)
+        result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("vals", [
@@ -402,26 +402,33 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("values", [
-        # pass values without timezone, as DatetimeIndex localizes it
-        pd.date_range('2011-01-01', periods=5).values,
-        pd.date_range('2011-01-01', periods=5).asi8])
+    @pytest.mark.parametrize("attr, utc", [
+        ['values', False],
+        ['asi8', True]])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values,
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc,
                                          klass):
-        index = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
+        # Test constructing with a datetimetz dtype
+        # .values produces numpy datetimes, so these are considered naive
+        # .asi8 produces integers, so these are considered epoch timestamps
+        index = pd.date_range('2011-01-01', periods=5)
+        arg = getattr(index, attr)
+        if utc:
+            index = index.tz_localize('UTC').tz_convert(tz_naive_fixture)
+        else:
+            index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        result = klass(values, tz=tz_naive_fixture)
+        result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(values, dtype=dtype)
+        result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), tz=tz_naive_fixture)
+        result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), dtype=dtype)
+        result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])
@@ -438,21 +445,24 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    def test_constructor_empty_gen(self):
-        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
-                           "tuples"]
-        for key, index in self.generate_index_types(skip_index_keys):
-            empty = index.__class__([])
-            assert isinstance(empty, index.__class__)
-            assert not len(empty)
+    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("klass",
+                             [Index, Float64Index, Int64Index, UInt64Index,
+                              CategoricalIndex, DatetimeIndex, TimedeltaIndex])
+    def test_constructor_empty(self, value, klass):
+        empty = klass(value)
+        assert isinstance(empty, klass)
+        assert not len(empty)
 
     @pytest.mark.parametrize("empty,klass", [
         (PeriodIndex([], freq='B'), PeriodIndex),
+        (PeriodIndex(iter([]), freq='B'), PeriodIndex),
+        (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
                     labels=[[], []]), MultiIndex)
     ])
-    def test_constructor_empty(self, empty, klass):
+    def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
         assert not len(empty)
 
@@ -473,6 +483,21 @@ class TestIndex(Base):
         # With .set_names()
         tm.assert_raises_regex(TypeError, message,
                                indices.set_names, names=renamed)
+
+    def test_constructor_overflow_int64(self):
+        # see gh-15832
+        msg = ("The elements provided in the data cannot "
+               "all be casted to the dtype int64")
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([np.iinfo(np.uint64).max - 1], dtype="int64")
+
+    @pytest.mark.xfail(reason="see GH#21311: Index "
+                              "doesn't enforce dtype argument",
+                       strict=True)
+    def test_constructor_cast(self):
+        msg = "could not convert string to float"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index(["a", "b", "c"], dtype=float)
 
     def test_view_with_args(self):
 
@@ -840,12 +865,46 @@ class TestIndex(Base):
         expected = Index(['1a', '1b', '1c'])
         tm.assert_index_equal('1' + index, expected)
 
-    def test_sub(self):
+    def test_sub_fail(self):
         index = self.strIndex
         pytest.raises(TypeError, lambda: index - 'a')
         pytest.raises(TypeError, lambda: index - index)
         pytest.raises(TypeError, lambda: index - index.tolist())
         pytest.raises(TypeError, lambda: index.tolist() - index)
+
+    def test_sub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(0), Decimal(1)])
+
+        result = index - Decimal(1)
+        tm.assert_index_equal(result, expected)
+
+        result = index - pd.Index([Decimal(1), Decimal(1)])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index - 'foo'
+
+        with pytest.raises(TypeError):
+            index - np.array([2, 'foo'])
+
+    def test_rsub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(1), Decimal(0)])
+
+        result = Decimal(2) - index
+        tm.assert_index_equal(result, expected)
+
+        result = np.array([Decimal(2), Decimal(2)]) - index
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            'foo' - index
+
+        with pytest.raises(TypeError):
+            np.array([True, pd.Timestamp.now()]) - index
 
     def test_map_identity_mapping(self):
         # GH 12766
@@ -1397,7 +1456,8 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH 20915")
+    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915",
+                       strict=True)
     def test_slice_ints_with_floats_raises(self):
         # int slicing with floats
         # GH 4892, these are all TypeErrors
@@ -2431,7 +2491,7 @@ class TestIndexUtils(object):
                     names=['L1', 'L2'])),
     ])
     def test_ensure_index_from_sequences(self, data, names, expected):
-        result = _ensure_index_from_sequences(data, names)
+        result = ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
 
 

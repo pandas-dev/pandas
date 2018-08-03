@@ -1,5 +1,5 @@
 from warnings import catch_warnings
-from itertools import combinations, product
+from itertools import combinations
 
 import datetime as dt
 import dateutil
@@ -941,10 +941,11 @@ class TestAppend(ConcatenateBase):
                                 columns=combined_columns)
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "index_can_append, index_cannot_append_with_other",
-        product(indexes_can_append, indexes_cannot_append_with_other),
-        ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize('index_can_append', indexes_can_append,
+                             ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize('index_cannot_append_with_other',
+                             indexes_cannot_append_with_other,
+                             ids=lambda x: x.__class__.__name__)
     def test_append_different_columns_types_raises(
             self, index_can_append, index_cannot_append_with_other):
         # GH18359
@@ -1541,14 +1542,13 @@ class TestConcatenate(ConcatenateBase):
                     return DataFrame(np.random.randn(index, cols),
                                      index=["I%s" % i for i in range(index)],
                                      columns=["C%s" % i for i in range(cols)])
-                return Panel(dict(("Item%s" % x, df())
-                                  for x in ['A', 'B', 'C']))
+                return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
 
             panel1 = make_panel()
             panel2 = make_panel()
 
-            panel2 = panel2.rename_axis(dict((x, "%s_1" % x)
-                                             for x in panel2.major_axis),
+            panel2 = panel2.rename_axis({x: "%s_1" % x
+                                         for x in panel2.major_axis},
                                         axis=1)
 
             panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
@@ -2324,7 +2324,7 @@ bar2,12,13,14,15
                                  '2011-01-01 01:00:00+01:00',
                                  '2011-01-01 02:00:00+01:00'],
                                 freq='H'
-                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+                                ).tz_convert('UTC').tz_convert('Europe/Paris')
 
         expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
                                 index=exp_idx, columns=['a', 'b'])
@@ -2342,13 +2342,22 @@ bar2,12,13,14,15
                                  '2010-12-31 23:00:00+00:00',
                                  '2011-01-01 00:00:00+00:00',
                                  '2011-01-01 01:00:00+00:00']
-                                ).tz_localize('UTC')
+                                )
 
         expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
                                  [1, np.nan], [2, np.nan], [3, np.nan]],
                                 index=exp_idx, columns=['a', 'b'])
 
         tm.assert_frame_equal(result, expected)
+
+        # GH 13783: Concat after resample
+        with catch_warnings(record=True):
+            result = pd.concat([df1.resample('H').mean(),
+                                df2.resample('H').mean()])
+            expected = pd.DataFrame({'a': [1, 2, 3] + [np.nan] * 3,
+                                     'b': [np.nan] * 3 + [1, 2, 3]},
+                                    index=idx1.append(idx1))
+            tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])

@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-cimport numpy as cnp
-import numpy as np
-
 cimport cython
+from cython cimport Py_ssize_t
 
-cnp.import_array()
+from libc.stdlib cimport malloc, free
 
+import numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray,
                     double_t,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
+cnp.import_array()
 
-from libc.stdlib cimport malloc, free
 
 from util cimport numeric, get_nat
+
 from algos cimport (swap, TiebreakEnumType, TIEBREAK_AVERAGE, TIEBREAK_MIN,
                     TIEBREAK_MAX, TIEBREAK_FIRST, TIEBREAK_DENSE)
 from algos import take_2d_axis1_float64_float64, groupsort_indexer, tiebreakers
@@ -74,8 +75,8 @@ cdef inline float64_t kth_smallest_c(float64_t* a,
         double_t x, t
 
     l = 0
-    m = n -1
-    while (l<m):
+    m = n - 1
+    while l < m:
         x = a[k]
         i = l
         j = m
@@ -119,7 +120,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> data.data
+    ptr = <float64_t*> cnp.PyArray_DATA(data)
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 
@@ -243,7 +244,7 @@ def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
         label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
         with nogil:
             for i in range(N):
-                ## reverse iterator if shifting backwards
+                # reverse iterator if shifting backwards
                 ii = offset + sign * i
                 lab = labels[ii]
 

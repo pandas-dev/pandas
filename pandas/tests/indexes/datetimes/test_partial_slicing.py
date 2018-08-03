@@ -11,6 +11,8 @@ from pandas import (DatetimeIndex, Series, DataFrame,
                     date_range, Index, Timedelta, Timestamp)
 from pandas.util import testing as tm
 
+from pandas.core.indexing import IndexingError
+
 
 class TestSlicing(object):
     def test_dti_slicing(self):
@@ -313,12 +315,12 @@ class TestSlicing(object):
         result = df_multi.loc[('2013-06-19 09:30:00', 'ACCT1', 'ABC')]
         tm.assert_series_equal(result, expected)
 
-        # this is a KeyError as we don't do partial string selection on
-        # multi-levels
+        # this is an IndexingError as we don't do partial string selection on
+        # multi-levels.
         def f():
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
 
-        pytest.raises(KeyError, f)
+        pytest.raises(IndexingError, f)
 
         # GH 4294
         # partial slice on a series mi

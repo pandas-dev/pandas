@@ -126,6 +126,33 @@ class TestiLoc(Base):
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
 
+    @pytest.mark.parametrize('dims', [1, 2])
+    def test_iloc_getitem_invalid_scalar(self, dims):
+        # GH 21982
+
+        if dims == 1:
+            s = Series(np.arange(10))
+        else:
+            s = DataFrame(np.arange(100).reshape(10, 10))
+
+        tm.assert_raises_regex(TypeError, 'Cannot index by location index',
+                               lambda: s.iloc['a'])
+
+    def test_iloc_array_not_mutating_negative_indices(self):
+
+        # GH 21867
+        array_with_neg_numbers = np.array([1, 2, -1])
+        array_copy = array_with_neg_numbers.copy()
+        df = pd.DataFrame({
+            'A': [100, 101, 102],
+            'B': [103, 104, 105],
+            'C': [106, 107, 108]},
+            index=[1, 2, 3])
+        df.iloc[array_with_neg_numbers]
+        tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
+        df.iloc[:, array_with_neg_numbers]
+        tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
+
     def test_iloc_getitem_list_int(self):
 
         # list of ints
@@ -391,13 +418,13 @@ class TestiLoc(Base):
             expected = df.ix[[0, 2, 6], [0, 2]]
         tm.assert_frame_equal(result, expected)
 
-        # neg indicies
+        # neg indices
         result = df.iloc[[-1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
             expected = df.ix[[18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
-        # dups indicies
+        # dups indices
         result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
             expected = df.ix[[18, 18, 2, 6], [6, 2]]

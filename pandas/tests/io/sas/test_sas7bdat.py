@@ -11,8 +11,9 @@ import pytest
 
 class TestSAS7BDAT(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "sas", "data")
         self.data = []
         self.test_ix = [list(range(1, 16)), [16]]
         for j in 1, 2:
@@ -123,9 +124,8 @@ class TestSAS7BDAT(object):
         rdr.close()
 
 
-def test_encoding_options():
-    dirpath = tm.get_data_path()
-    fname = os.path.join(dirpath, "test1.sas7bdat")
+def test_encoding_options(datapath):
+    fname = datapath("io", "sas", "data", "test1.sas7bdat")
     df1 = pd.read_sas(fname)
     df2 = pd.read_sas(fname, encoding='utf-8')
     for col in df1.columns:
@@ -143,43 +143,39 @@ def test_encoding_options():
         assert(x == y.decode())
 
 
-def test_productsales():
-    dirpath = tm.get_data_path()
-    fname = os.path.join(dirpath, "productsales.sas7bdat")
+def test_productsales(datapath):
+    fname = datapath("io", "sas", "data", "productsales.sas7bdat")
     df = pd.read_sas(fname, encoding='utf-8')
-    fname = os.path.join(dirpath, "productsales.csv")
+    fname = datapath("io", "sas", "data", "productsales.csv")
     df0 = pd.read_csv(fname, parse_dates=['MONTH'])
     vn = ["ACTUAL", "PREDICT", "QUARTER", "YEAR"]
     df0[vn] = df0[vn].astype(np.float64)
     tm.assert_frame_equal(df, df0)
 
 
-def test_12659():
-    dirpath = tm.get_data_path()
-    fname = os.path.join(dirpath, "test_12659.sas7bdat")
+def test_12659(datapath):
+    fname = datapath("io", "sas", "data", "test_12659.sas7bdat")
     df = pd.read_sas(fname)
-    fname = os.path.join(dirpath, "test_12659.csv")
+    fname = datapath("io", "sas", "data", "test_12659.csv")
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0)
 
 
-def test_airline():
-    dirpath = tm.get_data_path()
-    fname = os.path.join(dirpath, "airline.sas7bdat")
+def test_airline(datapath):
+    fname = datapath("io", "sas", "data", "airline.sas7bdat")
     df = pd.read_sas(fname)
-    fname = os.path.join(dirpath, "airline.csv")
+    fname = datapath("io", "sas", "data", "airline.csv")
     df0 = pd.read_csv(fname)
     df0 = df0.astype(np.float64)
     tm.assert_frame_equal(df, df0, check_exact=False)
 
 
-def test_date_time():
+def test_date_time(datapath):
     # Support of different SAS date/datetime formats (PR #15871)
-    dirpath = tm.get_data_path()
-    fname = os.path.join(dirpath, "datetime.sas7bdat")
+    fname = datapath("io", "sas", "data", "datetime.sas7bdat")
     df = pd.read_sas(fname)
-    fname = os.path.join(dirpath, "datetime.csv")
+    fname = datapath("io", "sas", "data", "datetime.csv")
     df0 = pd.read_csv(fname, parse_dates=['Date1', 'Date2', 'DateTime',
                                           'DateTimeHi', 'Taiw'])
     # GH 19732: Timestamps imported from sas will incur floating point errors
@@ -187,9 +183,8 @@ def test_date_time():
     tm.assert_frame_equal(df, df0)
 
 
-def test_zero_variables():
+def test_zero_variables(datapath):
     # Check if the SAS file has zero variables (PR #18184)
-    dirpath = tm.get_data_path()
-    fname = os.path.join(dirpath, "zero_variables.sas7bdat")
+    fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")
     with pytest.raises(EmptyDataError):
         pd.read_sas(fname)

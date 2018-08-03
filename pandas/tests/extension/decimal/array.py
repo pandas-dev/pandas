@@ -1,12 +1,12 @@
 import decimal
 import numbers
-import random
 import sys
 
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (ExtensionArray,
+                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
 
@@ -14,6 +14,16 @@ class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
     na_value = decimal.Decimal('NaN')
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        return DecimalArray
 
     @classmethod
     def construct_from_string(cls, string):
@@ -24,11 +34,14 @@ class DecimalDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
-class DecimalArray(ExtensionArray):
+class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     dtype = DecimalDtype()
 
-    def __init__(self, values):
-        assert all(isinstance(v, decimal.Decimal) for v in values)
+    def __init__(self, values, dtype=None, copy=False):
+        for val in values:
+            if not isinstance(val, self.dtype.type):
+                raise TypeError("All values must be of type " +
+                                str(self.dtype.type))
         values = np.asarray(values, dtype=object)
 
         self._data = values
@@ -40,7 +53,7 @@ class DecimalArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -101,5 +114,5 @@ class DecimalArray(ExtensionArray):
         return cls(np.concatenate([x._data for x in to_concat]))
 
 
-def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
+DecimalArray._add_arithmetic_ops()
+DecimalArray._add_comparison_ops()

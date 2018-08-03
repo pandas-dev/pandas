@@ -22,6 +22,6 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - cython
+  - cython>=0.28.2
   - pytest
   - pytest-xdist

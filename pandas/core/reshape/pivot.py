@@ -1,12 +1,14 @@
 # pylint: disable=E1103
 
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_list_like, is_scalar, is_integer_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
-from pandas.core.groupby.groupby import Grouper
+from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import Index, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
@@ -79,8 +81,22 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=dropna)
+    # group by the cartesian product of the grouper
+    # if we have a categorical
+    grouped = data.groupby(keys, observed=False)
     agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how='all')
+
+        # gh-21133
+        # we want to down cast if
+        # the original values are ints
+        # as we grouped with a NaN value
+        # and then dropped, coercing to floats
+        for v in [v for v in values if v in data and v in agged]:
+            if (is_integer_dtype(data[v]) and
+                    not is_integer_dtype(agged[v])):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
     if table.index.nlevels > 1:
@@ -430,7 +446,18 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-    ...                     # but they still will be counted in the output
+                            # and will not be shown in the output because
+                            # dropna is True by default. Set 'dropna=False'
+                            # to preserve categories with no data
+    ... # doctest: +SKIP
+    col_0  d  e
+    row_0
+    a      1  0
+    b      0  1
+
+    >>> crosstab(foo, bar, dropna=False)  # 'c' and 'f' are not represented
+                            # in the data, but they still will be counted
+                            # and shown in the output
     ... # doctest: +SKIP
     col_0  d  e  f
     row_0
@@ -443,8 +470,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')

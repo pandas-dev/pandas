@@ -1524,7 +1524,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
             assert_panel_equal(result, expected)
 
-            # neg indicies ok
+            # neg indices ok
             expected = self.panel.reindex(minor=['D', 'D', 'B', 'C'])
             result = self.panel.take([3, -1, 1, 2], axis=2)
             assert_panel_equal(result, expected)
@@ -2707,3 +2707,10 @@ def test_panel_index():
                                        np.repeat([1, 2, 3], 4)],
                                       names=['time', 'panel'])
     tm.assert_index_equal(index, expected)
+
+
+def test_panel_np_all():
+    with catch_warnings(record=True):
+        wp = Panel({"A": DataFrame({'b': [1, 2]})})
+    result = np.all(wp)
+    assert result == np.bool_(True)

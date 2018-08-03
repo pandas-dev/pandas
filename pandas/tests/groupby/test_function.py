@@ -66,32 +66,38 @@ def test_intercept_builtin_sum():
     tm.assert_series_equal(result2, expected)
 
 
-def test_builtins_apply():  # GH8155
+# @pytest.mark.parametrize("f", [max, min, sum])
+# def test_builtins_apply(f):
+
+@pytest.mark.parametrize("f", [max, min, sum])
+@pytest.mark.parametrize('keys', [
+    "jim",  # Single key
+    ["jim", "joe"]  # Multi-key
+])
+def test_builtins_apply(keys, f):
+    # see gh-8155
     df = pd.DataFrame(np.random.randint(1, 50, (1000, 2)),
-                      columns=['jim', 'joe'])
-    df['jolie'] = np.random.randn(1000)
+                      columns=["jim", "joe"])
+    df["jolie"] = np.random.randn(1000)
 
-    for keys in ['jim', ['jim', 'joe']]:  # single key & multi-key
-        if keys == 'jim':
-            continue
-        for f in [max, min, sum]:
-            fname = f.__name__
-            result = df.groupby(keys).apply(f)
-            result.shape
-            ngroups = len(df.drop_duplicates(subset=keys))
-            assert result.shape == (ngroups, 3), 'invalid frame shape: '\
-                '{} (expected ({}, 3))'.format(result.shape, ngroups)
+    fname = f.__name__
+    result = df.groupby(keys).apply(f)
+    ngroups = len(df.drop_duplicates(subset=keys))
 
-            tm.assert_frame_equal(result,  # numpy's equivalent function
-                                  df.groupby(keys).apply(getattr(np, fname)))
+    assert_msg = ("invalid frame shape: {} "
+                  "(expected ({}, 3))".format(result.shape, ngroups))
+    assert result.shape == (ngroups, 3), assert_msg
 
-            if f != sum:
-                expected = df.groupby(keys).agg(fname).reset_index()
-                expected.set_index(keys, inplace=True, drop=False)
-                tm.assert_frame_equal(result, expected, check_dtype=False)
+    tm.assert_frame_equal(result,  # numpy's equivalent function
+                          df.groupby(keys).apply(getattr(np, fname)))
 
-            tm.assert_series_equal(getattr(result, fname)(),
-                                   getattr(df, fname)())
+    if f != sum:
+        expected = df.groupby(keys).agg(fname).reset_index()
+        expected.set_index(keys, inplace=True, drop=False)
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    tm.assert_series_equal(getattr(result, fname)(),
+                           getattr(df, fname)())
 
 
 def test_arg_passthru():
@@ -365,34 +371,34 @@ def test_groupby_non_arithmetic_agg_types(dtype, method, data):
     tm.assert_frame_equal(t, df_out)
 
 
-def test_groupby_non_arithmetic_agg_intlike_precision():
-    # GH9311, GH6620
-    c = 24650000000000000
+@pytest.mark.parametrize("i", [
+    (Timestamp("2011-01-15 12:50:28.502376"),
+     Timestamp("2011-01-20 12:50:28.593448")),
+    (24650000000000001, 24650000000000002)
+])
+def test_groupby_non_arithmetic_agg_int_like_precision(i):
+    # see gh-6620, gh-9311
+    df = pd.DataFrame([{"a": 1, "b": i[0]}, {"a": 1, "b": i[1]}])
 
-    inputs = ((Timestamp('2011-01-15 12:50:28.502376'),
-               Timestamp('2011-01-20 12:50:28.593448')), (1 + c, 2 + c))
+    grp_exp = {"first": {"expected": i[0]},
+               "last": {"expected": i[1]},
+               "min": {"expected": i[0]},
+               "max": {"expected": i[1]},
+               "nth": {"expected": i[1],
+                       "args": [1]},
+               "count": {"expected": 2}}
 
-    for i in inputs:
-        df = pd.DataFrame([{'a': 1, 'b': i[0]}, {'a': 1, 'b': i[1]}])
+    for method, data in compat.iteritems(grp_exp):
+        if "args" not in data:
+            data["args"] = []
 
-        grp_exp = {'first': {'expected': i[0]},
-                   'last': {'expected': i[1]},
-                   'min': {'expected': i[0]},
-                   'max': {'expected': i[1]},
-                   'nth': {'expected': i[1],
-                           'args': [1]},
-                   'count': {'expected': 2}}
+        grouped = df.groupby("a")
+        res = getattr(grouped, method)(*data["args"])
 
-        for method, data in compat.iteritems(grp_exp):
-            if 'args' not in data:
-                data['args'] = []
-
-            grpd = df.groupby('a')
-            res = getattr(grpd, method)(*data['args'])
-            assert res.iloc[0].b == data['expected']
+        assert res.iloc[0].b == data["expected"]
 
 
-def test_fill_constistency():
+def test_fill_consistency():
 
     # GH9221
     # pass thru keyword arguments to the generated wrapper
@@ -778,9 +784,10 @@ def test_frame_describe_unstacked_format():
 # nunique
 # --------------------------------
 
-@pytest.mark.parametrize("n, m", cart_product(10 ** np.arange(2, 6),
-                                              (10, 100, 1000)))
-@pytest.mark.parametrize("sort, dropna", cart_product((False, True), repeat=2))
+@pytest.mark.parametrize('n', 10 ** np.arange(2, 6))
+@pytest.mark.parametrize('m', [10, 100, 1000])
+@pytest.mark.parametrize('sort', [False, True])
+@pytest.mark.parametrize('dropna', [False, True])
 def test_series_groupby_nunique(n, m, sort, dropna):
 
     def check_nunique(df, keys, as_index=True):

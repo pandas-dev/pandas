@@ -6,7 +6,7 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - cython
+  - cython>=0.28.2
   - fastparquet
   - feather-format
   - html5lib

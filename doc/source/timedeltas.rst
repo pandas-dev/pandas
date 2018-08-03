@@ -363,6 +363,13 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
    pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
                      np.timedelta64(2,'D'), datetime.timedelta(days=2,seconds=2)])
 
+The string 'infer' can be passed in order to set the frequency of the index as the
+inferred frequency upon creation:
+
+.. ipython:: python
+
+   pd.TimedeltaIndex(['0 days', '10 days', '20 days'], freq='infer')
+
 Generating Ranges of Time Deltas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

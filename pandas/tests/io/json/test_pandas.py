@@ -21,8 +21,8 @@ _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = DataFrame(dict((k, v.astype(np.int64))
-                           for k, v in compat.iteritems(_seriesd)))
+_intframe = DataFrame({k: v.astype(np.int64)
+                       for k, v in compat.iteritems(_seriesd)})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
@@ -37,8 +37,9 @@ _mixed_frame = _frame.copy()
 
 class TestPandasContainer(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, datapath):
+        self.dirpath = datapath("io", "json", "data")
 
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -59,7 +60,8 @@ class TestPandasContainer(object):
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
-    def teardown_method(self, method):
+        yield
+
         del self.dirpath
 
         del self.ts
@@ -639,6 +641,13 @@ class TestPandasContainer(object):
         s = Series([4.56, 4.56, 4.56])
         result = read_json(s.to_json(), typ='series', precise_float=True)
         assert_series_equal(result, s, check_index_type=False)
+
+    def test_series_with_dtype(self):
+        # GH 21986
+        s = Series([4.56, 4.56, 4.56])
+        result = read_json(s.to_json(), typ='series', dtype=np.int64)
+        expected = Series([4] * 3)
+        assert_series_equal(result, expected)
 
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])

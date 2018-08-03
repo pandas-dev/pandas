@@ -1,6 +1,7 @@
 import string
 
 import pytest
+import pandas as pd
 import numpy as np
 
 from pandas.api.types import CategoricalDtype
@@ -30,6 +31,15 @@ def data_missing():
 
 
 @pytest.fixture
+def data_repeated():
+    """Return different versions of data for count times"""
+    def gen(count):
+        for _ in range(count):
+            yield Categorical(make_data())
+    yield gen
+
+
+@pytest.fixture
 def data_for_sorting():
     return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
                        ordered=True)
@@ -52,7 +62,9 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type() is Categorical
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -154,6 +166,49 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
+    def test_combine_add(self, data_repeated):
+        # GH 20825
+        # When adding categoricals in combine, result is a string
+        orig_data1, orig_data2 = data_repeated(2)
+        s1 = pd.Series(orig_data1)
+        s2 = pd.Series(orig_data2)
+        result = s1.combine(s2, lambda x1, x2: x1 + x2)
+        expected = pd.Series(([a + b for (a, b) in
+                               zip(list(orig_data1), list(orig_data2))]))
+        self.assert_series_equal(result, expected)
+
+        val = s1.iloc[0]
+        result = s1.combine(val, lambda x1, x2: x1 + x2)
+        expected = pd.Series([a + val for a in list(orig_data1)])
+        self.assert_series_equal(result, expected)
+
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+
+class TestArithmeticOps(base.BaseArithmeticOpsTests):
+
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+
+        op_name = all_arithmetic_operators
+        if op_name != '__rmod__':
+            super(TestArithmeticOps, self).test_arith_series_with_scalar(
+                data, op_name)
+        else:
+            pytest.skip('rmod never called when string is first argument')
+
+
+class TestComparisonOps(base.BaseComparisonOpsTests):
+
+    def _compare_other(self, s, data, op_name, other):
+        op = self.get_op_from_name(op_name)
+        if op_name == '__eq__':
+            assert not op(data, other).all()
+
+        elif op_name == '__ne__':
+            assert op(data, other).all()
+
+        else:
+            with pytest.raises(TypeError):
+                op(data, other)

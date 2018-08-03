@@ -25,8 +25,8 @@ from pandas.io.stata import (InvalidColumnName, PossiblePrecisionLoss,
 
 
 @pytest.fixture
-def dirpath():
-    return tm.get_data_path()
+def dirpath(datapath):
+    return datapath("io", "data")
 
 
 @pytest.fixture
@@ -39,8 +39,9 @@ def parsed_114(dirpath):
 
 class TestStata(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "data")
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
         self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')
 
@@ -96,6 +97,7 @@ class TestStata(object):
         self.dta23 = os.path.join(self.dirpath, 'stata15.dta')
 
         self.dta24_111 = os.path.join(self.dirpath, 'stata7_111.dta')
+        self.dta25_118 = os.path.join(self.dirpath, 'stata16_118.dta')
 
         self.stata_dates = os.path.join(self.dirpath, 'stata13_dates.dta')
 
@@ -360,22 +362,19 @@ class TestStata(object):
 
         # GH 4626, proper encoding handling
         raw = read_stata(self.dta_encoding)
-        encoded = read_stata(self.dta_encoding, encoding="latin-1")
+        with tm.assert_produces_warning(FutureWarning):
+            encoded = read_stata(self.dta_encoding, encoding='latin-1')
         result = encoded.kreis1849[0]
 
-        if compat.PY3:
-            expected = raw.kreis1849[0]
-            assert result == expected
-            assert isinstance(result, compat.string_types)
-        else:
-            expected = raw.kreis1849.str.decode("latin-1")[0]
-            assert result == expected
-            assert isinstance(result, unicode)  # noqa
+        expected = raw.kreis1849[0]
+        assert result == expected
+        assert isinstance(result, compat.string_types)
 
         with tm.ensure_clean() as path:
-            encoded.to_stata(path, encoding='latin-1',
-                             write_index=False, version=version)
-            reread_encoded = read_stata(path, encoding='latin-1')
+            with tm.assert_produces_warning(FutureWarning):
+                encoded.to_stata(path, write_index=False, version=version,
+                                 encoding='latin-1')
+            reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
     def test_read_write_dta11(self):
@@ -1353,13 +1352,6 @@ class TestStata(object):
             assert 'ColumnTooBig' in cm.exception
             assert 'infinity' in cm.exception
 
-    def test_invalid_encoding(self):
-        # GH15723, validate encoding
-        original = self.read_csv(self.csv3)
-        with pytest.raises(ValueError):
-            with tm.ensure_clean() as path:
-                original.to_stata(path, encoding='utf-8')
-
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
         df.index.name = 'index'
@@ -1500,3 +1492,18 @@ class TestStata(object):
             with gzip.GzipFile(path, 'rb') as gz:
                 reread = pd.read_stata(gz, index_col='index')
         tm.assert_frame_equal(df, reread)
+
+    def test_unicode_dta_118(self):
+        unicode_df = self.read_dta(self.dta25_118)
+
+        columns = ['utf8', 'latin1', 'ascii', 'utf8_strl', 'ascii_strl']
+        values = [[u'ραηδας', u'PÄNDÄS', 'p', u'ραηδας', 'p'],
+                  [u'ƤĀńĐąŜ', u'Ö', 'a', u'ƤĀńĐąŜ', 'a'],
+                  [u'ᴘᴀᴎᴅᴀS', u'Ü', 'n', u'ᴘᴀᴎᴅᴀS', 'n'],
+                  ['      ', '      ', 'd', '      ', 'd'],
+                  [' ', '', 'a', ' ', 'a'],
+                  ['', '', 's', '', 's'],
+                  ['', '', ' ', '', ' ']]
+        expected = pd.DataFrame(values, columns=columns)
+
+        tm.assert_frame_equal(unicode_df, expected)

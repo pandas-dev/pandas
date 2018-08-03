@@ -2,7 +2,7 @@
 """
 Tests for DatetimeIndex timezone-related methods
 """
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, tzinfo, date, time
 from distutils.version import LooseVersion
 
 import pytest
@@ -15,8 +15,7 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas._libs import tslib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 from pandas.compat import lrange, zip, PY3
 from pandas import (DatetimeIndex, date_range, bdate_range,
                     Timestamp, isna, to_datetime, Index)
@@ -318,8 +317,8 @@ class TestDatetimeIndexTimezones(object):
         result = index.tz_localize(tz=tz, errors='coerce')
         test_times = ['2015-03-08 01:00-05:00', 'NaT',
                       '2015-03-08 03:00-04:00']
-        dti = DatetimeIndex(test_times)
-        expected = dti.tz_localize('UTC').tz_convert('US/Eastern')
+        dti = to_datetime(test_times, utc=True)
+        expected = dti.tz_convert('US/Eastern')
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tz', [pytz.timezone('US/Eastern'),
@@ -706,6 +705,32 @@ class TestDatetimeIndexTimezones(object):
         assert isinstance(result, DatetimeIndex)
         assert result.tz.zone == 'UTC'
 
+    @pytest.mark.parametrize("dtype", [
+        None, 'datetime64[ns, CET]',
+        'datetime64[ns, EST]', 'datetime64[ns, UTC]'
+    ])
+    def test_date_accessor(self, dtype):
+        # Regression test for GH#21230
+        expected = np.array([date(2018, 6, 4), pd.NaT])
+
+        index = DatetimeIndex(['2018-06-04 10:00:00', pd.NaT], dtype=dtype)
+        result = index.date
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", [
+        None, 'datetime64[ns, CET]',
+        'datetime64[ns, EST]', 'datetime64[ns, UTC]'
+    ])
+    def test_time_accessor(self, dtype):
+        # Regression test for GH#21267
+        expected = np.array([time(10, 20, 30), pd.NaT])
+
+        index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], dtype=dtype)
+        result = index.time
+
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_dti_drop_dont_lose_tz(self):
         # GH#2621
         ind = date_range("2012-12-01", periods=10, tz="utc")
@@ -885,12 +910,12 @@ class TestDatetimeIndexTimezones(object):
         central = dr.tz_convert(tz)
         assert central.tz is tz
         naive = central[0].to_pydatetime().replace(tzinfo=None)
-        comp = tslib._localize_pydatetime(naive, tz).tzinfo
+        comp = conversion.localize_pydatetime(naive, tz).tzinfo
         assert central[0].tz is comp
 
         # compare vs a localized tz
         naive = dr[0].to_pydatetime().replace(tzinfo=None)
-        comp = tslib._localize_pydatetime(naive, tz).tzinfo
+        comp = conversion.localize_pydatetime(naive, tz).tzinfo
         assert central[0].tz is comp
 
         # datetimes with tzinfo set
@@ -920,7 +945,7 @@ class TestDatetimeIndexTimezones(object):
         dates = [datetime(2000, 1, 1), datetime(2000, 1, 2),
                  datetime(2000, 1, 3)]
 
-        dates_aware = [tslib._localize_pydatetime(x, tz) for x in dates]
+        dates_aware = [conversion.localize_pydatetime(x, tz) for x in dates]
         result = DatetimeIndex(dates_aware)
         assert timezones.tz_compare(result.tz, tz)
 

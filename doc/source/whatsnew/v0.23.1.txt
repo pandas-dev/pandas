@@ -1,30 +1,83 @@
 .. _whatsnew_0231:
 
-v0.23.1
--------
+v0.23.1 (June 12, 2018)
+-----------------------
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
+
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping-27` for more.
 
 .. contents:: What's new in v0.23.1
     :local:
     :backlinks: none
 
-.. _whatsnew_0231.enhancements:
+.. _whatsnew_0231.fixed_regressions:
 
-New features
-~~~~~~~~~~~~
+Fixed Regressions
+~~~~~~~~~~~~~~~~~
 
-- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
+**Comparing Series with datetime.date**
 
+We've reverted a 0.23.0 change to comparing a :class:`Series` holding datetimes and a ``datetime.date`` object (:issue:`21152`).
+In pandas 0.22 and earlier, comparing a Series holding datetimes and ``datetime.date`` objects would coerce the ``datetime.date`` to a datetime before comapring.
+This was inconsistent with Python, NumPy, and :class:`DatetimeIndex`, which never consider a datetime and ``datetime.date`` equal.
 
-.. _whatsnew_0231.deprecations:
+In 0.23.0, we unified operations between DatetimeIndex and Series, and in the process changed comparisons between a Series of datetimes and ``datetime.date`` without warning.
 
-Deprecations
-~~~~~~~~~~~~
+We've temporarily restored the 0.22.0 behavior, so datetimes and dates may again compare equal, but restore the 0.23.0 behavior in a future release.
 
--
--
+To summarize, here's the behavior in 0.22.0, 0.23.0, 0.23.1:
+
+.. code-block:: python
+
+   # 0.22.0... Silently coerce the datetime.date
+   >>> Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
+   0     True
+   1    False
+   dtype: bool
+
+   # 0.23.0... Do not coerce the datetime.date
+   >>> Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
+   0    False
+   1    False
+   dtype: bool
+
+   # 0.23.1... Coerce the datetime.date with a warning
+   >>> Series(pd.date_range('2017', periods=2)) == datetime.date(2017, 1, 1)
+   /bin/python:1: FutureWarning: Comparing Series of datetimes with 'datetime.date'.  Currently, the
+   'datetime.date' is coerced to a datetime. In the future pandas will
+   not coerce, and the values not compare equal to the 'datetime.date'.
+   To retain the current behavior, convert the 'datetime.date' to a
+   datetime with 'pd.Timestamp'.
+     #!/bin/python3
+   0     True
+   1    False
+   dtype: bool
+
+In addition, ordering comparisons will raise a ``TypeError`` in the future.
+
+**Other Fixes**
+
+- Reverted the ability of :func:`~DataFrame.to_sql` to perform multivalue
+  inserts as this caused regression in certain cases (:issue:`21103`).
+  In the future this will be made configurable.
+- Fixed regression in the :attr:`DatetimeIndex.date` and :attr:`DatetimeIndex.time`
+  attributes in case of timezone-aware data: :attr:`DatetimeIndex.time` returned
+  a tz-aware time instead of tz-naive (:issue:`21267`) and :attr:`DatetimeIndex.date`
+  returned incorrect date when the input date has a non-UTC timezone (:issue:`21230`).
+- Fixed regression in :meth:`pandas.io.json.json_normalize` when called with ``None`` values
+  in nested levels in JSON, and to not drop keys with value as `None` (:issue:`21158`, :issue:`21356`).
+- Bug in :meth:`~DataFrame.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
+- Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
+- Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
+- Fixed regression in constructors coercing NA values like ``None`` to strings when passing ``dtype=str`` (:issue:`21083`)
+- Regression in :func:`pivot_table` where an ordered ``Categorical`` with missing
+  values for the pivot's ``index`` would give a mis-aligned result (:issue:`21133`)
+- Fixed regression in merging on boolean index/columns (:issue:`21119`).
 
 .. _whatsnew_0231.performance:
 
@@ -32,86 +85,56 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
--
--
+- Improved performance of :meth:`CategoricalIndex.is_unique` (:issue:`21107`)
 
-Documentation Changes
-~~~~~~~~~~~~~~~~~~~~~
-
--
--
 
 .. _whatsnew_0231.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in :func:`Dataframe.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
-
-
-Groupby/Resample/Rolling
-^^^^^^^^^^^^^^^^^^^^^^^^
+**Groupby/Resample/Rolling**
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
 - Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
 - Bug in :func:`pandas.core.groupby.GroupBy.rank` where results did not scale to 100% when specifying ``method='dense'`` and ``pct=True``
+- Bug in :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling` which incorrectly accepted a 0 window size rather than raising (:issue:`21286`)
 
-Strings
-^^^^^^^
+**Data-type specific**
 
-- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
+- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue:`21078`)
+- Bug in :class:`Timedelta` where passing a float with a unit would prematurely round the float precision (:issue:`14156`)
+- Bug in :func:`pandas.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
 
-Timedelta
-^^^^^^^^^
-- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
-
-Categorical
-^^^^^^^^^^^
-
-- Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
-- Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
-
-Sparse
-^^^^^^
+**Sparse**
 
 - Bug in :attr:`SparseArray.shape` which previously only returned the shape :attr:`SparseArray.sp_values` (:issue:`21126`)
 
-Conversion
-^^^^^^^^^^
-
-- Bug in :func:`Dataframe.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
--
-
-Indexing
-^^^^^^^^
+**Indexing**
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 - Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
 - Bug in :meth:`MultiIndex.set_names` where error raised for a ``MultiIndex`` with ``nlevels == 1`` (:issue:`21149`)
--
+- Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, :issue:`21253`)
+- Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
 
-I/O
-^^^
+**Plotting**
+
+- New keywords (sharex, sharey) to turn on/off sharing of x/y-axis by subplots generated with pandas.DataFrame().groupby().boxplot() (:issue:`20968`)
+
+**I/O**
 
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
--
+- Bug in :meth:`read_stata` and :class:`StataReader` which did not correctly decode utf-8 strings on Python 3 from Stata 14 files (dta version 118) (:issue:`21244`)
+- Bug in IO JSON :func:`read_json` reading empty JSON schema with ``orient='table'`` back to :class:`DataFrame` caused an error (:issue:`21287`)
 
-Plotting
-^^^^^^^^
-
--
--
-
-Reshaping
-^^^^^^^^^
+**Reshaping**
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
--
+- Bug in :func:`concat` warning message providing the wrong guidance for future behavior (:issue:`21101`)
 
-Other
-^^^^^
+**Other**
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
-- Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
-
+- Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)

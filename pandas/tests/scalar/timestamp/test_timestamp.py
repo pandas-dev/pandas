@@ -172,6 +172,11 @@ class TestTimestampProperties(object):
                                2005, 1, 1), (2005, 1, 2)]])
         assert (result == [52, 52, 53, 53]).all()
 
+    def test_resolution(self):
+        # GH#21336, GH#21365
+        dt = Timestamp('2100-01-01 00:00:00')
+        assert dt.resolution == Timedelta(nanoseconds=1)
+
 
 class TestTimestampConstructors(object):
 
@@ -420,6 +425,12 @@ class TestTimestampConstructors(object):
         expected = expected + Timedelta(nanoseconds=1)
         assert result == expected
 
+    @pytest.mark.parametrize('z', ['Z0', 'Z00'])
+    def test_constructor_invalid_Z0_isostring(self, z):
+        # GH 8910
+        with pytest.raises(ValueError):
+            Timestamp('2014-11-02 01:00{}'.format(z))
+
     @pytest.mark.parametrize('arg', ['year', 'month', 'day', 'hour', 'minute',
                                      'second', 'microsecond', 'nanosecond'])
     def test_invalid_date_kwarg_with_string_input(self, arg):
@@ -527,6 +538,22 @@ class TestTimestampConstructors(object):
         ts = Timestamp('2010')
         with pytest.raises(AttributeError):
             ts.tz = tz
+
+    @pytest.mark.parametrize('offset', ['+0300', '+0200'])
+    def test_construct_timestamp_near_dst(self, offset):
+        # GH 20854
+        expected = Timestamp('2016-10-30 03:00:00{}'.format(offset),
+                             tz='Europe/Helsinki')
+        result = Timestamp(expected, tz='Europe/Helsinki')
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        '2013/01/01 00:00:00+09:00', '2013-01-01 00:00:00+09:00'])
+    def test_construct_with_different_string_format(self, arg):
+        # GH 12064
+        result = Timestamp(arg)
+        expected = Timestamp(datetime(2013, 1, 1), tz=pytz.FixedOffset(540))
+        assert result == expected
 
 
 class TestTimestamp(object):

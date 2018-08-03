@@ -6,6 +6,7 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - dateutil
+  - gcsfs
   - html5lib
   - jinja2=2.8
   - lxml
@@ -23,7 +24,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - cython
+  - cython>=0.28.2
   - pytest
   - pytest-xdist
   - moto

@@ -1,5 +1,6 @@
 import decimal
 
+import random
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -7,7 +8,11 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, make_data
+from .array import DecimalDtype, DecimalArray
+
+
+def make_data():
+    return [decimal.Decimal(random.random()) for _ in range(100)]
 
 
 @pytest.fixture
@@ -23,6 +28,14 @@ def data():
 @pytest.fixture
 def data_missing():
     return DecimalArray([decimal.Decimal('NaN'), decimal.Decimal(1)])
+
+
+@pytest.fixture
+def data_repeated():
+    def gen(count):
+        for _ in range(count):
+            yield DecimalArray(make_data())
+    yield gen
 
 
 @pytest.fixture
@@ -92,7 +105,9 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type() is DecimalArray
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
@@ -100,7 +115,11 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
@@ -147,6 +166,14 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
     pass
 
 
+class TestSetitem(BaseDecimal, base.BaseSetitemTests):
+    pass
+
+
+# TODO(extension)
+@pytest.mark.xfail(reason=(
+    "raising AssertionError as this is not implemented, "
+    "though easy enough to do"))
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
@@ -154,32 +181,86 @@ def test_series_constructor_coerce_data_to_extension_dtype_raises():
         pd.Series([0, 1, 2], dtype=DecimalDtype())
 
 
-def test_series_constructor_with_same_dtype_ok():
+def test_series_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
     result = pd.Series(arr, dtype=DecimalDtype())
     expected = pd.Series(arr)
     tm.assert_series_equal(result, expected)
 
-
-def test_series_constructor_coerce_extension_array_to_dtype_raises():
-    arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
-
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.Series(arr, dtype='int64')
+    result = pd.Series(arr, dtype='int64')
+    expected = pd.Series([10])
+    tm.assert_series_equal(result, expected)
 
 
-def test_dataframe_constructor_with_same_dtype_ok():
+def test_dataframe_constructor_with_dtype():
     arr = DecimalArray([decimal.Decimal('10.0')])
 
     result = pd.DataFrame({"A": arr}, dtype=DecimalDtype())
     expected = pd.DataFrame({"A": arr})
     tm.assert_frame_equal(result, expected)
 
-
-def test_dataframe_constructor_with_different_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
+    result = pd.DataFrame({"A": arr}, dtype='int64')
+    expected = pd.DataFrame({"A": [10]})
+    tm.assert_frame_equal(result, expected)
 
-    xpr = "Cannot coerce extension array to dtype 'int64'. "
-    with tm.assert_raises_regex(ValueError, xpr):
-        pd.DataFrame({"A": arr}, dtype='int64')
+
+class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestArithmeticOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+
+        context = decimal.getcontext()
+        divbyzerotrap = context.traps[decimal.DivisionByZero]
+        invalidoptrap = context.traps[decimal.InvalidOperation]
+        context.traps[decimal.DivisionByZero] = 0
+        context.traps[decimal.InvalidOperation] = 0
+
+        # Decimal supports ops with int, but not float
+        other = pd.Series([int(d * 100) for d in data])
+        self.check_opname(s, op_name, other)
+
+        if "mod" not in op_name:
+            self.check_opname(s, op_name, s * 2)
+
+        self.check_opname(s, op_name, 0)
+        self.check_opname(s, op_name, 5)
+        context.traps[decimal.DivisionByZero] = divbyzerotrap
+        context.traps[decimal.InvalidOperation] = invalidoptrap
+
+    @pytest.mark.skip(reason="divmod not appropriate for decimal")
+    def test_divmod(self, data):
+        pass
+
+    def test_error(self):
+        pass
+
+
+class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestComparisonOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def _compare_other(self, s, data, op_name, other):
+        self.check_opname(s, op_name, other)
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0.5)
+
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+
+        alter = np.random.choice([-1, 0, 1], len(data))
+        # Randomly double, halve or keep same value
+        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
+                                   for i in alter]
+        self._compare_other(s, data, op_name, other)

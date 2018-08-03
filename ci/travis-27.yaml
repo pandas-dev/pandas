@@ -5,10 +5,12 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - cython=0.24
+  - cython=0.28.2
   - fastparquet
   - feather-format
   - flake8=3.4.1
+  - flake8-comprehensions
+  - gcsfs
   - html5lib
   - ipython
   - jemalloc=4.5.0.post
