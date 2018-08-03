@@ -2229,6 +2229,24 @@ class Tick(liboffsets._Tick, SingleConstructorOffset):
         raise ApplyTypeError('Unhandled type: {type_str}'
                              .format(type_str=type(other).__name__))
 
+    def apply_index(self, idx):
+        """
+        Vectorized apply (addition) of Tick to DatetimeIndex
+
+        Parameters
+        ----------
+        idx : DatetimeIndex
+
+        Returns
+        -------
+        DatetimeIndex
+        """
+        # TODO: Add a vectorized DatetimeIndex.dst() method
+        ambiguous = np.array([bool(ts.dst()) if ts is not tslibs.NaT else False
+                              for ts in idx])
+        result = idx.tz_localize(None) + self.delta
+        return result.tz_localize(idx.tz, ambiguous=ambiguous)
+
     def isAnchored(self):
         return False
 

@@ -3173,7 +3173,7 @@ def test_last_week_of_month_on_offset():
     ['Micro', 8.64e10],
     ['Nano', 8.64e13]
 ])
-def test_tick_arithmetic(offset, factor):
+def test_tick_dst_arithmetic(offset, factor):
     # GH 20633
     # Tick classes (e.g. Day) should now respect calendar arithmetic
     # Test that calendar day is respected by roundtripping across DST
