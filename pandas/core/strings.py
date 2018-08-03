@@ -2801,11 +2801,53 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
-    Compute length of each string in the Series/Index.
+    Compute length of each element in the Series/Index. The element may be
+    a sequence (such as a string, tuple or list) or a collection
+    (such as a dictionary).
 
     Returns
     -------
-    lengths : Series/Index of integer values
+    Series or Index of integer values
+        A Series or Index of integer values indicating the length of each
+        element in the Series or Index.
+
+    See Also
+    --------
+    str.len : Python built-in function returning the length (number of items) of an object.
+
+    Examples
+    --------
+
+    Returning a series of integer values as floats when `NaN` is returned as a
+    result.
+
+    >>> s = pd.Series(['dog', 5, 'bird', np.nan])
+    >>> s
+    0     dog
+    1     5
+    2     bird
+    3     NaN
+    dtype: object
+    >>> s.str.len()
+    0    3.0
+    1    NaN
+    2    4.0
+    3    NaN
+    dtype: float64
+
+    Returning the length (number of entries) of dictionaries, lists or tuples as integer values.
+
+    >>> s = pd.Series([{'foo':'bar'}, [2,3,5,7], ('one', 'two', 'three')])
+    >>> s
+    0       {'foo': 'bar'}
+    1         [1, 3, 5, 7]
+    2    (one, two, three)
+    dtype: object
+    >>> s.str.len()
+    0    1
+    1    4
+    2    3
+    dtype: int64
     """)
     len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
 
