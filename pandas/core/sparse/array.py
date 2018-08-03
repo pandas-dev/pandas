@@ -148,16 +148,19 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(data, SingleBlockManager):
             data = data.internal_values()
 
-        if sparse_index is None:
+        if isinstance(data, type(self)) and sparse_index is None:
+            sparse_index = data._sparse_index
+            sparse_values = np.asarray(data.sp_values, dtype=dtype)
+        elif sparse_index is None:
             sparse_values, sparse_index, fill_value = make_sparse(
-                data, kind=kind, fill_value=fill_value
+                data, kind=kind, fill_value=fill_value, dtype=dtype
             )
         else:
-            # TODO: validate
-            sparse_values = np.asarray(data)
+            # TODO: validate sparse_index?
+            sparse_values = np.asarray(data, dtype=dtype)
             sparse_index = sparse_index
 
-        # TODO: dtype and copy are unused
+        # TODO: copy is unused
 
         self._sparse_index = sparse_index
         self._sparse_values = sparse_values
@@ -211,7 +214,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @property
     def nbytes(self):
-        # TODO: move to sp_index
         return self.sp_values.nbytes + self.sp_index.nbytes
 
     @property
@@ -437,6 +439,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def _concat_same_type(cls, to_concat):
         # TODO: validate same fill_type
         # The basic idea is to
+        fill_value = set(x.fill_value for x in to_concat)
+
+        if len(fill_value) > 1:
+            raise ValueError("Cannot concatenate arrays with different fill values.")
+
         values = []
         indices = []
         length = 0
@@ -454,7 +461,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         indices = np.concatenate(indices)
         sp_index = IntIndex(length, indices)
 
-        return cls(data, sparse_index=sp_index)
+        return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
     def astype(self, dtype=None, copy=True):
         # TODO: Document API Change here: .astype(type) will densify
@@ -1172,7 +1179,7 @@ def _sanitize_values(arr):
     return arr
 
 
-def make_sparse(arr, kind='block', fill_value=None):
+def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
     """
     Convert ndarray to sparse format
 
@@ -1181,6 +1188,8 @@ def make_sparse(arr, kind='block', fill_value=None):
     arr : ndarray
     kind : {'block', 'integer'}
     fill_value : NaN or another value
+    dtype : np.dtype, optional
+    copy : bool, default False
 
     Returns
     -------
@@ -1221,6 +1230,9 @@ def make_sparse(arr, kind='block', fill_value=None):
 
     index = _make_index(length, indices, kind)
     sparsified_values = arr[mask]
+
+    sparsified_values = np.asarray(sparsified_values, dtype=dtype)
+    # TODO: copy
     return sparsified_values, index, fill_value
 
 

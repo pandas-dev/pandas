@@ -24,7 +24,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
 
 
-def get_dtype_kinds(l):
+def get_dtype_kinds(l, sparse_subtypes=False):
     """
     Parameters
     ----------
@@ -39,9 +39,14 @@ def get_dtype_kinds(l):
     for arr in l:
 
         dtype = arr.dtype
+
+        if is_sparse(arr) and sparse_subtypes:
+            dtype = dtype.subtype
+
         if is_categorical_dtype(dtype):
             typ = 'category'
-        elif is_sparse(arr):
+        elif is_sparse(arr) and not sparse_subtypes:
+            # TODO: this is broken since it's using arr, not dtype...
             typ = 'sparse'
         elif isinstance(arr, ABCRangeIndex):
             typ = 'range'
@@ -174,9 +179,9 @@ def _concat_compat(to_concat, axis=0):
         return _concat_datetime(to_concat, axis=axis, typs=typs)
 
     # these are mandated to handle empties as well
-    # TODO: delete _concat_sparse?
-    # elif 'sparse' in typs:
-    #     return _concat_sparse(to_concat, axis=axis, typs=typs)
+    elif 'sparse' in typs:
+        # concat([sparse, dense]) is always sparse
+        return _concat_sparse(to_concat, axis=axis, typs=typs)
 
     extensions = [is_extension_array_dtype(x) for x in to_concat]
     if any(extensions) and axis == 1:
@@ -546,7 +551,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
 
     Parameters
     ----------
-    to_concat : array of arrays
+    to_concat : Iterable[array]
     axis : axis to provide concatenation
     typs : set of to_concat dtypes
 
@@ -554,22 +559,39 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     -------
     a single array, preserving the combined dtypes
     """
-
     from pandas.core.sparse.array import SparseArray, _make_index
 
-    def convert_sparse(x, axis):
-        # coerce to native type
-        if isinstance(x, SparseArray):
-            x = x.get_values()
-        else:
-            x = np.asarray(x)
-        x = x.ravel()
-        if axis > 0:
-            x = np.atleast_2d(x)
-        return x
+    # Find our dtype
 
     if typs is None:
-        typs = get_dtype_kinds(to_concat)
+        typs = get_dtype_kinds(to_concat, sparse_subtypes=True)
+    else:
+        typs = set(typs)
+
+    typs.discard('sparse')
+
+    fill_value = set(getattr(x, 'fill_value', None) for x in to_concat)
+
+    import pdb; pdb.set_trace()
+
+    if len(fill_value) > 1:
+        raise ValueError("Cannot concatenate arrays with different fill values.")
+    elif fill_value:
+        import pdb; pdb.set_trace()
+        fill_value = list(fill_value)[0]
+    else:
+        raise ValueError("Must have at least 1 SparseArray")
+
+    if len(typs) == 1:
+        dtype = list(typs)[0]
+    else:
+        raise
+
+    to_concat = [SparseArray(x, fill_value=fill_value, dtype=dtype)
+                 if not isinstance(x, SparseArray)
+                 else x
+                 for x in to_concat]
+    # TODO: can arrays be 2-D?
 
     if len(typs) == 1:
         # concat input as it is if all inputs are sparse

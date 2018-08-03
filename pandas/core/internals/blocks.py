@@ -344,7 +344,11 @@ class Block(PandasObject):
 
     @property
     def ftype(self):
-        return "{dtype}:{ftype}".format(dtype=self.dtype, ftype=self._ftype)
+        if getattr(self.values, '_pandas_ftype', False):
+            dtype = self.dtype.subdtype
+        else:
+            dtype = self.dtype
+        return "{dtype}:{ftype}".format(dtype=dtype, ftype=self._ftype)
 
     def merge(self, other):
         return _merge_blocks([self, other])
