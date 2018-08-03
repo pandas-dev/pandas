@@ -14,9 +14,6 @@ from cpython.datetime cimport datetime
 import time
 
 import numpy as np
-cimport numpy as cnp
-from numpy cimport int64_t, ndarray
-cnp.import_array()
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
@@ -383,11 +380,11 @@ cpdef object _get_rule_month(object source, object default='DEC'):
 # Parsing for type-inference
 
 
-def try_parse_dates(ndarray[object] values, parser=None,
+def try_parse_dates(object[:] values, parser=None,
                     dayfirst=False, default=None):
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
 
     n = len(values)
     result = np.empty(n, dtype='O')
@@ -422,15 +419,15 @@ def try_parse_dates(ndarray[object] values, parser=None,
             # raise if passed parser and it failed
             raise
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
-def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
+def try_parse_date_and_time(object[:] dates, object[:] times,
                             date_parser=None, time_parser=None,
                             dayfirst=False, default=None):
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
 
     n = len(dates)
     if len(times) != n:
@@ -459,14 +456,14 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
         result[i] = datetime(d.year, d.month, d.day,
                              t.hour, t.minute, t.second)
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
-                             ndarray[object] days):
+def try_parse_year_month_day(object[:] years, object[:] months,
+                             object[:] days):
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
 
     n = len(years)
     if len(months) != n or len(days) != n:
@@ -476,19 +473,19 @@ def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
     for i in range(n):
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
-def try_parse_datetime_components(ndarray[object] years,
-                                  ndarray[object] months,
-                                  ndarray[object] days,
-                                  ndarray[object] hours,
-                                  ndarray[object] minutes,
-                                  ndarray[object] seconds):
+def try_parse_datetime_components(object[:] years,
+                                  object[:] months,
+                                  object[:] days,
+                                  object[:] hours,
+                                  object[:] minutes,
+                                  object[:] seconds):
 
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
         int secs
         double float_secs
         double micros
@@ -511,7 +508,7 @@ def try_parse_datetime_components(ndarray[object] years,
                              int(hours[i]), int(minutes[i]), secs,
                              int(micros))
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
 # ----------------------------------------------------------------------

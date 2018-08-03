@@ -22,6 +22,10 @@ This file implements string parsing and creation for NumPy datetime.
 #define PY_SSIZE_T_CLEAN
 #define NO_IMPORT
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif
+
 #include <Python.h>
 
 #include <time.h>

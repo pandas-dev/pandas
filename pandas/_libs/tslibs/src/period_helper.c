@@ -13,8 +13,12 @@ frequency conversion routines.
 See end of file for stuff pandas uses (search for 'pandas').
 */
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif
+
 #include "period_helper.h"
-#include "../datetime/np_datetime.h"
+#include "datetime/np_datetime.h"
 
 /* ------------------------------------------------------------------
  * Code derived from scikits.timeseries
@@ -79,9 +83,9 @@ static npy_int64 daytime_conversion_factor_matrix[7][7] = {
 
 int max_value(int a, int b) { return a > b ? a : b; }
 
-PANDAS_INLINE int min_value(int a, int b) { return a < b ? a : b; }
+static int min_value(int a, int b) { return a < b ? a : b; }
 
-PANDAS_INLINE int get_freq_group(int freq) { return (freq / 1000) * 1000; }
+static int get_freq_group(int freq) { return (freq / 1000) * 1000; }
 
 
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
@@ -97,8 +101,7 @@ npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
     return daytime_conversion_factor_matrix[row - 6][col - 6];
 }
 
-PANDAS_INLINE npy_int64 upsample_daytime(npy_int64 ordinal,
-                                         asfreq_info *af_info) {
+static npy_int64 upsample_daytime(npy_int64 ordinal, asfreq_info *af_info) {
     if (af_info->is_end) {
         return (ordinal + 1) * af_info->intraday_conversion_factor - 1;
     } else {
@@ -106,15 +109,14 @@ PANDAS_INLINE npy_int64 upsample_daytime(npy_int64 ordinal,
     }
 }
 
-PANDAS_INLINE npy_int64 downsample_daytime(npy_int64 ordinal,
-                                           asfreq_info *af_info) {
+static npy_int64 downsample_daytime(npy_int64 ordinal, asfreq_info *af_info) {
     return ordinal / (af_info->intraday_conversion_factor);
 }
 
-PANDAS_INLINE npy_int64 transform_via_day(npy_int64 ordinal,
-                                          asfreq_info *af_info,
-                                          freq_conv_func first_func,
-                                          freq_conv_func second_func) {
+static npy_int64 transform_via_day(npy_int64 ordinal,
+                                   asfreq_info *af_info,
+                                   freq_conv_func first_func,
+                                   freq_conv_func second_func) {
     npy_int64 result;
 
     result = (*first_func)(ordinal, af_info);

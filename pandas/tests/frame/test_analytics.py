@@ -74,29 +74,29 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
-    def test_corr_nooverlap(self):
+    @pytest.mark.parametrize('meth', ['pearson', 'kendall', 'spearman'])
+    def test_corr_nooverlap(self, meth):
         # nothing in common
-        for meth in ['pearson', 'kendall', 'spearman']:
-            df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
-                            'B': [np.nan, np.nan, np.nan, 1, 1.5, 1],
-                            'C': [np.nan, np.nan, np.nan, np.nan,
-                                  np.nan, np.nan]})
-            rs = df.corr(meth)
-            assert isna(rs.loc['A', 'B'])
-            assert isna(rs.loc['B', 'A'])
-            assert rs.loc['A', 'A'] == 1
-            assert rs.loc['B', 'B'] == 1
-            assert isna(rs.loc['C', 'C'])
+        df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
+                        'B': [np.nan, np.nan, np.nan, 1, 1.5, 1],
+                        'C': [np.nan, np.nan, np.nan, np.nan,
+                              np.nan, np.nan]})
+        rs = df.corr(meth)
+        assert isna(rs.loc['A', 'B'])
+        assert isna(rs.loc['B', 'A'])
+        assert rs.loc['A', 'A'] == 1
+        assert rs.loc['B', 'B'] == 1
+        assert isna(rs.loc['C', 'C'])
 
     @td.skip_if_no_scipy
-    def test_corr_constant(self):
+    @pytest.mark.parametrize('meth', ['pearson', 'spearman'])
+    def test_corr_constant(self, meth):
         # constant --> all NA
 
-        for meth in ['pearson', 'spearman']:
-            df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
-                            'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
-            rs = df.corr(meth)
-            assert isna(rs.values).all()
+        df = DataFrame({'A': [1, 1, 1, np.nan, np.nan, np.nan],
+                        'B': [np.nan, np.nan, np.nan, 1, 1, 1]})
+        rs = df.corr(meth)
+        assert isna(rs.values).all()
 
     def test_corr_int(self):
         # dtypes other than float64 #1761
@@ -658,20 +658,20 @@ class TestDataFrameAnalytics(TestData):
         pytest.raises(TypeError, lambda: getattr(df2, meth)(
             axis=1, numeric_only=False))
 
-    def test_mixed_ops(self):
+    @pytest.mark.parametrize('op', ['mean', 'std', 'var',
+                                    'skew', 'kurt', 'sem'])
+    def test_mixed_ops(self, op):
         # GH 16116
         df = DataFrame({'int': [1, 2, 3, 4],
                         'float': [1., 2., 3., 4.],
                         'str': ['a', 'b', 'c', 'd']})
 
-        for op in ['mean', 'std', 'var', 'skew',
-                   'kurt', 'sem']:
+        result = getattr(df, op)()
+        assert len(result) == 2
+
+        with pd.option_context('use_bottleneck', False):
             result = getattr(df, op)()
             assert len(result) == 2
-
-            with pd.option_context('use_bottleneck', False):
-                result = getattr(df, op)()
-                assert len(result) == 2
 
     def test_cumsum(self):
         self.tsframe.loc[5:10, 0] = nan
