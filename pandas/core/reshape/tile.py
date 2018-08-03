@@ -312,7 +312,6 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise',
             bins = bins.astype(np.float64)
         bins[0] = -np.inf
         bins[-1] = np.inf
-        pass
     fac, bins = _bins_to_cuts(x, bins, labels=labels,
                               precision=precision, include_lowest=True,
                               dtype=dtype, duplicates=duplicates)
