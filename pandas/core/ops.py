@@ -1708,7 +1708,8 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, na_op, try_cast=True)
+            pass_op = op if lib.is_scalar(other) else na_op
+            return self._combine_const(other, pass_op, try_cast=True)
 
     f.__name__ = op_name
 
