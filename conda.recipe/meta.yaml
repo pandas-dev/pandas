@@ -29,10 +29,8 @@ requirements:
     - pytz
 
 test:
-  requirements:
+  requires:
     - pytest
-  imports:
-    - pandas
   commands:
     - python -c "import pandas; pandas.test()"
 
