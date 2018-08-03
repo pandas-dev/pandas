@@ -35,3 +35,7 @@ Bug Fixes
 **Missing**
 
 - Bug in :func:`Series.clip` and :func:`DataFrame.clip` cannot accept list-like threshold containing ``NaN`` (:issue:`19992`)
+
+**Indexing**
+
+- Fix ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
