@@ -16,7 +16,7 @@ from distutils.version import LooseVersion
 import numpy as np
 
 import pandas._libs.json as json
-from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.util._decorators import Appender, deprecate_kwarg, validate_kwarg
 from pandas.errors import EmptyDataError
 
 import pandas.compat as compat
@@ -279,7 +279,7 @@ def get_writer(engine_name):
         raise ValueError("No Excel writer '{engine}'"
                          .format(engine=engine_name))
 
-
+@validate_kwarg()
 @Appender(_read_excel_doc)
 @deprecate_kwarg("parse_cols", "usecols")
 @deprecate_kwarg("skip_footer", "skipfooter")
