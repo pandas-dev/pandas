@@ -237,6 +237,23 @@ class TestSeriesAlterAxes(TestData):
         assert no_return is None
         assert_series_equal(result, expected)
 
+    def test_set_axis_inplace_axes(self, axis_series):
+        # GH14636
+        ser = Series(np.arange(4), index=[1, 3, 5, 7], dtype='int64')
+
+        expected = ser.copy()
+        expected.index = list('abcd')
+
+        # inplace=True
+        # The FutureWarning comes from the fact that we would like to have
+        # inplace default to False some day
+        for inplace, warn in [(None, FutureWarning), (True, None)]:
+            result = ser.copy()
+            kwargs = {'inplace': inplace}
+            with tm.assert_produces_warning(warn):
+                result.set_axis(list('abcd'), axis=axis_series, **kwargs)
+            tm.assert_series_equal(result, expected)
+
     def test_set_axis_inplace(self):
         # GH14636
 
@@ -244,17 +261,6 @@ class TestSeriesAlterAxes(TestData):
 
         expected = s.copy()
         expected.index = list('abcd')
-
-        for axis in 0, 'index':
-            # inplace=True
-            # The FutureWarning comes from the fact that we would like to have
-            # inplace default to False some day
-            for inplace, warn in (None, FutureWarning), (True, None):
-                result = s.copy()
-                kwargs = {'inplace': inplace}
-                with tm.assert_produces_warning(warn):
-                    result.set_axis(list('abcd'), axis=axis, **kwargs)
-                tm.assert_series_equal(result, expected)
 
         # inplace=False
         result = s.set_axis(list('abcd'), axis=0, inplace=False)
@@ -266,7 +272,7 @@ class TestSeriesAlterAxes(TestData):
         tm.assert_series_equal(result, expected)
 
         # wrong values for the "axis" parameter
-        for axis in 2, 'foo':
+        for axis in [2, 'foo']:
             with tm.assert_raises_regex(ValueError, 'No axis named'):
                 s.set_axis(list('abcd'), axis=axis, inplace=False)
 
@@ -276,7 +282,7 @@ class TestSeriesAlterAxes(TestData):
         expected = s.copy()
         expected.index = list('abcd')
 
-        for axis in 0, 'index':
+        for axis in [0, 'index']:
             with tm.assert_produces_warning(FutureWarning):
                 result = s.set_axis(0, list('abcd'), inplace=False)
             tm.assert_series_equal(result, expected)

@@ -83,7 +83,7 @@ def test_nulls(idx):
         idx.isna()
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(strict=True)
 def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
     index = idx.copy()

@@ -91,7 +91,7 @@ def ensure_datetime64ns(ndarray arr, copy=True):
     """
     cdef:
         Py_ssize_t i, n = arr.size
-        ndarray[int64_t] ivalues, iresult
+        int64_t[:] ivalues, iresult
         NPY_DATETIMEUNIT unit
         npy_datetimestruct dts
 
@@ -139,7 +139,7 @@ def ensure_timedelta64ns(ndarray arr, copy=True):
     return arr.astype(TD_DTYPE, copy=copy)
 
 
-def datetime_to_datetime64(ndarray[object] values):
+def datetime_to_datetime64(object[:] values):
     """
     Convert ndarray of datetime-like objects to int64 array representing
     nanosecond timestamps.
@@ -156,7 +156,7 @@ def datetime_to_datetime64(ndarray[object] values):
     cdef:
         Py_ssize_t i, n = len(values)
         object val, inferred_tz = None
-        ndarray[int64_t] iresult
+        int64_t[:] iresult
         npy_datetimestruct dts
         _TSObject _ts
 
@@ -525,7 +525,8 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
     Sets obj.tzinfo inplace, alters obj.dts inplace.
     """
     cdef:
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         int64_t local_val
         Py_ssize_t pos
 
@@ -631,15 +632,16 @@ cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
     cdef:
         Py_ssize_t n = len(values)
         Py_ssize_t i, j, pos
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] tt, trans, deltas
-        ndarray[Py_ssize_t] posn
+        int64_t[:] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] tt, trans
+        int64_t[:] deltas
+        Py_ssize_t[:] posn
         int64_t v
 
     trans, deltas, typ = get_dst_info(tz)
     if not to_utc:
         # We add `offset` below instead of subtracting it
-        deltas = -1 * deltas
+        deltas = -1 * np.array(deltas, dtype='i8')
 
     tt = values[values != NPY_NAT]
     if not len(tt):
@@ -728,7 +730,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     converted: int64
     """
     cdef:
-        ndarray[int64_t] trans, deltas
+        int64_t[:] deltas
         Py_ssize_t pos
         int64_t v, offset, utc_date
         npy_datetimestruct dts
@@ -756,7 +758,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     else:
         # Convert UTC to other timezone
         arr = np.array([utc_date])
-        # Note: at least with cython 0.28.3, doing a looking `[0]` in the next
+        # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
         # line is sensitive to the declared return type of _tz_convert_dst;
         # if it is declared as returning ndarray[int64_t], a compile-time error
         # is raised.
@@ -781,10 +783,9 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     """
 
     cdef:
-        ndarray[int64_t] utc_dates, tt, result, trans, deltas
+        ndarray[int64_t] utc_dates, result
         Py_ssize_t i, j, pos, n = len(vals)
-        int64_t v, offset, delta
-        npy_datetimestruct dts
+        int64_t v
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
@@ -843,7 +844,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     localized : ndarray[int64_t]
     """
     cdef:
-        ndarray[int64_t] trans, deltas, idx_shifted
+        ndarray[int64_t] trans
+        int64_t[:] deltas, idx_shifted
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
@@ -888,7 +890,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     trans, deltas, typ = get_dst_info(tz)
 
-    tdata = <int64_t*> trans.data
+    tdata = <int64_t*> cnp.PyArray_DATA(trans)
     ntrans = len(trans)
 
     result_a = np.empty(n, dtype=np.int64)
@@ -1069,7 +1071,7 @@ def normalize_date(object dt):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def normalize_i8_timestamps(ndarray[int64_t] stamps, tz=None):
+def normalize_i8_timestamps(int64_t[:] stamps, tz=None):
     """
     Normalize each of the (nanosecond) timestamps in the given array by
     rounding down to the beginning of the day (i.e. midnight).  If `tz`
@@ -1087,7 +1089,7 @@ def normalize_i8_timestamps(ndarray[int64_t] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        int64_t[:] result = np.empty(n, dtype=np.int64)
 
     if tz is not None:
         tz = maybe_get_tz(tz)
@@ -1101,12 +1103,12 @@ def normalize_i8_timestamps(ndarray[int64_t] stamps, tz=None):
                 dt64_to_dtstruct(stamps[i], &dts)
                 result[i] = _normalized_stamp(&dts)
 
-    return result
+    return result.base  # .base to access underlying np.ndarray
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
+cdef int64_t[:] _normalize_local(int64_t[:] stamps, object tz):
     """
     Normalize each of the (nanosecond) timestamps in the given array by
     rounding down to the beginning of the day (i.e. midnight) for the
@@ -1123,8 +1125,9 @@ cdef ndarray[int64_t] _normalize_local(ndarray[int64_t] stamps, object tz):
     """
     cdef:
         Py_ssize_t n = len(stamps)
-        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] trans, deltas
+        int64_t[:] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t delta
@@ -1190,7 +1193,7 @@ cdef inline int64_t _normalized_stamp(npy_datetimestruct *dts) nogil:
     return dtstruct_to_dt64(dts)
 
 
-def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
+def is_date_array_normalized(int64_t[:] stamps, tz=None):
     """
     Check if all of the given (nanosecond) timestamps are normalized to
     midnight, i.e. hour == minute == second == 0.  If the optional timezone
@@ -1206,8 +1209,9 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
     is_normalized : bool True if all stamps are normalized
     """
     cdef:
-        Py_ssize_t i, n = len(stamps)
-        ndarray[int64_t] trans, deltas
+        Py_ssize_t pos, i, n = len(stamps)
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         npy_datetimestruct dts
         int64_t local_val, delta
 

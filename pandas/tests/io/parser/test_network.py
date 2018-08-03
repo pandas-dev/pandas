@@ -12,7 +12,7 @@ import numpy as np
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas.io.parsers import read_csv, read_table
+from pandas.io.parsers import read_csv
 from pandas.compat import BytesIO, StringIO
 
 
@@ -44,7 +44,7 @@ def check_compressed_urls(salaries_table, compression, extension, mode,
     if mode != 'explicit':
         compression = mode
 
-    url_table = read_table(url, compression=compression, engine=engine)
+    url_table = read_csv(url, sep='\t', compression=compression, engine=engine)
     tm.assert_frame_equal(url_table, salaries_table)
 
 
@@ -197,4 +197,4 @@ class TestS3(object):
         with caplog.at_level(logging.DEBUG, logger='s3fs.core'):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
-            assert ((0, 5505024) in set(x.args[-2:] for x in caplog.records))
+            assert ((0, 5505024) in {x.args[-2:] for x in caplog.records})

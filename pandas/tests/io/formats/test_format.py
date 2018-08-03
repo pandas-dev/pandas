@@ -21,7 +21,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_table)
+                    date_range, NaT, read_csv)
 from pandas.compat import (range, zip, lrange, StringIO, PY3,
                            u, lzip, is_platform_windows,
                            is_platform_32bit)
@@ -1225,8 +1225,8 @@ class TestDataFrameFormatting(object):
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join(re.sub(r'\s+', ' ', x).strip() for x in lines[1:])
-        recons = read_table(StringIO(joined), names=header,
-                            header=None, sep=' ')
+        recons = read_csv(StringIO(joined), names=header,
+                          header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         assert recons['A'].count() == biggie['A'].count()
         assert (np.abs(recons['A'].dropna() -

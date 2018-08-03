@@ -400,10 +400,10 @@ class BlockManager(PandasObject):
 
         # TODO(EA): may interfere with ExtensionBlock.setitem for blocks
         # with a .values attribute.
-        aligned_args = dict((k, kwargs[k])
-                            for k in align_keys
-                            if hasattr(kwargs[k], 'values') and
-                            not isinstance(kwargs[k], ABCExtensionArray))
+        aligned_args = {k: kwargs[k]
+                        for k in align_keys
+                        if hasattr(kwargs[k], 'values') and
+                        not isinstance(kwargs[k], ABCExtensionArray)}
 
         for b in self.blocks:
             if filter is not None:
