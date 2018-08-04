@@ -41,9 +41,9 @@ class IsIn(object):
 class IsInFloat64(object):
 
     def setup(self):
-        self.small = Series(np.random.randint(1, 10, 10)).astype(dtype=np.float64)
+        self.small = Series([1, 2], dtype=np.float64)
         self.many_different_values = np.arange(10**6, dtype=np.float64)
-        self.few_different_values = np.zeros(10**7, dtype=np.float64)      
+        self.few_different_values = np.zeros(10**7, dtype=np.float64)
         self.only_nans_values = np.full(10**7, np.nan, dtype=np.float64)
 
     def time_isin_many_different(self):
