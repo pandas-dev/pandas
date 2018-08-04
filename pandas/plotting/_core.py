@@ -2727,7 +2727,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 class BasePlotMethods(PandasObject):
 
     def __init__(self, data):
-        self._parent = data  # either Series or DataFrame
+        self._parent = data  # Series or DataFrame
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
