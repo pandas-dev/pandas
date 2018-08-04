@@ -9,11 +9,11 @@ def validate_kwarg():
     def _validate_kwarg(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            expected_keys=['io', 'sheet_name','header', 'names', 'index_col', 'usecols', 'squeeze', 'dtype', 'engine', 
+            expected_keys=set(['io', 'sheet_name','header', 'names', 'index_col', 'usecols', 'squeeze', 'dtype', 'engine', 
                'converters', 'true_values',  'false_values', 'skiprows', 'nrows', 'na_values', 'verbose', 'parse_dates',
-               'date_parser', 'thousands', 'comment', 'skipfooter', 'convert_float']
+               'date_parser', 'thousands', 'comment', 'skipfooter', 'convert_float'])
 
-            if set(kwargs.keys()).difference(set(expected_keys)): 
+            if set(kwargs.keys()).difference(expected_keys): 
                 raise ValueError('invalid parameter found')
 
             return func(*args, **kwargs)
