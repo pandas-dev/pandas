@@ -392,6 +392,11 @@ class TestDataFrameAlterAxes(TestData):
 
         assert new_index.freq == index.freq
 
+    def test_set_index_tuple(self):
+        # test for fix of issue #15457, where the following raised a TypeError
+        df = DataFrame([[2, 1, 2], [4, (1, 2), 3]]).set_index([0, 1])
+        assert df.to_dict() == {2: {(2, 1): 2, (4, (1, 2)): 3}}
+
     # Renaming
 
     def test_rename(self):
