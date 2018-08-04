@@ -138,3 +138,4 @@ Bug Fixes
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
 - Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
+- Bug in :func:`Dataframe.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
