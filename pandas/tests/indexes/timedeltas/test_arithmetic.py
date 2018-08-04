@@ -966,9 +966,9 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_frame_equal(actual, dfn)
 
         with pytest.raises(TypeError):
-            actual = df1 + np.nan
+            df1 + np.nan
         with pytest.raises(TypeError):
-            actual = df1 - np.nan
+            df1 - np.nan
 
         actual = df1 + pd.NaT  # NaT is datetime, not timedelta
         tm.assert_frame_equal(actual, dfn)
