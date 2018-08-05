@@ -93,7 +93,7 @@ if [ "$LINT" ]; then
     # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
     # we can lint all header files since they aren't "generated" like C files are.
     echo "Linting *.c and *.h"
-    for path in '*.h' 'period_helper.c' 'datetime' 'parser' 'ujson'
+    for path in '*.h' 'parser' 'ujson'
     do
         echo "linting -> pandas/_libs/src/$path"
         cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/$path
@@ -101,6 +101,11 @@ if [ "$LINT" ]; then
             RET=1
         fi
     done
+    echo "linting -> pandas/_libs/tslibs/src/datetime"
+    cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/tslibs/src/datetime
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
     echo "Linting *.c and *.h DONE"
 
     echo "Check for invalid testing"
