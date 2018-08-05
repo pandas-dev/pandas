@@ -66,7 +66,7 @@ def test_is_sequence():
     "ll",
     [
         [], [1], (1, ), (1, 2), {'a': 1},
-        set([1, 'a']), Series([1]),
+        {1, 'a'}, Series([1]),
         Series([]), Series(['a']).str,
         np.array([2])])
 def test_is_list_like_passes(ll):
@@ -97,7 +97,7 @@ def test_is_array_like():
 
 
 @pytest.mark.parametrize('inner', [
-    [], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
+    [], [1], (1, ), (1, 2), {'a': 1}, {1, 'a'}, Series([1]),
     Series([]), Series(['a']).str, (x for x in range(5))
 ])
 @pytest.mark.parametrize('outer', [
@@ -293,7 +293,7 @@ class TestInference(object):
         # see gh-13274
         infinities = ['inf', 'inF', 'iNf', 'Inf',
                       'iNF', 'InF', 'INf', 'INF']
-        na_values = set(['', 'NULL', 'nan'])
+        na_values = {'', 'NULL', 'nan'}
 
         pos = np.array(['inf'], dtype=np.float64)
         neg = np.array(['-inf'], dtype=np.float64)
@@ -332,7 +332,7 @@ class TestInference(object):
         # see gh-13314
         data = np.array(['1.200', '-999.000', '4.500'], dtype=object)
         expected = np.array([1.2, np.nan, 4.5], dtype=np.float64)
-        nan_values = set([-999, -999.0])
+        nan_values = {-999, -999.0}
 
         out = lib.maybe_convert_numeric(data, nan_values, coerce)
         tm.assert_numpy_array_equal(out, expected)
@@ -385,7 +385,7 @@ class TestInference(object):
 
     def test_convert_numeric_uint64_nan_values(self, coerce):
         arr = np.array([2**63, 2**63 + 1], dtype=object)
-        na_values = set([2**63])
+        na_values = {2 ** 63}
 
         expected = (np.array([np.nan, 2**63 + 1], dtype=float)
                     if coerce else arr.copy())
