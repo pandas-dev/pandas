@@ -24,7 +24,7 @@ This file implements string parsing and creation for NumPy datetime.
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif
+#endif  // NPY_NO_DEPRECATED_API
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
