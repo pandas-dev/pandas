@@ -397,169 +397,6 @@ d  -1.0  NaN
 e  NaN  -2.0
 """
 
-_eq_example_FRAME = """
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df1.eq(df2)
-   company   cost  revenue
-0     True  False    False
-1     True  False     True
-2     True  False    False
-3    False  False    False
-"""
-
-_ne_example_FRAME = """
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df1.ne(df2)
-   company  cost  revenue
-0    False  True     True
-1    False  True    False
-2    False  True     True
-3     True  True     True
-"""
-
-_lt_example_FRAME = """
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df1.lt(df2)
-   company   cost  revenue
-0    False  False     True
-1    False  False    False
-2    False  False    False
-3    False  False    False
-"""
-
-_le_example_FRAME = """
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df1.le(df2)
-   company   cost  revenue
-0     True  False     True
-1     True  False     True
-2     True  False    False
-3    False  False    False
-"""
-
-_gt_example_FRAME = """
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df1.gt(df2)
-   company   cost  revenue
-0    False  False    False
-1    False  False    False
-2    False  False     True
-3    False  False    False
-"""
-
-_ge_example_FRAME = """
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df1.ge(df2)
-   company   cost  revenue
-0     True  False    False
-1     True  False     True
-2     True  False     True
-3    False  False    False
-"""
-
-_comp_others = """
-DataFrame.eq : Compare DataFrames for equality elementwise
-DataFrame.ne : Compare DataFrames for inequality elementwise
-DataFrame.le : Compare DataFrames for less than inequality
-    or equality elementwise
-DataFrame.lt : Compare DataFrames for strictly less than
-    inequality elementwise
-DataFrame.ge : Compare DataFrames for greater than inequality
-    or equality elementwise
-DataFrame.gt : Compare DataFrames for strictly greater than
-    inequality elementwise
-"""
-
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -599,33 +436,33 @@ _op_descriptions = {
     'eq': {'op': '==',
            'desc': 'Equal to',
            'reverse': None,
-           'df_examples': _eq_example_FRAME,
-           'others': _comp_others},
+           'df_examples': None,
+           'others': None},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
            'reverse': None,
-           'df_examples': _ne_example_FRAME,
-           'others': _comp_others},
+           'df_examples': None,
+           'others': None},
     'lt': {'op': '<',
            'desc': 'Less than',
            'reverse': None,
-           'df_examples': _lt_example_FRAME,
-           'others': _comp_others},
+           'df_examples': None,
+           'others': None},
     'le': {'op': '<=',
            'desc': 'Less than or equal to',
            'reverse': 'gt',
-           'df_examples': _le_example_FRAME,
-           'others': _comp_others},
+           'df_examples': None,
+           'others': None},
     'gt': {'op': '>',
            'desc': 'Greater than',
            'reverse': None,
-           'df_examples': _gt_example_FRAME,
-           'others': _comp_others},
+           'df_examples': None,
+           'others': None},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
            'reverse': None,
-           'df_examples': _ge_example_FRAME,
-           'others': _comp_others}}
+           'df_examples': None,
+           'others': None}}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -752,15 +589,15 @@ DataFrame.{reverse}
 """
 
 _flex_comp_doc_FRAME = """
-Flexible wrappers to comparison operators (specifically ``{name}``).
+Flexible wrappers to comparison operators (`eq`, `ne`, `le`, `lt`, `ge`, `gt`).
 
 Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose
-axis (rows or columns) for comparison.
+axis (rows or columns) and level for comparison.
 
 Parameters
 ----------
-other : DataFrame
-    Any structured DataFrame. Can be different number of columns or rows.
+other : constant, list, tuple, ndarray, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
 axis : int or str, optional
     Axis to target. Can be either the axis name ('index', 'rows',
     'columns') or number (0, 1).
@@ -775,7 +612,16 @@ result : DataFrame of bool
 
 See also
 --------
-{reverse}
+DataFrame.eq : Compare DataFrames for equality elementwise
+DataFrame.ne : Compare DataFrames for inequality elementwise
+DataFrame.le : Compare DataFrames for less than inequality
+    or equality elementwise
+DataFrame.lt : Compare DataFrames for strictly less than
+    inequality elementwise
+DataFrame.ge : Compare DataFrames for greater than inequality
+    or equality elementwise
+DataFrame.gt : Compare DataFrames for strictly greater than
+    inequality elementwise
 
 Notes
 --------
@@ -783,7 +629,107 @@ Mismatched indices will be unioned together.
 
 Examples
 --------
-{df_examples}
+>>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
+...                     'cost': [250, 150, 100],
+...                     'revenue': [100, 250, 300]})
+>>> df1
+  company  cost  revenue
+0       A   250      100
+1       B   150      250
+2       C   100      300
+>>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
+...                     'revenue': [300, 250, 100, 150]})
+>>> df2
+  company  revenue
+0       A      300
+1       B      250
+2       C      100
+3       D      150
+>>> df3 = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
+...                     'revenue': [100, 250, 300, 200, 175, 225]},
+...                     index = [['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                              ['A', 'B', 'C', 'A', 'B' ,'C']])
+>>> df3
+      cost  revenue
+Q1 A   250      100
+   B   150      250
+   C   100      300
+Q2 A   150      200
+   B   300      175
+   C   220      225
+
+Compare to a constant and operator version
+
+>>> df1 == 100
+   company   cost  revenue
+0    False  False     True
+1    False  False    False
+2    False   True    False
+>>> df1.eq(100)
+   company   cost  revenue
+0    False  False     True
+1    False  False    False
+2    False   True    False
+
+Compare to a Series by axis and operator version
+
+>>> df1 != [100, 250, 300]
+   company  cost  revenue
+0     True  True    False
+1     True  True    False
+2     True  True    False
+>>> df1.ne([100, 250, 300], axis=0)
+   company  cost  revenue
+0     True  True    False
+1     True  True    False
+2     True  True    False
+>>> df1 != pd.Series([100, 250, 300])
+   company  cost  revenue     0     1     2
+0     True  True     True  True  True  True
+1     True  True     True  True  True  True
+2     True  True     True  True  True  True
+>>> df1.ne(pd.Series([100, 250, 300]), axis=1)
+   company  cost  revenue     0     1     2
+0     True  True     True  True  True  True
+1     True  True     True  True  True  True
+2     True  True     True  True  True  True
+
+Compare to a DataFrame by axis and operator version
+
+>>> df1.reindex(['company', 'revenue'], axis='columns') > df2.iloc[:-1]
+   company  revenue
+0    False    False
+1    False    False
+2    False     True
+>>> df1.gt(df2, axis=0)
+   company   cost  revenue
+0    False  False    False
+1    False  False    False
+2    False  False     True
+3    False  False    False
+>>> df1.gt(df2, axis=1)
+   company   cost  revenue
+0    False  False    False
+1    False  False    False
+2    False  False     True
+3    False  False    False
+
+Compare to a MultiIndex by level and operator version
+
+>>> df1.set_index('company') <= df3.loc['Q1']
+         cost  revenue
+company
+A        True     True
+B        True     True
+C        True     True
+>>> df1.set_index('company').le(df3, level=1)
+       cost  revenue
+Q1 A   True     True
+   B   True     True
+   C   True     True
+Q2 A  False     True
+   B   True    False
+   C   True    False
 """
 
 _flex_doc_PANEL = """
@@ -1751,12 +1697,9 @@ def _flex_comp_method_FRAME(cls, op, special):
         return result
 
     if op_name in _op_descriptions:
-        op_desc = _op_descriptions[op_name]
-
-        base_doc = _flex_comp_doc_FRAME
-        doc = base_doc.format(name=op_name,
-                              df_examples=op_desc['df_examples'].strip(),
-                              reverse=op_desc['others'].strip())
+        doc = _flex_comp_doc_FRAME
+    else:
+        doc = "Flexible wrappers to comparison methods"
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
