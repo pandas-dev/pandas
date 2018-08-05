@@ -35,10 +35,6 @@ class Base(object):
         assert indices.equals(unpickled)
 
     def test_pickle_compat_construction(self):
-        # this is testing for pickle compat
-        if self._holder is None:
-            pytest.skip('Skip check for uncertain type')
-
         # need an object to create with
         pytest.raises(TypeError, self._holder)
 
