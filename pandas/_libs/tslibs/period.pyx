@@ -84,7 +84,7 @@ cdef extern from *:
 
     /* The standard quarterly frequencies with various fiscal year ends
        eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005 */
-    #define FR_QTR 2000      /* Quarterly - December year end (default quarterly) */
+    #define FR_QTR 2000      /* Quarterly - December year end (default Q) */
     #define FR_QTRDEC FR_QTR /* Quarterly - December year end */
     #define FR_QTRJAN 2001   /* Quarterly - January year end */
     #define FR_QTRFEB 2002   /* Quarterly - February year end */
@@ -204,7 +204,8 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
             return <freq_conv_func>asfreq_MtoB
         elif from_group == FR_WK:
             return <freq_conv_func>asfreq_WtoB
-        elif from_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+        elif from_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC,
+                            FR_MS, FR_US, FR_NS]:
             return <freq_conv_func>asfreq_DTtoB
         else:
             return <freq_conv_func>nofunc
