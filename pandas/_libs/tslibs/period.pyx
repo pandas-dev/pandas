@@ -271,9 +271,9 @@ cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
             return <freq_conv_func>asfreq_DTtoA
         elif to_group == FR_QTR:
             return <freq_conv_func>asfreq_DTtoQ
-        elif to_group ==  FR_MTH:
+        elif to_group == FR_MTH:
             return <freq_conv_func>asfreq_DTtoM
-        elif to_group ==  FR_WK:
+        elif to_group == FR_WK:
             return <freq_conv_func>asfreq_DTtoW
         elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
             if from_group > to_group:
