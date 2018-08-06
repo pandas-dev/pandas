@@ -394,3 +394,6 @@ class TestDatetimeIndex(object):
     def test_unique(self, arr, expected):
         result = arr.unique()
         tm.assert_index_equal(result, expected)
+        # GH 21737
+        # Ensure the underlying data is consistent
+        assert result[0] == expected[0]
