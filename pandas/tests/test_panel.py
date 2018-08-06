@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype
 from pandas import (Series, DataFrame, Index, date_range, isna, notna,
-                    pivot, MultiIndex)
+                    MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 
@@ -2695,7 +2695,7 @@ class TestPanelFrame(object):
             a, b, c = (np.array([1, 2, 3, 4, 4]),
                        np.array(['a', 'a', 'a', 'a', 'a']),
                        np.array([1., 2., 3., 4., 5.]))
-            pytest.raises(Exception, pivot, a, b, c)
+            pytest.raises(Exception, _pivot_simple, a, b, c)
 
             # corner case, empty
             df = _pivot_simple(np.array([]), np.array([]), np.array([]))
