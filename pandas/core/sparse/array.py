@@ -109,7 +109,7 @@ def _sparse_array_op(left, right, op, name):
             right_sp_values = right.sp_values.view(np.uint8)
             result_dtype = np.bool
         else:
-            opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype.__name__)
+            opname = 'sparse_{name}_{dtype}'.format(name=name, dtype=dtype)
             left_sp_values = left.sp_values
             right_sp_values = right.sp_values
 
@@ -291,6 +291,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # else:
         #     msg = 'unable to set fill_value {fill} to {dtype} dtype'
         #     raise ValueError(msg.format(fill=value, dtype=self.dtype))
+
+    @property
+    def _valid_sp_values(self):
+        sp_vals = self.sp_values
+        mask = notna(sp_vals)
+        return sp_vals[mask]
 
     def __len__(self):
         return self.sp_index.length
@@ -638,6 +644,143 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return np.asarray(self, dtype=self.sp_values.dtype)
 
     # ------------------------------------------------------------------------
+    # Reductions
+    # ------------------------------------------------------------------------
+
+    def all(self, axis=None, *args, **kwargs):
+        """
+        Tests whether all elements evaluate True
+
+        Returns
+        -------
+        all : bool
+
+        See Also
+        --------
+        numpy.all
+        """
+        nv.validate_all(args, kwargs)
+
+        values = self.sp_values
+
+        if len(values) != len(self) and not np.all(self.fill_value):
+            return False
+
+        return values.all()
+
+    def any(self, axis=0, *args, **kwargs):
+        """
+        Tests whether at least one of elements evaluate True
+
+        Returns
+        -------
+        any : bool
+
+        See Also
+        --------
+        numpy.any
+        """
+        nv.validate_any(args, kwargs)
+
+        values = self.sp_values
+
+        if len(values) != len(self) and np.any(self.fill_value):
+            return True
+
+        return values.any()
+
+    def sum(self, axis=0, *args, **kwargs):
+        """
+        Sum of non-NA/null values
+
+        Returns
+        -------
+        sum : float
+        """
+        nv.validate_sum(args, kwargs)
+        valid_vals = self._valid_sp_values
+        sp_sum = valid_vals.sum()
+        if self._null_fill_value:
+            return sp_sum
+        else:
+            nsparse = self.sp_index.ngaps
+            return sp_sum + self.fill_value * nsparse
+
+    def cumsum(self, axis=0, *args, **kwargs):
+        """
+        Cumulative sum of non-NA/null values.
+
+        When performing the cumulative summation, any non-NA/null values will
+        be skipped. The resulting SparseArray will preserve the locations of
+        NaN values, but the fill value will be `np.nan` regardless.
+
+        Parameters
+        ----------
+        axis : int or None
+            Axis over which to perform the cumulative summation. If None,
+            perform cumulative summation over flattened array.
+
+        Returns
+        -------
+        cumsum : SparseArray
+        """
+        nv.validate_cumsum(args, kwargs)
+
+        if axis is not None and axis >= self.ndim:  # Mimic ndarray behaviour.
+            raise ValueError("axis(={axis}) out of bounds".format(axis=axis))
+
+        if not self._null_fill_value:
+            return SparseArray(self.to_dense()).cumsum()
+
+        return SparseArray(self.sp_values.cumsum(), sparse_index=self.sp_index,
+                           fill_value=self.fill_value)
+
+    def mean(self, axis=0, *args, **kwargs):
+        """
+        Mean of non-NA/null values
+
+        Returns
+        -------
+        mean : float
+        """
+        nv.validate_mean(args, kwargs)
+        valid_vals = self._valid_sp_values
+        sp_sum = valid_vals.sum()
+        ct = len(valid_vals)
+
+        if self._null_fill_value:
+            return sp_sum / ct
+        else:
+            nsparse = self.sp_index.ngaps
+            return (sp_sum + self.fill_value * nsparse) / (ct + nsparse)
+
+    # ------------------------------------------------------------------------
+    # Ufuncs
+    # ------------------------------------------------------------------------
+    def __abs__(self):
+        return np.abs(self)
+
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # This is currently breaking binops
+        new_inputs = []
+        new_fill_values = []
+
+        for input in inputs:
+            if isinstance(input, type(self)):
+                new_inputs.append(self.sp_values)
+                new_fill_values.append(self.fill_value)
+            else:
+                new_inputs.append(input)
+                new_fill_values.append(input)
+
+        new_values = ufunc(*new_inputs, **kwargs)
+        new_fill = ufunc(*new_fill_values, **kwargs)
+        # TODO:
+        # call ufunc on fill_value?
+        # What about a new sparse index?
+        return type(self)(new_values, sparse_index=self.sp_index, fill_value=new_fill)
+
+    # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
 
@@ -651,12 +794,30 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
             if isinstance(other, SparseArray):
                 return _sparse_array_op(self, other, op, op_name)
+
+            elif is_scalar(other):
+                with np.errstate(all='ignore'):
+                    fill = op(_get_fill(self), np.asarray(other))
+                    result = op(self.sp_values, other)
+                return _wrap_result(op_name, result, self.sp_index, fill)
+
             else:
                 with np.errstate(all='ignore'):
-                    fill_value = op(self.fill_value, other)
-                    result = op(self.sp_values, other)
+                    # TODO: delete sparse stuff in core/ops.py
+                    # TODO: look into _wrap_result
+                    if len(self) != len(other):
+                        raise AssertionError("length mismatch: {self} vs. {other}"
+                                             .format(self=len(self), other=len(other)))
+                    if not isinstance(other, SparseArray):
+                        dtype = getattr(other, 'dtype', None)
+                        other = SparseArray(other, fill_value=self.fill_value,
+                                            dtype=dtype)
+                    return _sparse_array_op(self, other, op, op_name)
+                    # fill_value = op(self.fill_value, other)
+                    # result = op(self.sp_values, other)
 
-                return type(self)(result, sparse_index=self.sp_index, fill_value=fill_value)
+                # TODO: is self.sp_index right? An op could change what's sparse...
+                # return type(self)(result, sparse_index=self.sp_index, fill_value=fill_value)
 
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(sparse_arithmetic_method, name, cls)
