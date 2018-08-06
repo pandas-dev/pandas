@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
+    is_array_like,
     is_integer_dtype,
     is_float_dtype,
     is_extension_array_dtype,
@@ -54,10 +55,11 @@ _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
 def _get_fill(arr):
+    # type: (SparseArray) -> ndarray
     # coerce fill_value to arr dtype if possible
     # int64 SparseArray can have NaN as fill_value if there is no missing
     try:
-        return np.asarray(arr.fill_value, dtype=arr.dtype)
+        return np.asarray(arr.fill_value, dtype=arr.dtype.subdtype)
     except ValueError:
         return np.asarray(arr.fill_value)
 
@@ -143,10 +145,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     __array_priority__ = 15
     _pandas_ftype = 'sparse'
 
-    def __init__(self, data, sparse_index=None, fill_value=np.nan, kind='block',
+    def __init__(self, data, sparse_index=None, fill_value=None, kind='block',
                  dtype=None, copy=False):
-        if fill_value is None:
-            fill_value = np.nan
         from pandas.core.internals import SingleBlockManager
 
         if isinstance(dtype, SparseDtype):
@@ -154,6 +154,18 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if isinstance(data, SingleBlockManager):
             data = data.internal_values()
+
+        # TODO: disentable the fill_value dtype inference from
+        # dtype inference
+        if not is_array_like(data):
+            data = np.asarray(data, dtype=dtype)
+
+        if fill_value is None:
+            fill_value_dtype = dtype or data.dtype
+            if fill_value_dtype is None:
+                fill_value = np.nan
+            fill_value = na_value_for_dtype(fill_value_dtype)
+
 
         if isinstance(data, type(self)) and sparse_index is None:
             sparse_index = data._sparse_index
@@ -175,6 +187,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self.fill_value = fill_value
 
     def __array__(self, dtype=None, copy=True):
+        if self.sp_index.ngaps == 0:
+            # Compat for na dtype and int values.
+            return self.sp_values
         out = np.full(self.shape, self.fill_value, dtype=dtype)
         out[self.sp_index.to_int_index().indices] = self.sp_values
         return out
@@ -325,6 +340,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             return self._get_val_at(key)
         elif isinstance(key, tuple):
             data_slice = self.values[key]
+        elif isinstance(key, slice):
+            # special case to preserve dtypes
+            if key == slice(None):
+                return self.copy()
+            # TODO: this logic is surely elsewhere
+            # TODO: this could be more efficient
+            indices = np.arange(len(self))[key]
+            return self.take(indices, allow_fill=False)
         else:
             if isinstance(key, SparseArray):
                 if is_bool_dtype(key):
@@ -417,6 +440,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if to_shift.any():
             indices[to_shift] += n
 
+        if self.sp_index.npoints == 0:
+            # edge case in take...
+            # I think just return
+            arr, sp_index, fill_value = make_sparse(indices, fill_value=self.fill_value)
+            return type(self)(arr, sparse_index=sp_index, fill_value=fill_value)
+
         sp_indexer = self.sp_index.lookup_array(indices)
         taken = self.sp_values.take(sp_indexer)
         fillable = (sp_indexer < 0)
@@ -505,6 +534,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         # TODO: series?
         return type(self)(sp_values, sparse_index=self.sp_index, fill_value=fill_value)
+
+    def get_values(self, fill=None):
+        """ return a dense representation """
+        # TODO: deprecate for to_dense?
+        return self.to_dense(fill=fill)
 
     def to_dense(self, fill=None):
         """

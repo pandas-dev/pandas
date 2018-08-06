@@ -1587,6 +1587,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
     assert_index_equal(left.index, right.index,
                        obj='{obj}.index'.format(obj=obj))
 
+    # TODO: this can just be .values I think
     assert_sp_array_equal(left.block.values, right.block.values)
 
     if check_names:
@@ -1594,7 +1595,8 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
     if check_dtype:
         assert_attr_equal('dtype', left, right)
 
-    assert_numpy_array_equal(left.values, right.values)
+    assert_numpy_array_equal(np.asarray(left.values),
+                             np.asarray(right.values))
 
 
 def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,

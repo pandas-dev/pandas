@@ -1,8 +1,10 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
+import pytest
 
 import numpy as np
 import pandas as pd
+from pandas.core.sparse.dtype import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -47,29 +49,29 @@ class TestSparseSeriesSubclassing(object):
         s = tm.SubclassedSparseSeries([1, 2, 3, 4, 5])
         exp = tm.SubclassedSparseSeries([2, 3, 4], index=[1, 2, 3])
         tm.assert_sp_series_equal(s.loc[1:3], exp)
-        assert s.loc[1:3].dtype == np.int64
+        assert s.loc[1:3].dtype == SparseDtype(np.int64)
 
         exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
         tm.assert_sp_series_equal(s.iloc[1:3], exp)
-        assert s.iloc[1:3].dtype == np.int64
+        assert s.iloc[1:3].dtype == SparseDtype(np.int64)
 
         exp = tm.SubclassedSparseSeries([2, 3], index=[1, 2])
         tm.assert_sp_series_equal(s[1:3], exp)
-        assert s[1:3].dtype == np.int64
+        assert s[1:3].dtype == SparseDtype(np.int64)
 
         # float64
         s = tm.SubclassedSparseSeries([1., 2., 3., 4., 5.])
         exp = tm.SubclassedSparseSeries([2., 3., 4.], index=[1, 2, 3])
         tm.assert_sp_series_equal(s.loc[1:3], exp)
-        assert s.loc[1:3].dtype == np.float64
+        assert s.loc[1:3].dtype == SparseDtype(np.float64)
 
         exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
         tm.assert_sp_series_equal(s.iloc[1:3], exp)
-        assert s.iloc[1:3].dtype == np.float64
+        assert s.iloc[1:3].dtype == SparseDtype(np.float64)
 
         exp = tm.SubclassedSparseSeries([2., 3.], index=[1, 2])
         tm.assert_sp_series_equal(s[1:3], exp)
-        assert s[1:3].dtype == np.float64
+        assert s[1:3].dtype == SparseDtype(np.float64)
 
     def test_subclass_sparse_addition(self):
         s1 = tm.SubclassedSparseSeries([1, 3, 5])
@@ -82,6 +84,7 @@ class TestSparseSeriesSubclassing(object):
         exp = tm.SubclassedSparseSeries([5., 7., 9.])
         tm.assert_sp_series_equal(s1 + s2, exp)
 
+    @pytest.mark.xfail(reason="XXX: SS used to reindex. Now we match Series.")
     def test_subclass_sparse_to_frame(self):
         s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')
         res = s.to_frame()

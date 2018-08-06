@@ -327,6 +327,8 @@ is the case with :attr:`Period.end_time`, for example
 This has some notable changes
 
 - ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`
+- ``SparseArray.dtype`` and ``SparseSeries.dtype`` are now instances of ``SparseDtype``, rather than ``np.dtype``.
+  Access the underlying dtype with ``SparseDtype.subdtype``.
 - :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values,
   not just the non-fill-value values (:issue:`todo`)
 
