@@ -413,7 +413,7 @@ a,b,c
         # should not raise
         data = 'a,b,c\n1,2,3\n4,5,6'
         expected = DataFrame()
-        result = self.read_csv(StringIO(data), usecols=set([]))
+        result = self.read_csv(StringIO(data), usecols=set())
         tm.assert_frame_equal(result, expected)
 
     def test_np_array_usecols(self):

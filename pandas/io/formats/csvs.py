@@ -268,7 +268,7 @@ class CSVFormatter(object):
             # Write out the index line if it's not empty.
             # Otherwise, we will print out an extraneous
             # blank line between the mi and the data rows.
-            if encoded_labels and set(encoded_labels) != set(['']):
+            if encoded_labels and set(encoded_labels) != {''}:
                 encoded_labels.extend([''] * len(columns))
                 writer.writerow(encoded_labels)
 

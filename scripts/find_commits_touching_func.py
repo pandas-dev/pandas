@@ -135,7 +135,7 @@ def search(defname, head_commit="HEAD"):
 
     # seed with hits from q
     allhits = set(get_hits(defname, files=files))
-    q = set([HEAD])
+    q = {HEAD}
     try:
         while q:
             h = q.pop()

@@ -481,7 +481,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if key.key is None:
             return grouper, [], obj
         else:
-            return grouper, set([key.key]), obj
+            return grouper, {key.key}, obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, BaseGrouper):

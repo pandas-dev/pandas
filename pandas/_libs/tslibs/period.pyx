@@ -1973,6 +1973,6 @@ def _validate_end_alias(how):
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}
     how = how_dict.get(str(how).upper())
-    if how not in set(['S', 'E']):
+    if how not in {'S', 'E'}:
         raise ValueError('How must be one of S or E')
     return how

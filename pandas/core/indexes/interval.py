@@ -44,7 +44,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.arrays.interval import (IntervalArray,
                                          _interval_shared_docs)
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',

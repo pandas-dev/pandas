@@ -260,8 +260,8 @@ def maybe_convert_bool(ndarray[object] arr,
     result = np.empty(n, dtype=np.uint8)
 
     # the defaults
-    true_vals = set(('True', 'TRUE', 'true'))
-    false_vals = set(('False', 'FALSE', 'false'))
+    true_vals = {'True', 'TRUE', 'true'}
+    false_vals = {'False', 'FALSE', 'false'}
 
     if true_values is not None:
         true_vals = true_vals | set(true_values)

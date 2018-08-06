@@ -261,7 +261,7 @@ class TestSeriesRank(TestData):
             tm.assert_series_equal(result, Series(expected))
 
         dtypes = [None, object]
-        disabled = set([(object, 'first')])
+        disabled = {(object, 'first')}
         results = self.results
 
         for method, dtype in product(results, dtypes):
@@ -279,7 +279,7 @@ class TestSeriesRank(TestData):
         dtypes = [('object', None, Infinity(), NegInfinity()),
                   ('float64', np.nan, np.inf, -np.inf)]
         chunk = 3
-        disabled = set([('object', 'first')])
+        disabled = {('object', 'first')}
 
         def _check(s, method, na_option, ascending):
             exp_ranks = {

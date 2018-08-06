@@ -274,7 +274,7 @@ class TestRank(TestData):
             result = df.rank(method=method, axis=axis)
             assert_frame_equal(result, exp_df)
 
-        disabled = set([(object, 'first')])
+        disabled = {(object, 'first')}
         if (dtype, method) in disabled:
             return
         frame = df if dtype is None else df.astype(dtype)

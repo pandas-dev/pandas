@@ -25,7 +25,7 @@ from pandas.util._doctools import _WritableDoc
 
 from . import ExtensionArray, Categorical
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
