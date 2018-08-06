@@ -418,6 +418,32 @@ def test_numpy_errstate_is_default():
 
 
 @td.skip_if_windows
+def test_can_set_locale_valid_set():
+    # Setting the default locale should return True
+    assert tm.can_set_locale('') is True
+
+
+@td.skip_if_windows
+def test_can_set_locale_invalid_set():
+    # Setting an invalid locale should return False
+    assert tm.can_set_locale('non-existent_locale') is False
+
+
+@td.skip_if_windows
+def test_can_set_locale_invalid_get(monkeypatch):
+    # In some cases, an invalid locale can be set,
+    # but a subsequent getlocale() raises a ValueError
+    # See GH 22129
+
+    def mockgetlocale():
+        raise ValueError()
+
+    with monkeypatch.context() as m:
+        m.setattr(locale, 'getlocale', mockgetlocale)
+        assert tm.can_set_locale('') is False
+
+
+@td.skip_if_windows
 class TestLocaleUtils(object):
 
     @classmethod
