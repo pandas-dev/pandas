@@ -138,9 +138,9 @@ class TestSeriesReplace(TestData):
         tm.assert_series_equal(result, expected)
 
         # GH 19266
-        with tm.assert_raises_regex(Exception, "cannot assign mismatch"):
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
             s.replace({np.nan: []})
-        with tm.assert_raises_regex(Exception, "cannot assign mismatch"):
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
             s.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_mixed_types(self):

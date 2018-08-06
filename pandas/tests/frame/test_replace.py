@@ -614,9 +614,9 @@ class TestDataFrameReplace(TestData):
         result = df.replace([], np.nan)
         assert_frame_equal(result, expected)
         # GH 19266
-        with tm.assert_raises_regex(Exception, "cannot assign mismatch"):
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
             df.replace({np.nan: []})
-        with tm.assert_raises_regex(Exception, "cannot assign mismatch"):
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
             df.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_series_dict(self):
