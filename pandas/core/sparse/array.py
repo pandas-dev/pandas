@@ -760,29 +760,44 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def __abs__(self):
         return np.abs(self)
 
-    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-    #     # This is currently breaking binops
-    #     if getattr(self, "__{}__".format(ufunc.__name__), None):
-    #         import pdb; pdb.set_trace()
-    #     new_inputs = []
-    #     new_fill_values = []
-    #
-    #     op_name = op.__name__
-    #
-    #     for input in inputs:
-    #         if isinstance(input, type(self)):
-    #             new_inputs.append(self.sp_values)
-    #             new_fill_values.append(self.fill_value)
-    #         else:
-    #             new_inputs.append(input)
-    #             new_fill_values.append(input)
-    #
-    #     new_values = ufunc(*new_inputs, **kwargs)
-    #     new_fill = ufunc(*new_fill_values, **kwargs)
-    #     # TODO:
-    #     # call ufunc on fill_value?
-    #     # What about a new sparse index?
-    #     return type(self)(new_values, sparse_index=self.sp_index, fill_value=new_fill)
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # This is currently breaking binops
+        new_inputs = []
+        new_fill_values = []
+
+        special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
+                   'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge'}
+        aliases = {
+            'subtract': 'sub',
+            'multiply': 'mul',
+            'floor_divide': 'floordiv',
+            'true_divide': 'truediv',
+            'power': 'pow',
+        }
+        op_name = ufunc.__name__
+        op_name = aliases.get(op_name, op_name)
+
+        if op_name in special:
+            if isinstance(inputs[0], type(self)):
+                # this is surely incorrect...
+                return getattr(self, '__{}__'.format(op_name))(inputs[1])
+            else:
+                return getattr(self, '__r{}__'.format(op_name))(inputs[0])
+
+        for input in inputs:
+            if isinstance(input, type(self)):
+                new_inputs.append(self.sp_values)
+                new_fill_values.append(self.fill_value)
+            else:
+                new_inputs.append(input)
+                new_fill_values.append(input)
+
+        new_values = ufunc(*new_inputs, **kwargs)
+        new_fill = ufunc(*new_fill_values, **kwargs)
+        # TODO:
+        # call ufunc on fill_value?
+        # What about a new sparse index?
+        return type(self)(new_values, sparse_index=self.sp_index, fill_value=new_fill)
 
     # ------------------------------------------------------------------------
     # Ops
