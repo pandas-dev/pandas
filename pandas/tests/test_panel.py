@@ -2678,12 +2678,12 @@ class TestPanelFrame(object):
 
     def test_pivot(self):
         with catch_warnings(record=True):
-            from pandas.core.reshape.reshape import _slow_pivot
+            from pandas.core.reshape.pivot import _slow_pivot, _pivot_simple
 
             one, two, three = (np.array([1, 2, 3, 4, 5]),
                                np.array(['a', 'b', 'c', 'd', 'e']),
                                np.array([1, 2, 3, 5, 4.]))
-            df = pivot(one, two, three)
+            df = _pivot_simple(one, two, three)
             assert df['a'][1] == 1
             assert df['b'][2] == 2
             assert df['c'][3] == 3
@@ -2698,7 +2698,7 @@ class TestPanelFrame(object):
             pytest.raises(Exception, pivot, a, b, c)
 
             # corner case, empty
-            df = pivot(np.array([]), np.array([]), np.array([]))
+            df = _pivot_simple(np.array([]), np.array([]), np.array([]))
 
 
 def test_panel_index():
