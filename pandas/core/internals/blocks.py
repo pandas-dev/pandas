@@ -801,12 +801,17 @@ class Block(PandasObject):
                                     copy=not inplace) for b in blocks]
             return blocks
         except (TypeError, ValueError):
-
-            # try again with a compatible block
-            block = self.astype(object)
-            return block.replace(
-                to_replace=original_to_replace, value=value, inplace=inplace,
-                filter=filter, regex=regex, convert=convert)
+            if self.dtype == 'object':
+                raise
+            else:
+                # try again with a compatible block
+                block = self.astype(object)
+                return block.replace(to_replace=original_to_replace,
+                                     value=value,
+                                     inplace=inplace,
+                                     filter=filter,
+                                     regex=regex,
+                                     convert=convert)
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
@@ -992,16 +997,15 @@ class Block(PandasObject):
             #
             # TODO: this prob needs some better checking
             # for 2D cases
-            if ((is_list_like(new) and np.any(mask[mask]) and
+            if ((is_list_like(new) and
+                 np.any(mask[mask]) and
                  getattr(new, 'ndim', 1) == 1)):
+
                 if not (mask.shape[-1] == len(new) or
                         mask[mask].shape[-1] == len(new) or
                         len(new) == 1):
-                    # GH 19266 and GH 21977
-                    # ValueError triggers try except block in Block.replace
-                    # causing RecursionError
-                    raise Exception("cannot assign mismatch length "
-                                    "to masked array")
+                    raise ValueError("cannot assign mismatch "
+                                     "length to masked array")
 
             np.putmask(new_values, mask, new)
 
