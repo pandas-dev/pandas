@@ -2801,7 +2801,7 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
-    Compute length of each element in the Series/Index. The element may be
+    Compute the length of each element in the Series/Index. The element may be
     a sequence (such as a string, tuple or list) or a collection
     (such as a dictionary).
 
@@ -2821,8 +2821,7 @@ class StringMethods(NoNewAttributesMixin):
     Returning the length (number of characters) in a string. Returning the
     number of entries for dictionaries, lists or tuples.
 
-    >>> s = pd.Series(['dog', '', 5, {'foo' : 'bar'}, [2, 3, 5, 7], \
-    ('one', 'two', 'three')])
+    >>> s = pd.Series(['dog', '', 5, {'foo' : 'bar'}, [2, 3, 5, 7], ('one', 'two', 'three')])
     >>> s
     0                  dog
     1
