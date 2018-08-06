@@ -605,12 +605,12 @@ class TestDataFrameReplace(TestData):
 
     def test_replace_with_empty_list(self):
         # GH 21977
-        s = pd.Series([['a', 'b'], np.nan, [1]])
+        s = pd.Series([['a', 'b'], [], np.nan, [1]])
         df = pd.DataFrame({'col': s})
-
         expected = df
         result = df.replace([], np.nan)
         assert_frame_equal(result, expected)
+
         # GH 19266
         with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
             df.replace({np.nan: []})
