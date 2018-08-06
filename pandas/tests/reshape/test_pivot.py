@@ -301,13 +301,17 @@ class TestPivotTable(object):
         expected = concat([means, stds], keys=['mean', 'std'], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_index_with_nan(self):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_index_with_nan(self, method):
         # GH 3588
         nan = np.nan
         df = DataFrame({'a': ['R1', 'R2', nan, 'R4'],
                         'b': ['C1', 'C2', 'C3', 'C4'],
                         'c': [10, 15, 17, 20]})
-        result = df.pivot('a', 'b', 'c')
+        if method:
+            result = df.pivot('a', 'b', 'c')
+        else:
+            result = pd.pivot(df, 'a', 'b', 'c')
         expected = DataFrame([[nan, nan, 17, nan], [10, nan, nan, nan],
                               [nan, 15, nan, nan], [nan, nan, nan, 20]],
                              index=Index([nan, 'R1', 'R2', 'R4'], name='a'),
@@ -322,15 +326,23 @@ class TestPivotTable(object):
         df.loc[1, 'a'] = df.loc[3, 'a'] = nan
         df.loc[1, 'b'] = df.loc[4, 'b'] = nan
 
-        pv = df.pivot('a', 'b', 'c')
+        if method:
+            pv = df.pivot('a', 'b', 'c')
+        else:
+            pv = pd.pivot(df, 'a', 'b', 'c')
         assert pv.notna().values.sum() == len(df)
 
         for _, row in df.iterrows():
             assert pv.loc[row['a'], row['b']] == row['c']
 
-        tm.assert_frame_equal(df.pivot('b', 'a', 'c'), pv.T)
+        if method:
+            result = df.pivot('b', 'a', 'c')
+        else:
+            result = pd.pivot(df, 'b', 'a', 'c')
+        tm.assert_frame_equal(result, pv.T)
 
-    def test_pivot_with_tz(self):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_with_tz(self, method):
         # GH 5878
         df = DataFrame({'dt1': [datetime(2013, 1, 1, 9, 0),
                                 datetime(2013, 1, 2, 9, 0),
@@ -358,7 +370,10 @@ class TestPivotTable(object):
                                                     tz='US/Pacific'),
                              columns=exp_col)
 
-        pv = df.pivot(index='dt1', columns='dt2')
+        if method:
+            pv = df.pivot(index='dt1', columns='dt2')
+        else:
+            pv = pd.pivot(df, index='dt1', columns='dt2')
         tm.assert_frame_equal(pv, expected)
 
         expected = DataFrame([[0, 2], [1, 3]],
@@ -371,10 +386,14 @@ class TestPivotTable(object):
                                                       name='dt2',
                                                       tz='Asia/Tokyo'))
 
-        pv = df.pivot(index='dt1', columns='dt2', values='data1')
+        if method:
+            pv = df.pivot(index='dt1', columns='dt2', values='data1')
+        else:
+            pv = pd.pivot(df, index='dt1', columns='dt2', values='data1')
         tm.assert_frame_equal(pv, expected)
 
-    def test_pivot_periods(self):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_periods(self, method):
         df = DataFrame({'p1': [pd.Period('2013-01-01', 'D'),
                                pd.Period('2013-01-02', 'D'),
                                pd.Period('2013-01-01', 'D'),
@@ -394,8 +413,10 @@ class TestPivotTable(object):
                              index=pd.PeriodIndex(['2013-01-01', '2013-01-02'],
                                                   name='p1', freq='D'),
                              columns=exp_col)
-
-        pv = df.pivot(index='p1', columns='p2')
+        if method:
+            pv = df.pivot(index='p1', columns='p2')
+        else:
+            pv = pd.pivot(df, index='p1', columns='p2')
         tm.assert_frame_equal(pv, expected)
 
         expected = DataFrame([[0, 2], [1, 3]],
@@ -403,22 +424,28 @@ class TestPivotTable(object):
                                                   name='p1', freq='D'),
                              columns=pd.PeriodIndex(['2013-01', '2013-02'],
                                                     name='p2', freq='M'))
-
-        pv = df.pivot(index='p1', columns='p2', values='data1')
+        if method:
+            pv = df.pivot(index='p1', columns='p2', values='data1')
+        else:
+            pv = pd.pivot(df, index='p1', columns='p2', values='data1')
         tm.assert_frame_equal(pv, expected)
 
     @pytest.mark.parametrize('values', [
         ['baz', 'zoo'], np.array(['baz', 'zoo']),
         pd.Series(['baz', 'zoo']), pd.Index(['baz', 'zoo'])
     ])
-    def test_pivot_with_list_like_values(self, values):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_with_list_like_values(self, values, method):
         # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
 
-        result = df.pivot(index='foo', columns='bar', values=values)
+        if method:
+            result = df.pivot(index='foo', columns='bar', values=values)
+        else:
+            result = pd.pivot(df, index='foo', columns='bar', values=values)
 
         data = [[1, 2, 3, 'x', 'y', 'z'],
                 [4, 5, 6, 'q', 'w', 't']]
@@ -434,14 +461,18 @@ class TestPivotTable(object):
         ['bar', 'baz'], np.array(['bar', 'baz']),
         pd.Series(['bar', 'baz']), pd.Index(['bar', 'baz'])
     ])
-    def test_pivot_with_list_like_values_nans(self, values):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_with_list_like_values_nans(self, values, method):
         # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
                            'baz': [1, 2, 3, 4, 5, 6],
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
 
-        result = df.pivot(index='zoo', columns='foo', values=values)
+        if method:
+            result = df.pivot(index='zoo', columns='foo', values=values)
+        else:
+            result = pd.pivot(df, index='zoo', columns='foo', values=values)
 
         data = [[np.nan, 'A', np.nan, 4],
                 [np.nan, 'C', np.nan, 6],
@@ -460,7 +491,8 @@ class TestPivotTable(object):
     @pytest.mark.xfail(reason='MultiIndexed unstack with tuple names fails'
                               'with KeyError GH#19966',
                        strict=True)
-    def test_pivot_with_multiindex(self):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_with_multiindex(self, method):
         # issue #17160
         index = Index(data=[0, 1, 2, 3, 4, 5])
         data = [['one', 'A', 1, 'x'],
@@ -472,8 +504,15 @@ class TestPivotTable(object):
         columns = MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
                              labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
         df = DataFrame(data=data, index=index, columns=columns, dtype='object')
-        result = df.pivot(index=('bar', 'first'), columns=('bar', 'second'),
-                          values=('baz', 'first'))
+        if method:
+            result = df.pivot(index=('bar', 'first'),
+                              columns=('bar', 'second'),
+                              values=('baz', 'first'))
+        else:
+            result = pd.pivot(df,
+                              index=('bar', 'first'),
+                              columns=('bar', 'second'),
+                              values=('baz', 'first'))
 
         data = {'A': Series([1, 4], index=['one', 'two']),
                 'B': Series([2, 5], index=['one', 'two']),
@@ -481,7 +520,8 @@ class TestPivotTable(object):
         expected = DataFrame(data)
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_with_tuple_of_values(self):
+    @pytest.mark.parametrize('method', [True, False])
+    def test_pivot_with_tuple_of_values(self, method):
         # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
@@ -489,7 +529,10 @@ class TestPivotTable(object):
                            'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         with pytest.raises(KeyError):
             # tuple is seen as a single column name
-            df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+            if method:
+                df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+            else:
+                pd.pivot(df, index='zoo', columns='foo', values=('bar', 'baz'))
 
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
