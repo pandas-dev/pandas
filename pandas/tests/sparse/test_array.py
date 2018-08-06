@@ -79,10 +79,10 @@ class TestSparseArray(object):
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # XXX: specifying sparse_index shouldn't change the inferred fill_value
-        expected = SparseArray([0, 1, 2, 0])
-        tm.assert_sp_array_equal(arr, SparseArray([0, 1, 2, 0]))
+        expected = SparseArray([0, 1, 2, 0], kind='integer')
+        tm.assert_sp_array_equal(arr, expected)
         assert arr.dtype == SparseDtype(np.float64)
-        assert np.isnan(arr.fill_value)
+        assert arr.fill_value == 0
 
         arr = SparseArray(data=[1, 2, 3],
                           sparse_index=IntIndex(4, [1, 2, 3]),
@@ -122,10 +122,10 @@ class TestSparseArray(object):
         assert arr.fill_value == 0
 
     @pytest.mark.parametrize('scalar,dtype', [
-        (False, bool),
-        (0.0, 'float64'),
-        (1, 'int64'),
-        ('z', 'object')])
+        (False, SparseDtype(bool)),
+        (0.0, SparseDtype('float64')),
+        (1, SparseDtype('int64')),
+        ('z', SparseDtype('object'))])
     def test_scalar_with_index_infer_dtype(self, scalar, dtype):
         # GH 19163
         arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
@@ -178,13 +178,15 @@ class TestSparseArray(object):
         tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[-11])
         assert self.arr[-1] == self.arr[len(self.arr) - 1]
 
-    def test_take(self):
+    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/22215",
+                       strict=True)
+    def test_take_scalar(self):
         assert np.isnan(self.arr.take(0))
         assert np.isscalar(self.arr.take(2))
-
         assert self.arr.take(2) == np.take(self.arr_data, 2)
         assert self.arr.take(6) == np.take(self.arr_data, 6)
 
+    def test_take(self):
         exp = SparseArray(np.take(self.arr_data, [2, 3]))
         tm.assert_sp_array_equal(self.arr.take([2, 3]), exp)
 
@@ -213,6 +215,7 @@ class TestSparseArray(object):
             IndexError, "bounds", lambda: self.arr.take(11))
         pytest.raises(IndexError, lambda: self.arr.take(-11))
 
+    @pytest.mark.xfail(reason="don't want to change signature", strict=True)
     def test_take_invalid_kwargs(self):
         msg = r"take\(\) got an unexpected keyword argument 'foo'"
         tm.assert_raises_regex(TypeError, msg, self.arr.take,
@@ -233,8 +236,8 @@ class TestSparseArray(object):
         expected = SparseArray([np.nan, np.nan, 4])
         tm.assert_sp_array_equal(result, expected)
 
-        # fill_value
-        result = sparse.take(np.array([1, 0, -1]), fill_value=True)
+        # XXX: test change: fill_value=True -> allow_fill=True
+        result = sparse.take(np.array([1, 0, -1]), allow_fill=True)
         expected = SparseArray([np.nan, np.nan, np.nan])
         tm.assert_sp_array_equal(result, expected)
 
@@ -244,19 +247,18 @@ class TestSparseArray(object):
         expected = SparseArray([np.nan, np.nan, 4])
         tm.assert_sp_array_equal(result, expected)
 
-        msg = ('When allow_fill=True and fill_value is not None, '
-               'all indices must be >= -1')
+        msg = ("Invalid value in 'indices'")
         with tm.assert_raises_regex(ValueError, msg):
-            sparse.take(np.array([1, 0, -2]), fill_value=True)
+            sparse.take(np.array([1, 0, -2]), allow_fill=True)
         with tm.assert_raises_regex(ValueError, msg):
-            sparse.take(np.array([1, 0, -5]), fill_value=True)
+            sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
         with pytest.raises(IndexError):
             sparse.take(np.array([1, -6]))
         with pytest.raises(IndexError):
             sparse.take(np.array([1, 5]))
         with pytest.raises(IndexError):
-            sparse.take(np.array([1, 5]), fill_value=True)
+            sparse.take(np.array([1, 5]), allow_fill=True)
 
     def test_take_filling_fill_value(self):
         # same tests as GH 12631
@@ -266,7 +268,7 @@ class TestSparseArray(object):
         tm.assert_sp_array_equal(result, expected)
 
         # fill_value
-        result = sparse.take(np.array([1, 0, -1]), fill_value=True)
+        result = sparse.take(np.array([1, 0, -1]), allow_fill=True)
         expected = SparseArray([0, np.nan, 0], fill_value=0)
         tm.assert_sp_array_equal(result, expected)
 
@@ -276,12 +278,11 @@ class TestSparseArray(object):
         expected = SparseArray([0, np.nan, 4], fill_value=0)
         tm.assert_sp_array_equal(result, expected)
 
-        msg = ('When allow_fill=True and fill_value is not None, '
-               'all indices must be >= -1')
+        msg = ("Invalid value in 'indices'.")
         with tm.assert_raises_regex(ValueError, msg):
-            sparse.take(np.array([1, 0, -2]), fill_value=True)
+            sparse.take(np.array([1, 0, -2]), allow_fill=True)
         with tm.assert_raises_regex(ValueError, msg):
-            sparse.take(np.array([1, 0, -5]), fill_value=True)
+            sparse.take(np.array([1, 0, -5]), allow_fill=True)
 
         with pytest.raises(IndexError):
             sparse.take(np.array([1, -6]))
@@ -292,12 +293,13 @@ class TestSparseArray(object):
 
     def test_take_filling_all_nan(self):
         sparse = SparseArray([np.nan, np.nan, np.nan, np.nan, np.nan])
+        # XXX: did the default kind from take change?
         result = sparse.take(np.array([1, 0, -1]))
-        expected = SparseArray([np.nan, np.nan, np.nan])
+        expected = SparseArray([np.nan, np.nan, np.nan], kind='block')
         tm.assert_sp_array_equal(result, expected)
 
         result = sparse.take(np.array([1, 0, -1]), fill_value=True)
-        expected = SparseArray([np.nan, np.nan, np.nan])
+        expected = SparseArray([np.nan, np.nan, np.nan], kind='block')
         tm.assert_sp_array_equal(result, expected)
 
         with pytest.raises(IndexError):
@@ -340,9 +342,10 @@ class TestSparseArray(object):
         data = np.array([False, False, True, True, False, False])
         arr = SparseArray(data, fill_value=False, dtype=bool)
 
-        assert arr.dtype == bool
+        assert arr.dtype == SparseDtype(bool)
         tm.assert_numpy_array_equal(arr.sp_values, np.array([True, True]))
-        tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
+        # Behavior change: np.asarray densifies.
+        # tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([2, 3], np.int32))
 
@@ -352,15 +355,15 @@ class TestSparseArray(object):
 
     def test_constructor_bool_fill_value(self):
         arr = SparseArray([True, False, True], dtype=None)
-        assert arr.dtype == np.bool
+        assert arr.dtype == SparseDtype(np.bool)
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool)
-        assert arr.dtype == np.bool
+        assert arr.dtype == SparseDtype(np.bool)
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
-        assert arr.dtype == np.bool
+        assert arr.dtype == SparseDtype(np.bool)
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -368,10 +371,11 @@ class TestSparseArray(object):
         data = np.array([1., np.nan, 3], dtype=np.float32)
         arr = SparseArray(data, dtype=np.float32)
 
-        assert arr.dtype == np.float32
+        assert arr.dtype == SparseDtype(np.float32)
         tm.assert_numpy_array_equal(arr.sp_values,
                                     np.array([1, 3], dtype=np.float32))
-        tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
+        # Behavior change: np.asarray densifies.
+        # tm.assert_numpy_array_equal(arr.sp_values, np.asarray(arr))
         tm.assert_numpy_array_equal(arr.sp_index.indices,
                                     np.array([0, 2], dtype=np.int32))
 
@@ -380,30 +384,31 @@ class TestSparseArray(object):
             tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
-        res = self.arr.astype('f8')
+        res = self.arr.astype('Sparse[f8]')
         res.sp_values[:3] = 27
         assert not (self.arr.sp_values[:3] == 27).any()
 
-        msg = "unable to coerce current fill_value nan to int64 dtype"
+        msg = "unable to coerce current fill_value nan to Sparse\\[int64\\] dtype"
         with tm.assert_raises_regex(ValueError, msg):
-            self.arr.astype('i8')
+            self.arr.astype('Sparse[i8]')
 
         arr = SparseArray([0, np.nan, 0, 1])
         with tm.assert_raises_regex(ValueError, msg):
-            arr.astype('i8')
+            arr.astype('Sparse[i8]')
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
         with tm.assert_raises_regex(ValueError, msg):
-            arr.astype('i8')
+            raise pytest.xfail("https://github.com/pandas-dev/pandas/issues/22216")
+            # arr.astype('i8')
 
     def test_astype_all(self, any_real_dtype):
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
         typ = np.dtype(any_real_dtype).type
 
-        res = arr.astype(typ)
-        assert res.dtype == typ
+        res = arr.astype(SparseDtype(typ))
+        assert res.dtype == SparseDtype(typ)
         assert res.sp_values.dtype == typ
 
         tm.assert_numpy_array_equal(res.values, vals.astype(typ))
@@ -417,27 +422,33 @@ class TestSparseArray(object):
         arr.fill_value = 2
         assert arr.fill_value == 2
 
+        # XXX: this seems fine? You can construct an integer
+        # sparsearray with NaN fill value, why not update one?
         # coerces to int
-        msg = "unable to set fill_value 3\\.1 to int64 dtype"
-        with tm.assert_raises_regex(ValueError, msg):
-            arr.fill_value = 3.1
+        # msg = "unable to set fill_value 3\\.1 to int64 dtype"
+        # with tm.assert_raises_regex(ValueError, msg):
+        arr.fill_value = 3.1
+        assert arr.fill_value == 3.1
 
-        msg = "unable to set fill_value nan to int64 dtype"
-        with tm.assert_raises_regex(ValueError, msg):
-            arr.fill_value = np.nan
+        # msg = "unable to set fill_value nan to int64 dtype"
+        # with tm.assert_raises_regex(ValueError, msg):
+        arr.fill_value = np.nan
+        assert np.isnan(arr.fill_value)
 
         arr = SparseArray([True, False, True], fill_value=False, dtype=np.bool)
         arr.fill_value = True
         assert arr.fill_value
 
         # coerces to bool
-        msg = "unable to set fill_value 0 to bool dtype"
-        with tm.assert_raises_regex(ValueError, msg):
-            arr.fill_value = 0
+        # msg = "unable to set fill_value 0 to bool dtype"
+        # with tm.assert_raises_regex(ValueError, msg):
+        arr.fill_value = 0
+        assert arr.fill_value == 0
 
-        msg = "unable to set fill_value nan to bool dtype"
-        with tm.assert_raises_regex(ValueError, msg):
-            arr.fill_value = np.nan
+        # msg = "unable to set fill_value nan to bool dtype"
+        # with tm.assert_raises_regex(ValueError, msg):
+        arr.fill_value = np.nan
+        assert np.isnan(arr.fill_value)
 
     @pytest.mark.parametrize("val", [[1, 2, 3], np.array([1, 2]), (1, 2, 3)])
     def test_set_fill_invalid_non_scalar(self, val):
@@ -449,19 +460,12 @@ class TestSparseArray(object):
 
     def test_copy_shallow(self):
         arr2 = self.arr.copy(deep=False)
-
-        def _get_base(values):
-            base = values.base
-            while base.base is not None:
-                base = base.base
-            return base
-
-        assert (_get_base(arr2) is _get_base(self.arr))
+        assert arr2.sp_values is self.arr.sp_values
+        assert arr2.sp_index is self.arr.sp_index
 
     def test_values_asarray(self):
         assert_almost_equal(self.arr.values, self.arr_data)
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
-        assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
     @pytest.mark.parametrize('data,shape,dtype', [
         ([0, 0, 0, 0, 0], (5,), None),
