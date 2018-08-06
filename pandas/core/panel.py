@@ -716,7 +716,7 @@ class Panel(NDFrame):
         values = self.values
         mask = notna(values)
 
-        for ax in reversed(sorted(set(range(self._AXIS_LEN)) - set([axis]))):
+        for ax in reversed(sorted(set(range(self._AXIS_LEN)) - {axis})):
             mask = mask.sum(ax)
 
         per_slice = np.prod(values.shape[:axis] + values.shape[axis + 1:])

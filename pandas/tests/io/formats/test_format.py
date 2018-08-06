@@ -244,7 +244,7 @@ class TestDataFrameFormatting(object):
             assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
-        assert printing.pprint_thing(set([1])) == '{1}'
+        assert printing.pprint_thing({1}) == '{1}'
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
