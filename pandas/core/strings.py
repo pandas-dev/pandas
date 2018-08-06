@@ -2807,48 +2807,38 @@ class StringMethods(NoNewAttributesMixin):
 
     Returns
     -------
-    Series or Index of integer values
+    Series or Index of int
         A Series or Index of integer values indicating the length of each
         element in the Series or Index.
 
     See Also
     --------
     str.len : Python built-in function returning the length of an object.
+    Series.size : Returns the length of the Series.
 
     Examples
     --------
+    Returning the length (number of characters) in a string. Returning the
+    number of entries for dictionaries, lists or tuples.
 
-    Returning a series of integer values as floats when `NaN` is returned as a
-    result.
-
-    >>> s = pd.Series(['dog', 5, 'bird', np.nan])
+    >>> s = pd.Series(['dog', '', 5, {'foo' : 'bar'}, [2, 3, 5, 7], \
+    ('one', 'two', 'three')])
     >>> s
-    0     dog
-    1     5
-    2     bird
-    3     NaN
+    0                  dog
+    1
+    2                    5
+    3       {'foo': 'bar'}
+    4         [2, 3, 5, 7]
+    5    (one, two, three)
     dtype: object
     >>> s.str.len()
     0    3.0
-    1    NaN
-    2    4.0
-    3    NaN
+    1    0.0
+    2    NaN
+    3    1.0
+    4    4.0
+    5    3.0
     dtype: float64
-
-    Returning the length (number of entries) of dictionaries, lists or
-    tuples as integer values.
-
-    >>> s = pd.Series([{'foo':'bar'}, [2,3,5,7], ('one', 'two', 'three')])
-    >>> s
-    0       {'foo': 'bar'}
-    1         [1, 3, 5, 7]
-    2    (one, two, three)
-    dtype: object
-    >>> s.str.len()
-    0    1
-    1    4
-    2    3
-    dtype: int64
     """)
     len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
 
