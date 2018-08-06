@@ -13,6 +13,7 @@ class BaseDtypeTests(BaseExtensionTests):
 
     def test_kind(self, dtype):
         valid = set('biufcmMOSUV')
+
         if dtype.kind is not None:
             assert dtype.kind in valid
 

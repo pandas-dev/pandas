@@ -11,6 +11,7 @@ from pandas.compat import set_function_name
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
     is_integer, is_scalar, is_float,
+    is_bool_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -158,7 +159,8 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             raise TypeError("{} cannot be converted to an IntegerDtype".format(
                 values.dtype))
 
-    elif not (is_integer_dtype(values) or is_float_dtype(values)):
+    elif not (is_integer_dtype(values) or is_float_dtype(values) or
+              is_bool_dtype(values)):
         raise TypeError("{} cannot be converted to an IntegerDtype".format(
             values.dtype))
 
