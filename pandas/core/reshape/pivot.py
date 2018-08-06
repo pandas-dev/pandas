@@ -368,6 +368,7 @@ def _convert_by(by):
         by = list(by)
     return by
 
+
 @Substitution('\ndata : DataFrame')
 @Appender(_shared_docs['pivot'], indents=1)
 def pivot(data, index=None, columns=None, values=None):
