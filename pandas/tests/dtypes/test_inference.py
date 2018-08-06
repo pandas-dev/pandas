@@ -385,7 +385,7 @@ class TestInference(object):
 
     def test_convert_numeric_uint64_nan_values(self, coerce):
         arr = np.array([2**63, 2**63 + 1], dtype=object)
-        na_values = {2 ** 63}
+        na_values = {2**63}
 
         expected = (np.array([np.nan, 2**63 + 1], dtype=float)
                     if coerce else arr.copy())
