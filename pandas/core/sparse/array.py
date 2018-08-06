@@ -760,25 +760,29 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def __abs__(self):
         return np.abs(self)
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        # This is currently breaking binops
-        new_inputs = []
-        new_fill_values = []
-
-        for input in inputs:
-            if isinstance(input, type(self)):
-                new_inputs.append(self.sp_values)
-                new_fill_values.append(self.fill_value)
-            else:
-                new_inputs.append(input)
-                new_fill_values.append(input)
-
-        new_values = ufunc(*new_inputs, **kwargs)
-        new_fill = ufunc(*new_fill_values, **kwargs)
-        # TODO:
-        # call ufunc on fill_value?
-        # What about a new sparse index?
-        return type(self)(new_values, sparse_index=self.sp_index, fill_value=new_fill)
+    # def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+    #     # This is currently breaking binops
+    #     if getattr(self, "__{}__".format(ufunc.__name__), None):
+    #         import pdb; pdb.set_trace()
+    #     new_inputs = []
+    #     new_fill_values = []
+    #
+    #     op_name = op.__name__
+    #
+    #     for input in inputs:
+    #         if isinstance(input, type(self)):
+    #             new_inputs.append(self.sp_values)
+    #             new_fill_values.append(self.fill_value)
+    #         else:
+    #             new_inputs.append(input)
+    #             new_fill_values.append(input)
+    #
+    #     new_values = ufunc(*new_inputs, **kwargs)
+    #     new_fill = ufunc(*new_fill_values, **kwargs)
+    #     # TODO:
+    #     # call ufunc on fill_value?
+    #     # What about a new sparse index?
+    #     return type(self)(new_values, sparse_index=self.sp_index, fill_value=new_fill)
 
     # ------------------------------------------------------------------------
     # Ops
