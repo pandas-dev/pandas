@@ -495,8 +495,6 @@ class DataFrameFormatter(TableFormatter):
                                 frame.iloc[:, -col_num:]), axis=1)
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows_adj == 0:
-                row_num = len(frame)
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
@@ -1569,7 +1567,7 @@ def get_level_lengths(levels, sentinel=''):
     if len(levels) == 0:
         return []
 
-    control = [True for x in levels[0]]
+    control = [True] * len(levels[0])
 
     result = []
     for level in levels:

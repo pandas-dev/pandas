@@ -3,9 +3,9 @@
 # at https://github.com/veorq/SipHash
 
 import cython
-cimport numpy as cnp
+
 import numpy as np
-from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
+from numpy cimport uint8_t, uint32_t, uint64_t
 
 from util cimport _checknull
 from cpython cimport (PyBytes_Check,
@@ -17,7 +17,7 @@ DEF dROUNDS = 4
 
 
 @cython.boundscheck(False)
-def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
+def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     """
     Parameters
     ----------
@@ -37,7 +37,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     """
     cdef:
         Py_ssize_t i, l, n
-        ndarray[uint64_t] result
+        uint64_t[:] result
         bytes data, k
         uint8_t *kb
         uint64_t *lens
@@ -89,7 +89,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
 
     free(vecs)
     free(lens)
-    return result
+    return result.base  # .base to retrieve underlying np.ndarray
 
 
 cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:
