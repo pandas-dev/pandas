@@ -580,6 +580,11 @@ Timezones
 - Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
 - Bug in :class:`DatetimeIndex` comparisons failing to raise ``TypeError`` when comparing timezone-aware ``DatetimeIndex`` against ``np.datetime64`` (:issue:`22074`)
 - Bug in ``DataFrame`` assignment with a timezone-aware scalar (:issue:`19843`)
+- Bug in :func:`Dataframe.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
+- Bug when constructing a :class:`DatetimeIndex` with :class:`Timestamp`s constructed with the ``replace`` method across DST (:issue:`18785`)
+- Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
+- Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
+- Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
 
 Offsets
 ^^^^^^^

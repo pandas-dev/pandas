@@ -188,8 +188,8 @@ def _concat_compat(to_concat, axis=0):
         typs = get_dtype_kinds(to_concat)
         if len(typs) != 1:
 
-            if (not len(typs - set(['i', 'u', 'f'])) or
-                    not len(typs - set(['bool', 'i', 'u']))):
+            if (not len(typs - {'i', 'u', 'f'}) or
+                    not len(typs - {'bool', 'i', 'u'})):
                 # let numpy coerce
                 pass
             else:
