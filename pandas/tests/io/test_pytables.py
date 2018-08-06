@@ -369,7 +369,7 @@ class TestHDFStore(Base):
                 store['d'] = tm.makePanel()
                 store['foo/bar'] = tm.makePanel()
             assert len(store) == 5
-            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            expected = {'/a', '/b', '/c', '/d', '/foo/bar'}
             assert set(store.keys()) == expected
             assert set(store) == expected
 

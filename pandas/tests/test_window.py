@@ -1992,7 +1992,7 @@ _consistency_data = _create_consistency_data()
 
 def _rolling_consistency_cases():
     for window in [1, 2, 3, 10, 20]:
-        for min_periods in set([0, 1, 2, 3, 4, window]):
+        for min_periods in {0, 1, 2, 3, 4, window}:
             if min_periods and (min_periods > window):
                 continue
             for center in [False, True]:
