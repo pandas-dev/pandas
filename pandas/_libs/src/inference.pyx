@@ -393,7 +393,7 @@ def infer_dtype(object value, bint skipna=False):
 
         # do not use is_nul_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
-        if util._checknull(val):
+        if val is None or util.is_nan(val):
             pass
         elif val is NaT:
             seen_pdnat = True
@@ -522,7 +522,7 @@ cpdef object infer_datetimelike_array(object arr):
             if len(objs) == 3:
                 break
 
-        elif util._checknull(v):
+        elif v is None or util.is_nan(v):
             # nan or None
             pass
         elif v is NaT:
@@ -660,7 +660,7 @@ cdef class Validator:
         )
 
     cdef bint is_valid_null(self, object value) except -1:
-        return util._checknull(value)
+        return value is None or util.is_nan(value)
 
     cdef bint is_array_typed(self) except -1:
         return False
@@ -828,7 +828,7 @@ cdef class TemporalValidator(Validator):
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
-            bint is_generic_null = util._checknull(value)
+            bint is_generic_null = value is None or util.is_nan(value)
         self.generic_null_count += is_typed_null and is_generic_null
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 

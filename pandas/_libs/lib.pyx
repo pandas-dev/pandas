@@ -34,7 +34,7 @@ from missing cimport checknull
 
 cimport util
 cdef int64_t NPY_NAT = util.get_nat()
-from util cimport is_array, _checknull
+from util cimport is_array, is_nan
 
 
 def values_from_object(object o):
@@ -429,7 +429,7 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
         # we are either not equal or both nan
         # I think None == None will be true here
         if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                _checknull(x) and _checknull(y)):
+                (x is None or is_nan(x)) and (y is None or is_nan(y))):
             return False
     return True
 

@@ -228,5 +228,16 @@ cdef inline bint is_offset_object(object val):
     return getattr(val, '_typ', None) == "dateoffset"
 
 
-cdef inline bint _checknull(object val):
-    return val is None or (PyFloat_Check(val) and val != val)
+cdef inline bint is_nan(object val):
+    """
+    Check if val is a Not-A-Number float, including float('NaN') and np.nan.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_nan : bool
+    """
+    return is_float_object(val) and val != val

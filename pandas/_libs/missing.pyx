@@ -74,7 +74,7 @@ cpdef bint checknull(object val):
     elif util.is_array(val):
         return False
     else:
-        return util._checknull(val)
+        return val is None or util.is_nan(val)
 
 
 cpdef bint checknull_old(object val):
@@ -113,7 +113,7 @@ cpdef bint checknull_old(object val):
     elif util.is_array(val):
         return False
     else:
-        return util._checknull(val)
+        return val is None or util.is_nan(val)
 
 
 cdef inline bint _check_none_nan_inf_neginf(object val):
@@ -297,7 +297,7 @@ cpdef bint isneginf_scalar(object val):
 cdef inline bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
-    if util._checknull(v):
+    if v is None or util.is_nan(v):
         return True
     elif v is NaT:
         return True
@@ -309,7 +309,7 @@ cdef inline bint is_null_datetime64(v):
 cdef inline bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
-    if util._checknull(v):
+    if v is None or util.is_nan(v):
         return True
     elif v is NaT:
         return True
@@ -321,7 +321,7 @@ cdef inline bint is_null_timedelta64(v):
 cdef inline bint is_null_period(v):
     # determine if we have a null for a Period (or integer versions),
     # excluding np.datetime64('nat') and np.timedelta64('nat')
-    if util._checknull(v):
+    if v is None or util.is_nan(v):
         return True
     elif v is NaT:
         return True
