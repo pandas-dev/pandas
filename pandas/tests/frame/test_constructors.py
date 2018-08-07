@@ -2242,6 +2242,7 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_nested_dict_construction(self):
+        # GH22227
         columns = ['Nevada', 'Ohio']
         pop = {'Nevada': {2001: 2.4, 2002: 2.9},
                'Ohio': {2000: 1.5, 2001: 1.7, 2002: 3.6}}
