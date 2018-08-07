@@ -1586,27 +1586,28 @@ class GroupBy(_GroupBy):
         >>> df
         """
 
-        is_dt = False
-        is_int = False
+        inferences = {  # TODO (py27): replace with nonlocal
+            'is_dt': False,
+            'is_int': False
+        }
 
         def pre_processor(vals):
             if vals.dtype == np.object:
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
             elif vals.dtype == np.int:
-                nonlocal is_int
-                is_int = True
+                inferences['is_int'] = True
             elif vals.dtype == 'datetime64[ns]':
                 vals = vals.astype(np.float)
-                nonlocal is_dt
-                is_dt = True
+                inferences['is_dt'] = True
 
             return vals
 
         def post_processor(vals):
-            if is_dt:
+            if inferences['is_dt']:
                 vals = vals.astype('datetime64[ns]')
-            elif is_int and interpolation in ['lower', 'higher', 'nearest']:
+            elif inferences['is_int'] and interpolation in [
+                    'lower', 'higher', 'nearest']:
                 vals = vals.astype(np.int)
 
             return vals
