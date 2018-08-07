@@ -14,12 +14,12 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
-#ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
-#define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
+#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif
+#endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
 #include <datetime.h>
@@ -79,4 +79,4 @@ void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
 
-#endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_

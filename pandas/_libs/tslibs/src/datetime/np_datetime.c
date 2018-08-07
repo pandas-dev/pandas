@@ -18,7 +18,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif
+#endif  // NPY_NO_DEPRECATED_API
 
 #include <Python.h>
 #include <datetime.h>
