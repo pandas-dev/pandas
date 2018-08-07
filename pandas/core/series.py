@@ -1062,9 +1062,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
+<<<<<<< HEAD
+<<<<<<< HEAD
             if is_scalar(key):
                 key = [key]
             elif not isinstance(key, (list, Series, np.ndarray)):
+=======
+            if not isinstance(key, (
+                    list, Series, np.ndarray, Series)):
+>>>>>>> cae87e9df... Added try...except for non-ndarray Series _set_with
+=======
+            if not isinstance(key, (list, Series, np.ndarray, Series)):
+>>>>>>> 65893ae93... Minor fixups
                 try:
                     key = list(key)
                 except Exception:

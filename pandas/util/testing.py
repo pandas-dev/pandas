@@ -15,6 +15,15 @@ import traceback
 import warnings
 import zipfile
 
+<<<<<<< HEAD
+=======
+from datetime import datetime
+from functools import wraps
+from contextlib import contextmanager
+
+from bitarray import bitarray
+from numpy.random import randn, rand
+>>>>>>> 2ff4b0907... First pass at implementation (needs refactor)
 import numpy as np
 from numpy.random import rand, randn
 
@@ -938,15 +947,33 @@ def assert_extension_array_equal(left, right, check_dtype=True,
     A mask of missing values is computed for each and checked to match.
     The remaining all-valid values are cast to object dtype and checked.
     """
+<<<<<<< HEAD
     assert isinstance(left, ExtensionArray), 'left is not an ExtensionArray'
     assert isinstance(right, ExtensionArray), 'right is not an ExtensionArray'
     if check_dtype:
         assert_attr_equal('dtype', left, right, obj='ExtensionArray')
+<<<<<<< HEAD
+=======
+    assert isinstance(left, ExtensionArray)
+    assert left.dtype == right.dtype
+    left_na = left.isna()
+    right_na = right.isna()
+
+    # TODO - maybe generate dedicated method for bitarray comparison?
+    if isinstance(left_na, bitarray):
+        left_na = np.fromstring(left_na.unpack(), dtype=bool)
+    if isinstance(right_na, bitarray):
+        right_na = np.fromstring(right_na.unpack(), dtype=bool)
+
+    assert_numpy_array_equal(left_na, right_na)
+>>>>>>> 2ff4b0907... First pass at implementation (needs refactor)
 
     if hasattr(left, "asi8") and type(right) == type(left):
         # Avoid slow object-dtype comparisons
         assert_numpy_array_equal(left.asi8, right.asi8)
         return
+=======
+>>>>>>> 36256a718... Reverted test from master
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())

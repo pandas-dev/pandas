@@ -19,7 +19,11 @@ from pandas.core.dtypes.missing import isna, notna
 
 from pandas.core import nanops
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+<<<<<<< HEAD
 from pandas.core.tools.numeric import to_numeric
+=======
+from pandas.core.arrays._mask import NAMask
+>>>>>>> 384287e71... Revert unnecessary changes from master
 
 
 class _IntegerDtype(ExtensionDtype):
@@ -287,7 +291,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 and is_integer_dtype(values.dtype)):
             raise TypeError("values should be integer numpy array. Use "
                             "the 'integer_array' function instead")
-        if not (isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype)):
+        if not (isinstance(mask, NAMask) or (
+                isinstance(mask, np.ndarray) and is_bool_dtype(mask.dtype))):
             raise TypeError("mask should be boolean numpy array. Use "
                             "the 'integer_array' function instead")
 
@@ -296,7 +301,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask.copy()
 
         self._data = values
-        self._mask = mask
+        self._mask = NAMask(mask)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -323,7 +328,22 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+<<<<<<< HEAD
         return type(self)(self._data[item], self._mask[item])
+=======
+
+<<<<<<< HEAD
+        return type(self)(self._data[item],
+<<<<<<< HEAD
+                          mask=_bitarray_to_numpy(self._mask)[item],
+                          dtype=self.dtype)
+>>>>>>> 2ff4b0907... First pass at implementation (needs refactor)
+=======
+                          mask=_bitarray_to_numpy(self._mask)[item])
+>>>>>>> e085674ac... Reverted changes; created new module for mask
+=======
+        return type(self)(self._data[item], self._mask[item])
+>>>>>>> 384287e71... Revert unnecessary changes from master
 
     def _coerce_to_ndarray(self):
         """
