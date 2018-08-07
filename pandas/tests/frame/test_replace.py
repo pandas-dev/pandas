@@ -603,6 +603,20 @@ class TestDataFrameReplace(TestData):
 
         assert_frame_equal(res, expec)
 
+    def test_replace_with_empty_list(self):
+        # GH 21977
+        s = pd.Series([['a', 'b'], [], np.nan, [1]])
+        df = pd.DataFrame({'col': s})
+        expected = df
+        result = df.replace([], np.nan)
+        assert_frame_equal(result, expected)
+
+        # GH 19266
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+            df.replace({np.nan: []})
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+            df.replace({np.nan: ['dummy', 'alt']})
+
     def test_replace_series_dict(self):
         # from GH 3064
         df = DataFrame({'zero': {'a': 0.0, 'b': 1}, 'one': {'a': 2.0, 'b': 0}})

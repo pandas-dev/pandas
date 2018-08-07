@@ -130,6 +130,19 @@ class TestSeriesReplace(TestData):
             s.replace([1, 2, 3], inplace=True, method='crash_cymbal')
         tm.assert_series_equal(s, ser)
 
+    def test_replace_with_empty_list(self):
+        # GH 21977
+        s = pd.Series([[1], [2, 3], [], np.nan, [4]])
+        expected = s
+        result = s.replace([], np.nan)
+        tm.assert_series_equal(result, expected)
+
+        # GH 19266
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+            s.replace({np.nan: []})
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+            s.replace({np.nan: ['dummy', 'alt']})
+
     def test_replace_mixed_types(self):
         s = pd.Series(np.arange(5), dtype='int64')
 

@@ -68,6 +68,10 @@ def mask_missing(arr, values_to_mask):
         else:
             mask |= isna(arr)
 
+    # GH 21977
+    if mask is None:
+        mask = np.zeros(arr.shape, dtype=bool)
+
     return mask
 
 
