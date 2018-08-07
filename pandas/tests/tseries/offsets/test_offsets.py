@@ -3035,7 +3035,7 @@ class TestDST(object):
                       QuarterEnd: ['11/2/2012', '12/31/2012'],
                       BQuarterBegin: ['11/2/2012', '12/3/2012'],
                       BQuarterEnd: ['11/2/2012', '12/31/2012'],
-                      Day: ['11/4/2012', '11/4/2012 23:00']}.items()
+                      Day: ['11/4/2012', '11/5/2012']}.items()
 
     @pytest.mark.parametrize('tup', offset_classes)
     def test_all_offset_classes(self, tup):
@@ -3162,3 +3162,27 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+@pytest.mark.parametrize('offset, factor', [
+    ['Day', 1],
+    ['Hour', 24],
+    ['Minute', 24 * 60],
+    ['Second', 24 * 60 * 60],
+    ['Milli', 8.64e7],
+    ['Micro', 8.64e10],
+    ['Nano', 8.64e13]
+])
+def test_tick_dst_arithmetic(offset, factor):
+    # GH 20633
+    # Tick classes (e.g. Day) should now respect calendar arithmetic
+    # Test that calendar day is respected by roundtripping across DST
+    tick = factor * getattr(offsets, offset)(1)
+    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+    expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+
+    result = ts + tick
+    assert result == expected
+
+    result = result - tick
+    assert result == ts

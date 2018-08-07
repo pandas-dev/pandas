@@ -466,22 +466,19 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return new_values.view('timedelta64[ns]')
 
     def _add_offset(self, offset):
-        assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:
                 values = self.tz_localize(None)
             else:
                 values = self
             result = offset.apply_index(values)
-            if self.tz is not None:
-                result = result.tz_localize(self.tz)
 
         except NotImplementedError:
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
             result = self.astype('O') + offset
 
-        return type(self)(result, freq='infer')
+        return type(self)(result, freq='infer', tz=self.tz)
 
     def _sub_datelike(self, other):
         # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
@@ -536,8 +533,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         method (__add__ or __sub__)
         """
         from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
-
-        if isinstance(delta, (Tick, timedelta, np.timedelta64)):
+        if isinstance(delta, Tick):
+            # GH 20633: Ticks behave like offsets now, but cannot change
+            # this directly in the mixin because it affects Periods and
+            # Timedeltas
+            return self._add_offset(delta)
+        elif isinstance(delta, (timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif is_timedelta64_dtype(delta):
             if not isinstance(delta, TimedeltaArrayMixin):
