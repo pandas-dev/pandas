@@ -21,7 +21,7 @@ See the :ref:`Indexing and Selecting Data <indexing>` for general indexing docum
 
 .. warning::
 
-   Whether a copy or a reference is returned for a setting operation, may
+   Whether a copy or a reference is returned for a setting operation may
    depend on the context.  This is sometimes called ``chained assignment`` and
    should be avoided.  See :ref:`Returning a View versus Copy
    <indexing.view_versus_copy>`.
@@ -172,7 +172,7 @@ Defined Levels
 ~~~~~~~~~~~~~~
 
 The repr of a ``MultiIndex`` shows all the defined levels of an index, even
-if the they are not actually used. When slicing an index, you may notice this.
+if they are not actually used. When slicing an index, you may notice this.
 For example:
 
 .. ipython:: python
@@ -342,7 +342,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
                        columns=micolumns).sort_index().sort_index(axis=1)
    dfmi
 
-Basic multi-index slicing using slices, lists, and labels.
+Basic MultiIndex slicing using slices, lists, and labels.
 
 .. ipython:: python
 
@@ -379,7 +379,7 @@ slicers on a single axis.
 
    dfmi.loc(axis=0)[:, :, ['C1', 'C3']]
 
-Furthermore you can *set* the values using the following methods.
+Furthermore, you can *set* the values using the following methods.
 
 .. ipython:: python
 
@@ -559,7 +559,7 @@ return a copy of the data rather than a view:
 
 .. _advanced.unsorted:
 
-Furthermore if you try to index something that is not fully lexsorted, this can raise:
+Furthermore, if you try to index something that is not fully lexsorted, this can raise:
 
 .. code-block:: ipython
 
@@ -659,7 +659,7 @@ Index Types
 
 We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
 are shown :ref:`here <timeseries.overview>`, and information about
-`TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltas>`.
+``TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltas>`.
 
 In the following sub-sections we will highlight some other index types.
 
@@ -835,8 +835,8 @@ In non-float indexes, slicing using floats will raise a ``TypeError``.
 
 
 Here is a typical use-case for using this type of indexing. Imagine that you have a somewhat
-irregular timedelta-like indexing scheme, but the data is recorded as floats. This could for
-example be millisecond offsets.
+irregular timedelta-like indexing scheme, but the data is recorded as floats. This could, for
+example, be millisecond offsets.
 
 .. ipython:: python
 
@@ -924,6 +924,55 @@ bins, with ``NaN`` representing a missing value similar to other dtypes.
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
+
+Generating Ranges of Intervals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If we need intervals on a regular frequency, we can use the :func:`interval_range` function
+to create an ``IntervalIndex`` using various combinations of ``start``, ``end``, and ``periods``.
+The default frequency for ``interval_range`` is a 1 for numeric intervals, and calendar day for
+datetime-like intervals:
+
+.. ipython:: python
+
+   pd.interval_range(start=0, end=5)
+
+   pd.interval_range(start=pd.Timestamp('2017-01-01'), periods=4)
+
+   pd.interval_range(end=pd.Timedelta('3 days'), periods=3)
+
+The ``freq`` parameter can used to specify non-default frequencies, and can utilize a variety
+of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like intervals:
+
+.. ipython:: python
+
+   pd.interval_range(start=0, periods=5, freq=1.5)
+
+   pd.interval_range(start=pd.Timestamp('2017-01-01'), periods=4, freq='W')
+
+   pd.interval_range(start=pd.Timedelta('0 days'), periods=3, freq='9H')
+
+Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
+are closed on.  Intervals are closed on the right side by default.
+
+.. ipython:: python
+
+   pd.interval_range(start=0, end=4, closed='both')
+
+   pd.interval_range(start=0, end=4, closed='neither')
+
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
+in the resulting ``IntervalIndex``:
+
+.. ipython:: python
+
+   pd.interval_range(start=0, end=6, periods=4)
+
+   pd.interval_range(pd.Timestamp('2018-01-01'), pd.Timestamp('2018-02-28'), periods=3)
+
 Miscellaneous indexing FAQ
 --------------------------
 
@@ -990,7 +1039,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
 :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` only check that
-an index is weakly monotonic. To check for strict montonicity, you can combine one of those with
+an index is weakly monotonic. To check for strict monotonicity, you can combine one of those with
 :meth:`Index.is_unique`
 
 .. ipython:: python

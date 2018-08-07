@@ -1,4 +1,3 @@
-import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 
@@ -11,8 +10,9 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
-                                             _INVALID_FREQ_ERROR)
+                                             INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
@@ -28,46 +28,20 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth)
-from pandas.core.tools.datetimes import format, ole2datetime
+                                    LastWeekOfMonth, Tick)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import normalize_date, NaT, Timestamp
+from pandas._libs.tslib import NaT, Timestamp
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
 
-
-def test_monthrange():
-    import calendar
-    for y in range(2000, 2013):
-        for m in range(1, 13):
-            assert tslib.monthrange(y, m) == calendar.monthrange(y, m)
-
 ####
 # Misc function tests
 ####
-
-
-def test_format():
-    actual = format(datetime(2008, 1, 15))
-    assert actual == '20080115'
-
-
-def test_ole2datetime():
-    actual = ole2datetime(60000)
-    assert actual == datetime(2064, 4, 8)
-
-    with pytest.raises(ValueError):
-        ole2datetime(60)
-
-
-def test_normalize_date():
-    actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
-    assert actual == datetime(2007, 10, 1)
 
 
 def test_to_m8():
@@ -89,6 +63,7 @@ def test_to_m8():
 
 class Base(object):
     _offset = None
+    d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
                  'dateutil/Asia/Tokyo', 'dateutil/US/Pacific']
@@ -117,7 +92,8 @@ class Base(object):
                 klass = klass(normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self, tz):
+    def test_apply_out_of_range(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         if self._offset is None:
             return
 
@@ -147,6 +123,56 @@ class Base(object):
             # we are creating an invalid offset
             # so ignore
             pass
+
+    def test_offsets_compare_equal(self):
+        # root cause of GH#456: __ne__ was not implemented
+        if self._offset is None:
+            return
+        offset1 = self._offset()
+        offset2 = self._offset()
+        assert not offset1 != offset2
+        assert offset1 == offset2
+
+    def test_rsub(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
+
+    def test_radd(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        assert self.d + self.offset2 == self.offset2 + self.d
+
+    def test_sub(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        off = self.offset2
+        with pytest.raises(Exception):
+            off - self.d
+
+        assert 2 * off - off == off
+        assert self.d - self.offset2 == self.d + self._offset(-2)
+        assert self.d - self.offset2 == self.d - (2 * off - off)
+
+    def testMult1(self):
+        if self._offset is None or not hasattr(self, "offset1"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset1 attr
+            return
+        assert self.d + 10 * self.offset1 == self.d + self._offset(10)
+        assert self.d + 5 * self.offset1 == self.d + self._offset(5)
+
+    def testMult2(self):
+        if self._offset is None:
+            return
+        assert self.d + (-5 * self._offset(-10)) == self.d + self._offset(50)
+        assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
 
 class TestCommon(Base):
@@ -189,6 +215,14 @@ class TestCommon(Base):
                  'Nano': Timestamp(np_datetime64_compat(
                                    '2011-01-01T09:00:00.000000001Z'))}
 
+    def test_immutable(self, offset_types):
+        # GH#21341 check that __setattr__ raises
+        offset = self._get_offset(offset_types)
+        with pytest.raises(AttributeError):
+            offset.normalize = True
+        with pytest.raises(AttributeError):
+            offset.n = 91
+
     def test_return_type(self, offset_types):
         offset = self._get_offset(offset_types)
 
@@ -225,6 +259,11 @@ class TestCommon(Base):
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected,
                                 normalize=False):
+
+        if normalize and issubclass(offset, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
+
         offset_s = self._get_offset(offset, normalize=normalize)
         func = getattr(offset_s, funcname)
 
@@ -262,7 +301,7 @@ class TestCommon(Base):
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
-            dt_tz = tslib._localize_pydatetime(dt, tz_obj)
+            dt_tz = conversion.localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
             assert isinstance(result, Timestamp)
@@ -413,6 +452,9 @@ class TestCommon(Base):
         assert offset_s.onOffset(dt)
 
         # when normalize=True, onOffset checks time is 00:00:00
+        if issubclass(offset_types, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
         offset_n = self._get_offset(offset_types, normalize=True)
         assert not offset_n.onOffset(dt)
 
@@ -423,7 +465,8 @@ class TestCommon(Base):
         date = datetime(dt.year, dt.month, dt.day)
         assert offset_n.onOffset(date)
 
-    def test_add(self, offset_types, tz):
+    def test_add(self, offset_types, tz_naive_fixture):
+        tz = tz_naive_fixture
         dt = datetime(2011, 1, 1, 9, 0)
 
         offset_s = self._get_offset(offset_types)
@@ -440,7 +483,9 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-        # normalize=True
+        # normalize=True, disallowed for Tick subclasses GH#21427
+        if issubclass(offset_types, Tick):
+            return
         offset_s = self._get_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
 
@@ -455,14 +500,15 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-    def test_pickle_v0_15_2(self):
+    def test_pickle_v0_15_2(self, datapath):
         offsets = {'DateOffset': DateOffset(years=1),
                    'MonthBegin': MonthBegin(1),
                    'Day': Day(1),
                    'YearBegin': YearBegin(1),
                    'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'dateoffset_0_15_2.pickle')
+
+        pickle_path = datapath('tseries', 'offsets', 'data',
+                               'dateoffset_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
@@ -515,20 +561,23 @@ class TestBusinessDay(Base):
         self.d = datetime(2008, 1, 1)
 
         self.offset = BDay()
+        self.offset1 = self.offset
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = BDay()
-        offset2 = BDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<BusinessDay>'
         assert repr(self.offset2) == '<2 * BusinessDays>'
 
-        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
+        if compat.PY37:
+            expected = '<BusinessDay: offset=datetime.timedelta(days=1)>'
+        else:
+            expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -536,7 +585,7 @@ class TestBusinessDay(Base):
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
 
-    def testEQ(self):
+    def test_eq(self):
         assert self.offset2 == self.offset2
 
     def test_mul(self):
@@ -545,27 +594,8 @@ class TestBusinessDay(Base):
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset2(self.d) == datetime(2008, 1, 3)
-
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d + BDay(-2)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 10 * self.offset == self.d + BDay(10)
-
-    def testMult2(self):
-        assert self.d + (-5 * BDay(-10)) == self.d + BDay(50)
 
     def testRollback1(self):
         assert BDay(10).rollback(self.d) == self.d
@@ -678,12 +708,6 @@ class TestBusinessDay(Base):
     def test_apply_corner(self):
         pytest.raises(TypeError, BDay().apply, BMonthEnd())
 
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = BDay()
-        offset2 = BDay()
-        assert not offset1 != offset2
-
 
 class TestBusinessHour(Base):
     _offset = BusinessHour
@@ -713,11 +737,10 @@ class TestBusinessHour(Base):
             BusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<BusinessHour: BH=09:00-17:00>'
@@ -735,7 +758,7 @@ class TestBusinessHour(Base):
         assert self.d + BusinessHour() * 3 == expected
         assert self.d + BusinessHour(n=3) == expected
 
-    def testEQ(self):
+    def test_eq(self):
         for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
             assert offset == offset
 
@@ -749,30 +772,21 @@ class TestBusinessHour(Base):
         for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
             assert hash(offset) == hash(offset)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
         assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
         assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
         assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
 
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
+    def test_sub(self):
+        # we have to override test_sub here becasue self.offset2 is not
+        # defined as self._offset(2)
         off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
+        with pytest.raises(Exception):
+            off - self.d
         assert 2 * off - off == off
 
         assert self.d - self.offset2 == self.d + self._offset(-3)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 5 * self.offset1 == self.d + self._offset(5)
-
-    def testMult2(self):
-        assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d
@@ -1323,12 +1337,6 @@ class TestBusinessHour(Base):
             for base, expected in compat.iteritems(cases):
                 assert_offset_equal(offset, base, expected)
 
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = self._offset()
-        offset2 = self._offset()
-        assert not offset1 != offset2
-
     def test_datetimeindex(self):
         idx1 = DatetimeIndex(start='2014-07-04 15:00', end='2014-07-08 10:00',
                              freq='BH')
@@ -1367,6 +1375,8 @@ class TestBusinessHour(Base):
 
 class TestCustomBusinessHour(Base):
     _offset = CustomBusinessHour
+    holidays = ['2014-06-27', datetime(2014, 6, 30),
+                np.datetime64('2014-07-02')]
 
     def setup_method(self, method):
         # 2014 Calendar to check custom holidays
@@ -1377,8 +1387,6 @@ class TestCustomBusinessHour(Base):
         self.d = datetime(2014, 7, 1, 10, 00)
         self.offset1 = CustomBusinessHour(weekmask='Tue Wed Thu Fri')
 
-        self.holidays = ['2014-06-27', datetime(2014, 6, 30),
-                         np.datetime64('2014-07-02')]
         self.offset2 = CustomBusinessHour(holidays=self.holidays)
 
     def test_constructor_errors(self):
@@ -1391,11 +1399,10 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<CustomBusinessHour: CBH=09:00-17:00>'
@@ -1407,7 +1414,7 @@ class TestCustomBusinessHour(Base):
         assert self.d + CustomBusinessHour() * 3 == expected
         assert self.d + CustomBusinessHour(n=3) == expected
 
-    def testEQ(self):
+    def test_eq(self):
         for offset in [self.offset1, self.offset2]:
             assert offset == offset
 
@@ -1424,32 +1431,18 @@ class TestCustomBusinessHour(Base):
         assert (CustomBusinessHour(holidays=['2014-06-27']) !=
                 CustomBusinessHour(holidays=['2014-06-28']))
 
+    def test_sub(self):
+        # override the Base.test_sub implementation because self.offset2 is
+        # defined differently in this class than the test expects
+        pass
+
     def test_hash(self):
         assert hash(self.offset1) == hash(self.offset1)
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
         assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
-
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d - (2 * off - off)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 5 * self.offset1 == self.d + self._offset(5)
-
-    def testMult2(self):
-        assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d
@@ -1490,49 +1483,51 @@ class TestCustomBusinessHour(Base):
         result = offset.rollforward(dt)
         assert result == datetime(2014, 7, 7, 9)
 
-    def test_normalize(self):
-        tests = []
+    normalize_cases = []
+    normalize_cases.append((
+        CustomBusinessHour(normalize=True, holidays=holidays),
+        {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 3),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 3),
+         datetime(2014, 7, 1, 23): datetime(2014, 7, 3),
+         datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
+         datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
+         datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
+         datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
+         datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
+         datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
 
-        tests.append((CustomBusinessHour(normalize=True,
-                                         holidays=self.holidays),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 3),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 3),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 3),
-                       datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
-                       datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
-                       datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
-                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
-                       datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
-                       datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
+    normalize_cases.append((
+        CustomBusinessHour(-1, normalize=True, holidays=holidays),
+        {datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 10): datetime(2014, 6, 26),
+         datetime(2014, 7, 1, 0): datetime(2014, 6, 26),
+         datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
+         datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
+         datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
+         datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
 
-        tests.append((CustomBusinessHour(-1, normalize=True,
-                                         holidays=self.holidays),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 10): datetime(2014, 6, 26),
-                       datetime(2014, 7, 1, 0): datetime(2014, 6, 26),
-                       datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
-                       datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
-                       datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
-                       datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
+    normalize_cases.append((
+        CustomBusinessHour(1, normalize=True,
+                           start='17:00', end='04:00',
+                           holidays=holidays),
+        {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+         datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
+         datetime(2014, 7, 2, 3): datetime(2014, 7, 3),
+         datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
+         datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
+         datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
+         datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
 
-        tests.append((CustomBusinessHour(1, normalize=True, start='17:00',
-                                         end='04:00', holidays=self.holidays),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
-                       datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
-                       datetime(2014, 7, 2, 3): datetime(2014, 7, 3),
-                       datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
-                       datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
-                       datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
-                       datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
-
-        for offset, cases in tests:
-            for dt, expected in compat.iteritems(cases):
-                assert offset.apply(dt) == expected
+    @pytest.mark.parametrize('norm_cases', normalize_cases)
+    def test_normalize(self, norm_cases):
+        offset, cases = norm_cases
+        for dt, expected in compat.iteritems(cases):
+            assert offset.apply(dt) == expected
 
     def test_onOffset(self):
         tests = []
@@ -1550,75 +1545,75 @@ class TestCustomBusinessHour(Base):
             for dt, expected in compat.iteritems(cases):
                 assert offset.onOffset(dt) == expected
 
-    def test_apply(self):
-        tests = []
+    apply_cases = []
+    apply_cases.append((
+        CustomBusinessHour(holidays=holidays),
+        {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
+         datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+         datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
+         datetime(2014, 7, 1, 19): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 9),
+         datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 3, 9, 30, 15),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 10),
+         # out of business hours
+         datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
+         # saturday
+         datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
+         datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
+         datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
+         datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30, 30)}))
 
-        tests.append((
-            CustomBusinessHour(holidays=self.holidays),
-            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
-             datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
-             datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
-             datetime(2014, 7, 1, 19): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 9),
-             datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 3, 9, 30, 15),
-             datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 10),
-             # out of business hours
-             datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
-             # saturday
-             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
-             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
-             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
-             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30,
-                                                        30)}))
+    apply_cases.append((
+        CustomBusinessHour(4, holidays=holidays),
+        {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
+         datetime(2014, 7, 1, 13): datetime(2014, 7, 3, 9),
+         datetime(2014, 7, 1, 15): datetime(2014, 7, 3, 11),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 12),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
+         datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
+         datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
+         datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30, 30)}))
 
-        tests.append((
-            CustomBusinessHour(4, holidays=self.holidays),
-            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
-             datetime(2014, 7, 1, 13): datetime(2014, 7, 3, 9),
-             datetime(2014, 7, 1, 15): datetime(2014, 7, 3, 11),
-             datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 12),
-             datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
-             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
-             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
-             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30,
-                                                        30)}))
+    @pytest.mark.parametrize('apply_case', apply_cases)
+    def test_apply(self, apply_case):
+        offset, cases = apply_case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    nano_cases = []
+    nano_cases.append(
+        (CustomBusinessHour(holidays=holidays),
+         {Timestamp('2014-07-01 15:00') + Nano(5):
+            Timestamp('2014-07-01 16:00') + Nano(5),
+          Timestamp('2014-07-01 16:00') + Nano(5):
+            Timestamp('2014-07-03 09:00') + Nano(5),
+          Timestamp('2014-07-01 16:00') - Nano(5):
+            Timestamp('2014-07-01 17:00') - Nano(5)}))
 
-    def test_apply_nanoseconds(self):
-        tests = []
+    nano_cases.append(
+        (CustomBusinessHour(-1, holidays=holidays),
+         {Timestamp('2014-07-01 15:00') + Nano(5):
+            Timestamp('2014-07-01 14:00') + Nano(5),
+          Timestamp('2014-07-01 10:00') + Nano(5):
+            Timestamp('2014-07-01 09:00') + Nano(5),
+          Timestamp('2014-07-01 10:00') - Nano(5):
+            Timestamp('2014-06-26 17:00') - Nano(5)}))
 
-        tests.append((CustomBusinessHour(holidays=self.holidays),
-                      {Timestamp('2014-07-01 15:00') + Nano(5): Timestamp(
-                          '2014-07-01 16:00') + Nano(5),
-                       Timestamp('2014-07-01 16:00') + Nano(5): Timestamp(
-                           '2014-07-03 09:00') + Nano(5),
-                       Timestamp('2014-07-01 16:00') - Nano(5): Timestamp(
-                           '2014-07-01 17:00') - Nano(5)}))
-
-        tests.append((CustomBusinessHour(-1, holidays=self.holidays),
-                      {Timestamp('2014-07-01 15:00') + Nano(5): Timestamp(
-                          '2014-07-01 14:00') + Nano(5),
-                       Timestamp('2014-07-01 10:00') + Nano(5): Timestamp(
-                           '2014-07-01 09:00') + Nano(5),
-                       Timestamp('2014-07-01 10:00') - Nano(5): Timestamp(
-                           '2014-06-26 17:00') - Nano(5), }))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('nano_case', nano_cases)
+    def test_apply_nanoseconds(self, nano_case):
+        offset, cases = nano_case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
 
 class TestCustomBusinessDay(Base):
@@ -1629,20 +1624,23 @@ class TestCustomBusinessDay(Base):
         self.nd = np_datetime64_compat('2008-01-01 00:00:00Z')
 
         self.offset = CDay()
+        self.offset1 = self.offset
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CDay()
-        offset2 = CDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessDay>'
         assert repr(self.offset2) == '<2 * CustomBusinessDays>'
 
-        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
+        if compat.PY37:
+            expected = '<BusinessDay: offset=datetime.timedelta(days=1)>'
+        else:
+            expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -1650,7 +1648,7 @@ class TestCustomBusinessDay(Base):
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
 
-    def testEQ(self):
+    def test_eq(self):
         assert self.offset2 == self.offset2
 
     def test_mul(self):
@@ -1659,28 +1657,9 @@ class TestCustomBusinessDay(Base):
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset2(self.d) == datetime(2008, 1, 3)
         assert self.offset2(self.nd) == datetime(2008, 1, 3)
-
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d + CDay(-2)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 10 * self.offset == self.d + CDay(10)
-
-    def testMult2(self):
-        assert self.d + (-5 * CDay(-10)) == self.d + CDay(50)
 
     def testRollback1(self):
         assert CDay(10).rollback(self.d) == self.d
@@ -1789,12 +1768,6 @@ class TestCustomBusinessDay(Base):
     def test_apply_corner(self):
         pytest.raises(Exception, CDay().apply, BMonthEnd())
 
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = CDay()
-        offset2 = CDay()
-        assert not offset1 != offset2
-
     def test_holidays(self):
         # Define a TradingDay offset
         holidays = ['2012-05-01', datetime(2013, 5, 1),
@@ -1848,12 +1821,10 @@ class TestCustomBusinessDay(Base):
         _check_roundtrip(self.offset2)
         _check_roundtrip(self.offset * 2)
 
-    def test_pickle_compat_0_14_1(self):
+    def test_pickle_compat_0_14_1(self, datapath):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
-
-        pth = tm.get_data_path()
-
-        cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
+        pth = datapath('tseries', 'offsets', 'data', 'cday-0.14.1.pickle')
+        cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
 
@@ -1863,10 +1834,11 @@ class CustomBusinessMonthBase(object):
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
 
-        self.offset = self._object()
-        self.offset2 = self._object(2)
+        self.offset = self._offset()
+        self.offset1 = self.offset
+        self.offset2 = self._offset(2)
 
-    def testEQ(self):
+    def test_eq(self):
         assert self.offset2 == self.offset2
 
     def test_mul(self):
@@ -1875,54 +1847,29 @@ class CustomBusinessMonthBase(object):
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d + self._object(-2)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 10 * self.offset == self.d + self._object(10)
-
-    def testMult2(self):
-        assert self.d + (-5 * self._object(-10)) == self.d + self._object(50)
-
-    def test_offsets_compare_equal(self):
-        offset1 = self._object()
-        offset2 = self._object()
-        assert not offset1 != offset2
-
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
             unpickled = tm.round_trip_pickle(obj)
             assert unpickled == obj
 
-        _check_roundtrip(self._object())
-        _check_roundtrip(self._object(2))
-        _check_roundtrip(self._object() * 2)
+        _check_roundtrip(self._offset())
+        _check_roundtrip(self._offset(2))
+        _check_roundtrip(self._offset() * 2)
 
     def test_copy(self):
         # GH 17452
-        off = self._object(weekmask='Mon Wed Fri')
+        off = self._offset(weekmask='Mon Wed Fri')
         assert off == off.copy()
 
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
-    _object = CBMonthEnd
+    _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthEnd>'
@@ -2032,14 +1979,13 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
-    _object = CBMonthBegin
+    _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthBegin>'
@@ -2150,6 +2096,9 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
 class TestWeek(Base):
     _offset = Week
+    d = Timestamp(datetime(2008, 1, 2))
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_repr(self):
         assert repr(Week(weekday=0)) == "<Week: weekday=0>"
@@ -2157,9 +2106,11 @@ class TestWeek(Base):
         assert repr(Week(n=-2, weekday=0)) == "<-2 * Weeks: weekday=0>"
 
     def test_corner(self):
-        pytest.raises(ValueError, Week, weekday=7)
-        tm.assert_raises_regex(
-            ValueError, "Day must be", Week, weekday=-1)
+        with pytest.raises(ValueError):
+            Week(weekday=7)
+
+        with pytest.raises(ValueError, match="Day must be"):
+            Week(weekday=-1)
 
     def test_isAnchored(self):
         assert Week(weekday=0).isAnchored()
@@ -2204,40 +2155,37 @@ class TestWeek(Base):
         for base, expected in compat.iteritems(cases):
             assert_offset_equal(offset, base, expected)
 
-    def test_onOffset(self):
-        for weekday in range(7):
-            offset = Week(weekday=weekday)
+    @pytest.mark.parametrize('weekday', range(7))
+    def test_onOffset(self, weekday):
+        offset = Week(weekday=weekday)
 
-            for day in range(1, 8):
-                date = datetime(2008, 1, day)
+        for day in range(1, 8):
+            date = datetime(2008, 1, day)
 
-                if day % 7 == weekday:
-                    expected = True
-                else:
-                    expected = False
-            assert_onOffset(offset, date, expected)
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = Week()
-        offset2 = Week()
-        assert not offset1 != offset2
+            if day % 7 == weekday:
+                expected = True
+            else:
+                expected = False
+        assert_onOffset(offset, date, expected)
 
 
 class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_constructor(self):
-        tm.assert_raises_regex(ValueError, "^N cannot be 0",
-                               WeekOfMonth, n=0, week=1, weekday=1)
-        tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
-                               n=1, week=4, weekday=0)
-        tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
-                               n=1, week=-1, weekday=0)
-        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
-                               n=1, week=0, weekday=-1)
-        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
-                               n=1, week=0, weekday=7)
+        with pytest.raises(ValueError, match="^Week"):
+            WeekOfMonth(n=1, week=4, weekday=0)
+
+        with pytest.raises(ValueError, match="^Week"):
+            WeekOfMonth(n=1, week=-1, weekday=0)
+
+        with pytest.raises(ValueError, match="^Day"):
+            WeekOfMonth(n=1, week=0, weekday=-1)
+
+        with pytest.raises(ValueError, match="^Day"):
+            WeekOfMonth(n=1, week=0, weekday=-7)
 
     def test_repr(self):
         assert (repr(WeekOfMonth(weekday=1, week=2)) ==
@@ -2260,6 +2208,19 @@ class TestWeekOfMonth(Base):
             (-1, 2, 1, date2, datetime(2010, 12, 21)),
             (-1, 2, 1, date3, datetime(2010, 12, 21)),
             (-1, 2, 1, date4, datetime(2011, 1, 18)),
+
+            (0, 0, 1, date1, datetime(2011, 1, 4)),
+            (0, 0, 1, date2, datetime(2011, 2, 1)),
+            (0, 0, 1, date3, datetime(2011, 2, 1)),
+            (0, 0, 1, date4, datetime(2011, 2, 1)),
+            (0, 1, 1, date1, datetime(2011, 1, 11)),
+            (0, 1, 1, date2, datetime(2011, 1, 11)),
+            (0, 1, 1, date3, datetime(2011, 2, 8)),
+            (0, 1, 1, date4, datetime(2011, 2, 8)),
+            (0, 0, 1, date1, datetime(2011, 1, 4)),
+            (0, 1, 1, date2, datetime(2011, 1, 11)),
+            (0, 2, 1, date3, datetime(2011, 1, 18)),
+            (0, 3, 1, date4, datetime(2011, 1, 25)),
 
             (1, 0, 0, date1, datetime(2011, 2, 7)),
             (1, 0, 0, date2, datetime(2011, 2, 7)),
@@ -2311,15 +2272,18 @@ class TestWeekOfMonth(Base):
 
 class TestLastWeekOfMonth(Base):
     _offset = LastWeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_constructor(self):
-        tm.assert_raises_regex(ValueError, "^N cannot be 0",
-                               LastWeekOfMonth, n=0, weekday=1)
+        with pytest.raises(ValueError, match="^N cannot be 0"):
+            LastWeekOfMonth(n=0, weekday=1)
 
-        tm.assert_raises_regex(ValueError, "^Day", LastWeekOfMonth, n=1,
-                               weekday=-1)
-        tm.assert_raises_regex(
-            ValueError, "^Day", LastWeekOfMonth, n=1, weekday=7)
+        with pytest.raises(ValueError, match="^Day"):
+            LastWeekOfMonth(n=1, weekday=-1)
+
+        with pytest.raises(ValueError, match="^Day"):
+            LastWeekOfMonth(n=1, weekday=7)
 
     def test_offset(self):
         # Saturday
@@ -2385,6 +2349,8 @@ class TestLastWeekOfMonth(Base):
 
 class TestSemiMonthEnd(Base):
     _offset = SemiMonthEnd
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_offset_whole_year(self):
         dates = (datetime(2007, 12, 31),
@@ -2555,6 +2521,8 @@ class TestSemiMonthEnd(Base):
 
 class TestSemiMonthBegin(Base):
     _offset = SemiMonthBegin
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_offset_whole_year(self):
         dates = (datetime(2007, 12, 15),
@@ -2762,9 +2730,9 @@ class TestOffsetNames(object):
 
 
 def test_get_offset():
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [
@@ -2782,7 +2750,7 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             get_offset(name)
 
 
@@ -3104,6 +3072,13 @@ def test_valid_month_attributes(kwd, month_classes):
 
 
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
+def test_valid_relativedelta_kwargs(kwd):
+    # Check that all the arguments specified in liboffsets.relativedelta_kwds
+    # are in fact valid relativedelta keyword args
+    DateOffset(**{kwd: 1})
+
+
+@pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
 def test_valid_tick_attributes(kwd, tick_classes):
     # GH#18226
     cls = tick_classes
@@ -3127,6 +3102,14 @@ def test_require_integers(offset_types):
     cls = offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
+
+
+def test_tick_normalize_raises(tick_classes):
+    # check that trying to create a Tick object with normalize=True raises
+    # GH#21427
+    cls = tick_classes
+    with pytest.raises(ValueError):
+        cls(n=3, normalize=True)
 
 
 def test_weeks_onoffset():

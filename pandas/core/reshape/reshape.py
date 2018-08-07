@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, text_type, zip
+from pandas.compat import range, text_type, zip, u, PY2
 from pandas import compat
 from functools import partial
 import itertools
@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like, is_bool_dtype,
     needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
@@ -58,7 +58,6 @@ class _Unstacker(object):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
@@ -142,7 +141,7 @@ class _Unstacker(object):
         ngroups = len(obs_ids)
 
         indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
@@ -157,7 +156,7 @@ class _Unstacker(object):
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
-        comp_index = _ensure_platform_int(comp_index)
+        comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
@@ -392,16 +391,21 @@ def pivot(self, index=None, columns=None, values=None):
         cols = [columns] if index is None else [index, columns]
         append = index is None
         indexed = self.set_index(cols, append=append)
-        return indexed.unstack(columns)
     else:
         if index is None:
             index = self.index
         else:
             index = self[index]
-        indexed = self._constructor_sliced(
-            self[values].values,
-            index=MultiIndex.from_arrays([index, self[columns]]))
-        return indexed.unstack(columns)
+        index = MultiIndex.from_arrays([index, self[columns]])
+
+        if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
+            indexed = self._constructor(self[values].values, index=index,
+                                        columns=values)
+        else:
+            indexed = self._constructor_sliced(self[values].values,
+                                               index=index)
+    return indexed.unstack(columns)
 
 
 def pivot_simple(index, columns, values):
@@ -720,7 +724,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     ----------
     data : array-like, Series, or DataFrame
     prefix : string, list of strings, or dict of strings, default None
-        String to append DataFrame column names
+        String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
@@ -754,7 +758,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)
@@ -816,14 +819,15 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     from pandas.core.reshape.concat import concat
     from itertools import cycle
 
+    dtypes_to_encode = ['object', 'category']
+
     if isinstance(data, DataFrame):
         # determine columns being encoded
-
         if columns is None:
-            columns_to_encode = data.select_dtypes(
-                include=['object', 'category']).columns
+            data_to_encode = data.select_dtypes(
+                include=dtypes_to_encode)
         else:
-            columns_to_encode = columns
+            data_to_encode = data[columns]
 
         # validate prefixes and separator to avoid silently dropping cols
         def check_len(item, name):
@@ -831,35 +835,45 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                        "length of the columns being encoded ({len_enc}).")
 
             if is_list_like(item):
-                if not len(item) == len(columns_to_encode):
-                    len_msg = len_msg.format(name=name, len_item=len(item),
-                                             len_enc=len(columns_to_encode))
+                if not len(item) == data_to_encode.shape[1]:
+                    len_msg = \
+                        len_msg.format(name=name, len_item=len(item),
+                                       len_enc=data_to_encode.shape[1])
                     raise ValueError(len_msg)
 
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
+
         if isinstance(prefix, compat.string_types):
             prefix = cycle([prefix])
         if isinstance(prefix, dict):
-            prefix = [prefix[col] for col in columns_to_encode]
+            prefix = [prefix[col] for col in data_to_encode.columns]
 
         if prefix is None:
-            prefix = columns_to_encode
+            prefix = data_to_encode.columns
 
         # validate separators
         if isinstance(prefix_sep, compat.string_types):
             prefix_sep = cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
-            prefix_sep = [prefix_sep[col] for col in columns_to_encode]
+            prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
-        if set(columns_to_encode) == set(data.columns):
+        if data_to_encode.shape == data.shape:
+            # Encoding the entire df, do not prepend any dropped columns
             with_dummies = []
+        elif columns is not None:
+            # Encoding only cols specified in columns. Get all cols not in
+            # columns to prepend to result.
+            with_dummies = [data.drop(columns, axis=1)]
         else:
-            with_dummies = [data.drop(columns_to_encode, axis=1)]
+            # Encoding only object and category dtype columns. Get remaining
+            # columns to prepend to result.
+            with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
-
-            dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
+        for (col, pre, sep) in zip(data_to_encode.iteritems(), prefix,
+                                   prefix_sep):
+            # col is (column_name, column), use just column data here
+            dummy = _get_dummies_1d(col[1], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
                                     drop_first=drop_first, dtype=dtype)
             with_dummies.append(dummy)
@@ -909,13 +923,23 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     number_of_cols = len(levels)
 
-    if prefix is not None:
-        dummy_strs = [u'{prefix}{sep}{level}' if isinstance(v, text_type)
-                      else '{prefix}{sep}{level}' for v in levels]
-        dummy_cols = [dummy_str.format(prefix=prefix, sep=prefix_sep, level=v)
-                      for dummy_str, v in zip(dummy_strs, levels)]
-    else:
+    if prefix is None:
         dummy_cols = levels
+    else:
+
+        # PY2 embedded unicode, gh-22084
+        def _make_col_name(prefix, prefix_sep, level):
+            fstr = '{prefix}{prefix_sep}{level}'
+            if PY2 and (isinstance(prefix, text_type) or
+                        isinstance(prefix_sep, text_type) or
+                        isinstance(level, text_type)):
+                fstr = u(fstr)
+            return fstr.format(prefix=prefix,
+                               prefix_sep=prefix_sep,
+                               level=level)
+
+        dummy_cols = [_make_col_name(prefix, prefix_sep, level)
+                      for level in levels]
 
     if isinstance(data, Series):
         index = data.index
@@ -926,10 +950,11 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         sparse_series = {}
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code in enumerate(codes):
-            if code == -1:
-                # Blank entries if not dummy_na and code == -1, #GH4446
-                continue
+        mask = codes != -1
+        codes = codes[mask]
+        n_idx = np.arange(N)[mask]
+
+        for ndx, code in zip(n_idx, codes):
             sp_indices[code].append(ndx)
 
         if drop_first:

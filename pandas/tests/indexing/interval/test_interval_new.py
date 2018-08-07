@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-import pandas as pd
 
 from pandas import Series, IntervalIndex, Interval
 import pandas.util.testing as tm
@@ -170,17 +169,17 @@ class TestIntervalIndex(object):
 
         # interval
         expected = 0
-        result = s.loc[pd.interval(1, 5)]
+        result = s.loc[Interval(1, 5)]
         tm.assert_series_equal(expected, result)
 
-        result = s[pd.interval(1, 5)]
+        result = s[Interval(1, 5)]
         tm.assert_series_equal(expected, result)
 
         expected = s
-        result = s.loc[[pd.interval(1, 5), pd.Interval(3, 7)]]
+        result = s.loc[[Interval(1, 5), Interval(3, 7)]]
         tm.assert_series_equal(expected, result)
 
-        result = s[[pd.interval(1, 5), pd.Interval(3, 7)]]
+        result = s[[Interval(1, 5), Interval(3, 7)]]
         tm.assert_series_equal(expected, result)
 
         with pytest.raises(KeyError):
@@ -197,17 +196,17 @@ class TestIntervalIndex(object):
 
         # slices with interval (only exact matches)
         expected = s
-        result = s.loc[pd.interval(1, 5):pd.Interval(3, 7)]
+        result = s.loc[Interval(1, 5):Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
-        result = s[pd.interval(1, 5):pd.Interval(3, 7)]
+        result = s[Interval(1, 5):Interval(3, 7)]
         tm.assert_series_equal(expected, result)
 
         with pytest.raises(KeyError):
-            s.loc[pd.interval(1, 6):pd.Interval(3, 8)]
+            s.loc[Interval(1, 6):Interval(3, 8)]
 
         with pytest.raises(KeyError):
-            s[pd.interval(1, 6):pd.Interval(3, 8)]
+            s[Interval(1, 6):Interval(3, 8)]
 
         # slices with scalar raise for overlapping intervals
         # TODO KeyError is the appropriate error?
@@ -217,7 +216,7 @@ class TestIntervalIndex(object):
     def test_non_unique(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
-        s = pd.Series(range(len(idx)), index=idx)
+        s = Series(range(len(idx)), index=idx)
 
         result = s.loc[Interval(1, 3)]
         assert result == 0

@@ -6,8 +6,7 @@ import pytest
 
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
-import sys
-from distutils.version import LooseVersion
+import pydoc
 
 from pandas.compat import range, lrange, long
 from pandas import compat
@@ -252,18 +251,14 @@ class SharedWithSparse(object):
                     '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
 
         tup = next(df.itertuples(name='TestName'))
-
-        if LooseVersion(sys.version) >= LooseVersion('2.7'):
-            assert tup._fields == ('Index', 'a', 'b')
-            assert (tup.Index, tup.a, tup.b) == tup
-            assert type(tup).__name__ == 'TestName'
+        assert tup._fields == ('Index', 'a', 'b')
+        assert (tup.Index, tup.a, tup.b) == tup
+        assert type(tup).__name__ == 'TestName'
 
         df.columns = ['def', 'return']
         tup2 = next(df.itertuples(name='TestName'))
         assert tup2 == (0, 1, 4)
-
-        if LooseVersion(sys.version) >= LooseVersion('2.7'):
-            assert tup2._fields == ('Index', '_1', '_2')
+        assert tup2._fields == ('Index', '_1', '_2')
 
         df3 = DataFrame({'f' + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
@@ -362,8 +357,9 @@ class SharedWithSparse(object):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        DataFrame.index  # no exception!
-        DataFrame.columns  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(DataFrame.index)
+        assert pydoc.getdoc(DataFrame.columns)
 
     def test_more_values(self):
         values = self.mixed_frame.values

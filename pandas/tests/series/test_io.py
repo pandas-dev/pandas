@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import Series, DataFrame
 
 from pandas.compat import StringIO, u
+from pandas.io.common import _get_handle
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -75,9 +76,8 @@ class TestSeriesToCSV(TestData):
             series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
-            outfile = open(path, "w")
-            outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
-            outfile.close()
+            with open(path, "w") as outfile:
+                outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
             series = self.read_csv(path, sep="|")
             check_series = Series({datetime(1998, 1, 1): 1.0,
@@ -138,29 +138,44 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    def test_to_csv_compression(self, compression_no_zip):
-
-        s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
-                   name='X')
+    @pytest.mark.parametrize('s,encoding', [
+        (Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
+                name='X'), None),
+        # GH 21241, 21118
+        (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
+        (Series(["123", u"你好", u"世界"], name=u"中文"), 'gb2312'),
+        (Series(["123", u"Γειά σου", u"Κόσμε"], name=u"Ελληνικά"), 'cp737')
+    ])
+    def test_to_csv_compression(self, s, encoding, compression):
 
         with ensure_clean() as filename:
 
-            s.to_csv(filename, compression=compression_no_zip, header=True)
-
+            s.to_csv(filename, compression=compression, encoding=encoding,
+                     header=True)
             # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression=compression_no_zip,
-                             index_col=0, squeeze=True)
-            assert_series_equal(s, rs)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
+
+            # test the round trip using file handle - to_csv -> read_csv
+            f, _handles = _get_handle(filename, 'w', compression=compression,
+                                      encoding=encoding)
+            with f:
+                s.to_csv(f, encoding=encoding, header=True)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
 
             # explicitly ensure file was compressed
-            with tm.decompress_file(filename, compression_no_zip) as fh:
-                text = fh.read().decode('utf8')
+            with tm.decompress_file(filename, compression) as fh:
+                text = fh.read().decode(encoding or 'utf8')
                 assert s.name in text
 
-            with tm.decompress_file(filename, compression_no_zip) as fh:
+            with tm.decompress_file(filename, compression) as fh:
                 assert_series_equal(s, pd.read_csv(fh,
                                                    index_col=0,
-                                                   squeeze=True))
+                                                   squeeze=True,
+                                                   encoding=encoding))
 
 
 class TestSeriesIO(TestData):

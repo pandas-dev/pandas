@@ -404,7 +404,7 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
 
     Parameters
     ----------
-    frame : DataFrame
+    frame : DataFrame, Series
     name : string
         Name of SQL table.
     con : SQLAlchemy connectable(engine/connection) or database string URI

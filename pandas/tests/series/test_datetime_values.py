@@ -255,11 +255,8 @@ class TestSeriesDatetimeValues(TestData):
 
         # trying to set a copy
         with pd.option_context('chained_assignment', 'raise'):
-
-            def f():
+            with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
-
-            pytest.raises(com.SettingWithCopyError, f)
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
@@ -355,16 +352,16 @@ class TestSeriesDatetimeValues(TestData):
         datetime_index = date_range('20150301', periods=5)
         result = datetime_index.strftime("%Y/%m/%d")
 
-        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
-                             '2015/03/04', '2015/03/05'], dtype=np.object_)
+        expected = Index(['2015/03/01', '2015/03/02', '2015/03/03',
+                          '2015/03/04', '2015/03/05'], dtype=np.object_)
         # dtype may be S10 or U10 depending on python version
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_index_equal(result, expected)
 
         period_index = period_range('20150301', periods=5)
         result = period_index.strftime("%Y/%m/%d")
-        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
-                             '2015/03/04', '2015/03/05'], dtype='=U10')
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(['2015/03/01', '2015/03/02', '2015/03/03',
+                          '2015/03/04', '2015/03/05'], dtype='=U10')
+        tm.assert_index_equal(result, expected)
 
         s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14,
                                                               32, 1)])
@@ -420,12 +417,14 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(date_range('2000-01-01', periods=3))
         assert isinstance(s.dt, DatetimeProperties)
 
-        for s in [Series(np.arange(5)), Series(list('abcde')),
-                  Series(np.random.randn(5))]:
-            with tm.assert_raises_regex(AttributeError,
-                                        "only use .dt accessor"):
-                s.dt
-            assert not hasattr(s, 'dt')
+    @pytest.mark.parametrize('ser', [Series(np.arange(5)),
+                                     Series(list('abcde')),
+                                     Series(np.random.randn(5))])
+    def test_dt_accessor_invalid(self, ser):
+        # GH#9322 check that series with incorrect dtypes don't have attr
+        with tm.assert_raises_regex(AttributeError, "only use .dt accessor"):
+            ser.dt
+        assert not hasattr(ser, 'dt')
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))
