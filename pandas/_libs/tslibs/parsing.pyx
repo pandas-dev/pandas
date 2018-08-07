@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """
 Parsing functions for datetime and datetime-like strings.
 """
@@ -133,15 +132,22 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     return res
 
 
-def parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
-                                    yearfirst=False, **kwargs):
+cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
+                                     yearfirst=False, **kwargs):
     """parse datetime string, only returns datetime
 
     Returns
     -------
-    datetime
-    """
+    parsed : datetime
+    parsed2 : datetime/dateutil.parser._result
+    reso : str
+        inferred resolution
 
+    Raises
+    ------
+    ValueError : preliminary check suggests string is not datetime
+    DateParseError : error within dateutil
+    """
     cdef:
         object parsed, reso
 
@@ -162,7 +168,7 @@ def parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
         # TODO: allow raise of errors within instead
         raise DateParseError(e)
     if parsed is None:
-        raise DateParseError("Could not parse %s" % date_string)
+        raise DateParseError("Could not parse {dstr}".format(dstr=date_string))
     return parsed, parsed, reso
 
 
@@ -244,8 +250,8 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
 
             if not (1 <= quarter <= 4):
                 msg = ('Incorrect quarterly string is given, quarter must be '
-                       'between 1 and 4: {0}')
-                raise DateParseError(msg.format(date_string))
+                       'between 1 and 4: {dstr}')
+                raise DateParseError(msg.format(dstr=date_string))
 
             if freq is not None:
                 # hack attack, #1228
@@ -253,7 +259,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
                     mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     msg = ('Unable to retrieve month information from given '
-                           'freq: {0}').format(freq)
+                           'freq: {freq}'.format(freq=freq))
                     raise DateParseError(msg)
 
                 month = (mnum + (quarter - 1) * 3) % 12 + 1
@@ -290,8 +296,8 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     raise ValueError('Unable to parse {0}'.format(date_string))
 
 
-def dateutil_parse(object timestr, object default, ignoretz=False,
-                   tzinfos=None, **kwargs):
+cdef dateutil_parse(object timestr, object default, ignoretz=False,
+                    tzinfos=None, **kwargs):
     """ lifted from dateutil to get resolution"""
 
     cdef:
@@ -307,8 +313,8 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
         res, _ = res
 
     if res is None:
-        msg = "Unknown datetime string format, unable to parse: {0}"
-        raise ValueError(msg.format(timestr))
+        msg = "Unknown datetime string format, unable to parse: {timestr}"
+        raise ValueError(msg.format(timestr=timestr))
 
     for attr in ["year", "month", "day", "hour",
                  "minute", "second", "microsecond"]:
@@ -318,8 +324,8 @@ def dateutil_parse(object timestr, object default, ignoretz=False,
             reso = attr
 
     if reso is None:
-        msg = "Unable to parse datetime string: {0}"
-        raise ValueError(msg.format(timestr))
+        msg = "Unable to parse datetime string: {timestr}"
+        raise ValueError(msg.format(timestr=timestr))
 
     if reso == 'microsecond':
         if repl['microsecond'] == 0:
