@@ -1252,7 +1252,7 @@ def period_format(int64_t value, int freq, object fmt=None):
         elif freq_group == 12000:  # NANOSEC
             fmt = b'%Y-%m-%d %H:%M:%S.%n'
         else:
-            raise ValueError('Unknown freq: %d' % freq)
+            raise ValueError('Unknown freq: {freq}'.format(freq=freq))
 
     return _period_strftime(value, freq, fmt)
 
@@ -1417,7 +1417,7 @@ def get_period_field_arr(int code, int64_t[:] arr, int freq):
 
     func = _get_accessor_func(code)
     if func is NULL:
-        raise ValueError('Unrecognized period code: %d' % code)
+        raise ValueError('Unrecognized period code: {code}'.format(code=code))
 
     sz = len(arr)
     out = np.empty(sz, dtype=np.int64)
@@ -1599,7 +1599,8 @@ cdef class _Period(object):
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
-                             ' represents span: {0}'.format(freq.freqstr))
+                             ' represents span: {freqstr}'
+                             .format(freqstr=freq.freqstr))
 
         return freq
 
@@ -1631,8 +1632,9 @@ cdef class _Period(object):
                 return NotImplemented
             elif op == Py_NE:
                 return NotImplemented
-            raise TypeError('Cannot compare type %r with type %r' %
-                            (type(self).__name__, type(other).__name__))
+            raise TypeError('Cannot compare type {cls} with type {typ}'
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
 
     def __hash__(self):
         return hash((self.ordinal, self.freqstr))
@@ -2430,8 +2432,8 @@ class Period(_Period):
             freq = cls._maybe_convert_freq(freq)
 
         if ordinal is not None and value is not None:
-            raise ValueError(("Only value or ordinal but not both should be "
-                              "given but not both"))
+            raise ValueError("Only value or ordinal but not both should be "
+                             "given but not both")
         elif ordinal is not None:
             if not util.is_integer_object(ordinal):
                 raise ValueError("Ordinal must be an integer")
@@ -2483,7 +2485,8 @@ class Period(_Period):
                     freq = Resolution.get_freq(reso)
                 except KeyError:
                     raise ValueError(
-                        "Invalid frequency or could not infer: %s" % reso)
+                        "Invalid frequency or could not infer: {reso}"
+                        .format(reso=reso))
 
         elif isinstance(value, datetime):
             dt = value
