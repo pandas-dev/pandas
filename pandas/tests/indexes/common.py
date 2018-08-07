@@ -24,7 +24,7 @@ import pandas as pd
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
+    _compat_props = ['shape', 'ndim', 'size', 'nbytes']
 
     def setup_indices(self):
         for name, idx in self.indices.items():
@@ -886,7 +886,7 @@ class Base(object):
                 assert not idx.hasnans
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if len(index) == 0:
                     continue
@@ -928,7 +928,7 @@ class Base(object):
                     idx.fillna([idx[0]])
 
                 idx = index.copy()
-                values = idx.values
+                values = np.asarray(idx.values)
 
                 if isinstance(index, DatetimeIndexOpsMixin):
                     values[1] = iNaT

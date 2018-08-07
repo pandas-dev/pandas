@@ -24,6 +24,7 @@ if [ "$DOC" ]; then
     source activate pandas
 
     mv "$TRAVIS_BUILD_DIR"/doc /tmp
+    mv "$TRAVIS_BUILD_DIR/LICENSE" /tmp  # included in the docs.
     cd /tmp/doc
 
     echo ###############################

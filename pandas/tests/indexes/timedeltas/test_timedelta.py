@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 import numpy as np
@@ -145,7 +147,10 @@ class TestTimedeltaIndex(DatetimeLike):
         idx = TimedeltaIndex(['1 day', '2 day', '2 day', '3 day', '3day',
                               '4day'])
 
-        result = idx.get_duplicates()
+        with warnings.catch_warnings(record=True):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = TimedeltaIndex(['2 day', '3day'])
         tm.assert_index_equal(result, ex)
 

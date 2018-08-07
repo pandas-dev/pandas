@@ -9,10 +9,15 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
+from pandas.compat import range, lrange, map, zip, string_types
+import pandas.compat as compat
+
 import pandas.core.common as com
 from pandas.core.base import PandasObject
 from pandas.core.config import get_option
+from pandas.core.generic import _shared_docs, _shared_doc_kwargs
+
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -20,16 +25,10 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
 
-from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
-
-from pandas.core.indexes.period import PeriodIndex
-from pandas.compat import range, lrange, map, zip, string_types
-import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0,
@@ -44,10 +43,17 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
 try:
     from pandas.plotting import _converter
 except ImportError:
-    pass
+    _HAS_MPL = False
 else:
+    _HAS_MPL = True
     if get_option('plotting.matplotlib.register_converters'):
         _converter.register(explicit=True)
+
+
+def _raise_if_no_mpl():
+    # TODO(mpl_converter): remove once converter is explicit
+    if not _HAS_MPL:
+        raise ImportError("matplotlib is required for plotting.")
 
 
 def _get_standard_kind(kind):
@@ -97,6 +103,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
+        _raise_if_no_mpl()
         _converter._WARN = False
         self.data = data
         self.by = by
@@ -162,7 +169,8 @@ class MPLPlot(object):
         for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
             self.errors[kw] = self._parse_errorbars(kw, err)
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, Index)):
+        if not isinstance(secondary_y, (bool, tuple, list,
+                                        np.ndarray, ABCIndexClass)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -225,7 +233,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = com._try_sort(data.columns)
+        #     columns = com.try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -476,7 +484,7 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
+        if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
                 name = pprint_thing(name)
@@ -558,7 +566,7 @@ class MPLPlot(object):
                                               'datetime64', 'time')
 
         if self.use_index:
-            if convert_period and isinstance(index, PeriodIndex):
+            if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
@@ -588,7 +596,7 @@ class MPLPlot(object):
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, Index):
+        if isinstance(x, ABCIndexClass):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -607,7 +615,7 @@ class MPLPlot(object):
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
+        if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com._any_not_none(*name):
                 name = ','.join(pprint_thing(x) for x in name)
@@ -645,7 +653,8 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
+        if isinstance(self.secondary_y, (tuple, list,
+                                         np.ndarray, ABCIndexClass)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -696,14 +705,12 @@ class MPLPlot(object):
         if err is None:
             return None
 
-        from pandas import DataFrame, Series
-
         def match_labels(data, e):
             e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame
-        if isinstance(err, DataFrame):
+        if isinstance(err, ABCDataFrame):
 
             err = match_labels(self.data, err)
         # key-matched dict
@@ -711,7 +718,7 @@ class MPLPlot(object):
             pass
 
         # Series of error values
-        elif isinstance(err, Series):
+        elif isinstance(err, ABCSeries):
             # broadcast error series across data
             err = match_labels(self.data, err)
             err = np.atleast_2d(err)
@@ -757,14 +764,13 @@ class MPLPlot(object):
         return err
 
     def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
-        from pandas import DataFrame
         errors = {}
 
         for kw, flag in zip(['xerr', 'yerr'], [xerr, yerr]):
             if flag:
                 err = self.errors[kw]
                 # user provided label-matched dataframe of errors
-                if isinstance(err, (DataFrame, dict)):
+                if isinstance(err, (ABCDataFrame, dict)):
                     if label is not None and label in err.keys():
                         err = err[label]
                     else:
@@ -803,7 +809,7 @@ class PlanePlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
-            raise ValueError(self._kind + ' requires and x and y column')
+            raise ValueError(self._kind + ' requires an x and y column')
         if is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
@@ -824,6 +830,32 @@ class PlanePlot(MPLPlot):
         x, y = self.x, self.y
         ax.set_ylabel(pprint_thing(y))
         ax.set_xlabel(pprint_thing(x))
+
+    def _plot_colorbar(self, ax, **kwds):
+        # Addresses issues #10611 and #10678:
+        # When plotting scatterplots and hexbinplots in IPython
+        # inline backend the colorbar axis height tends not to
+        # exactly match the parent axis height.
+        # The difference is due to small fractional differences
+        # in floating points with similar representation.
+        # To deal with this, this method forces the colorbar
+        # height to take the height of the parent axes.
+        # For a more detailed description of the issue
+        # see the following link:
+        # https://github.com/ipython/ipython/issues/11215
+
+        img = ax.collections[0]
+        cbar = self.fig.colorbar(img, ax=ax, **kwds)
+        points = ax.get_position().get_points()
+        cbar_points = cbar.ax.get_position().get_points()
+        cbar.ax.set_position([cbar_points[0, 0],
+                              points[0, 1],
+                              cbar_points[1, 0] - cbar_points[0, 0],
+                              points[1, 1] - points[0, 1]])
+        # To see the discrepancy in axis heights uncomment
+        # the following two lines:
+        # print(points[1, 1] - points[0, 1])
+        # print(cbar_points[1, 1] - cbar_points[0, 1])
 
 
 class ScatterPlot(PlanePlot):
@@ -870,11 +902,9 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            img = ax.collections[0]
-            kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
-                kws['label'] = c if c_is_column else ''
-            self.fig.colorbar(img, **kws)
+                cbar_label = c if c_is_column else ''
+            self._plot_colorbar(ax, label=cbar_label)
 
         if label is not None:
             self._add_legend_handle(scatter, label)
@@ -915,8 +945,7 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
-            img = ax.collections[0]
-            self.fig.colorbar(img, ax=ax)
+            self._plot_colorbar(ax)
 
     def _make_legend(self):
         pass
@@ -1386,7 +1415,7 @@ _kde_docstring = """
         In statistics, `kernel density estimation`_ (KDE) is a non-parametric
         way to estimate the probability density function (PDF) of a random
         variable. This function uses Gaussian kernels and includes automatic
-        bandwith determination.
+        bandwidth determination.
 
         .. _kernel density estimation:
             https://en.wikipedia.org/wiki/Kernel_density_estimation
@@ -1751,22 +1780,22 @@ def _plot(data, x=None, y=None, subplots=False,
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
+            data_cols = data.columns
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
-                    x = data.columns[x]
+                    x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
-                elif not isinstance(data[y], ABCSeries):
-                    raise ValueError("y must be a label or position")
-                label = kwds['label'] if 'label' in kwds else y
-                series = data[y].copy()  # Don't modify
-                series.name = label
+                # check if we have y as int or list of ints
+                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
+                int_y_arg = is_integer(y) or int_ylist
+                if int_y_arg and not data.columns.holds_integer():
+                    y = data_cols[y]
 
+                label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
@@ -1775,7 +1804,22 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = series
+
+                # don't overwrite
+                data = data[y].copy()
+
+                if isinstance(data, ABCSeries):
+                    label_name = label_kw or y
+                    data.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y"
+                        )
+                    label_name = label_kw or data.columns
+                    data.columns = label_name
+
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
@@ -1788,7 +1832,7 @@ df_kind = """- 'scatter' : scatter plot
 series_kind = ""
 
 df_coord = """x : label or position, default None
-    y : label or position, default None
+    y : label, position or list of label, positions, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
@@ -1980,50 +2024,164 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
 
 
 _shared_docs['boxplot'] = """
-    Make a box plot from DataFrame column optionally grouped by some columns or
-    other inputs
+    Make a box plot from DataFrame columns.
+
+    Make a box-and-whisker plot from DataFrame columns, optionally grouped
+    by some other columns. A box plot is a method for graphically depicting
+    groups of numerical data through their quartiles.
+    The box extends from the Q1 to Q3 quartile values of the data,
+    with a line at the median (Q2). The whiskers extend from the edges
+    of box to show the range of the data. The position of the whiskers
+    is set by default to `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box.
+    Outlier points are those past the end of the whiskers.
+
+    For further details see
+    Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
 
     Parameters
     ----------
-    data : the pandas object holding the data
-    column : column name or list of names, or vector
-        Can be any valid input to groupby
-    by : string or sequence
-        Column in the DataFrame to group by
-    ax : Matplotlib axes object, optional
-    fontsize : int or string
-    rot : label rotation angle
+    column : str or list of str, optional
+        Column name or list of names, or vector.
+        Can be any valid input to :meth:`pandas.DataFrame.groupby`.
+    by : str or array-like, optional
+        Column in the DataFrame to :meth:`pandas.DataFrame.groupby`.
+        One box-plot will be done per value of columns in `by`.
+    ax : object of class matplotlib.axes.Axes, optional
+        The matplotlib axes to be used by boxplot.
+    fontsize : float or str
+        Tick label font size in points or as a string (e.g., `large`).
+    rot : int or float, default 0
+        The rotation angle of labels (in degrees)
+        with respect to the screen coordinate system.
+    grid : boolean, default True
+        Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
-    grid : Setting this to True will show the grid
-    layout : tuple (optional)
-        (rows, columns) for the layout of the plot
-    return_type : {None, 'axes', 'dict', 'both'}, default None
-        The kind of object to return. The default is ``axes``
-        'axes' returns the matplotlib axes the boxplot is drawn on;
-        'dict' returns a dictionary whose values are the matplotlib
-        Lines of the boxplot;
-        'both' returns a namedtuple with the axes and dict.
+        The size of the figure to create in matplotlib.
+    layout : tuple (rows, columns), optional
+        For example, (3, 5) will display the subplots
+        using 3 columns and 5 rows, starting from the top-left.
+    return_type : {'axes', 'dict', 'both'} or None, default 'axes'
+        The kind of object to return. The default is ``axes``.
 
-        When grouping with ``by``, a Series mapping columns to ``return_type``
-        is returned, unless ``return_type`` is None, in which case a NumPy
-        array of axes is returned with the same shape as ``layout``.
-        See the prose documentation for more.
+        * 'axes' returns the matplotlib axes the boxplot is drawn on.
+        * 'dict' returns a dictionary whose values are the matplotlib
+          Lines of the boxplot.
+        * 'both' returns a namedtuple with the axes and dict.
+        * when grouping with ``by``, a Series mapping columns to
+          ``return_type`` is returned.
 
-    `**kwds` : Keyword Arguments
+          If ``return_type`` is `None`, a NumPy array
+          of axes with the same shape as ``layout`` is returned.
+    **kwds
         All other plotting keyword arguments to be passed to
-        matplotlib's boxplot function
+        :func:`matplotlib.pyplot.boxplot`.
 
     Returns
     -------
-    lines : dict
-    ax : matplotlib Axes
-    (ax, lines): namedtuple
+    result :
+
+        The return type depends on the `return_type` parameter:
+
+        * 'axes' : object of class matplotlib.axes.Axes
+        * 'dict' : dict of matplotlib.lines.Line2D objects
+        * 'both' : a namedtuple with structure (ax, lines)
+
+        For data grouped with ``by``:
+
+        * :class:`~pandas.Series`
+        * :class:`~numpy.array` (for ``return_type = None``)
+
+    See Also
+    --------
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
 
     Notes
     -----
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.
+
+    Examples
+    --------
+
+    Boxplots can be created for every column in the dataframe
+    by ``df.boxplot()`` or indicating the columns to be used:
+
+    .. plot::
+        :context: close-figs
+
+        >>> np.random.seed(1234)
+        >>> df = pd.DataFrame(np.random.randn(10,4),
+        ...                   columns=['Col1', 'Col2', 'Col3', 'Col4'])
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])
+
+    Boxplots of variables distributions grouped by the values of a third
+    variable can be created using the option ``by``. For instance:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10, 2),
+        ...                   columns=['Col1', 'Col2'])
+        >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
+        ...                      'B', 'B', 'B', 'B', 'B'])
+        >>> boxplot = df.boxplot(by='X')
+
+    A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot
+    in order to group the data by combination of the variables in the x-axis:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10,3),
+        ...                   columns=['Col1', 'Col2', 'Col3'])
+        >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
+        ...                      'B', 'B', 'B', 'B', 'B'])
+        >>> df['Y'] = pd.Series(['A', 'B', 'A', 'B', 'A',
+        ...                      'B', 'A', 'B', 'A', 'B'])
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by=['X', 'Y'])
+
+    The layout of boxplot can be adjusted giving a tuple to ``layout``:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                      layout=(2, 1))
+
+    Additional formatting can be done to the boxplot, like suppressing the grid
+    (``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``)
+    or changing the fontsize (i.e. ``fontsize=15``):
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)
+
+    The parameter ``return_type`` can be used to select the type of element
+    returned by `boxplot`.  When ``return_type='axes'`` is selected,
+    the matplotlib axes on which the boxplot is drawn are returned:
+
+        >>> boxplot = df.boxplot(column=['Col1','Col2'], return_type='axes')
+        >>> type(boxplot)
+        <class 'matplotlib.axes._subplots.AxesSubplot'>
+
+    When grouping with ``by``, a Series mapping columns to ``return_type``
+    is returned:
+
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                      return_type='axes')
+        >>> type(boxplot)
+        <class 'pandas.core.series.Series'>
+
+    If ``return_type`` is `None`, a NumPy array of axes with the same shape
+    as ``layout`` is returned:
+
+        >>> boxplot =  df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                       return_type=None)
+        >>> type(boxplot)
+        <class 'numpy.ndarray'>
     """
 
 
@@ -2036,9 +2194,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    from pandas import Series, DataFrame
-    if isinstance(data, Series):
-        data = DataFrame({'x': data})
+    if isinstance(data, ABCSeries):
+        data = data.to_frame('x')
         column = 'x'
 
     def _get_colors():
@@ -2249,6 +2406,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
         >>> hist = df.hist(bins=3)
     """
+    _raise_if_no_mpl()
     _converter._WARN = False
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
@@ -2259,7 +2417,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, Index)):
+        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
@@ -2270,7 +2428,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com._try_sort(data.columns)):
+    for i, col in enumerate(com.try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
@@ -2388,6 +2546,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
+    _raise_if_no_mpl()
     _converter._WARN = False
 
     def plot_group(group, ax):
@@ -2409,7 +2568,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, **kwds):
+                          layout=None, sharex=False, sharey=True, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2428,6 +2587,14 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
+    sharex : bool, default False
+        Whether x-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
+    sharey : bool, default True
+        Whether y-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
     `**kwds` : Keyword Arguments
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
@@ -2439,14 +2606,11 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
     Examples
     --------
-    >>> import pandas
-    >>> import numpy as np
     >>> import itertools
-    >>>
     >>> tuples = [t for t in itertools.product(range(1000), range(4))]
-    >>> index = pandas.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+    >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
     >>> data = np.random.randn(len(index),4)
-    >>> df = pandas.DataFrame(data, columns=list('ABCD'), index=index)
+    >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
     >>>
     >>> grouped = df.groupby(level='lvl1')
     >>> boxplot_frame_groupby(grouped)
@@ -2454,11 +2618,12 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
+    _raise_if_no_mpl()
     _converter._WARN = False
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True,
+                              ax=ax, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
@@ -2490,7 +2655,6 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None, **kwargs):
-    from pandas import DataFrame
 
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
@@ -2511,7 +2675,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
-        if numeric_only and isinstance(group, DataFrame):
+        if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
         ax.set_title(pprint_thing(key))
@@ -2708,8 +2872,8 @@ class SeriesPlotMethods(BasePlotMethods):
             >>> ax = s.plot.kde()
 
         A scalar bandwidth can be specified. Using a small bandwidth value can
-        lead to overfitting, while using a large bandwidth value may result
-        in underfitting:
+        lead to over-fitting, while using a large bandwidth value may result
+        in under-fitting:
 
         .. plot::
             :context: close-figs
@@ -3031,39 +3195,97 @@ class FramePlotMethods(BasePlotMethods):
 
     def box(self, by=None, **kwds):
         r"""
-        Boxplot
+        Make a box plot of the DataFrame columns.
+
+        A box plot is a method for graphically depicting groups of numerical
+        data through their quartiles.
+        The box extends from the Q1 to Q3 quartile values of the data,
+        with a line at the median (Q2). The whiskers extend from the edges
+        of box to show the range of the data. The position of the whiskers
+        is set by default to 1.5*IQR (IQR = Q3 - Q1) from the edges of the
+        box. Outlier points are those past the end of the whiskers.
+
+        For further details see Wikipedia's
+        entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`__.
+
+        A consideration when using this chart is that the box and the whiskers
+        can overlap, which is very common when plotting small sets of data.
 
         Parameters
         ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
+        **kwds : optional
+            Additional keywords are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+
+        See Also
+        --------
+        pandas.DataFrame.boxplot: Another method to draw a box plot.
+        pandas.Series.plot.box: Draw a box plot from a Series object.
+        matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
+
+        Examples
+        --------
+        Draw a box plot from a DataFrame with four columns of randomly
+        generated data.
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.randn(25, 4)
+            >>> df = pd.DataFrame(data, columns=list('ABCD'))
+            >>> ax = df.plot.box()
         """
         return self(kind='box', by=by, **kwds)
 
     def hist(self, by=None, bins=10, **kwds):
         """
-        Histogram
+        Draw one histogram of the DataFrame's columns.
+
+        A histogram is a representation of the distribution of data.
+        This function groups the values of all given Series in the DataFrame
+        into bins and draws all bins in one :class:`matplotlib.axes.Axes`.
+        This is useful when the DataFrame's Series are in a similar scale.
 
         Parameters
         ----------
-        by : string or sequence
+        by : str or sequence, optional
             Column in the DataFrame to group by.
-        bins: integer, default 10
-            Number of histogram bins to be used
-        `**kwds` : optional
+        bins : int, default 10
+            Number of histogram bins to be used.
+        **kwds
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : matplotlib.AxesSubplot histogram.
+
+        See Also
+        --------
+        DataFrame.hist : Draw histograms per DataFrame's Series.
+        Series.hist : Draw a histogram with Series' data.
+
+        Examples
+        --------
+        When we draw a dice 6000 times, we expect to get each value around 1000
+        times. But when we draw two dices and sum the result, the distribution
+        is going to be quite different. A histogram illustrates those
+        distributions.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame(
+            ...     np.random.randint(1, 7, 6000),
+            ...     columns = ['one'])
+            >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
+            >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
@@ -3086,8 +3308,8 @@ class FramePlotMethods(BasePlotMethods):
             >>> ax = df.plot.kde()
 
         A scalar bandwidth can be specified. Using a small bandwidth value can
-        lead to overfitting, while using a large bandwidth value may result
-        in underfitting:
+        lead to over-fitting, while using a large bandwidth value may result
+        in under-fitting:
 
         .. plot::
             :context: close-figs
@@ -3217,7 +3439,7 @@ class FramePlotMethods(BasePlotMethods):
 
             - A sequence of color strings referred to by name, RGB or RGBA
               code, which will be used for each point's color recursively. For
-              intance ['green','yellow'] all points will be filled in green or
+              instance ['green','yellow'] all points will be filled in green or
               yellow, alternatively.
 
             - A column name or position whose values will be used to color the

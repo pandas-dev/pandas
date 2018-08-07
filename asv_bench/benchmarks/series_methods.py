@@ -41,7 +41,7 @@ class IsIn(object):
 class NSort(object):
 
     goal_time = 0.2
-    params = ['last', 'first']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
@@ -121,3 +121,16 @@ class Dir(object):
 
     def time_dir_strings(self):
         dir(self.s)
+
+
+class SeriesGetattr(object):
+    # https://github.com/pandas-dev/pandas/issues/19764
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(1,
+                        index=date_range("2012-01-01", freq='s',
+                                         periods=int(1e6)))
+
+    def time_series_datetimeindex_repr(self):
+        getattr(self.s, 'a', None)

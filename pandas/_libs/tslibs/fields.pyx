@@ -16,7 +16,7 @@ cnp.import_array()
 from ccalendar import get_locale_names, MONTHS_FULL, DAYS_FULL
 from ccalendar cimport (get_days_in_month, is_leapyear, dayofweek,
                         get_week_of_year, get_day_of_year)
-from np_datetime cimport (pandas_datetimestruct, pandas_timedeltastruct,
+from np_datetime cimport (npy_datetimestruct, pandas_timedeltastruct,
                           dt64_to_dtstruct, td64_to_tdstruct)
 from nattype cimport NPY_NAT
 
@@ -47,7 +47,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
     """
     cdef:
         Py_ssize_t i, count = 0
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         ndarray[int32_t] years, months, days, hours, minutes, seconds, mus
 
     count = len(dtindex)
@@ -85,8 +85,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(ndarray[int64_t] dtindex, object field,
-                        object locale=None):
+def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
@@ -94,7 +93,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field,
     cdef:
         Py_ssize_t i, count = 0
         ndarray[object] out, names
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int dow
 
     count = len(dtindex)
@@ -134,7 +133,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field,
 
 
 @cython.wraparound(False)
-def get_start_end_field(ndarray[int64_t] dtindex, object field,
+def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators
@@ -150,7 +149,7 @@ def get_start_end_field(ndarray[int64_t] dtindex, object field,
         ndarray[int8_t] out
         ndarray[int32_t, ndim=2] _month_offset
         bint isleap
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
         int mo_off, dom, doy, dow, ldom
 
     _month_offset = np.array(
@@ -389,7 +388,7 @@ def get_date_field(ndarray[int64_t] dtindex, object field):
     cdef:
         Py_ssize_t i, count = 0
         ndarray[int32_t] out
-        pandas_datetimestruct dts
+        npy_datetimestruct dts
 
     count = len(dtindex)
     out = np.empty(count, dtype='i4')

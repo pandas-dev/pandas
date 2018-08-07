@@ -40,6 +40,14 @@ class TestDataFramePlots(TestPlotBase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
+    def _assert_ytickslabels_visibility(self, axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_yticklabels(), visible=exp)
+
+    def _assert_xtickslabels_visibility(self, axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_xticklabels(), visible=exp)
+
     @pytest.mark.slow
     def test_plot(self):
         df = self.tdf
@@ -367,6 +375,57 @@ class TestDataFramePlots(TestPlotBase):
             for ax in axes:
                 assert ax.get_legend() is None
 
+    def test_groupby_boxplot_sharey(self):
+        # https://github.com/pandas-dev/pandas/issues/20968
+        # sharey can now be switched check whether the right
+        # pair of axes is turned on or off
+
+        df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
+                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
+                        'c': [0, 1, 2, 3, 1]},
+                       index=[0, 1, 2, 3, 4])
+
+        # behavior without keyword
+        axes = df.groupby('c').boxplot()
+        expected = [True, False, True, False]
+        self._assert_ytickslabels_visibility(axes, expected)
+
+        # set sharey=True should be identical
+        axes = df.groupby('c').boxplot(sharey=True)
+        expected = [True, False, True, False]
+        self._assert_ytickslabels_visibility(axes, expected)
+
+        # sharey=False, all yticklabels should be visible
+        axes = df.groupby('c').boxplot(sharey=False)
+        expected = [True, True, True, True]
+        self._assert_ytickslabels_visibility(axes, expected)
+
+    def test_groupby_boxplot_sharex(self):
+        # https://github.com/pandas-dev/pandas/issues/20968
+        # sharex can now be switched check whether the right
+        # pair of axes is turned on or off
+
+        df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
+                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
+                        'c': [0, 1, 2, 3, 1]},
+                       index=[0, 1, 2, 3, 4])
+
+        # behavior without keyword
+        axes = df.groupby('c').boxplot()
+        expected = [True, True, True, True]
+        self._assert_xtickslabels_visibility(axes, expected)
+
+        # set sharex=False should be identical
+        axes = df.groupby('c').boxplot(sharex=False)
+        expected = [True, True, True, True]
+        self._assert_xtickslabels_visibility(axes, expected)
+
+        # sharex=True, yticklabels should be visible
+        # only for bottom plots
+        axes = df.groupby('c').boxplot(sharex=True)
+        expected = [False, False, True, True]
+        self._assert_xtickslabels_visibility(axes, expected)
+
     @pytest.mark.slow
     def test_subplots_timeseries(self):
         idx = date_range(start='2014-07-01', freq='M', periods=10)
@@ -437,7 +496,8 @@ class TestDataFramePlots(TestPlotBase):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
-                       'datetime_mixed_tz')
+                              'datetime_mixed_tz',
+                       strict=True)
     def test_subplots_timeseries_y_axis_not_supported(self):
         """
         This test will fail for:
@@ -1029,6 +1089,69 @@ class TestDataFramePlots(TestPlotBase):
         # GH 6951
         axes = df.plot(x='x', y='y', kind='scatter', subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+
+    @pytest.mark.slow
+    def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
+        # addressing issue #10611, to ensure colobar does not
+        # interfere with x-axis label and ticklabels with
+        # ipython inline backend.
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        ax1 = df.plot.scatter(x='A label', y='B label')
+        ax2 = df.plot.scatter(x='A label', y='B label', c='C label')
+
+        vis1 = [vis.get_visible() for vis in
+                ax1.xaxis.get_minorticklabels()]
+        vis2 = [vis.get_visible() for vis in
+                ax2.xaxis.get_minorticklabels()]
+        assert vis1 == vis2
+
+        vis1 = [vis.get_visible() for vis in
+                ax1.xaxis.get_majorticklabels()]
+        vis2 = [vis.get_visible() for vis in
+                ax2.xaxis.get_majorticklabels()]
+        assert vis1 == vis2
+
+        assert (ax1.xaxis.get_label().get_visible() ==
+                ax2.xaxis.get_label().get_visible())
+
+    @pytest.mark.slow
+    def test_if_hexbin_xaxis_label_is_visible(self):
+        # addressing issue #10678, to ensure colobar does not
+        # interfere with x-axis label and ticklabels with
+        # ipython inline backend.
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        ax = df.plot.hexbin('A label', 'B label', gridsize=12)
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_minorticklabels())
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_majorticklabels())
+        assert ax.xaxis.get_label().get_visible()
+
+    @pytest.mark.slow
+    def test_if_scatterplot_colorbars_are_next_to_parent_axes(self):
+        import matplotlib.pyplot as plt
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        fig, axes = plt.subplots(1, 2)
+        df.plot.scatter('A label', 'B label', c='C label', ax=axes[0])
+        df.plot.scatter('A label', 'B label', c='C label', ax=axes[1])
+        plt.tight_layout()
+
+        points = np.array([ax.get_position().get_points()
+                           for ax in fig.axes])
+        axes_x_coords = points[:, :, 0]
+        parent_distance = axes_x_coords[1, :] - axes_x_coords[0, :]
+        colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
+        assert np.isclose(parent_distance,
+                          colorbar_distance, atol=1e-7).all()
 
     @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self):
@@ -2170,25 +2293,50 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(kind='aasdf')
 
-    @pytest.mark.parametrize("x,y", [
-        (['B', 'C'], 'A'),
-        ('A', ['B', 'C'])
+    @pytest.mark.parametrize("x,y,lbl", [
+        (['B', 'C'], 'A', 'a'),
+        (['A'], ['B', 'C'], ['b', 'c']),
+        ('A', ['B', 'C'], 'badlabel')
     ])
-    def test_invalid_xy_args(self, x, y):
-        # GH 18671
+    def test_invalid_xy_args(self, x, y, lbl):
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         with pytest.raises(ValueError):
-            df.plot(x=x, y=y)
+            df.plot(x=x, y=y, label=lbl)
 
     @pytest.mark.parametrize("x,y", [
         ('A', 'B'),
-        ('B', 'A')
+        (['A'], 'B')
     ])
     def test_invalid_xy_args_dup_cols(self, x, y):
-        # GH 18671
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("x,y,lbl,colors", [
+        ('A', ['B'], ['b'], ['red']),
+        ('A', ['B', 'C'], ['b', 'c'], ['red', 'blue']),
+        (0, [1, 2], ['bokeh', 'cython'], ['green', 'yellow'])
+    ])
+    def test_y_listlike(self, x, y, lbl, colors):
+        # GH 19699: tests list-like y and verifies lbls & colors
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        _check_plot_works(df.plot, x='A', y=y, label=lbl)
+
+        ax = df.plot(x=x, y=y, label=lbl, color=colors)
+        assert len(ax.lines) == len(y)
+        self._check_colors(ax.get_lines(), linecolors=colors)
+
+    @pytest.mark.parametrize("x,y,colnames", [
+        (0, 1, ['A', 'B']),
+        (1, 0, [0, 1])
+    ])
+    def test_xy_args_integer(self, x, y, colnames):
+        # GH 20056: tests integer args for xy and checks col names
+        df = DataFrame({"A": [1, 2], 'B': [3, 4]})
+        df.columns = colnames
+        _check_plot_works(df.plot, x=x, y=y)
 
     @pytest.mark.slow
     def test_hexbin_basic(self):

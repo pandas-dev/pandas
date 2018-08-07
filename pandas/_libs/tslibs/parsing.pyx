@@ -6,21 +6,14 @@ Parsing functions for datetime and datetime-like strings.
 import sys
 import re
 
-from cpython cimport PyString_Check, PyUnicode_Check
-
-from libc.stdlib cimport free
-
 cimport cython
 from cython cimport Py_ssize_t
 
 
-from datetime import datetime
+from cpython.datetime cimport datetime
 import time
 
 import numpy as np
-cimport numpy as cnp
-from numpy cimport int64_t, ndarray
-cnp.import_array()
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
@@ -34,7 +27,6 @@ else:
 # dateutil compat
 from dateutil.tz import (tzoffset,
                          tzlocal as _dateutil_tzlocal,
-                         tzfile as _dateutil_tzfile,
                          tzutc as _dateutil_tzutc,
                          tzstr as _dateutil_tzstr)
 from dateutil.relativedelta import relativedelta
@@ -42,7 +34,7 @@ from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
 from ccalendar import MONTH_NUMBERS
-from nattype import nat_strings
+from nattype import nat_strings, NaT
 
 # ----------------------------------------------------------------------
 # Constants
@@ -58,9 +50,6 @@ _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
 cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 
 cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
-
-NAT_SENTINEL = object()
-# This allows us to reference NaT without having to import it
 
 # ----------------------------------------------------------------------
 
@@ -141,9 +130,6 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
     res = parse_datetime_string_with_reso(arg, freq=freq,
                                           dayfirst=dayfirst,
                                           yearfirst=yearfirst)
-    if res[0] is NAT_SENTINEL:
-        from pandas._libs.tslib import NaT
-        res = (NaT,) + res[1:]
     return res
 
 
@@ -211,7 +197,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     # should be NaT???
 
     if date_string in nat_strings:
-        return NAT_SENTINEL, NAT_SENTINEL, ''
+        return NaT, NaT, ''
 
     date_string = date_string.upper()
     date_len = len(date_string)
@@ -394,11 +380,11 @@ cpdef object _get_rule_month(object source, object default='DEC'):
 # Parsing for type-inference
 
 
-def try_parse_dates(ndarray[object] values, parser=None,
+def try_parse_dates(object[:] values, parser=None,
                     dayfirst=False, default=None):
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
 
     n = len(values)
     result = np.empty(n, dtype='O')
@@ -412,7 +398,7 @@ def try_parse_dates(ndarray[object] values, parser=None,
 
         # EAFP here
         try:
-            for i from 0 <= i < n:
+            for i in range(n):
                 if values[i] == '':
                     result[i] = np.nan
                 else:
@@ -424,7 +410,7 @@ def try_parse_dates(ndarray[object] values, parser=None,
         parse_date = parser
 
         try:
-            for i from 0 <= i < n:
+            for i in range(n):
                 if values[i] == '':
                     result[i] = np.nan
                 else:
@@ -433,15 +419,15 @@ def try_parse_dates(ndarray[object] values, parser=None,
             # raise if passed parser and it failed
             raise
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
-def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
+def try_parse_date_and_time(object[:] dates, object[:] times,
                             date_parser=None, time_parser=None,
                             dayfirst=False, default=None):
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
 
     n = len(dates)
     if len(times) != n:
@@ -464,42 +450,42 @@ def try_parse_date_and_time(ndarray[object] dates, ndarray[object] times,
     else:
         parse_time = time_parser
 
-    for i from 0 <= i < n:
+    for i in range(n):
         d = parse_date(str(dates[i]))
         t = parse_time(str(times[i]))
         result[i] = datetime(d.year, d.month, d.day,
                              t.hour, t.minute, t.second)
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(ndarray[object] years, ndarray[object] months,
-                             ndarray[object] days):
+def try_parse_year_month_day(object[:] years, object[:] months,
+                             object[:] days):
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
 
     n = len(years)
     if len(months) != n or len(days) != n:
         raise ValueError('Length of years/months/days must all be equal')
     result = np.empty(n, dtype='O')
 
-    for i from 0 <= i < n:
+    for i in range(n):
         result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
-def try_parse_datetime_components(ndarray[object] years,
-                                  ndarray[object] months,
-                                  ndarray[object] days,
-                                  ndarray[object] hours,
-                                  ndarray[object] minutes,
-                                  ndarray[object] seconds):
+def try_parse_datetime_components(object[:] years,
+                                  object[:] months,
+                                  object[:] days,
+                                  object[:] hours,
+                                  object[:] minutes,
+                                  object[:] seconds):
 
     cdef:
         Py_ssize_t i, n
-        ndarray[object] result
+        object[:] result
         int secs
         double float_secs
         double micros
@@ -510,7 +496,7 @@ def try_parse_datetime_components(ndarray[object] years,
         raise ValueError('Length of all datetime components must be equal')
     result = np.empty(n, dtype='O')
 
-    for i from 0 <= i < n:
+    for i in range(n):
         float_secs = float(seconds[i])
         secs = int(float_secs)
 
@@ -522,7 +508,7 @@ def try_parse_datetime_components(ndarray[object] years,
                              int(hours[i]), int(minutes[i]), secs,
                              int(micros))
 
-    return result
+    return result.base  # .base to access underlying ndarray
 
 
 # ----------------------------------------------------------------------

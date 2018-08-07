@@ -560,6 +560,16 @@ class TestDataFrameReshape(TestData):
             assert left.shape == (3, 2)
             tm.assert_frame_equal(left, right)
 
+    def test_unstack_non_unique_index_names(self):
+        idx = MultiIndex.from_tuples([('a', 'b'), ('c', 'd')],
+                                     names=['c1', 'c1'])
+        df = DataFrame([1, 2], index=idx)
+        with pytest.raises(ValueError):
+            df.unstack('c1')
+
+        with pytest.raises(ValueError):
+            df.T.stack('c1')
+
     def test_unstack_unused_levels(self):
         # GH 17845: unused labels in index make unstack() cast int to float
         idx = pd.MultiIndex.from_product([['a'], ['A', 'B', 'C', 'D']])[:-1]
@@ -603,13 +613,7 @@ class TestDataFrameReshape(TestData):
             cols = pd.MultiIndex.from_product([[0, 1], col_level])
             expected = pd.DataFrame(exp_data.reshape(3, 6),
                                     index=idx_level, columns=cols)
-            # Broken (GH 18455):
-            # tm.assert_frame_equal(result, expected)
-            diff = result - expected
-            assert(diff.sum().sum() == 0)
-            assert((diff + 1).sum().sum() == 8)
-
-            assert((result.columns.levels[1] == idx.levels[level]).all())
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cols", [['A', 'C'], slice(None)])
     def test_unstack_unused_level(self, cols):
@@ -851,21 +855,38 @@ class TestDataFrameReshape(TestData):
                              dtype=df.dtypes[0])
         assert_frame_equal(result, expected)
 
-    def test_stack_preserve_categorical_dtype(self):
+    @pytest.mark.parametrize('ordered', [False, True])
+    @pytest.mark.parametrize('labels', [list("yxz"), list("yxy")])
+    def test_stack_preserve_categorical_dtype(self, ordered, labels):
         # GH13854
-        for ordered in [False, True]:
-            for labels in [list("yxz"), list("yxy")]:
-                cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
-                                           ordered=ordered)
-                df = DataFrame([[10, 11, 12]], columns=cidx)
-                result = df.stack()
+        cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
+                                   ordered=ordered)
+        df = DataFrame([[10, 11, 12]], columns=cidx)
+        result = df.stack()
 
-                # `MutliIndex.from_product` preserves categorical dtype -
-                # it's tested elsewhere.
-                midx = pd.MultiIndex.from_product([df.index, cidx])
-                expected = Series([10, 11, 12], index=midx)
+        # `MutliIndex.from_product` preserves categorical dtype -
+        # it's tested elsewhere.
+        midx = pd.MultiIndex.from_product([df.index, cidx])
+        expected = Series([10, 11, 12], index=midx)
 
-                tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("level", [0, 'baz'])
+    def test_unstack_swaplevel_sortlevel(self, level):
+        # GH 20994
+        mi = pd.MultiIndex.from_product([[0], ['d', 'c']],
+                                        names=['bar', 'baz'])
+        df = pd.DataFrame([[0, 2], [1, 3]], index=mi, columns=['B', 'A'])
+        df.columns.name = 'foo'
+
+        expected = pd.DataFrame([
+            [3, 1, 2, 0]], columns=pd.MultiIndex.from_tuples([
+                ('c', 'A'), ('c', 'B'), ('d', 'A'), ('d', 'B')], names=[
+                    'baz', 'foo']))
+        expected.index.name = 'bar'
+
+        result = df.unstack().swaplevel(axis=1).sort_index(axis=1, level=level)
+        tm.assert_frame_equal(result, expected)
 
 
 def test_unstack_fill_frame_object():

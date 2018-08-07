@@ -20,28 +20,47 @@ except:
         except:
             from _dummy_thread import allocate_lock as _thread_allocate_lock
 
+import pytz
 
 from cython cimport Py_ssize_t
 from cpython cimport PyFloat_Check
 
-cimport cython
-
 import numpy as np
-from numpy cimport ndarray, int64_t
+from numpy cimport int64_t
 
 from datetime import date as datetime_date
-from cpython.datetime cimport datetime
 
 from np_datetime cimport (check_dts_bounds,
-                          dtstruct_to_dt64, pandas_datetimestruct)
+                          dtstruct_to_dt64, npy_datetimestruct)
 
 from util cimport is_string_object
 
 from nattype cimport checknull_with_nat, NPY_NAT
 from nattype import nat_strings
 
+cdef dict _parse_code_table = {'y': 0,
+                               'Y': 1,
+                               'm': 2,
+                               'B': 3,
+                               'b': 4,
+                               'd': 5,
+                               'H': 6,
+                               'I': 7,
+                               'M': 8,
+                               'S': 9,
+                               'f': 10,
+                               'A': 11,
+                               'a': 12,
+                               'w': 13,
+                               'j': 14,
+                               'U': 15,
+                               'W': 16,
+                               'Z': 17,
+                               'p': 18,  # an additional key, only with I
+                               'z': 19}
 
-def array_strptime(ndarray[object] values, object fmt,
+
+def array_strptime(object[:] values, object fmt,
                    bint exact=True, errors='raise'):
     """
     Calculates the datetime structs represented by the passed array of strings
@@ -56,17 +75,17 @@ def array_strptime(ndarray[object] values, object fmt,
 
     cdef:
         Py_ssize_t i, n = len(values)
-        pandas_datetimestruct dts
-        ndarray[int64_t] iresult
-        int year, month, day, minute, hour, second, weekday, julian, tz
-        int week_of_year, week_of_year_start
+        npy_datetimestruct dts
+        int64_t[:] iresult
+        object[:] result_timezone
+        int year, month, day, minute, hour, second, weekday, julian
+        int week_of_year, week_of_year_start, parse_code, ordinal
         int64_t us, ns
-        object val, group_key, ampm, found
+        object val, group_key, ampm, found, timezone
         dict found_key
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
-        int ordinal
 
     assert is_raise or is_ignore or is_coerce
 
@@ -79,6 +98,8 @@ def array_strptime(ndarray[object] values, object fmt,
                     in fmt):
                 raise ValueError("Cannot use '%W' or '%U' without "
                                  "day and year")
+        elif '%Z' in fmt and '%z' in fmt:
+            raise ValueError("Cannot parse both %Z and %z")
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
@@ -108,31 +129,9 @@ def array_strptime(ndarray[object] values, object fmt,
 
     result = np.empty(n, dtype='M8[ns]')
     iresult = result.view('i8')
+    result_timezone = np.empty(n, dtype='object')
 
     dts.us = dts.ps = dts.as = 0
-
-    cdef dict _parse_code_table = {
-        'y': 0,
-        'Y': 1,
-        'm': 2,
-        'B': 3,
-        'b': 4,
-        'd': 5,
-        'H': 6,
-        'I': 7,
-        'M': 8,
-        'S': 9,
-        'f': 10,
-        'A': 11,
-        'a': 12,
-        'w': 13,
-        'j': 14,
-        'U': 15,
-        'W': 16,
-        'Z': 17,
-        'p': 18   # just an additional key, works only with I
-    }
-    cdef int parse_code
 
     for i in range(n):
         val = values[i]
@@ -176,7 +175,7 @@ def array_strptime(ndarray[object] values, object fmt,
         year = 1900
         month = day = 1
         hour = minute = second = ns = us = 0
-        tz = -1
+        timezone = None
         # Default to -1 to signify that values not known; not critical to have,
         # though
         week_of_year = -1
@@ -266,21 +265,10 @@ def array_strptime(ndarray[object] values, object fmt,
                     # W starts week on Monday.
                     week_of_year_start = 0
             elif parse_code == 17:
-                # Since -1 is default value only need to worry about setting tz
-                # if it can be something other than -1.
-                found_zone = found_dict['Z'].lower()
-                for value, tz_values in enumerate(locale_time.timezone):
-                    if found_zone in tz_values:
-                        # Deal w/ bad locale setup where timezone names are the
-                        # same and yet time.daylight is true; too ambiguous to
-                        # be able to tell what timezone has daylight savings
-                        if (time.tzname[0] == time.tzname[1] and
-                            time.daylight and found_zone not in (
-                                "utc", "gmt")):
-                            break
-                        else:
-                            tz = value
-                            break
+                timezone = pytz.timezone(found_dict['Z'])
+            elif parse_code == 19:
+                timezone = parse_timezone_directive(found_dict['z'])
+
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
         if julian == -1 and week_of_year != -1 and weekday != -1:
@@ -330,7 +318,9 @@ def array_strptime(ndarray[object] values, object fmt,
                 continue
             raise
 
-    return result
+        result_timezone[i] = timezone
+
+    return result, result_timezone.base
 
 
 """_getlang, LocaleTime, TimeRE, _calc_julian_from_U_or_W are vendored
@@ -538,14 +528,13 @@ class TimeRE(dict):
             # XXX: Does 'Y' need to worry about having less or more than
             #     4 digits?
             'Y': r"(?P<Y>\d\d\d\d)",
+            'z': r"(?P<z>[+-]\d\d:?[0-5]\d(:?[0-5]\d(\.\d{1,6})?)?|Z)",
             'A': self.__seqToRE(self.locale_time.f_weekday, 'A'),
             'a': self.__seqToRE(self.locale_time.a_weekday, 'a'),
             'B': self.__seqToRE(self.locale_time.f_month[1:], 'B'),
             'b': self.__seqToRE(self.locale_time.a_month[1:], 'b'),
             'p': self.__seqToRE(self.locale_time.am_pm, 'p'),
-            'Z': self.__seqToRE([tz for tz_names in self.locale_time.timezone
-                                 for tz in tz_names],
-                                'Z'),
+            'Z': self.__seqToRE(pytz.all_timezones, 'Z'),
             '%': '%'})
         base.__setitem__('W', base.__getitem__('U').replace('U', 'W'))
         base.__setitem__('c', self.pattern(self.locale_time.LC_date_time))
@@ -632,3 +621,50 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
+
+cdef parse_timezone_directive(object z):
+    """
+    Parse the '%z' directive and return a pytz.FixedOffset
+
+    Parameters
+    ----------
+    z : string of the UTC offset
+
+    Returns
+    -------
+    pytz.FixedOffset
+
+    Notes
+    -----
+    This is essentially similar to the cpython implementation
+    https://github.com/python/cpython/blob/master/Lib/_strptime.py#L457-L479
+    """
+
+    cdef:
+        int gmtoff_fraction, hours, minutes, seconds, pad_number, microseconds
+        int total_minutes
+        object gmtoff_remainder, gmtoff_remainder_padding
+
+    if z == 'Z':
+        return pytz.FixedOffset(0)
+    if z[3] == ':':
+        z = z[:3] + z[4:]
+        if len(z) > 5:
+            if z[5] != ':':
+                msg = "Inconsistent use of : in {0}"
+                raise ValueError(msg.format(z))
+            z = z[:5] + z[6:]
+    hours = int(z[1:3])
+    minutes = int(z[3:5])
+    seconds = int(z[5:7] or 0)
+
+    # Pad to always return microseconds.
+    gmtoff_remainder = z[8:]
+    pad_number = 6 - len(gmtoff_remainder)
+    gmtoff_remainder_padding = "0" * pad_number
+    microseconds = int(gmtoff_remainder + gmtoff_remainder_padding)
+
+    total_minutes = ((hours * 60) + minutes + (seconds / 60) +
+                     (microseconds / 60000000))
+    total_minutes = -total_minutes if z.startswith("-") else total_minutes
+    return pytz.FixedOffset(total_minutes)

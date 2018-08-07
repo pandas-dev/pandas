@@ -1,17 +1,22 @@
-cimport numpy as cnp
-import numpy as np
-
-cimport util
-cimport cython
-import cython
-from numpy cimport ndarray
-from tslib import Timestamp
-from tslibs.timezones cimport tz_compare
+# -*- coding: utf-8 -*-
+import numbers
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-import numbers
+cimport cython
+from cython cimport Py_ssize_t
+
+import numpy as np
+from numpy cimport ndarray
+
+
+cimport util
+
+from tslibs import Timestamp
+from tslibs.timezones cimport tz_compare
+
+
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
@@ -97,6 +102,26 @@ cdef class IntervalMixin(object):
             # length not defined for some types, e.g. string
             msg = 'cannot compute length between {left!r} and {right!r}'
             raise TypeError(msg.format(left=self.left, right=self.right))
+
+    def _check_closed_matches(self, other, name='other'):
+        """Check if the closed attribute of `other` matches.
+
+        Note that 'left' and 'right' are considered different from 'both'.
+
+        Parameters
+        ----------
+        other : Interval, IntervalIndex, IntervalArray
+        name : str
+            Name to use for 'other' in the error message.
+
+        Raises
+        ------
+        ValueError
+            When `other` is not closed exactly the same as self.
+        """
+        if self.closed != other.closed:
+            msg = "'{}.closed' is '{}', expected '{}'."
+            raise ValueError(msg.format(name, other.closed, self.closed))
 
 
 cdef _interval_like(other):
@@ -335,11 +360,17 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals):
+cpdef intervals_to_interval_bounds(ndarray intervals,
+                                   bint validate_closed=True):
     """
     Parameters
     ----------
-    intervals: ndarray object array of Intervals / nulls
+    intervals : ndarray
+        object array of Intervals / nulls
+
+    validate_closed: boolean, default True
+        boolean indicating if all intervals must be closed on the same side.
+        Mismatching closed will raise if True, else return None for closed.
 
     Returns
     -------
@@ -353,6 +384,7 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         object closed = None, interval
         int64_t n = len(intervals)
         ndarray left, right
+        bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
@@ -370,10 +402,14 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
 
         left[i] = interval.left
         right[i] = interval.right
-        if closed is None:
+        if not seen_closed:
+            seen_closed = True
             closed = interval.closed
         elif closed != interval.closed:
-            raise ValueError('intervals must all be closed on the same side')
+            closed = None
+            if validate_closed:
+                msg = 'intervals must all be closed on the same side'
+                raise ValueError(msg)
 
     return left, right, closed
 
