@@ -17,7 +17,9 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype)
+    _coerce_to_dtype,
+    is_bool_dtype)
+from pandas.core.sparse.api import SparseDtype
 import pandas.util.testing as tm
 
 
@@ -803,3 +805,40 @@ def test_registry_find(dtype, expected):
      ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
 def test_pandas_registry_find(dtype, expected):
     assert _pandas_registry.find(dtype) == expected
+
+
+"""
+    >>> is_bool_dtype(str)
+    False
+    >>> is_bool_dtype(int)
+    False
+    >>> is_bool_dtype(bool)
+    True
+    >>> is_bool_dtype(np.bool)
+    True
+    >>> is_bool_dtype(np.array(['a', 'b']))
+    False
+    >>> is_bool_dtype(pd.Series([1, 2]))
+    False
+    >>> is_bool_dtype(np.array([True, False]))
+    True
+    >>> is_bool_dtype(pd.SparseArray([True, False]))
+    True
+ """
+
+@pytest.mark.parametrize('dtype, expected', [
+    (str, False),
+    (int, False),
+    (bool, True),
+    (np.bool, True),
+    (np.array(['a', 'b']), False),
+    (pd.Series([1, 2]), False),
+    (np.array([True, False]), True),
+    (pd.Series([True, False]), True),
+    (pd.SparseSeries([True, False]), True),
+    (pd.SparseArray([True, False]), True),
+    (SparseDtype(bool), True)
+])
+def test_is_bool_dtype(dtype, expected):
+    result = is_bool_dtype(dtype)
+    assert result is expected

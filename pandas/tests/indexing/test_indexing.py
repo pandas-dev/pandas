@@ -1018,3 +1018,7 @@ def test_validate_indices_high():
 def test_validate_indices_empty():
     with tm.assert_raises_regex(IndexError, "indices are out"):
         validate_indices(np.array([0, 1]), 0)
+
+
+def test_is_bool_indexer():
+    pass

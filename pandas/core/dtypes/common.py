@@ -11,6 +11,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
     IntervalDtypeType, PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
+from pandas.core.sparse.dtype import SparseDtype
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
@@ -1621,8 +1622,9 @@ def is_bool_dtype(arr_or_dtype):
     False
     >>> is_bool_dtype(np.array([True, False]))
     True
+    >>> is_bool_dtype(pd.SparseArray([True, False]))
+    True
     """
-
     if arr_or_dtype is None:
         return False
     try:
@@ -1639,7 +1641,8 @@ def is_bool_dtype(arr_or_dtype):
         # guess this
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
-
+    elif isinstance(arr_or_dtype, SparseDtype):
+        return issubclass(arr_or_dtype.subdtype.type, np.bool_)
     return issubclass(tipo, np.bool_)
 
 
@@ -1868,7 +1871,7 @@ def _get_dtype_type(arr_or_dtype):
     """
 
     # TODO(extension)
-    # replace with pandas_dtype
+    # replace with pandas_dtye
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):

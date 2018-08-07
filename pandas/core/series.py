@@ -1390,7 +1390,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         from pandas.core.sparse.array import SparseArray
 
         values = SparseArray(self, kind=kind, fill_value=fill_value)
-        return SparseSeries(values).__finalize__(self)
+        return SparseSeries(
+            values, index=self.index, name=self.name
+        ).__finalize__(self)
 
     def _set_name(self, name, inplace=False):
         """
