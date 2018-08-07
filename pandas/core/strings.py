@@ -293,6 +293,9 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     See Also
     --------
     match : analogous, but stricter, relying on re.match instead of re.search
+    Series.str.startswith : Test if the start of each string element matches a
+        pattern.
+    Series.str.endswith : Same as startswith, but tests the end of string.
 
     Examples
     --------
@@ -1079,7 +1082,7 @@ def str_get_dummies(arr, sep='|'):
     tags = set()
     for ts in arr.str.split(sep):
         tags.update(ts)
-    tags = sorted(tags - set([""]))
+    tags = sorted(tags - {""})
 
     dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
 
@@ -2063,6 +2066,7 @@ class StringMethods(NoNewAttributesMixin):
         See Also
         --------
         split : Split each string in the Series/Index
+        join : Join lists contained as elements in the Series/Index
 
         Examples
         --------
