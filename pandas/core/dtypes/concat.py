@@ -97,7 +97,7 @@ def _get_frame_result_type(result, objs):
     otherwise, return 1st obj
     """
 
-    if result.blocks and all(b.is_sparse for b in result.blocks):
+    if result.blocks and all(is_sparse(b) for b in result.blocks):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
@@ -563,9 +563,9 @@ def _concat_sparse(to_concat, axis=0, typs=None):
 
     fill_value = list(fill_values)[0]
 
-    # TODO: make ctor accept sparsearray (handle dtype, etc. correctly.
+    # TODO: Fix join unit generation so we aren't passed this.
     to_concat = [x if isinstance(x, SparseArray)
-                 else SparseArray(x, fill_value=fill_value)
+                 else SparseArray(x.squeeze(), fill_value=fill_value)
                  for x in to_concat]
 
     return SparseArray._concat_same_type(to_concat)

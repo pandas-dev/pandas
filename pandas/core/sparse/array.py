@@ -176,6 +176,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                  kind='integer', dtype=None, copy=False):
         from pandas.core.internals import SingleBlockManager
 
+        if isinstance(data, SingleBlockManager):
+            data = data.internal_values()
+
         if isinstance(data, (type(self), ABCSparseSeries)):
             # disable normal inference on dtype, sparse_index, & fill_value
             if sparse_index is None:
@@ -190,9 +193,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subdtype
 
-        if isinstance(data, SingleBlockManager):
-            data = data.internal_values()
-
         # TODO: index feels strange... can we deprecate it?
         if index is not None:
             if data is None:
@@ -203,7 +203,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             data = construct_1d_arraylike_from_scalar(
                 data, len(index), dtype)
 
-        # TODO: disentable the fill_value dtype inference from
+        # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if not is_array_like(data):
             data = np.atleast_1d(np.asarray(data, dtype=dtype))
@@ -244,6 +244,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if self.sp_index.ngaps == 0:
             # Compat for na dtype and int values.
             return self.sp_values
+        if dtype is None:
+            dtype = np.result_type(self.sp_values.dtype, self.fill_value)
         out = np.full(self.shape, self.fill_value, dtype=dtype)
         out[self.sp_index.to_int_index().indices] = self.sp_values
         return out

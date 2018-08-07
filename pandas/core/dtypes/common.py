@@ -154,6 +154,18 @@ def is_sparse(arr):
     """
     from pandas.core.sparse.array import SparseArray
     from pandas.core.sparse.dtype import SparseDtype
+    from pandas.core.generic import ABCSeries
+    from pandas.core.internals import BlockManager, Block
+
+    if isinstance(arr, BlockManager):
+        if arr.ndim == 1:
+            arr = arr.blocks[0]
+        else:
+            return False
+
+    if isinstance(arr, (ABCSeries, Block)):
+        arr = arr.values
+
     return isinstance(arr, (SparseArray, ABCSparseSeries, SparseDtype))
 
 

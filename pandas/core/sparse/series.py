@@ -69,8 +69,9 @@ class SparseSeries(Series):
             SparseArray(data,
                         sparse_index=sparse_index,
                         kind=kind,
+                        dtype=dtype,
                         fill_value=fill_value),
-            index=index, name=name, dtype=dtype,
+            index=index, name=name,
             copy=copy, fastpath=fastpath
         )
         # # we are called internally, so short-circuit

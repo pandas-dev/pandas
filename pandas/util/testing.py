@@ -1528,7 +1528,7 @@ def box_expected(expected, box_cls):
 # Sparse
 
 
-def assert_sp_array_equal(left, right, check_dtype=True):
+def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True):
     """Check that the left and right SparseArray are equal.
 
     Parameters
@@ -1537,6 +1537,8 @@ def assert_sp_array_equal(left, right, check_dtype=True):
     right : SparseArray
     check_dtype : bool, default True
         Whether to check the data dtype is identical.
+    check_kind : bool, default True
+        Whether to just the kind of the sparse index for each column.
     """
 
     _check_isinstance(left, right, pd.SparseArray)
@@ -1548,9 +1550,16 @@ def assert_sp_array_equal(left, right, check_dtype=True):
     assert isinstance(left.sp_index, pd._libs.sparse.SparseIndex)
     assert isinstance(right.sp_index, pd._libs.sparse.SparseIndex)
 
-    if not left.sp_index.equals(right.sp_index):
+    if not check_kind:
+        left_index = left.sp_index.to_block_index()
+        right_index = right.sp_index.to_block_index()
+    else:
+        left_index = left.sp_index
+        right_index = right.sp_index
+
+    if not left_index.equals(right_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',
-                            left.sp_index, right.sp_index)
+                            left_index, right_index)
 
     assert_attr_equal('fill_value', left, right)
     if check_dtype:
@@ -1561,6 +1570,7 @@ def assert_sp_array_equal(left, right, check_dtype=True):
 
 def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
                            check_series_type=True, check_names=True,
+                           check_kind=True,
                            obj='SparseSeries'):
     """Check that the left and right SparseSeries are equal.
 
@@ -1575,6 +1585,8 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         Whether to check the SparseSeries class is identical.
     check_names : bool, default True
         Whether to check the SparseSeries name attribute.
+    check_kind : bool, default True
+        Whether to just the kind of the sparse index for each column.
     obj : str, default 'SparseSeries'
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
@@ -1588,7 +1600,8 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
                        obj='{obj}.index'.format(obj=obj))
 
     # TODO: this can just be .values I think
-    assert_sp_array_equal(left.block.values, right.block.values)
+    assert_sp_array_equal(left.block.values, right.block.values,
+                          check_kind=check_kind)
 
     if check_names:
         assert_attr_equal('name', left, right)
@@ -1600,7 +1613,8 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
 
 
 def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
-                          check_frame_type=True, obj='SparseDataFrame'):
+                          check_frame_type=True, check_kind=True,
+                          obj='SparseDataFrame'):
     """Check that the left and right SparseDataFrame are equal.
 
     Parameters
@@ -1614,6 +1628,8 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         otherwise just compare dense representations.
     check_frame_type : bool, default True
         Whether to check the SparseDataFrame class is identical.
+    check_kind : bool, default True
+        Whether to just the kind of the sparse index for each column.
     obj : str, default 'SparseDataFrame'
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
@@ -1634,7 +1650,8 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
 
         if exact_indices:
             assert_sp_series_equal(series, right[col],
-                                   check_dtype=check_dtype)
+                                   check_dtype=check_dtype,
+                                   check_kind=check_kind)
         else:
             assert_series_equal(series.to_dense(), right[col].to_dense(),
                                 check_dtype=check_dtype)
