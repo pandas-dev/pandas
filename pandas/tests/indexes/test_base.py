@@ -13,7 +13,8 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY35, PY36, PYPY, StringIO)
+                           text_type, zip, PY3, PY35, PY36, StringIO)
+import math
 import operator
 import numpy as np
 
@@ -1661,9 +1662,13 @@ class TestIndex(Base):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
-        if PYPY and nulls_fixture is np.nan:  # np.nan is float('nan') on PyPy
+        # all nans are the same
+        if (isinstance(nulls_fixture, float) and
+                isinstance(nulls_fixture2, float) and
+                math.isnan(nulls_fixture) and
+                math.isnan(nulls_fixture2)):
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
-                [float('nan')]), np.array([False, True]))
+                [nulls_fixture2]), np.array([False, True]))
 
         elif nulls_fixture is nulls_fixture2:  # should preserve NA type
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
