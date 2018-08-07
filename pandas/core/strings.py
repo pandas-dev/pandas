@@ -1108,13 +1108,15 @@ def str_join(arr, sep):
         The list entries concatenated by intervening occurrences of the
         delimiter.
 
+    Raises
+    -------
+    AttributeError
+        If the supplied Series contains neither strings nor lists.
+
     Notes
     -----
     If any of the list items is not a string object, the result of the join
     will be `NaN`.
-
-    If the Series does not contain string objects, performing a join will raise
-    an AttributeError.
 
     See Also
     --------
