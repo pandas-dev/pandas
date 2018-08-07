@@ -582,6 +582,15 @@ b  2""")
                kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
 
+            if (name == 'hist' and
+                    kwargs.pop('equal_bins', False)):
+                # GH-22222
+                bins = kwargs.pop('bins', None)
+                if type(bins) == int:
+                    bins = np.linspace(self.obj.min(),
+                                       self.obj.max(), bins + 1)
+                kwargs['bins'] = bins
+
             def curried_with_axis(x):
                 return f(x, *args, **kwargs_with_axis)
 

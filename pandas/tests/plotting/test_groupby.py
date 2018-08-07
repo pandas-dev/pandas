@@ -13,6 +13,25 @@ from pandas.tests.plotting.common import TestPlotBase
 
 
 @td.skip_if_no_mpl
+def test_hist_bins_match():
+    # GH-22222
+    N = 100
+    bins = 5
+
+    np.random.seed(0)
+    df = DataFrame(np.append(np.random.randn(N), np.random.randn(N) / 10),
+                   columns=['rand'])
+    df['group'] = [0] * N + [1] * N
+    g = df.groupby('group')['rand']
+    bin_range = np.linspace(df['rand'].min(), df['rand'].max(), bins + 1)
+
+    ax = g.hist(bins=bins, alpha=0.7, equal_bins=True)
+    both_hists_max = g.apply(lambda x: max(
+        np.histogram(x, bins=bin_range)[0])).max()
+    assert ax.iloc[0].get_ylim()[1] >= both_hists_max
+
+
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):
