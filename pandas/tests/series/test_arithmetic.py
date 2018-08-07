@@ -355,64 +355,6 @@ class TestSeriesDivision(object):
         result = second / first
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('dtype2', [
-        np.int64, np.int32, np.int16, np.int8,
-        np.float64, np.float32, np.float16,
-        np.uint64, np.uint32, np.uint16, np.uint8])
-    @pytest.mark.parametrize('dtype1', [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, dtype2):
-        # no longer do integer div for any ops, but deal with the 0's
-        first = Series([3, 4, 5, 8], name='first').astype(dtype1)
-        second = Series([0, 0, 0, 3], name='second').astype(dtype2)
-
-        with np.errstate(all='ignore'):
-            expected = Series(first.values.astype(np.float64) / second.values,
-                              dtype='float64', name=None)
-        expected.iloc[0:3] = np.inf
-
-        result = first / second
-        tm.assert_series_equal(result, expected)
-        assert not result.equals(second / first)
-
-    def test_rdiv_zero_compat(self):
-        # GH#8674
-        zero_array = np.array([0] * 5)
-        data = np.random.randn(5)
-        expected = Series([0.] * 5)
-
-        result = zero_array / Series(data)
-        tm.assert_series_equal(result, expected)
-
-        result = Series(zero_array) / data
-        tm.assert_series_equal(result, expected)
-
-        result = Series(zero_array) / Series(data)
-        tm.assert_series_equal(result, expected)
-
-    def test_div_zero_inf_signs(self):
-        # GH#9144, inf signing
-        ser = Series([-1, 0, 1], name='first')
-        expected = Series([-np.inf, np.nan, np.inf], name='first')
-
-        result = ser / 0
-        tm.assert_series_equal(result, expected)
-
-    def test_rdiv_zero(self):
-        # GH#9144
-        ser = Series([-1, 0, 1], name='first')
-        expected = Series([0.0, np.nan, 0.0], name='first')
-
-        result = 0 / ser
-        tm.assert_series_equal(result, expected)
-
-    def test_floordiv_div(self):
-        # GH#9144
-        ser = Series([-1, 0, 1], name='first')
-
-        result = ser // 0
-        expected = Series([-np.inf, np.nan, np.inf], name='first')
-        tm.assert_series_equal(result, expected)
-
 
 class TestSeriesArithmetic(object):
     # Standard, numeric, or otherwise not-Timestamp/Timedelta/Period dtypes
