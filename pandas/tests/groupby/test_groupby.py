@@ -10,7 +10,6 @@ from decimal import Decimal
 from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
                     Panel, DatetimeIndex, read_csv)
-from pandas.core.base import DataError
 from pandas.errors import PerformanceWarning
 from pandas.util.testing import (assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)

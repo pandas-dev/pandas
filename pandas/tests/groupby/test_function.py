@@ -470,6 +470,7 @@ def test_max_nan_bug():
     tm.assert_frame_equal(r, e)
     assert not r['File'].isna().any()
 
+
 @pytest.mark.parametrize("klass", [Series, DataFrame])
 @pytest.mark.parametrize("test_mi", [True, False])
 @pytest.mark.parametrize("dtype", ['int', 'float'])
