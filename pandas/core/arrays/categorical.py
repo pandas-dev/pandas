@@ -2401,7 +2401,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def __init__(self, data):
         self._validate(data)
-        self.categorical = data.values
+        self._parent = data.values
         self.index = data.index
         self.name = data.name
         self._freeze()
@@ -2413,19 +2413,19 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
                                  "'category' dtype")
 
     def _delegate_property_get(self, name):
-        return getattr(self.categorical, name)
+        return getattr(self._parent, name)
 
     def _delegate_property_set(self, name, new_values):
-        return setattr(self.categorical, name, new_values)
+        return setattr(self._parent, name, new_values)
 
     @property
     def codes(self):
         from pandas import Series
-        return Series(self.categorical.codes, index=self.index)
+        return Series(self._parent.codes, index=self.index)
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
-        method = getattr(self.categorical, name)
+        method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
             return Series(res, index=self.index, name=self.name)
