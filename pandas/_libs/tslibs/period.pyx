@@ -69,58 +69,21 @@ ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 cdef extern from *:
     """
     /*** FREQUENCY CONSTANTS ***/
+    // See frequencies.pyx for more detailed variants
 
     #define FR_ANN 1000      /* Annual */
-    #define FR_ANNDEC FR_ANN /* Annual - December year end*/
-    #define FR_ANNJAN 1001   /* Annual - January year end*/
-    #define FR_ANNFEB 1002   /* Annual - February year end*/
-    #define FR_ANNMAR 1003   /* Annual - March year end*/
-    #define FR_ANNAPR 1004   /* Annual - April year end*/
-    #define FR_ANNMAY 1005   /* Annual - May year end*/
-    #define FR_ANNJUN 1006   /* Annual - June year end*/
-    #define FR_ANNJUL 1007   /* Annual - July year end*/
-    #define FR_ANNAUG 1008   /* Annual - August year end*/
-    #define FR_ANNSEP 1009   /* Annual - September year end*/
-    #define FR_ANNOCT 1010   /* Annual - October year end*/
-    #define FR_ANNNOV 1011   /* Annual - November year end*/
-
-    /* The standard quarterly frequencies with various fiscal year ends
-       eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005 */
     #define FR_QTR 2000      /* Quarterly - December year end (default Q) */
-    #define FR_QTRDEC FR_QTR /* Quarterly - December year end */
-    #define FR_QTRJAN 2001   /* Quarterly - January year end */
-    #define FR_QTRFEB 2002   /* Quarterly - February year end */
-    #define FR_QTRMAR 2003   /* Quarterly - March year end */
-    #define FR_QTRAPR 2004   /* Quarterly - April year end */
-    #define FR_QTRMAY 2005   /* Quarterly - May year end */
-    #define FR_QTRJUN 2006   /* Quarterly - June year end */
-    #define FR_QTRJUL 2007   /* Quarterly - July year end */
-    #define FR_QTRAUG 2008   /* Quarterly - August year end */
-    #define FR_QTRSEP 2009   /* Quarterly - September year end */
-    #define FR_QTROCT 2010   /* Quarterly - October year end */
-    #define FR_QTRNOV 2011   /* Quarterly - November year end */
-
-    #define FR_MTH 3000 /* Monthly */
-
-    #define FR_WK 4000     /* Weekly */
-    #define FR_WKSUN FR_WK /* Weekly - Sunday end of week */
-    #define FR_WKMON 4001  /* Weekly - Monday end of week */
-    #define FR_WKTUE 4002  /* Weekly - Tuesday end of week */
-    #define FR_WKWED 4003  /* Weekly - Wednesday end of week */
-    #define FR_WKTHU 4004  /* Weekly - Thursday end of week */
-    #define FR_WKFRI 4005  /* Weekly - Friday end of week */
-    #define FR_WKSAT 4006  /* Weekly - Saturday end of week */
-
-    #define FR_BUS 5000 /* Business days */
-    #define FR_DAY 6000 /* Daily */
-    #define FR_HR 7000  /* Hourly */
-    #define FR_MIN 8000 /* Minutely */
-    #define FR_SEC 9000 /* Secondly */
-    #define FR_MS 10000 /* Millisecondly */
-    #define FR_US 11000 /* Microsecondly */
-    #define FR_NS 12000 /* Nanosecondly */
-
-    #define FR_UND -10000 /* Undefined */
+    #define FR_MTH 3000      /* Monthly */
+    #define FR_WK 4000       /* Weekly */
+    #define FR_BUS 5000      /* Business days */
+    #define FR_DAY 6000      /* Daily */
+    #define FR_HR 7000       /* Hourly */
+    #define FR_MIN 8000      /* Minutely */
+    #define FR_SEC 9000      /* Secondly */
+    #define FR_MS 10000      /* Millisecondly */
+    #define FR_US 11000      /* Microsecondly */
+    #define FR_NS 12000      /* Nanosecondly */
+    #define FR_UND -10000    /* Undefined */
 
     static int64_t daytime_conversion_factor_matrix[7][7] = {
         {1, 24, 1440, 86400, 86400000, 86400000000, 86400000000000},
@@ -130,26 +93,8 @@ cdef extern from *:
         {0,  0,   0,      0,        1,        1000,        1000000},
         {0,  0,   0,      0,        0,           1,           1000},
         {0,  0,   0,      0,        0,           0,              1}};
-
-    int max_value(int a, int b) { return a > b ? a : b; }
-
-    static int min_value(int a, int b) { return a < b ? a : b; }
-
-    npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
-        int row = min_value(from_index, to_index);
-        int col = max_value(from_index, to_index);
-        // row or col < 6 means frequency strictly lower than Daily, which
-        // do not use daytime_conversion_factors
-        if (row < 6) {
-            return 0;
-        } else if (col < 6) {
-            return 0;
-        }
-        return daytime_conversion_factor_matrix[row - 6][col - 6];
-    }
     """
-    int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
-    int max_value(int left, int right) nogil
+    int64_t daytime_conversion_factor_matrix[7][7]
     int FR_ANN
     int FR_QTR
     int FR_MTH
@@ -163,6 +108,31 @@ cdef extern from *:
     int FR_NS
     int FR_BUS
     int FR_UND
+
+
+cdef int max_value(int left, int right) nogil:
+    if left > right:
+        return left
+    return right
+
+
+cdef int min_value(int left, int right) nogil:
+    if left < right:
+        return left
+    return right
+
+
+cdef int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil:
+    cdef:
+        int row = min_value(from_index, to_index)
+        int col = max_value(from_index, to_index)
+    # row or col < 6 means frequency strictly lower than Daily, which
+    # do not use daytime_conversion_factors
+    if row < 6:
+        return 0
+    elif col < 6:
+        return 0
+    return daytime_conversion_factor_matrix[row - 6][col - 6]
 
 
 cdef int64_t nofunc(int64_t ordinal, asfreq_info *af_info):

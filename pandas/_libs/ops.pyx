@@ -186,13 +186,13 @@ def scalar_binop(object[:] values, object val, object op):
     """
     cdef:
         Py_ssize_t i, n = len(values)
-        ndarray[object] result
+        object[:] result
         object x
 
     result = np.empty(n, dtype=object)
     if val is None or is_nan(val):
-        result.fill(val)
-        return result
+        result[:] = val
+        return result.base  # `.base` to access underlying np.ndarray
 
     for i in range(n):
         x = values[i]
@@ -201,7 +201,7 @@ def scalar_binop(object[:] values, object val, object op):
         else:
             result[i] = op(x, val)
 
-    return maybe_convert_bool(result)
+    return maybe_convert_bool(result.base)
 
 
 @cython.wraparound(False)
