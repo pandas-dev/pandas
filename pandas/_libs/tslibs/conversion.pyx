@@ -758,7 +758,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         return _tz_convert_dst(arr, tz2, to_utc=False)[0]
 
 
-cdef inline int64_t[:] _tz_convert(int64_t[:] vals, object tz, bint to_utc):
+cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
+                                           bint to_utc):
     """
     Convert the given values (in i8) either to UTC or from UTC.
 
@@ -817,8 +818,8 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
         return np.array([], dtype=np.int64)
 
     # Convert to UTC
-    utc_dates = _tz_convert(vals, tz1, to_utc=True)
-    converted = _tz_convert(utc_dates, tz2, to_utc=False)
+    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
+    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
     return np.array(converted, dtype=np.int64)
 
 
