@@ -276,6 +276,7 @@ class TestDataFrame(Generic):
         result = pd.DataFrame(pop, index=[2001, 2002, 2003], columns=columns)
         expected = pd.DataFrame(
             {'Nevada': [2.4, 2.9, np.nan], 'Ohio': [1.7, 3.6, np.nan]},
-            columns=columns
+            columns=columns,
+            index=pd.Index([2001, 2002, 2003])
         )
         assert_frame_equal(result, expected)
