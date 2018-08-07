@@ -803,17 +803,17 @@ class Block(PandasObject):
         except (TypeError, ValueError):
             # GH 22083, TypeError or ValueError occurred within error handling
             # causes infinite loop. Cast and retry only if not objectblock.
-            if self.dtype == 'object':
+            if is_object_dtype(self):
                 raise
-            else:
-                # try again with a compatible block
-                block = self.astype(object)
-                return block.replace(to_replace=original_to_replace,
-                                     value=value,
-                                     inplace=inplace,
-                                     filter=filter,
-                                     regex=regex,
-                                     convert=convert)
+
+            # try again with a compatible block
+            block = self.astype(object)
+            return block.replace(to_replace=original_to_replace,
+                                 value=value,
+                                 inplace=inplace,
+                                 filter=filter,
+                                 regex=regex,
+                                 convert=convert)
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
