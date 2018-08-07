@@ -1369,7 +1369,7 @@ class Timedelta(_Timedelta):
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
 
-        elif is_float_object(other) and util._checknull(other):
+        elif is_float_object(other) and util.is_nan(other):
             # i.e. np.nan
             return NotImplemented
 
