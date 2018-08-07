@@ -722,6 +722,7 @@ def test_describe():
     result = gni.describe()
     tm.assert_frame_equal(result, expected)
 
+
 def test_apply_describe_bug(mframe):
     grouped = mframe.groupby(level='first')
     grouped.describe()  # it works!
