@@ -579,6 +579,25 @@ class TestFrameArithmetic(object):
         tm.assert_frame_equal(res, expected)
 
 
+class TestTimestampSeriesArithmetic(object):
+    def test_timestamp_sub_series(self):
+        ser = pd.Series(pd.date_range('2014-03-17', periods=2, freq='D',
+                                      tz='US/Eastern'))
+        ts = ser[0]
+
+        delta_series = pd.Series([np.timedelta64(0, 'D'),
+                                  np.timedelta64(1, 'D')])
+        tm.assert_series_equal(ser - ts, delta_series)
+        tm.assert_series_equal(ts - ser, -delta_series)
+
+    def test_dt64ser_sub_datetime_dtype(self):
+        ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
+        dt = datetime(1993, 6, 22, 13, 30)
+        ser = Series([ts])
+        result = pd.to_timedelta(np.abs(ser - dt))
+        assert result.dtype == 'timedelta64[ns]'
+
+
 class TestDatetimeIndexArithmetic(object):
 
     # -------------------------------------------------------------
@@ -973,6 +992,212 @@ class TestDatetimeIndexArithmetic(object):
         pi = dti.to_period(pi_freq)
         with pytest.raises(TypeError):
             op(dti, pi)
+
+    # -------------------------------------------------------------
+
+    def test_ufunc_coercions(self):
+        idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
+
+        delta = np.timedelta64(1, 'D')
+        for result in [idx + delta, np.add(idx, delta)]:
+            assert isinstance(result, DatetimeIndex)
+            exp = date_range('2011-01-02', periods=3, freq='2D', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '2D'
+
+        for result in [idx - delta, np.subtract(idx, delta)]:
+            assert isinstance(result, DatetimeIndex)
+            exp = date_range('2010-12-31', periods=3, freq='2D', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '2D'
+
+        delta = np.array([np.timedelta64(1, 'D'), np.timedelta64(2, 'D'),
+                          np.timedelta64(3, 'D')])
+        for result in [idx + delta, np.add(idx, delta)]:
+            assert isinstance(result, DatetimeIndex)
+            exp = DatetimeIndex(['2011-01-02', '2011-01-05', '2011-01-08'],
+                                freq='3D', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '3D'
+
+        for result in [idx - delta, np.subtract(idx, delta)]:
+            assert isinstance(result, DatetimeIndex)
+            exp = DatetimeIndex(['2010-12-31', '2011-01-01', '2011-01-02'],
+                                freq='D', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == 'D'
+
+    def test_datetimeindex_sub_timestamp_overflow(self):
+        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
+        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
+
+        tsneg = Timestamp('1950-01-01')
+        ts_neg_variants = [tsneg,
+                           tsneg.to_pydatetime(),
+                           tsneg.to_datetime64().astype('datetime64[ns]'),
+                           tsneg.to_datetime64().astype('datetime64[D]')]
+
+        tspos = Timestamp('1980-01-01')
+        ts_pos_variants = [tspos,
+                           tspos.to_pydatetime(),
+                           tspos.to_datetime64().astype('datetime64[ns]'),
+                           tspos.to_datetime64().astype('datetime64[D]')]
+
+        for variant in ts_neg_variants:
+            with pytest.raises(OverflowError):
+                dtimax - variant
+
+        expected = pd.Timestamp.max.value - tspos.value
+        for variant in ts_pos_variants:
+            res = dtimax - variant
+            assert res[1].value == expected
+
+        expected = pd.Timestamp.min.value - tsneg.value
+        for variant in ts_neg_variants:
+            res = dtimin - variant
+            assert res[1].value == expected
+
+        for variant in ts_pos_variants:
+            with pytest.raises(OverflowError):
+                dtimin - variant
+
+    @pytest.mark.parametrize('names', [('foo', None, None),
+                                       ('baz', 'bar', None),
+                                       ('bar', 'bar', 'bar')])
+    @pytest.mark.parametrize('tz', [None, 'America/Chicago'])
+    def test_dti_add_series(self, tz, names):
+        # GH#13905
+        index = DatetimeIndex(['2016-06-28 05:30', '2016-06-28 05:31'],
+                              tz=tz, name=names[0])
+        ser = Series([Timedelta(seconds=5)] * 2,
+                     index=index, name=names[1])
+        expected = Series(index + Timedelta(seconds=5),
+                          index=index, name=names[2])
+
+        # passing name arg isn't enough when names[2] is None
+        expected.name = names[2]
+        assert expected.dtype == index.dtype
+        result = ser + index
+        tm.assert_series_equal(result, expected)
+        result2 = index + ser
+        tm.assert_series_equal(result2, expected)
+
+        expected = index + Timedelta(seconds=5)
+        result3 = ser.values + index
+        tm.assert_index_equal(result3, expected)
+        result4 = index + ser.values
+        tm.assert_index_equal(result4, expected)
+
+    def test_dti_add_offset_array(self, tz_naive_fixture):
+        # GH#18849
+        tz = tz_naive_fixture
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti + other
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
+                                 name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + dti
+        tm.assert_index_equal(res2, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_add_offset_index(self, tz_naive_fixture, names):
+        # GH#18849, GH#19744
+        tz = tz_naive_fixture
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
+        other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                         name=names[1])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti + other
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))],
+                                 name=names[2], freq='infer')
+        tm.assert_index_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + dti
+        tm.assert_index_equal(res2, expected)
+
+    def test_dti_sub_offset_array(self, tz_naive_fixture):
+        # GH#18824
+        tz = tz_naive_fixture
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz)
+        other = np.array([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti - other
+        expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
+                                 name=dti.name, freq='infer')
+        tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_sub_offset_index(self, tz_naive_fixture, names):
+        # GH#18824, GH#19744
+        tz = tz_naive_fixture
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
+        other = pd.Index([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                         name=names[1])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti - other
+        expected = DatetimeIndex([dti[n] - other[n] for n in range(len(dti))],
+                                 name=names[2], freq='infer')
+        tm.assert_index_equal(res, expected)
+
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_dti_with_offset_series(self, tz_naive_fixture, names):
+        # GH#18849
+        tz = tz_naive_fixture
+        dti = pd.date_range('2017-01-01', periods=2, tz=tz, name=names[0])
+        other = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
+                       name=names[1])
+
+        expected_add = Series([dti[n] + other[n] for n in range(len(dti))],
+                              name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = dti + other
+        tm.assert_series_equal(res, expected_add)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + dti
+        tm.assert_series_equal(res2, expected_add)
+
+        expected_sub = Series([dti[n] - other[n] for n in range(len(dti))],
+                              name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res3 = dti - other
+        tm.assert_series_equal(res3, expected_sub)
+
+    def test_dti_add_offset_tzaware(self, tz_aware_fixture):
+        timezone = tz_aware_fixture
+        if timezone == 'US/Pacific':
+            dates = date_range('2012-11-01', periods=3, tz=timezone)
+            offset = dates + pd.offsets.Hour(5)
+            assert dates[0] + pd.offsets.Hour(5) == offset[0]
+
+        dates = date_range('2010-11-01 00:00',
+                           periods=3, tz=timezone, freq='H')
+        expected = DatetimeIndex(['2010-11-01 05:00', '2010-11-01 06:00',
+                                  '2010-11-01 07:00'], freq='H', tz=timezone)
+
+        offset = dates + pd.offsets.Hour(5)
+        tm.assert_index_equal(offset, expected)
+        offset = dates + np.timedelta64(5, 'h')
+        tm.assert_index_equal(offset, expected)
+        offset = dates + timedelta(hours=5)
+        tm.assert_index_equal(offset, expected)
 
 
 @pytest.mark.parametrize('klass,assert_func', [

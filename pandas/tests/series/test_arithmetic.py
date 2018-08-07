@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timedelta
+from datetime import timedelta
 import operator
 from decimal import Decimal
 
@@ -341,22 +341,3 @@ class TestPeriodSeriesArithmetic(object):
         expected = pd.Series([4 * off, 2 * off], name='xxx', dtype=object)
         tm.assert_series_equal(s2 - ser, expected)
         tm.assert_series_equal(ser - s2, -1 * expected)
-
-
-class TestTimestampSeriesArithmetic(object):
-    def test_timestamp_sub_series(self):
-        ser = pd.Series(pd.date_range('2014-03-17', periods=2, freq='D',
-                                      tz='US/Eastern'))
-        ts = ser[0]
-
-        delta_series = pd.Series([np.timedelta64(0, 'D'),
-                                  np.timedelta64(1, 'D')])
-        tm.assert_series_equal(ser - ts, delta_series)
-        tm.assert_series_equal(ts - ser, -delta_series)
-
-    def test_dt64ser_sub_datetime_dtype(self):
-        ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
-        dt = datetime(1993, 6, 22, 13, 30)
-        ser = Series([ts])
-        result = pd.to_timedelta(np.abs(ser - dt))
-        assert result.dtype == 'timedelta64[ns]'
