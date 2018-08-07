@@ -37,29 +37,30 @@ cdef int64_t NPY_NAT = util.get_nat()
 from util cimport is_array, is_nan
 
 
-def values_from_object(object o):
+def values_from_object(object obj):
     """ return my values or the object if we are say an ndarray """
-    cdef f
+    cdef func  # TODO: Does declaring this without a type accomplish anything?
 
-    f = getattr(o, 'get_values', None)
-    if f is not None:
-        o = f()
+    func = getattr(obj, 'get_values', None)
+    if func is not None:
+        obj = func()
 
-    return o
+    return obj
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(ndarray[object, ndim=1] arr):
+def memory_usage_of_objects(object[:] arr):
     """ return the memory usage of an object array in bytes,
     does not include the actual bytes of the pointers """
-    cdef Py_ssize_t i, n
-    cdef int64_t s = 0
+    cdef:
+        Py_ssize_t i, n
+        int64_t size = 0
 
     n = len(arr)
-    for i from 0 <= i < n:
-        s += arr[i].__sizeof__()
-    return s
+    for i in range(n):
+        size += arr[i].__sizeof__()
+    return size
 
 
 # ----------------------------------------------------------------------
@@ -138,10 +139,10 @@ def fast_unique_multiple(list arrays):
         dict table = {}
         object val, stub = 0
 
-    for i from 0 <= i < k:
+    for i in range(n):
         buf = arrays[i]
         n = len(buf)
-        for j from 0 <= j < n:
+        for j in range(n):
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -165,10 +166,10 @@ def fast_unique_multiple_list(list lists, bint sort=True):
         dict table = {}
         object val, stub = 0
 
-    for i from 0 <= i < k:
+    for i in range(k):
         buf = lists[i]
         n = len(buf)
-        for j from 0 <= j < n:
+        for j in range(n):
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -208,7 +209,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 
     for buf in gen:
         n = len(buf)
-        for j from 0 <= j < n:
+        for j in range(n):
             val = buf[j]
             if val not in table:
                 table[val] = stub
@@ -669,15 +670,15 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     if axis == 0:
         counts = np.zeros((max_bin, k), dtype='i8')
         with nogil:
-            for i from 0 <= i < n:
-                for j from 0 <= j < k:
+            for i in range(n):
+                for j in range(k):
                     counts[labels[i], j] += mask[i, j]
 
     else:  # axis == 1
         counts = np.zeros((n, max_bin), dtype='i8')
         with nogil:
-            for i from 0 <= i < n:
-                for j from 0 <= j < k:
+            for i in range(n):
+                for j in range(k):
                     counts[i, labels[j]] += mask[i, j]
 
     return counts

@@ -95,6 +95,7 @@ cdef extern from *:
         {0,  0,   0,      0,        0,           0,              1}};
     """
     int64_t daytime_conversion_factor_matrix[7][7]
+    # TODO: Can we get these frequencies from frequencies.FreqGroup?
     int FR_ANN
     int FR_QTR
     int FR_MTH

@@ -17,7 +17,7 @@ from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
+from pandas._libs.tslibs.offsets import CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -38,6 +38,17 @@ import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
+
+class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
+    MON = 0
+    TUE = 1
+    WED = 2
+    THU = 3
+    FRI = 4
+    SAT = 5
+    SUN = 6
+
 
 ####
 # Misc function tests
