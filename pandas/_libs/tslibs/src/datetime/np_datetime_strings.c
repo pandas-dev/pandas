@@ -24,7 +24,7 @@ This file implements string parsing and creation for NumPy datetime.
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif
+#endif  // NPY_NO_DEPRECATED_API
 
 #include <Python.h>
 
