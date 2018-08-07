@@ -223,13 +223,13 @@ def test_pass_args_kwargs(ts, tsframe):
     agg_result = df_grouped.agg(np.percentile, 80, axis=0)
     apply_result = df_grouped.apply(DataFrame.quantile, .8)
     expected = df_grouped.quantile(.8)
-    assert_frame_equal(apply_result, expected)
+    assert_frame_equal(apply_result, expected, check_names=False)
     assert_frame_equal(agg_result, expected, check_names=False)
 
     agg_result = df_grouped.agg(f, q=80)
     apply_result = df_grouped.apply(DataFrame.quantile, q=.8)
     assert_frame_equal(agg_result, expected, check_names=False)
-    assert_frame_equal(apply_result, expected)
+    assert_frame_equal(apply_result, expected, check_names=False)
 
 
 def test_len():
