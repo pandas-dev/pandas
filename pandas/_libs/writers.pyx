@@ -163,7 +163,7 @@ def string_array_replace_from_nan_rep(
     if replace is None:
         replace = np.nan
 
-    for i from 0 <= i < length:
+    for i in range(length):
         if arr[i] == nan_rep:
             arr[i] = replace
 
