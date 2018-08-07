@@ -970,6 +970,23 @@ class TestSeriesConstructors():
         values = frozenset(values)
         pytest.raises(TypeError, Series, values)
 
+    @pytest.mark.parametrize(
+        "src",
+        [pd.date_range('2016-01-01', periods=10, tz='US/Pacific'),
+         pd.timedelta_range('1 day', periods=10),
+         pd.period_range('2012Q1', periods=3, freq='Q'),
+         pd.Index(list('abcdefghij')),
+         pd.Int64Index(np.arange(10)),
+         pd.RangeIndex(0, 10)])
+    def test_fromIndex(self, src):
+        # GH21907
+        # When constructing a series from an index,
+        # the series does not share data with that index
+        expected = src.copy(deep=True)
+        prod = Series(src)
+        prod[::3] = NaT
+        tm.assert_index_equal(src, expected)
+
     # https://github.com/pandas-dev/pandas/issues/22698
     @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self):
