@@ -2381,8 +2381,8 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         bin. In this case, bins is returned unmodified.
     equal_bins : boolean, default False
         Uses the overall maximum and minimum of the groups to set a shared
-        bins sequence for them. This results in equal bin widths for all
-        groups. Note: this flag only works if bins==None or int.
+        bins sequence, leading to equal bin widths for all
+        groups (only works if bins==None or int).
     **kwds
         All other plotting keyword arguments to be passed to
         :meth:`matplotlib.pyplot.hist`.
