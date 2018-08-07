@@ -252,12 +252,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = set([
-    'years', 'months', 'weeks', 'days',
-    'year', 'month', 'day', 'weekday',
-    'hour', 'minute', 'second', 'microsecond',
-    'nanosecond', 'nanoseconds',
-    'hours', 'minutes', 'seconds', 'microseconds'])
+relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
+                      'day', 'weekday', 'hour', 'minute', 'second',
+                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
+                      'minutes', 'seconds', 'microseconds'}
 
 
 def _determine_offset(kwds):
