@@ -52,7 +52,7 @@ cdef extern from "src/parse_helper.h":
     int floatify(object, double *result, int *maybe_int) except -1
 
 cimport util
-from util cimport (_checknull,
+from util cimport (is_nan,
                    UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN)
 
 from tslib import array_to_datetime
@@ -470,7 +470,7 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
         # we are either not equal or both nan
         # I think None == None will be true here
         if not (PyObject_RichCompareBool(x, y, Py_EQ) or
-                _checknull(x) and _checknull(y)):
+                (x is None or is_nan(x)) and (y is None or is_nan(y))):
             return False
     return True
 
@@ -1156,7 +1156,7 @@ def infer_dtype(object value, bint skipna=False):
 
         # do not use is_nul_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
-        if util._checknull(val):
+        if val is None or util.is_nan(val):
             pass
         elif val is NaT:
             seen_pdnat = True
@@ -1284,7 +1284,7 @@ cpdef object infer_datetimelike_array(object arr):
             if len(objs) == 3:
                 break
 
-        elif util._checknull(v):
+        elif v is None or util.is_nan(v):
             # nan or None
             pass
         elif v is NaT:
@@ -1407,7 +1407,7 @@ cdef class Validator:
             .format(typ=type(self).__name__))
 
     cdef bint is_valid_null(self, object value) except -1:
-        return util._checknull(value)
+        return value is None or util.is_nan(value)
 
     cdef bint is_array_typed(self) except -1:
         return False
@@ -1550,7 +1550,7 @@ cdef class TemporalValidator(Validator):
     cdef inline bint is_valid_skipna(self, object value) except -1:
         cdef:
             bint is_typed_null = self.is_valid_null(value)
-            bint is_generic_null = util._checknull(value)
+            bint is_generic_null = value is None or util.is_nan(value)
         self.generic_null_count += is_typed_null and is_generic_null
         return self.is_value_typed(value) or is_typed_null or is_generic_null
 
