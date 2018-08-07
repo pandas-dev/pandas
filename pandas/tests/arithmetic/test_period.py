@@ -12,9 +12,11 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.errors import PerformanceWarning
+from pandas._libs.tslibs.period import IncompatibleFrequency
+
 import pandas.core.indexes.period as period
 from pandas.core import ops
-from pandas import Period, PeriodIndex, period_range, Timedelta
+from pandas import Period, PeriodIndex, period_range, Timedelta, Series
 
 
 # ------------------------------------------------------------------
@@ -269,6 +271,112 @@ class TestPeriodIndexComparisons(object):
         expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(left < pd.NaT, expected)
         tm.assert_numpy_array_equal(pd.NaT > left, expected)
+
+
+class TestPeriodSeriesComparisons(object):
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
+    def test_cmp_series_period_scalar(self, freq):
+        # GH 13200
+        base = Series([Period(x, freq=freq) for x in
+                       ['2011-01', '2011-02', '2011-03', '2011-04']])
+        p = Period('2011-02', freq=freq)
+
+        exp = Series([False, True, False, False])
+        tm.assert_series_equal(base == p, exp)
+        tm.assert_series_equal(p == base, exp)
+
+        exp = Series([True, False, True, True])
+        tm.assert_series_equal(base != p, exp)
+        tm.assert_series_equal(p != base, exp)
+
+        exp = Series([False, False, True, True])
+        tm.assert_series_equal(base > p, exp)
+        tm.assert_series_equal(p < base, exp)
+
+        exp = Series([True, False, False, False])
+        tm.assert_series_equal(base < p, exp)
+        tm.assert_series_equal(p > base, exp)
+
+        exp = Series([False, True, True, True])
+        tm.assert_series_equal(base >= p, exp)
+        tm.assert_series_equal(p <= base, exp)
+
+        exp = Series([True, True, False, False])
+        tm.assert_series_equal(base <= p, exp)
+        tm.assert_series_equal(p >= base, exp)
+
+        # different base freq
+        msg = "Input has different freq=A-DEC from Period"
+        with tm.assert_raises_regex(IncompatibleFrequency, msg):
+            base <= Period('2011', freq='A')
+
+        with tm.assert_raises_regex(IncompatibleFrequency, msg):
+            Period('2011', freq='A') >= base
+
+    @pytest.mark.parametrize('freq', ['M', '2M', '3M'])
+    def test_cmp_series_period_series(self, freq):
+        # GH#13200
+        base = Series([Period(x, freq=freq) for x in
+                       ['2011-01', '2011-02', '2011-03', '2011-04']])
+
+        ser = Series([Period(x, freq=freq) for x in
+                      ['2011-02', '2011-01', '2011-03', '2011-05']])
+
+        exp = Series([False, False, True, False])
+        tm.assert_series_equal(base == ser, exp)
+
+        exp = Series([True, True, False, True])
+        tm.assert_series_equal(base != ser, exp)
+
+        exp = Series([False, True, False, False])
+        tm.assert_series_equal(base > ser, exp)
+
+        exp = Series([True, False, False, True])
+        tm.assert_series_equal(base < ser, exp)
+
+        exp = Series([False, True, True, False])
+        tm.assert_series_equal(base >= ser, exp)
+
+        exp = Series([True, False, True, True])
+        tm.assert_series_equal(base <= ser, exp)
+
+        ser2 = Series([Period(x, freq='A') for x in
+                       ['2011', '2011', '2011', '2011']])
+
+        # different base freq
+        msg = "Input has different freq=A-DEC from Period"
+        with tm.assert_raises_regex(IncompatibleFrequency, msg):
+            base <= ser2
+
+    def test_cmp_series_period_series_mixed_freq(self):
+        # GH#13200
+        base = Series([Period('2011', freq='A'),
+                       Period('2011-02', freq='M'),
+                       Period('2013', freq='A'),
+                       Period('2011-04', freq='M')])
+
+        ser = Series([Period('2012', freq='A'),
+                      Period('2011-01', freq='M'),
+                      Period('2013', freq='A'),
+                      Period('2011-05', freq='M')])
+
+        exp = Series([False, False, True, False])
+        tm.assert_series_equal(base == ser, exp)
+
+        exp = Series([True, True, False, True])
+        tm.assert_series_equal(base != ser, exp)
+
+        exp = Series([False, True, False, False])
+        tm.assert_series_equal(base > ser, exp)
+
+        exp = Series([True, False, False, True])
+        tm.assert_series_equal(base < ser, exp)
+
+        exp = Series([False, True, True, False])
+        tm.assert_series_equal(base >= ser, exp)
+
+        exp = Series([True, False, True, True])
+        tm.assert_series_equal(base <= ser, exp)
 
 
 # ------------------------------------------------------------------
@@ -686,3 +794,47 @@ class TestPeriodIndexArithmetic(object):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng -= other
+
+
+class TestPeriodSeriesArithmetic(object):
+    def test_ops_series_timedelta(self):
+        # GH 13043
+        ser = pd.Series([pd.Period('2015-01-01', freq='D'),
+                         pd.Period('2015-01-02', freq='D')], name='xxx')
+        assert ser.dtype == object
+
+        expected = pd.Series([pd.Period('2015-01-02', freq='D'),
+                              pd.Period('2015-01-03', freq='D')], name='xxx')
+
+        result = ser + pd.Timedelta('1 days')
+        tm.assert_series_equal(result, expected)
+
+        result = pd.Timedelta('1 days') + ser
+        tm.assert_series_equal(result, expected)
+
+        result = ser + pd.tseries.offsets.Day()
+        tm.assert_series_equal(result, expected)
+
+        result = pd.tseries.offsets.Day() + ser
+        tm.assert_series_equal(result, expected)
+
+    def test_ops_series_period(self):
+        # GH 13043
+        ser = pd.Series([pd.Period('2015-01-01', freq='D'),
+                         pd.Period('2015-01-02', freq='D')], name='xxx')
+        assert ser.dtype == object
+
+        per = pd.Period('2015-01-10', freq='D')
+        off = per.freq
+        # dtype will be object because of original dtype
+        expected = pd.Series([9 * off, 8 * off], name='xxx', dtype=object)
+        tm.assert_series_equal(per - ser, expected)
+        tm.assert_series_equal(ser - per, -1 * expected)
+
+        s2 = pd.Series([pd.Period('2015-01-05', freq='D'),
+                        pd.Period('2015-01-04', freq='D')], name='xxx')
+        assert s2.dtype == object
+
+        expected = pd.Series([4 * off, 2 * off], name='xxx', dtype=object)
+        tm.assert_series_equal(s2 - ser, expected)
+        tm.assert_series_equal(ser - s2, -1 * expected)
