@@ -714,13 +714,13 @@ def test_describe():
                             index=expected_index,
                             columns=expected_col)
     result = g.describe()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
     expected = pd.concat([df[df.A == 1].describe().unstack().to_frame().T,
                           df[df.A == 3].describe().unstack().to_frame().T])
     expected.index = pd.Index([0, 1])
     result = gni.describe()
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
 
 def test_apply_describe_bug(mframe):
     grouped = mframe.groupby(level='first')
@@ -1119,7 +1119,7 @@ def test_quantile(interpolation, bar_vals, foo_vals, q):
     exp = DataFrame([bar_exp, foo_exp], columns=['val'],
                     index=Index(['bar', 'foo'], name='key'))
     res = df.groupby('key').quantile(q, interpolation=interpolation)
-    assert_frame_equal(exp, res)
+    tm.assert_frame_equal(exp, res)
 
 
 def test_quantile_raises():
