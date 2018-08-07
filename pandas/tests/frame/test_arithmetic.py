@@ -91,17 +91,6 @@ class TestFrameFlexArithmetic(object):
 
 class TestFrameArithmetic(object):
 
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano',
-                       strict=True)
-    def test_df_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(pd.date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
-                                 pd.Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
-
     @pytest.mark.parametrize('data', [
         [1, 2, 3],
         [1.1, 2.2, 3.3],
