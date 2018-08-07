@@ -13,7 +13,6 @@ if [ "$LINT" ]; then
     #E731,  # do not assign a lambda expression, use a def
     #E741,  # do not use variables named 'l', 'O', or 'I'
     #W503,  # line break before binary operator
-    #C405,  # Unnecessary (list/tuple) literal - rewrite as a set literal.
     #C406,  # Unnecessary (list/tuple) literal - rewrite as a dict literal.
     #C408,  # Unnecessary (dict/list/tuple) call - rewrite as a literal.
     #C409,  # Unnecessary (list/tuple) passed to tuple() - (remove the outer call to tuple()/rewrite as a tuple literal).
@@ -21,35 +20,35 @@ if [ "$LINT" ]; then
 
     # pandas/_libs/src is C code, so no need to search there.
     echo "Linting *.py"
-    flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C405,C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C406,C408,C409,C410,E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting *.py DONE"
 
     echo "Linting setup.py"
-    flake8 setup.py --ignore=C405,C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 setup.py --ignore=C406,C408,C409,C410,E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting setup.py DONE"
 
     echo "Linting asv_bench/benchmarks/"
-    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811,C405,C406,C408,C409,C410
+    flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting asv_bench/benchmarks/*.py DONE"
 
     echo "Linting scripts/*.py"
-    flake8 scripts --filename=*.py --ignore=C405,C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 scripts --filename=*.py --ignore=C406,C408,C409,C410,E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting scripts/*.py DONE"
 
     echo "Linting doc scripts"
-    flake8 doc/make.py doc/source/conf.py --ignore=C405,C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 doc/make.py doc/source/conf.py --ignore=C406,C408,C409,C410,E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -93,7 +92,7 @@ if [ "$LINT" ]; then
     # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
     # we can lint all header files since they aren't "generated" like C files are.
     echo "Linting *.c and *.h"
-    for path in '*.h' 'period_helper.c' 'datetime' 'parser' 'ujson'
+    for path in '*.h' 'parser' 'ujson'
     do
         echo "linting -> pandas/_libs/src/$path"
         cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/$path
@@ -101,6 +100,11 @@ if [ "$LINT" ]; then
             RET=1
         fi
     done
+    echo "linting -> pandas/_libs/tslibs/src/datetime"
+    cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/tslibs/src/datetime
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
     echo "Linting *.c and *.h DONE"
 
     echo "Check for invalid testing"

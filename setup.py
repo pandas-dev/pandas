@@ -234,7 +234,6 @@ class CleanCommand(Command):
         ujson_lib = pjoin(base, 'ujson', 'lib')
         self._clean_exclude = [pjoin(dt, 'np_datetime.c'),
                                pjoin(dt, 'np_datetime_strings.c'),
-                               pjoin(tsbase, 'period_helper.c'),
                                pjoin(parser, 'tokenizer.c'),
                                pjoin(parser, 'io.c'),
                                pjoin(ujson_python, 'ujson.c'),
@@ -616,10 +615,8 @@ ext_data = {
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,
-        'depends': tseries_depends + [
-            'pandas/_libs/tslibs/src/period_helper.h'],
-        'sources': np_datetime_sources + [
-            'pandas/_libs/tslibs/src/period_helper.c']},
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'include': ts_include,

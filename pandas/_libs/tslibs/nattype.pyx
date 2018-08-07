@@ -23,7 +23,7 @@ from util cimport (get_nat,
 
 # ----------------------------------------------------------------------
 # Constants
-nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+nat_strings = {'NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'}
 
 cdef int64_t NPY_NAT = get_nat()
 iNaT = NPY_NAT  # python-visible constant
