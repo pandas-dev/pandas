@@ -2,6 +2,7 @@ import sys
 import warnings
 import copy
 import numpy as np
+from bitarray import bitarray
 
 from pandas._libs.lib import infer_dtype
 from pandas.util._decorators import cache_readonly
@@ -163,14 +164,12 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             values.dtype))
 
     if mask is None:
-        mask = isna(values)
+        mask = bitarray(isna(values).tolist())
     else:
         assert len(mask) == len(values)
 
     if not values.ndim == 1:
         raise TypeError("values must be a 1D list-like")
-    if not mask.ndim == 1:
-        raise TypeError("mask must be a 1D list-like")
 
     # infer dtype if needed
     if dtype is None:
@@ -186,11 +185,23 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     # we copy as need to coerce here
     if mask.any():
+        slice_mask = mask
+        if isinstance(mask, bitarray):
+            slice_mask = np.fromstring(mask.unpack(), dtype=bool)
+        else:
+            slice_mask = slice_mask.astype(np.bool_, copy=False)
+
         values = values.copy()
-        values[mask] = 1
+        values[slice_mask] = 1
         values = safe_cast(values, dtype, copy=False)
     else:
         values = safe_cast(values, dtype, copy=False)
+
+    # Make sure we always coerce back to bitarray
+    if not isinstance(mask, bitarray):
+        _mask = mask
+        mask = bitarray()
+        mask.pack(_mask.tostring())
 
     return values, mask
 
@@ -235,8 +246,12 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if self._mask[item]:
                 return self.dtype.na_value
             return self._data[item]
+
+        arr = np.array(self._mask)[item]
+        mask = bitarray()
+        mask.pack(arr.tostring())
         return type(self)(self._data[item],
-                          mask=self._mask[item],
+                          mask=mask,
                           dtype=self.dtype)
 
     def _coerce_to_ndarray(self):
@@ -317,7 +332,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask[0]
 
         self._data[key] = value
-        self._mask[key] = mask
+
+        # HACKish but unpack to ndarray then repack to leverage
+        # numpy slicing of arrays
+        arr = np.fromstring(self._mask.unpack(), dtype=bool)
+        arr[key] = mask
+        self._mask = bitarray()
+        self._mask.pack(arr.tostring())
 
     def __len__(self):
         return len(self._data)
@@ -343,10 +364,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def nbytes(self):
-        return self._data.nbytes + self._mask.nbytes
+        return self._data.nbytes + self._mask.buffer_info()[1]
 
     def isna(self):
-        return self._mask
+        return np.fromstring(self._mask.unpack(), dtype=bool)
 
     @property
     def _na_value(self):
@@ -444,7 +465,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # TODO(extension)
             # appending to an Index *always* infers
             # w/o passing the dtype
-            array = np.append(array, [self._mask.sum()])
+            array = np.append(array, [
+                np.fromstring(self._mask.unpack(), dtype=bool).sum()])
             index = Index(np.concatenate(
                 [index.values,
                  np.array([np.nan], dtype=object)]), dtype=object)
@@ -513,7 +535,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # may need to fill infs
         # and mask wraparound
         if is_float_dtype(result):
-            mask |= (result == np.inf) | (result == -np.inf)
+            new_mask = bitarray()
+            new_mask.pack(
+                ((result == np.inf) | (result == -np.inf)).tostring())
+            mask |= new_mask
 
         # if we have a float operand we are by-definition
         # a float result
