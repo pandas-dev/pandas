@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import numpy as np
 import pandas as pd
+import pytest
 
 import pandas.util.testing as tm
 from pandas.compat import (is_platform_windows,
@@ -24,10 +25,15 @@ class TestSparseSeriesFormatting(object):
         result = repr(s)
         dfm = self.dtype_format_for_platform
         exp = ("0    1.0\n1    NaN\n2    NaN\n3    3.0\n"
-               "4    NaN\ndtype: float64\nBlockIndex\n"
+               "4    NaN\ndtype: Sparse[float64]\nBlockIndex\n"
                "Block locations: array([0, 3]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dfm))
         assert result == exp
+
+    @pytest.mark.xfail(reason="index is wrong", strict=True)
+    def test_sparsea_max_row_truncated(self):
+        s = pd.Series([1, np.nan, np.nan, 3, np.nan]).to_sparse()
+        dfm = self.dtype_format_for_platform
 
         with option_context("display.max_rows", 3):
             # GH 10560
