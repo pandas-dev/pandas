@@ -7630,6 +7630,8 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # figure out the index, if necessary
     if index is None:
         index = extract_index(arrays)
+    else:
+        index = ensure_index(index)
 
     # don't force copy because getting jammed in an ndarray anyway
     arrays = _homogenize(arrays, index, dtype)
