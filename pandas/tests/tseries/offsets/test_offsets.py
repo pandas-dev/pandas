@@ -39,6 +39,7 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
 
+
 class WeekDay(object):
     # TODO: Remove: This is not used outside of tests
     MON = 0
