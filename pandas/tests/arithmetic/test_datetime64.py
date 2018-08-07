@@ -57,7 +57,18 @@ def addend(request):
 # ------------------------------------------------------------------
 # Comparisons
 
-class TestDateteim64SeriesComparison(object):
+class TestDatetime64DataFrameComparison(object):
+    @pytest.mark.parametrize('timestamps', [
+        [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
+        [pd.Timestamp('2012-01-01 13:00:00')] * 2])
+    def test_tz_aware_scalar_comparison(self, timestamps):
+        # GH#15966
+        df = pd.DataFrame({'test': timestamps})
+        expected = pd.DataFrame({'test': [False, False]})
+        tm.assert_frame_equal(df == -1, expected)
+
+
+class TestDatetime64SeriesComparison(object):
     def test_dt64_ser_cmp_date_warning(self):
         # https://github.com/pandas-dev/pandas/issues/21359
         # Remove this test and enble invalid test below
