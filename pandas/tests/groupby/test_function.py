@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from pandas import (DataFrame, Index, compat, isna,
                     Series, MultiIndex, Timestamp, date_range)
+from pandas.core.base import DataError
 from pandas.errors import UnsupportedFunctionCall
 from pandas.util import testing as tm
 import pandas.core.nanops as nanops
@@ -472,7 +473,7 @@ def test_max_nan_bug():
 @pytest.mark.parametrize("klass", [Series, DataFrame])
 @pytest.mark.parametrize("test_mi", [True, False])
 @pytest.mark.parametrize("dtype", ['int', 'float'])
-def test_groupby_mad(self, klass, test_mi, dtype):
+def test_groupby_mad(klass, test_mi, dtype):
     vals = np.array(range(10)).astype(dtype)
     df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
 
@@ -503,7 +504,7 @@ def test_groupby_mad(self, klass, test_mi, dtype):
 
 @pytest.mark.parametrize("vals", [
     ['foo'] * 10, [True] * 10])
-def test_groupby_mad_raises(self, vals):
+def test_groupby_mad_raises(vals):
     df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
 
     with tm.assert_raises_regex(DataError,
@@ -511,7 +512,7 @@ def test_groupby_mad_raises(self, vals):
         df.groupby('key').mad()
 
 
-def test_groupby_mad_skipna(self):
+def test_groupby_mad_skipna():
     df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': range(10)})
     with tm.assert_raises_regex(
             NotImplementedError, "'skipna=False' not yet implemented"):
