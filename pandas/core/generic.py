@@ -6098,7 +6098,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
-              :func:`scipy.interpolate.interp1d`. Both 'polynomial' and
+              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
               'spline' require that you also specify an `order` (int),
               e.g. ``df.interpolate(method='polynomial', order=4)``.
               These use the actual numerical values of the index.
@@ -6111,7 +6111,7 @@ class NDFrame(PandasObject, SelectionMixin):
               and `tutorial documentation
               <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
             * 'from_derivatives' refers to
-              :func:`scipy.interpolate.BPoly.from_derivatives` which
+              :meth:`scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18
 
