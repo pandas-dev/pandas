@@ -1304,6 +1304,7 @@ Indexing
 - Bug in :func:`Index.union` and :func:`Index.intersection` where name of the ``Index`` of the result was not computed correctly for certain cases (:issue:`9943`, :issue:`9862`)
 - Bug in :class:`Index` slicing with boolean :class:`Index` may raise ``TypeError`` (:issue:`22533`)
 - Bug when :class:`Series` was created from :class:`DatetimeIndex`, the series shares the same underneath data with that index (:issue:`21907`)
+- Bug when :class:`Series` was created from :class:`DatetimeIndex`, the series shares the same data with that index (:issue:`21907`)
 
 Missing
 ^^^^^^^
