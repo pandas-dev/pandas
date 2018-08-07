@@ -26,12 +26,12 @@ from np_datetime cimport (npy_datetimestruct, dtstruct_to_dt64,
                           pandas_datetime_to_datetimestruct,
                           NPY_DATETIMEUNIT, NPY_FR_D)
 
-cdef extern from "../src/datetime/np_datetime.h":
+cdef extern from "src/datetime/np_datetime.h":
     int64_t npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
                                            npy_datetimestruct *d) nogil
 
 cimport util
-from util cimport is_period_object, is_string_object, INT32_MIN
+from util cimport is_period_object, is_string_object
 
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_dst_info
@@ -53,6 +53,8 @@ from offsets cimport to_offset
 from offsets import _Tick
 
 cdef bint PY2 = str == bytes
+cdef enum:
+    INT32_MIN = -2147483648
 
 
 ctypedef struct asfreq_info:
