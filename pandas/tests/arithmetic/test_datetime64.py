@@ -28,12 +28,6 @@ from pandas import (
 # ------------------------------------------------------------------
 # Fixtures
 
-@pytest.fixture(params=[1, np.array(1, dtype=np.int64)])
-def one(request):
-    # zero-dim integer array behaves like an integer
-    return request.param
-
-
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
                         np.timedelta64(2, 'h'), Timedelta(hours=2)],
                 ids=str)
@@ -979,8 +973,6 @@ class TestDatetimeIndexArithmetic(object):
         result = dti2 - dti1
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize('box', [pd.Index, pd.Series, pd.DataFrame],
-                             ids=lambda x: x.__name__)
     @pytest.mark.parametrize('freq', [None, 'D'])
     def test_sub_period(self, freq, box):
         # GH#13078
