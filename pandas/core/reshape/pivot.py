@@ -8,7 +8,6 @@ from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
-from pandas.core.frame import DataFrame
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
@@ -623,68 +622,3 @@ def _get_names(arrs, names, prefix='row'):
             names = list(names)
 
     return names
-
-
-def _pivot_simple(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-    Parameters
-    ----------
-    index : ndarray
-        Labels to use to make new frame's index
-    columns : ndarray
-        Labels to use to make new frame's columns
-    values : ndarray
-        Values to use for populating new frame's values
-    Notes
-    -----
-    Obviously, all 3 of the input arguments must have the same length
-    This is ONLY used for testing in pandas/test/test_panel.py
-    Returns
-    -------
-    DataFrame
-    See also
-    --------
-    DataFrame.pivot_table : generalization of pivot that can handle
-        duplicate values for one index/column pair
-    """
-    if (len(index) != len(columns)) or (len(columns) != len(values)):
-        raise AssertionError('Length of index, columns, and values must be the'
-                             ' same')
-    if len(index) == 0:
-        return DataFrame(index=[])
-    hindex = MultiIndex.from_arrays([index, columns])
-    series = Series(values.ravel(), index=hindex)
-    series = series.sort_index(level=0)
-    return series.unstack()
-
-
-def _slow_pivot(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : string or object
-        Column name to use to make new frame's index
-    columns : string or object
-        Column name to use to make new frame's columns
-    values : string or object
-        Column name to use for populating new frame's values
-
-    Could benefit from some Cython here.
-
-    Note
-    ----
-    This is ONLY used for testing in pandas/test/test_panel.py
-    """
-    tree = {}
-    for i, (idx, col) in enumerate(zip(index, columns)):
-        if col not in tree:
-            tree[col] = {}
-        branch = tree[col]
-        branch[idx] = values[i]
-
-    return DataFrame(tree)
