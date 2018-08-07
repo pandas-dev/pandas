@@ -23,7 +23,7 @@ from util cimport (get_nat,
 
 # ----------------------------------------------------------------------
 # Constants
-nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+nat_strings = {'NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'}
 
 cdef int64_t NPY_NAT = get_nat()
 iNaT = NPY_NAT  # python-visible constant
@@ -586,8 +586,7 @@ NaT = NaTType()
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or (
-        PyFloat_Check(val) and val != val) or val is NaT
+    return val is None or util.is_nan(val) or val is NaT
 
 
 cdef inline bint is_null_datetimelike(object val):
@@ -602,7 +601,7 @@ cdef inline bint is_null_datetimelike(object val):
     -------
     null_datetimelike : bool
     """
-    if util._checknull(val):
+    if val is None or util.is_nan(val):
         return True
     elif val is NaT:
         return True

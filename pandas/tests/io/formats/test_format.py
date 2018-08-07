@@ -244,7 +244,7 @@ class TestDataFrameFormatting(object):
             assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
-        assert printing.pprint_thing(set([1])) == '{1}'
+        assert printing.pprint_thing({1}) == '{1}'
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
@@ -1586,8 +1586,12 @@ c  10  11  12  13  14\
             assert '...' in df._repr_html_()
 
     def test_info_repr(self):
+        # GH#21746 For tests inside a terminal (i.e. not CI) we need to detect
+        # the terminal size to ensure that we try to print something "too big"
+        term_width, term_height = get_terminal_size()
+
         max_rows = 60
-        max_cols = 20
+        max_cols = 20 + (max(term_width, 80) - 80) // 4
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
