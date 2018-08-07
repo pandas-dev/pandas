@@ -133,7 +133,7 @@ def parse_time_string(arg, freq=None, dayfirst=None, yearfirst=None):
 
 
 cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
-                                     yearfirst=False, **kwargs):
+                                     yearfirst=False):
     """parse datetime string, only returns datetime
 
     Returns
@@ -163,7 +163,8 @@ cdef parse_datetime_string_with_reso(date_string, freq=None, dayfirst=False,
 
     try:
         parsed, reso = dateutil_parse(date_string, _DEFAULT_DATETIME,
-                                      dayfirst=dayfirst, yearfirst=yearfirst)
+                                      dayfirst=dayfirst, yearfirst=yearfirst,
+                                      ignoretz=False, tzinfos=None)
     except Exception as e:
         # TODO: allow raise of errors within instead
         raise DateParseError(e)
@@ -297,7 +298,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
 
 
 cdef dateutil_parse(object timestr, object default, ignoretz=False,
-                    tzinfos=None, **kwargs):
+                    tzinfos=None, dayfirst=None, yearfirst=None):
     """ lifted from dateutil to get resolution"""
 
     cdef:
@@ -306,7 +307,7 @@ cdef dateutil_parse(object timestr, object default, ignoretz=False,
         dict repl = {}
 
     fobj = StringIO(str(timestr))
-    res = DEFAULTPARSER._parse(fobj, **kwargs)
+    res = DEFAULTPARSER._parse(fobj, dayfirst=dayfirst, yearfirst=yearfirst)
 
     # dateutil 2.2 compat
     if isinstance(res, tuple):  # PyTuple_Check
