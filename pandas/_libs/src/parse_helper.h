@@ -12,6 +12,7 @@ The full license is in the LICENSE file, distributed with this software.
 
 #include <errno.h>
 #include <float.h>
+#include "helper.h"
 #include "headers/portable.h"
 
 static double xstrtod(const char *p, char **q, char decimal, char sci,
