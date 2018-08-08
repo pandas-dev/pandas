@@ -3348,7 +3348,7 @@ class FramePlotMethods(BasePlotMethods):
             Coordinates for the X axis. By default uses the index.
         y : label or position, optional
             Column to plot. By default uses all columns.
-        stacked : boolean, default True
+        stacked : bool, default True
             Area plots are stacked by default. Set to False to create a
             unstacked plot.
         **kwds : optional
@@ -3362,7 +3362,7 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.plot : Draw plots.
+        DataFrame.plot : Make plots of DataFrame using matplotlib / pylab.
 
         Examples
         --------
