@@ -10,17 +10,50 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import Timedelta, Series, TimedeltaIndex
+
+from pandas.compat import PY3
+from pandas import Timedelta, Series, Index, TimedeltaIndex
+
+
+@pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
+                        pd.UInt64Index(np.arange(5, dtype='uint64')),
+                        pd.Int64Index(np.arange(5, dtype='int64')),
+                        pd.RangeIndex(5)],
+                ids=lambda x: type(x).__name__)
+def idx(request):
+    return request.param
 
 
 # ------------------------------------------------------------------
 # Comparisons
+
+class TestNumericComparisons(object):
+    def test_operator_series_comparison_zerorank(self):
+        # GH#13006
+        result = np.float64(0) > pd.Series([1, 2, 3])
+        expected = 0.0 > pd.Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
+        result = pd.Series([1, 2, 3]) < np.float64(0)
+        expected = pd.Series([1, 2, 3]) < 0.0
+        tm.assert_series_equal(result, expected)
+        result = np.array([0, 1, 2])[0] > pd.Series([0, 1, 2])
+        expected = 0.0 > pd.Series([1, 2, 3])
+        tm.assert_series_equal(result, expected)
 
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Timedelta Scalar
 
 class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
+
+    # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
+    def test_ops_series(self):
+        # regression test for G#H8813
+        td = Timedelta('1 day')
+        other = pd.Series([1, 2])
+        expected = pd.Series(pd.to_timedelta(['1 day', '2 days']))
+        tm.assert_series_equal(expected, td * other)
+        tm.assert_series_equal(expected, other * td)
 
     @pytest.mark.parametrize('box', [
         pd.Index,
@@ -294,8 +327,8 @@ class TestDivisionByZero(object):
         assert not res.fillna(0).equals(res2.fillna(0))
 
 
-class TestDivision(object):
-    # __div__, __rdiv__, __floordiv__, __rfloordiv__
+class TestMultiplicationDivision(object):
+    # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
     # for non-timestamp/timedelta/period dtypes
 
     @pytest.mark.parametrize('box', [
@@ -334,6 +367,117 @@ class TestDivision(object):
 
         result = second / first
         tm.assert_series_equal(result, expected)
+
+    def test_div_int(self, idx):
+        # truediv under PY3
+        result = idx / 1
+        expected = idx
+        if PY3:
+            expected = expected.astype('float64')
+        tm.assert_index_equal(result, expected)
+
+        result = idx / 2
+        if PY3:
+            expected = expected.astype('float64')
+        expected = Index(idx.values / 2)
+        tm.assert_index_equal(result, expected)
+
+    def test_mul_int(self, idx):
+        result = idx * 1
+        tm.assert_index_equal(result, idx)
+
+    def test_rmul_int(self, idx):
+        result = 1 * idx
+        tm.assert_index_equal(result, idx)
+
+    def test_floordiv_int(self, idx):
+        result = idx // 1
+        tm.assert_index_equal(result, idx)
+
+    def test_mul_int_array(self, idx):
+        didx = idx * idx
+
+        result = idx * np.array(5, dtype='int64')
+        tm.assert_index_equal(result, idx * 5)
+
+        arr_dtype = 'uint64' if isinstance(idx, pd.UInt64Index) else 'int64'
+        result = idx * np.arange(5, dtype=arr_dtype)
+        tm.assert_index_equal(result, didx)
+
+    def test_mul_int_series(self, idx):
+        didx = idx * idx
+
+        arr_dtype = 'uint64' if isinstance(idx, pd.UInt64Index) else 'int64'
+        result = idx * Series(np.arange(5, dtype=arr_dtype))
+        tm.assert_series_equal(result, Series(didx))
+
+    def test_mul_float_series(self, idx):
+        rng5 = np.arange(5, dtype='float64')
+
+        result = idx * Series(rng5 + 0.1)
+        expected = Series(rng5 * (rng5 + 0.1))
+        tm.assert_series_equal(result, expected)
+
+    def test_mul_index(self, idx):
+        # in general not true for RangeIndex
+        if not isinstance(idx, pd.RangeIndex):
+            result = idx * idx
+            tm.assert_index_equal(result, idx ** 2)
+
+    def test_mul_datelike_raises(self, idx):
+        with pytest.raises(TypeError):
+            idx * pd.date_range('20130101', periods=5)
+
+    def test_mul_size_mismatch_raises(self, idx):
+        with pytest.raises(ValueError):
+            idx * idx[0:3]
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
+
+    def test_pow_float(self, idx):
+        # test power calculations both ways, GH#14973
+        expected = pd.Float64Index(idx.values**2.0)
+        result = idx**2.0
+        tm.assert_index_equal(result, expected)
+
+    def test_rpow_float(self, idx):
+        # test power calculations both ways, GH#14973
+        expected = pd.Float64Index(2.0**idx.values)
+        result = 2.0**idx
+        tm.assert_index_equal(result, expected)
+
+    def test_modulo(self, idx):
+        # GH#9244
+        expected = Index(idx.values % 2)
+        tm.assert_index_equal(idx % 2, expected)
+
+    def test_divmod(self, idx):
+        result = divmod(idx, 2)
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, 2)
+            expected = Index(div), Index(mod)
+        for r, e in zip(result, expected):
+            tm.assert_index_equal(r, e)
+
+        other = np.ones(idx.values.shape, dtype=idx.values.dtype) * 2
+        result = divmod(idx, other)
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, other)
+            expected = Index(div), Index(mod)
+        for r, e in zip(result, expected):
+            tm.assert_index_equal(r, e)
+
+    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__',
+                       strict=True)
+    def test_divmod_series(self, idx):
+        other = np.ones(idx.values.shape, dtype=idx.values.dtype) * 2
+        result = divmod(idx, Series(other))
+        with np.errstate(all='ignore'):
+            div, mod = divmod(idx.values, other)
+            expected = Series(div), Series(mod)
+
+        for r, e in zip(result, expected):
+            tm.assert_series_equal(r, e)
 
 
 class TestAdditionSubtraction(object):
