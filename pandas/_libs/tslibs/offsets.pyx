@@ -5,7 +5,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import time
-from cpython.datetime cimport (PyDateTime_IMPORT, PyDateTime_CheckExact,
+from cpython.datetime cimport (PyDateTime_IMPORT,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT

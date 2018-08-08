@@ -23,7 +23,6 @@ except:
 import pytz
 
 from cython cimport Py_ssize_t
-from cpython cimport PyFloat_Check
 
 import numpy as np
 from numpy cimport int64_t
@@ -621,6 +620,7 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
+
 
 cdef parse_timezone_directive(object z):
     """

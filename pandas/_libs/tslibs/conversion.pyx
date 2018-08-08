@@ -612,7 +612,7 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
-cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
+cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
                                        bint to_utc=True):
     """
     tz_convert for non-UTC non-tzlocal cases where we have to check
@@ -631,11 +631,10 @@ cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
     """
     cdef:
         Py_ssize_t n = len(values)
-        Py_ssize_t i, j, pos
+        Py_ssize_t i, pos
         int64_t[:] result = np.empty(n, dtype=np.int64)
-        ndarray[int64_t] tt, trans
+        ndarray[int64_t] trans
         int64_t[:] deltas
-        Py_ssize_t[:] posn
         int64_t v
 
     trans, deltas, typ = get_dst_info(tz)
@@ -643,21 +642,15 @@ cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
         # We add `offset` below instead of subtracting it
         deltas = -1 * np.array(deltas, dtype='i8')
 
-    tt = values[values != NPY_NAT]
-    if not len(tt):
-        # if all NaT, return all NaT
-        return values
-
-    posn = trans.searchsorted(tt, side='right')
-
-    j = 0
     for i in range(n):
         v = values[i]
         if v == NPY_NAT:
             result[i] = v
         else:
-            pos = posn[j] - 1
-            j += 1
+            # TODO: Is it more efficient to call searchsorted pointwise or
+            # on `values` outside the loop?  We are not consistent about this.
+            # relative effiency of pointwise increases with number of iNaTs
+            pos = trans.searchsorted(v, side='right') - 1
             if pos < 0:
                 raise ValueError('First time before start of DST info')
             result[i] = v - deltas[pos]
@@ -734,7 +727,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         Py_ssize_t pos
         int64_t v, offset, utc_date
         npy_datetimestruct dts
-        ndarray[int64_t] arr  # TODO: Is there a lighter-weight way to do this?
+        int64_t arr[1]
 
     # See GH#17734 We should always be converting either from UTC or to UTC
     assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
@@ -746,7 +739,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
     elif get_timezone(tz1) != 'UTC':
-        arr = np.array([val])
+        arr[0] = val
         utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
     else:
         utc_date = val
@@ -757,7 +750,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
     else:
         # Convert UTC to other timezone
-        arr = np.array([utc_date])
+        arr[0] = utc_date
         # Note: at least with cython 0.28.3, doing a lookup `[0]` in the next
         # line is sensitive to the declared return type of _tz_convert_dst;
         # if it is declared as returning ndarray[int64_t], a compile-time error
@@ -765,9 +758,46 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         return _tz_convert_dst(arr, tz2, to_utc=False)[0]
 
 
+cdef inline int64_t[:] _tz_convert_one_way(int64_t[:] vals, object tz,
+                                           bint to_utc):
+    """
+    Convert the given values (in i8) either to UTC or from UTC.
+
+    Parameters
+    ----------
+    vals : int64 ndarray
+    tz1 : string / timezone object
+    to_utc : bint
+
+    Returns
+    -------
+    converted : ndarray[int64_t]
+    """
+    cdef:
+        int64_t[:] converted, result
+        Py_ssize_t i, n = len(vals)
+        int64_t val
+
+    if get_timezone(tz) != 'UTC':
+        converted = np.empty(n, dtype=np.int64)
+        if is_tzlocal(tz):
+            for i in range(n):
+                val = vals[i]
+                if val == NPY_NAT:
+                    converted[i] = NPY_NAT
+                else:
+                    converted[i] = _tz_convert_tzlocal_utc(val, tz, to_utc)
+        else:
+            converted = _tz_convert_dst(vals, tz, to_utc)
+    else:
+        converted = vals
+
+    return converted
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
+def tz_convert(int64_t[:] vals, object tz1, object tz2):
     """
     Convert the values (in i8) from timezone1 to timezone2
 
@@ -781,45 +811,16 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
     -------
     int64 ndarray of converted
     """
-
     cdef:
-        ndarray[int64_t] utc_dates, result
-        Py_ssize_t i, j, pos, n = len(vals)
-        int64_t v
+        int64_t[:] utc_dates, converted
 
     if len(vals) == 0:
         return np.array([], dtype=np.int64)
 
     # Convert to UTC
-    if get_timezone(tz1) != 'UTC':
-        utc_dates = np.empty(n, dtype=np.int64)
-        if is_tzlocal(tz1):
-            for i in range(n):
-                v = vals[i]
-                if v == NPY_NAT:
-                    utc_dates[i] = NPY_NAT
-                else:
-                    utc_dates[i] = _tz_convert_tzlocal_utc(v, tz1, to_utc=True)
-        else:
-            utc_dates = np.array(_tz_convert_dst(vals, tz1, to_utc=True))
-    else:
-        utc_dates = vals
-
-    if get_timezone(tz2) == 'UTC':
-        return utc_dates
-
-    elif is_tzlocal(tz2):
-        result = np.zeros(n, dtype=np.int64)
-        for i in range(n):
-            v = utc_dates[i]
-            if v == NPY_NAT:
-                result[i] = NPY_NAT
-            else:
-                result[i] = _tz_convert_tzlocal_utc(v, tz2, to_utc=False)
-        return result
-    else:
-        # Convert UTC to other timezone
-        return np.array(_tz_convert_dst(utc_dates, tz2, to_utc=False))
+    utc_dates = _tz_convert_one_way(vals, tz1, to_utc=True)
+    converted = _tz_convert_one_way(utc_dates, tz2, to_utc=False)
+    return np.array(converted, dtype=np.int64)
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
