@@ -5322,8 +5322,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Data reshaping
 
-    def pivot(self, index=None, columns=None, values=None):
-        """
+    _shared_docs['pivot'] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -5333,7 +5332,7 @@ class DataFrame(NDFrame):
         columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 
         Parameters
-        ----------
+        ----------%s
         index : string or object, optional
             Column to use to make new frame's index. If None, uses
             existing index.
@@ -5425,7 +5424,11 @@ class DataFrame(NDFrame):
            ...
         ValueError: Index contains duplicate entries, cannot reshape
         """
-        from pandas.core.reshape.reshape import pivot
+
+    @Substitution('')
+    @Appender(_shared_docs['pivot'])
+    def pivot(self, index=None, columns=None, values=None):
+        from pandas.core.reshape.pivot import pivot
         return pivot(self, index=index, columns=columns, values=values)
 
     _shared_docs['pivot_table'] = """

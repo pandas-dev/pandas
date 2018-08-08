@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype
 from pandas import (Series, DataFrame, Index, date_range, isna, notna,
-                    pivot, MultiIndex)
+                    MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 
@@ -2675,30 +2675,6 @@ class TestPanelFrame(object):
 
             pytest.raises(Exception, lp1.join,
                           self.panel.filter(['ItemB', 'ItemC']))
-
-    def test_pivot(self):
-        with catch_warnings(record=True):
-            from pandas.core.reshape.reshape import _slow_pivot
-
-            one, two, three = (np.array([1, 2, 3, 4, 5]),
-                               np.array(['a', 'b', 'c', 'd', 'e']),
-                               np.array([1, 2, 3, 5, 4.]))
-            df = pivot(one, two, three)
-            assert df['a'][1] == 1
-            assert df['b'][2] == 2
-            assert df['c'][3] == 3
-            assert df['d'][4] == 5
-            assert df['e'][5] == 4
-            assert_frame_equal(df, _slow_pivot(one, two, three))
-
-            # weird overlap, TODO: test?
-            a, b, c = (np.array([1, 2, 3, 4, 4]),
-                       np.array(['a', 'a', 'a', 'a', 'a']),
-                       np.array([1., 2., 3., 4., 5.]))
-            pytest.raises(Exception, pivot, a, b, c)
-
-            # corner case, empty
-            df = pivot(np.array([]), np.array([]), np.array([]))
 
 
 def test_panel_index():
