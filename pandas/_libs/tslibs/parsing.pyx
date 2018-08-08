@@ -4,13 +4,12 @@ Parsing functions for datetime and datetime-like strings.
 """
 import sys
 import re
+import time
 
-import cython
 from cython import Py_ssize_t
 
-
 from cpython.datetime cimport datetime
-import time
+
 
 import numpy as np
 
