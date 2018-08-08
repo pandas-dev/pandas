@@ -28,7 +28,7 @@ mi = lambda x: MultiIndex.from_arrays([x])
 
 class TestDataFrameAlterAxes(TestData):
 
-    def test_set_index_manually(self):
+    def test_set_index_directly(self):
         df = self.mixed_frame.copy()
         idx = Index(np.arange(len(df))[::-1])
 
@@ -94,7 +94,7 @@ class TestDataFrameAlterAxes(TestData):
     # A has duplicate values, C does not
     @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_append_to_mi(self, drop, keys):
+    def test_set_index_append_to_multiindex(self, drop, keys):
         # append to existing multiindex
         df = self.dummy.set_index(['D'], drop=drop, append=True)
 
@@ -115,43 +115,41 @@ class TestDataFrameAlterAxes(TestData):
         result = df2.set_index('key')
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('container', [Series, Index, np.array, mi])
     # also test index name if append=True (name is duplicate here for B)
-    @pytest.mark.parametrize('append, df_index_name', [(True, None),
+    @pytest.mark.parametrize('box', [Series, Index, np.array, mi])
+    @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'B'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_single_array(self, drop, append, df_index_name,
-                                         container):
+    def test_set_index_pass_single_array(self, drop, append, index_name, box):
         df = self.dummy.copy()
-        df.index.name = df_index_name
+        df.index.name = index_name
 
-        key = container(df['B'])
+        key = box(df['B'])
         # np.array and list "forget" the name of B
-        name = [None if container in [np.array, list] else 'B']
+        name = [None if box in [np.array, list] else 'B']
 
         result = df.set_index(key, drop=drop, append=append)
 
         # only valid column keys are dropped
         # since B is always passed as array above, nothing is dropped
         expected = df.set_index(['B'], drop=False, append=append)
-        expected.index.names = [df_index_name] + name if append else name
+        expected.index.names = [index_name] + name if append else name
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('container', [Series, Index, np.array, list, mi])
     # also test index name if append=True (name is duplicate here for A & B)
-    @pytest.mark.parametrize('append, df_index_name',
+    @pytest.mark.parametrize('box', [Series, Index, np.array, list, mi])
+    @pytest.mark.parametrize('append, index_name',
                              [(True, None), (True, 'A'), (True, 'B'),
                               (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_arrays(self, drop, append, df_index_name,
-                                   container):
+    def test_set_index_pass_arrays(self, drop, append, index_name, box):
         df = self.dummy.copy()
-        df.index.name = df_index_name
+        df.index.name = index_name
 
-        keys = ['A', container(df['B'])]
+        keys = ['A', box(df['B'])]
         # np.array and list "forget" the name of B
-        names = ['A', None if container in [np.array, list] else 'B']
+        names = ['A', None if box in [np.array, list] else 'B']
 
         result = df.set_index(keys, drop=drop, append=append)
 
@@ -159,22 +157,22 @@ class TestDataFrameAlterAxes(TestData):
         # since B is always passed as array above, only A is dropped, if at all
         expected = df.set_index(['A', 'B'], drop=False, append=append)
         expected = expected.drop('A', axis=1) if drop else expected
-        expected.index.names = [df_index_name] + names if append else names
+        expected.index.names = [index_name] + names if append else names
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('elem2', [key, Series, Index, np.array, list, mi])
-    @pytest.mark.parametrize('elem1', [key, Series, Index, np.array, list, mi])
     # also test index name if append=True (name is duplicate here for A)
-    @pytest.mark.parametrize('append, df_index_name', [(True, None),
+    @pytest.mark.parametrize('box1', [key, Series, Index, np.array, list, mi])
+    @pytest.mark.parametrize('box2', [key, Series, Index, np.array, list, mi])
+    @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'A'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_arrays_duplicate(self, drop, append, df_index_name,
-                                             elem1, elem2):
+    def test_set_index_pass_arrays_duplicate(self, drop, append, index_name,
+                                             box1, box2):
         df = self.dummy.copy()
-        df.index.name = df_index_name
+        df.index.name = index_name
 
-        keys = [elem1(df['A']), elem2(df['A'])]
+        keys = [box1(df['A']), box2(df['A'])]
 
         # == gives ambiguous Boolean for Series
         if keys[0] is 'A' and keys[1] is 'A':
@@ -186,7 +184,7 @@ class TestDataFrameAlterAxes(TestData):
 
             # to test against already-tested behavior, we add sequentially,
             # hence second append always True; must wrap in list, otherwise
-            # list-elements will be illegal
+            # list-box will be illegal
             expected = df.set_index([keys[0]], drop=drop, append=append)
             expected = expected.set_index([keys[1]], drop=drop, append=True)
 
@@ -194,7 +192,7 @@ class TestDataFrameAlterAxes(TestData):
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_mi(self, drop, append):
+    def test_set_index_pass_multiindex(self, drop, append):
         df = self.dummy.copy()
         keys = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
 
