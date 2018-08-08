@@ -89,7 +89,7 @@ def _maybe_match_name(a, b):
 
     See also
     --------
-    pandas.core.common._consensus_name_attr
+    pandas.core.common.consensus_name_attr
     """
     a_has = hasattr(a, 'name')
     b_has = hasattr(b, 'name')
@@ -788,6 +788,35 @@ def mask_cmp_op(x, y, op, allowed_types):
     return result
 
 
+def invalid_comparison(left, right, op):
+    """
+    If a comparison has mismatched types and is not necessarily meaningful,
+    follow python3 conventions by:
+
+        - returning all-False for equality
+        - returning all-True for inequality
+        - raising TypeError otherwise
+
+    Parameters
+    ----------
+    left : array-like
+    right : scalar, array-like
+    op : operator.{eq, ne, lt, le, gt}
+
+    Raises
+    ------
+    TypeError : on inequality comparisons
+    """
+    if op is operator.eq:
+        res_values = np.zeros(left.shape, dtype=bool)
+    elif op is operator.ne:
+        res_values = np.ones(left.shape, dtype=bool)
+    else:
+        raise TypeError("Invalid comparison between dtype={dtype} and {typ}"
+                        .format(dtype=left.dtype, typ=type(right).__name__))
+    return res_values
+
+
 # -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
@@ -1111,9 +1140,10 @@ def _arith_method_SERIES(cls, op, special):
                 dtype = find_common_type([x.dtype, y.dtype])
                 result = np.empty(x.size, dtype=dtype)
                 mask = notna(x) & notna(y)
-                result[mask] = op(x[mask], com._values_from_object(y[mask]))
+                result[mask] = op(x[mask], com.values_from_object(y[mask]))
             else:
                 assert isinstance(x, np.ndarray)
+                assert is_scalar(y)
                 result = np.empty(len(x), dtype=x.dtype)
                 mask = notna(x)
                 result[mask] = op(x[mask], y)
@@ -1160,6 +1190,7 @@ def _arith_method_SERIES(cls, op, special):
 
         elif (is_extension_array_dtype(left) or
                 is_extension_array_dtype(right)):
+            # TODO: should this include `not is_scalar(right)`?
             return dispatch_to_extension_op(op, left, right)
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
@@ -1249,17 +1280,15 @@ def _comp_method_SERIES(cls, op, special):
         # should have guarantess on what x, y can be type-wise
         # Extension Dtypes are not called here
 
-        # dispatch to the categorical if we have a categorical
-        # in either operand
-        if is_categorical_dtype(y) and not is_scalar(y):
-            # The `not is_scalar(y)` check excludes the string "category"
-            return op(y, x)
+        # Checking that cases that were once handled here are no longer
+        # reachable.
+        assert not (is_categorical_dtype(y) and not is_scalar(y))
 
-        elif is_object_dtype(x.dtype):
+        if is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
 
         elif is_datetimelike_v_numeric(x, y):
-            raise TypeError("invalid type comparison")
+            return invalid_comparison(x, y, op)
 
         else:
 
@@ -1313,7 +1342,7 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
-        if is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
             if (isinstance(other, datetime.date) and
@@ -1355,8 +1384,9 @@ def _comp_method_SERIES(cls, op, special):
                                      name=res_name)
 
         elif (is_extension_array_dtype(self) or
-              (is_extension_array_dtype(other) and
-               not is_scalar(other))):
+              (is_extension_array_dtype(other) and not is_scalar(other))):
+            # Note: the `not is_scalar(other)` condition rules out
+            # e.g. other == "category"
             return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
@@ -1379,13 +1409,6 @@ def _comp_method_SERIES(cls, op, special):
             # is not.
             return result.__finalize__(self).rename(res_name)
 
-        elif isinstance(other, pd.Categorical):
-            # ordering of checks matters; by this point we know
-            # that not is_categorical_dtype(self)
-            res_values = op(self.values, other)
-            return self._constructor(res_values, index=self.index,
-                                     name=res_name)
-
         elif is_scalar(other) and isna(other):
             # numpy does not like comparisons vs None
             if op is operator.ne:
@@ -1407,7 +1430,7 @@ def _comp_method_SERIES(cls, op, special):
                                 .format(typ=type(other)))
 
             # always return a full value series here
-            res_values = com._values_from_object(res)
+            res_values = com.values_from_object(res)
             return self._constructor(res_values, index=self.index,
                                      name=res_name, dtype='bool')
 
@@ -1514,6 +1537,41 @@ def _flex_method_SERIES(cls, op, special):
 
 # -----------------------------------------------------------------------------
 # DataFrame
+
+def dispatch_to_series(left, right, func):
+    """
+    Evaluate the frame operation func(left, right) by evaluating
+    column-by-column, dispatching to the Series implementation.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : scalar or DataFrame
+    func : arithmetic or comparison operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # Note: we use iloc to access columns for compat with cases
+    #       with non-unique columns.
+    if lib.is_scalar(right):
+        new_data = {i: func(left.iloc[:, i], right)
+                    for i in range(len(left.columns))}
+    elif isinstance(right, ABCDataFrame):
+        assert right._indexed_same(left)
+        new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
+                    for i in range(len(left.columns))}
+    else:
+        # Remaining cases have less-obvious dispatch rules
+        raise NotImplementedError
+
+    result = left._constructor(new_data, index=left.index, copy=False)
+    # Pin columns instead of passing to constructor for compat with
+    # non-unique columns case
+    result.columns = left.columns
+    return result
+
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                           level=None, try_cast=True):
@@ -1789,7 +1847,7 @@ def _comp_method_PANEL(cls, op, special):
     def f(self, other, axis=None):
         # Validate the axis parameter
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            self._get_axis_number(axis)
 
         if isinstance(other, self._constructor):
             return self._compare_constructor(other, na_op, try_cast=False)

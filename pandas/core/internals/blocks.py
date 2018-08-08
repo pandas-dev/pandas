@@ -777,10 +777,9 @@ class Block(PandasObject):
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
-        """ replace the to_replace value with value, possible to create new
+        """replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
-        It is used in ObjectBlocks.  It is here for API
-        compatibility.
+        It is used in ObjectBlocks.  It is here for API compatibility.
         """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -802,12 +801,19 @@ class Block(PandasObject):
                                     copy=not inplace) for b in blocks]
             return blocks
         except (TypeError, ValueError):
+            # GH 22083, TypeError or ValueError occurred within error handling
+            # causes infinite loop. Cast and retry only if not objectblock.
+            if is_object_dtype(self):
+                raise
 
             # try again with a compatible block
             block = self.astype(object)
-            return block.replace(
-                to_replace=original_to_replace, value=value, inplace=inplace,
-                filter=filter, regex=regex, convert=convert)
+            return block.replace(to_replace=original_to_replace,
+                                 value=value,
+                                 inplace=inplace,
+                                 filter=filter,
+                                 regex=regex,
+                                 convert=convert)
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
@@ -1248,7 +1254,7 @@ class Block(PandasObject):
         if fill_tuple is None:
             fill_value = self.fill_value
             new_values = algos.take_nd(values, indexer, axis=axis,
-                                       allow_fill=False)
+                                       allow_fill=False, fill_value=fill_value)
         else:
             fill_value = fill_tuple[0]
             new_values = algos.take_nd(values, indexer, axis=axis,
@@ -2699,7 +2705,6 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
         values_mask = isna(values)
         values = values.view('i8')
-        other_mask = False
 
         if isinstance(other, bool):
             raise TypeError
@@ -2872,11 +2877,9 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         values_mask = _block_shape(isna(values), ndim=self.ndim)
         # asi8 is a view, needs copy
         values = _block_shape(values.asi8, ndim=self.ndim)
-        other_mask = False
 
         if isinstance(other, ABCSeries):
             other = self._holder(other)
-            other_mask = isna(other)
 
         if isinstance(other, bool):
             raise TypeError

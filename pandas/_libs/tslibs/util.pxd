@@ -1,9 +1,17 @@
-from numpy cimport ndarray
-cimport numpy as cnp
-cnp.import_array()
 
-cimport cpython
 from cpython cimport PyTypeObject
+
+cdef extern from *:
+    """
+    PyObject* char_to_string(const char* data) {
+    #if PY_VERSION_HEX >= 0x03000000
+        return PyUnicode_FromString(data);
+    #else
+        return PyString_FromString(data);
+    #endif
+    }
+    """
+    object char_to_string(const char* data)
 
 
 cdef extern from "Python.h":
@@ -19,6 +27,8 @@ cdef extern from "Python.h":
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
+    ctypedef signed long long int64_t
+    int _import_array() except -1
 
 cdef extern from "numpy/ndarrayobject.h":
     PyTypeObject PyTimedeltaArrType_Type
@@ -29,63 +39,9 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_IsIntegerScalar(obj) nogil
     bint PyArray_Check(obj) nogil
 
-# --------------------------------------------------------------------
-# Type Checking
+cdef extern from  "numpy/npy_common.h":
+    int64_t NPY_MIN_INT64
 
-cdef inline bint is_string_object(object obj) nogil:
-    return PyString_Check(obj) or PyUnicode_Check(obj)
-
-
-cdef inline bint is_integer_object(object obj) nogil:
-    return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
-
-
-cdef inline bint is_float_object(object obj) nogil:
-    return (PyFloat_Check(obj) or
-            (PyObject_TypeCheck(obj, &PyFloatingArrType_Type)))
-
-
-cdef inline bint is_complex_object(object obj) nogil:
-    return (PyComplex_Check(obj) or
-            PyObject_TypeCheck(obj, &PyComplexFloatingArrType_Type))
-
-
-cdef inline bint is_bool_object(object obj) nogil:
-    return (PyBool_Check(obj) or
-            PyObject_TypeCheck(obj, &PyBoolArrType_Type))
-
-
-cdef inline bint is_timedelta64_object(object obj) nogil:
-    return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
-
-
-cdef inline bint is_datetime64_object(object obj) nogil:
-    return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
-
-# --------------------------------------------------------------------
-
-cdef extern from "../src/numpy_helper.h":
-    void set_array_not_contiguous(ndarray ao)
-
-    int assign_value_1d(ndarray, Py_ssize_t, object) except -1
-    cnp.int64_t get_nat()
-    object get_value_1d(ndarray, Py_ssize_t)
-    const char *get_c_string(object) except NULL
-    object char_to_string(char*)
-
-ctypedef fused numeric:
-    cnp.int8_t
-    cnp.int16_t
-    cnp.int32_t
-    cnp.int64_t
-
-    cnp.uint8_t
-    cnp.uint16_t
-    cnp.uint32_t
-    cnp.uint64_t
-
-    cnp.float32_t
-    cnp.float64_t
 
 cdef extern from "../src/headers/stdint.h":
     enum: UINT8_MAX
@@ -102,69 +58,158 @@ cdef extern from "../src/headers/stdint.h":
     enum: INT64_MIN
 
 
-cdef inline object get_value_at(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i, sz
-        int casted
-
-    if is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
-
-    if i < 0 and sz > 0:
-        i += sz
-    elif i >= sz or sz == 0:
-        raise IndexError('index out of bounds')
-
-    return get_value_1d(arr, i)
+cdef inline int64_t get_nat():
+    return NPY_MIN_INT64
 
 
-cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
-    """Sets a value into the array without checking the writeable flag.
+cdef inline int import_array() except -1:
+    _import_array()
 
-    This should be used when setting values in a loop, check the writeable
-    flag above the loop and then eschew the check on each iteration.
+
+# --------------------------------------------------------------------
+# Type Checking
+
+cdef inline bint is_string_object(object obj) nogil:
     """
-    cdef:
-        Py_ssize_t i, sz
-    if is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
+    Cython equivalent of `isinstance(val, compat.string_types)`
 
-    if i < 0:
-        i += sz
-    elif i >= sz:
-        raise IndexError('index out of bounds')
+    Parameters
+    ----------
+    val : object
 
-    assign_value_1d(arr, i, value)
-
-cdef inline set_value_at(ndarray arr, object loc, object value):
-    """Sets a value into the array after checking that the array is mutable.
+    Returns
+    -------
+    is_string : bool
     """
-    if not cnp.PyArray_ISWRITEABLE(arr):
-        raise ValueError('assignment destination is read-only')
-
-    set_value_at_unsafe(arr, loc, value)
+    return PyString_Check(obj) or PyUnicode_Check(obj)
 
 
-cdef inline is_array(object o):
-    return cnp.PyArray_Check(o)
+cdef inline bint is_integer_object(object obj) nogil:
+    """
+    Cython equivalent of
+
+    `isinstance(val, (int, long, np.integer)) and not isinstance(val, bool)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_integer : bool
+
+    Notes
+    -----
+    This counts np.timedelta64 objects as integers.
+    """
+    return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
 
 
-cdef inline bint _checknull(object val):
-    try:
-        return val is None or (cpython.PyFloat_Check(val) and val != val)
-    except ValueError:
-        return False
+cdef inline bint is_float_object(object obj) nogil:
+    """
+    Cython equivalent of `isinstance(val, (float, np.complex_))`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_float : bool
+    """
+    return (PyFloat_Check(obj) or
+            (PyObject_TypeCheck(obj, &PyFloatingArrType_Type)))
+
+
+cdef inline bint is_complex_object(object obj) nogil:
+    """
+    Cython equivalent of `isinstance(val, (complex, np.complex_))`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_complex : bool
+    """
+    return (PyComplex_Check(obj) or
+            PyObject_TypeCheck(obj, &PyComplexFloatingArrType_Type))
+
+
+cdef inline bint is_bool_object(object obj) nogil:
+    """
+    Cython equivalent of `isinstance(val, (bool, np.bool_))`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_bool : bool
+    """
+    return (PyBool_Check(obj) or
+            PyObject_TypeCheck(obj, &PyBoolArrType_Type))
+
+
+cdef inline bint is_timedelta64_object(object obj) nogil:
+    """
+    Cython equivalent of `isinstance(val, np.timedelta64)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_timedelta64 : bool
+    """
+    return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
+
+
+cdef inline bint is_datetime64_object(object obj) nogil:
+    """
+    Cython equivalent of `isinstance(val, np.datetime64)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_datetime64 : bool
+    """
+    return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
+
+
+cdef inline bint is_array(object val):
+    """
+    Cython equivalent of `isinstance(val, np.ndarray)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_ndarray : bool
+    """
+    return PyArray_Check(val)
 
 
 cdef inline bint is_period_object(object val):
+    """
+    Cython equivalent of `isinstance(val, pd.Period)`
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_period : bool
+    """
     return getattr(val, '_typ', '_typ') == 'period'
 
 
@@ -181,3 +226,18 @@ cdef inline bint is_offset_object(object val):
     is_date_offset : bool
     """
     return getattr(val, '_typ', None) == "dateoffset"
+
+
+cdef inline bint is_nan(object val):
+    """
+    Check if val is a Not-A-Number float, including float('NaN') and np.nan.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_nan : bool
+    """
+    return is_float_object(val) and val != val

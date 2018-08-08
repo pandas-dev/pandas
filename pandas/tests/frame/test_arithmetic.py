@@ -59,15 +59,6 @@ class TestFrameComparisons(object):
         result = getattr(empty, opname)(const).get_dtype_counts()
         tm.assert_series_equal(result, pd.Series([2], ['bool']))
 
-    @pytest.mark.parametrize('timestamps', [
-        [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
-        [pd.Timestamp('2012-01-01 13:00:00')] * 2])
-    def test_tz_aware_scalar_comparison(self, timestamps):
-        # Test for issue #15966
-        df = pd.DataFrame({'test': timestamps})
-        expected = pd.DataFrame({'test': [False, False]})
-        tm.assert_frame_equal(df == -1, expected)
-
 
 # -------------------------------------------------------------------
 # Arithmetic
@@ -89,127 +80,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, expected)
 
 
-class TestFrameMulDiv(object):
-    """Tests for DataFrame multiplication and division"""
-    # ------------------------------------------------------------------
-    # Mod By Zero
-
-    def test_df_mod_zero_df(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype='float64')
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
-        expected = pd.DataFrame({'first': first, 'second': second})
-        result = df % df
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_mod_zero_array(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype='float64')
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
-        expected = pd.DataFrame({'first': first, 'second': second})
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values % df.values
-        result2 = pd.DataFrame(arr, index=df.index,
-                               columns=df.columns, dtype='float64')
-        result2.iloc[0:3, 1] = np.nan
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_mod_zero_int(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        result = df % 0
-        expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
-        tm.assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float64') % 0
-        result2 = pd.DataFrame(arr, index=df.index, columns=df.columns)
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_mod_zero_series_does_not_commute(self):
-        # GH#3590, modulo as ints
-        # not commutative with series
-        df = pd.DataFrame(np.random.randn(10, 5))
-        ser = df[0]
-        res = ser % df
-        res2 = df % ser
-        assert not res.fillna(0).equals(res2.fillna(0))
-
-    # ------------------------------------------------------------------
-    # Division By Zero
-
-    def test_df_div_zero_df(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = df / df
-
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
-        expected = pd.DataFrame({'first': first, 'second': second})
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_div_zero_array(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
-        expected = pd.DataFrame({'first': first, 'second': second})
-
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float') / df.values
-        result = pd.DataFrame(arr, index=df.index,
-                              columns=df.columns)
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_div_zero_int(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        result = df / 0
-        expected = pd.DataFrame(np.inf, index=df.index, columns=df.columns)
-        expected.iloc[0:3, 1] = np.nan
-        tm.assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float64') / 0
-        result2 = pd.DataFrame(arr, index=df.index,
-                               columns=df.columns)
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_div_zero_series_does_not_commute(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame(np.random.randn(10, 5))
-        ser = df[0]
-        res = ser / df
-        res2 = df / ser
-        assert not res.fillna(0).equals(res2.fillna(0))
-
-
 class TestFrameArithmetic(object):
-
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
-    def test_df_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(pd.date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
-                                 pd.Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize('data', [
         [1, 2, 3],
@@ -244,35 +115,3 @@ class TestFrameArithmetic(object):
         df = pd.DataFrame(['x', np.nan, 'x'])
         tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
         tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
-
-
-class TestPeriodFrameArithmetic(object):
-
-    def test_ops_frame_period(self):
-        # GH 13043
-        df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
-                                 pd.Period('2015-02', freq='M')],
-                           'B': [pd.Period('2014-01', freq='M'),
-                                 pd.Period('2014-02', freq='M')]})
-        assert df['A'].dtype == object
-        assert df['B'].dtype == object
-
-        p = pd.Period('2015-03', freq='M')
-        off = p.freq
-        # dtype will be object because of original dtype
-        exp = pd.DataFrame({'A': np.array([2 * off, 1 * off], dtype=object),
-                            'B': np.array([14 * off, 13 * off], dtype=object)})
-        tm.assert_frame_equal(p - df, exp)
-        tm.assert_frame_equal(df - p, -1 * exp)
-
-        df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')],
-                            'B': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')]})
-        assert df2['A'].dtype == object
-        assert df2['B'].dtype == object
-
-        exp = pd.DataFrame({'A': np.array([4 * off, 4 * off], dtype=object),
-                            'B': np.array([16 * off, 16 * off], dtype=object)})
-        tm.assert_frame_equal(df2 - df, exp)
-        tm.assert_frame_equal(df - df2, -1 * exp)

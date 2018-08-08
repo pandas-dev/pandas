@@ -451,23 +451,49 @@ def test_transform_mixed_type():
             assert_frame_equal(res, result.loc[key])
 
 
-def test_cython_group_transform_algos():
-    # GH 4095
-    dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
-              np.uint64, np.float32, np.float64]
+def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
+    """
+    Check a group transform that executes a cumulative function.
 
-    ops = [(groupby.group_cumprod_float64, np.cumproduct, [np.float64]),
-           (groupby.group_cumsum, np.cumsum, dtypes)]
+    Parameters
+    ----------
+    pd_op : callable
+        The pandas cumulative function.
+    np_op : callable
+        The analogous one in NumPy.
+    dtype : type
+        The specified dtype of the data.
+    """
 
     is_datetimelike = False
-    for pd_op, np_op, dtypes in ops:
-        for dtype in dtypes:
-            data = np.array([[1], [2], [3], [4]], dtype=dtype)
-            ans = np.zeros_like(data)
-            labels = np.array([0, 0, 0, 0], dtype=np.int64)
-            pd_op(ans, data, labels, is_datetimelike)
-            tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
-                                        check_dtype=False)
+
+    data = np.array([[1], [2], [3], [4]], dtype=dtype)
+    ans = np.zeros_like(data)
+
+    labels = np.array([0, 0, 0, 0], dtype=np.int64)
+    pd_op(ans, data, labels, is_datetimelike)
+
+    tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
+                                check_dtype=False)
+
+
+def test_cython_group_transform_cumsum(any_real_dtype):
+    # see gh-4095
+    dtype = np.dtype(any_real_dtype).type
+    pd_op, np_op = groupby.group_cumsum, np.cumsum
+    _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
+
+
+def test_cython_group_transform_cumprod():
+    # see gh-4095
+    dtype = np.float64
+    pd_op, np_op = groupby.group_cumprod_float64, np.cumproduct
+    _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
+
+
+def test_cython_group_transform_algos():
+    # see gh-4095
+    is_datetimelike = False
 
     # with nans
     labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)

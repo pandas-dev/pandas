@@ -6,7 +6,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import types
+import collections
 import warnings
 from textwrap import dedent
 
@@ -144,7 +144,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     Parameters
     ----------
-    data : array-like, dict, or scalar value
+    data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series
 
         .. versionchanged :: 0.23.0
@@ -163,7 +163,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = set(['dt', 'cat', 'str'])
+    _accessors = {'dt', 'cat', 'str'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -238,12 +238,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif is_extension_array_dtype(data):
                 pass
-            elif (isinstance(data, types.GeneratorType) or
-                  (compat.PY3 and isinstance(data, map))):
-                data = list(data)
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
+            # If data is Iterable but not list-like, consume into list.
+            elif (isinstance(data, collections.Iterable)
+                  and not isinstance(data, collections.Sized)):
+                data = list(data)
             else:
 
                 # handle sparse passed here (and force conversion)
@@ -510,10 +511,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return selected slices of an array along given axis as a Series
 
+        .. deprecated:: 0.24.0
+
         See also
         --------
         numpy.ndarray.compress
         """
+        msg = ("Series.compress(condition) is deprecated. "
+               "Use Series[condition] instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
 
@@ -766,7 +772,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._get_values(slobj)
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
         try:
             result = self.index.get_value(self, key)
 
@@ -884,7 +890,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._values[indexer]
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         def setitem(key, value):
             try:
@@ -990,7 +996,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key = key.values
         else:
-            key = com._asarray_tuplesafe(key)
+            key = com.asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
@@ -1042,7 +1048,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_value(self, label, takeable=False):
         if takeable is True:
-            return com._maybe_box_datetimelike(self._values[label])
+            return com.maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
     _get_value.__doc__ = get_value.__doc__
 
@@ -1418,7 +1424,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nobs : int or Series (if level specified)
         """
         if level is None:
-            return notna(com._values_from_object(self)).sum()
+            return notna(com.values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1722,7 +1728,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(com.values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1792,7 +1798,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(com.values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1835,7 +1841,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         nv.validate_round(args, kwargs)
-        result = com._values_from_object(self).round(decimals)
+        result = com.values_from_object(self).round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
@@ -2003,7 +2009,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com._values_from_object(self), periods)
+        result = algorithms.diff(com.values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1):
@@ -2046,7 +2052,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             lvals = left.values
             rvals = right.values
         else:
-            left = self
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
@@ -2474,7 +2479,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
 
         # GH 5856/5853
         if inplace and self._is_cached:
@@ -2646,7 +2652,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
         index = self.index
 
         if level is not None:
@@ -3067,7 +3074,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         versionadded='.. versionadded:: 0.20.0',
         **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
@@ -3759,7 +3767,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, compression=None, date_format=None,
+               mode='w', encoding=None, compression='infer', date_format=None,
                decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
@@ -3787,10 +3795,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
-        compression : string, optional
+        compression : None or string, default 'infer'
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            Allowed values are None, 'gzip', 'bz2', 'zip', 'xz', and 'infer'.
+            This input is only used when the first argument is a filename.
+
+            .. versionchanged:: 0.24.0
+               'infer' option added and set to default
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -3913,8 +3924,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if kwargs:
             raise TypeError('dropna() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
-
-        axis = self._get_axis_number(axis or 0)
+        # Validate the axis parameter
+        self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
@@ -4190,7 +4201,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         if isinstance(data, np.ndarray):
             raise Exception('Data must be 1-dimensional')
         else:
-            subarr = com._asarray_tuplesafe(data, dtype=dtype)
+            subarr = com.asarray_tuplesafe(data, dtype=dtype)
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.

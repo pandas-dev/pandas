@@ -44,7 +44,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.arrays.interval import (IntervalArray,
                                          _interval_shared_docs)
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
@@ -369,8 +369,14 @@ class IntervalIndex(IntervalMixin, Index):
 
     @property
     def itemsize(self):
-        # Avoid materializing ndarray[Interval]
-        return self._data.itemsize
+        msg = ('IntervalIndex.itemsize is deprecated and will be removed in '
+               'a future version')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        # supress the warning from the underlying left/right itemsize
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            return self.left.itemsize + self.right.itemsize
 
     def __len__(self):
         return len(self.left)
@@ -939,7 +945,6 @@ class IntervalIndex(IntervalMixin, Index):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 
@@ -1120,14 +1125,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    start = com._maybe_box_datetimelike(start)
-    end = com._maybe_box_datetimelike(end)
+    start = com.maybe_box_datetimelike(start)
+    end = com.maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
     if freq is None and com._any_none(periods, start, end):
         freq = 1 if is_number(endpoint) else 'D'
 
-    if com._count_not_none(start, end, periods, freq) != 3:
+    if com.count_not_none(start, end, periods, freq) != 3:
         raise ValueError('Of the four parameters: start, end, periods, and '
                          'freq, exactly three must be specified')
 

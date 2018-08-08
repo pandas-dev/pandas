@@ -27,6 +27,8 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_categorical,
     is_categorical_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_list_like, is_sequence,
     is_scalar, is_iterator,
     is_dict_like)
@@ -43,6 +45,7 @@ from pandas.util._decorators import (
 
 import pandas.core.algorithms as algorithms
 
+from pandas.io.formats import console
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
@@ -240,10 +243,14 @@ class Categorical(ExtensionArray, PandasObject):
         categories will be replaced with NaN.
     categories : Index-like (unique), optional
         The unique categories for this categorical. If not given, the
-        categories are assumed to be the unique values of values.
+        categories are assumed to be the unique values of `values` (sorted, if
+        possible, otherwise in the order in which they appear).
     ordered : boolean, (default False)
         Whether or not this categorical is treated as a ordered categorical.
-        If not given, the resulting categorical will not be ordered.
+        If True, the resulting categorical will be ordered.
+        An ordered categorical respects, when sorted, the order of its
+        `categories` attribute (which in turn is the `categories` argument, if
+        provided).
     dtype : CategoricalDtype
         An instance of ``CategoricalDtype`` to use for this categorical
 
@@ -347,7 +354,6 @@ class Categorical(ExtensionArray, PandasObject):
                                  " or `ordered`.")
 
             categories = dtype.categories
-            ordered = dtype.ordered
 
         elif is_categorical(values):
             # If no "dtype" was passed, use the one from "values", but honor
@@ -629,8 +635,21 @@ class Categorical(ExtensionArray, PandasObject):
             categorical. If not given, the resulting categorical will be
             unordered.
         """
+        codes = np.asarray(codes)  # #21767
+        if not is_integer_dtype(codes):
+            msg = "codes need to be array-like integers"
+            if is_float_dtype(codes):
+                icodes = codes.astype('i8')
+                if (icodes == codes).all():
+                    msg = None
+                    codes = icodes
+                    warn(("float codes will be disallowed in the future and "
+                          "raise a ValueError"), FutureWarning, stacklevel=2)
+            if msg:
+                raise ValueError(msg)
+
         try:
-            codes = coerce_indexer_dtype(np.asarray(codes), categories)
+            codes = coerce_indexer_dtype(codes, categories)
         except (ValueError, TypeError):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
@@ -1887,7 +1906,7 @@ class Categorical(ExtensionArray, PandasObject):
             length=len(self.categories), dtype=dtype)
         width, height = get_terminal_size()
         max_width = get_option("display.width") or width
-        if com.in_ipython_frontend():
+        if console.in_ipython_frontend():
             # 0 = no breaks
             max_width = 0
         levstring = ""
@@ -2382,7 +2401,7 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def __init__(self, data):
         self._validate(data)
-        self.categorical = data.values
+        self._parent = data.values
         self.index = data.index
         self.name = data.name
         self._freeze()
@@ -2394,19 +2413,19 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
                                  "'category' dtype")
 
     def _delegate_property_get(self, name):
-        return getattr(self.categorical, name)
+        return getattr(self._parent, name)
 
     def _delegate_property_set(self, name, new_values):
-        return setattr(self.categorical, name, new_values)
+        return setattr(self._parent, name, new_values)
 
     @property
     def codes(self):
         from pandas import Series
-        return Series(self.categorical.codes, index=self.index)
+        return Series(self._parent.codes, index=self.index)
 
     def _delegate_method(self, name, *args, **kwargs):
         from pandas import Series
-        method = getattr(self.categorical, name)
+        method = getattr(self._parent, name)
         res = method(*args, **kwargs)
         if res is not None:
             return Series(res, index=self.index, name=self.name)

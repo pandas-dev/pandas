@@ -13,7 +13,7 @@ from pandas import (date_range, Series, Index, Float64Index,
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas._libs.tslibs import Timestamp, Timedelta
+from pandas._libs.tslibs import Timestamp
 
 from pandas.tests.indexes.common import Base
 
@@ -24,42 +24,6 @@ def full_like(array, value):
     ret = np.empty(array.shape, dtype=np.array(value).dtype)
     ret.fill(value)
     return ret
-
-
-class TestIndexArithmeticWithTimedeltaScalar(object):
-
-    @pytest.mark.parametrize('index', [
-        Int64Index(range(1, 11)),
-        UInt64Index(range(1, 11)),
-        Float64Index(range(1, 11)),
-        RangeIndex(1, 11)])
-    @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
-                                           Timedelta(days=1).to_timedelta64(),
-                                           Timedelta(days=1).to_pytimedelta()])
-    def test_index_mul_timedelta(self, scalar_td, index):
-        # GH#19333
-        expected = pd.timedelta_range('1 days', '10 days')
-
-        result = index * scalar_td
-        tm.assert_index_equal(result, expected)
-        commute = scalar_td * index
-        tm.assert_index_equal(commute, expected)
-
-    @pytest.mark.parametrize('index', [Int64Index(range(1, 3)),
-                                       UInt64Index(range(1, 3)),
-                                       Float64Index(range(1, 3)),
-                                       RangeIndex(1, 3)])
-    @pytest.mark.parametrize('scalar_td', [Timedelta(days=1),
-                                           Timedelta(days=1).to_timedelta64(),
-                                           Timedelta(days=1).to_pytimedelta()])
-    def test_index_rdiv_timedelta(self, scalar_td, index):
-        expected = pd.TimedeltaIndex(['1 Day', '12 Hours'])
-
-        result = scalar_td / index
-        tm.assert_index_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            index / scalar_td
 
 
 class Numeric(Base):
@@ -186,7 +150,8 @@ class Numeric(Base):
         result = 2.0**idx
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__')
+    @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__',
+                       strict=True)
     def test_divmod_series(self):
         idx = self.create_index()
 
@@ -197,48 +162,6 @@ class Numeric(Base):
 
         for r, e in zip(result, expected):
             tm.assert_series_equal(r, e)
-
-    def test_div_zero(self, zero):
-        idx = self.create_index()
-
-        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
-                         dtype=np.float64)
-        result = idx / zero
-        tm.assert_index_equal(result, expected)
-        ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
-        tm.assert_series_equal(ser_compat, Series(result))
-
-    def test_floordiv_zero(self, zero):
-        idx = self.create_index()
-        expected = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
-                         dtype=np.float64)
-
-        result = idx // zero
-        tm.assert_index_equal(result, expected)
-        ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
-        tm.assert_series_equal(ser_compat, Series(result))
-
-    def test_mod_zero(self, zero):
-        idx = self.create_index()
-
-        expected = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
-                         dtype=np.float64)
-        result = idx % zero
-        tm.assert_index_equal(result, expected)
-        ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
-        tm.assert_series_equal(ser_compat, Series(result))
-
-    def test_divmod_zero(self, zero):
-        idx = self.create_index()
-
-        exleft = Index([np.nan, np.inf, np.inf, np.inf, np.inf],
-                       dtype=np.float64)
-        exright = Index([np.nan, np.nan, np.nan, np.nan, np.nan],
-                        dtype=np.float64)
-
-        result = divmod(idx, zero)
-        tm.assert_index_equal(result[0], exleft)
-        tm.assert_index_equal(result[1], exright)
 
     def test_explicit_conversions(self):
 

@@ -143,7 +143,7 @@ class SparseDataFrame(DataFrame):
             columns = ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            keys = com._dict_keys_to_ordered_list(data)
+            keys = com.dict_keys_to_ordered_list(data)
             columns = Index(keys)
 
         if index is None:
@@ -597,7 +597,6 @@ class SparseDataFrame(DataFrame):
             new_data[col] = func(series.values, other.values)
 
         # fill_value is a function of our operator
-        fill_value = None
         if isna(other.fill_value) or isna(self.default_fill_value):
             fill_value = np.nan
         else:
