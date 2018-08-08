@@ -1108,10 +1108,17 @@ def str_join(arr, sep):
     Returns
     -------
     Series/Index: object
+        The list entries concatenated by intervening occurrences of the
+        delimiter.
+
+    Raises
+    -------
+    AttributeError
+        If the supplied Series contains neither strings nor lists.
 
     Notes
     -----
-    If any of the lists does not contain string objects the result of the join
+    If any of the list items is not a string object, the result of the join
     will be `NaN`.
 
     See Also
@@ -1121,13 +1128,12 @@ def str_join(arr, sep):
 
     Examples
     --------
-
     Example with a list that contains non-string elements.
 
     >>> s = pd.Series([['lion', 'elephant', 'zebra'],
     ...                [1.1, 2.2, 3.3],
     ...                ['cat', np.nan, 'dog'],
-    ...                ['cow', 4.5, 'goat']
+    ...                ['cow', 4.5, 'goat'],
     ...                ['duck', ['swan', 'fish'], 'guppy']])
     >>> s
     0        [lion, elephant, zebra]
@@ -1137,8 +1143,8 @@ def str_join(arr, sep):
     4    [duck, [swan, fish], guppy]
     dtype: object
 
-    Join all lists using an '-', the lists containing object(s) of types other
-    than str will become a NaN.
+    Join all lists using a '-'. The lists containing object(s) of types other
+    than str will produce a NaN.
 
     >>> s.str.join('-')
     0    lion-elephant-zebra
