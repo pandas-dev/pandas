@@ -13,9 +13,11 @@ jobs:
             POSTGRES_USER: postgres
             POSTGRES_DB: pandas_nosetest
       - image: circleci/mysql:8-ram
-        MYSQL_ALLOW_EMPTY_PASSWORD: yes
-        MYSQL_ROOT_PASSWORD: ''
-        MYSQL_DATABASE: pandas_nosetest
+        environment:
+          MYSQL_USER: "root"
+          MYSQL_HOST: "localhost"
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_DATABASE: "pandas_nosetest"
     environment:
       JOB: "2.7_COMPAT"
       ENV_FILE: "ci/circle-27-compat.yaml"
@@ -44,9 +46,12 @@ jobs:
             POSTGRES_USER: postgres
             POSTGRES_DB: pandas_nosetest
       - image: circleci/mysql:8-ram
-        MYSQL_ALLOW_EMPTY_PASSWORD: yes
-        MYSQL_ROOT_PASSWORD: ''
-        MYSQL_DATABASE: pandas_nosetest
+        environment:
+          MYSQL_USER: "root"
+          MYSQL_HOST: "localhost"
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_DATABASE: "pandas_nosetest"
+
     environment:
       JOB: "3.6_LOCALE"
       ENV_FILE: "ci/circle-36-locale.yaml"
@@ -75,9 +80,12 @@ jobs:
             POSTGRES_USER: postgres
             POSTGRES_DB: pandas_nosetest
       - image: circleci/mysql:8-ram
-        MYSQL_ALLOW_EMPTY_PASSWORD: yes
-        MYSQL_ROOT_PASSWORD: ''
-        MYSQL_DATABASE: pandas_nosetest
+        environment:
+          MYSQL_USER: "root"
+          MYSQL_HOST: "localhost"
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_DATABASE: "pandas_nosetest"
+
     environment:
       JOB: "3.6_LOCALE_SLOW"
       ENV_FILE: "ci/circle-36-locale_slow.yaml"
@@ -106,9 +114,12 @@ jobs:
             POSTGRES_USER: postgres
             POSTGRES_DB: pandas_nosetest
       - image: circleci/mysql:8-ram
-        MYSQL_ALLOW_EMPTY_PASSWORD: yes
-        MYSQL_ROOT_PASSWORD: ''
-        MYSQL_DATABASE: pandas_nosetest
+        environment:
+          MYSQL_USER: "root"
+          MYSQL_HOST: "localhost"
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_DATABASE: "pandas_nosetest"
+
     environment:
       JOB: "3.5_ASCII"
       ENV_FILE: "ci/circle-35-ascii.yaml"
