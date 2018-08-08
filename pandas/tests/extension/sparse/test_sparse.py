@@ -205,10 +205,11 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         result = pd.Series(op(data, other))
         assert result.dtype == 'Sparse[bool]'
 
-        expected = pd.Series(
-            pd.SparseArray(op(np.asarray(data), np.asarray(other)),
-                           fill_value=result.values.fill_value)
-        )
+        with np.errstate(all='ignore'):
+            expected = pd.Series(
+                pd.SparseArray(op(np.asarray(data), np.asarray(other)),
+                               fill_value=result.values.fill_value)
+            )
 
         tm.assert_series_equal(result, expected)
 
