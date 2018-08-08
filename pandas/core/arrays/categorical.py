@@ -2540,7 +2540,7 @@ def _factorize_from_iterable(values):
     else:
         # The value of ordered is irrelevant since we don't use cat as such,
         # but only the resulting categories, the order of which is independent
-        # from ordered. Set ordered to False as default due to issue #15457
+        # from ordered. Set ordered to False as default. See GH #15457"
         cat = Categorical(values, ordered=False)
         categories = cat.categories
         codes = cat.codes
