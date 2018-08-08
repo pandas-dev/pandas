@@ -394,8 +394,9 @@ class TestDataFrameAlterAxes(TestData):
 
     def test_set_index_tuple(self):
         # test for fix of issue #15457, where the following raised a TypeError
-        df = DataFrame([[2, 1, 2], [4, (1, 2), 3]]).set_index([0, 1])
-        assert df.to_dict() == {2: {(2, 1): 2, (4, (1, 2)): 3}}
+        expected = pd.DataFrame([[2, 1], [4, (1, 2)]]).set_index([0, 1]).index
+        result = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=(0, 1))
+        tm.assert_index_equal(expected, result)
 
     # Renaming
 

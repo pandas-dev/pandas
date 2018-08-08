@@ -463,4 +463,3 @@ def test_tuples_with_name_string():
         pd.Index(li, name='abc')
     with pytest.raises(ValueError):
         pd.Index(li, name='a')
-
