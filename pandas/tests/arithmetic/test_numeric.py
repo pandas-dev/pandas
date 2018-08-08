@@ -3,6 +3,7 @@
 # behave identically.
 # Specifically for numeric dtypes
 from datetime import timedelta
+from decimal import Decimal
 
 import pytest
 import numpy as np
@@ -10,6 +11,10 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import Timedelta, Series, TimedeltaIndex
+
+
+# ------------------------------------------------------------------
+# Comparisons
 
 
 # ------------------------------------------------------------------
@@ -84,6 +89,7 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
 
 
 # ------------------------------------------------------------------
+# Arithmetic
 
 class TestDivisionByZero(object):
 
@@ -286,3 +292,99 @@ class TestDivisionByZero(object):
         res = ser % df
         res2 = df % ser
         assert not res.fillna(0).equals(res2.fillna(0))
+
+
+class TestDivision(object):
+    # __div__, __rdiv__, __floordiv__, __rfloordiv__
+    # for non-timestamp/timedelta/period dtypes
+
+    @pytest.mark.parametrize('box', [
+        pytest.param(pd.Index,
+                     marks=pytest.mark.xfail(reason="Index.__div__ always "
+                                                    "raises",
+                                             raises=TypeError, strict=True)),
+        pd.Series,
+        pd.DataFrame
+    ], ids=lambda x: x.__name__)
+    def test_divide_decimal(self, box):
+        # resolves issue GH#9787
+        ser = Series([Decimal(10)])
+        expected = Series([Decimal(5)])
+
+        ser = tm.box_expected(ser, box)
+        expected = tm.box_expected(expected, box)
+
+        result = ser / Decimal(2)
+
+        tm.assert_equal(result, expected)
+
+        result = ser // Decimal(2)
+        tm.assert_equal(result, expected)
+
+    def test_div_equiv_binop(self):
+        # Test Series.div as well as Series.__div__
+        # float/integer issue
+        # GH#7785
+        first = Series([1, 0], name='first')
+        second = Series([-0.01, -0.02], name='second')
+        expected = Series([-0.01, -np.inf])
+
+        result = second.div(first)
+        tm.assert_series_equal(result, expected, check_names=False)
+
+        result = second / first
+        tm.assert_series_equal(result, expected)
+
+
+class TestAdditionSubtraction(object):
+    # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
+    # for non-timestamp/timedelta/period dtypes
+    pass
+
+
+class TestObjectDtypeEquivalence(object):
+    # Tests that arithmetic operations match operations executed elementwise
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_nan(self, dtype):
+        ser = pd.Series([1, 2, 3], dtype=dtype)
+        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
+
+        result = np.nan + ser
+        tm.assert_series_equal(result, expected)
+
+        result = ser + np.nan
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_int(self, dtype):
+        ser = pd.Series([1, 2, 3], dtype=dtype)
+        expected = pd.Series([2, 3, 4], dtype=dtype)
+
+        result = 1 + ser
+        tm.assert_series_equal(result, expected)
+
+        result = ser + 1
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_df_with_dtype_radd_nan(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        expected = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
+
+        result = np.nan + df
+        tm.assert_frame_equal(result, expected)
+
+        result = df + np.nan
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_df_with_dtype_radd_int(self, dtype):
+        df = pd.DataFrame([1, 2, 3], dtype=dtype)
+        expected = pd.DataFrame([2, 3, 4], dtype=dtype)
+
+        result = 1 + df
+        tm.assert_frame_equal(result, expected)
+
+        result = df + 1
+        tm.assert_frame_equal(result, expected)
