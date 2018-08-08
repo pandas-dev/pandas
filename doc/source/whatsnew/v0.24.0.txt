@@ -452,6 +452,7 @@ Datetimelike API Changes
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
+- :class:`DataFrame` with ``timedelta64[ns]`` dtypes addition or subtraction of ``NaN`` will raise ``TypeError`` instead of returning all-``NaT``; this is consistent with the behavior of :class:`Series` and :class:`Index` operations (:issue:`22163`)
 
 .. _whatsnew_0240.api.other:
 
@@ -537,6 +538,16 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` comparisons where string comparisons incorrectly raises ``TypeError`` (:issue:`22074`)
 - Bug in :class:`DatetimeIndex` comparisons when comparing against ``timedelta64[ns]`` dtyped arrays; in some cases ``TypeError`` was incorrectly raised, in others it incorrectly failed to raise (:issue:`22074`)
 - Bug in :class:`DatetimeIndex` comparisons when comparing against object-dtyped arrays (:issue:`22074`)
+- Bug in :class:`DataFrame` with ``datetime64[ns]`` dtype addition and subtraction with ``Timedelta``-like objects (:issue:`22005`,:issue:`22163`)
+- Bug in :class:`DataFrame` with ``datetime64[ns]`` dtype addition and subtraction with ``DateOffset`` objects returning an ``object`` dtype instead of ``datetime64[ns]`` dtype (:issue:`21610`,:issue:`22163`)
+- Bug in :class:`DataFrame` with ``datetime64[ns]`` dtype comparing against ``NaT`` incorrectly (:issue:`22242`,:issue:`22163`)
+- Bug in :class:`DataFrame` with ``datetime64[ns]`` dtype subtracting ``Timestamp``-like object incorrectly returned ``datetime64[ns]`` dtype instead of ``timedelta64[ns]`` dtype (:issue:`8554`,:issue:`22163`)
+- Bug in :class:`DataFrame` with ``datetime64[ns]`` dtype subtracting ``np.datetime64`` object with non-nanosecond unit failing to convert to nanoseconds (:issue:`18874`,:issue:`22163`)
+- Bug in :class:`DataFrame` comparisons against ``Timestamp``-like objects failing to raise ``TypeError`` for inequality checks with mismatched types (:issue:`8932`,:issue:`22163`)
+- Bug in :class:`DataFrame` with mixed dtypes including ``datetime64[ns]`` incorrectly raising ``TypeError`` on equality comparisons (:issue:`13128`,:issue:`22163`)
+- Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`,:issue:`22163`)
+- Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype division by ``Timedelta``-like scalar incorrectly returning ``timedelta64[ns]`` dtype instead of ``float64`` dtype (:issue:`20088`,:issue:`22163`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -584,6 +595,7 @@ Numeric
   when supplied with a list of functions and ``axis=1`` (e.g. ``df.apply(['sum', 'mean'], axis=1)``),
   a ``TypeError`` was wrongly raised. For all three methods such calculation are now done correctly. (:issue:`16679`).
 - Bug in :class:`Series` comparison against datetime-like scalars and arrays (:issue:`22074`)
+- Bug in :class:`DataFrame` multiplication between boolean dtype and integer returning ``object`` dtype instead of integer dtype (:issue:`22047`,:issue:`22163`)
 -
 
 Strings
