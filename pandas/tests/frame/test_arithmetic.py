@@ -59,15 +59,6 @@ class TestFrameComparisons(object):
         result = getattr(empty, opname)(const).get_dtype_counts()
         tm.assert_series_equal(result, pd.Series([2], ['bool']))
 
-    @pytest.mark.parametrize('timestamps', [
-        [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
-        [pd.Timestamp('2012-01-01 13:00:00')] * 2])
-    def test_tz_aware_scalar_comparison(self, timestamps):
-        # Test for issue #15966
-        df = pd.DataFrame({'test': timestamps})
-        expected = pd.DataFrame({'test': [False, False]})
-        tm.assert_frame_equal(df == -1, expected)
-
 
 # -------------------------------------------------------------------
 # Arithmetic
@@ -90,15 +81,6 @@ class TestFrameFlexArithmetic(object):
 
 
 class TestFrameArithmetic(object):
-
-    def test_df_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(pd.date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
-                                 pd.Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
 
     @pytest.mark.parametrize('data', [
         [1, 2, 3],
@@ -133,35 +115,3 @@ class TestFrameArithmetic(object):
         df = pd.DataFrame(['x', np.nan, 'x'])
         tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
         tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
-
-
-class TestPeriodFrameArithmetic(object):
-
-    def test_ops_frame_period(self):
-        # GH 13043
-        df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
-                                 pd.Period('2015-02', freq='M')],
-                           'B': [pd.Period('2014-01', freq='M'),
-                                 pd.Period('2014-02', freq='M')]})
-        assert df['A'].dtype == object
-        assert df['B'].dtype == object
-
-        p = pd.Period('2015-03', freq='M')
-        off = p.freq
-        # dtype will be object because of original dtype
-        exp = pd.DataFrame({'A': np.array([2 * off, 1 * off], dtype=object),
-                            'B': np.array([14 * off, 13 * off], dtype=object)})
-        tm.assert_frame_equal(p - df, exp)
-        tm.assert_frame_equal(df - p, -1 * exp)
-
-        df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')],
-                            'B': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')]})
-        assert df2['A'].dtype == object
-        assert df2['B'].dtype == object
-
-        exp = pd.DataFrame({'A': np.array([4 * off, 4 * off], dtype=object),
-                            'B': np.array([16 * off, 16 * off], dtype=object)})
-        tm.assert_frame_equal(df2 - df, exp)
-        tm.assert_frame_equal(df - df2, -1 * exp)
