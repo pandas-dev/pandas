@@ -930,7 +930,7 @@ cdef class _Timedelta(timedelta):
     def nanoseconds(self):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
-       
+
         Returns
         -------
         int

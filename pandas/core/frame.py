@@ -4911,20 +4911,7 @@ class DataFrame(NDFrame):
 
         if this._is_mixed_type or other._is_mixed_type:
             # iterate over columns
-            if this.columns.is_unique:
-                # unique columns
-                result = {col: _arith_op(this[col], other[col])
-                          for col in this}
-                result = self._constructor(result, index=new_index,
-                                           columns=new_columns, copy=False)
-            else:
-                # non-unique columns
-                result = {i: _arith_op(this.iloc[:, i], other.iloc[:, i])
-                          for i, col in enumerate(this.columns)}
-                result = self._constructor(result, index=new_index, copy=False)
-                result.columns = new_columns
-            return result
-
+            return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
 
@@ -4958,27 +4945,16 @@ class DataFrame(NDFrame):
         # compare_frame assumes self._indexed_same(other)
 
         import pandas.core.computation.expressions as expressions
-        # unique
-        if self.columns.is_unique:
 
-            def _compare(a, b):
-                return {col: func(a[col], b[col]) for col in a.columns}
+        def _compare(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
 
-            new_data = expressions.evaluate(_compare, str_rep, self, other)
-            return self._constructor(data=new_data, index=self.index,
-                                     columns=self.columns, copy=False)
-        # non-unique
-        else:
-
-            def _compare(a, b):
-                return {i: func(a.iloc[:, i], b.iloc[:, i])
-                        for i, col in enumerate(a.columns)}
-
-            new_data = expressions.evaluate(_compare, str_rep, self, other)
-            result = self._constructor(data=new_data, index=self.index,
-                                       copy=False)
-            result.columns = self.columns
-            return result
+        new_data = expressions.evaluate(_compare, str_rep, self, other)
+        result = self._constructor(data=new_data, index=self.index,
+                                   copy=False)
+        result.columns = self.columns
+        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
