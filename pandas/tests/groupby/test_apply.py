@@ -271,10 +271,7 @@ def test_apply_chunk_view():
     df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
                     'value': compat.lrange(9)})
 
-    # return view
-    f = lambda x: x[:2]
-
-    result = df.groupby('key', group_keys=False).apply(f)
+    result = df.groupby('key', group_keys=False).apply(lambda x: x[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
     tm.assert_frame_equal(result, expected)
 
