@@ -6,7 +6,6 @@ Parsing functions for datetime and datetime-like strings.
 import sys
 import re
 
-cimport cython
 from cython cimport Py_ssize_t
 
 
