@@ -27,7 +27,7 @@ See LICENSE for the license
 #define ERROR_INVALID_CHARS 3
 
 #include "../headers/stdint.h"
-#include "../helper.h"
+#include "../inline_helper.h"
 
 #include "khash.h"
 

@@ -112,7 +112,7 @@ int main() {
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include "../helper.h"
+#include "../inline_helper.h"
 
 
 #if UINT_MAX == 0xffffffffu

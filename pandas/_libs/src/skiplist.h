@@ -20,7 +20,7 @@ Python recipe (http://rhettinger.wordpress.com/2010/02/06/lost-knowledge/)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "helper.h"
+#include "inline_helper.h"
 
 PANDAS_INLINE float __skiplist_nanf(void) {
     const union {
