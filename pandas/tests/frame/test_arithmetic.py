@@ -12,6 +12,53 @@ import pandas.util.testing as tm
 # Comparisons
 
 class TestFrameComparisons(object):
+    def test_flex_comparison_nat(self):
+        # GH#15697, GH#22163 df.eq(pd.NaT) should behave like df == pd.NaT,
+        # and _definitely_ not be NaN
+        df = pd.DataFrame([pd.NaT])
+
+        result = df == pd.NaT
+        # result.iloc[0, 0] is a np.bool_ object
+        assert result.iloc[0, 0].item() is False
+
+        result = df.eq(pd.NaT)
+        assert result.iloc[0, 0].item() is False
+
+        result = df != pd.NaT
+        assert result.iloc[0, 0].item() is True
+
+        result = df.ne(pd.NaT)
+        assert result.iloc[0, 0].item() is True
+
+    def test_mixed_comparison(self):
+        # GH#13128, GH#22163 != datetime64 vs non-dt64 should be False,
+        # not raise TypeError
+        # (this appears to be fixed before #22163, not sure when)
+        df = pd.DataFrame([['1989-08-01', 1], ['1989-08-01', 2]])
+        other = pd.DataFrame([['a', 'b'], ['c', 'd']])
+
+        result = df == other
+        assert not result.any().any()
+
+        result = df != other
+        assert result.all().all()
+
+    def test_df_numeric_cmp_dt64_raises(self):
+        # GH#8932, GH#22163
+        ts = pd.Timestamp.now()
+        df = pd.DataFrame({'x': range(5)})
+        with pytest.raises(TypeError):
+            df > ts
+        with pytest.raises(TypeError):
+            df < ts
+        with pytest.raises(TypeError):
+            ts < df
+        with pytest.raises(TypeError):
+            ts > df
+
+        assert not (df == ts).any().any()
+        assert (df != ts).all().all()
+
     def test_df_boolean_comparison_error(self):
         # GH#4576
         # boolean comparisons with a tuple/list give unexpected results
@@ -81,6 +128,15 @@ class TestFrameFlexArithmetic(object):
 
 
 class TestFrameArithmetic(object):
+    def test_df_bool_mul_int(self):
+        # GH#22047, GH#22163 multiplication by 1 should result in int dtype,
+        # not object dtype
+        df = pd.DataFrame([[False, True], [False, False]])
+        result = df * 1
+        assert (result.dtypes == np.int64).all()
+
+        result = 1 * df
+        assert (result.dtypes == np.int64).all()
 
     @pytest.mark.parametrize('data', [
         [1, 2, 3],

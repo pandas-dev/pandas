@@ -866,6 +866,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, idx)
 
     def test_tdi_div_tdlike_scalar(self, delta, box):
+        # GH#20088, GH#22163 ensure DataFrame returns correct dtype
         rng = timedelta_range('1 days', '10 days', name='foo')
         expected = pd.Float64Index((np.arange(10) + 1) * 12, name='foo')
 
