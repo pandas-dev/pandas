@@ -139,7 +139,7 @@ def fast_unique_multiple(list arrays):
         dict table = {}
         object val, stub = 0
 
-    for i in range(n):
+    for i in range(k):
         buf = arrays[i]
         n = len(buf)
         for j in range(n):
