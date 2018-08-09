@@ -124,3 +124,31 @@ class TestArithmetic(object):
             op(obj_ser, 1)
         with pytest.raises(Exception):
             op(obj_ser, np.array(1, dtype=np.int64))
+
+    # TODO: Moved from tests.series.test_operators; needs cleanup
+    def test_operators_na_handling(self):
+        ser = Series(['foo', 'bar', 'baz', np.nan])
+        result = 'prefix_' + ser
+        expected = pd.Series(['prefix_foo', 'prefix_bar',
+                              'prefix_baz', np.nan])
+        tm.assert_series_equal(result, expected)
+
+        result = ser + '_suffix'
+        expected = pd.Series(['foo_suffix', 'bar_suffix',
+                              'baz_suffix', np.nan])
+        tm.assert_series_equal(result, expected)
+
+    # TODO: parametrize over box
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_series_with_dtype_radd_timedelta(self, dtype):
+        # note this test is _not_ aimed at timedelta64-dtyped Series
+        ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
+                         pd.Timedelta('3 days')], dtype=dtype)
+        expected = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
+                              pd.Timedelta('6 days')])
+
+        result = pd.Timedelta('3 days') + ser
+        tm.assert_series_equal(result, expected)
+
+        result = ser + pd.Timedelta('3 days')
+        tm.assert_series_equal(result, expected)

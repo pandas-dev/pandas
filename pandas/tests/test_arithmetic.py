@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
-from datetime import timedelta
+from datetime import datetime, timedelta
 import operator
 
 import pytest
@@ -15,7 +15,8 @@ from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas import (
     timedelta_range,
-    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex)
+    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
+    DataFrame)
 
 
 # ------------------------------------------------------------------
@@ -77,6 +78,13 @@ def box_df_fail(request):
 
 class TestTimedelta64ArrayComparisons(object):
     # TODO: All of these need to be parametrized over box
+
+    def test_compare_timedelta_series(self):
+        # regresssion test for GH5963
+        s = pd.Series([timedelta(days=1), timedelta(days=2)])
+        actual = s > timedelta(days=1)
+        expected = pd.Series([False, True])
+        tm.assert_series_equal(actual, expected)
 
     def test_tdi_cmp_str_invalid(self):
         # GH#13624
@@ -241,6 +249,157 @@ class TestAddSubNaTMasking(object):
 
 class TestTimedeltaArraylikeAddSubOps(object):
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
+
+    # TODO: moved from tests.series.test_operators, needs splitting, cleanup,
+    # de-duplication, box-parametrization...
+    def test_operators_timedelta64(self):
+        # series ops
+        v1 = pd.date_range('2012-1-1', periods=3, freq='D')
+        v2 = pd.date_range('2012-1-2', periods=3, freq='D')
+        rs = Series(v2) - Series(v1)
+        xp = Series(1e9 * 3600 * 24,
+                    rs.index).astype('int64').astype('timedelta64[ns]')
+        tm.assert_series_equal(rs, xp)
+        assert rs.dtype == 'timedelta64[ns]'
+
+        df = DataFrame(dict(A=v1))
+        td = Series([timedelta(days=i) for i in range(3)])
+        assert td.dtype == 'timedelta64[ns]'
+
+        # series on the rhs
+        result = df['A'] - df['A'].shift()
+        assert result.dtype == 'timedelta64[ns]'
+
+        result = df['A'] + td
+        assert result.dtype == 'M8[ns]'
+
+        # scalar Timestamp on rhs
+        maxa = df['A'].max()
+        assert isinstance(maxa, Timestamp)
+
+        resultb = df['A'] - df['A'].max()
+        assert resultb.dtype == 'timedelta64[ns]'
+
+        # timestamp on lhs
+        result = resultb + df['A']
+        values = [Timestamp('20111230'), Timestamp('20120101'),
+                  Timestamp('20120103')]
+        expected = Series(values, name='A')
+        tm.assert_series_equal(result, expected)
+
+        # datetimes on rhs
+        result = df['A'] - datetime(2001, 1, 1)
+        expected = Series(
+            [timedelta(days=4017 + i) for i in range(3)], name='A')
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'm8[ns]'
+
+        d = datetime(2001, 1, 1, 3, 4)
+        resulta = df['A'] - d
+        assert resulta.dtype == 'm8[ns]'
+
+        # roundtrip
+        resultb = resulta + d
+        tm.assert_series_equal(df['A'], resultb)
+
+        # timedeltas on rhs
+        td = timedelta(days=1)
+        resulta = df['A'] + td
+        resultb = resulta - td
+        tm.assert_series_equal(resultb, df['A'])
+        assert resultb.dtype == 'M8[ns]'
+
+        # roundtrip
+        td = timedelta(minutes=5, seconds=3)
+        resulta = df['A'] + td
+        resultb = resulta - td
+        tm.assert_series_equal(df['A'], resultb)
+        assert resultb.dtype == 'M8[ns]'
+
+        # inplace
+        value = rs[2] + np.timedelta64(timedelta(minutes=5, seconds=1))
+        rs[2] += np.timedelta64(timedelta(minutes=5, seconds=1))
+        assert rs[2] == value
+
+    def test_timedelta64_ops_nat(self):
+        # GH 11349
+        timedelta_series = Series([NaT, Timedelta('1s')])
+        nat_series_dtype_timedelta = Series([NaT, NaT],
+                                            dtype='timedelta64[ns]')
+        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
+
+        # subtraction
+        tm.assert_series_equal(timedelta_series - NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(-NaT + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series - single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(-single_nat_dtype_timedelta + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        # addition
+        tm.assert_series_equal(nat_series_dtype_timedelta + NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(NaT + nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta +
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(single_nat_dtype_timedelta +
+                               nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series + NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(NaT + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series + single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(single_nat_dtype_timedelta + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta + NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(NaT + nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta +
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(single_nat_dtype_timedelta +
+                               nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        # multiplication
+        tm.assert_series_equal(nat_series_dtype_timedelta * 1.0,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(1.0 * nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series * 1, timedelta_series)
+        tm.assert_series_equal(1 * timedelta_series, timedelta_series)
+
+        tm.assert_series_equal(timedelta_series * 1.5,
+                               Series([NaT, Timedelta('1.5s')]))
+        tm.assert_series_equal(1.5 * timedelta_series,
+                               Series([NaT, Timedelta('1.5s')]))
+
+        tm.assert_series_equal(timedelta_series * np.nan,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(np.nan * timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        # division
+        tm.assert_series_equal(timedelta_series / 2,
+                               Series([NaT, Timedelta('0.5s')]))
+        tm.assert_series_equal(timedelta_series / 2.0,
+                               Series([NaT, Timedelta('0.5s')]))
+        tm.assert_series_equal(timedelta_series / np.nan,
+                               nat_series_dtype_timedelta)
 
     # -------------------------------------------------------------
     # Invalid Operations
@@ -966,6 +1125,27 @@ class TestTimedeltaArraylikeAddSubOps(object):
 class TestTimedeltaArraylikeMulDivOps(object):
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
+
+    # TODO: Moved from tests.series.test_operators; needs cleanup
+    @pytest.mark.parametrize("m", [1, 3, 10])
+    @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_timedelta64_conversions(self, m, unit):
+        startdate = Series(pd.date_range('2013-01-01', '2013-01-03'))
+        enddate = Series(pd.date_range('2013-03-01', '2013-03-03'))
+
+        ser = enddate - startdate
+        ser[2] = np.nan
+
+        # op
+        expected = Series([x / np.timedelta64(m, unit) for x in ser])
+        result = ser / np.timedelta64(m, unit)
+        tm.assert_series_equal(result, expected)
+
+        # reverse op
+        expected = Series([Timedelta(np.timedelta64(m, unit)) / x
+                           for x in ser])
+        result = np.timedelta64(m, unit) / ser
+        tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------------
     # Multiplication

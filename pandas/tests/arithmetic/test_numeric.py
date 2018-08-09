@@ -5,6 +5,7 @@
 from datetime import timedelta
 from decimal import Decimal
 import operator
+from collections import Iterable
 
 import pytest
 import numpy as np
@@ -493,8 +494,111 @@ class TestMultiplicationDivision(object):
         tm.assert_frame_equal(df + np.array(other), f(vals + other))
         tm.assert_frame_equal(np.array(other) - df, f(other - vals))
 
+    # TODO: This came from series.test.test_operators, needs cleanup
+    def test_operators_frame(self):
+        # rpow does not work with DataFrame
+        ts = tm.makeTimeSeries()
+        ts.name = 'ts'
+
+        df = pd.DataFrame({'A': ts})
+
+        tm.assert_series_equal(ts + ts, ts + df['A'],
+                               check_names=False)
+        tm.assert_series_equal(ts ** ts, ts ** df['A'],
+                               check_names=False)
+        tm.assert_series_equal(ts < ts, ts < df['A'],
+                               check_names=False)
+        tm.assert_series_equal(ts / ts, ts / df['A'],
+                               check_names=False)
+
+
+class TestAdditionSubtraction(object):
+    # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
+    # for non-timestamp/timedelta/period dtypes
+
+    # TODO: This came from series.test.test_operators, needs cleanup
+    def test_arith_ops_df_compat(self):
+        # GH#1134
+        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
+
+        exp = pd.Series([3.0, 4.0, np.nan, np.nan],
+                        index=list('ABCD'), name='x')
+        tm.assert_series_equal(s1 + s2, exp)
+        tm.assert_series_equal(s2 + s1, exp)
+
+        exp = pd.DataFrame({'x': [3.0, 4.0, np.nan, np.nan]},
+                           index=list('ABCD'))
+        tm.assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
+        tm.assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
+
+        # different length
+        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
+
+        exp = pd.Series([3, 4, 5, np.nan],
+                        index=list('ABCD'), name='x')
+        tm.assert_series_equal(s3 + s4, exp)
+        tm.assert_series_equal(s4 + s3, exp)
+
+        exp = pd.DataFrame({'x': [3, 4, 5, np.nan]},
+                           index=list('ABCD'))
+        tm.assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
+        tm.assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
+
+    # TODO: This came from series.test.test_operators, needs cleanup
+    def test_series_frame_radd_bug(self):
+        # GH#353
+        vals = pd.Series(tm.rands_array(5, 10))
+        result = 'foo_' + vals
+        expected = vals.map(lambda x: 'foo_' + x)
+        tm.assert_series_equal(result, expected)
+
+        frame = pd.DataFrame({'vals': vals})
+        result = 'foo_' + frame
+        expected = pd.DataFrame({'vals': vals.map(lambda x: 'foo_' + x)})
+        tm.assert_frame_equal(result, expected)
+
+        ts = tm.makeTimeSeries()
+        ts.name = 'ts'
+
+        # really raise this time
+        now = pd.Timestamp.now().to_pydatetime()
+        with pytest.raises(TypeError):
+            now + ts
+
+        with pytest.raises(TypeError):
+            ts + now
+
+    # TODO: This came from series.test.test_operators, needs cleanup
+    def test_datetime64_with_index(self):
+        # arithmetic integer ops with an index
+        ser = pd.Series(np.random.randn(5))
+        expected = ser - ser.index.to_series()
+        result = ser - ser.index
+        tm.assert_series_equal(result, expected)
+
+        # GH#4629
+        # arithmetic datetime64 ops with an index
+        ser = pd.Series(pd.date_range('20130101', periods=5),
+                        index=pd.date_range('20130101', periods=5))
+        expected = ser - ser.index.to_series()
+        result = ser - ser.index
+        tm.assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            # GH#18850
+            result = ser - ser.index.to_period()
+
+        df = pd.DataFrame(np.random.randn(5, 2),
+                          index=pd.date_range('20130101', periods=5))
+        df['date'] = pd.Timestamp('20130102')
+        df['expected'] = df['date'] - df.index.to_series()
+        df['result'] = df['date'] - df.index
+        tm.assert_series_equal(df['result'], df['expected'], check_names=False)
+
     # TODO: taken from tests.frame.test_operators, needs cleanup
-    def test_operators(self):
+    def test_frame_operators(self):
         seriesd = tm.getSeriesData()
         frame = pd.DataFrame(seriesd)
         frame2 = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
@@ -540,11 +644,79 @@ class TestMultiplicationDivision(object):
                 assert (df + df).equals(df)
                 tm.assert_frame_equal(df + df, df)
 
+    # TODO: taken from tests.series.test_operators; needs cleanup
+    def test_series_operators(self):
+        def _check_op(series, other, op, pos_only=False, check_dtype=True):
+            left = np.abs(series) if pos_only else series
+            right = np.abs(other) if pos_only else other
 
-class TestAdditionSubtraction(object):
-    # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
-    # for non-timestamp/timedelta/period dtypes
-    pass
+            cython_or_numpy = op(left, right)
+            python = left.combine(right, op)
+            tm.assert_series_equal(cython_or_numpy, python,
+                                   check_dtype=check_dtype)
+
+        def check(series, other):
+            simple_ops = ['add', 'sub', 'mul', 'truediv', 'floordiv', 'mod']
+
+            for opname in simple_ops:
+                _check_op(series, other, getattr(operator, opname))
+
+            _check_op(series, other, operator.pow, pos_only=True)
+
+            _check_op(series, other, lambda x, y: operator.add(y, x))
+            _check_op(series, other, lambda x, y: operator.sub(y, x))
+            _check_op(series, other, lambda x, y: operator.truediv(y, x))
+            _check_op(series, other, lambda x, y: operator.floordiv(y, x))
+            _check_op(series, other, lambda x, y: operator.mul(y, x))
+            _check_op(series, other, lambda x, y: operator.pow(y, x),
+                      pos_only=True)
+            _check_op(series, other, lambda x, y: operator.mod(y, x))
+
+        tser = tm.makeTimeSeries().rename('ts')
+        check(tser, tser * 2)
+        check(tser, tser * 0)
+        check(tser, tser[::2])
+        check(tser, 5)
+
+        def check_comparators(series, other, check_dtype=True):
+            _check_op(series, other, operator.gt, check_dtype=check_dtype)
+            _check_op(series, other, operator.ge, check_dtype=check_dtype)
+            _check_op(series, other, operator.eq, check_dtype=check_dtype)
+            _check_op(series, other, operator.lt, check_dtype=check_dtype)
+            _check_op(series, other, operator.le, check_dtype=check_dtype)
+
+        check_comparators(tser, 5)
+        check_comparators(tser, tser + 1, check_dtype=False)
+
+    # TODO: taken from tests.series.test_operators; needs cleanup
+    def test_divmod(self):
+        def check(series, other):
+            results = divmod(series, other)
+            if isinstance(other, Iterable) and len(series) != len(other):
+                # if the lengths don't match, this is the test where we use
+                # `tser[::2]`. Pad every other value in `other_np` with nan.
+                other_np = []
+                for n in other:
+                    other_np.append(n)
+                    other_np.append(np.nan)
+            else:
+                other_np = other
+            other_np = np.asarray(other_np)
+            with np.errstate(all='ignore'):
+                expecteds = divmod(series.values, np.asarray(other_np))
+
+            for result, expected in zip(results, expecteds):
+                # check the values, name, and index separately
+                tm.assert_almost_equal(np.asarray(result), expected)
+
+                assert result.name == series.name
+                tm.assert_index_equal(result.index, series.index)
+
+        tser = tm.makeTimeSeries().rename('ts')
+        check(tser, tser * 2)
+        check(self.ts, tser * 0)
+        check(tser, tser[::2])
+        check(tser, 5)
 
 
 class TestObjectDtypeEquivalence(object):
@@ -577,3 +749,14 @@ class TestObjectDtypeEquivalence(object):
 
         result = ser + 1
         tm.assert_equal(result, expected)
+
+    # TODO: moved from tests.series.test_operators; needs cleanup
+    @pytest.mark.parametrize('op', [operator.add, operator.sub, operator.mul,
+                                    operator.truediv, operator.floordiv])
+    def test_operators_reverse_object(self, op):
+        # GH#56
+        arr = pd.Series(np.random.randn(10), index=np.arange(10), dtype=object)
+
+        result = op(1., arr)
+        expected = op(1., arr.astype(float))
+        tm.assert_series_equal(result.astype(float), expected)

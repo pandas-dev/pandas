@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
 import operator
 
 import numpy as np
@@ -75,33 +74,3 @@ class TestSeriesComparison(object):
             ser = Series(cidx).rename(names[1])
             result = op(ser, cidx)
             assert result.name == names[2]
-
-
-class TestTimedeltaSeriesComparisons(object):
-    def test_compare_timedelta_series(self):
-        # regresssion test for GH5963
-        s = pd.Series([timedelta(days=1), timedelta(days=2)])
-        actual = s > timedelta(days=1)
-        expected = pd.Series([False, True])
-        tm.assert_series_equal(actual, expected)
-
-
-# ------------------------------------------------------------------
-# Arithmetic
-
-class TestSeriesArithmetic(object):
-    # Standard, numeric, or otherwise not-Timestamp/Timedelta/Period dtypes
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_timedelta(self, dtype):
-        # note this test is _not_ aimed at timedelta64-dtyped Series
-        ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                         pd.Timedelta('3 days')], dtype=dtype)
-        expected = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
-                              pd.Timedelta('6 days')])
-
-        result = pd.Timedelta('3 days') + ser
-        tm.assert_series_equal(result, expected)
-
-        result = ser + pd.Timedelta('3 days')
-        tm.assert_series_equal(result, expected)
