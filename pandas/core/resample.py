@@ -1383,8 +1383,7 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        start = ax[0]
-        end = ax[-1]
+        start, end = ax.min(), ax.max()
         labels = binner = TimedeltaIndex(start=start,
                                          end=end,
                                          freq=self.freq,
