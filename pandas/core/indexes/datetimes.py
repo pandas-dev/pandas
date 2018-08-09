@@ -170,6 +170,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     nanosecond
     date
     time
+    timetz
     dayofyear
     weekofyear
     week
@@ -260,7 +261,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                   'dayofyear', 'quarter', 'days_in_month',
                   'daysinmonth', 'microsecond',
                   'nanosecond']
-    _other_ops = ['date', 'time']
+    _other_ops = ['date', 'time', 'timetz']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = ['to_period', 'tz_localize',
                              'tz_convert',

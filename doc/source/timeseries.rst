@@ -724,6 +724,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     nanosecond,"The nanoseconds of the datetime"
     date,"Returns datetime.date (does not contain timezone information)"
     time,"Returns datetime.time (does not contain timezone information)"
+    timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
