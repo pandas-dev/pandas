@@ -648,25 +648,20 @@ class TestIsin(object):
 
     def test_different_nans(self):
         # GH 22160
-        # the current behavior is:
-        #   * list, array of objects: isin() is False for different nan-objects
-        #   * array of float64s:      isin() is True for all nans
-        # this behavior might be changed in the future
-        #
-        # this test case only ensures it doesn't happen accidentally
-        #
+        # all nans are handled as equivalent
+
         comps = [float('nan')]
         values = [float('nan')]
         assert comps[0] is not values[0]  # different nan-objects
 
         # as list of python-objects:
         result = algos.isin(comps, values)
-        tm.assert_numpy_array_equal(np.array([False]), result)
+        tm.assert_numpy_array_equal(np.array([True]), result)
 
         # as object-array:
         result = algos.isin(np.asarray(comps, dtype=np.object),
                             np.asarray(values, dtype=np.object))
-        tm.assert_numpy_array_equal(np.array([False]), result)
+        tm.assert_numpy_array_equal(np.array([True]), result)
 
         # as float64-array:
         result = algos.isin(np.asarray(comps, dtype=np.float64),
