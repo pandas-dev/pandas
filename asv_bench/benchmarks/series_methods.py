@@ -38,6 +38,43 @@ class IsIn(object):
         self.s.isin(self.values)
 
 
+class IsInForObjects(object):
+
+    def setup(self):
+        self.s_nans = Series(np.full(10**4, np.nan)).astype(np.object)
+        self.vals_nans = np.full(10**4, np.nan).astype(np.object)
+        self.s_short = Series(np.arange(2)).astype(np.object)
+        self.s_long = Series(np.arange(10**5)).astype(np.object)
+        self.vals_short = np.arange(2).astype(np.object)
+        self.vals_long = np.arange(10**5).astype(np.object)
+        # because of nans floats are special:
+        self.s_long_floats = Series(np.arange(10**5,
+                                    dtype=np.float)).astype(np.object)
+        self.vals_long_floats = np.arange(10**5,
+                                          dtype=np.float).astype(np.object)
+
+    def time_isin_nans(self):
+        # if nan-objects are different objects,
+        # this has the potential to trigger O(n^2) running time
+        self.s_nans.isin(self.vals_nans)
+
+    def time_isin_short_series_long_values(self):
+        # running time dominated by the preprocessing
+        self.s_short.isin(self.vals_long)
+
+    def time_isin_long_series_short_values(self):
+        # running time dominated by look-up
+        self.s_long.isin(self.vals_short)
+
+    def time_isin_long_series_long_values(self):
+        # no dominating part
+        self.s_long.isin(self.vals_long)
+
+    def time_isin_long_series_long_values_floats(self):
+        # no dominating part
+        self.s_long_floats.isin(self.vals_long_floats)
+
+
 class NSort(object):
 
     goal_time = 0.2
