@@ -85,7 +85,8 @@ cdef extern from *:
     #define FR_NS 12000      /* Nanosecondly */
     #define FR_UND -10000    /* Undefined */
 
-    static int64_t daytime_conversion_factor_matrix[7][7] = {
+    // must use npy typedef b/c int64_t is aliased in cython-generated c
+    static npy_int64 daytime_conversion_factor_matrix[7][7] = {
         {1, 24, 1440, 86400, 86400000, 86400000000, 86400000000000},
         {0,  1,   60,  3600,  3600000,  3600000000,  3600000000000},
         {0,  0,   1,     60,    60000,    60000000,    60000000000},
