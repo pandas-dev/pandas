@@ -94,6 +94,11 @@ class _DtypeOpsMixin(object):
         except TypeError:
             return False
 
+    @property
+    def _is_numeric(self):
+        # Should we overload "kind" here? Just return not object?
+        return False
+
 
 class ExtensionDtype(_DtypeOpsMixin):
     """A custom data type, to be paired with an ExtensionArray.

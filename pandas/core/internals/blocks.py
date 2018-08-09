@@ -1912,6 +1912,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         """Extension arrays are never treated as views."""
         return False
 
+    @property
+    def is_numeric(self):
+        return self.values.dtype._is_numeric
+
     def setitem(self, indexer, value, mgr=None):
         """Set the value inplace, returning a same-typed block.
 
