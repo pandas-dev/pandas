@@ -216,7 +216,7 @@ New Behavior:
    idx = pd.interval_range(0, 4)
    idx.values
 
-This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.
+This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
 
 For situations where you need an ``ndarray`` of ``Interval`` objects, use
 :meth:`numpy.asarray` or ``idx.astype(object)``.
@@ -406,6 +406,34 @@ Previous Behavior:
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
+
+.. _whatsnew_0240.api.timedelta64_subtract_nan
+
+Addition/Subtraction of ``NaN`` from :class:``DataFrame``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Adding or subtracting ``NaN`` from a :class:`DataFrame` column with
+`timedelta64[ns]` dtype will now raise a ``TypeError`` instead of returning
+all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
+``Series`` behavior (:issue:`22163`)
+
+.. ipython:: python
+
+    df = pd.DataFrame([pd.Timedelta(days=1)])
+    df - np.nan
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: df = pd.DataFrame([pd.Timedelta(days=1)])
+
+    In [5]: df - np.nan
+    Out[5]:
+        0
+    0 NaT
+
+
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
@@ -453,7 +481,6 @@ Datetimelike API Changes
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
-- :class:`DataFrame` with ``timedelta64[ns]`` dtypes addition or subtraction of ``NaN`` will raise ``TypeError`` instead of returning all-``NaT``; this is consistent with the behavior of :class:`Series` and :class:`Index` operations (:issue:`22163`)
 
 .. _whatsnew_0240.api.other:
 
