@@ -714,7 +714,7 @@ class TestAdditionSubtraction(object):
 
         tser = tm.makeTimeSeries().rename('ts')
         check(tser, tser * 2)
-        check(self.ts, tser * 0)
+        check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
 
