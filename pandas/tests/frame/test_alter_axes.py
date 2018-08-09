@@ -22,9 +22,6 @@ import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
 
-key = lambda x: x.name
-mi = lambda x: MultiIndex.from_arrays([x])
-
 
 class TestDataFrameAlterAxes(TestData):
 
@@ -116,13 +113,17 @@ class TestDataFrameAlterAxes(TestData):
         tm.assert_frame_equal(result, expected)
 
     # also test index name if append=True (name is duplicate here for B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array, mi])
+    @pytest.mark.parametrize('box', [Series, Index, np.array, 'MultiIndex'])
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'B'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
     def test_set_index_pass_single_array(self, drop, append, index_name, box):
         df = self.dummy.copy()
         df.index.name = index_name
+
+        # update constructor in case of MultiIndex
+        box = ((lambda x: MultiIndex.from_arrays([x]))
+               if box == 'MultiIndex' else box)
 
         key = box(df['B'])
         # np.array and list "forget" the name of B
@@ -138,7 +139,8 @@ class TestDataFrameAlterAxes(TestData):
         tm.assert_frame_equal(result, expected)
 
     # also test index name if append=True (name is duplicate here for A & B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array, list, mi])
+    @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     list, 'MultiIndex'])
     @pytest.mark.parametrize('append, index_name',
                              [(True, None), (True, 'A'), (True, 'B'),
                               (True, 'test'), (False, None)])
@@ -146,6 +148,10 @@ class TestDataFrameAlterAxes(TestData):
     def test_set_index_pass_arrays(self, drop, append, index_name, box):
         df = self.dummy.copy()
         df.index.name = index_name
+
+        # update constructor in case of MultiIndex
+        box = ((lambda x: MultiIndex.from_arrays([x]))
+               if box == 'MultiIndex' else box)
 
         keys = ['A', box(df['B'])]
         # np.array and list "forget" the name of B
@@ -162,8 +168,10 @@ class TestDataFrameAlterAxes(TestData):
         tm.assert_frame_equal(result, expected)
 
     # also test index name if append=True (name is duplicate here for A)
-    @pytest.mark.parametrize('box1', [key, Series, Index, np.array, list, mi])
-    @pytest.mark.parametrize('box2', [key, Series, Index, np.array, list, mi])
+    @pytest.mark.parametrize('box1', ['label', Series, Index, np.array,
+                                      list, 'MultiIndex'])
+    @pytest.mark.parametrize('box2', ['label', Series, Index, np.array,
+                                      list, 'MultiIndex'])
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'A'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
@@ -172,7 +180,15 @@ class TestDataFrameAlterAxes(TestData):
         df = self.dummy.copy()
         df.index.name = index_name
 
-        keys = [box1(df['A']), box2(df['A'])]
+        # transform strings to correct box constructor
+        def rebox(x):
+            if x == 'label':
+                return lambda x: x.name
+            elif x == 'MultiIndex':
+                return lambda x: MultiIndex.from_arrays([x])
+            return x
+
+        keys = [rebox(box1)(df['A']), rebox(box2)(df['A'])]
 
         # == gives ambiguous Boolean for Series
         if keys[0] is 'A' and keys[1] is 'A':
