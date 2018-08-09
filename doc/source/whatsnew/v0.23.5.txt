@@ -30,7 +30,7 @@ Bug Fixes
 
 **Groupby/Resample/Rolling**
 
--
+- Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
 -
 
 **Missing**
