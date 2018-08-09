@@ -179,39 +179,6 @@ class TestSeriesComparisons(object):
         expected[mask] = False
         assert_series_equal(result, expected)
 
-    def test_comparison_object_numeric_nas(self):
-        ser = Series(np.random.randn(10), dtype=object)
-        shifted = ser.shift(2)
-
-        ops = ['lt', 'le', 'gt', 'ge', 'eq', 'ne']
-        for op in ops:
-            func = getattr(operator, op)
-
-            result = func(ser, shifted)
-            expected = func(ser.astype(float), shifted.astype(float))
-            assert_series_equal(result, expected)
-
-    def test_comparison_invalid(self):
-        # GH4968
-        # invalid date/int comparisons
-        s = Series(range(5))
-        s2 = Series(date_range('20010101', periods=5))
-
-        for (x, y) in [(s, s2), (s2, s)]:
-
-            result = x == y
-            expected = Series([False] * 5)
-            assert_series_equal(result, expected)
-
-            result = x != y
-            expected = Series([True] * 5)
-            assert_series_equal(result, expected)
-
-            pytest.raises(TypeError, lambda: x >= y)
-            pytest.raises(TypeError, lambda: x > y)
-            pytest.raises(TypeError, lambda: x < y)
-            pytest.raises(TypeError, lambda: x <= y)
-
     def test_unequal_categorical_comparison_raises_type_error(self):
         # unequal comparison should raise for unordered cats
         cat = Series(Categorical(list("abc")))

@@ -16,7 +16,6 @@ from pandas import compat
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
 import pandas.core.common as com
-import pandas.io.formats.printing as printing
 import pandas as pd
 
 from pandas.util.testing import (assert_numpy_array_equal,
@@ -25,8 +24,7 @@ from pandas.util.testing import (assert_numpy_array_equal,
 
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import (TestData, _check_mixed_float,
-                                       _check_mixed_int)
+from pandas.tests.frame.common import TestData, _check_mixed_float
 
 
 class TestDataFrameOperators(TestData):
@@ -293,122 +291,6 @@ class TestDataFrameOperators(TestData):
         with pytest.raises(TypeError):
             (+ df['a'])
 
-    def test_arith_flex_frame(self):
-        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
-        if not compat.PY3:
-            aliases = {}
-        else:
-            aliases = {'div': 'truediv'}
-
-        for op in ops:
-            try:
-                alias = aliases.get(op, op)
-                f = getattr(operator, alias)
-                result = getattr(self.frame, op)(2 * self.frame)
-                exp = f(self.frame, 2 * self.frame)
-                assert_frame_equal(result, exp)
-
-                # vs mix float
-                result = getattr(self.mixed_float, op)(2 * self.mixed_float)
-                exp = f(self.mixed_float, 2 * self.mixed_float)
-                assert_frame_equal(result, exp)
-                _check_mixed_float(result, dtype=dict(C=None))
-
-                # vs mix int
-                if op in ['add', 'sub', 'mul']:
-                    result = getattr(self.mixed_int, op)(2 + self.mixed_int)
-                    exp = f(self.mixed_int, 2 + self.mixed_int)
-
-                    # no overflow in the uint
-                    dtype = None
-                    if op in ['sub']:
-                        dtype = dict(B='uint64', C=None)
-                    elif op in ['add', 'mul']:
-                        dtype = dict(C=None)
-                    assert_frame_equal(result, exp)
-                    _check_mixed_int(result, dtype=dtype)
-
-                    # rops
-                    r_f = lambda x, y: f(y, x)
-                    result = getattr(self.frame, 'r' + op)(2 * self.frame)
-                    exp = r_f(self.frame, 2 * self.frame)
-                    assert_frame_equal(result, exp)
-
-                    # vs mix float
-                    result = getattr(self.mixed_float, op)(
-                        2 * self.mixed_float)
-                    exp = f(self.mixed_float, 2 * self.mixed_float)
-                    assert_frame_equal(result, exp)
-                    _check_mixed_float(result, dtype=dict(C=None))
-
-                    result = getattr(self.intframe, op)(2 * self.intframe)
-                    exp = f(self.intframe, 2 * self.intframe)
-                    assert_frame_equal(result, exp)
-
-                    # vs mix int
-                    if op in ['add', 'sub', 'mul']:
-                        result = getattr(self.mixed_int, op)(
-                            2 + self.mixed_int)
-                        exp = f(self.mixed_int, 2 + self.mixed_int)
-
-                        # no overflow in the uint
-                        dtype = None
-                        if op in ['sub']:
-                            dtype = dict(B='uint64', C=None)
-                        elif op in ['add', 'mul']:
-                            dtype = dict(C=None)
-                        assert_frame_equal(result, exp)
-                        _check_mixed_int(result, dtype=dtype)
-            except:
-                printing.pprint_thing("Failing operation %r" % op)
-                raise
-
-            # ndim >= 3
-            ndim_5 = np.ones(self.frame.shape + (3, 4, 5))
-            msg = "Unable to coerce to Series/DataFrame"
-            with tm.assert_raises_regex(ValueError, msg):
-                f(self.frame, ndim_5)
-
-            with tm.assert_raises_regex(ValueError, msg):
-                getattr(self.frame, op)(ndim_5)
-
-        # res_add = self.frame.add(self.frame)
-        # res_sub = self.frame.sub(self.frame)
-        # res_mul = self.frame.mul(self.frame)
-        # res_div = self.frame.div(2 * self.frame)
-
-        # assert_frame_equal(res_add, self.frame + self.frame)
-        # assert_frame_equal(res_sub, self.frame - self.frame)
-        # assert_frame_equal(res_mul, self.frame * self.frame)
-        # assert_frame_equal(res_div, self.frame / (2 * self.frame))
-
-        const_add = self.frame.add(1)
-        assert_frame_equal(const_add, self.frame + 1)
-
-        # corner cases
-        result = self.frame.add(self.frame[:0])
-        assert_frame_equal(result, self.frame * np.nan)
-
-        result = self.frame[:0].add(self.frame)
-        assert_frame_equal(result, self.frame * np.nan)
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
-            self.frame.add(self.frame.iloc[0], fill_value=3)
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
-            self.frame.add(self.frame.iloc[0], axis='index', fill_value=3)
-
-    def test_arith_flex_zero_len_raises(self):
-        # GH#19522 passing fill_value to frame flex arith methods should
-        # raise even in the zero-length special cases
-        ser_len0 = pd.Series([])
-        df_len0 = pd.DataFrame([], columns=['A', 'B'])
-        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
-            df.add(ser_len0, fill_value='E')
-
-        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
-            df_len0.sub(df['A'], axis=None, fill_value=3)
-
     def test_binary_ops_align(self):
 
         # test aligning binary ops
@@ -635,37 +517,6 @@ class TestDataFrameOperators(TestData):
         df2 = DataFrame({'A': [1, 1]}, index=idx2)
         exp = DataFrame({'A': [np.nan, 3, np.nan]}, index=base)
         assert_frame_equal(df1 + df2, exp)
-
-    def test_arith_flex_series(self):
-        df = self.simple
-
-        row = df.xs('a')
-        col = df['two']
-        # after arithmetic refactor, add truediv here
-        ops = ['add', 'sub', 'mul', 'mod']
-        for op in ops:
-            f = getattr(df, op)
-            op = getattr(operator, op)
-            assert_frame_equal(f(row), op(df, row))
-            assert_frame_equal(f(col, axis=0), op(df.T, col).T)
-
-        # special case for some reason
-        assert_frame_equal(df.add(row, axis=None), df + row)
-
-        # cases which will be refactored after big arithmetic refactor
-        assert_frame_equal(df.div(row), df / row)
-        assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
-
-        # broadcasting issue in GH7325
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype='int64')
-        expected = DataFrame([[nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
-        result = df.div(df[0], axis='index')
-        assert_frame_equal(result, expected)
-
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype='float64')
-        expected = DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
-        result = df.div(df[0], axis='index')
-        assert_frame_equal(result, expected)
 
     def test_arith_non_pandas_object(self):
         df = self.simple

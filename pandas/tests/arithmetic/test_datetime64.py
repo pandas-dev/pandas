@@ -65,6 +65,32 @@ class TestDatetime64DataFrameComparison(object):
 
 
 class TestDatetime64SeriesComparison(object):
+    # TODO: moved from tests.series.test_operators; needs cleanup
+    def test_comparison_invalid(self):
+        # GH#4968
+        # invalid date/int comparisons
+        ser = Series(range(5))
+        ser2 = Series(pd.date_range('20010101', periods=5))
+
+        for (x, y) in [(ser, ser2), (ser2, ser)]:
+
+            result = x == y
+            expected = Series([False] * 5)
+            tm.assert_series_equal(result, expected)
+
+            result = x != y
+            expected = Series([True] * 5)
+            tm.assert_series_equal(result, expected)
+
+            with pytest.raises(TypeError):
+                x >= y
+            with pytest.raises(TypeError):
+                x > y
+            with pytest.raises(TypeError):
+                x < y
+            with pytest.raises(TypeError):
+                x <= y
+
     @pytest.mark.parametrize('data', [
         [Timestamp('2011-01-01'), NaT, Timestamp('2011-01-03')],
         [Timedelta('1 days'), NaT, Timedelta('3 days')],
