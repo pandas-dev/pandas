@@ -271,6 +271,10 @@ def test_get_loc_level():
     assert new_index is None
 
     pytest.raises(KeyError, index.get_loc_level, (2, 2))
+    # GH 22221: unused label
+    pytest.raises(KeyError, index.drop(2).get_loc_level, 2)
+    # Unused label on unsorted level:
+    pytest.raises(KeyError, index.drop(1, level=2).get_loc_level, 2, 2)
 
     index = MultiIndex(levels=[[2000], lrange(4)], labels=[np.array(
         [0, 0, 0, 0]), np.array([0, 1, 2, 3])])
