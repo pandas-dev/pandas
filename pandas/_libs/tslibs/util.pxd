@@ -24,10 +24,10 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
+from numpy cimport int64_t
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
-    ctypedef signed long long int64_t
     int _import_array() except -1
 
 cdef extern from "numpy/ndarrayobject.h":
