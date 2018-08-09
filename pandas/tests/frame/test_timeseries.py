@@ -724,7 +724,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
             df.between_time(start_time='00:00', end_time='12:00')
 
     @pytest.mark.parametrize('axis', [
-        (), ('index',), ('columns',), ('index', 'columns'), (0,), (1,), (0,1)])
+        (), ('index',), ('columns',), ('index', 'columns'),
+        (0, ), (1, ), (0, 1)])
     def test_between_time_axis(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
@@ -743,7 +744,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
             assert len(selected) == exp_len
 
     @pytest.mark.parametrize('axis', [
-        (), ('index',), ('columns',), ('index', 'columns'), (0,), (1,), (0,1)])
+        (), ('index',), ('columns',), ('index', 'columns'),
+        (0, ), (1, ), (0, 1)])
     def test_between_time_axis_raises(self, axis):
         # issue 8839
         rng = date_range('1/1/2000', periods=100, freq='10min')
