@@ -1930,8 +1930,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        others : Series, DataFrame, np.ndarray, list-like or list-like of
-            objects that are either Series, np.ndarray (1-dim) or list-like
+        others : Series, Index, DataFrame, np.ndarray, list-like or list-like
+            of objects that are Series, Index or np.ndarray (1-dim)
         ignore_index : boolean, default False
             Determines whether to forcefully align others with index of caller
 
@@ -1986,11 +1986,20 @@ class StringMethods(NoNewAttributesMixin):
             # either one-dimensional list-likes or scalars
             if all(is_list_like(x) for x in others):
                 los = []
-                warn = False
+                join_warn = False
+                depr_warn = False
                 # iterate through list and append list of series for each
                 # element (which we check to be one-dimensional and non-nested)
                 while others:
                     nxt = others.pop(0)  # nxt is guaranteed list-like by above
+
+                    # GH 21950 - DeprecationWarning
+                    # only allowing Series/Index/np.ndarray[1-dim] will greatly
+                    # simply this function post-deprecation.
+                    if not (isinstance(nxt, (Series, Index)) or
+                            (isinstance(nxt, np.ndarray) and nxt.ndim == 1)):
+                        depr_warn = True
+
                     if not isinstance(nxt, (DataFrame, Series,
                                             Index, np.ndarray)):
                         # safety for non-persistent list-likes (e.g. iterators)
@@ -2013,8 +2022,15 @@ class StringMethods(NoNewAttributesMixin):
                     nxt, wnx = self._get_series_list(nxt,
                                                      ignore_index=ignore_index)
                     los = los + nxt
-                    warn = warn or wnx
-                return (los, warn)
+                    join_warn = join_warn or wnx
+
+                    if depr_warn:
+                        warnings.warn('list-likes other than Series, Index, '
+                                      'or np.ndarray WITHIN another list-like '
+                                      'are deprecated and will be removed in '
+                                      'a future version.',
+                                      FutureWarning, stacklevel=3)
+                return (los, join_warn)
             elif all(not is_list_like(x) for x in others):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
@@ -2037,8 +2053,8 @@ class StringMethods(NoNewAttributesMixin):
             Series/Index/DataFrame) if `join` is not None.
 
             If others is a list-like that contains a combination of Series,
-            np.ndarray (1-dim) or list-like, then all elements will be unpacked
-            and must satisfy the above criteria individually.
+            Index or np.ndarray (1-dim), then all elements will be unpacked and
+            must satisfy the above criteria individually.
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
