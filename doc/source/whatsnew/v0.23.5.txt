@@ -41,6 +41,6 @@ Bug Fixes
 -
 -
 
-**Indexing**
+**I/O**
 
-- Fix ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
+- Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)
