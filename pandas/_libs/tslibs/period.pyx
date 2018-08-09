@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 from datetime import datetime, date
 
 from cpython cimport (
@@ -34,9 +33,9 @@ cdef extern from "../src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from pandas._libs.tslibs.timedeltas import Timedelta
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_dst_info
+from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 
 cimport ccalendar
@@ -55,7 +54,100 @@ from offsets import _Tick
 
 cdef bint PY2 = str == bytes
 
-cdef extern from "period_helper.h":
+
+ctypedef struct asfreq_info:
+    int64_t intraday_conversion_factor
+    int is_end
+    int to_end
+    int from_end
+
+ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
+
+
+cdef extern from *:
+    """
+    /*** FREQUENCY CONSTANTS ***/
+
+    #define FR_ANN 1000      /* Annual */
+    #define FR_ANNDEC FR_ANN /* Annual - December year end*/
+    #define FR_ANNJAN 1001   /* Annual - January year end*/
+    #define FR_ANNFEB 1002   /* Annual - February year end*/
+    #define FR_ANNMAR 1003   /* Annual - March year end*/
+    #define FR_ANNAPR 1004   /* Annual - April year end*/
+    #define FR_ANNMAY 1005   /* Annual - May year end*/
+    #define FR_ANNJUN 1006   /* Annual - June year end*/
+    #define FR_ANNJUL 1007   /* Annual - July year end*/
+    #define FR_ANNAUG 1008   /* Annual - August year end*/
+    #define FR_ANNSEP 1009   /* Annual - September year end*/
+    #define FR_ANNOCT 1010   /* Annual - October year end*/
+    #define FR_ANNNOV 1011   /* Annual - November year end*/
+
+    /* The standard quarterly frequencies with various fiscal year ends
+       eg, Q42005 for Q@OCT runs Aug 1, 2005 to Oct 31, 2005 */
+    #define FR_QTR 2000      /* Quarterly - December year end (default Q) */
+    #define FR_QTRDEC FR_QTR /* Quarterly - December year end */
+    #define FR_QTRJAN 2001   /* Quarterly - January year end */
+    #define FR_QTRFEB 2002   /* Quarterly - February year end */
+    #define FR_QTRMAR 2003   /* Quarterly - March year end */
+    #define FR_QTRAPR 2004   /* Quarterly - April year end */
+    #define FR_QTRMAY 2005   /* Quarterly - May year end */
+    #define FR_QTRJUN 2006   /* Quarterly - June year end */
+    #define FR_QTRJUL 2007   /* Quarterly - July year end */
+    #define FR_QTRAUG 2008   /* Quarterly - August year end */
+    #define FR_QTRSEP 2009   /* Quarterly - September year end */
+    #define FR_QTROCT 2010   /* Quarterly - October year end */
+    #define FR_QTRNOV 2011   /* Quarterly - November year end */
+
+    #define FR_MTH 3000 /* Monthly */
+
+    #define FR_WK 4000     /* Weekly */
+    #define FR_WKSUN FR_WK /* Weekly - Sunday end of week */
+    #define FR_WKMON 4001  /* Weekly - Monday end of week */
+    #define FR_WKTUE 4002  /* Weekly - Tuesday end of week */
+    #define FR_WKWED 4003  /* Weekly - Wednesday end of week */
+    #define FR_WKTHU 4004  /* Weekly - Thursday end of week */
+    #define FR_WKFRI 4005  /* Weekly - Friday end of week */
+    #define FR_WKSAT 4006  /* Weekly - Saturday end of week */
+
+    #define FR_BUS 5000 /* Business days */
+    #define FR_DAY 6000 /* Daily */
+    #define FR_HR 7000  /* Hourly */
+    #define FR_MIN 8000 /* Minutely */
+    #define FR_SEC 9000 /* Secondly */
+    #define FR_MS 10000 /* Millisecondly */
+    #define FR_US 11000 /* Microsecondly */
+    #define FR_NS 12000 /* Nanosecondly */
+
+    #define FR_UND -10000 /* Undefined */
+
+    static int64_t daytime_conversion_factor_matrix[7][7] = {
+        {1, 24, 1440, 86400, 86400000, 86400000000, 86400000000000},
+        {0,  1,   60,  3600,  3600000,  3600000000,  3600000000000},
+        {0,  0,   1,     60,    60000,    60000000,    60000000000},
+        {0,  0,   0,      1,     1000,     1000000,     1000000000},
+        {0,  0,   0,      0,        1,        1000,        1000000},
+        {0,  0,   0,      0,        0,           1,           1000},
+        {0,  0,   0,      0,        0,           0,              1}};
+
+    int max_value(int a, int b) { return a > b ? a : b; }
+
+    static int min_value(int a, int b) { return a < b ? a : b; }
+
+    npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
+        int row = min_value(from_index, to_index);
+        int col = max_value(from_index, to_index);
+        // row or col < 6 means frequency strictly lower than Daily, which
+        // do not use daytime_conversion_factors
+        if (row < 6) {
+            return 0;
+        } else if (col < 6) {
+            return 0;
+        }
+        return daytime_conversion_factor_matrix[row - 6][col - 6];
+    }
+    """
+    int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
+    int max_value(int left, int right) nogil
     int FR_ANN
     int FR_QTR
     int FR_MTH
@@ -70,20 +162,512 @@ cdef extern from "period_helper.h":
     int FR_BUS
     int FR_UND
 
-    ctypedef struct asfreq_info:
-        int64_t intraday_conversion_factor
-        int is_end
 
-        int to_end
-        int from_end
+cdef int64_t nofunc(int64_t ordinal, asfreq_info *af_info):
+    return np.iinfo(np.int32).min
 
-    ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) nogil
 
-    freq_conv_func get_asfreq_func(int fromFreq, int toFreq) nogil
+cdef int64_t no_op(int64_t ordinal, asfreq_info *af_info):
+    return ordinal
 
-    int64_t get_daytime_conversion_factor(int from_index, int to_index) nogil
-    int max_value(int left, int right) nogil
 
+cdef freq_conv_func get_asfreq_func(int from_freq, int to_freq) nogil:
+    cdef:
+        int from_group = get_freq_group(from_freq)
+        int to_group = get_freq_group(to_freq)
+
+    if from_group == FR_UND:
+        from_group = FR_DAY
+
+    if from_group == FR_BUS:
+        if to_group == FR_ANN:
+            return <freq_conv_func>asfreq_BtoA
+        elif to_group == FR_QTR:
+            return <freq_conv_func>asfreq_BtoQ
+        elif to_group == FR_MTH:
+            return <freq_conv_func>asfreq_BtoM
+        elif to_group == FR_WK:
+            return <freq_conv_func>asfreq_BtoW
+        elif to_group == FR_BUS:
+            return <freq_conv_func>no_op
+        elif to_group  in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+            return <freq_conv_func>asfreq_BtoDT
+        else:
+            return <freq_conv_func>nofunc
+
+    elif to_group == FR_BUS:
+        if from_group == FR_ANN:
+            return <freq_conv_func>asfreq_AtoB
+        elif from_group == FR_QTR:
+            return <freq_conv_func>asfreq_QtoB
+        elif from_group == FR_MTH:
+            return <freq_conv_func>asfreq_MtoB
+        elif from_group == FR_WK:
+            return <freq_conv_func>asfreq_WtoB
+        elif from_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC,
+                            FR_MS, FR_US, FR_NS]:
+            return <freq_conv_func>asfreq_DTtoB
+        else:
+            return <freq_conv_func>nofunc
+
+    elif from_group == FR_ANN:
+        if to_group == FR_ANN:
+            return <freq_conv_func>asfreq_AtoA
+        elif to_group == FR_QTR:
+            return <freq_conv_func>asfreq_AtoQ
+        elif to_group == FR_MTH:
+            return <freq_conv_func>asfreq_AtoM
+        elif to_group == FR_WK:
+            return <freq_conv_func>asfreq_AtoW
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+            return <freq_conv_func>asfreq_AtoDT
+        else:
+            return <freq_conv_func>nofunc
+
+    elif from_group == FR_QTR:
+        if to_group == FR_ANN:
+            return <freq_conv_func>asfreq_QtoA
+        elif to_group == FR_QTR:
+            return <freq_conv_func>asfreq_QtoQ
+        elif to_group == FR_MTH:
+            return <freq_conv_func>asfreq_QtoM
+        elif to_group == FR_WK:
+            return <freq_conv_func>asfreq_QtoW
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+            return <freq_conv_func>asfreq_QtoDT
+        else:
+            return <freq_conv_func>nofunc
+
+    elif from_group == FR_MTH:
+        if to_group == FR_ANN:
+            return <freq_conv_func>asfreq_MtoA
+        elif to_group == FR_QTR:
+            return <freq_conv_func>asfreq_MtoQ
+        elif to_group == FR_MTH:
+            return <freq_conv_func>no_op
+        elif to_group == FR_WK:
+            return <freq_conv_func>asfreq_MtoW
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+            return <freq_conv_func>asfreq_MtoDT
+        else:
+            return <freq_conv_func>nofunc
+
+    elif from_group == FR_WK:
+        if to_group == FR_ANN:
+            return <freq_conv_func>asfreq_WtoA
+        elif to_group == FR_QTR:
+            return <freq_conv_func>asfreq_WtoQ
+        elif to_group == FR_MTH:
+            return <freq_conv_func>asfreq_WtoM
+        elif to_group == FR_WK:
+            return <freq_conv_func>asfreq_WtoW
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+            return <freq_conv_func>asfreq_WtoDT
+        else:
+            return <freq_conv_func>nofunc
+
+    elif from_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+        if to_group == FR_ANN:
+            return <freq_conv_func>asfreq_DTtoA
+        elif to_group == FR_QTR:
+            return <freq_conv_func>asfreq_DTtoQ
+        elif to_group == FR_MTH:
+            return <freq_conv_func>asfreq_DTtoM
+        elif to_group == FR_WK:
+            return <freq_conv_func>asfreq_DTtoW
+        elif to_group in [FR_DAY, FR_HR, FR_MIN, FR_SEC, FR_MS, FR_US, FR_NS]:
+            if from_group > to_group:
+                return <freq_conv_func>downsample_daytime
+            else:
+                return <freq_conv_func>upsample_daytime
+
+        else:
+            return <freq_conv_func>nofunc
+
+    else:
+        return <freq_conv_func>nofunc
+
+
+# --------------------------------------------------------------------
+# Frequency Conversion Helpers
+
+cdef int64_t DtoB_weekday(int64_t unix_date) nogil:
+    return ((unix_date + 4) // 7) * 5 + ((unix_date + 4) % 7) - 4
+
+
+cdef int64_t DtoB(npy_datetimestruct *dts, int roll_back, int64_t unix_date):
+    cdef:
+        int day_of_week = dayofweek(dts.year, dts.month, dts.day)
+
+    if roll_back == 1:
+        if day_of_week > 4:
+            # change to friday before weekend
+            unix_date -= (day_of_week - 4)
+    else:
+        if day_of_week > 4:
+            # change to Monday after weekend
+            unix_date += (7 - day_of_week)
+
+    return DtoB_weekday(unix_date)
+
+
+cdef inline int64_t upsample_daytime(int64_t ordinal, asfreq_info *af_info):
+    if (af_info.is_end):
+        return (ordinal + 1) * af_info.intraday_conversion_factor - 1
+    else:
+        return ordinal * af_info.intraday_conversion_factor
+
+
+cdef inline int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info):
+    return ordinal // (af_info.intraday_conversion_factor)
+
+
+cdef inline int64_t transform_via_day(int64_t ordinal,
+                                      asfreq_info *af_info,
+                                      freq_conv_func first_func,
+                                      freq_conv_func second_func):
+    cdef:
+        int64_t result
+
+    result = first_func(ordinal, af_info)
+    result = second_func(result, af_info)
+    return result
+
+# --------------------------------------------------------------------
+# Conversion _to_ Daily Freq
+
+cdef void AtoD_ym(int64_t ordinal, int64_t *year,
+                  int *month, asfreq_info *af_info):
+    year[0] = ordinal + 1970
+    month[0] = 1
+
+    if af_info.from_end != 12:
+        month[0] += af_info.from_end
+        if month[0] > 12:
+            #  This case is never reached, but is kept for symmetry
+            # with QtoD_ym
+            month[0] -= 12
+        else:
+            year[0] -= 1
+
+
+cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int64_t unix_date, year
+        int month
+
+    ordinal += af_info.is_end
+    AtoD_ym(ordinal, &year, &month, af_info)
+
+    unix_date = unix_date_from_ymd(year, month, 1)
+    unix_date -= af_info.is_end
+    return upsample_daytime(unix_date, af_info)
+
+
+cdef void QtoD_ym(int64_t ordinal, int *year,
+                  int *month, asfreq_info *af_info):
+    year[0] = ordinal // 4 + 1970
+    month[0] = (ordinal % 4) * 3 + 1
+
+    if af_info.from_end != 12:
+        month[0] += af_info.from_end
+        if month[0] > 12:
+            month[0] -= 12
+        else:
+            year[0] -= 1
+
+
+cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int64_t unix_date
+        int year, month
+
+    ordinal += af_info.is_end
+    QtoD_ym(ordinal, &year, &month, af_info)
+
+    unix_date = unix_date_from_ymd(year, month, 1)
+    unix_date -= af_info.is_end
+    return upsample_daytime(unix_date, af_info)
+
+
+cdef void MtoD_ym(int64_t ordinal, int *year, int *month):
+    year[0] = ordinal // 12 + 1970
+    month[0] = ordinal % 12 + 1
+
+
+cdef int64_t asfreq_MtoDT(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int64_t unix_date
+        int year, month
+
+    ordinal += af_info.is_end
+    MtoD_ym(ordinal, &year, &month)
+
+    unix_date = unix_date_from_ymd(year, month, 1)
+    unix_date -= af_info.is_end
+    return upsample_daytime(unix_date, af_info)
+
+
+cdef int64_t asfreq_WtoDT(int64_t ordinal, asfreq_info *af_info):
+    ordinal = (ordinal * 7 + af_info.from_end - 4 +
+               (7 - 1) * (af_info.is_end - 1))
+    return upsample_daytime(ordinal, af_info)
+
+
+# --------------------------------------------------------------------
+# Conversion _to_ BusinessDay Freq
+
+cdef int64_t asfreq_AtoB(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int roll_back
+        npy_datetimestruct dts
+        int64_t unix_date = asfreq_AtoDT(ordinal, af_info)
+
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts)
+    roll_back = af_info.is_end
+    return DtoB(&dts, roll_back, unix_date)
+
+
+cdef int64_t asfreq_QtoB(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int roll_back
+        npy_datetimestruct dts
+        int64_t unix_date = asfreq_QtoDT(ordinal, af_info)
+
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts)
+    roll_back = af_info.is_end
+    return DtoB(&dts, roll_back, unix_date)
+
+
+cdef int64_t asfreq_MtoB(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int roll_back
+        npy_datetimestruct dts
+        int64_t unix_date = asfreq_MtoDT(ordinal, af_info)
+
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts)
+    roll_back = af_info.is_end
+    return DtoB(&dts, roll_back, unix_date)
+
+
+cdef int64_t asfreq_WtoB(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int roll_back
+        npy_datetimestruct dts
+        int64_t unix_date = asfreq_WtoDT(ordinal, af_info)
+
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts)
+    roll_back = af_info.is_end
+    return DtoB(&dts, roll_back, unix_date)
+
+
+cdef int64_t asfreq_DTtoB(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int roll_back
+        npy_datetimestruct dts
+        int64_t unix_date = downsample_daytime(ordinal, af_info)
+
+    pandas_datetime_to_datetimestruct(unix_date, NPY_FR_D, &dts)
+    # This usage defines roll_back the opposite way from the others
+    roll_back = 1 - af_info.is_end
+    return DtoB(&dts, roll_back, unix_date)
+
+
+# ----------------------------------------------------------------------
+# Conversion _from_ Daily Freq
+
+cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        npy_datetimestruct dts
+
+    ordinal = downsample_daytime(ordinal, af_info)
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
+    if dts.month > af_info.to_end:
+        return <int64_t>(dts.year + 1 - 1970)
+    else:
+        return <int64_t>(dts.year - 1970)
+
+
+cdef int DtoQ_yq(int64_t ordinal, asfreq_info *af_info, int *year):
+    cdef:
+        npy_datetimestruct dts
+        int quarter
+
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
+    # TODO: Another version of this function used
+    # date_info_from_days_and_time(&dts, unix_date, 0)
+    # instead of pandas_datetime_to_datetimestruct; is one more performant?
+    if af_info.to_end != 12:
+        dts.month -= af_info.to_end
+        if dts.month <= 0:
+            dts.month += 12
+        else:
+            dts.year += 1
+
+    year[0] = dts.year
+    quarter = month_to_quarter(dts.month)
+    return quarter
+
+
+cdef int64_t asfreq_DTtoQ(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        int year, quarter
+
+    ordinal = downsample_daytime(ordinal, af_info)
+
+    quarter = DtoQ_yq(ordinal, af_info, &year)
+    return <int64_t>((year - 1970) * 4 + quarter - 1)
+
+
+cdef int64_t asfreq_DTtoM(int64_t ordinal, asfreq_info *af_info):
+    cdef:
+        npy_datetimestruct dts
+
+    ordinal = downsample_daytime(ordinal, af_info)
+    pandas_datetime_to_datetimestruct(ordinal, NPY_FR_D, &dts)
+    return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
+
+
+cdef int64_t asfreq_DTtoW(int64_t ordinal, asfreq_info *af_info):
+    ordinal = downsample_daytime(ordinal, af_info)
+    return (ordinal + 3 - af_info.to_end) // 7 + 1
+
+
+# --------------------------------------------------------------------
+# Conversion _from_ BusinessDay Freq
+
+cdef int64_t asfreq_BtoDT(int64_t ordinal, asfreq_info *af_info):
+    ordinal = ((ordinal + 3) // 5) * 7 + (ordinal + 3) % 5 -3
+    return upsample_daytime(ordinal, af_info)
+
+
+cdef int64_t asfreq_BtoA(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_BtoDT,
+                             <freq_conv_func>asfreq_DTtoA)
+
+
+cdef int64_t asfreq_BtoQ(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_BtoDT,
+                             <freq_conv_func>asfreq_DTtoQ)
+
+
+cdef int64_t asfreq_BtoM(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_BtoDT,
+                             <freq_conv_func>asfreq_DTtoM)
+
+
+cdef int64_t asfreq_BtoW(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_BtoDT,
+                             <freq_conv_func>asfreq_DTtoW)
+
+
+# ----------------------------------------------------------------------
+# Conversion _from_ Annual Freq
+
+cdef int64_t asfreq_AtoA(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_AtoDT,
+                             <freq_conv_func>asfreq_DTtoA)
+
+
+cdef int64_t asfreq_AtoQ(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_AtoDT,
+                             <freq_conv_func>asfreq_DTtoQ);
+
+
+cdef int64_t asfreq_AtoM(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_AtoDT,
+                             <freq_conv_func>asfreq_DTtoM)
+
+
+cdef int64_t asfreq_AtoW(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_AtoDT,
+                             <freq_conv_func>asfreq_DTtoW)
+
+
+# ----------------------------------------------------------------------
+# Conversion _from_ Quarterly Freq
+
+cdef int64_t asfreq_QtoQ(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_QtoDT,
+                             <freq_conv_func>asfreq_DTtoQ)
+
+
+cdef int64_t asfreq_QtoA(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_QtoDT,
+                             <freq_conv_func>asfreq_DTtoA)
+
+
+cdef int64_t asfreq_QtoM(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_QtoDT,
+                             <freq_conv_func>asfreq_DTtoM)
+
+
+cdef int64_t asfreq_QtoW(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_QtoDT,
+                             <freq_conv_func>asfreq_DTtoW)
+
+
+# ----------------------------------------------------------------------
+# Conversion _from_ Monthly Freq
+
+cdef int64_t asfreq_MtoA(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_MtoDT,
+                             <freq_conv_func>asfreq_DTtoA)
+
+
+cdef int64_t asfreq_MtoQ(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_MtoDT,
+                             <freq_conv_func>asfreq_DTtoQ)
+
+
+cdef int64_t asfreq_MtoW(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_MtoDT,
+                             <freq_conv_func>asfreq_DTtoW)
+
+
+# ----------------------------------------------------------------------
+# Conversion _from_ Weekly Freq
+
+cdef int64_t asfreq_WtoA(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_WtoDT,
+                             <freq_conv_func>asfreq_DTtoA)
+
+
+cdef int64_t asfreq_WtoQ(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_WtoDT,
+                             <freq_conv_func>asfreq_DTtoQ)
+
+
+cdef int64_t asfreq_WtoM(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_WtoDT,
+                             <freq_conv_func>asfreq_DTtoM)
+
+
+cdef int64_t asfreq_WtoW(int64_t ordinal, asfreq_info *af_info):
+    return transform_via_day(ordinal, af_info,
+                             <freq_conv_func>asfreq_WtoDT,
+                             <freq_conv_func>asfreq_DTtoW)
+
+
+# ----------------------------------------------------------------------
 
 @cython.cdivision
 cdef char* c_strftime(npy_datetimestruct *dts, char *fmt):
@@ -131,6 +715,23 @@ cdef inline int get_freq_group(int freq) nogil:
 
 cdef inline int get_freq_group_index(int freq) nogil:
     return freq // 1000
+
+
+# Find the unix_date (days elapsed since datetime(1970, 1, 1)
+# for the given year/month/day.
+# Assumes GREGORIAN_CALENDAR */
+cdef int64_t unix_date_from_ymd(int year, int month, int day) nogil:
+    # Calculate the absolute date
+    cdef:
+        npy_datetimestruct dts
+        int64_t unix_date
+
+    memset(&dts, 0, sizeof(npy_datetimestruct))
+    dts.year = year
+    dts.month = month
+    dts.day = day
+    unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, &dts)
+    return unix_date
 
 
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
@@ -392,25 +993,6 @@ cdef int get_yq(int64_t ordinal, int freq, int *quarter, int *year):
 
     quarter[0] = DtoQ_yq(unix_date, &af_info, year)
     return qtr_freq
-
-
-cdef int DtoQ_yq(int64_t unix_date, asfreq_info *af_info, int *year):
-    cdef:
-        npy_datetimestruct dts
-        int quarter
-
-    date_info_from_days_and_time(&dts, unix_date, 0)
-
-    if af_info.to_end != 12:
-        dts.month -= af_info.to_end
-        if dts.month <= 0:
-            dts.month += 12
-        else:
-            dts.year += 1
-
-    year[0] = dts.year
-    quarter = month_to_quarter(dts.month)
-    return quarter
 
 
 cdef inline int month_to_quarter(int month):
@@ -1545,7 +2127,7 @@ cdef class _Period(object):
         See Also
         --------
         Period.year : Return the calendar year of the period.
-        
+
         Examples
         --------
         If the natural and fiscal year are the same, `qyear` and `year` will
@@ -1973,6 +2555,6 @@ def _validate_end_alias(how):
                 'START': 'S', 'FINISH': 'E',
                 'BEGIN': 'S', 'END': 'E'}
     how = how_dict.get(str(how).upper())
-    if how not in set(['S', 'E']):
+    if how not in {'S', 'E'}:
         raise ValueError('How must be one of S or E')
     return how

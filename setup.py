@@ -234,7 +234,6 @@ class CleanCommand(Command):
         ujson_lib = pjoin(base, 'ujson', 'lib')
         self._clean_exclude = [pjoin(dt, 'np_datetime.c'),
                                pjoin(dt, 'np_datetime_strings.c'),
-                               pjoin(tsbase, 'period_helper.c'),
                                pjoin(parser, 'tokenizer.c'),
                                pjoin(parser, 'io.c'),
                                pjoin(ujson_python, 'ujson.c'),
@@ -484,26 +483,17 @@ def maybe_cythonize(extensions, *args, **kwargs):
         return extensions
 
 
-lib_depends = ['inference']
-
-
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name + suffix)
 
-
-if suffix == '.pyx':
-    lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src')
-                   for f in lib_depends]
-else:
-    lib_depends = []
 
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 ts_include = ['pandas/_libs/tslibs/src']
 
 
-lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
-                             'pandas/_libs/src/parse_helper.h',
-                             'pandas/_libs/src/compat_helper.h']
+lib_depends = ['pandas/_libs/src/numpy_helper.h',
+               'pandas/_libs/src/parse_helper.h',
+               'pandas/_libs/src/compat_helper.h']
 
 np_datetime_headers = [
     'pandas/_libs/tslibs/src/datetime/np_datetime.h',
@@ -616,10 +606,8 @@ ext_data = {
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'include': ts_include,
-        'depends': tseries_depends + [
-            'pandas/_libs/tslibs/src/period_helper.h'],
-        'sources': np_datetime_sources + [
-            'pandas/_libs/tslibs/src/period_helper.c']},
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'include': ts_include,
