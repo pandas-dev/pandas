@@ -927,7 +927,7 @@ def str_extract(arr, pat, flags=0, expand=True):
     if expand:
         return _str_extract_frame(arr._orig, pat, flags=flags)
     else:
-        result, name = _str_extract_noexpand(arr._data, pat, flags=flags)
+        result, name = _str_extract_noexpand(arr._parent, pat, flags=flags)
         return arr._wrap_result(result, name=name, expand=expand)
 
 
@@ -1082,7 +1082,7 @@ def str_get_dummies(arr, sep='|'):
     tags = set()
     for ts in arr.str.split(sep):
         tags.update(ts)
-    tags = sorted(tags - set([""]))
+    tags = sorted(tags - {""})
 
     dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
 
@@ -1108,10 +1108,17 @@ def str_join(arr, sep):
     Returns
     -------
     Series/Index: object
+        The list entries concatenated by intervening occurrences of the
+        delimiter.
+
+    Raises
+    -------
+    AttributeError
+        If the supplied Series contains neither strings nor lists.
 
     Notes
     -----
-    If any of the lists does not contain string objects the result of the join
+    If any of the list items is not a string object, the result of the join
     will be `NaN`.
 
     See Also
@@ -1121,13 +1128,12 @@ def str_join(arr, sep):
 
     Examples
     --------
-
     Example with a list that contains non-string elements.
 
     >>> s = pd.Series([['lion', 'elephant', 'zebra'],
     ...                [1.1, 2.2, 3.3],
     ...                ['cat', np.nan, 'dog'],
-    ...                ['cow', 4.5, 'goat']
+    ...                ['cow', 4.5, 'goat'],
     ...                ['duck', ['swan', 'fish'], 'guppy']])
     >>> s
     0        [lion, elephant, zebra]
@@ -1137,8 +1143,8 @@ def str_join(arr, sep):
     4    [duck, [swan, fish], guppy]
     dtype: object
 
-    Join all lists using an '-', the lists containing object(s) of types other
-    than str will become a NaN.
+    Join all lists using a '-'. The lists containing object(s) of types other
+    than str will produce a NaN.
 
     >>> s.str.join('-')
     0    lion-elephant-zebra
@@ -1721,7 +1727,7 @@ def str_encode(arr, encoding, errors="strict"):
 
 def _noarg_wrapper(f, docstring=None, **kargs):
     def wrapper(self):
-        result = _na_map(f, self._data, **kargs)
+        result = _na_map(f, self._parent, **kargs)
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
@@ -1735,15 +1741,15 @@ def _noarg_wrapper(f, docstring=None, **kargs):
 
 def _pat_wrapper(f, flags=False, na=False, **kwargs):
     def wrapper1(self, pat):
-        result = f(self._data, pat)
+        result = f(self._parent, pat)
         return self._wrap_result(result)
 
     def wrapper2(self, pat, flags=0, **kwargs):
-        result = f(self._data, pat, flags=flags, **kwargs)
+        result = f(self._parent, pat, flags=flags, **kwargs)
         return self._wrap_result(result)
 
     def wrapper3(self, pat, na=np.nan):
-        result = f(self._data, pat, na=na)
+        result = f(self._parent, pat, na=na)
         return self._wrap_result(result)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
@@ -1783,7 +1789,7 @@ class StringMethods(NoNewAttributesMixin):
         self._is_categorical = is_categorical_dtype(data)
 
         # .values.categories works for both Series/Index
-        self._data = data.values.categories if self._is_categorical else data
+        self._parent = data.values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -2334,14 +2340,14 @@ class StringMethods(NoNewAttributesMixin):
         'side': 'beginning',
         'method': 'split'})
     def split(self, pat=None, n=-1, expand=False):
-        result = str_split(self._data, pat, n=n)
+        result = str_split(self._parent, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'end',
         'method': 'rsplit'})
     def rsplit(self, pat=None, n=-1, expand=False):
-        result = str_rsplit(self._data, pat, n=n)
+        result = str_rsplit(self._parent, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
     _shared_docs['str_partition'] = ("""
@@ -2432,7 +2438,7 @@ class StringMethods(NoNewAttributesMixin):
     })
     def partition(self, pat=' ', expand=True):
         f = lambda x: x.partition(pat)
-        result = _na_map(f, self._data)
+        result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
     @Appender(_shared_docs['str_partition'] % {
@@ -2443,45 +2449,45 @@ class StringMethods(NoNewAttributesMixin):
     })
     def rpartition(self, pat=' ', expand=True):
         f = lambda x: x.rpartition(pat)
-        result = _na_map(f, self._data)
+        result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
     @copy(str_get)
     def get(self, i):
-        result = str_get(self._data, i)
+        result = str_get(self._parent, i)
         return self._wrap_result(result)
 
     @copy(str_join)
     def join(self, sep):
-        result = str_join(self._data, sep)
+        result = str_join(self._parent, sep)
         return self._wrap_result(result)
 
     @copy(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
-        result = str_contains(self._data, pat, case=case, flags=flags, na=na,
+        result = str_contains(self._parent, pat, case=case, flags=flags, na=na,
                               regex=regex)
         return self._wrap_result(result)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
-        result = str_match(self._data, pat, case=case, flags=flags, na=na,
+        result = str_match(self._parent, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
-        result = str_replace(self._data, pat, repl, n=n, case=case,
+        result = str_replace(self._parent, pat, repl, n=n, case=case,
                              flags=flags, regex=regex)
         return self._wrap_result(result)
 
     @copy(str_repeat)
     def repeat(self, repeats):
-        result = str_repeat(self._data, repeats)
+        result = str_repeat(self._parent, repeats)
         return self._wrap_result(result)
 
     @copy(str_pad)
     def pad(self, width, side='left', fillchar=' '):
-        result = str_pad(self._data, width, side=side, fillchar=fillchar)
+        result = str_pad(self._parent, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
     _shared_docs['str_pad'] = ("""
@@ -2574,27 +2580,27 @@ class StringMethods(NoNewAttributesMixin):
         4     NaN
         dtype: object
         """
-        result = str_pad(self._data, width, side='left', fillchar='0')
+        result = str_pad(self._parent, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=None):
-        result = str_slice(self._data, start, stop, step)
+        result = str_slice(self._parent, start, stop, step)
         return self._wrap_result(result)
 
     @copy(str_slice_replace)
     def slice_replace(self, start=None, stop=None, repl=None):
-        result = str_slice_replace(self._data, start, stop, repl)
+        result = str_slice_replace(self._parent, start, stop, repl)
         return self._wrap_result(result)
 
     @copy(str_decode)
     def decode(self, encoding, errors="strict"):
-        result = str_decode(self._data, encoding, errors)
+        result = str_decode(self._parent, encoding, errors)
         return self._wrap_result(result)
 
     @copy(str_encode)
     def encode(self, encoding, errors="strict"):
-        result = str_encode(self._data, encoding, errors)
+        result = str_encode(self._parent, encoding, errors)
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = (r"""
@@ -2663,38 +2669,38 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
                                                method='strip'))
     def strip(self, to_strip=None):
-        result = str_strip(self._data, to_strip, side='both')
+        result = str_strip(self._parent, to_strip, side='both')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left side',
                                                method='lstrip'))
     def lstrip(self, to_strip=None):
-        result = str_strip(self._data, to_strip, side='left')
+        result = str_strip(self._parent, to_strip, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='right side',
                                                method='rstrip'))
     def rstrip(self, to_strip=None):
-        result = str_strip(self._data, to_strip, side='right')
+        result = str_strip(self._parent, to_strip, side='right')
         return self._wrap_result(result)
 
     @copy(str_wrap)
     def wrap(self, width, **kwargs):
-        result = str_wrap(self._data, width, **kwargs)
+        result = str_wrap(self._parent, width, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
     def get_dummies(self, sep='|'):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        data = self._orig.astype(str) if self._is_categorical else self._data
+        data = self._orig.astype(str) if self._is_categorical else self._parent
         result, name = str_get_dummies(data, sep)
         return self._wrap_result(result, use_codes=(not self._is_categorical),
                                  name=name, expand=True)
 
     @copy(str_translate)
     def translate(self, table, deletechars=None):
-        result = str_translate(self._data, table, deletechars)
+        result = str_translate(self._parent, table, deletechars)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
@@ -2737,14 +2743,15 @@ class StringMethods(NoNewAttributesMixin):
               dict(side='lowest', method='find',
                    also='rfind : Return highest indexes in each strings'))
     def find(self, sub, start=0, end=None):
-        result = str_find(self._data, sub, start=start, end=end, side='left')
+        result = str_find(self._parent, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['find'] %
               dict(side='highest', method='rfind',
                    also='find : Return lowest indexes in each strings'))
     def rfind(self, sub, start=0, end=None):
-        result = str_find(self._data, sub, start=start, end=end, side='right')
+        result = str_find(self._parent, sub,
+                          start=start, end=end, side='right')
         return self._wrap_result(result)
 
     def normalize(self, form):
@@ -2763,7 +2770,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         import unicodedata
         f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
-        result = _na_map(f, self._data)
+        result = _na_map(f, self._parent)
         return self._wrap_result(result)
 
     _shared_docs['index'] = ("""
@@ -2794,14 +2801,16 @@ class StringMethods(NoNewAttributesMixin):
               dict(side='lowest', similar='find', method='index',
                    also='rindex : Return highest indexes in each strings'))
     def index(self, sub, start=0, end=None):
-        result = str_index(self._data, sub, start=start, end=end, side='left')
+        result = str_index(self._parent, sub,
+                           start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['index'] %
               dict(side='highest', similar='rfind', method='rindex',
                    also='index : Return lowest indexes in each strings'))
     def rindex(self, sub, start=0, end=None):
-        result = str_index(self._data, sub, start=start, end=end, side='right')
+        result = str_index(self._parent, sub,
+                           start=start, end=end, side='right')
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""

@@ -274,9 +274,8 @@ class DateOffset(BaseOffset):
                                       "implementation".format(
                                           name=self.__class__.__name__))
         kwds = self.kwds
-        relativedelta_fast = set(['years', 'months', 'weeks',
-                                  'days', 'hours', 'minutes',
-                                  'seconds', 'microseconds'])
+        relativedelta_fast = {'years', 'months', 'weeks', 'days', 'hours',
+                              'minutes', 'seconds', 'microseconds'}
         # relativedelta/_offset path only valid for base DateOffset
         if (self._use_relativedelta and
                 set(kwds).issubset(relativedelta_fast)):
@@ -318,7 +317,7 @@ class DateOffset(BaseOffset):
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
     def _repr_attrs(self):
-        exclude = set(['n', 'inc', 'normalize'])
+        exclude = {'n', 'inc', 'normalize'}
         attrs = []
         for attr in sorted(self.__dict__):
             if attr.startswith('_') or attr == 'kwds':

@@ -5,7 +5,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import time
-from cpython.datetime cimport (PyDateTime_IMPORT, PyDateTime_CheckExact,
+from cpython.datetime cimport (PyDateTime_IMPORT,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -252,12 +252,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = set([
-    'years', 'months', 'weeks', 'days',
-    'year', 'month', 'day', 'weekday',
-    'hour', 'minute', 'second', 'microsecond',
-    'nanosecond', 'nanoseconds',
-    'hours', 'minutes', 'seconds', 'microseconds'])
+relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
+                      'day', 'weekday', 'hour', 'minute', 'second',
+                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
+                      'minutes', 'seconds', 'microseconds'}
 
 
 def _determine_offset(kwds):

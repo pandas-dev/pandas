@@ -1227,6 +1227,7 @@ def _arith_method_SERIES(cls, op, special):
 
         elif (is_extension_array_dtype(left) or
                 is_extension_array_dtype(right)):
+            # TODO: should this include `not is_scalar(right)`?
             return dispatch_to_extension_op(op, left, right)
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
@@ -1316,13 +1317,11 @@ def _comp_method_SERIES(cls, op, special):
         # should have guarantess on what x, y can be type-wise
         # Extension Dtypes are not called here
 
-        # dispatch to the categorical if we have a categorical
-        # in either operand
-        if is_categorical_dtype(y) and not is_scalar(y):
-            # The `not is_scalar(y)` check excludes the string "category"
-            return op(y, x)
+        # Checking that cases that were once handled here are no longer
+        # reachable.
+        assert not (is_categorical_dtype(y) and not is_scalar(y))
 
-        elif is_object_dtype(x.dtype):
+        if is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
 
         elif is_datetimelike_v_numeric(x, y):
@@ -1380,7 +1379,7 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
-        if is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
+        elif is_datetime64_dtype(self) or is_datetime64tz_dtype(self):
             # Dispatch to DatetimeIndex to ensure identical
             # Series/Index behavior
             if (isinstance(other, datetime.date) and
@@ -1422,8 +1421,9 @@ def _comp_method_SERIES(cls, op, special):
                                      name=res_name)
 
         elif (is_extension_array_dtype(self) or
-              (is_extension_array_dtype(other) and
-               not is_scalar(other))):
+              (is_extension_array_dtype(other) and not is_scalar(other))):
+            # Note: the `not is_scalar(other)` condition rules out
+            # e.g. other == "category"
             return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
@@ -1445,13 +1445,6 @@ def _comp_method_SERIES(cls, op, special):
             # rename is needed in case res_name is None and self.name
             # is not.
             return result.__finalize__(self).rename(res_name)
-
-        elif isinstance(other, pd.Categorical):
-            # ordering of checks matters; by this point we know
-            # that not is_categorical_dtype(self)
-            res_values = op(self.values, other)
-            return self._constructor(res_values, index=self.index,
-                                     name=res_name)
 
         elif is_scalar(other) and isna(other):
             # numpy does not like comparisons vs None
@@ -1581,6 +1574,41 @@ def _flex_method_SERIES(cls, op, special):
 
 # -----------------------------------------------------------------------------
 # DataFrame
+
+def dispatch_to_series(left, right, func):
+    """
+    Evaluate the frame operation func(left, right) by evaluating
+    column-by-column, dispatching to the Series implementation.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : scalar or DataFrame
+    func : arithmetic or comparison operator
+
+    Returns
+    -------
+    DataFrame
+    """
+    # Note: we use iloc to access columns for compat with cases
+    #       with non-unique columns.
+    if lib.is_scalar(right):
+        new_data = {i: func(left.iloc[:, i], right)
+                    for i in range(len(left.columns))}
+    elif isinstance(right, ABCDataFrame):
+        assert right._indexed_same(left)
+        new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
+                    for i in range(len(left.columns))}
+    else:
+        # Remaining cases have less-obvious dispatch rules
+        raise NotImplementedError
+
+    result = left._constructor(new_data, index=left.index, copy=False)
+    # Pin columns instead of passing to constructor for compat with
+    # non-unique columns case
+    result.columns = left.columns
+    return result
+
 
 def _combine_series_frame(self, other, func, fill_value=None, axis=None,
                           level=None, try_cast=True):
