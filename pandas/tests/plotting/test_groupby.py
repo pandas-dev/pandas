@@ -23,12 +23,10 @@ def test_hist_bins_match():
                    columns=['rand'])
     df['group'] = [0] * N + [1] * N
     g = df.groupby('group')['rand']
-    bin_range = np.linspace(df['rand'].min(), df['rand'].max(), bins + 1)
-
-    ax = g.hist(bins=bins, alpha=0.7, equal_bins=True)
-    both_hists_max = g.apply(lambda x: max(
-        np.histogram(x, bins=bin_range)[0])).max()
-    assert ax.iloc[0].get_ylim()[1] >= both_hists_max
+    ax = g.hist(bins=bins, alpha=0.7, equal_bins=True)[0]
+    bin_width_group0 = ax.patches[0].get_width()
+    bin_width_group1 = ax.patches[bins].get_width()
+    assert np.isclose(bin_width_group0, bin_width_group1)
 
 
 @td.skip_if_no_mpl

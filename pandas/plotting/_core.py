@@ -2379,10 +2379,6 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    equal_bins : boolean, default False
-        Uses the overall maximum and minimum of the groups to set a shared
-        bins sequence, leading to equal bin widths for all
-        groups (only works if bins==None or int).
     **kwds
         All other plotting keyword arguments to be passed to
         :meth:`matplotlib.pyplot.hist`.
@@ -2474,8 +2470,11 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    bins: integer, default 10
-        Number of histogram bins to be used
+    equal_bins : boolean, default False
+        Uses the overall maximum and minimum of the groups to set a shared
+        bins sequence, leading to equal bin widths for all
+        groups (only works if bins==None or int).
+
     `**kwds` : keywords
         To be passed to the actual plotting function
 
@@ -2484,6 +2483,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
 
     """
+    # TODO: separate docstrings of series and groupby hist functions (GH-22241)
     import matplotlib.pyplot as plt
 
     if by is None:

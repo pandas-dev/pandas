@@ -28,6 +28,7 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
+    is_integer,
     ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -578,24 +579,27 @@ b  2""")
             # a little trickery for aggregation functions that need an axis
             # argument
             kwargs_with_axis = kwargs.copy()
+            kwargs_wo_axis = kwargs.copy()
+
             if 'axis' not in kwargs_with_axis or \
                kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
 
-            if (name == 'hist' and
-                    kwargs.pop('equal_bins', False)):
+            if name == 'hist' and kwargs_wo_axis.pop('equal_bins', False):
                 # GH-22222
-                bins = kwargs.pop('bins', None)
-                if type(bins) == int:
+                # if bins==None, use default value used in `hist_series`
+                bins = kwargs_wo_axis.pop('bins', 10)
+                if is_integer(bins):
+                    # share the same numpy array for all group bins
                     bins = np.linspace(self.obj.min(),
                                        self.obj.max(), bins + 1)
-                kwargs['bins'] = bins
+                kwargs_wo_axis['bins'] = bins
 
             def curried_with_axis(x):
                 return f(x, *args, **kwargs_with_axis)
 
             def curried(x):
-                return f(x, *args, **kwargs)
+                return f(x, *args, **kwargs_wo_axis)
 
             # preserve the name so we can detect it when calling plot methods,
             # to avoid duplicates
