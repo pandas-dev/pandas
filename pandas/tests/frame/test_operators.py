@@ -8,7 +8,7 @@ import operator
 
 import pytest
 
-from numpy import nan, random
+from numpy import nan
 import numpy as np
 
 from pandas.compat import range
@@ -30,60 +30,6 @@ from pandas.tests.frame.common import (TestData, _check_mixed_float,
 
 
 class TestDataFrameOperators(TestData):
-
-    def test_operators(self):
-        garbage = random.random(4)
-        colSeries = Series(garbage, index=np.array(self.frame.columns))
-
-        idSum = self.frame + self.frame
-        seriesSum = self.frame + colSeries
-
-        for col, series in compat.iteritems(idSum):
-            for idx, val in compat.iteritems(series):
-                origVal = self.frame[col][idx] * 2
-                if not np.isnan(val):
-                    assert val == origVal
-                else:
-                    assert np.isnan(origVal)
-
-        for col, series in compat.iteritems(seriesSum):
-            for idx, val in compat.iteritems(series):
-                origVal = self.frame[col][idx] + colSeries[col]
-                if not np.isnan(val):
-                    assert val == origVal
-                else:
-                    assert np.isnan(origVal)
-
-        added = self.frame2 + self.frame2
-        expected = self.frame2 * 2
-        assert_frame_equal(added, expected)
-
-        df = DataFrame({'a': ['a', None, 'b']})
-        assert_frame_equal(df + df, DataFrame({'a': ['aa', np.nan, 'bb']}))
-
-        # Test for issue #10181
-        for dtype in ('float', 'int64'):
-            frames = [
-                DataFrame(dtype=dtype),
-                DataFrame(columns=['A'], dtype=dtype),
-                DataFrame(index=[0], dtype=dtype),
-            ]
-            for df in frames:
-                assert (df + df).equals(df)
-                assert_frame_equal(df + df, df)
-
-    @pytest.mark.parametrize('other', [nan, 7, -23, 2.718, -3.14, np.inf])
-    def test_ops_np_scalar(self, other):
-        vals = np.random.randn(5, 3)
-        f = lambda x: DataFrame(x, index=list('ABCDE'),
-                                columns=['jim', 'joe', 'jolie'])
-
-        df = f(vals)
-
-        assert_frame_equal(df / np.array(other), f(vals / other))
-        assert_frame_equal(np.array(other) * df, f(vals * other))
-        assert_frame_equal(df + np.array(other), f(vals + other))
-        assert_frame_equal(np.array(other) - df, f(other - vals))
 
     def test_operators_boolean(self):
 

@@ -4,6 +4,7 @@
 # Specifically for numeric dtypes
 from datetime import timedelta
 from decimal import Decimal
+import operator
 
 import pytest
 import numpy as np
@@ -12,6 +13,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 from pandas.compat import PY3
+from pandas.core import ops
 from pandas import Timedelta, Series, Index, TimedeltaIndex
 
 
@@ -382,17 +384,12 @@ class TestMultiplicationDivision(object):
         expected = Index(idx.values / 2)
         tm.assert_index_equal(result, expected)
 
-    def test_mul_int(self, idx):
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
+    @pytest.mark.parametrize('op', [operator.mul, ops.rmul, operator.floordiv])
+    def test_mul_int_identity(self, op, idx, box):
+        idx = tm.box_expected(idx, box)
 
-    def test_rmul_int(self, idx):
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-    def test_floordiv_int(self, idx):
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
+        result = op(idx, 1)
+        tm.assert_equal(result, idx)
 
     def test_mul_int_array(self, idx):
         didx = idx * idx
@@ -434,22 +431,26 @@ class TestMultiplicationDivision(object):
         with pytest.raises(ValueError):
             idx * np.array([1, 2])
 
-    def test_pow_float(self, idx):
+    @pytest.mark.parametrize('op', [operator.pow, ops.rpow])
+    def test_pow_float(self, op, idx, box):
         # test power calculations both ways, GH#14973
-        expected = pd.Float64Index(idx.values**2.0)
-        result = idx**2.0
-        tm.assert_index_equal(result, expected)
+        expected = pd.Float64Index(op(idx.values, 2.0))
 
-    def test_rpow_float(self, idx):
-        # test power calculations both ways, GH#14973
-        expected = pd.Float64Index(2.0**idx.values)
-        result = 2.0**idx
-        tm.assert_index_equal(result, expected)
+        idx = tm.box_expected(idx, box)
+        expected = tm.box_expected(expected, box)
 
-    def test_modulo(self, idx):
+        result = op(idx, 2.0)
+        tm.assert_equal(result, expected)
+
+    def test_modulo(self, idx, box):
         # GH#9244
         expected = Index(idx.values % 2)
-        tm.assert_index_equal(idx % 2, expected)
+
+        idx = tm.box_expected(idx, box)
+        expected = tm.box_expected(expected, box)
+
+        result = idx % 2
+        tm.assert_equal(result, expected)
 
     def test_divmod(self, idx):
         result = divmod(idx, 2)
@@ -479,6 +480,66 @@ class TestMultiplicationDivision(object):
         for r, e in zip(result, expected):
             tm.assert_series_equal(r, e)
 
+    @pytest.mark.parametrize('other', [np.nan, 7, -23, 2.718, -3.14, np.inf])
+    def test_ops_np_scalar(self, other):
+        vals = np.random.randn(5, 3)
+        f = lambda x: pd.DataFrame(x, index=list('ABCDE'),
+                                   columns=['jim', 'joe', 'jolie'])
+
+        df = f(vals)
+
+        tm.assert_frame_equal(df / np.array(other), f(vals / other))
+        tm.assert_frame_equal(np.array(other) * df, f(vals * other))
+        tm.assert_frame_equal(df + np.array(other), f(vals + other))
+        tm.assert_frame_equal(np.array(other) - df, f(other - vals))
+
+    # TODO: taken from tests.frame.test_operators, needs cleanup
+    def test_operators(self):
+        seriesd = tm.getSeriesData()
+        frame = pd.DataFrame(seriesd)
+        frame2 = pd.DataFrame(seriesd, columns=['D', 'C', 'B', 'A'])
+
+        garbage = np.random.random(4)
+        colSeries = pd.Series(garbage, index=np.array(frame.columns))
+
+        idSum = frame + frame
+        seriesSum = frame + colSeries
+
+        for col, series in idSum.items():
+            for idx, val in series.items():
+                origVal = frame[col][idx] * 2
+                if not np.isnan(val):
+                    assert val == origVal
+                else:
+                    assert np.isnan(origVal)
+
+        for col, series in seriesSum.items():
+            for idx, val in series.items():
+                origVal = frame[col][idx] + colSeries[col]
+                if not np.isnan(val):
+                    assert val == origVal
+                else:
+                    assert np.isnan(origVal)
+
+        added = frame2 + frame2
+        expected = frame2 * 2
+        tm.assert_frame_equal(added, expected)
+
+        df = pd.DataFrame({'a': ['a', None, 'b']})
+        tm.assert_frame_equal(df + df,
+                              pd.DataFrame({'a': ['aa', np.nan, 'bb']}))
+
+        # Test for issue #10181
+        for dtype in ('float', 'int64'):
+            frames = [
+                pd.DataFrame(dtype=dtype),
+                pd.DataFrame(columns=['A'], dtype=dtype),
+                pd.DataFrame(index=[0], dtype=dtype),
+            ]
+            for df in frames:
+                assert (df + df).equals(df)
+                tm.assert_frame_equal(df + df, df)
+
 
 class TestAdditionSubtraction(object):
     # __add__, __sub__, __radd__, __rsub__, __iadd__, __isub__
@@ -490,45 +551,29 @@ class TestObjectDtypeEquivalence(object):
     # Tests that arithmetic operations match operations executed elementwise
 
     @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_nan(self, dtype):
+    def test_numarr_with_dtype_add_nan(self, dtype, box):
         ser = pd.Series([1, 2, 3], dtype=dtype)
         expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
 
+        ser = tm.box_expected(ser, box)
+        expected = tm.box_expected(expected, box)
+
         result = np.nan + ser
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = ser + np.nan
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_int(self, dtype):
+    def test_numarr_with_dtype_add_int(self, dtype, box):
         ser = pd.Series([1, 2, 3], dtype=dtype)
         expected = pd.Series([2, 3, 4], dtype=dtype)
 
+        ser = tm.box_expected(ser, box)
+        expected = tm.box_expected(expected, box)
+
         result = 1 + ser
-        tm.assert_series_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = ser + 1
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_df_with_dtype_radd_nan(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        expected = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-
-        result = np.nan + df
-        tm.assert_frame_equal(result, expected)
-
-        result = df + np.nan
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_df_with_dtype_radd_int(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        expected = pd.DataFrame([2, 3, 4], dtype=dtype)
-
-        result = 1 + df
-        tm.assert_frame_equal(result, expected)
-
-        result = df + 1
-        tm.assert_frame_equal(result, expected)
+        tm.assert_equal(result, expected)
