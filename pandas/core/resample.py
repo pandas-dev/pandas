@@ -234,12 +234,15 @@ one pass, you can do
         klass='DataFrame',
         versionadded='',
         axis=''))
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = self._aggregate(arg, *args, **kwargs)
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
-            result = self._groupby_and_aggregate(arg,
+            how = func
+            grouper = None
+            result = self._groupby_and_aggregate(how,
+                                                 grouper,
                                                  *args,
                                                  **kwargs)
 
@@ -852,7 +855,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
-    def _apply(self, f, **kwargs):
+    def _apply(self, f, *args, **kwargs):
         """
         dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object

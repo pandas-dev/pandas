@@ -2165,6 +2165,20 @@ class TestDatetimeIndex(Base):
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
 
+    def test_resample_apply_with_additional_args(self):
+        def f(data, add_arg):
+            return np.mean(data) * add_arg
+
+        multiplier = 10
+        result = self.series.resample('D').apply(f, multiplier)
+        expected = self.series.resample('D').mean().multiply(multiplier)
+        tm.assert_series_equal(result, expected)
+
+        # Testing as kwarg
+        result = self.series.resample('D').apply(f, add_arg=multiplier)
+        expected = self.series.resample('D').mean().multiply(multiplier)
+        tm.assert_series_equal(result, expected)
+
 
 class TestPeriodIndex(Base):
     _index_factory = lambda x: period_range
