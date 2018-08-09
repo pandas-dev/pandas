@@ -271,10 +271,7 @@ def test_apply_chunk_view():
     df = DataFrame({'key': [1, 1, 1, 2, 2, 2, 3, 3, 3],
                     'value': compat.lrange(9)})
 
-    # return view
-    f = lambda x: x[:2]
-
-    result = df.groupby('key', group_keys=False).apply(f)
+    result = df.groupby('key', group_keys=False).apply(lambda x: x[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
     tm.assert_frame_equal(result, expected)
 
@@ -516,6 +513,19 @@ def test_groupby_apply_none_first():
                           index=index2)
     tm.assert_frame_equal(result1, expected1)
     tm.assert_frame_equal(result2, expected2)
+
+
+def test_groupby_apply_return_empty_chunk():
+    # GH 22221: apply filter which returns some empty groups
+    df = pd.DataFrame(dict(value=[0, 1], group=['filled', 'empty']))
+    groups = df.groupby('group')
+    result = groups.apply(lambda group: group[group.value != 1]['value'])
+    expected = pd.Series([0], name='value',
+                         index=MultiIndex.from_product([['empty', 'filled'],
+                                                        [0]],
+                                                       names=['group', None]
+                                                       ).drop('empty'))
+    tm.assert_series_equal(result, expected)
 
 
 def test_apply_with_mixed_types():

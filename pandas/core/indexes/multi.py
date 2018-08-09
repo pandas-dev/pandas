@@ -2185,11 +2185,6 @@ class MultiIndex(Index):
 
         if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
-
-            # _get_level_indexer returns an empty slice if the key has
-            # been dropped from the MultiIndex
-            if isinstance(loc, slice) and loc.start == loc.stop:
-                raise KeyError(key)
             return _maybe_to_slice(loc)
 
         keylen = len(key)
@@ -2443,14 +2438,21 @@ class MultiIndex(Index):
 
         else:
 
-            loc = level_index.get_loc(key)
-            if isinstance(loc, slice):
-                return loc
-            elif level > 0 or self.lexsort_depth == 0:
-                return np.array(labels == loc, dtype=bool)
+            code = level_index.get_loc(key)
 
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
+            if level > 0 or self.lexsort_depth == 0:
+                # Desired level is not sorted
+                locs = np.array(labels == code, dtype=bool, copy=False)
+                if not locs.any():
+                    # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            i = labels.searchsorted(code, side='left')
+            j = labels.searchsorted(code, side='right')
+            if i == j:
+                # The label is present in self.levels[level] but unused:
+                raise KeyError(key)
             return slice(i, j)
 
     def get_locs(self, seq):
