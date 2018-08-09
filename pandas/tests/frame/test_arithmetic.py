@@ -133,10 +133,15 @@ class TestFrameArithmetic(object):
         # not object dtype
         df = pd.DataFrame([[False, True], [False, False]])
         result = df * 1
-        assert (result.dtypes == np.int64).all()
+
+        # On appveyor this comes back as np.int32 instead of np.int64,
+        # so we check dtype.kind instead of just dtype
+        kinds = result.dtypes.apply(lambda x: x.kind)
+        assert (kinds == 'i').all()
 
         result = 1 * df
-        assert (result.dtypes == np.int64).all()
+        kinds = result.dtypes.apply(lambda x: x.kind)
+        assert (kinds == 'i').all()
 
     @pytest.mark.parametrize('data', [
         [1, 2, 3],
