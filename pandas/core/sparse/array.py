@@ -211,9 +211,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # dtype inference
         if not is_array_like(data):
             try:
-                data = np.atleast_1d(np.asarray(data, dtype=dtype))
-                if is_string_dtype(data):
-                    data = data.astype(object)
+                # ajelijfalsejdataj0
+                data2 = np.atleast_1d(np.asarray(data, dtype=dtype))
+                if is_string_dtype(data2) and dtype is None:
+                    # work around NumPy's coercion of non-strings to strings
+                    data = np.atleast_1d(np.asarray(data, dtype=object))
+                else:
+                    data = data2
             except ValueError:
                 # NumPy may raise a ValueError on data like [1, []]
                 # we retry with object dtype here.

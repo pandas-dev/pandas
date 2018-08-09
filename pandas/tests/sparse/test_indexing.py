@@ -394,7 +394,6 @@ class TestSparseSeriesIndexing(object):
                          index=list('ABCDE'))
         sparse = orig.to_sparse(fill_value=0)
 
-    @pytest.mark.xfail(reason="not implemented", strict=True)
     def test_fill_value_reindex_coerces_float_int(self):
         orig = pd.Series([1, np.nan, 0, 3, 0], index=list('ABCDE'))
         sparse = orig.to_sparse(fill_value=0)
@@ -1005,15 +1004,18 @@ class TestMultitype(object):
     def test_frame_indexing_single(self):
         tm.assert_sp_series_equal(self.sdf.iloc[0],
                                   pd.SparseSeries(['a', 1, 1.1, []],
-                                                  index=self.cols),
+                                                  index=self.cols,
+                                                  kind='integer'),
                                   check_names=False)
         tm.assert_sp_series_equal(self.sdf.iloc[1],
                                   pd.SparseSeries(['b', 2, 1.2, {}],
-                                                  index=self.cols),
+                                                  index=self.cols,
+                                                  kind='integer'),
                                   check_names=False)
         tm.assert_sp_series_equal(self.sdf.iloc[2],
                                   pd.SparseSeries(['c', 3, 1.3, set()],
-                                                  index=self.cols),
+                                                  index=self.cols,
+                                                  kind='integer'),
                                   check_names=False)
 
     def test_frame_indexing_multiple(self):
