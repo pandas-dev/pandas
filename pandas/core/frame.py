@@ -7616,7 +7616,7 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     arrays = _homogenize(arrays, index, dtype)
 
     # from BlockManager perspective
-    axes = [ensure_index(columns), ensure_index(index)]
+    axes = [ensure_index(columns), index]
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 
