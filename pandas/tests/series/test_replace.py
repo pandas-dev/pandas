@@ -256,6 +256,14 @@ class TestSeriesReplace(TestData):
         expected = pd.Series([1, 2, 3])
         tm.assert_series_equal(expected, result)
 
+    def test_replace_replacer_equals_replacement(self):
+        # GH 20656
+        # make sure all replacers are matching against original values
+        s = pd.Series(['a', 'b'])
+        expected = pd.Series(['b', 'a'])
+        result = s.replace({'a': 'b', 'b': 'a'})
+        tm.assert_series_equal(expected, result)
+
     def test_replace_unicode_with_number(self):
         # GH 15743
         s = pd.Series([1, 2, 3])
