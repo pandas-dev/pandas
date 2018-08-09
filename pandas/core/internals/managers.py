@@ -746,7 +746,6 @@ class BlockManager(PandasObject):
         -------
         copy : BlockManager
         """
-
         # this preserves the notion of view copying of axes
         if deep:
             if deep == 'all':
@@ -911,7 +910,19 @@ class BlockManager(PandasObject):
             return result[loc]
 
         # unique
-        dtype = _interleaved_dtype(self.blocks)
+        dtype = _interleaved_dtype(self.blocks, allow_extension=True)
+        if is_extension_array_dtype(dtype):
+            values = []
+            rls = []
+            # TODO: what is rls? is it ever out of order? ensure that's tested
+            for blk in self.blocks:
+                for i, rl in enumerate(blk.mgr_locs):
+                    values.append(blk.iget((i, loc)))
+                    rls.append(rl)
+
+            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype).take(rls)
+            return result
+
         n = len(items)
         result = np.empty(n, dtype=dtype)
         for blk in self.blocks:
@@ -1860,11 +1871,13 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(blocks):
+def _interleaved_dtype(blocks, allow_extension=False):
     if not len(blocks):
         return None
 
     dtype = find_common_type([b.dtype for b in blocks])
+    if allow_extension:
+        return dtype
 
     # only numpy compat
     if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):

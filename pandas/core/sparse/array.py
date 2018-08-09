@@ -204,10 +204,24 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             data = construct_1d_arraylike_from_scalar(
                 data, len(index), dtype)
 
+        if dtype is not None:
+            dtype = pandas_dtype(dtype)
+
         # TODO: disentangle the fill_value dtype inference from
         # dtype inference
         if not is_array_like(data):
-            data = np.atleast_1d(np.asarray(data, dtype=dtype))
+            try:
+                data = np.atleast_1d(np.asarray(data, dtype=dtype))
+                if is_string_dtype(data):
+                    data = data.astype(object)
+            except ValueError:
+                # NumPy may raise a ValueError on data like [1, []]
+                # we retry with object dtype here.
+                if dtype is None:
+                    dtype = object
+                    data = np.atleast_1d(np.asarray(data, dtype=dtype))
+                else:
+                    raise
 
         if copy:
             # TODO: avoid double copy when dtype forces cast.
@@ -258,7 +272,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls(scalars)
+        return cls(scalars, dtype=dtype)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -523,12 +537,14 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             m1 = sp_indexer < 0
             m2 = indices < 0
 
+            result_type = np.result_type(taken, self.fill_value)
+
             if m1.any():
-                taken = taken.astype('float64')  # TODO
+                taken = taken.astype(result_type)
                 taken[m1] = self.fill_value
 
             if m2.any():
-                taken = taken.astype('float64')  # TODO
+                taken = taken.astype(result_type)
                 taken[indices < 0] = fill_value
         return taken
 
@@ -574,7 +590,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             values = self.sp_values
             index = self.sp_index
 
-        return type(self)(values, sparse_index=index, copy=False)
+        return type(self)(values, sparse_index=index, copy=False, fill_value=self.fill_value)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
