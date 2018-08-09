@@ -17,6 +17,8 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+- ``DataFrame.to_parquet()`` now accepts ``index`` as a keyword argument, allowing the user to optionally omit the dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
+
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support
@@ -157,6 +159,45 @@ array, but rather an ``ExtensionArray``:
 
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
+
+
+Omitting Indexes in ``to_parquet()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You now have the option to omit a dataframe's indexes when writing to Parquet
+files with ``to_parquet``, just like ``to_csv`` (:issue:`20768`).
+
+*Previous Behavior*:
+
+Dumping a ``DataFrame`` to Parquet would include the implicit index as a column
+in the output file. Thus, this code:
+
+.. ipython:: python
+
+    import pandas
+
+    df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet')
+
+would create a Parquet file with *three* columns: ``a``, ``b``, and ``__index_level_0__``.
+
+This unexpected extra column causes some databases like Amazon Redshift to reject
+the file, because that column doesn't exist in the target table.
+
+*New Behavior*:
+
+If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
+``to_parquet()``:
+
+.. ipython:: python
+
+    import pandas
+
+    df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet', index=False)
+
+This creates a Parquet file with just the two expected columns, ``a`` and ``b``.
+The preexisting behavior is still the default.
 
 
 .. _whatsnew_0240.enhancements.other:
