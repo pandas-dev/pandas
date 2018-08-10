@@ -220,12 +220,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             try:
                 # ajelijfalsejdataj0
                 # probably shared code in sanitize_series
-                data2 = np.atleast_1d(np.asarray(data, dtype=dtype))
-                if is_string_dtype(data2) and dtype is None:
-                    # work around NumPy's coercion of non-strings to strings
-                    data = np.atleast_1d(np.asarray(data, dtype=object))
-                else:
-                    data = data2
+                from pandas.core.series import _sanitize_array
+                data = _sanitize_array(data, index=None)
+                # import pdb; pdb.set_trace()
+                # data2 = np.atleast_1d(np.asarray(data, dtype=dtype))
+                # if is_string_dtype(data2) and dtype is None:
+                #     work around NumPy's coercion of non-strings to strings
+                    # data = np.atleast_1d(np.asarray(data, dtype=object))
+                # else:
+                #     data = data2
             except ValueError:
                 # NumPy may raise a ValueError on data like [1, []]
                 # we retry with object dtype here.
