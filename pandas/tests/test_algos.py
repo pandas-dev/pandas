@@ -615,6 +615,68 @@ class TestIsin(object):
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_same_nan_is_in(self):
+        # GH 22160
+        # nan is special, because from " a is b" doesn't follow "a == b"
+        # at least, isin() should follow python's "np.nan in [nan] == True"
+        # casting to -> np.float64 -> another float-object somewher on
+        # the way could lead jepardize this behavior
+        comps = [np.nan]  # could be casted to float64
+        values = [np.nan]
+        expected = np.array([True])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_same_object_is_in(self):
+        # GH 22160
+        # there could be special treatment for nans
+        # the user however could define a custom class
+        # with similar behavior, then we at least should
+        # fall back to usual python's behavior: "a in [a] == True"
+        class LikeNan(object):
+            def __eq__(self):
+                return False
+
+            def __hash__(self):
+                return 0
+
+        a, b = LikeNan(), LikeNan()
+        # same object -> True
+        tm.assert_numpy_array_equal(algos.isin([a], [a]), np.array([True]))
+        # different objects -> False
+        tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
+
+    def test_different_nans(self):
+        # GH 22160
+        # all nans are handled as equivalent
+
+        comps = [float('nan')]
+        values = [float('nan')]
+        assert comps[0] is not values[0]  # different nan-objects
+
+        # as list of python-objects:
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+        # as object-array:
+        result = algos.isin(np.asarray(comps, dtype=np.object),
+                            np.asarray(values, dtype=np.object))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+        # as float64-array:
+        result = algos.isin(np.asarray(comps, dtype=np.float64),
+                            np.asarray(values, dtype=np.float64))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+    def test_no_cast(self):
+        # GH 22160
+        # ensure 42 is not casted to a string
+        comps = ['ss', 42]
+        values = ['42']
+        expected = np.array([False, False])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
