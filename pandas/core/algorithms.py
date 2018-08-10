@@ -437,8 +437,7 @@ def isin(comps, values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
-            checknull = isna(values).any()
-            f = lambda x, y: htable.ismember_float64(x, y, checknull)
+            f = lambda x, y: htable.ismember_float64(x, y)
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)
