@@ -161,18 +161,18 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
         {{endif}}
     elif keep == 'first':
         {{if dtype == 'object'}}
-        for i from 0 <= i < n:
+        for i in range(n):
             kh_put_{{ttype}}(table, <PyObject*> values[i], &ret)
             out[i] = ret == 0
         {{else}}
         with nogil:
-            for i from 0 <= i < n:
+            for i in range(n):
                 kh_put_{{ttype}}(table, values[i], &ret)
                 out[i] = ret == 0
         {{endif}}
     else:
         {{if dtype == 'object'}}
-        for i from 0 <= i < n:
+        for i in range(n):
             value = values[i]
             k = kh_get_{{ttype}}(table, <PyObject*> value)
             if k != table.n_buckets:
@@ -185,7 +185,7 @@ def duplicated_{{dtype}}({{scalar}}[:] values, object keep='first'):
                 out[i] = 0
         {{else}}
         with nogil:
-            for i from 0 <= i < n:
+            for i in range(n):
                 value = values[i]
                 k = kh_get_{{ttype}}(table, value)
                 if k != table.n_buckets:
