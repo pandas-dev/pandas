@@ -2,7 +2,7 @@
 """
 Tests for Timestamp timezone-related methods
 """
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 
 from distutils.version import LooseVersion
 import pytest
@@ -288,5 +288,22 @@ class TestTimestampTZOperations(object):
 
         # spring forward, + "7" hours
         expected = Timestamp('3/11/2012 05:00', tz=tz)
+
+        assert result == expected
+
+    def test_timestamp_timetz_equivalent_with_datetime_tz(self,
+                                                          tz_naive_fixture):
+        # GH21358
+        if tz_naive_fixture is not None:
+            tz = dateutil.tz.gettz(tz_naive_fixture)
+        else:
+            tz = None
+
+        stamp = Timestamp('2018-06-04 10:20:30', tz=tz)
+        _datetime = datetime(2018, 6, 4, hour=10,
+                             minute=20, second=30, tzinfo=tz)
+
+        result = stamp.timetz()
+        expected = _datetime.timetz()
 
         assert result == expected

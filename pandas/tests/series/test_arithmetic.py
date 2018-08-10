@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 import operator
-from decimal import Decimal
 
 import numpy as np
 import pytest
 
-from pandas import Series, Timestamp
+from pandas import Series
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -90,92 +89,8 @@ class TestTimedeltaSeriesComparisons(object):
 # ------------------------------------------------------------------
 # Arithmetic
 
-class TestSeriesDivision(object):
-    # __div__, __rdiv__, __floordiv__, __rfloordiv__
-    # for non-timestamp/timedelta/period dtypes
-
-    def test_divide_decimal(self):
-        # resolves issue GH#9787
-        expected = Series([Decimal(5)])
-
-        ser = Series([Decimal(10)])
-        result = ser / Decimal(2)
-
-        tm.assert_series_equal(result, expected)
-
-        ser = Series([Decimal(10)])
-        result = ser // Decimal(2)
-
-        tm.assert_series_equal(result, expected)
-
-    def test_div_equiv_binop(self):
-        # Test Series.div as well as Series.__div__
-        # float/integer issue
-        # GH#7785
-        first = Series([1, 0], name='first')
-        second = Series([-0.01, -0.02], name='second')
-        expected = Series([-0.01, -np.inf])
-
-        result = second.div(first)
-        tm.assert_series_equal(result, expected, check_names=False)
-
-        result = second / first
-        tm.assert_series_equal(result, expected)
-
-
 class TestSeriesArithmetic(object):
     # Standard, numeric, or otherwise not-Timestamp/Timedelta/Period dtypes
-    @pytest.mark.parametrize('data', [
-        [1, 2, 3],
-        [1.1, 2.2, 3.3],
-        [Timestamp('2011-01-01'), Timestamp('2011-01-02'), pd.NaT],
-        ['x', 'y', 1]])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_radd_str_invalid(self, dtype, data):
-        ser = Series(data, dtype=dtype)
-        with pytest.raises(TypeError):
-            'foo_' + ser
-
-    # TODO: parametrize, better name
-    def test_object_ser_add_invalid(self):
-        # invalid ops
-        obj_ser = tm.makeObjectSeries()
-        obj_ser.name = 'objects'
-        with pytest.raises(Exception):
-            obj_ser + 1
-        with pytest.raises(Exception):
-            obj_ser + np.array(1, dtype=np.int64)
-        with pytest.raises(Exception):
-            obj_ser - 1
-        with pytest.raises(Exception):
-            obj_ser - np.array(1, dtype=np.int64)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_nan(self, dtype):
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-
-        result = np.nan + ser
-        tm.assert_series_equal(result, expected)
-
-        result = ser + np.nan
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_int(self, dtype):
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([2, 3, 4], dtype=dtype)
-
-        result = 1 + ser
-        tm.assert_series_equal(result, expected)
-
-        result = ser + 1
-        tm.assert_series_equal(result, expected)
-
-    def test_series_radd_str(self):
-        ser = pd.Series(['x', np.nan, 'x'])
-        tm.assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
-        tm.assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
 
     @pytest.mark.parametrize('dtype', [None, object])
     def test_series_with_dtype_radd_timedelta(self, dtype):
