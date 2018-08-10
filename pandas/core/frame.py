@@ -3898,7 +3898,7 @@ class DataFrame(NDFrame):
                       if not isinstance(x, (Series, Index, MultiIndex,
                                             list, np.ndarray))]
         if any(x not in self for x in col_labels):
-            # if there are any invalid labels for self, we raise a KeyError
+            # if there are any labels that are invalid, we raise a KeyError
             missing = [x for x in col_labels if x not in self]
             raise KeyError('{}'.format(missing))
         elif len(set(col_labels)) < len(col_labels):
