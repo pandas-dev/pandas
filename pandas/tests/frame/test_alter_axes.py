@@ -261,7 +261,7 @@ class TestDataFrameAlterAxes(TestData):
         comp = comp.tz_localize(None)
         tm.assert_numpy_array_equal(result.values, comp.values)
 
-        # list of datetimes with a tz
+        # list of datetimes with a tzg
         df['D'] = i.to_pydatetime()
         result = df['D']
         assert_series_equal(result, expected, check_names=False)
@@ -391,12 +391,6 @@ class TestDataFrameAlterAxes(TestData):
         result = df.set_index(new_index)  # noqa
 
         assert new_index.freq == index.freq
-
-    def test_set_index_tuple(self):
-        # test for fix of issue #15457, where the following raised a TypeError
-        expected = pd.DataFrame([[2, 1], [4, (1, 2)]]).set_index([0, 1]).index
-        result = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=(0, 1))
-        tm.assert_index_equal(expected, result)
 
     # Renaming
 
