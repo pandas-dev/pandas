@@ -585,10 +585,12 @@ b  2""")
                kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
 
-            if name == 'hist' and kwargs_wo_axis.pop('equal_bins', False):
+            if (name == 'hist' and
+                    kwargs_wo_axis.pop('equal_bins', False) is True):
                 # GH-22222
-                # if bins==None, use default value used in `hist_series`
-                bins = kwargs_wo_axis.pop('bins', 10)
+                bins = kwargs_wo_axis.get('bins')
+                if bins is None:
+                    bins = 10  # use default value used in `hist_series`
                 if is_integer(bins):
                     # share the same numpy array for all group bins
                     bins = np.linspace(self.obj.min(),
