@@ -103,15 +103,6 @@ class TestData(object):
         return pd.DataFrame(arr, columns=['one', 'two', 'three'],
                             index=['a', 'b', 'c'])
 
-    @cache_readonly
-    def dummy(self):
-        df = pd.DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
-                           'B': ['one', 'two', 'three', 'one', 'two'],
-                           'C': ['a', 'b', 'c', 'd', 'e'],
-                           'D': np.random.randn(5),
-                           'E': np.random.randn(5)})
-        return df
-
 # self.ts3 = tm.makeTimeSeries()[-5:]
 # self.ts4 = tm.makeTimeSeries()[1:-1]
 

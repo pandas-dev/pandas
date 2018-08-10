@@ -23,6 +23,16 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
+@pytest.fixture
+def frame_of_index_cols():
+    df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
+                    'B': ['one', 'two', 'three', 'one', 'two'],
+                    'C': ['a', 'b', 'c', 'd', 'e'],
+                    'D': np.random.randn(5),
+                    'E': np.random.randn(5)})
+    return df
+
+
 class TestDataFrameAlterAxes(TestData):
 
     def test_set_index_directly(self):
@@ -54,8 +64,9 @@ class TestDataFrameAlterAxes(TestData):
     @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
     @pytest.mark.parametrize('inplace', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_drop_inplace(self, drop, inplace, keys):
-        df = self.dummy.copy()
+    def test_set_index_drop_inplace(self, frame_of_index_cols,
+                                    drop, inplace, keys):
+        df = frame_of_index_cols
 
         if isinstance(keys, list):
             idx = MultiIndex.from_arrays([df[x] for x in keys], names=keys)
@@ -75,8 +86,8 @@ class TestDataFrameAlterAxes(TestData):
     # A has duplicate values, C does not
     @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_append(self, drop, keys):
-        df = self.dummy.copy()
+    def test_set_index_append(self, frame_of_index_cols, drop, keys):
+        df = frame_of_index_cols
 
         keys = keys if isinstance(keys, list) else [keys]
         idx = MultiIndex.from_arrays([df.index] + [df[x] for x in keys],
@@ -91,12 +102,14 @@ class TestDataFrameAlterAxes(TestData):
     # A has duplicate values, C does not
     @pytest.mark.parametrize('keys', ['A', 'C', ['A', 'B']])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_append_to_multiindex(self, drop, keys):
+    def test_set_index_append_to_multiindex(self, frame_of_index_cols,
+                                            drop, keys):
         # append to existing multiindex
-        df = self.dummy.set_index(['D'], drop=drop, append=True)
+        df = frame_of_index_cols.set_index(['D'], drop=drop, append=True)
 
         keys = keys if isinstance(keys, list) else [keys]
-        expected = self.dummy.set_index(['D'] + keys, drop=drop, append=True)
+        expected = frame_of_index_cols.set_index(['D'] + keys,
+                                                 drop=drop, append=True)
 
         result = df.set_index(keys, drop=drop, append=True)
 
@@ -112,18 +125,17 @@ class TestDataFrameAlterAxes(TestData):
         result = df2.set_index('key')
         tm.assert_frame_equal(result, expected)
 
+    # MultiIndex constructor does not work directly on Series -> lambda
     # also test index name if append=True (name is duplicate here for B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array, 'MultiIndex'])
+    @pytest.mark.parametrize('box', [Series, Index, np.array,
+                                     lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'B'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_single_array(self, drop, append, index_name, box):
-        df = self.dummy.copy()
+    def test_set_index_pass_single_array(self, frame_of_index_cols,
+                                         drop, append, index_name, box):
+        df = frame_of_index_cols
         df.index.name = index_name
-
-        # update constructor in case of MultiIndex
-        box = ((lambda x: MultiIndex.from_arrays([x]))
-               if box == 'MultiIndex' else box)
 
         key = box(df['B'])
         # np.array and list "forget" the name of B
@@ -138,20 +150,18 @@ class TestDataFrameAlterAxes(TestData):
 
         tm.assert_frame_equal(result, expected)
 
+    # MultiIndex constructor does not work directly on Series -> lambda
     # also test index name if append=True (name is duplicate here for A & B)
-    @pytest.mark.parametrize('box', [Series, Index, np.array,
-                                     list, 'MultiIndex'])
+    @pytest.mark.parametrize('box', [Series, Index, np.array, list,
+                                     lambda x: MultiIndex.from_arrays([x])])
     @pytest.mark.parametrize('append, index_name',
                              [(True, None), (True, 'A'), (True, 'B'),
                               (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_arrays(self, drop, append, index_name, box):
-        df = self.dummy.copy()
+    def test_set_index_pass_arrays(self, frame_of_index_cols,
+                                   drop, append, index_name, box):
+        df = frame_of_index_cols
         df.index.name = index_name
-
-        # update constructor in case of MultiIndex
-        box = ((lambda x: MultiIndex.from_arrays([x]))
-               if box == 'MultiIndex' else box)
 
         keys = ['A', box(df['B'])]
         # np.array and list "forget" the name of B
@@ -167,28 +177,24 @@ class TestDataFrameAlterAxes(TestData):
 
         tm.assert_frame_equal(result, expected)
 
+    # MultiIndex constructor does not work directly on Series -> lambda
+    # We also emulate a "constructor" for the label -> lambda
     # also test index name if append=True (name is duplicate here for A)
-    @pytest.mark.parametrize('box1', ['label', Series, Index, np.array,
-                                      list, 'MultiIndex'])
-    @pytest.mark.parametrize('box2', ['label', Series, Index, np.array,
-                                      list, 'MultiIndex'])
+    @pytest.mark.parametrize('box2', [Series, Index, np.array, list,
+                                      lambda x: MultiIndex.from_arrays([x]),
+                                      lambda x: x.name])
+    @pytest.mark.parametrize('box1', [Series, Index, np.array, list,
+                                      lambda x: MultiIndex.from_arrays([x]),
+                                      lambda x: x.name])
     @pytest.mark.parametrize('append, index_name', [(True, None),
                              (True, 'A'), (True, 'test'), (False, None)])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_arrays_duplicate(self, drop, append, index_name,
-                                             box1, box2):
-        df = self.dummy.copy()
+    def test_set_index_pass_arrays_duplicate(self, frame_of_index_cols, drop,
+                                             append, index_name, box1, box2):
+        df = frame_of_index_cols
         df.index.name = index_name
 
-        # transform strings to correct box constructor
-        def rebox(x):
-            if x == 'label':
-                return lambda x: x.name
-            elif x == 'MultiIndex':
-                return lambda x: MultiIndex.from_arrays([x])
-            return x
-
-        keys = [rebox(box1)(df['A']), rebox(box2)(df['A'])]
+        keys = [box1(df['A']), box2(df['A'])]
 
         # == gives ambiguous Boolean for Series
         if keys[0] is 'A' and keys[1] is 'A':
@@ -208,8 +214,9 @@ class TestDataFrameAlterAxes(TestData):
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
-    def test_set_index_pass_multiindex(self, drop, append):
-        df = self.dummy.copy()
+    def test_set_index_pass_multiindex(self, frame_of_index_cols,
+                                       drop, append):
+        df = frame_of_index_cols
         keys = MultiIndex.from_arrays([df['A'], df['B']], names=['A', 'B'])
 
         result = df.set_index(keys, drop=drop, append=append)
@@ -219,8 +226,8 @@ class TestDataFrameAlterAxes(TestData):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_set_index_verify_integrity(self):
-        df = self.dummy.copy()
+    def test_set_index_verify_integrity(self, frame_of_index_cols):
+        df = frame_of_index_cols
 
         with tm.assert_raises_regex(ValueError,
                                     'Index has duplicate keys'):
@@ -230,8 +237,8 @@ class TestDataFrameAlterAxes(TestData):
                                     'Index has duplicate keys'):
             df.set_index([df['A'], df['A']], verify_integrity=True)
 
-    def test_set_index_raise(self):
-        df = self.dummy.copy()
+    def test_set_index_raise(self, frame_of_index_cols):
+        df = frame_of_index_cols
 
         with tm.assert_raises_regex(KeyError, '.*'):  # column names are A-E
             df.set_index(['foo', 'bar', 'baz'], verify_integrity=True)
