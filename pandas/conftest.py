@@ -102,14 +102,29 @@ def ip():
 
 
 @pytest.fixture(params=[True, False, None])
-def observed(request):
+def _true_false_none(request):
+    """
+    Base fixture for fixtures that return True, False and None.
+    """
+    return request.param
+
+
+@pytest.fixture
+def observed(_true_false_none):
     """ pass in the observed keyword to groupby for [True, False]
     This indicates whether categoricals should return values for
     values which are not in the grouper [False / None], or only values which
     appear in the grouper [True]. [None] is supported for future compatiblity
     if we decide to change the default (and would need to warn if this
     parameter is not passed)"""
-    return request.param
+    return _true_false_none
+
+
+@pytest.fixture
+def ordered(_true_false_none):
+    """Return the allowed parameters for Categorical/CategoricalIndex.ordered.
+    """
+    return _true_false_none
 
 
 _all_arithmetic_operators = ['__add__', '__radd__',

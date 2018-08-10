@@ -4,6 +4,7 @@ import pandas as pd
 
 import pandas.util.testing as tm
 from pandas.core.indexes.api import Index, MultiIndex
+from pandas._libs import index as li
 from pandas.compat import lzip, long
 
 
@@ -45,3 +46,15 @@ def zero(request):
     # For testing division by (or of) zero for Index with length 5, this
     # gives several scalar-zeros and length-5 vector-zeros
     return request.param
+
+
+@pytest.fixture(
+    params=[
+        'Int64', 'Int32', 'Int16', 'Int8',
+        'UInt64', 'UInt32', 'UInt16', 'UInt8',
+        'Float64', 'Float32',
+    ])
+def num_engine(request):
+    """Return the various numeric engines in pd._libs.index
+    """
+    return getattr(li, "{}Engine".format(request.param))

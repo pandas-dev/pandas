@@ -133,11 +133,14 @@ def ensure_object(object arr):
 # name, c_type, dtype
 dtypes = [('float64', 'FLOAT64', 'float64'),
           ('float32', 'FLOAT32', 'float32'),
-          ('int8', 'INT8', 'int8'),
-          ('int16', 'INT16', 'int16'),
-          ('int32', 'INT32', 'int32'),
           ('int64', 'INT64', 'int64'),
+          ('int32', 'INT32', 'int32'),
+          ('int16', 'INT16', 'int16'),
+          ('int8', 'INT8', 'int8'),
           ('uint64', 'UINT64', 'uint64'),
+          ('uint32', 'UINT32', 'uint32'),
+          ('uint16', 'UINT16', 'uint16'),
+          ('uint8', 'UINT8', 'uint8'),
           # ('platform_int', 'INT', 'int_'),
           # ('object', 'OBJECT', 'object_'),
 ]

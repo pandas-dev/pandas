@@ -30,6 +30,8 @@ dtypes = [('Float64', 'float64', 'float64_t'),
 
 cdef class {{name}}Engine(IndexEngine):
 
+    _dtype = '{{dtype}}'
+
     def _call_monotonic(self, values):
         return algos.is_monotonic_{{dtype}}(values, timelike=False)
 
@@ -61,6 +63,14 @@ cdef class {{name}}Engine(IndexEngine):
     cpdef _call_map_locations(self, values):
         # self.mapping is of type Int64HashTable, so convert dtype of values
         self.mapping.map_locations(algos.ensure_int64(values))
+    {{elif name in {'UInt8', 'UInt16', 'UInt32'} }}
+    cpdef _call_map_locations(self, values):
+        # self.mapping is of type UInt64HashTable, so convert dtype of values
+        self.mapping.map_locations(algos.ensure_uint64(values))
+    {{elif name in {'Float32'} }}
+    cpdef _call_map_locations(self, values):
+        # self.mapping is of type Float64HashTable, so convert dtype of values
+        self.mapping.map_locations(algos.ensure_float64(values))
     {{endif}}
 
     {{if name != 'Float64' and name != 'Object'}}
@@ -83,7 +93,7 @@ cdef class {{name}}Engine(IndexEngine):
             ndarray[{{ctype}}] values
             int count = 0
 
-        {{if name != 'Float64'}}
+        {{if name not in {'Float64', 'Float32'} }}
         if not util.is_integer_object(val):
             raise KeyError(val)
         {{endif}}

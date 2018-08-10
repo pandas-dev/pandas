@@ -7,7 +7,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray,
                     float64_t, float32_t,
-                    int64_t,int32_t, int16_t, int8_t,
+                    int64_t, int32_t, int16_t, int8_t,
                     uint64_t, uint32_t, uint16_t, uint8_t,
                     intp_t,
                     # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
