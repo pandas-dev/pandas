@@ -792,7 +792,7 @@ def mask_cmp_op(x, y, op, allowed_types):
 def masked_arith_op(x, y, op):
     """
     If the given arithmetic operation fails, attempt it again on
-    only non-null elements.
+    only the non-null elements of the input array(s).
 
     Parameters
     ----------
@@ -800,14 +800,16 @@ def masked_arith_op(x, y, op):
     y : np.ndarray, Series, Index
     op : binary operator
     """
-    xrav = x.ravel()  # 2D compat
+    # For Series `x` is 1D so ravel() is a no-op; calling it anyway makes
+    # the logic valid for both Series and DataFrame ops.
+    xrav = x.ravel()
     assert isinstance(x, (np.ndarray, ABCSeries)), type(x)
     if isinstance(y, (np.ndarray, ABCSeries, ABCIndexClass)):
         dtype = find_common_type([x.dtype, y.dtype])
         result = np.empty(x.size, dtype=dtype)
 
         # PeriodIndex.ravel() returns int64 dtype, so we have
-        # to work around that case.
+        # to work around that case.  See GH#19956
         yrav = y if is_period_dtype(y) else y.ravel()
         mask = notna(xrav) & notna(yrav)
 
@@ -815,7 +817,7 @@ def masked_arith_op(x, y, op):
             # FIXME: GH#5284, GH#5035, GH#19448
             # Without specifically raising here we get mismatched
             # errors in Py3 (TypeError) vs Py2 (ValueError)
-            # Note: Only (apparently) an issue in DataFrame case
+            # Note: Only = an issue in DataFrame case
             raise ValueError('Cannot broadcast operands together.')
 
         if mask.any():
