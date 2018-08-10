@@ -1529,7 +1529,8 @@ def box_expected(expected, box_cls):
 
 
 def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
-                          check_fill_value=True):
+                          check_fill_value=True,
+                          consolidate_block_indices=False):
     """Check that the left and right SparseArray are equal.
 
     Parameters
@@ -1558,9 +1559,17 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         left_index = left.sp_index
         right_index = right.sp_index
 
+    if consolidate_block_indices:
+        # we'll probably remove this hack...
+        left_index = left_index.to_int_index().to_block_index()
+        right_index = right_index.to_int_index().to_block_index()
+
     if not left_index.equals(right_index):
         raise_assert_detail('SparseArray.index', 'index are not equal',
                             left_index, right_index)
+    else:
+        # Just ensure a
+        pass
 
     if check_fill_value:
         assert_attr_equal('fill_value', left, right)
@@ -1574,6 +1583,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
                            check_series_type=True, check_names=True,
                            check_kind=True,
                            check_fill_value=True,
+                           consolidate_block_indices=False,
                            obj='SparseSeries'):
     """Check that the left and right SparseSeries are equal.
 
@@ -1605,7 +1615,8 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
     # TODO: this can just be .values I think
     assert_sp_array_equal(left.block.values, right.block.values,
                           check_kind=check_kind,
-                          check_fill_value=check_fill_value)
+                          check_fill_value=check_fill_value,
+                          consolidate_block_indices=consolidate_block_indices)
 
     if check_names:
         assert_attr_equal('name', left, right)
@@ -1619,6 +1630,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
 def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
                           check_frame_type=True, check_kind=True,
                           check_fill_value=True,
+                          consolidate_block_indices=False,
                           obj='SparseDataFrame'):
     """Check that the left and right SparseDataFrame are equal.
 
@@ -1657,10 +1669,13 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         # trade-off?
 
         if exact_indices:
-            assert_sp_series_equal(series, right[col],
-                                   check_dtype=check_dtype,
-                                   check_kind=check_kind,
-                                   check_fill_value=check_fill_value)
+            assert_sp_series_equal(
+                series, right[col],
+                check_dtype=check_dtype,
+                check_kind=check_kind,
+                check_fill_value=check_fill_value,
+                consolidate_block_indices=consolidate_block_indices
+            )
         else:
             assert_series_equal(series.to_dense(), right[col].to_dense(),
                                 check_dtype=check_dtype)

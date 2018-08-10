@@ -427,7 +427,6 @@ def stack(frame, level=-1, dropna=True):
     -------
     stacked : Series
     """
-
     def factorize(index):
         if index.is_unique:
             return index, np.arange(len(index))
@@ -461,7 +460,16 @@ def stack(frame, level=-1, dropna=True):
                                names=[frame.index.name, frame.columns.name],
                                verify_integrity=False)
 
-    new_values = frame.values.ravel()
+    # For homogonoues EAs, self.values will coerce to object. So
+    # we concatenate instead.
+    if frame._data.any_extension_types and frame._data.is_homogenous:
+        # TODO: this needs to be unit tested.
+        arr = frame._data.blocks[0].dtype.construct_array_type()
+        new_values = arr._concat_same_type([
+            blk.values for blk in frame._data.blocks
+        ])
+    else:
+        new_values = frame.values.ravel()
     if dropna:
         mask = notna(new_values)
         new_values = new_values[mask]

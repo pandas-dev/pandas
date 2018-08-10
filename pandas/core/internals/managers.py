@@ -627,6 +627,16 @@ class BlockManager(PandasObject):
         self._known_consolidated = True
 
     @property
+    def is_homogenous(self):
+        """
+        Like is_mixed_type, but handles NonConsolidatable blocks
+        """
+        if self.any_extension_types:
+            return len(set(block.dtype for block in self.blocks)) == 1
+        else:
+            return self.is_mixed_type
+
+    @property
     def is_mixed_type(self):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
@@ -1591,6 +1601,9 @@ class SingleBlockManager(BlockManager):
         return self._block._can_hold_na
 
     def is_consolidated(self):
+        return True
+
+    def is_homogenous(self):
         return True
 
     def _consolidate_check(self):

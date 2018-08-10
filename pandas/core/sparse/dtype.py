@@ -17,6 +17,13 @@ class SparseDtype(ExtensionDtype):
         # XXX: this needs to be part of the interface.
         return hash(str(self))
 
+    def __eq__(self, other):
+        # TODO: test
+        if isinstance(other, type(self)):
+            return self.type == other.type
+        else:
+            return super(SparseDtype, self).__eq__(other)
+
     @property
     def _is_numeric(self):
         from pandas.core.dtypes.common import is_object_dtype

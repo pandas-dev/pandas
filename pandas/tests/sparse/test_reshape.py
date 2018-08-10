@@ -17,7 +17,7 @@ def multi_index3():
 
 def test_sparse_frame_stack(sparse_df, multi_index3):
     ss = sparse_df.stack()
-    expected = pd.SparseSeries(np.ones(3), index=multi_index3)
+    expected = pd.SparseSeries(np.ones(3), index=multi_index3, kind='integer')
     tm.assert_sp_series_equal(ss, expected)
 
 

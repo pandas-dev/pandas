@@ -1004,18 +1004,15 @@ class TestMultitype(object):
     def test_frame_indexing_single(self):
         tm.assert_sp_series_equal(self.sdf.iloc[0],
                                   pd.SparseSeries(['a', 1, 1.1, []],
-                                                  index=self.cols,
-                                                  kind='integer'),
+                                                  index=self.cols),
                                   check_names=False)
         tm.assert_sp_series_equal(self.sdf.iloc[1],
                                   pd.SparseSeries(['b', 2, 1.2, {}],
-                                                  index=self.cols,
-                                                  kind='integer'),
+                                                  index=self.cols),
                                   check_names=False)
         tm.assert_sp_series_equal(self.sdf.iloc[2],
                                   pd.SparseSeries(['c', 3, 1.3, set()],
-                                                  index=self.cols,
-                                                  kind='integer'),
+                                                  index=self.cols),
                                   check_names=False)
 
     def test_frame_indexing_multiple(self):

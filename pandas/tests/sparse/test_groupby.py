@@ -22,12 +22,13 @@ class TestSparseGroupBy(object):
         sparse_grouped = self.sparse.groupby('A')
         dense_grouped = self.dense.groupby('A')
 
+        # TODO: shouldn't these all be spares or not?
         tm.assert_frame_equal(sparse_grouped.first(),
                               dense_grouped.first())
         tm.assert_frame_equal(sparse_grouped.last(),
                               dense_grouped.last())
         tm.assert_frame_equal(sparse_grouped.nth(1),
-                              dense_grouped.nth(1))
+                              dense_grouped.nth(1).to_sparse())
 
     def test_aggfuncs(self):
         sparse_grouped = self.sparse.groupby('A')

@@ -13,6 +13,7 @@ from pandas.core.dtypes.missing import isna, notna, is_integer
 from pandas.compat.numpy import function as nv
 from pandas.core.index import Index, ensure_index, InvalidIndexError
 from pandas.core.series import Series
+from pandas.core.dtypes.generic import ABCSeries, ABCSparseSeries
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
@@ -66,8 +67,13 @@ class SparseSeries(Series):
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
         if isinstance(data, SingleBlockManager):
+            # TODO: share validation with Series
             index = data.index
             data = data.blocks[0].values
+        elif isinstance(data, (ABCSeries, ABCSparseSeries)):
+            index = data.index if index is None else index
+            dtype = data.dtype if dtype is None else dtype
+            name = data.name if name is None else name
 
         super(SparseSeries, self).__init__(
             SparseArray(data,
