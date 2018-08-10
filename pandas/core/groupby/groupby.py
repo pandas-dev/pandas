@@ -1705,6 +1705,9 @@ class GroupBy(_GroupBy):
         -----
         DataFrame with ranking of values within each group
         """
+        if na_option not in {'keep', 'top', 'bottom'}:
+            msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+            raise ValueError(msg)
         return self._cython_transform('rank', numeric_only=False,
                                       ties_method=method, ascending=ascending,
                                       na_option=na_option, pct=pct, axis=axis)

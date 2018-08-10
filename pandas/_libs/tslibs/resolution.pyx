@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
-cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as cnp
 from numpy cimport ndarray, int64_t, int32_t
-cnp.import_array()
 
 from util cimport is_string_object, get_nat
 
 from np_datetime cimport npy_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
-from timezones cimport (is_utc, is_tzlocal,
-                        maybe_get_tz, get_dst_info)
+from timezones cimport is_utc, is_tzlocal, maybe_get_tz, get_dst_info
 from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar cimport get_days_in_month
 
@@ -33,7 +28,7 @@ cdef int RESO_DAY = 6
 
 # ----------------------------------------------------------------------
 
-cpdef resolution(ndarray[int64_t] stamps, tz=None):
+cpdef resolution(int64_t[:] stamps, tz=None):
     cdef:
         Py_ssize_t i, n = len(stamps)
         npy_datetimestruct dts
@@ -44,11 +39,12 @@ cpdef resolution(ndarray[int64_t] stamps, tz=None):
     return _reso_local(stamps, tz)
 
 
-cdef _reso_local(ndarray[int64_t] stamps, object tz):
+cdef _reso_local(int64_t[:] stamps, object tz):
     cdef:
         Py_ssize_t i, n = len(stamps)
         int reso = RESO_DAY, curr_reso
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
         Py_ssize_t[:] pos
         npy_datetimestruct dts
         int64_t local_val, delta

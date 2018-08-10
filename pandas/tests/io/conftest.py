@@ -1,5 +1,5 @@
 import pytest
-from pandas.io.parsers import read_table
+from pandas.io.parsers import read_csv
 
 
 @pytest.fixture
@@ -17,7 +17,7 @@ def jsonl_file(datapath):
 @pytest.fixture
 def salaries_table(datapath):
     """DataFrame with the salaries dataset"""
-    return read_table(datapath('io', 'parser', 'data', 'salaries.csv'))
+    return read_csv(datapath('io', 'parser', 'data', 'salaries.csv'), sep='\t')
 
 
 @pytest.fixture

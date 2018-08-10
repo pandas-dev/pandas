@@ -69,9 +69,9 @@ NaN,nan
                 tm.assert_frame_equal(out, expected)
 
     def test_default_na_values(self):
-        _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                          '#N/A', 'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null',
-                          'NaN', 'nan', '-NaN', '-nan', '#N/A N/A', ''])
+        _NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A',
+                      'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', 'nan',
+                      '-NaN', '-nan', '#N/A N/A', ''}
         assert _NA_VALUES == com._NA_VALUES
         nv = len(_NA_VALUES)
 
@@ -368,4 +368,15 @@ nan,B
 
         expected = DataFrame({"a": [1, 4], "c": [3, 6]},
                              index=Index([np.nan, 5.0], name="b"))
+        tm.assert_frame_equal(out, expected)
+
+    def test_inf_na_values_with_int_index(self):
+        # see gh-17128
+        data = "idx,col1,col2\n1,3,4\n2,inf,-inf"
+
+        # Don't fail with OverflowError with infs and integer index column
+        out = self.read_csv(StringIO(data), index_col=[0],
+                            na_values=['inf', '-inf'])
+        expected = DataFrame({"col1": [3, np.nan], "col2": [4, np.nan]},
+                             index=Index([1, 2], name="idx"))
         tm.assert_frame_equal(out, expected)

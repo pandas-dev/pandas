@@ -16,6 +16,10 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #define NO_IMPORT
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif  // NPY_NO_DEPRECATED_API
+
 #include <Python.h>
 #include <datetime.h>
 
@@ -44,18 +48,6 @@ const int days_per_month_table[2][12] = {
 int is_leapyear(npy_int64 year) {
     return (year & 0x3) == 0 && /* year % 4 == 0 */
            ((year % 100) != 0 || (year % 400) == 0);
-}
-
-/*
- * Sakamoto's method, from wikipedia
- */
-int dayofweek(int y, int m, int d) {
-    int day;
-    static const int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-    y -= m < 3;
-    day = (y + y / 4 - y / 100 + y / 400 + t[m - 1] + d) % 7;
-    // convert to python day
-    return (day + 6) % 7;
 }
 
 /*

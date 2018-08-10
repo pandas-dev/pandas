@@ -1084,7 +1084,8 @@ class NDFrame(PandasObject, SelectionMixin):
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            # Validate the axis
+            self._get_axis_number(axis)
 
         if kwargs:
             raise TypeError('rename() got an unexpected keyword '
@@ -1932,7 +1933,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False, compression=None,
+                default_handler=None, lines=False, compression='infer',
                 index=True):
         """
         Convert the object to a JSON string.
@@ -1998,13 +1999,14 @@ class NDFrame(PandasObject, SelectionMixin):
             like.
 
             .. versionadded:: 0.19.0
-
-        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default None
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
+                       default 'infer'
             A string representing the compression to use in the output file,
             only used when the first argument is a filename.
 
             .. versionadded:: 0.21.0
-
+            .. versionchanged:: 0.24.0
+               'infer' option added and set to default
         index : boolean, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
@@ -5299,6 +5301,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.copy(deep=deep)
 
     def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
         if memo is None:
             memo = {}
         return self.copy(deep=True)
@@ -6090,9 +6098,9 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
-              ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int),
-              e.g. df.interpolate(method='polynomial', order=4).
+              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
+              'spline' require that you also specify an `order` (int),
+              e.g. ``df.interpolate(method='polynomial', order=4)``.
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
               are all wrappers around the scipy interpolation methods of
@@ -6102,13 +6110,14 @@ class NDFrame(PandasObject, SelectionMixin):
               <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
               and `tutorial documentation
               <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
-            * 'from_derivatives' refers to BPoly.from_derivatives which
+            * 'from_derivatives' refers to
+              :meth:`scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18
 
             .. versionadded:: 0.18.1
 
-               Added support for the 'akima' method
+               Added support for the 'akima' method.
                Added interpolate method 'from_derivatives' which replaces
                'piecewise_polynomial' in scipy 0.18; backwards-compatible with
                scipy < 0.18
@@ -8833,7 +8842,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ldesc = [describe_1d(s) for _, s in data.iteritems()]
         # set a convenient order for rows
         names = []
-        ldesc_indexes = sorted([x.index for x in ldesc], key=len)
+        ldesc_indexes = sorted((x.index for x in ldesc), key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:
                 if name not in names:
@@ -9193,16 +9202,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ewm = ewm
 
-        @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
-        def transform(self, func, *args, **kwargs):
-            result = self.agg(func, *args, **kwargs)
-            if is_scalar(result) or len(result) != len(self):
-                raise ValueError("transforms cannot produce "
-                                 "aggregated results")
+    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, *args, **kwargs):
+        result = self.agg(func, *args, **kwargs)
+        if is_scalar(result) or len(result) != len(self):
+            raise ValueError("transforms cannot produce "
+                             "aggregated results")
 
-            return result
-
-        cls.transform = transform
+        return result
 
     # ----------------------------------------------------------------------
     # Misc methods

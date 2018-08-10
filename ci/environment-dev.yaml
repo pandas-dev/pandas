@@ -6,6 +6,7 @@ dependencies:
   - Cython>=0.28.2
   - NumPy
   - flake8
+  - flake8-comprehensions
   - moto
   - pytest>=3.1
   - python-dateutil>=2.5.0

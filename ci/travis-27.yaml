@@ -9,6 +9,7 @@ dependencies:
   - fastparquet
   - feather-format
   - flake8=3.4.1
+  - flake8-comprehensions
   - gcsfs
   - html5lib
   - ipython

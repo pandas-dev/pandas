@@ -47,8 +47,8 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/npy_math.h>       // NOLINT(build/include_order)
 #include <stdio.h>                // NOLINT(build/include_order)
 #include <ultrajson.h>            // NOLINT(build/include_order)
-#include <np_datetime.h>          // NOLINT(build/include_order)
-#include <np_datetime_strings.h>  // NOLINT(build/include_order)
+#include <../../../tslibs/src/datetime/np_datetime.h>          // NOLINT(build/include_order)
+#include <../../../tslibs/src/datetime/np_datetime_strings.h>  // NOLINT(build/include_order)
 #include "datetime.h"
 
 static PyObject *type_decimal;

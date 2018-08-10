@@ -989,9 +989,11 @@ class TestIntervalIndex(Base):
         # GH 19209
         left = np.arange(0, 4, dtype='i8')
         right = np.arange(1, 5, dtype='i8')
-
-        result = IntervalIndex.from_arrays(left, right).itemsize
         expected = 16  # 8 * 2
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = IntervalIndex.from_arrays(left, right).itemsize
+
         assert result == expected
 
     @pytest.mark.parametrize('new_closed', [
