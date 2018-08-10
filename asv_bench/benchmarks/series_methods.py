@@ -38,6 +38,27 @@ class IsIn(object):
         self.s.isin(self.values)
 
 
+class IsInFloat64(object):
+
+    def setup(self):
+        self.small = Series([1, 2], dtype=np.float64)
+        self.many_different_values = np.arange(10**6, dtype=np.float64)
+        self.few_different_values = np.zeros(10**7, dtype=np.float64)
+        self.only_nans_values = np.full(10**7, np.nan, dtype=np.float64)
+
+    def time_isin_many_different(self):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.many_different_values)
+
+    def time_isin_few_different(self):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.few_different_values)
+
+    def time_isin_nan_values(self):
+        # runtime is dominated by creation of the lookup-table
+        self.small.isin(self.few_different_values)
+
+
 class IsInForObjects(object):
 
     def setup(self):
