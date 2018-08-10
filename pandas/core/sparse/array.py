@@ -179,6 +179,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     __array_priority__ = 15
     _pandas_ftype = 'sparse'
+    _subtyp = 'sparse_array'  # register ABCSparseArray
 
     def __init__(self, data, sparse_index=None, index=None, fill_value=None,
                  kind='integer', dtype=None, copy=False):
@@ -222,7 +223,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 # probably shared code in sanitize_series
                 from pandas.core.series import _sanitize_array
                 data = _sanitize_array(data, index=None)
-                # import pdb; pdb.set_trace()
                 # data2 = np.atleast_1d(np.asarray(data, dtype=dtype))
                 # if is_string_dtype(data2) and dtype is None:
                 #     work around NumPy's coercion of non-strings to strings
@@ -683,6 +683,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # for non-sparse types
 
         dtype = pandas_dtype(dtype)
+        import pdb; pdb.set_trace()
 
         if isinstance(dtype, SparseDtype):
             # Sparse -> Sparse
@@ -740,6 +741,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                            "will be removed in a future version."),
                           FutureWarning, stacklevel=2)
         return np.asarray(self, dtype=self.sp_values.dtype)
+
+    def nonzero(self):
+        # TODO: Add to EA API? This is used by DataFrame.dropna
+        if self.fill_value == 0:
+            return self.sp_index.to_int_index().indices,
+        else:
+            return self.sp_index.to_int_index().indices[self.sp_values != 0],
 
     # ------------------------------------------------------------------------
     # Reductions
@@ -868,7 +876,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return np.abs(self)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        # This is currently breaking binops
         new_inputs = []
         new_fill_values = []
 

@@ -804,7 +804,20 @@ class BlockManager(PandasObject):
         Return ndarray from blocks with specified item order
         Items must be contained in the blocks
         """
-        dtype = _interleaved_dtype(self.blocks)
+        from pandas.core.dtypes.common import is_sparse
+        dtype = _interleaved_dtype(self.blocks, allow_extension=True)
+
+        # This is unclear...
+        # For things like SparseArray we want to go Sparse[T] -> ndarray[T]
+        # But for things like Categorical, we want to go to object.
+        # What about IntegerDtype?
+        # Probably best to add this to the API
+
+        if is_sparse(dtype):
+            dtype = dtype.subdtype
+        elif is_extension_array_dtype(dtype):
+            dtype = 'object'
+
 
         result = np.empty(self.shape, dtype=dtype)
 

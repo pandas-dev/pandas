@@ -7,6 +7,7 @@ with float64 data
 
 import numpy as np
 import warnings
+import collections
 
 from pandas.core.dtypes.missing import isna, notna, is_integer
 
@@ -74,6 +75,8 @@ class SparseSeries(Series):
             index = data.index if index is None else index
             dtype = data.dtype if dtype is None else dtype
             name = data.name if name is None else name
+        elif isinstance(data, collections.Mapping):
+            data, index = Series()._init_dict(data, index=index)
 
         super(SparseSeries, self).__init__(
             SparseArray(data,
@@ -196,9 +199,48 @@ class SparseSeries(Series):
         """ return the array """
         return self._data.blocks[0].values
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        # avoid infinite recursion for other SparseSeries inputs
+        inputs = tuple(
+            x.values if isinstance(x, type(self)) else x
+            for x in inputs
+        )
+        result = self.values.__array_ufunc__(ufunc, method, *inputs, **kwargs)
+        return self._constructor(result, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=result.fill_value,
+                                 copy=False).__finalize__(self)
+
     def __array__(self, result=None):
         """ the array interface, return my values """
         return np.asarray(self.values)
+
+    def __array_wrap__(self, result, context=None):
+        """
+        Gets called prior to a ufunc (and after)
+
+        See SparseArray.__array_wrap__ for detail.
+        """
+        if isinstance(context, tuple) and len(context) == 3:
+            ufunc, args, domain = context
+            args = [getattr(a, 'fill_value', a) for a in args]
+            with np.errstate(all='ignore'):
+                fill_value = ufunc(self.fill_value, *args[1:])
+        else:
+            fill_value = self.fill_value
+
+        return self._constructor(result, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=fill_value,
+                                 copy=False).__finalize__(self)
+
+    def __array_finalize__(self, obj):
+        """
+        Gets called after any ufunc or other array operations, necessary
+        to pass on the index.
+        """
+        self.name = getattr(obj, 'name', None)
+        self.fill_value = getattr(obj, 'fill_value', None)
 
     def get_values(self):
         """ same as values """
@@ -281,33 +323,6 @@ class SparseSeries(Series):
         rep = '{series}\n{index!r}'.format(series=series_rep,
                                            index=self.sp_index)
         return rep
-
-    def __array_wrap__(self, result, context=None):
-        """
-        Gets called prior to a ufunc (and after)
-
-        See SparseArray.__array_wrap__ for detail.
-        """
-        if isinstance(context, tuple) and len(context) == 3:
-            ufunc, args, domain = context
-            args = [getattr(a, 'fill_value', a) for a in args]
-            with np.errstate(all='ignore'):
-                fill_value = ufunc(self.fill_value, *args[1:])
-        else:
-            fill_value = self.fill_value
-
-        return self._constructor(result, index=self.index,
-                                 sparse_index=self.sp_index,
-                                 fill_value=fill_value,
-                                 copy=False).__finalize__(self)
-
-    def __array_finalize__(self, obj):
-        """
-        Gets called after any ufunc or other array operations, necessary
-        to pass on the index.
-        """
-        self.name = getattr(obj, 'name', None)
-        self.fill_value = getattr(obj, 'fill_value', None)
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
