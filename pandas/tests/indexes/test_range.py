@@ -806,7 +806,7 @@ class TestRangeIndex(Numeric):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_duplicates(self):
+    def test_has_duplicates(self):
         for ind in self.indices:
             if not len(ind):
                 continue
