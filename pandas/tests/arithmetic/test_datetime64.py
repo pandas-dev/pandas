@@ -5,6 +5,7 @@
 import operator
 from datetime import datetime, timedelta
 import warnings
+from itertools import product, starmap
 
 import numpy as np
 import pytest
@@ -64,6 +65,32 @@ class TestDatetime64DataFrameComparison(object):
 
 
 class TestDatetime64SeriesComparison(object):
+    # TODO: moved from tests.series.test_operators; needs cleanup
+    def test_comparison_invalid(self):
+        # GH#4968
+        # invalid date/int comparisons
+        ser = Series(range(5))
+        ser2 = Series(pd.date_range('20010101', periods=5))
+
+        for (x, y) in [(ser, ser2), (ser2, ser)]:
+
+            result = x == y
+            expected = Series([False] * 5)
+            tm.assert_series_equal(result, expected)
+
+            result = x != y
+            expected = Series([True] * 5)
+            tm.assert_series_equal(result, expected)
+
+            with pytest.raises(TypeError):
+                x >= y
+            with pytest.raises(TypeError):
+                x > y
+            with pytest.raises(TypeError):
+                x < y
+            with pytest.raises(TypeError):
+                x <= y
+
     @pytest.mark.parametrize('data', [
         [Timestamp('2011-01-01'), NaT, Timestamp('2011-01-03')],
         [Timedelta('1 days'), NaT, Timedelta('3 days')],
@@ -1360,7 +1387,95 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             op(dti, pi)
 
-    # -------------------------------------------------------------
+    # -------------------------------------------------------------------
+    # TODO: Most of this block is moved from series or frame tests, needs
+    # cleanup, box-parametrization, and de-duplication
+
+    @pytest.mark.parametrize('op', [operator.add, operator.sub])
+    def test_timedelta64_equal_timedelta_supported_ops(self, op):
+        ser = Series([Timestamp('20130301'),
+                      Timestamp('20130228 23:00:00'),
+                      Timestamp('20130228 22:00:00'),
+                      Timestamp('20130228 21:00:00')])
+
+        intervals = ['D', 'h', 'm', 's', 'us']
+
+        # TODO: unused
+        # npy16_mappings = {'D': 24 * 60 * 60 * 1000000,
+        #                   'h': 60 * 60 * 1000000,
+        #                   'm': 60 * 1000000,
+        #                   's': 1000000,
+        #                   'us': 1}
+
+        def timedelta64(*args):
+            return sum(starmap(np.timedelta64, zip(args, intervals)))
+
+        for d, h, m, s, us in product(*([range(2)] * 5)):
+            nptd = timedelta64(d, h, m, s, us)
+            pytd = timedelta(days=d, hours=h, minutes=m, seconds=s,
+                             microseconds=us)
+            lhs = op(ser, nptd)
+            rhs = op(ser, pytd)
+
+            tm.assert_series_equal(lhs, rhs)
+
+    def test_ops_nat_mixed_datetime64_timedelta64(self):
+        # GH#11349
+        timedelta_series = Series([NaT, Timedelta('1s')])
+        datetime_series = Series([NaT, Timestamp('19900315')])
+        nat_series_dtype_timedelta = Series([NaT, NaT],
+                                            dtype='timedelta64[ns]')
+        nat_series_dtype_timestamp = Series([NaT, NaT], dtype='datetime64[ns]')
+        single_nat_dtype_datetime = Series([NaT], dtype='datetime64[ns]')
+        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
+
+        # subtraction
+        tm.assert_series_equal(datetime_series - single_nat_dtype_datetime,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(datetime_series - single_nat_dtype_timedelta,
+                               nat_series_dtype_timestamp)
+        tm.assert_series_equal(-single_nat_dtype_timedelta + datetime_series,
+                               nat_series_dtype_timestamp)
+
+        # without a Series wrapping the NaT, it is ambiguous
+        # whether it is a datetime64 or timedelta64
+        # defaults to interpreting it as timedelta64
+        tm.assert_series_equal(nat_series_dtype_timestamp -
+                               single_nat_dtype_datetime,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timestamp -
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timestamp)
+        tm.assert_series_equal(-single_nat_dtype_timedelta +
+                               nat_series_dtype_timestamp,
+                               nat_series_dtype_timestamp)
+
+        with pytest.raises(TypeError):
+            timedelta_series - single_nat_dtype_datetime
+
+        # addition
+        tm.assert_series_equal(nat_series_dtype_timestamp +
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timestamp)
+        tm.assert_series_equal(single_nat_dtype_timedelta +
+                               nat_series_dtype_timestamp,
+                               nat_series_dtype_timestamp)
+
+        tm.assert_series_equal(nat_series_dtype_timestamp +
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timestamp)
+        tm.assert_series_equal(single_nat_dtype_timedelta +
+                               nat_series_dtype_timestamp,
+                               nat_series_dtype_timestamp)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta +
+                               single_nat_dtype_datetime,
+                               nat_series_dtype_timestamp)
+        tm.assert_series_equal(single_nat_dtype_datetime +
+                               nat_series_dtype_timedelta,
+                               nat_series_dtype_timestamp)
 
     def test_ufunc_coercions(self):
         idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
