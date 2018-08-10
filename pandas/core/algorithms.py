@@ -134,7 +134,7 @@ def _ensure_data(values, dtype=None):
         return values, dtype, 'int64'
 
     # we have failed, return object
-    values = np.asarray(values)
+    values = np.asarray(values, dtype=np.object)
     return ensure_object(values), 'object', 'object'
 
 
