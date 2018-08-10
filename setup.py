@@ -67,7 +67,7 @@ else:
         except ImportError:
             import tempita
     except ImportError:
-        raise ImportError('Building pandas requires Tempita: '
+        raise ImportError('Building pandas requires Tempita: '  #raising error
                           'pip install Tempita')
 
 
@@ -93,7 +93,7 @@ for module, files in _pxi_dep_template.items():
 
 
 class build_ext(_build_ext):
-    @classmethod
+    @classmethod                 #to create a class method
     def render_templates(cls, pxifiles):
         for pxifile in pxifiles:
             # build pxifiles first, template extension must be .pxi.in
