@@ -46,7 +46,7 @@ def get_dispatch(dtypes):
     fv = fill_value
 
     %(nogil_str)s
-    %(tab)sfor i from 0 <= i < n:
+    %(tab)sfor i in range(n):
     %(tab)s    idx = indexer[i]
     %(tab)s    if idx == -1:
     %(tab)s        out[i] = fv
@@ -74,10 +74,10 @@ def get_dispatch(dtypes):
             values.strides[1] == sizeof(%(c_type_out)s) and
             sizeof(%(c_type_out)s) * n >= 256):
 
-            for i from 0 <= i < n:
+            for i in range(n):
                 idx = indexer[i]
                 if idx == -1:
-                    for j from 0 <= j < k:
+                    for j in range(k):
                         out[i, j] = fv
                 else:
                     v = &values[idx, 0]
@@ -85,13 +85,13 @@ def get_dispatch(dtypes):
                     memmove(o, v, <size_t>(sizeof(%(c_type_out)s) * k))
             return
 
-    for i from 0 <= i < n:
+    for i in range(n):
         idx = indexer[i]
         if idx == -1:
-            for j from 0 <= j < k:
+            for j in range(k):
                 out[i, j] = fv
         else:
-            for j from 0 <= j < k:
+            for j in range(k):
                 out[i, j] = %(preval)svalues[idx, j]%(postval)s
 """
 
@@ -108,8 +108,8 @@ def get_dispatch(dtypes):
 
     fv = fill_value
 
-    for i from 0 <= i < n:
-        for j from 0 <= j < k:
+    for i in range(n):
+        for j in range(k):
             idx = indexer[j]
             if idx == -1:
                 out[i, j] = fv
@@ -246,13 +246,13 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
     k = len(idx1)
 
     fv = fill_value
-    for i from 0 <= i < n:
+    for i in range(n):
         idx = idx0[i]
         if idx == -1:
-            for j from 0 <= j < k:
+            for j in range(k):
                 out[i, j] = fv
         else:
-            for j from 0 <= j < k:
+            for j in range(k):
                 if idx1[j] == -1:
                     out[i, j] = fv
                 else:

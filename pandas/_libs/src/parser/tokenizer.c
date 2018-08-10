@@ -363,7 +363,7 @@ static int push_char(parser_t *self, char c) {
     return 0;
 }
 
-int P_INLINE end_field(parser_t *self) {
+int PANDAS_INLINE end_field(parser_t *self) {
     // XXX cruft
     if (self->words_len >= self->words_cap) {
         TRACE(
@@ -1381,11 +1381,11 @@ int tokenize_all_rows(parser_t *self) {
     return status;
 }
 
-P_INLINE void uppercase(char *p) {
+PANDAS_INLINE void uppercase(char *p) {
     for (; *p; ++p) *p = toupper(*p);
 }
 
-int P_INLINE to_longlong(char *item, long long *p_value) {
+int PANDAS_INLINE to_longlong(char *item, long long *p_value) {
     char *p_end;
 
     // Try integer conversion.  We explicitly give the base to be 10. If

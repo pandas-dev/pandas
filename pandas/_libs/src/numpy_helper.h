@@ -11,7 +11,7 @@ The full license is in the LICENSE file, distributed with this software.
 #define PANDAS__LIBS_SRC_NUMPY_HELPER_H_
 
 #include "Python.h"
-#include "helper.h"
+#include "inline_helper.h"
 #include "numpy/arrayobject.h"
 #include "numpy/arrayscalars.h"
 

@@ -523,7 +523,7 @@ def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
         Py_ssize_t i, j, k
 
     k = len(values)
-    for j from 0 <= j < k:
+    for j in range(k):
         i = indexer[j]
         out[i] = values[j, loc]
 

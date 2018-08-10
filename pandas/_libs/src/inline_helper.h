@@ -7,8 +7,8 @@ Distributed under the terms of the BSD Simplified License.
 The full license is in the LICENSE file, distributed with this software.
 */
 
-#ifndef PANDAS__LIBS_SRC_HELPER_H_
-#define PANDAS__LIBS_SRC_HELPER_H_
+#ifndef PANDAS__LIBS_SRC_INLINE_HELPER_H_
+#define PANDAS__LIBS_SRC_INLINE_HELPER_H_
 
 #ifndef PANDAS_INLINE
   #if defined(__GNUC__)
@@ -22,4 +22,4 @@ The full license is in the LICENSE file, distributed with this software.
   #endif
 #endif
 
-#endif  // PANDAS__LIBS_SRC_HELPER_H_
+#endif  // PANDAS__LIBS_SRC_INLINE_HELPER_H_

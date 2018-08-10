@@ -190,7 +190,7 @@ cdef inline tuple block_op_{{opname}}_{{dtype}}(ndarray x_,
     # Wow, what a hack job. Need to do something about this
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out_index.npoints:
+    for out_i in range(out_index.npoints):
         if yblock == yindex.nblocks:
             # use y fill value
             out[out_i] = {{(opname, 'x[xi]', 'yfill', dtype) | get_op}}
@@ -286,7 +286,7 @@ cdef inline tuple int_op_{{opname}}_{{dtype}}(ndarray x_, IntIndex xindex,
     out_indices = out_index.indices
 
     # walk the two SparseVectors, adding matched locations...
-    for out_i from 0 <= out_i < out_index.npoints:
+    for out_i in range(out_index.npoints):
         if xi == xindex.npoints:
             # use x fill value
             out[out_i] = {{(opname, 'xfill', 'y[yi]', dtype) | get_op}}
