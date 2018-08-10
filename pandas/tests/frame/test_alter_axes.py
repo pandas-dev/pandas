@@ -261,7 +261,7 @@ class TestDataFrameAlterAxes(TestData):
         comp = comp.tz_localize(None)
         tm.assert_numpy_array_equal(result.values, comp.values)
 
-        # list of datetimes with a tzg
+        # list of datetimes with a tz
         df['D'] = i.to_pydatetime()
         result = df['D']
         assert_series_equal(result, expected, check_names=False)

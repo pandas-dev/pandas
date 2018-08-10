@@ -3,12 +3,11 @@
 import re
 
 import numpy as np
-import pytest
-from pandas._libs.tslib import Timestamp
-
 import pandas as pd
 import pandas.util.testing as tm
+import pytest
 from pandas import Index, MultiIndex, date_range
+from pandas._libs.tslib import Timestamp
 from pandas.compat import lrange, range
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -24,7 +23,7 @@ def test_constructor_single_level():
 
 def test_constructor_no_levels():
     tm.assert_raises_regex(ValueError, "non-zero number "
-                                       "of levels/labels",
+                           "of levels/labels",
                            MultiIndex, levels=[], labels=[])
     both_re = re.compile('Must pass both levels and labels')
     with tm.assert_raises_regex(TypeError, both_re):
@@ -57,7 +56,7 @@ def test_constructor_mismatched_label_levels(idx):
     labels = [np.array([1]), np.array([2]), np.array([3])]
     levels = ["a"]
     tm.assert_raises_regex(ValueError, "Length of levels and labels "
-                                       "must be the same", MultiIndex,
+                           "must be the same", MultiIndex,
                            levels=levels, labels=labels)
     length_error = re.compile('>= length of level')
     label_error = re.compile(r'Unequal label lengths: \[4, 2\]')
@@ -260,13 +259,13 @@ def test_from_arrays_invalid_input(invalid_array):
 def test_from_arrays_different_lengths(idx1, idx2):
     # see gh-13599
     tm.assert_raises_regex(ValueError, '^all arrays must '
-                                       'be same length$',
+                           'be same length$',
                            MultiIndex.from_arrays, [idx1, idx2])
 
 
 def test_from_tuples():
     tm.assert_raises_regex(TypeError, 'Cannot infer number of levels '
-                                      'from empty list',
+                           'from empty list',
                            MultiIndex.from_tuples, [])
 
     expected = MultiIndex(levels=[[1, 3], [2, 4]],
@@ -391,6 +390,7 @@ def test_from_product_index_series_categorical(ordered, f):
 
 
 def test_from_product():
+
     first = ['foo', 'bar', 'buz']
     second = ['a', 'b', 'c']
     names = ['first', 'second']
@@ -425,6 +425,7 @@ def test_from_product_iterator():
 
 
 def test_create_index_existing_name(idx):
+
     # GH11193, when an existing index is passed, and a new name is not
     # specified, the new index should inherit the previous object name
     index = idx
@@ -463,9 +464,8 @@ def test_tuples_with_name_string():
     with pytest.raises(ValueError):
         pd.Index(li, name='a')
 
-
 def test_from_tuples_with_tuple_label():
-    # test for fix of issue #15457, where the following raised a TypeError
+    # GH 15457
     expected = pd.DataFrame([[2, 1, 2], [4, (1, 2), 3]], columns=['a', 'b', 'c']).set_index(['a', 'b'])
     idx = pd.MultiIndex.from_tuples([(2, 1), (4, (1, 2))], names=('a', 'b'))
     result = pd.DataFrame([2, 3], columns=['c'], index=idx)
