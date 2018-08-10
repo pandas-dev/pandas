@@ -12,11 +12,15 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 
 # name, dtype, ctype
 dtypes = [('Float64', 'float64', 'float64_t'),
+          ('Float32', 'float32', 'float32_t'),
           ('Int64', 'int64', 'int64_t'),
           ('Int32', 'int32', 'int32_t'),
           ('Int16', 'int16', 'int16_t'),
           ('Int8', 'int8', 'int8_t'),
           ('UInt64', 'uint64', 'uint64_t'),
+          ('UInt32', 'uint32', 'uint32_t'),
+          ('UInt16', 'uint16', 'uint16_t'),
+          ('UInt8', 'uint8', 'uint8_t'),
           ('Object', 'object', 'object'),
           ]
 }}
@@ -41,10 +45,23 @@ cdef class {{name}}Engine(IndexEngine):
         {{if name == 'Object'}}
         return _hash.PyObjectHashTable(n)
         {{elif name in {'Int8', 'Int16', 'Int32'} }}
+        # {{name}}HashTable is not available, so we use Int64HashTable
         return _hash.Int64HashTable(n)
+        {{elif name in {'UInt8', 'UInt16', 'UInt32'} }}
+        # {{name}}HashTable is not available, so we use UInt64HashTable
+        return _hash.UInt64HashTable(n)
+        {{elif name in {'Float32'} }}
+        # {{name}}HashTable is not available, so we use Float64HashTable
+        return _hash.Float64HashTable(n)
         {{else}}
         return _hash.{{name}}HashTable(n)
         {{endif}}
+
+    {{if name in {'Int8', 'Int16', 'Int32'} }}
+    cpdef _call_map_locations(self, values):
+        # self.mapping is of type Int64HashTable, so convert dtype of values
+        self.mapping.map_locations(algos.ensure_int64(values))
+    {{endif}}
 
     {{if name != 'Float64' and name != 'Object'}}
     cdef _check_type(self, object val):

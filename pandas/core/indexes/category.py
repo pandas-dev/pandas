@@ -86,8 +86,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @property
     def _engine_type(self):
-        type_name = self.codes.dtype.name.capitalize()
-        return getattr(libindex, "{}Engine".format(type_name))
+        # self.codes can have dtype int8, int16, int 32 or int64, so we need
+        # to return the corresponding engine type (libindex.Int8Engine, etc.).
+        engine_name = "{}Engine".format(self.codes.dtype.name.capitalize())
+        return getattr(libindex, engine_name)
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
