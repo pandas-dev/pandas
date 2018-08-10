@@ -23,20 +23,10 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-@pytest.fixture
-def frame_of_index_cols():
-    df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
-                    'B': ['one', 'two', 'three', 'one', 'two'],
-                    'C': ['a', 'b', 'c', 'd', 'e'],
-                    'D': np.random.randn(5),
-                    'E': np.random.randn(5)})
-    return df
-
-
 class TestDataFrameAlterAxes(TestData):
 
-    def test_set_index_directly(self):
-        df = self.mixed_frame.copy()
+    def test_set_index_directly(self, mixed_frame):
+        df = mixed_frame
         idx = Index(np.arange(len(df))[::-1])
 
         df.index = idx
@@ -44,8 +34,8 @@ class TestDataFrameAlterAxes(TestData):
         with tm.assert_raises_regex(ValueError, 'Length mismatch'):
             df.index = idx[::2]
 
-    def test_set_index(self):
-        df = self.mixed_frame.copy()
+    def test_set_index(self, mixed_frame):
+        df = mixed_frame
         idx = Index(np.arange(len(df))[::-1])
 
         df = df.set_index(idx)
@@ -408,11 +398,11 @@ class TestDataFrameAlterAxes(TestData):
                                                 names=['a', 'x'])
         tm.assert_frame_equal(result, expected)
 
-    def test_set_columns(self):
-        cols = Index(np.arange(len(self.mixed_frame.columns)))
-        self.mixed_frame.columns = cols
+    def test_set_columns(self, mixed_frame):
+        cols = Index(np.arange(len(mixed_frame.columns)))
+        mixed_frame.columns = cols
         with tm.assert_raises_regex(ValueError, 'Length mismatch'):
-            self.mixed_frame.columns = cols[::2]
+            mixed_frame.columns = cols[::2]
 
     def test_dti_set_index_reindex(self):
         # GH 6631
@@ -440,7 +430,7 @@ class TestDataFrameAlterAxes(TestData):
 
     # Renaming
 
-    def test_rename(self):
+    def test_rename(self, frame):
         mapping = {
             'A': 'a',
             'B': 'b',
@@ -448,12 +438,12 @@ class TestDataFrameAlterAxes(TestData):
             'D': 'd'
         }
 
-        renamed = self.frame.rename(columns=mapping)
-        renamed2 = self.frame.rename(columns=str.lower)
+        renamed = frame.rename(columns=mapping)
+        renamed2 = frame.rename(columns=str.lower)
 
         tm.assert_frame_equal(renamed, renamed2)
         tm.assert_frame_equal(renamed2.rename(columns=str.upper),
-                              self.frame, check_names=False)
+                              frame, check_names=False)
 
         # index
         data = {
@@ -469,14 +459,14 @@ class TestDataFrameAlterAxes(TestData):
         tm.assert_index_equal(renamed.index, Index(['BAR', 'FOO']))
 
         # have to pass something
-        pytest.raises(TypeError, self.frame.rename)
+        pytest.raises(TypeError, frame.rename)
 
         # partial columns
-        renamed = self.frame.rename(columns={'C': 'foo', 'D': 'bar'})
+        renamed = frame.rename(columns={'C': 'foo', 'D': 'bar'})
         tm.assert_index_equal(renamed.columns, Index(['A', 'B', 'foo', 'bar']))
 
         # other axis
-        renamed = self.frame.T.rename(index={'C': 'foo', 'D': 'bar'})
+        renamed = frame.T.rename(index={'C': 'foo', 'D': 'bar'})
         tm.assert_index_equal(renamed.index, Index(['A', 'B', 'foo', 'bar']))
 
         # index with name
@@ -487,9 +477,8 @@ class TestDataFrameAlterAxes(TestData):
                               Index(['bar', 'foo'], name='name'))
         assert renamed.index.name == renamer.index.name
 
-    def test_rename_axis_inplace(self):
+    def test_rename_axis_inplace(self, frame):
         # GH 15704
-        frame = self.frame.copy()
         expected = frame.rename_axis('foo')
         result = frame.copy()
         no_return = result.rename_axis('foo', inplace=True)
@@ -598,18 +587,18 @@ class TestDataFrameAlterAxes(TestData):
                             level=0)
         tm.assert_index_equal(renamed.index, new_index)
 
-    def test_rename_nocopy(self):
-        renamed = self.frame.rename(columns={'C': 'foo'}, copy=False)
+    def test_rename_nocopy(self, frame):
+        renamed = frame.rename(columns={'C': 'foo'}, copy=False)
         renamed['foo'] = 1.
-        assert (self.frame['C'] == 1.).all()
+        assert (frame['C'] == 1.).all()
 
-    def test_rename_inplace(self):
-        self.frame.rename(columns={'C': 'foo'})
-        assert 'C' in self.frame
-        assert 'foo' not in self.frame
+    def test_rename_inplace(self, frame):
+        frame.rename(columns={'C': 'foo'})
+        assert 'C' in frame
+        assert 'foo' not in frame
 
-        c_id = id(self.frame['C'])
-        frame = self.frame.copy()
+        c_id = id(frame['C'])
+        frame = frame.copy()
         frame.rename(columns={'C': 'foo'}, inplace=True)
 
         assert 'C' not in frame
@@ -682,8 +671,8 @@ class TestDataFrameAlterAxes(TestData):
         result = df.reorder_levels(['L0', 'L0', 'L0'])
         tm.assert_frame_equal(result, expected)
 
-    def test_reset_index(self):
-        stacked = self.frame.stack()[::2]
+    def test_reset_index(self, frame):
+        stacked = frame.stack()[::2]
         stacked = DataFrame({'foo': stacked, 'bar': stacked})
 
         names = ['first', 'second']
@@ -703,55 +692,55 @@ class TestDataFrameAlterAxes(TestData):
                                check_names=False)
 
         # default name assigned
-        rdf = self.frame.reset_index()
-        exp = Series(self.frame.index.values, name='index')
+        rdf = frame.reset_index()
+        exp = Series(frame.index.values, name='index')
         tm.assert_series_equal(rdf['index'], exp)
 
         # default name assigned, corner case
-        df = self.frame.copy()
+        df = frame.copy()
         df['index'] = 'foo'
         rdf = df.reset_index()
-        exp = Series(self.frame.index.values, name='level_0')
+        exp = Series(frame.index.values, name='level_0')
         tm.assert_series_equal(rdf['level_0'], exp)
 
         # but this is ok
-        self.frame.index.name = 'index'
-        deleveled = self.frame.reset_index()
-        tm.assert_series_equal(deleveled['index'], Series(self.frame.index))
+        frame.index.name = 'index'
+        deleveled = frame.reset_index()
+        tm.assert_series_equal(deleveled['index'], Series(frame.index))
         tm.assert_index_equal(deleveled.index,
                               Index(np.arange(len(deleveled))))
 
         # preserve column names
-        self.frame.columns.name = 'columns'
-        resetted = self.frame.reset_index()
+        frame.columns.name = 'columns'
+        resetted = frame.reset_index()
         assert resetted.columns.name == 'columns'
 
         # only remove certain columns
-        frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
-        rs = frame.reset_index(['A', 'B'])
+        df = frame.reset_index().set_index(['index', 'A', 'B'])
+        rs = df.reset_index(['A', 'B'])
 
         # TODO should reset_index check_names ?
-        tm.assert_frame_equal(rs, self.frame, check_names=False)
+        tm.assert_frame_equal(rs, frame, check_names=False)
 
-        rs = frame.reset_index(['index', 'A', 'B'])
-        tm.assert_frame_equal(rs, self.frame.reset_index(), check_names=False)
+        rs = df.reset_index(['index', 'A', 'B'])
+        tm.assert_frame_equal(rs, frame.reset_index(), check_names=False)
 
-        rs = frame.reset_index(['index', 'A', 'B'])
-        tm.assert_frame_equal(rs, self.frame.reset_index(), check_names=False)
+        rs = df.reset_index(['index', 'A', 'B'])
+        tm.assert_frame_equal(rs, frame.reset_index(), check_names=False)
 
-        rs = frame.reset_index('A')
-        xp = self.frame.reset_index().set_index(['index', 'B'])
+        rs = df.reset_index('A')
+        xp = frame.reset_index().set_index(['index', 'B'])
         tm.assert_frame_equal(rs, xp, check_names=False)
 
         # test resetting in place
-        df = self.frame.copy()
-        resetted = self.frame.reset_index()
+        df = frame.copy()
+        resetted = frame.reset_index()
         df.reset_index(inplace=True)
         tm.assert_frame_equal(df, resetted, check_names=False)
 
-        frame = self.frame.reset_index().set_index(['index', 'A', 'B'])
-        rs = frame.reset_index('A', drop=True)
-        xp = self.frame.copy()
+        df = frame.reset_index().set_index(['index', 'A', 'B'])
+        rs = df.reset_index('A', drop=True)
+        xp = frame.copy()
         del xp['A']
         xp = xp.set_index(['B'], append=True)
         tm.assert_frame_equal(rs, xp, check_names=False)
@@ -929,8 +918,8 @@ class TestDataFrameAlterAxes(TestData):
         # Check equality
         tm.assert_index_equal(df.set_index([df.index, idx2]).index, mi2)
 
-    def test_rename_objects(self):
-        renamed = self.mixed_frame.rename(columns=str.upper)
+    def test_rename_objects(self, mixed_frame):
+        renamed = mixed_frame.rename(columns=str.upper)
 
         assert 'FOO' in renamed
         assert 'foo' not in renamed
@@ -1053,15 +1042,13 @@ class TestDataFrameAlterAxes(TestData):
         assert 'rename' in message
         assert 'Use named arguments' in message
 
-    def test_assign_columns(self):
-        self.frame['hi'] = 'there'
+    def test_assign_columns(self, frame):
+        frame['hi'] = 'there'
 
-        frame = self.frame.copy()
-        frame.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
-        tm.assert_series_equal(self.frame['C'], frame['baz'],
-                               check_names=False)
-        tm.assert_series_equal(self.frame['hi'], frame['foo2'],
-                               check_names=False)
+        df = frame.copy()
+        df.columns = ['foo', 'bar', 'baz', 'quux', 'foo2']
+        tm.assert_series_equal(frame['C'], df['baz'], check_names=False)
+        tm.assert_series_equal(frame['hi'], df['foo2'], check_names=False)
 
     def test_set_index_preserve_categorical_dtype(self):
         # GH13743, GH13854
