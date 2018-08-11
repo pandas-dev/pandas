@@ -81,7 +81,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0):
     mat = get_numeric_mat(shape)
 
     if typestr in ('float', 'f8', 'f4', 'f2', 'int', 'i8', 'i4', 'i2', 'i1',
-                   'uint', 'u8', 'u4', 'u2', 'u1'):
+                   'uint', 'u8', 'u4', 'u2', 'u1', '<i2', '>i2'):
         values = mat.astype(typestr) + num_offset
     elif typestr in ('complex', 'c16', 'c8'):
         values = 1.j * (mat.astype(typestr) + num_offset)
@@ -831,6 +831,12 @@ class TestBlockManager(object):
         for value in invalid_values:
             with pytest.raises(ValueError):
                 bm1.replace_list([1], [2], inplace=value)
+
+    def test_swap_to_native_byteorder(self):
+        native_byteorder = '='
+        non_native_byteorder = '>' if sys.byteorder == 'little' else '<'
+        mgr = create_single_mgr(f'{non_native_byteorder}i2')
+        assert mgr.get_dtypes()[-1].byteorder == native_byteorder
 
 
 class TestIndexing(object):
