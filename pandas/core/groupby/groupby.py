@@ -521,11 +521,13 @@ class _GroupBy(PandasObject, SelectionMixin):
         return self.obj._dir_additions() | self._apply_whitelist
 
     def __getattr__(self, attr):
+        print('__getattr__ attr', attr)
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
         if attr in self.obj:
             return self[attr]
         if hasattr(self.obj, attr):
+            print('hassattr...', attr)
             return self._make_wrapper(attr)
 
         raise AttributeError("%r object has no attribute %r" %
@@ -584,10 +586,12 @@ b  2""")
             if 'axis' not in kwargs_with_axis or \
                kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
-
+            print('outside.....')
+            print(kwargs)
             if (name == 'hist' and
                     kwargs_wo_axis.pop('equal_bins', False) is True):
                 # GH-22222
+                print('inside.....')
                 bins = kwargs_wo_axis.get('bins')
                 if bins is None:
                     bins = 10  # use default value used in `hist_series`
@@ -601,7 +605,10 @@ b  2""")
                 return f(x, *args, **kwargs_with_axis)
 
             def curried(x):
-                return f(x, *args, **kwargs_wo_axis)
+                print('in curried...')
+                print(args)
+                print(kwargs_wo_axis)
+                return f(x, *args, **kwargs)
 
             # preserve the name so we can detect it when calling plot methods,
             # to avoid duplicates
@@ -674,7 +681,9 @@ b  2""")
               .format(input="dataframe",
                       examples=_apply_docs['dataframe_examples']))
     def apply(self, func, *args, **kwargs):
-
+        print('apply...')
+        print(args)
+        print(kwargs)
         func = self._is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could
