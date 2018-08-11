@@ -2348,7 +2348,7 @@ CDay = CustomBusinessDay
 
 
 def generate_range(start=None, end=None, periods=None,
-                   offset=BDay(), time_rule=None):
+                   offset=BDay()):
     """
     Generates a sequence of dates corresponding to the specified time
     offset. Similar to dateutil.rrule except uses pandas DateOffset
@@ -2358,9 +2358,8 @@ def generate_range(start=None, end=None, periods=None,
     ----------
     start : datetime (default None)
     end : datetime (default None)
-    periods : int, optional
-    time_rule : (legacy) name of DateOffset object to be used, optional
-        Corresponds with names expected by tseries.frequencies.get_offset
+    periods : int, (default None)
+    offset : DateOffset, (default BDay())
 
     Notes
     -----
@@ -2368,17 +2367,11 @@ def generate_range(start=None, end=None, periods=None,
     * At least two of (start, end, periods) must be specified.
     * If both start and end are specified, the returned dates will
     satisfy start <= date <= end.
-    * If both time_rule and offset are specified, time_rule supersedes offset.
 
     Returns
     -------
     dates : generator object
-
     """
-    if time_rule is not None:
-        from pandas.tseries.frequencies import get_offset
-
-        offset = get_offset(time_rule)
 
     start = to_datetime(start)
     end = to_datetime(end)

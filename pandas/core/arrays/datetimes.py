@@ -32,7 +32,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core import ops
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import Tick, Day, generate_range
+from pandas.tseries.offsets import Tick, generate_range
 
 from pandas.core.arrays import datetimelike as dtl
 
@@ -239,75 +239,58 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         start, end, _normalized = _maybe_normalize_endpoints(start, end,
                                                              normalize)
 
-        tz, inferred_tz = _infer_tz_from_endpoints(start, end, tz)
+        tz, _ = _infer_tz_from_endpoints(start, end, tz)
 
-        if hasattr(freq, 'delta') and freq != Day():
-            # sub-Day Tick
-            if inferred_tz is None and tz is not None:
-                # naive dates
-                if start is not None and start.tz is None:
-                    start = start.tz_localize(tz, ambiguous=False)
+        # If we have a Timedelta-like frequency (Tick) make sure tz
+        # is set before generating the range. For relative frequencies,
+        # generate the range with naive dates.
+        localize_args = {'tz': None}
+        if isinstance(freq, Tick):
+            localize_args = {'tz': tz, 'ambiguous': False}
+        if tz is not None:
+            # Localize the start and end arguments
+            if start is not None and start.tz is None:
+                start = start.tz_localize(**localize_args)
 
-                if end is not None and end.tz is None:
-                    end = end.tz_localize(tz, ambiguous=False)
+            if end is not None and end.tz is None:
+                end = end.tz_localize(**localize_args)
 
-            if start and end:
-                if start.tz is None and end.tz is not None:
-                    start = start.tz_localize(end.tz, ambiguous=False)
+        if start and end:
+            # Make sure start and end have the same tz
+            if start.tz is None and end.tz is not None:
+                start = start.tz_localize(**localize_args)
 
-                if end.tz is None and start.tz is not None:
-                    end = end.tz_localize(start.tz, ambiguous=False)
+            if end.tz is None and start.tz is not None:
+                end = end.tz_localize(**localize_args)
 
+        if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
+                # Currently always False; never hit
                 index = cls._cached_range(start, end, periods=periods,
                                           freq=freq)
             else:
                 index = _generate_regular_range(cls, start, end, periods, freq)
 
+            # TODO: Is this ever hit?
+            if tz is not None and getattr(index, 'tz', None) is None:
+                arr = conversion.tz_localize_to_utc(
+                    ensure_int64(index.values),
+                    tz, ambiguous=ambiguous)
+
+                index = cls(arr)
+
+                # index is localized datetime64 array -> have to convert
+                # start/end as well to compare
+                if start is not None:
+                    start = start.tz_localize(tz).asm8
+                if end is not None:
+                    end = end.tz_localize(tz).asm8
         else:
-
-            if tz is not None:
-                # naive dates
-                if start is not None and start.tz is not None:
-                    start = start.replace(tzinfo=None)
-
-                if end is not None and end.tz is not None:
-                    end = end.replace(tzinfo=None)
-
-            if start and end:
-                if start.tz is None and end.tz is not None:
-                    end = end.replace(tzinfo=None)
-
-                if end.tz is None and start.tz is not None:
-                    start = start.replace(tzinfo=None)
-
-            if freq is not None:
-                if cls._use_cached_range(freq, _normalized, start, end):
-                    index = cls._cached_range(start, end, periods=periods,
-                                              freq=freq)
-                else:
-                    index = _generate_regular_range(cls, start, end,
-                                                    periods, freq)
-
-                if tz is not None and getattr(index, 'tz', None) is None:
-                    arr = conversion.tz_localize_to_utc(
-                        ensure_int64(index.values),
-                        tz, ambiguous=ambiguous)
-
-                    index = cls(arr)
-
-                    # index is localized datetime64 array -> have to convert
-                    # start/end as well to compare
-                    if start is not None:
-                        start = start.tz_localize(tz).asm8
-                    if end is not None:
-                        end = end.tz_localize(tz).asm8
-            else:
-                # Create a linearly spaced date_range in local time
-                start = start.tz_localize(tz)
-                end = end.tz_localize(tz)
-                arr = np.linspace(start.value, end.value, periods)
-                index = cls._simple_new(arr.astype('M8[ns]'), freq=None, tz=tz)
+            # Create a linearly spaced date_range in local time
+            start = start.tz_localize(tz)
+            end = end.tz_localize(tz)
+            arr = np.linspace(start.value, end.value, periods)
+            index = cls._simple_new(arr.astype('M8[ns]'), freq=None, tz=tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -1255,11 +1238,9 @@ def _generate_regular_range(cls, start, end, periods, freq):
         data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         tz = None
+        # Start and end should have the same timestamp by this point
         if isinstance(start, Timestamp):
             tz = start.tz
-
-        if isinstance(end, Timestamp):
-            tz = end.tz
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
