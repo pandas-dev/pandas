@@ -850,7 +850,7 @@ cdef class TextReader:
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
-            if s(elf.has_usecols and self.allow_leading_cols and
+            if (self.has_usecols and self.allow_leading_cols and
                     not callable(self.usecols)):
                 nuse = len(self.usecols)
                 if nuse == passed_count:
