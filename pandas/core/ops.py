@@ -1313,7 +1313,6 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
     masker = _gen_eval_kwargs(op_name).get('masker', False)
-    str_rep = _get_opstr(op, cls)
 
     def na_op(x, y):
         # TODO:
