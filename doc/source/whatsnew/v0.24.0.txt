@@ -626,7 +626,7 @@ MultiIndex
 
 - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
 - :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a :class:``MultiIndex``ed object) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
-- Fix `TypeError` in Python 3 when creating :class: `MultiIndex` in which some levels have mixed types. If (for instance) all labels are tuples of ints, there is no problem (:issue:`15457`)
+- Fix `TypeError` in Python 3 when creating :class: `MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
 I/O
 ^^^
