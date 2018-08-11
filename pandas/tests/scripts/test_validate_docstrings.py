@@ -553,3 +553,6 @@ class TestValidator(object):
         err = capsys.readouterr().err
         for msg in msgs:
             assert msg in err
+
+    def test_this_fails(self):
+        raise NotImplementedError
