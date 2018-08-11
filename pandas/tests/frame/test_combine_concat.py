@@ -4,6 +4,8 @@ from __future__ import print_function
 
 from datetime import datetime
 
+import pytest
+
 import numpy as np
 from numpy import nan
 
@@ -198,7 +200,8 @@ class TestDataFrameConcatCommon(TestData):
         expected = DataFrame({'bar': Series([Timestamp('20130101'), 1])})
         assert_frame_equal(result, expected)
 
-    def test_update(self):
+    @pytest.mark.parametrize('inplace', [True, False])
+    def test_update(self, inplace):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],
                         [1.5, nan, 3],
@@ -207,13 +210,19 @@ class TestDataFrameConcatCommon(TestData):
         other = DataFrame([[3.6, 2., np.nan],
                            [np.nan, np.nan, 7]], index=[1, 3])
 
-        df.update(other)
+        if inplace:
+            df.update(other, inplace=inplace)
+            result = df
+        else:
+            orig = df.copy()
+            result = df.update(other, inplace=inplace)
+            assert_frame_equal(df, orig)
 
         expected = DataFrame([[1.5, nan, 3],
                               [3.6, 2, 3],
                               [1.5, nan, 3],
                               [1.5, nan, 7.]])
-        assert_frame_equal(df, expected)
+        assert_frame_equal(result, expected)
 
     def test_update_dtypes(self):
 

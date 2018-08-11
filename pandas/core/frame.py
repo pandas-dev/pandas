@@ -5078,7 +5078,7 @@ class DataFrame(NDFrame):
         return self.combine(other, combiner, overwrite=False)
 
     def update(self, other, join='left', overwrite=True, filter_func=None,
-               raise_conflict=False):
+               raise_conflict=False, inplace=True):
         """
         Modify in place using non-NA values from another DataFrame.
 
@@ -5108,6 +5108,11 @@ class DataFrame(NDFrame):
         raise_conflict : bool, default False
             If True, will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
+        inplace : bool, default True
+            If True, updates the DataFrame inplace. If False, returns a new
+            DataFrame.
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -5189,8 +5194,13 @@ class DataFrame(NDFrame):
 
         other = other.reindex_like(self)
 
-        for col in self.columns:
-            this = self[col].values
+        if inplace:
+            frame = self
+        else:
+            frame = self.copy()
+
+        for col in frame.columns:
+            this = frame[col].values
             that = other[col].values
             if filter_func is not None:
                 with np.errstate(all='ignore'):
@@ -5211,7 +5221,10 @@ class DataFrame(NDFrame):
             if mask.all():
                 continue
 
-            self[col] = expressions.where(mask, this, that)
+            frame[col] = expressions.where(mask, this, that)
+
+        if not inplace:
+            return frame
 
     # ----------------------------------------------------------------------
     # Data reshaping
