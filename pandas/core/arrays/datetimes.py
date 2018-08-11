@@ -241,11 +241,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         tz, _ = _infer_tz_from_endpoints(start, end, tz)
 
-        # If we have a Timedelta-like frequency (Tick) make sure tz
-        # is set before generating the range. For relative frequencies,
-        # generate the range with naive dates.
+        # Make sure start and end are timezone localized if:
+        # 1) freq = a Timedelta-like frequency (Tick)
+        # 2) freq = None i.e. generating a linspaced range
         localize_args = {'tz': None}
-        if isinstance(freq, Tick):
+        if isinstance(freq, Tick) or freq is None:
             localize_args = {'tz': tz, 'ambiguous': False}
         if tz is not None:
             # Localize the start and end arguments
@@ -287,8 +287,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                     end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
-            start = start.tz_localize(tz)
-            end = end.tz_localize(tz)
             arr = np.linspace(start.value, end.value, periods)
             index = cls._simple_new(arr.astype('M8[ns]'), freq=None, tz=tz)
 

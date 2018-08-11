@@ -336,28 +336,28 @@ class TestDateRanges(TestData):
         assert dr[0] == start
         assert dr[2] == end
 
-    def test_range_tz_dst_straddle_pytz(self):
-        tz = timezone('US/Eastern')
-        dates = [(tz.localize(datetime(2014, 3, 6)),
-                  tz.localize(datetime(2014, 3, 12))),
-                 (tz.localize(datetime(2013, 11, 1)),
-                  tz.localize(datetime(2013, 11, 6)))]
-        for (start, end) in dates:
-            dr = date_range(start, end, freq='D')
-            assert dr[0] == start
-            assert dr[-1] == end
-            assert np.all(dr.hour == 0)
+    @pytest.mark.parametrize('start, end', [
+        [Timestamp(datetime(2014, 3, 6), tz='US/Eastern'),
+         Timestamp(datetime(2014, 3, 12), tz='US/Eastern')],
+        [Timestamp(datetime(2013, 11, 1), tz='US/Eastern'),
+         Timestamp(datetime(2013, 11, 6), tz='US/Eastern')]
+    ])
+    def test_range_tz_dst_straddle_pytz(self, start, end):
+        dr = date_range(start, end, freq='CD')
+        assert dr[0] == start
+        assert dr[-1] == end
+        assert np.all(dr.hour == 0)
 
-            dr = date_range(start, end, freq='D', tz='US/Eastern')
-            assert dr[0] == start
-            assert dr[-1] == end
-            assert np.all(dr.hour == 0)
+        dr = date_range(start, end, freq='CD', tz='US/Eastern')
+        assert dr[0] == start
+        assert dr[-1] == end
+        assert np.all(dr.hour == 0)
 
-            dr = date_range(start.replace(tzinfo=None), end.replace(
-                tzinfo=None), freq='D', tz='US/Eastern')
-            assert dr[0] == start
-            assert dr[-1] == end
-            assert np.all(dr.hour == 0)
+        dr = date_range(start.replace(tzinfo=None), end.replace(
+            tzinfo=None), freq='CD', tz='US/Eastern')
+        assert dr[0] == start
+        assert dr[-1] == end
+        assert np.all(dr.hour == 0)
 
     def test_range_tz_dateutil(self):
         # see gh-2906

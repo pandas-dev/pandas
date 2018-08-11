@@ -319,7 +319,7 @@ that the dates have been converted to UTC
 
 :class:`Day` and associated frequency alias ``'D'`` were documented to represent
 a calendar day; however, arithmetic and operations with :class:`Day` sometimes
-respected absolute time (i.e. ```Day(n)`` and acted identically to ```Timedelta(days=n)``).
+respected absolute time instead (i.e. ```Day(n)`` and acted identically to ```Timedelta(days=n)``).
 
 *Previous Behavior*:
 
