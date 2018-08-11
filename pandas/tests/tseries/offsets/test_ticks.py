@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 import numpy as np
+from hypothesis import given, assume, strategies as st
 
 from pandas import Timedelta, Timestamp
 from pandas.tseries import offsets
@@ -33,6 +34,39 @@ def test_delta_to_tick():
 
     tick = offsets._delta_to_tick(delta)
     assert (tick == offsets.Day(3))
+
+
+@given(cls=st.sampled_from(tick_classes),
+       n=st.integers(-999, 999),
+       m=st.integers(-999, 999))
+def test_tick_add_sub(cls, n, m):
+    # For all Tick subclasses and all integers n, m, we should have
+    # tick(n) + tick(m) == tick(n+m)
+    # tick(n) - tick(m) == tick(n-m)
+    left = cls(n)
+    right = cls(m)
+    expected = cls(n + m)
+
+    assert left + right == expected
+    assert left.apply(right) == expected
+
+    expected = cls(n - m)
+    assert left - right == expected
+
+
+@given(cls=st.sampled_from(tick_classes),
+       n=st.integers(-999, 999), m=st.integers(-999, 999))
+def test_tick_equality(cls, n, m):
+    assume(m != n)
+    # tick == tock iff tick.n == tock.n
+    left = cls(n)
+    right = cls(m)
+    assert left != right
+    assert not (left == right)
+
+    right = cls(n)
+    assert left == right
+    assert not (left != right)
 
 
 # ---------------------------------------------------------------------
