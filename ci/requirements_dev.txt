@@ -4,6 +4,7 @@ Cython>=0.28.2
 NumPy
 flake8
 flake8-comprehensions
+hypothesis>=3.58.0
 moto
 pytest>=3.6
 python-dateutil>=2.5.0
