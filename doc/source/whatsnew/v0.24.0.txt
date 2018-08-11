@@ -340,7 +340,8 @@ respected absolute time (i.e. ```Day(n)`` and acted identically to ```Timedelta(
     Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
 
 :class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
-and respect calendar day arithmetic. (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+and respect calendar day arithmetic while :class:`Day` and frequency alias ``'D'``
+will now respect absolute time (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
 
 Addition with :class:`CalendarDay` across a daylight savings time transition:
 
@@ -351,7 +352,7 @@ Addition with :class:`CalendarDay` across a daylight savings time transition:
    ts + pd.offsets.CalendarDay(1)
 
 However, if the resulting arithmetic results in a non-existent or ambiguous
-time, and error will raise
+time, an error will raise
 
 .. ipython:: python
 
