@@ -971,8 +971,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
-            if not isinstance(key, (
-                    list, Series, np.ndarray, Series)):
+            if not isinstance(key, (list, Series, np.ndarray, Series)):
                 try:
                     key = list(key)
                 except Exception:

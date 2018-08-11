@@ -1174,12 +1174,12 @@ def assert_extension_array_equal(left, right):
     left_na = left.isna()
     right_na = right.isna()
 
-    # HACK - probably need new method to wrap numpy_array_equal
+    # TODO - maybe generate dedicated method for bitarray comparison?
     if isinstance(left_na, bitarray):
         left_na = np.fromstring(left_na.unpack(), dtype=bool)
     if isinstance(right_na, bitarray):
         right_na = np.fromstring(right_na.unpack(), dtype=bool)
-        
+
     assert_numpy_array_equal(left_na, right_na)
 
     left_valid = left[~left_na].astype(object)

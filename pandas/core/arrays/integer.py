@@ -338,7 +338,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask[0]
 
         self._data[key] = value
-        # Coerce to numpy array to leverage advanced indexing, then corece back
+        # Coerce to numpy array to leverage advanced indexing, then coerce back
         arr = _bitarray_to_numpy(self._mask)
         arr[key] = mask
         self._mask = _numpy_to_bitarray(arr)
