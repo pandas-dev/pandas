@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
 cimport cython

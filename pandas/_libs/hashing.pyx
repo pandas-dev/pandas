@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
