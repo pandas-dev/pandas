@@ -181,6 +181,7 @@ Other Enhancements
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
+- :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 
 .. _whatsnew_0240.api_breaking:
 
@@ -618,12 +619,13 @@ Missing
 
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
+- :func:`Series.isin` now treats all nans as equal also for `np.object`-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
 
 MultiIndex
 ^^^^^^^^^^
 
-- Removed compatibility for MultiIndex pickles prior to version 0.8.0; compatibility with MultiIndex pickles from version 0.13 forward is maintained (:issue:`21654`)
--
+- Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
+- :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a :class:``MultiIndex``ed object) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
 -
 
 I/O
@@ -668,6 +670,7 @@ Reshaping
 - :func:`pandas.core.groupby.GroupBy.rank` now raises a ``ValueError`` when an invalid value is passed for argument ``na_option`` (:issue:`22124`)
 - Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
+- Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the `to_replace` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 -
 
 Build Changes
