@@ -385,7 +385,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     @classmethod
     def _use_cached_range(cls, freq, _normalized, start, end):
-        return _use_cached_range(freq, _normalized, start, end)
+        # Note: This always returns False
+        return (freq._should_cache() and
+                not (freq._normalize_cache and not _normalized) and
+                _naive_in_cache_range(start, end))
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -1861,17 +1864,7 @@ def _naive_in_cache_range(start, end):
     else:
         if start.tzinfo is not None or end.tzinfo is not None:
             return False
-        return _in_range(start, end, _CACHE_START, _CACHE_END)
-
-
-def _in_range(start, end, rng_start, rng_end):
-    return start > rng_start and end < rng_end
-
-
-def _use_cached_range(freq, _normalized, start, end):
-    return (freq._should_cache() and
-            not (freq._normalize_cache and not _normalized) and
-            _naive_in_cache_range(start, end))
+        return start > _CACHE_START and end < _CACHE_END
 
 
 def _time_to_micros(time):
