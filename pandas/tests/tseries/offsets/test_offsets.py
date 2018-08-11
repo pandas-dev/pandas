@@ -11,7 +11,6 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.core.frame import DataFrame
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
                                              INVALID_FREQ_ERR_MSG)
@@ -3181,6 +3180,7 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
 
 @pytest.mark.parametrize('box, assert_func', [
     [None, None],
