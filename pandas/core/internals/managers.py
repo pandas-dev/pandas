@@ -4,6 +4,7 @@ from functools import partial
 import itertools
 import operator
 import re
+import sys
 
 import numpy as np
 
@@ -106,7 +107,12 @@ class BlockManager(PandasObject):
 
     def __init__(self, blocks, axes, do_integrity_check=True):
         self.axes = [ensure_index(ax) for ax in axes]
-        self.blocks = tuple(blocks)
+
+        non_native_byteorder = '>' if sys.byteorder == 'little' else '<'
+        self.blocks = tuple(block.astype(block.dtype.newbyteorder('='))
+                            if non_native_byteorder in str(block.dtype)
+                            else block
+                            for block in blocks)
 
         for block in blocks:
             if block.is_sparse:
