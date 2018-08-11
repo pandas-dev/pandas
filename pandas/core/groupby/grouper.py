@@ -508,6 +508,15 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
             warnings.warn(msg, FutureWarning, stacklevel=5)
             key = list(key)
 
+    if callable(key) or isinstance(key, dict):
+        if level is None:
+            key = group_axis.map(key)
+        else:
+            key = group_axis.get_level_values(level=level).map(key)
+            # If the grouper is a mapping, 'level' is _only_ used to determine
+            # the mapping input
+            level = None
+
     if not isinstance(key, list):
         keys = [key]
         match_axis_length = False

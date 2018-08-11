@@ -20,10 +20,11 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
-- Constructing a DataFrame with an index argument that wasn't already an
+- Constructing a :class:`DataFrame` with an index argument that wasn't already an
   instance of :class:`~pandas.core.Index` was broken in `4efb39f
   <https://github.com/pandas-dev/pandas/commit/4efb39f01f5880122fa38d91e12d217ef70fad9e>`_ (:issue:`22227`).
--
+- Passing :meth:`DataFrame.groupby` as grouper a callable or mapping which
+  returns tuples was broken in 0.21.1 (:issue:`22257`).
 -
 
 .. _whatsnew_0235.bug_fixes:
