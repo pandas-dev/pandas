@@ -414,4 +414,5 @@ def intervals_to_interval_bounds(ndarray intervals,
 
     return left, right, closed
 
+
 include "intervaltree.pxi"
