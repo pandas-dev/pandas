@@ -11,12 +11,14 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
+from pandas.core.frame import DataFrame
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
                                              INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
@@ -3180,16 +3182,28 @@ def test_last_week_of_month_on_offset():
     fast = offset.onOffset(ts)
     assert fast == slow
 
-
-def test_CalendarDay_with_timezone():
+@pytest.mark.parametrize('box, assert_func', [
+    [None, None],
+    [DatetimeIndex, 'assert_index_equal'],
+    [Series, 'assert_series_equal']])
+def test_CalendarDay_with_timezone(box, assert_func):
     # GH 22274
     ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
-    result = ts + CalendarDay(1)
     expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
-    assert result == expected
+    if box is not None:
+        ts = box(([ts]))
+        expected = box(([expected]))
+    result = ts + CalendarDay(1)
+    if assert_func:
+        getattr(tm, assert_func)(result, expected)
+    else:
+        assert result == expected
 
     result = result - CalendarDay(1)
-    assert result == ts
+    if assert_func:
+        getattr(tm, assert_func)(result, ts)
+    else:
+        assert result == ts
 
     # CalendarDay applied to a Timestamp that leads to ambiguous time
     with pytest.raises(pytz.AmbiguousTimeError):
@@ -3198,6 +3212,7 @@ def test_CalendarDay_with_timezone():
     # CalendarDay applied to a Timestamp that leads to non-existent time
     with pytest.raises(pytz.NonExistentTimeError):
         Timestamp("2019-03-09 02:00:00", tz='US/Pacific') + CalendarDay(1)
+
 
 @pytest.mark.parametrize('arg, exp', [
     [1, 2],
@@ -3211,8 +3226,14 @@ def test_CalendarDay_arithmetic_with_self(arg, exp):
     assert result == expected
 
 
-@pytest.mark.parametrize('arg', [timedelta(1), Day(1), Timedelta(1)])
+@pytest.mark.parametrize('arg', [
+    timedelta(1),
+    Day(1),
+    Timedelta(1),
+    TimedeltaIndex([timedelta(1)])])
 def test_CalendarDay_invalid_arithmetic(arg):
     # GH 22274
+    # CalendarDay (relative time) cannot be added to Timedelta-like objects
+    # (absolute time)
     with pytest.raises(TypeError):
         CalendarDay(1) + arg

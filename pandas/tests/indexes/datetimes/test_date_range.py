@@ -781,7 +781,7 @@ class TestCustomDateRange(object):
 
     @pytest.mark.parametrize('freq', [freq for freq in prefix_mapping
                                       if freq.startswith('C')
-                                      and freq != 'CD'])
+                                      and freq != 'CD'])  # CalendarDay
     def test_all_custom_freq(self, freq):
         # should not raise
         bdate_range(START, END, freq=freq, weekmask='Mon Wed Fri',

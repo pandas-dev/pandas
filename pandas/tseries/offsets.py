@@ -2140,7 +2140,7 @@ class CalendarDay(SingleConstructorOffset):
     @apply_wraps
     def apply(self, other):
         """
-        Apply the CalendarDay offset to a datetime object. Incoming datetime
+        Apply scalar arithmetic with CalendarDay offset. Incoming datetime
         objects can be tz-aware or naive.
         """
         if type(other) == type(self):
@@ -2160,7 +2160,7 @@ class CalendarDay(SingleConstructorOffset):
             return as_timestamp(other)
         except TypeError:
             raise TypeError("Cannot perform arithmetic between {other} and "
-                            "{offset}".format(other=type(other), offset=self))
+                            "CalendarDay".format(other=type(other)))
 
     @apply_index_wraps
     def apply_index(self, i):
