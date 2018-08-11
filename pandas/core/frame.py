@@ -4914,21 +4914,31 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
-
-        return self._constructor(result, index=new_index, columns=new_columns,
-                                 copy=False)
+            return self._constructor(result, index=new_index,
+                                     columns=new_columns,
+                                     copy=False)
 
     def _combine_match_index(self, other, func, level=None):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        new_data = func(left.values.T, right.values).T
-        return self._constructor(new_data,
-                                 index=left.index, columns=self.columns,
-                                 copy=False)
+        assert left.index.equals(right.index)
+
+        if left._is_mixed_type or right._is_mixed_type:
+            # operate column-wise; avoid costly object-casting in `.values`
+            return ops.dispatch_to_series(left, right, func)
+        else:
+            # fastpath --> operate directly on values
+            new_data = func(left.values.T, right.values).T
+            return self._constructor(new_data,
+                                     index=left.index, columns=self.columns,
+                                     copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
+        assert left.columns.equals(right.index)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
@@ -4936,6 +4946,11 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
+
+        if isinstance(other, DataFrame) and other._indexed_same(self):
+            assert False
+            return ops.dispatch_to_series(self, other, func)
+
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
                                    try_cast=try_cast)
@@ -4943,7 +4958,7 @@ class DataFrame(NDFrame):
 
     def _compare_frame(self, other, func, str_rep):
         # compare_frame assumes self._indexed_same(other)
-
+        return ops.dispatch_to_series(self, other, func, str_rep)
         import pandas.core.computation.expressions as expressions
 
         def _compare(a, b):

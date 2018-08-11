@@ -1313,6 +1313,7 @@ def _comp_method_SERIES(cls, op, special):
     """
     op_name = _get_op_name(op, special)
     masker = _gen_eval_kwargs(op_name).get('masker', False)
+    str_rep = _get_opstr(op, cls)
 
     def na_op(x, y):
         # TODO:
@@ -1577,7 +1578,7 @@ def _flex_method_SERIES(cls, op, special):
 # -----------------------------------------------------------------------------
 # DataFrame
 
-def dispatch_to_series(left, right, func):
+def dispatch_to_series(left, right, func, str_rep=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
     column-by-column, dispatching to the Series implementation.
@@ -1587,6 +1588,7 @@ def dispatch_to_series(left, right, func):
     left : DataFrame
     right : scalar or DataFrame
     func : arithmetic or comparison operator
+    str_rep : str or None, default None
 
     Returns
     -------
@@ -1594,16 +1596,37 @@ def dispatch_to_series(left, right, func):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
+    import pandas.core.computation.expressions as expressions
+
     if lib.is_scalar(right):
-        new_data = {i: func(left.iloc[:, i], right)
-                    for i in range(len(left.columns))}
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
+        #new_data = {i: func(left.iloc[:, i], right)
+        #            for i in range(len(left.columns))}
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
-        new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
-                    for i in range(len(left.columns))}
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
+
+        #new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
+        #            for i in range(len(left.columns))}
+    elif isinstance(right, ABCSeries):
+        assert right.index.equals(left.index)  # Handle other cases later
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
     else:
         # Remaining cases have less-obvious dispatch rules
-        raise NotImplementedError
+        raise NotImplementedError(right)
+
+    new_data = expressions.evaluate(column_op, str_rep, left, right)
 
     result = left._constructor(new_data, index=left.index, copy=False)
     # Pin columns instead of passing to constructor for compat with
