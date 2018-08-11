@@ -1952,13 +1952,13 @@ class NDFrame(PandasObject, SelectionMixin):
             * Series
 
               - default is 'index'
-              - allowed values are: {'split','records','index'}
+              - allowed values are: {'split','records','index','table'}
 
             * DataFrame
 
               - default is 'columns'
               - allowed values are:
-                {'split','records','index','columns','values'}
+                {'split','records','index','columns','values','table'}
 
             * The format of the JSON string
 
