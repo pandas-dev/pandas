@@ -578,6 +578,14 @@ class TestGenRangeGeneration(object):
         with pytest.raises(TypeError):
             pd.DatetimeIndex(start, end, freq=BDay())
 
+    def test_CalendarDay_range_with_dst_crossing(self):
+        # GH 20596
+        result = date_range('2018-10-23', '2018-11-06', freq='7CD',
+                            tz='Europe/Paris')
+        expected = date_range('2018-10-23', '2018-11-06',
+                              freq=pd.DateOffset(days=7), tz='Europe/Paris')
+        tm.assert_index_equal(result, expected)
+
 
 class TestBusinessDateRange(object):
 
@@ -772,7 +780,8 @@ class TestCustomDateRange(object):
                         holidays=['2013-05-01'])
 
     @pytest.mark.parametrize('freq', [freq for freq in prefix_mapping
-                                      if freq.startswith('C')])
+                                      if freq.startswith('C')
+                                      and freq != 'CD'])
     def test_all_custom_freq(self, freq):
         # should not raise
         bdate_range(START, END, freq=freq, weekmask='Mon Wed Fri',
