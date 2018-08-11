@@ -971,7 +971,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 except Exception:
                     pass
 
-            if not isinstance(key, (list, Series, np.ndarray, Series)):
+            if not isinstance(key, (
+                    list, Series, np.ndarray, Series)):
                 try:
                     key = list(key)
                 except Exception:
@@ -988,7 +989,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     return self._set_values(key, value)
             elif key_type == 'boolean':
-                self._set_values(np.array(key).astype(np.bool_), value)
+                try:
+                    self._set_values(key.astype(np.bool_), value)
+                except AttributeError:
+                    self._set_values(key, value)
             else:
                 self._set_labels(key, value)
 
