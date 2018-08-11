@@ -123,7 +123,7 @@ def convert_json_to_lines(object arr):
 # stata, pytables
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def max_len_string_array(arr: pandas_string[:]) -> Py_ssize_t:
+def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
