@@ -2,7 +2,8 @@ import warnings
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (Series, DataFrame, MultiIndex, Int64Index, Float64Index,
+from pandas import (Series, DataFrame, MultiIndex,
+                    Int64Index, UInt64Index, Float64Index,
                     IntervalIndex, CategoricalIndex,
                     IndexSlice, concat, date_range)
 from .pandas_vb_common import setup, Panel  # noqa
@@ -11,7 +12,7 @@ from .pandas_vb_common import setup, Panel  # noqa
 class NumericSeriesIndexing(object):
 
     goal_time = 0.2
-    params = [Int64Index, Float64Index]
+    params = [Int64Index, UInt64Index, Float64Index]
     param = ['index']
 
     def setup(self, index):

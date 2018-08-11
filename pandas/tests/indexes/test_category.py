@@ -14,7 +14,7 @@ import numpy as np
 from pandas import Categorical, IntervalIndex, compat
 from pandas.util.testing import assert_almost_equal
 import pandas.core.config as cf
-from pandas._libs import index as li
+from pandas._libs import index as libindex
 import pandas as pd
 
 if PY3:
@@ -1127,18 +1127,18 @@ class TestCategoricalIndexEngine(object):
         """Check that a CategoricalIndex has the correct engine type.
         """
         if nbits < 64:
-            ncategories = int(2 ** (nbits / 2) / 2)  # 128 for nbits==16 etc
+            ncategories = int(2 ** (nbits / 2) / 2 + 1)  # 129 if nbits==16 etc
             index = CategoricalIndex(range(ncategories))
         else:
             index = CategoricalIndex(['a', 'b', 'c'])
-            # having actual 2 ** (64 / 2) / 2 categories is too
+            # having actual 2 ** (64 / 2) / 2 + 1 categories is too
             # memory-intensive, so we set codes.dtype manually
             index._values._codes = index._values._codes.astype('int64')
 
         dtype = {8: np.int8, 16: np.int16,
                  32: np.int32, 64: np.int64}[nbits]
-        engine = {8: li.Int8Engine, 16: li.Int16Engine,
-                  32: li.Int32Engine, 64: li.Int64Engine}[nbits]
+        engine = {8: libindex.Int8Engine, 16: libindex.Int16Engine,
+                  32: libindex.Int32Engine, 64: libindex.Int64Engine}[nbits]
 
         assert isinstance(index._engine, engine)
         assert issubclass(index.codes.dtype.type, dtype)
