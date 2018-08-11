@@ -164,9 +164,13 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             values.dtype))
 
     if mask is None:
-        mask = bitarray(isna(values).tolist())
+        mask = isna(values)
     else:
         assert len(mask) == len(values)
+
+    # Work with bitarrays from here on out
+    if isinstance(mask, np.ndarray):
+        mask = _numpy_to_bitarray(mask)
 
     if not values.ndim == 1:
         raise TypeError("values must be a 1D list-like")
@@ -185,25 +189,30 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
 
     # we copy as need to coerce here
     if mask.any():
-        slice_mask = mask
-        if isinstance(mask, bitarray):
-            slice_mask = np.fromstring(mask.unpack(), dtype=bool)
-        else:
-            slice_mask = slice_mask.astype(np.bool_, copy=False)
-
         values = values.copy()
-        values[slice_mask] = 1
+        values[mask] = 1
         values = safe_cast(values, dtype, copy=False)
     else:
         values = safe_cast(values, dtype, copy=False)
 
-    # Make sure we always coerce back to bitarray
-    if not isinstance(mask, bitarray):
-        _mask = mask
-        mask = bitarray()
-        mask.pack(_mask.tostring())
-
     return values, mask
+
+
+def _numpy_to_bitarray(arr):
+    """
+    Efficiently convert a NumPy array to a bitarray object.
+    """
+    barr = bitarray()
+    barr.pack(arr.astype(bool, copy=False).tostring())
+
+    return barr
+
+
+def _bitarray_to_numpy(arr):
+    """
+    Efficiently convert a bitarray object to a NumPy array.
+    """
+    return np.fromstring(arr.unpack(), dtype=bool)
 
 
 class IntegerArray(ExtensionArray, ExtensionOpsMixin):
@@ -247,11 +256,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 return self.dtype.na_value
             return self._data[item]
 
-        arr = np.array(self._mask)[item]
-        mask = bitarray()
-        mask.pack(arr.tostring())
         return type(self)(self._data[item],
-                          mask=mask,
+                          mask=_bitarray_to_numpy(self._mask)[item],
                           dtype=self.dtype)
 
     def _coerce_to_ndarray(self):
@@ -332,13 +338,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             mask = mask[0]
 
         self._data[key] = value
-
-        # HACKish but unpack to ndarray then repack to leverage
-        # numpy slicing of arrays
-        arr = np.fromstring(self._mask.unpack(), dtype=bool)
+        # Coerce to numpy array to leverage advanced indexing, then corece back
+        arr = _bitarray_to_numpy(self._mask)
         arr[key] = mask
-        self._mask = bitarray()
-        self._mask.pack(arr.tostring())
+        self._mask = _numpy_to_bitarray(arr)
 
     def __len__(self):
         return len(self._data)
@@ -367,7 +370,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return self._data.nbytes + self._mask.buffer_info()[1]
 
     def isna(self):
-        return np.fromstring(self._mask.unpack(), dtype=bool)
+        return _bitarray_to_numpy(self._mask)
 
     @property
     def _na_value(self):
@@ -465,8 +468,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # TODO(extension)
             # appending to an Index *always* infers
             # w/o passing the dtype
-            array = np.append(array, [
-                np.fromstring(self._mask.unpack(), dtype=bool).sum()])
+            array = np.append(array, [_bitarray_to_numpy(self._mask).sum()])
             index = Index(np.concatenate(
                 [index.values,
                  np.array([np.nan], dtype=object)]), dtype=object)
@@ -535,10 +537,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # may need to fill infs
         # and mask wraparound
         if is_float_dtype(result):
-            new_mask = bitarray()
-            new_mask.pack(
-                ((result == np.inf) | (result == -np.inf)).tostring())
-            mask |= new_mask
+            arr = _numpy_to_bitarray((result == np.inf) | (result == -np.inf))
+            mask |= arr
 
         # if we have a float operand we are by-definition
         # a float result
