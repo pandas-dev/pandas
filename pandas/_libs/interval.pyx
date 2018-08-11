@@ -361,8 +361,8 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals,
-                                   bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals,
+                                 bint validate_closed=True):
     """
     Parameters
     ----------

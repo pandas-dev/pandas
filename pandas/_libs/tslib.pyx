@@ -299,7 +299,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     return result
 
 
-cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
+def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
     if errors:

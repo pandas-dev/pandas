@@ -132,6 +132,7 @@ cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
     v2[0] = _rotl(v2[0], 32)
 
 
+# TODO: This appears unused; remove?
 cpdef uint64_t siphash(bytes data, bytes key) except? 0:
     if len(key) != 16:
         raise ValueError(

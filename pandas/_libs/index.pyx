@@ -49,7 +49,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     return util.get_value_at(arr, loc)
 
 
-cpdef object get_value_box(ndarray arr, object loc):
+def get_value_box(arr: ndarray, loc: object) -> object:
     cdef:
         Py_ssize_t i, sz
 

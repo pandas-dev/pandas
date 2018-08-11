@@ -455,7 +455,6 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
         return slice(start, end)
 
 
-# TODO: belongs in libmissing?
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def array_equivalent_object(left: object[:], right: object[:]) -> bint:
