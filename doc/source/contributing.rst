@@ -820,6 +820,44 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
    test_cool_feature.py::test_series[int8] PASSED
 
 
+Using ``hypothesis``
+~~~~~~~~~~~~~~~~~~~~
+
+Hypothesis is a library for property-based testing.  Instead of explicitly
+parametrizing a test, you can describe *all* valid inputs and let Hypothesis
+try to find a failing input.  Even better, no matter how many random examples
+it tries, Hypothesis always reports a single minimal counterexample to your
+assertions - often an example that you would never have thought to test.
+
+See `Getting Started with Hypothesis <https://hypothesis.works/articles/getting-started-with-hypothesis/>`_
+for more of an introduction, then `refer to the Hypothesis documentation
+for details <https://hypothesis.readthedocs.io/en/latest/index.html>`_.
+
+.. code-block:: python
+
+    import json
+    from hypothesis import given, strategies as st
+
+    any_json_value = st.deferred(lambda: st.one_of(
+        st.none(), st.booleans(), st.floats(allow_nan=False), st.text(),
+        st.lists(any_json_value), st.dictionaries(st.text(), any_json_value)
+    ))
+
+    @given(value=any_json_value)
+    def test_json_roundtrip(value):
+        result = json.loads(json.dumps(value))
+        assert value == result
+
+This test shows off several useful features of Hypothesis, as well as
+demonstrating a good use-case: checking properties that should hold over
+a large or complicated domain of inputs.
+
+To keep the Pandas test suite running quickly, parametrized tests are
+preferred if the inputs or logic are simple, with Hypothesis tests reserved
+for cases with complex logic or where there are too many combinations of
+options or subtle interactions to test (or think of!) all of them.
+
+
 Running the test suite
 ----------------------
 
