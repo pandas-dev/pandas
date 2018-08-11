@@ -369,7 +369,7 @@ In practice this becomes very cumbersome because we often need a very long
 index with a large number of timestamps. If we need timestamps on a regular
 frequency, we can use the :func:`date_range` and :func:`bdate_range` functions
 to create a ``DatetimeIndex``. The default frequency for ``date_range`` is a
-**calendar day** while the default for ``bdate_range`` is a **business day**:
+**day** while the default for ``bdate_range`` is a **business day**:
 
 .. ipython:: python
 
@@ -1158,7 +1158,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
     "B", "business day frequency"
     "C", "custom business day frequency"
-    "D", "calendar day frequency"
+    "D", "day frequency"
+    "CD", "calendar day frequency"
     "W", "weekly frequency"
     "M", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"

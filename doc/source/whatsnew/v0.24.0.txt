@@ -158,6 +158,38 @@ array, but rather an ``ExtensionArray``:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0240.api_breaking.interval_values` for more.
 
+.. _whatsnew_0240.enhancements.calendarday:
+
+:class:`Day` and associated frequency alias ``'D'`` were documented to represent
+a calendar day; however, arithmetic and operations with :class:`Day` consistently
+respected absolute time (i.e. ```Day(n)`` and acted identically to ```Timedelta(days=n)``).
+
+:class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
+and respect calendar day arithmetic. (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+
+Addition with :class:`CalendarDay` across a daylight savings time transition:
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
+
+However, if the resulting arithmetic results in a non-existent or ambiguous
+time, and error will raise
+
+.. ipython:: python
+
+   Timestamp("2018-11-03 01:00:00", tz='US/Pacific') + CalendarDay(1)
+
+The ``'CD'` frequency alias can be used with :func:`date_range` to create
+a sequence of dates that are separate by a calendar day.
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   pd.date_range(start=ts, freq='CD', periods=3)
+   pd.date_range(start=ts, freq='D', periods=3)
 
 .. _whatsnew_0240.enhancements.other:
 
@@ -282,6 +314,57 @@ that the dates have been converted to UTC
 
 .. ipython:: python
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
+
+.. _whatsnew_0240.api_breaking.calendarday:
+
+:class:`Day` and associated frequency alias ``'D'`` were documented to represent
+a calendar day; however, arithmetic and operations with :class:`Day` sometimes
+respected absolute time (i.e. ```Day(n)`` and acted identically to ```Timedelta(days=n)``).
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+
+    In [2]: ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+
+    # Respects calendar arithmetic
+    In [3]: pd.date_range(start=ts, freq='D', periods=3)
+    Out[3]:
+    DatetimeIndex(['2016-10-30 00:00:00+03:00', '2016-10-31 00:00:00+02:00',
+                   '2016-11-01 00:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Helsinki]', freq='D')
+
+    # Respects absolute arithmetic
+    In [4]: ts + pd.tseries.frequencies.to_offset('D')
+    Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
+
+:class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
+and respect calendar day arithmetic. (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+
+Addition with :class:`CalendarDay` across a daylight savings time transition:
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
+
+However, if the resulting arithmetic results in a non-existent or ambiguous
+time, and error will raise
+
+.. ipython:: python
+
+   Timestamp("2018-11-03 01:00:00", tz='US/Pacific') + CalendarDay(1)
+
+The ``'CD'` frequency alias can be used with :func:`date_range` to create
+a sequence of dates that are separate by a calendar day.
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   pd.date_range(start=ts, freq='CD', periods=3)
+   pd.date_range(start=ts, freq='D', periods=3)
 
 .. _whatsnew_0240.api_breaking.period_end_time:
 
