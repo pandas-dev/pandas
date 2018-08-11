@@ -835,7 +835,7 @@ class TestBlockManager(object):
     def test_swap_to_native_byteorder(self):
         native_byteorder = '='
         non_native_byteorder = '>' if sys.byteorder == 'little' else '<'
-        mgr = create_single_mgr(f'{non_native_byteorder}i2')
+        mgr = create_single_mgr('{order}i2'.format(order=non_native_byteorder))
         assert mgr.get_dtypes()[-1].byteorder == native_byteorder
 
 
