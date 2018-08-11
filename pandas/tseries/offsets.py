@@ -41,7 +41,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-           'DateOffset']
+           'DateOffset', 'CalendarDay']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to
 # pass thru
@@ -2123,6 +2123,54 @@ class Easter(DateOffset):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
+
+class CalendarDay(SingleConstructorOffset):
+    """
+    Calendar day offset. Respects calendar arithmetic as opposed to Day which
+    respects absolute time.
+    """
+    _adjust_dst = True
+    _inc = timedelta(days=1)
+    _prefix = 'CD'
+    _attributes = frozenset(['n', 'normalize'])
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n, normalize)
+
+    @apply_wraps
+    def apply(self, other):
+        """
+        Apply the CalendarDay offset to a datetime object. Incoming datetime
+        objects can be tz-aware or naive.
+        """
+        if type(other) == type(self):
+            # Add other CalendarDays
+            return type(self)(self.n + other.n, normalize=self.normalize)
+        tzinfo = getattr(other, 'tzinfo', None)
+        if tzinfo is not None:
+            other = other.replace(tzinfo=None)
+
+        other = other + self.n * self._inc
+
+        if tzinfo is not None:
+            # This can raise a AmbiguousTimeError or NonExistentTimeError
+            other = conversion.localize_pydatetime(other, tzinfo)
+
+        try:
+            return as_timestamp(other)
+        except TypeError:
+            raise TypeError("Cannot perform arithmetic between {other} and "
+                            "{offset}".format(other=type(other), offset=self))
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        """
+        Apply the CalendarDay offset to a DatetimeIndex. Incoming DatetimeIndex
+        objects are assumed to be tz_naive
+        """
+        return i + self.n * self._inc
+
+
 # ---------------------------------------------------------------------
 # Ticks
 
@@ -2406,4 +2454,5 @@ prefix_mapping = {offset._prefix: offset for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
+    CalendarDay                # 'CD'
 ]}
