@@ -1604,8 +1604,6 @@ def dispatch_to_series(left, right, func, str_rep=None):
             return {i: func(a.iloc[:, i], b)
                     for i in range(len(a.columns))}
 
-        #new_data = {i: func(left.iloc[:, i], right)
-        #            for i in range(len(left.columns))}
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
 
@@ -1613,8 +1611,6 @@ def dispatch_to_series(left, right, func, str_rep=None):
             return {i: func(a.iloc[:, i], b.iloc[:, i])
                     for i in range(len(a.columns))}
 
-        #new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
-        #            for i in range(len(left.columns))}
     elif isinstance(right, ABCSeries):
         assert right.index.equals(left.index)  # Handle other cases later
 
@@ -1795,7 +1791,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             if not self._indexed_same(other):
                 self, other = self.align(other, 'outer',
                                          level=level, copy=False)
-            return self._compare_frame(other, na_op, str_rep)
+            return dispatch_to_series(self, other, na_op, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
@@ -1820,7 +1816,7 @@ def _comp_method_FRAME(cls, func, special):
             if not self._indexed_same(other):
                 raise ValueError('Can only compare identically-labeled '
                                  'DataFrame objects')
-            return self._compare_frame(other, func, str_rep)
+            return dispatch_to_series(self, other, func, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,

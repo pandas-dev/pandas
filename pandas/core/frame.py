@@ -4946,30 +4946,10 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
-
-        if isinstance(other, DataFrame) and other._indexed_same(self):
-            assert False
-            return ops.dispatch_to_series(self, other, func)
-
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
-
-    def _compare_frame(self, other, func, str_rep):
-        # compare_frame assumes self._indexed_same(other)
-        return ops.dispatch_to_series(self, other, func, str_rep)
-        import pandas.core.computation.expressions as expressions
-
-        def _compare(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-        result = self._constructor(data=new_data, index=self.index,
-                                   copy=False)
-        result.columns = self.columns
-        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
