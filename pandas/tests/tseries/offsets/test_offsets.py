@@ -2,6 +2,7 @@ from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 
 import pytest
+import pytz
 from pandas.compat import range
 from pandas import compat
 
@@ -28,7 +29,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, Tick)
+                                    LastWeekOfMonth, Tick, CalendarDay)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
@@ -192,6 +193,7 @@ class TestCommon(Base):
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {'Day': Timestamp('2011-01-02 09:00:00'),
+                 'CalendarDay': Timestamp('2011-01-02 09:00:00'),
                  'DateOffset': Timestamp('2011-01-02 09:00:00'),
                  'BusinessDay': Timestamp('2011-01-03 09:00:00'),
                  'CustomBusinessDay': Timestamp('2011-01-03 09:00:00'),
@@ -360,7 +362,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         no_changes = ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin',
                       'Week', 'Hour', 'Minute', 'Second', 'Milli', 'Micro',
-                      'Nano', 'DateOffset']
+                      'Nano', 'DateOffset', 'CalendarDay']
         for n in no_changes:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
@@ -373,6 +375,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2011-01-02 00:00:00'),
+                      'CalendarDay': Timestamp('2011-01-02 00:00:00'),
                       'DateOffset': Timestamp('2011-01-02 00:00:00'),
                       'MonthBegin': Timestamp('2011-02-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2011-01-15 00:00:00'),
@@ -425,7 +428,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         for n in ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin', 'Week',
                   'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-                  'DateOffset']:
+                  'DateOffset', 'CalendarDay']:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
         # but be changed when normalize=True
@@ -434,6 +437,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2010-12-31 00:00:00'),
+                      'CalendarDay': Timestamp('2010-12-31 00:00:00'),
                       'DateOffset': Timestamp('2010-12-31 00:00:00'),
                       'MonthBegin': Timestamp('2010-12-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2010-12-15 00:00:00'),
@@ -3174,3 +3178,40 @@ def test_last_week_of_month_on_offset():
     slow = (ts + offset) - offset == ts
     fast = offset.onOffset(ts)
     assert fast == slow
+
+
+def test_CalendarDay_with_timezone():
+    # GH 22274
+    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+    result = ts + CalendarDay(1)
+    expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+    assert result == expected
+
+    result = result - CalendarDay(1)
+    assert result == ts
+
+    # CalendarDay applied to a Timestamp that leads to ambiguous time
+    with pytest.raises(pytz.AmbiguousTimeError):
+        Timestamp("2018-11-03 01:00:00", tz='US/Pacific') + CalendarDay(1)
+
+    # CalendarDay applied to a Timestamp that leads to non-existent time
+    with pytest.raises(pytz.NonExistentTimeError):
+        Timestamp("2019-03-09 02:00:00", tz='US/Pacific') + CalendarDay(1)
+
+@pytest.mark.parametrize('arg, exp', [
+    [1, 2],
+    [-1, 0],
+    [-5, -4]
+])
+def test_CalendarDay_arithmetic_with_self(arg, exp):
+    # GH 22274
+    result = CalendarDay(1) + CalendarDay(arg)
+    expected = CalendarDay(exp)
+    assert result == expected
+
+
+@pytest.mark.parametrize('arg', [timedelta(1), Day(1)])
+def test_CalendarDay_invalid_arithmetic(arg):
+    # GH 22274
+    with pytest.raises(TypeError):
+        CalendarDay(1) + arg
