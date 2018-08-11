@@ -34,6 +34,7 @@ import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
 from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs.timedeltas import Timedelta
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -3210,7 +3211,7 @@ def test_CalendarDay_arithmetic_with_self(arg, exp):
     assert result == expected
 
 
-@pytest.mark.parametrize('arg', [timedelta(1), Day(1)])
+@pytest.mark.parametrize('arg', [timedelta(1), Day(1), Timedelta(1)])
 def test_CalendarDay_invalid_arithmetic(arg):
     # GH 22274
     with pytest.raises(TypeError):
