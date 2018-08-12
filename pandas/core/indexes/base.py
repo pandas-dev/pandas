@@ -4695,7 +4695,7 @@ class Index(IndexOpsMixin, PandasObject):
         """ Update Index attributes (e.g. freq) depending on op """
         return attrs
 
-    def _validate_for_numeric_unaryop(self, op, opstr):
+    def _validate_for_numeric_unaryop(self, opstr):
         """ validate if we can perform a numeric unary operation """
 
         if not self._is_numeric_dtype:
@@ -4776,7 +4776,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             def _evaluate_numeric_unary(self):
 
-                self._validate_for_numeric_unaryop(op, opstr)
+                self._validate_for_numeric_unaryop(opstr)
                 attrs = self._get_attributes_dict()
                 attrs = self._maybe_update_attributes(attrs)
                 return Index(op(self.values), **attrs)
