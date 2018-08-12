@@ -24,7 +24,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         N = 100
         df = DataFrame(np.append(np.linspace(-3, 3, N),
                                  np.linspace(-1, 1, N)),
-                        columns=['rand'])
+                       columns=['rand'])
         df['group'] = [0] * N + [1] * N
         g = df.groupby('group')['rand']
         axes = g.hist(bins=bins, alpha=0.7, equal_bins=equal_bins)

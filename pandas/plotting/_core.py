@@ -2443,7 +2443,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
 def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
                 xrot=None, ylabelsize=None, yrot=None, figsize=None,
-                bins=10, msg='hello', **kwds):
+                bins=10, equal_bins=False, **kwds):
     """
     Draw histogram of the input series using matplotlib
 
@@ -2484,8 +2484,6 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
 
     """
     import matplotlib.pyplot as plt
-    print('inside hist_series')
-    print(kwds)
     if by is None:
         if kwds.get('layout', None) is not None:
             raise ValueError("The 'layout' keyword is not supported when "
