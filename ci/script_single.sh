@@ -26,11 +26,11 @@ if [ "$DOC" ]; then
 
 elif [ "$COVERAGE" ]; then
     echo pytest -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
-    pytest      -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    pytest      -W error:ResourceWarning -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
 
 else
     echo pytest -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas
-    pytest      -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
+    pytest      -W error:ResourceWarning -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
 
 fi
 
