@@ -12,6 +12,7 @@ from numpy cimport ndarray
 
 
 cimport util
+util.import_array()
 
 from tslibs import Timestamp
 from tslibs.timezones cimport tz_compare
@@ -391,7 +392,7 @@ cpdef intervals_to_interval_bounds(ndarray intervals,
 
     for i in range(len(intervals)):
         interval = intervals[i]
-        if util._checknull(interval):
+        if interval is None or util.is_nan(interval):
             left[i] = np.nan
             right[i] = np.nan
             continue

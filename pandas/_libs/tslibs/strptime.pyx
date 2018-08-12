@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """Strptime-related classes and functions.
 """
 import time
 import locale
 import calendar
 import re
+from datetime import date as datetime_date
 
 
 # Python 2 vs Python 3
@@ -20,15 +20,14 @@ except:
         except:
             from _dummy_thread import allocate_lock as _thread_allocate_lock
 
-import pytz
-
 from cython cimport Py_ssize_t
-from cpython cimport PyFloat_Check
+
+
+import pytz
 
 import numpy as np
 from numpy cimport int64_t
 
-from datetime import date as datetime_date
 
 from np_datetime cimport (check_dts_bounds,
                           dtstruct_to_dt64, npy_datetimestruct)
@@ -621,6 +620,7 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
+
 
 cdef parse_timezone_directive(object z):
     """
