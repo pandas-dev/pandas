@@ -435,34 +435,23 @@ _op_descriptions = {
     # Comparison Operators
     'eq': {'op': '==',
            'desc': 'Equal to',
-           'reverse': None,
-           'df_examples': None,
-           'others': None},
+           'reverse': None},
     'ne': {'op': '!=',
            'desc': 'Not equal to',
-           'reverse': None,
-           'df_examples': None,
-           'others': None},
+           'reverse': None},
     'lt': {'op': '<',
            'desc': 'Less than',
-           'reverse': None,
-           'df_examples': None,
-           'others': None},
+           'reverse': None},
     'le': {'op': '<=',
            'desc': 'Less than or equal to',
-           'reverse': 'gt',
-           'df_examples': None,
-           'others': None},
+           'reverse': None},
     'gt': {'op': '>',
            'desc': 'Greater than',
-           'reverse': None,
-           'df_examples': None,
-           'others': None},
+           'reverse': None},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
-           'reverse': None,
-           'df_examples': None,
-           'others': None}}
+           'reverse': None}
+}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -589,28 +578,31 @@ DataFrame.{reverse}
 """
 
 _flex_comp_doc_FRAME = """
-Flexible wrappers to comparison operators (`eq`, `ne`, `le`, `lt`, `ge`, `gt`).
+{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
-Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose
-axis (rows or columns) and level for comparison.
+Among flexible wrappers (`eq`, `ne`, `le`, `lt`, `ge`, `gt`) to comparison
+operators.
+
+Equivalent to `==`, `=!`, `<=`, `<`, `>=`, `>` with support to choose axis
+(rows or columns) and level for comparison.
 
 Parameters
 ----------
-other : constant, list, tuple, ndarray, Series, or DataFrame
+other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
 axis : int or str, optional
     Axis to target. Can be either the axis name ('index', 'rows',
     'columns') or number (0, 1).
-level : int or name
+level : int or object
     Broadcast across a level, matching Index values on the passed
     MultiIndex level.
 
 Returns
 -------
-result : DataFrame of bool
+DataFrame of bool
     Result of the comparison.
 
-See also
+See Also
 --------
 DataFrame.eq : Compare DataFrames for equality elementwise
 DataFrame.ne : Compare DataFrames for inequality elementwise
@@ -629,27 +621,87 @@ Mismatched indices will be unioned together.
 
 Examples
 --------
->>> df1 = pd.DataFrame({'company': ['A', 'B', 'C'],
-...                     'cost': [250, 150, 100],
-...                     'revenue': [100, 250, 300]})
->>> df1
+>>> df = pd.DataFrame({{'company': ['A', 'B', 'C'],
+...                    'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]}})
+>>> df
   company  cost  revenue
 0       A   250      100
 1       B   150      250
 2       C   100      300
->>> df2 = pd.DataFrame({'company': ['A', 'B', 'C', 'D'],
-...                     'revenue': [300, 250, 100, 150]})
->>> df2
+
+Compare to a scalar and operator version which return equivalent
+results.
+
+>>> df == 100
+   company   cost  revenue
+0    False  False     True
+1    False  False    False
+2    False   True    False
+>>> df.eq(100)
+   company   cost  revenue
+0    False  False     True
+1    False  False    False
+2    False   True    False
+
+Compare to a list and Series by axis and operator version.
+
+>>> df != [100, 250, 300]
+   company  cost  revenue
+0     True  True    False
+1     True  True    False
+2     True  True    False
+>>> df.ne([100, 250, 300], axis='index')
+   company  cost  revenue
+0     True  True    False
+1     True  True    False
+2     True  True    False
+>>> df != pd.Series([100, 250, 300])
+   company  cost  revenue     0     1     2
+0     True  True     True  True  True  True
+1     True  True     True  True  True  True
+2     True  True     True  True  True  True
+>>> df.ne(pd.Series([100, 250, 300]), axis='columns')
+   company  cost  revenue     0     1     2
+0     True  True     True  True  True  True
+1     True  True     True  True  True  True
+2     True  True     True  True  True  True
+
+Compare to a DataFrame of different shape by axis and operator version.
+
+>>> other = pd.DataFrame({{'company': ['A', 'B', 'C', 'D'],
+...                       'revenue': [300, 250, 100, 150]}})
+>>> other
   company  revenue
 0       A      300
 1       B      250
 2       C      100
 3       D      150
->>> df3 = pd.DataFrame({'cost': [250, 150, 100, 150, 300, 220],
-...                     'revenue': [100, 250, 300, 200, 175, 225]},
-...                     index = [['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
-...                              ['A', 'B', 'C', 'A', 'B' ,'C']])
->>> df3
+>>> df.reindex(['company', 'revenue'], axis='columns') > other.iloc[:-1]
+   company  revenue
+0    False    False
+1    False    False
+2    False     True
+>>> df.gt(other, axis=0)
+   company   cost  revenue
+0    False  False    False
+1    False  False    False
+2    False  False     True
+3    False  False    False
+>>> df.gt(other, axis=1)
+   company   cost  revenue
+0    False  False    False
+1    False  False    False
+2    False  False     True
+3    False  False    False
+
+Compare to a MultiIndex by level and operator version.
+
+>>> df_multindex = pd.DataFrame({{'cost': [250, 150, 100, 150, 300, 220],
+...                              'revenue': [100, 250, 300, 200, 175, 225]}},
+...                              index = [['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                       ['A', 'B', 'C', 'A', 'B' ,'C']])
+>>> df_multindex
       cost  revenue
 Q1 A   250      100
    B   150      250
@@ -658,71 +710,13 @@ Q2 A   150      200
    B   300      175
    C   220      225
 
-Compare to a constant and operator version
-
->>> df1 == 100
-   company   cost  revenue
-0    False  False     True
-1    False  False    False
-2    False   True    False
->>> df1.eq(100)
-   company   cost  revenue
-0    False  False     True
-1    False  False    False
-2    False   True    False
-
-Compare to a Series by axis and operator version
-
->>> df1 != [100, 250, 300]
-   company  cost  revenue
-0     True  True    False
-1     True  True    False
-2     True  True    False
->>> df1.ne([100, 250, 300], axis=0)
-   company  cost  revenue
-0     True  True    False
-1     True  True    False
-2     True  True    False
->>> df1 != pd.Series([100, 250, 300])
-   company  cost  revenue     0     1     2
-0     True  True     True  True  True  True
-1     True  True     True  True  True  True
-2     True  True     True  True  True  True
->>> df1.ne(pd.Series([100, 250, 300]), axis=1)
-   company  cost  revenue     0     1     2
-0     True  True     True  True  True  True
-1     True  True     True  True  True  True
-2     True  True     True  True  True  True
-
-Compare to a DataFrame by axis and operator version
-
->>> df1.reindex(['company', 'revenue'], axis='columns') > df2.iloc[:-1]
-   company  revenue
-0    False    False
-1    False    False
-2    False     True
->>> df1.gt(df2, axis=0)
-   company   cost  revenue
-0    False  False    False
-1    False  False    False
-2    False  False     True
-3    False  False    False
->>> df1.gt(df2, axis=1)
-   company   cost  revenue
-0    False  False    False
-1    False  False    False
-2    False  False     True
-3    False  False    False
-
-Compare to a MultiIndex by level and operator version
-
->>> df1.set_index('company') <= df3.loc['Q1']
+>>> df.set_index('company') <= df_multindex.loc['Q1']
          cost  revenue
 company
 A        True     True
 B        True     True
 C        True     True
->>> df1.set_index('company').le(df3, level=1)
+>>> df.set_index('company').le(df_multindex, level=1)
        cost  revenue
 Q1 A   True     True
    B   True     True
@@ -1697,7 +1691,9 @@ def _flex_comp_method_FRAME(cls, op, special):
         return result
 
     if op_name in _op_descriptions:
-        doc = _flex_comp_doc_FRAME
+        op_desc = _op_descriptions[op_name]
+        doc = _flex_comp_doc_FRAME.format(desc=op_desc['desc'],
+                                          op_name=op_name)
     else:
         doc = "Flexible wrappers to comparison methods"
 
