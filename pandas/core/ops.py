@@ -1383,7 +1383,7 @@ def _bool_method_SERIES(cls, op, special):
             if isinstance(y, list):
                 y = construct_1d_object_array_from_listlike(y)
 
-            if isinstance(y, (np.ndarray, ABCSeries)):
+            if isinstance(y, (np.ndarray, ABCSeries, ABCIndex)):
                 if (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype)):
                     result = op(x, y)  # when would this be hit?
                 else:

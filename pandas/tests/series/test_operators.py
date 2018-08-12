@@ -537,6 +537,23 @@ class TestSeriesComparisons(object):
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
+    def test_comparison_with_index(self):
+        # GH22092
+        ser = Series([True, True, False, False])
+        idx = Index([True, False, True, False])
+
+        expected = Series([True, False, False, False])
+        result = ser & idx
+        assert_series_equal(result, expected)
+
+        expected = Series([True, True, True, False])
+        result = ser | idx
+        assert_series_equal(result, expected)
+
+        expected = Series([False, True, True, False])
+        result = ser ^ idx
+        assert_series_equal(result, expected)
+
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
