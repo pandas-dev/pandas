@@ -287,7 +287,7 @@ that the dates have been converted to UTC
 
 :class:`Day` and associated frequency alias ``'D'`` were documented to represent
 a calendar day; however, arithmetic and operations with :class:`Day` sometimes
-respected absolute time instead (i.e. ```Day(n)`` and acted identically to ```Timedelta(days=n)``).
+respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Timedelta(days=n)``).
 
 *Previous Behavior*:
 
@@ -320,7 +320,7 @@ Addition with :class:`CalendarDay` across a daylight savings time transition:
    ts + pd.offsets.CalendarDay(1)
 
 However, if the resulting arithmetic results in a non-existent or ambiguous
-time, an error will raise
+time, an error will raise.
 
 .. ipython:: python
 
