@@ -1,15 +1,23 @@
 # coding: utf-8
 # cython: embedsignature=True
 
-from cpython cimport *
+from cython cimport Py_ssize_t
+
+from cpython cimport (
+    PyCallable_Check,
+    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release,
+    PyBytes_Size,
+    PyBytes_FromStringAndSize,
+    PyBytes_AsString)
+
 cdef extern from "Python.h":
     ctypedef struct PyObject
     cdef int PyObject_AsReadBuffer(object o, const void** buff,
                                    Py_ssize_t* buf_len) except -1
 
-from libc.stdlib cimport *
-from libc.string cimport *
-from libc.limits cimport *
+from libc.stdlib cimport free, malloc
+from libc.string cimport memcpy, memmove
+from libc.limits cimport INT_MAX
 
 from pandas.io.msgpack.exceptions import (BufferFull, OutOfData,
                                           UnpackValueError, ExtraData)

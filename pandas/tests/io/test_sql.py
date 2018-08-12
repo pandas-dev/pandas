@@ -36,7 +36,6 @@ from pandas import DataFrame, Series, Index, MultiIndex, isna, concat
 from pandas import date_range, to_datetime, to_timedelta, Timestamp
 import pandas.compat as compat
 from pandas.compat import range, lrange, string_types, PY36
-from pandas.core.tools.datetimes import format as date_format
 
 import pandas.io.sql as sql
 from pandas.io.sql import read_sql_table, read_sql_query
@@ -1008,7 +1007,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_df = sql.read_sql(name_text, self.conn, params={
                                'name': 'Iris-versicolor'})
         all_names = set(iris_df['Name'])
-        assert all_names == set(['Iris-versicolor'])
+        assert all_names == {'Iris-versicolor'}
 
     def test_query_by_select_obj(self):
         # WIP : GH10846
@@ -1019,7 +1018,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         iris_df = sql.read_sql(name_select, self.conn,
                                params={'name': 'Iris-setosa'})
         all_names = set(iris_df['Name'])
-        assert all_names == set(['Iris-setosa'])
+        assert all_names == {'Iris-setosa'}
 
 
 class _EngineToConnMixin(object):
@@ -2092,6 +2091,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
 # -----------------------------------------------------------------------------
 # -- Old tests from 0.13.1 (before refactor using sqlalchemy)
+
+
+def date_format(dt):
+    """Returns date in YYYYMMDD format."""
+    return dt.strftime('%Y%m%d')
 
 
 _formatters = {
