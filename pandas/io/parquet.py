@@ -116,7 +116,7 @@ class PyArrowImpl(BaseImpl):
                 table, path, compression=compression, **kwargs)
 
         else:
-            table = self.api.Table.from_pandas(df)
+            table = self.api.Table.from_pandas(df, preserve_index=index)
             self.api.parquet.write_table(
                 table, path, compression=compression,
                 coerce_timestamps=coerce_timestamps, **kwargs)
