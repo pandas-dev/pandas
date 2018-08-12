@@ -6,8 +6,6 @@ import pytest
 import pandas as pd
 from pandas._libs.index import (Int64Engine, UInt64Engine,
                                 Float64Engine, ObjectEngine)
-from pandas._libs.lib import is_scalar
-import pandas.util.testing as tm
 
 
 class TestNumericEngine(object):
@@ -57,8 +55,8 @@ class TestNumericEngine(object):
     @pytest.mark.parametrize('values, value, expected', [
         ([1, 2, 3], 2, 1),
         ([1, 2, 2, 3], 2, slice(1, 3)),
-        ([3, 2, 2, 1], 2, np.array([False,  True,  True, False])),
-        ([1, 2, 2, 1], 2, np.array([False,  True,  True, False])),
+        ([3, 2, 2, 1], 2, np.array([False, True, True, False])),
+        ([1, 2, 2, 1], 2, np.array([False, True, True, False])),
         ([1, 3, 2], 2, 2),
     ])
     def test_get_loc(self, values, value, expected, num_engine):
@@ -125,8 +123,8 @@ class TestObjectEngine(object):
     @pytest.mark.parametrize('values, value, expected', [
         (list('abc'), 'b', 1),
         (list('abbc'), 'b', slice(1, 3)),
-        (list('cbba'), 'b', np.array([False,  True,  True, False])),
-        (list('abba'), 'b', np.array([False,  True,  True, False])),
+        (list('cbba'), 'b', np.array([False, True, True, False])),
+        (list('abba'), 'b', np.array([False, True, True, False])),
         (list('acb'), 'b', 2),
     ])
     def test_get_loc(self, values, value, expected):
