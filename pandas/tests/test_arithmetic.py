@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
-from datetime import timedelta
+from datetime import datetime, timedelta
 import operator
 
 import pytest
@@ -10,13 +10,13 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
-from pandas.compat import long
 from pandas.core import ops
 from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas import (
     timedelta_range,
-    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex)
+    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
+    DataFrame)
 
 
 # ------------------------------------------------------------------
@@ -74,81 +74,332 @@ def box_df_fail(request):
 
 
 # ------------------------------------------------------------------
-# Numeric dtypes Arithmetic with Timedelta Scalar
+# Timedelta64[ns] dtype Comparisons
 
-class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
+class TestTimedelta64ArrayComparisons(object):
+    # TODO: All of these need to be parametrized over box
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="block.eval incorrect",
-                                             strict=True))
-    ])
-    @pytest.mark.parametrize('index', [
-        pd.Int64Index(range(1, 11)),
-        pd.UInt64Index(range(1, 11)),
-        pd.Float64Index(range(1, 11)),
-        pd.RangeIndex(1, 11)],
-        ids=lambda x: type(x).__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        Timedelta(days=1),
-        Timedelta(days=1).to_timedelta64(),
-        Timedelta(days=1).to_pytimedelta()],
-        ids=lambda x: type(x).__name__)
-    def test_numeric_arr_mul_tdscalar(self, scalar_td, index, box):
-        # GH#19333
+    def test_compare_timedelta_series(self):
+        # regresssion test for GH5963
+        s = pd.Series([timedelta(days=1), timedelta(days=2)])
+        actual = s > timedelta(days=1)
+        expected = pd.Series([False, True])
+        tm.assert_series_equal(actual, expected)
 
-        if (box is Series and
-                type(scalar_td) is timedelta and index.dtype == 'f8'):
-            raise pytest.xfail(reason="Cannot multiply timedelta by float")
+    def test_tdi_cmp_str_invalid(self):
+        # GH#13624
+        tdi = TimedeltaIndex(['1 day', '2 days'])
 
-        expected = timedelta_range('1 days', '10 days')
+        for left, right in [(tdi, 'a'), ('a', tdi)]:
+            with pytest.raises(TypeError):
+                left > right
 
-        index = tm.box_expected(index, box)
-        expected = tm.box_expected(expected, box)
+            with pytest.raises(TypeError):
+                left == right
 
-        result = index * scalar_td
-        tm.assert_equal(result, expected)
+            with pytest.raises(TypeError):
+                left != right
 
-        commute = scalar_td * index
-        tm.assert_equal(commute, expected)
+    def test_comp_nat(self):
+        left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
+                                  pd.Timedelta('3 days')])
+        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
 
-    @pytest.mark.parametrize('index', [
-        pd.Int64Index(range(1, 3)),
-        pd.UInt64Index(range(1, 3)),
-        pd.Float64Index(range(1, 3)),
-        pd.RangeIndex(1, 3)],
-        ids=lambda x: type(x).__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        Timedelta(days=1),
-        Timedelta(days=1).to_timedelta64(),
-        Timedelta(days=1).to_pytimedelta()],
-        ids=lambda x: type(x).__name__)
-    def test_numeric_arr_rdiv_tdscalar(self, scalar_td, index, box):
+        for lhs, rhs in [(left, right),
+                         (left.astype(object), right.astype(object))]:
+            result = rhs == lhs
+            expected = np.array([False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
 
-        if box is Series and type(scalar_td) is timedelta:
-            raise pytest.xfail(reason="TODO: Figure out why this case fails")
-        if box is pd.DataFrame and isinstance(scalar_td, timedelta):
-            raise pytest.xfail(reason="TODO: Figure out why this case fails")
+            result = rhs != lhs
+            expected = np.array([True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
 
-        expected = TimedeltaIndex(['1 Day', '12 Hours'])
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
 
-        index = tm.box_expected(index, box)
-        expected = tm.box_expected(expected, box)
+            expected = np.array([True, True, True])
+            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
 
-        result = scalar_td / index
-        tm.assert_equal(result, expected)
+            expected = np.array([False, False, False])
+            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
+            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
 
+    def test_comparisons_nat(self):
+        tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
+                                    '1 day 00:00:01', '5 day 00:00:03'])
+        tdidx2 = pd.TimedeltaIndex(['2 day', '2 day', pd.NaT, pd.NaT,
+                                    '1 day 00:00:02', '5 days 00:00:03'])
+        tdarr = np.array([np.timedelta64(2, 'D'),
+                          np.timedelta64(2, 'D'), np.timedelta64('nat'),
+                          np.timedelta64('nat'),
+                          np.timedelta64(1, 'D') + np.timedelta64(2, 's'),
+                          np.timedelta64(5, 'D') + np.timedelta64(3, 's')])
+
+        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
+
+        # Check pd.NaT is handles as the same as np.nan
+        for idx1, idx2 in cases:
+
+            result = idx1 < idx2
+            expected = np.array([True, False, False, False, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx2 > idx1
+            expected = np.array([True, False, False, False, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx1 <= idx2
+            expected = np.array([True, False, False, False, True, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx2 >= idx1
+            expected = np.array([True, False, False, False, True, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx1 == idx2
+            expected = np.array([False, False, False, False, False, True])
+            tm.assert_numpy_array_equal(result, expected)
+
+            result = idx1 != idx2
+            expected = np.array([True, True, True, True, True, False])
+            tm.assert_numpy_array_equal(result, expected)
+
+    # TODO: better name
+    def test_comparisons_coverage(self):
+        rng = timedelta_range('1 days', periods=10)
+
+        result = rng < rng[3]
+        expected = np.array([True, True, True] + [False] * 7)
+        tm.assert_numpy_array_equal(result, expected)
+
+        # raise TypeError for now
         with pytest.raises(TypeError):
-            index / scalar_td
+            rng < rng[3].value
+
+        result = rng == list(rng)
+        exp = rng == rng
+        tm.assert_numpy_array_equal(result, exp)
 
 
 # ------------------------------------------------------------------
 # Timedelta64[ns] dtype Arithmetic Operations
 
+class TestAddSubNaTMasking(object):
+    # TODO: parametrize over boxes
+
+    def test_tdi_add_timestamp_nat_masking(self):
+        # GH#17991 checking for overflow-masking with NaT
+        tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
+
+        tsneg = Timestamp('1950-01-01')
+        ts_neg_variants = [tsneg,
+                           tsneg.to_pydatetime(),
+                           tsneg.to_datetime64().astype('datetime64[ns]'),
+                           tsneg.to_datetime64().astype('datetime64[D]')]
+
+        tspos = Timestamp('1980-01-01')
+        ts_pos_variants = [tspos,
+                           tspos.to_pydatetime(),
+                           tspos.to_datetime64().astype('datetime64[ns]'),
+                           tspos.to_datetime64().astype('datetime64[D]')]
+
+        for variant in ts_neg_variants + ts_pos_variants:
+            res = tdinat + variant
+            assert res[1] is pd.NaT
+
+    def test_tdi_add_overflow(self):
+        # See GH#14068
+        msg = "too (big|large) to convert"
+        with tm.assert_raises_regex(OverflowError, msg):
+            pd.to_timedelta(106580, 'D') + Timestamp('2000')
+        with tm.assert_raises_regex(OverflowError, msg):
+            Timestamp('2000') + pd.to_timedelta(106580, 'D')
+
+        _NaT = int(pd.NaT) + 1
+        msg = "Overflow in int64 addition"
+        with tm.assert_raises_regex(OverflowError, msg):
+            pd.to_timedelta([106580], 'D') + Timestamp('2000')
+        with tm.assert_raises_regex(OverflowError, msg):
+            Timestamp('2000') + pd.to_timedelta([106580], 'D')
+        with tm.assert_raises_regex(OverflowError, msg):
+            pd.to_timedelta([_NaT]) - Timedelta('1 days')
+        with tm.assert_raises_regex(OverflowError, msg):
+            pd.to_timedelta(['5 days', _NaT]) - Timedelta('1 days')
+        with tm.assert_raises_regex(OverflowError, msg):
+            (pd.to_timedelta([_NaT, '5 days', '1 hours']) -
+             pd.to_timedelta(['7 seconds', _NaT, '4 hours']))
+
+        # These should not overflow!
+        exp = TimedeltaIndex([pd.NaT])
+        result = pd.to_timedelta([pd.NaT]) - Timedelta('1 days')
+        tm.assert_index_equal(result, exp)
+
+        exp = TimedeltaIndex(['4 days', pd.NaT])
+        result = pd.to_timedelta(['5 days', pd.NaT]) - Timedelta('1 days')
+        tm.assert_index_equal(result, exp)
+
+        exp = TimedeltaIndex([pd.NaT, pd.NaT, '5 hours'])
+        result = (pd.to_timedelta([pd.NaT, '5 days', '1 hours']) +
+                  pd.to_timedelta(['7 seconds', pd.NaT, '4 hours']))
+        tm.assert_index_equal(result, exp)
+
+
 class TestTimedeltaArraylikeAddSubOps(object):
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
+
+    # TODO: moved from tests.series.test_operators, needs splitting, cleanup,
+    # de-duplication, box-parametrization...
+    def test_operators_timedelta64(self):
+        # series ops
+        v1 = pd.date_range('2012-1-1', periods=3, freq='D')
+        v2 = pd.date_range('2012-1-2', periods=3, freq='D')
+        rs = Series(v2) - Series(v1)
+        xp = Series(1e9 * 3600 * 24,
+                    rs.index).astype('int64').astype('timedelta64[ns]')
+        tm.assert_series_equal(rs, xp)
+        assert rs.dtype == 'timedelta64[ns]'
+
+        df = DataFrame(dict(A=v1))
+        td = Series([timedelta(days=i) for i in range(3)])
+        assert td.dtype == 'timedelta64[ns]'
+
+        # series on the rhs
+        result = df['A'] - df['A'].shift()
+        assert result.dtype == 'timedelta64[ns]'
+
+        result = df['A'] + td
+        assert result.dtype == 'M8[ns]'
+
+        # scalar Timestamp on rhs
+        maxa = df['A'].max()
+        assert isinstance(maxa, Timestamp)
+
+        resultb = df['A'] - df['A'].max()
+        assert resultb.dtype == 'timedelta64[ns]'
+
+        # timestamp on lhs
+        result = resultb + df['A']
+        values = [Timestamp('20111230'), Timestamp('20120101'),
+                  Timestamp('20120103')]
+        expected = Series(values, name='A')
+        tm.assert_series_equal(result, expected)
+
+        # datetimes on rhs
+        result = df['A'] - datetime(2001, 1, 1)
+        expected = Series(
+            [timedelta(days=4017 + i) for i in range(3)], name='A')
+        tm.assert_series_equal(result, expected)
+        assert result.dtype == 'm8[ns]'
+
+        d = datetime(2001, 1, 1, 3, 4)
+        resulta = df['A'] - d
+        assert resulta.dtype == 'm8[ns]'
+
+        # roundtrip
+        resultb = resulta + d
+        tm.assert_series_equal(df['A'], resultb)
+
+        # timedeltas on rhs
+        td = timedelta(days=1)
+        resulta = df['A'] + td
+        resultb = resulta - td
+        tm.assert_series_equal(resultb, df['A'])
+        assert resultb.dtype == 'M8[ns]'
+
+        # roundtrip
+        td = timedelta(minutes=5, seconds=3)
+        resulta = df['A'] + td
+        resultb = resulta - td
+        tm.assert_series_equal(df['A'], resultb)
+        assert resultb.dtype == 'M8[ns]'
+
+        # inplace
+        value = rs[2] + np.timedelta64(timedelta(minutes=5, seconds=1))
+        rs[2] += np.timedelta64(timedelta(minutes=5, seconds=1))
+        assert rs[2] == value
+
+    def test_timedelta64_ops_nat(self):
+        # GH 11349
+        timedelta_series = Series([NaT, Timedelta('1s')])
+        nat_series_dtype_timedelta = Series([NaT, NaT],
+                                            dtype='timedelta64[ns]')
+        single_nat_dtype_timedelta = Series([NaT], dtype='timedelta64[ns]')
+
+        # subtraction
+        tm.assert_series_equal(timedelta_series - NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(-NaT + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series - single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(-single_nat_dtype_timedelta + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        # addition
+        tm.assert_series_equal(nat_series_dtype_timedelta + NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(NaT + nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta +
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(single_nat_dtype_timedelta +
+                               nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series + NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(NaT + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series + single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(single_nat_dtype_timedelta + timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta + NaT,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(NaT + nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(nat_series_dtype_timedelta +
+                               single_nat_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(single_nat_dtype_timedelta +
+                               nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        # multiplication
+        tm.assert_series_equal(nat_series_dtype_timedelta * 1.0,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(1.0 * nat_series_dtype_timedelta,
+                               nat_series_dtype_timedelta)
+
+        tm.assert_series_equal(timedelta_series * 1, timedelta_series)
+        tm.assert_series_equal(1 * timedelta_series, timedelta_series)
+
+        tm.assert_series_equal(timedelta_series * 1.5,
+                               Series([NaT, Timedelta('1.5s')]))
+        tm.assert_series_equal(1.5 * timedelta_series,
+                               Series([NaT, Timedelta('1.5s')]))
+
+        tm.assert_series_equal(timedelta_series * np.nan,
+                               nat_series_dtype_timedelta)
+        tm.assert_series_equal(np.nan * timedelta_series,
+                               nat_series_dtype_timedelta)
+
+        # division
+        tm.assert_series_equal(timedelta_series / 2,
+                               Series([NaT, Timedelta('0.5s')]))
+        tm.assert_series_equal(timedelta_series / 2.0,
+                               Series([NaT, Timedelta('0.5s')]))
+        tm.assert_series_equal(timedelta_series / np.nan,
+                               nat_series_dtype_timedelta)
 
     # -------------------------------------------------------------
     # Invalid Operations
@@ -490,6 +741,59 @@ class TestTimedeltaArraylikeAddSubOps(object):
     # ------------------------------------------------------------------
     # Operations with timedelta-like others
 
+    # TODO: this was taken from tests.series.test_ops; de-duplicate
+    @pytest.mark.parametrize('scalar_td', [timedelta(minutes=5, seconds=4),
+                                           Timedelta(minutes=5, seconds=4),
+                                           Timedelta('5m4s').to_timedelta64()])
+    def test_operators_timedelta64_with_timedelta(self, scalar_td):
+        # smoke tests
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        td1 + scalar_td
+        scalar_td + td1
+        td1 - scalar_td
+        scalar_td - td1
+        td1 / scalar_td
+        scalar_td / td1
+
+    # TODO: this was taken from tests.series.test_ops; de-duplicate
+    def test_timedelta64_operations_with_timedeltas(self):
+        # td operate with td
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td2 = timedelta(minutes=5, seconds=4)
+        result = td1 - td2
+        expected = (Series([timedelta(seconds=0)] * 3) -
+                    Series([timedelta(seconds=1)] * 3))
+        assert result.dtype == 'm8[ns]'
+        tm.assert_series_equal(result, expected)
+
+        result2 = td2 - td1
+        expected = (Series([timedelta(seconds=1)] * 3) -
+                    Series([timedelta(seconds=0)] * 3))
+        tm.assert_series_equal(result2, expected)
+
+        # roundtrip
+        tm.assert_series_equal(result + td2, td1)
+
+        # Now again, using pd.to_timedelta, which should build
+        # a Series or a scalar, depending on input.
+        td1 = Series(pd.to_timedelta(['00:05:03'] * 3))
+        td2 = pd.to_timedelta('00:05:04')
+        result = td1 - td2
+        expected = (Series([timedelta(seconds=0)] * 3) -
+                    Series([timedelta(seconds=1)] * 3))
+        assert result.dtype == 'm8[ns]'
+        tm.assert_series_equal(result, expected)
+
+        result2 = td2 - td1
+        expected = (Series([timedelta(seconds=1)] * 3) -
+                    Series([timedelta(seconds=0)] * 3))
+        tm.assert_series_equal(result2, expected)
+
+        # roundtrip
+        tm.assert_series_equal(result + td2, td1)
+
     def test_td64arr_add_td64_array(self, box_df_fail):
         box = box_df_fail  # DataFrame tries to broadcast incorrectly
 
@@ -619,6 +923,39 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     # ------------------------------------------------------------------
     # __add__/__sub__ with DateOffsets and arrays of DateOffsets
+
+    # TODO: this was taken from tests.series.test_operators; de-duplicate
+    def test_timedelta64_operations_with_DateOffset(self):
+        # GH#10699
+        td = Series([timedelta(minutes=5, seconds=3)] * 3)
+        result = td + pd.offsets.Minute(1)
+        expected = Series([timedelta(minutes=6, seconds=3)] * 3)
+        tm.assert_series_equal(result, expected)
+
+        result = td - pd.offsets.Minute(1)
+        expected = Series([timedelta(minutes=4, seconds=3)] * 3)
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
+                                  pd.offsets.Hour(2)])
+        expected = Series([timedelta(minutes=6, seconds=3),
+                           timedelta(minutes=5, seconds=6),
+                           timedelta(hours=2, minutes=5, seconds=3)])
+        tm.assert_series_equal(result, expected)
+
+        result = td + pd.offsets.Minute(1) + pd.offsets.Second(12)
+        expected = Series([timedelta(minutes=6, seconds=15)] * 3)
+        tm.assert_series_equal(result, expected)
+
+        # valid DateOffsets
+        for do in ['Hour', 'Minute', 'Second', 'Day', 'Micro', 'Milli',
+                   'Nano']:
+            op = getattr(pd.offsets, do)
+            td + op(5)
+            op(5) + td
+            td - op(5)
+            op(5) - td
 
     @pytest.mark.parametrize('box', [
         pd.Index,
@@ -788,6 +1125,27 @@ class TestTimedeltaArraylikeAddSubOps(object):
 class TestTimedeltaArraylikeMulDivOps(object):
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
+
+    # TODO: Moved from tests.series.test_operators; needs cleanup
+    @pytest.mark.parametrize("m", [1, 3, 10])
+    @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
+    def test_timedelta64_conversions(self, m, unit):
+        startdate = Series(pd.date_range('2013-01-01', '2013-01-03'))
+        enddate = Series(pd.date_range('2013-03-01', '2013-03-03'))
+
+        ser = enddate - startdate
+        ser[2] = np.nan
+
+        # op
+        expected = Series([x / np.timedelta64(m, unit) for x in ser])
+        result = ser / np.timedelta64(m, unit)
+        tm.assert_series_equal(result, expected)
+
+        # reverse op
+        expected = Series([Timedelta(np.timedelta64(m, unit)) / x
+                           for x in ser])
+        result = np.timedelta64(m, unit) / ser
+        tm.assert_series_equal(result, expected)
 
     # ------------------------------------------------------------------
     # Multiplication
@@ -1281,231 +1639,3 @@ class TestTimedeltaArraylikeInvalidArithmeticOps(object):
 
         with tm.assert_raises_regex(TypeError, pattern):
             td1 ** scalar_td
-
-
-# ------------------------------------------------------------------
-
-@pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
-                        pd.Int64Index(np.arange(5, dtype='int64')),
-                        pd.UInt64Index(np.arange(5, dtype='uint64'))],
-                ids=lambda x: type(x).__name__)
-def idx(request):
-    return request.param
-
-
-zeros = [box_cls([0] * 5, dtype=dtype)
-         for box_cls in [pd.Index, np.array]
-         for dtype in [np.int64, np.uint64, np.float64]]
-zeros.extend([np.array(0, dtype=dtype)
-              for dtype in [np.int64, np.uint64, np.float64]])
-zeros.extend([0, 0.0, long(0)])
-
-
-@pytest.fixture(params=zeros)
-def zero(request):
-    # For testing division by (or of) zero for Index with length 5, this
-    # gives several scalar-zeros and length-5 vector-zeros
-    return request.param
-
-
-class TestDivisionByZero(object):
-
-    def test_div_zero(self, zero, idx):
-        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
-                            dtype=np.float64)
-        result = idx / zero
-        tm.assert_index_equal(result, expected)
-        ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
-        tm.assert_series_equal(ser_compat, Series(result))
-
-    def test_floordiv_zero(self, zero, idx):
-        expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
-                            dtype=np.float64)
-
-        result = idx // zero
-        tm.assert_index_equal(result, expected)
-        ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
-        tm.assert_series_equal(ser_compat, Series(result))
-
-    def test_mod_zero(self, zero, idx):
-        expected = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan],
-                            dtype=np.float64)
-        result = idx % zero
-        tm.assert_index_equal(result, expected)
-        ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
-        tm.assert_series_equal(ser_compat, Series(result))
-
-    def test_divmod_zero(self, zero, idx):
-
-        exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
-                          dtype=np.float64)
-        exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan],
-                           dtype=np.float64)
-
-        result = divmod(idx, zero)
-        tm.assert_index_equal(result[0], exleft)
-        tm.assert_index_equal(result[1], exright)
-
-    # ------------------------------------------------------------------
-
-    @pytest.mark.parametrize('dtype2', [
-        np.int64, np.int32, np.int16, np.int8,
-        np.float64, np.float32, np.float16,
-        np.uint64, np.uint32, np.uint16, np.uint8])
-    @pytest.mark.parametrize('dtype1', [np.int64, np.float64, np.uint64])
-    def test_ser_div_ser(self, dtype1, dtype2):
-        # no longer do integer div for any ops, but deal with the 0's
-        first = Series([3, 4, 5, 8], name='first').astype(dtype1)
-        second = Series([0, 0, 0, 3], name='second').astype(dtype2)
-
-        with np.errstate(all='ignore'):
-            expected = Series(first.values.astype(np.float64) / second.values,
-                              dtype='float64', name=None)
-        expected.iloc[0:3] = np.inf
-
-        result = first / second
-        tm.assert_series_equal(result, expected)
-        assert not result.equals(second / first)
-
-    def test_rdiv_zero_compat(self):
-        # GH#8674
-        zero_array = np.array([0] * 5)
-        data = np.random.randn(5)
-        expected = Series([0.] * 5)
-
-        result = zero_array / Series(data)
-        tm.assert_series_equal(result, expected)
-
-        result = Series(zero_array) / data
-        tm.assert_series_equal(result, expected)
-
-        result = Series(zero_array) / Series(data)
-        tm.assert_series_equal(result, expected)
-
-    def test_div_zero_inf_signs(self):
-        # GH#9144, inf signing
-        ser = Series([-1, 0, 1], name='first')
-        expected = Series([-np.inf, np.nan, np.inf], name='first')
-
-        result = ser / 0
-        tm.assert_series_equal(result, expected)
-
-    def test_rdiv_zero(self):
-        # GH#9144
-        ser = Series([-1, 0, 1], name='first')
-        expected = Series([0.0, np.nan, 0.0], name='first')
-
-        result = 0 / ser
-        tm.assert_series_equal(result, expected)
-
-    def test_floordiv_div(self):
-        # GH#9144
-        ser = Series([-1, 0, 1], name='first')
-
-        result = ser // 0
-        expected = Series([-np.inf, np.nan, np.inf], name='first')
-        tm.assert_series_equal(result, expected)
-
-    def test_df_div_zero_df(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = df / df
-
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
-        expected = pd.DataFrame({'first': first, 'second': second})
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_div_zero_array(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
-        expected = pd.DataFrame({'first': first, 'second': second})
-
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float') / df.values
-        result = pd.DataFrame(arr, index=df.index,
-                              columns=df.columns)
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_div_zero_int(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        result = df / 0
-        expected = pd.DataFrame(np.inf, index=df.index, columns=df.columns)
-        expected.iloc[0:3, 1] = np.nan
-        tm.assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float64') / 0
-        result2 = pd.DataFrame(arr, index=df.index,
-                               columns=df.columns)
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_div_zero_series_does_not_commute(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame(np.random.randn(10, 5))
-        ser = df[0]
-        res = ser / df
-        res2 = df / ser
-        assert not res.fillna(0).equals(res2.fillna(0))
-
-    # ------------------------------------------------------------------
-    # Mod By Zero
-
-    def test_df_mod_zero_df(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype='float64')
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
-        expected = pd.DataFrame({'first': first, 'second': second})
-        result = df % df
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_mod_zero_array(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype='float64')
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
-        expected = pd.DataFrame({'first': first, 'second': second})
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values % df.values
-        result2 = pd.DataFrame(arr, index=df.index,
-                               columns=df.columns, dtype='float64')
-        result2.iloc[0:3, 1] = np.nan
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_mod_zero_int(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        result = df % 0
-        expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
-        tm.assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float64') % 0
-        result2 = pd.DataFrame(arr, index=df.index, columns=df.columns)
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_mod_zero_series_does_not_commute(self):
-        # GH#3590, modulo as ints
-        # not commutative with series
-        df = pd.DataFrame(np.random.randn(10, 5))
-        ser = df[0]
-        res = ser % df
-        res2 = df % ser
-        assert not res.fillna(0).equals(res2.fillna(0))
