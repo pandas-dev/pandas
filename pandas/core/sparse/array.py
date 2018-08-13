@@ -614,6 +614,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return taken
 
     def copy(self, deep=False):
+        import pdb; pdb.set_trace()
         if deep:
             values = self.sp_values.copy()
             index = self.sp_index.copy()

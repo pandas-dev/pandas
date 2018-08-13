@@ -629,6 +629,7 @@ class SparseSeries(Series):
         be copied
         """
         new_data = self._data
+        import pdb; pdb.set_trace()
         if deep:
             new_data = self._data.copy()
 
