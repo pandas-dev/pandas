@@ -368,23 +368,23 @@ class TestBasic(Base):
             check_round_trip(df, engine, read_kwargs={'columns': ['A', 'B']},
                              expected=df[['A', 'B']])
 
-    def test_write_ignoring_index(self):
+    def test_write_ignoring_index(self, engine):
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
         df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']})
-        check_round_trip(df, write_kwargs={'index': False},
+        check_round_trip(df, engine, write_kwargs={'index': False},
                          check_names=['a', 'b'])
 
-    def test_write_ignoring_custom_index(self):
+    def test_write_ignoring_custom_index(self, engine):
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file,
         # even if we're using a custom one.s
         df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']},
                           index=['zyx', 'wvu', 'tsr'])
-        check_round_trip(df, write_kwargs={'index': False},
+        check_round_trip(df, engine, write_kwargs={'index': False},
                          check_names=['a', 'b'])
 
-    def test_write_ignoring_multiindex(self):
+    def test_write_ignoring_multiindex(self, engine):
         # ENH 20768
         # Ensure index=False omits multiindexes as well.
         arrays = [['bar', 'bar', 'baz', 'baz', 'foo', 'foo', 'qux', 'qux'],
@@ -392,7 +392,7 @@ class TestBasic(Base):
         df = pd.DataFrame({'one': [i for i in range(8)],
                            'two': [-i for i in range(8)]}, index=arrays)
 
-        check_round_trip(df, write_kwargs={'index': False},
+        check_round_trip(df, engine, write_kwargs={'index': False},
                          check_names=['one', 'two'])
 
 
