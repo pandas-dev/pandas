@@ -96,7 +96,6 @@ class _DtypeOpsMixin(object):
 
     @property
     def _is_numeric(self):
-        # Should we overload "kind" here? Just return not object?
         return False
 
 

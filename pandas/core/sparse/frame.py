@@ -23,6 +23,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays)
 import pandas.core.generic as generic
 from pandas.core.sparse.series import SparseSeries, SparseArray
+from pandas.core.sparse.dtype import SparseDtype
 from pandas._libs.sparse import BlockIndex, get_blocks
 from pandas.util._decorators import Appender
 import pandas.core.ops as ops
@@ -260,6 +261,9 @@ class SparseDataFrame(DataFrame):
             raise ImportError('Scipy is not installed')
 
         dtype = find_common_type(self.dtypes)
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subdtype
+
         cols, rows, datas = [], [], []
         for col, name in enumerate(self):
             s = self[name]

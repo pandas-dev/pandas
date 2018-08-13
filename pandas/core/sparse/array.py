@@ -683,7 +683,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # for non-sparse types
 
         dtype = pandas_dtype(dtype)
-        import pdb; pdb.set_trace()
 
         if isinstance(dtype, SparseDtype):
             # Sparse -> Sparse
