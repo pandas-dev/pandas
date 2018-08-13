@@ -766,6 +766,18 @@ one pass, you can do
             result = pd.Series([], index=result.index, dtype='int64')
         return result
 
+    def quantile(self, q=0.5, **kwargs):
+        """
+        Return value at the given quantile.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+
+        .. versionadded:: 0.24.0
+        """
+        return self._downsample('quantile', q=q, **kwargs)
+
 
 # downsample methods
 for method in ['sum', 'prod']:

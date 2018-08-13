@@ -41,7 +41,7 @@ bday = BDay()
 
 # The various methods we support
 downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-                      'median', 'prod', 'var', 'ohlc']
+                      'median', 'prod', 'var', 'ohlc', 'quantile']
 upsample_methods = ['count', 'size']
 series_methods = ['nunique']
 resample_methods = downsample_methods + upsample_methods + series_methods
@@ -2175,6 +2175,13 @@ class TestDatetimeIndex(Base):
         tm.assert_series_equal(res, exp)
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
+
+    def test_resample_quantile(self):
+        # GH 15023
+        s = pd.Series(range(20), index=date_range('2016-01-01', periods=20))
+        result = s.resample('W').quantile(0.75)
+        expected = s.resample('W').agg(lambda x: x.quantile(0.75))
+        tm.assert_series_equal(result, expected)
 
 
 class TestPeriodIndex(Base):
