@@ -10,7 +10,7 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notna, isna, Timestamp
+from pandas import Panel, DataFrame, Series, notna, isna, Timestamp, read_csv
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
@@ -512,14 +512,13 @@ class TestMultiLevel(Base):
         pytest.raises(com.SettingWithCopyError, f, result)
 
     def test_xs_level_multiple(self):
-        from pandas import read_table
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep=r'\s+', engine='python')
+        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs(('a', 4), level=['one', 'four'])
         expected = df.xs('a').xs(4, level='four')
@@ -547,14 +546,13 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(rs, xp)
 
     def test_xs_level0(self):
-        from pandas import read_table
         text = """                      A       B       C       D        E
 one two three   four
 a   b   10.0032 5    -0.5109 -2.3358 -0.4645  0.05076  0.3640
 a   q   20      4     0.4473  1.4152  0.2834  1.00661  0.1744
 x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 
-        df = read_table(StringIO(text), sep=r'\s+', engine='python')
+        df = read_csv(StringIO(text), sep=r'\s+', engine='python')
 
         result = df.xs('a', level=0)
         expected = df.xs('a')

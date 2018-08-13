@@ -17,6 +17,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_string_like,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
@@ -163,7 +164,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = set(['dt', 'cat', 'str'])
+    _accessors = {'dt', 'cat', 'str'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -1807,16 +1808,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     argmin = deprecate(
         'argmin', idxmin, '0.21.0',
         msg=dedent("""\
-        'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
-        will be corrected to return the positional minimum in the future.
-        Use 'series.values.argmin' to get the position of the minimum row.""")
+        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
+        instead.
+        The behavior of 'argmin' will be corrected to return the positional
+        minimum in the future. For now, use 'series.values.argmin' or
+        'np.argmin(np.array(values))' to get the position of the minimum
+        row.""")
     )
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
         msg=dedent("""\
-        'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
-        will be corrected to return the positional maximum in the future.
-        Use 'series.values.argmax' to get the position of the maximum row.""")
+        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
+        instead.
+        The behavior of 'argmax' will be corrected to return the positional
+        maximum in the future. For now, use 'series.values.argmax' or
+        'np.argmax(np.array(values))' to get the position of the maximum
+        row.""")
     )
 
     def round(self, decimals=0, *args, **kwargs):
@@ -3765,56 +3772,62 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
-    def to_csv(self, path=None, index=True, sep=",", na_rep='',
-               float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, compression=None, date_format=None,
-               decimal='.'):
-        """
-        Write Series to a comma-separated values (csv) file
+    @Appender(generic.NDFrame.to_csv.__doc__)
+    def to_csv(self, *args, **kwargs):
 
-        Parameters
-        ----------
-        path : string or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
-        header : boolean, default False
-            Write out series name
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-        mode : Python write mode, default 'w'
-        sep : character, default ","
-            Field delimiter for the output file.
-        encoding : string, optional
-            a string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3
-        compression : string, optional
-            A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
-        date_format: string, default None
-            Format string for datetime objects.
-        decimal: string, default '.'
-            Character recognized as decimal separator. E.g. use ',' for
-            European data
-        """
-        from pandas.core.frame import DataFrame
-        df = DataFrame(self)
-        # result is only a string if no path provided, otherwise None
-        result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
-                           float_format=float_format, header=header,
-                           index_label=index_label, mode=mode,
-                           encoding=encoding, compression=compression,
-                           date_format=date_format, decimal=decimal)
-        if path is None:
-            return result
+        names = ["path_or_buf", "sep", "na_rep", "float_format", "columns",
+                 "header", "index", "index_label", "mode", "encoding",
+                 "compression", "quoting", "quotechar", "line_terminator",
+                 "chunksize", "tupleize_cols", "date_format", "doublequote",
+                 "escapechar", "decimal"]
+
+        old_names = ["path_or_buf", "index", "sep", "na_rep", "float_format",
+                     "header", "index_label", "mode", "encoding",
+                     "compression", "date_format", "decimal"]
+
+        if "path" in kwargs:
+            warnings.warn("The signature of `Series.to_csv` was aligned "
+                          "to that of `DataFrame.to_csv`, and argument "
+                          "'path' will be renamed to 'path_or_buf'.",
+                          FutureWarning, stacklevel=2)
+            kwargs["path_or_buf"] = kwargs.pop("path")
+
+        if len(args) > 1:
+            # Either "index" (old signature) or "sep" (new signature) is being
+            # passed as second argument (while the first is the same)
+            maybe_sep = args[1]
+
+            if not (is_string_like(maybe_sep) and len(maybe_sep) == 1):
+                # old signature
+                warnings.warn("The signature of `Series.to_csv` was aligned "
+                              "to that of `DataFrame.to_csv`. Note that the "
+                              "order of arguments changed, and the new one "
+                              "has 'sep' in first place, for which \"{}\" is "
+                              "not a valid value. The old order will cease to "
+                              "be supported in a future version. Please refer "
+                              "to the documentation for `DataFrame.to_csv` "
+                              "when updating your function "
+                              "calls.".format(maybe_sep),
+                              FutureWarning, stacklevel=2)
+                names = old_names
+
+        pos_args = dict(zip(names[:len(args)], args))
+
+        for key in pos_args:
+            if key in kwargs:
+                raise ValueError("Argument given by name ('{}') and position "
+                                 "({})".format(key, names.index(key)))
+            kwargs[key] = pos_args[key]
+
+        if kwargs.get("header", None) is None:
+            warnings.warn("The signature of `Series.to_csv` was aligned "
+                          "to that of `DataFrame.to_csv`, and argument "
+                          "'header' will change its default value from False "
+                          "to True: please pass an explicit value to suppress "
+                          "this warning.", FutureWarning,
+                          stacklevel=2)
+            kwargs["header"] = False  # Backwards compatibility.
+        return self.to_frame().to_csv(**kwargs)
 
     @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',

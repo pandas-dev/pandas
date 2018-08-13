@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-cimport cython
 from cython cimport Py_ssize_t
 
 from cpython cimport PyFloat_Check, PyUnicode_Check
@@ -37,8 +36,7 @@ from tslibs.np_datetime import OutOfBoundsDatetime
 from tslibs.parsing import parse_datetime_string
 
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                               treat_tz_as_pytz, get_dst_info)
+from tslibs.timezones cimport is_utc, is_tzlocal, get_dst_info
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
@@ -74,11 +72,10 @@ cdef inline object create_time_from_ts(
         int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.time from its parts """
-    return time(dts.hour, dts.min, dts.sec, dts.us)
+    return time(dts.hour, dts.min, dts.sec, dts.us, tz)
 
 
-def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
-                       box="datetime"):
+def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp
 
@@ -102,7 +99,9 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
 
     cdef:
         Py_ssize_t i, n = len(arr)
-        ndarray[int64_t] trans, deltas
+        ndarray[int64_t] trans
+        int64_t[:] deltas
+        Py_ssize_t pos
         npy_datetimestruct dts
         object dt
         int64_t value, delta
@@ -635,24 +634,12 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
                     # If the dateutil parser returned tzinfo, capture it
                     # to check if all arguments have the same tzinfo
-                    tz = py_dt.tzinfo
+                    tz = py_dt.utcoffset()
                     if tz is not None:
                         seen_datetime_offset = 1
-                        if tz == dateutil_utc():
-                            # dateutil.tz.tzutc has no offset-like attribute
-                            # Just add the 0 offset explicitly
-                            out_tzoffset_vals.add(0)
-                        elif tz == tzlocal():
-                            # is comparison fails unlike other dateutil.tz
-                            # objects. Also, dateutil.tz.tzlocal has no
-                            # _offset attribute like tzoffset
-                            offset_seconds = tz._dst_offset.total_seconds()
-                            out_tzoffset_vals.add(offset_seconds)
-                        else:
-                            # dateutil.tz.tzoffset objects cannot be hashed
-                            # store the total_seconds() instead
-                            offset_seconds = tz._offset.total_seconds()
-                            out_tzoffset_vals.add(offset_seconds)
+                        # dateutil timezone objects cannot be hashed, so store
+                        # the UTC offsets in seconds instead
+                        out_tzoffset_vals.add(tz.total_seconds())
                     else:
                         # Add a marker for naive string, to track if we are
                         # parsing mixed naive and aware strings
