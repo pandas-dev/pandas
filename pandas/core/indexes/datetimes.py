@@ -1790,60 +1790,6 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
                          closed=closed, **kwargs)
 
 
-def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
-                normalize=True, name=None, closed=None, **kwargs):
-    """
-    Return a fixed frequency DatetimeIndex, with CustomBusinessDay as the
-    default frequency
-
-    .. deprecated:: 0.21.0
-
-    Parameters
-    ----------
-    start : string or datetime-like, default None
-        Left bound for generating dates
-    end : string or datetime-like, default None
-        Right bound for generating dates
-    periods : integer, default None
-        Number of periods to generate
-    freq : string or DateOffset, default 'C' (CustomBusinessDay)
-        Frequency strings can have multiples, e.g. '5H'
-    tz : string, default None
-        Time zone name for returning localized DatetimeIndex, for example
-        Asia/Beijing
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
-    name : string, default None
-        Name of the resulting DatetimeIndex
-    closed : string, default None
-        Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
-
-    Notes
-    -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
-
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
-
-    Returns
-    -------
-    rng : DatetimeIndex
-    """
-    warnings.warn("cdate_range is deprecated and will be removed in a future "
-                  "version, instead use pd.bdate_range(..., freq='{freq}')"
-                  .format(freq=freq), FutureWarning, stacklevel=2)
-
-    if freq == 'C':
-        holidays = kwargs.pop('holidays', [])
-        weekmask = kwargs.pop('weekmask', 'Mon Tue Wed Thu Fri')
-        freq = CDay(holidays=holidays, weekmask=weekmask)
-    return DatetimeIndex(start=start, end=end, periods=periods, freq=freq,
-                         tz=tz, normalize=normalize, name=name,
-                         closed=closed, **kwargs)
-
-
 _CACHE_START = Timestamp(datetime(1950, 1, 1))
 _CACHE_END = Timestamp(datetime(2030, 1, 1))
 

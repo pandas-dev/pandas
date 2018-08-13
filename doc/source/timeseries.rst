@@ -426,10 +426,11 @@ Custom Frequency Ranges
 .. warning::
 
    This functionality was originally exclusive to ``cdate_range``, which is
-   deprecated as of version 0.21.0 in favor of ``bdate_range``.  Note that
-   ``cdate_range`` only utilizes the ``weekmask`` and ``holidays`` parameters
-   when custom business day, 'C', is passed as the frequency string. Support has 
-   been expanded with ``bdate_range`` to work with any custom frequency string.
+   deprecated as of version 0.21.0 (deleted in 0.24.0) in favor of
+   ``bdate_range``. Note that ``cdate_range`` only utilizes the ``weekmask``
+   and ``holidays`` parameters when custom business day, 'C', is passed
+   as the frequency string. Support has been expanded with ``bdate_range``
+   to work with any custom frequency string.
 
 .. versionadded:: 0.21.0
 
