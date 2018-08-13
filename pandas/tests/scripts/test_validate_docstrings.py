@@ -445,7 +445,6 @@ class BadReturns(object):
         return "Hello world!"
 
 
-@td.skip_if_no('sphinx')
 class TestValidator(object):
 
     @pytest.fixture(autouse=True, scope="class")
