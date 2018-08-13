@@ -14,6 +14,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_datetimetz,
     is_categorical_dtype,
     is_float_dtype, is_numeric_dtype,
+    is_sparse,
     _get_dtype)
 from pandas.core.dtypes.cast import maybe_promote
 import pandas.core.dtypes.concat as _concat
@@ -235,6 +236,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
         raise AssertionError("Concatenating join units along axis0")
 
     empty_dtype, upcasted_na = get_empty_dtype_and_na(join_units)
+    assert empty_dtype == 'float'
 
     to_concat = [ju.get_reindexed_values(empty_dtype=empty_dtype,
                                          upcasted_na=upcasted_na)
@@ -306,6 +308,8 @@ def get_empty_dtype_and_na(join_units):
             upcast_cls = 'datetime'
         elif is_timedelta64_dtype(dtype):
             upcast_cls = 'timedelta'
+        elif is_sparse(dtype):
+            upcast_cls = dtype.subdtype.name
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:

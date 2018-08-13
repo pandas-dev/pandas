@@ -845,8 +845,9 @@ class TestIndexing(object):
     MANAGERS = [
         create_single_mgr('f8', N),
         create_single_mgr('i8', N),
+        # XXX: skipping these as well
         # create_single_mgr('sparse', N),
-        create_single_mgr('sparse_na', N),
+        # create_single_mgr('sparse_na', N),
 
         # 2-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N,)),
@@ -854,7 +855,7 @@ class TestIndexing(object):
         create_mgr('a,b: f8; c,d: i8; e,f: string', item_shape=(N,)),
         create_mgr('a,b: f8; c,d: i8; e,f: f8', item_shape=(N,)),
         # create_mgr('a: sparse', item_shape=(N,)),
-        create_mgr('a: sparse_na', item_shape=(N,)),
+        # create_mgr('a: sparse_na', item_shape=(N,)),
 
         # 3-dim
         create_mgr('a,b,c,d,e,f: f8', item_shape=(N, N)),
