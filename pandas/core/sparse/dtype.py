@@ -20,7 +20,7 @@ class SparseDtype(ExtensionDtype):
     def __eq__(self, other):
         # TODO: test
         if isinstance(other, type(self)):
-            return self.subdtype== other.subdtype
+            return self.subdtype == other.subdtype
         else:
             return super(SparseDtype, self).__eq__(other)
 
@@ -77,7 +77,8 @@ class SparseDtype(ExtensionDtype):
     @classmethod
     def is_dtype(cls, dtype):
         dtype = getattr(dtype, 'dtype', dtype)
-        if isinstance(dtype, compat.string_types) and dtype.startswith("Sparse"):
+        if (isinstance(dtype, compat.string_types) and
+                dtype.startswith("Sparse")):
             dtype = np.dtype(cls._parse_subtype(dtype))
         elif isinstance(dtype, cls):
             return True

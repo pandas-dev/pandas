@@ -40,7 +40,7 @@ from pandas.core.indexing import maybe_convert_indices
 from pandas.io.formats.printing import pprint_thing
 
 from .blocks import (
-    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock, # SparseBlock,
+    Block, DatetimeTZBlock, CategoricalBlock, ExtensionBlock,
     _extend_blocks, _merge_blocks, _safe_reshape,
     make_block, get_block_type)
 from .concat import (  # all for concatenate_block_managers
@@ -823,7 +823,6 @@ class BlockManager(PandasObject):
         elif is_extension_array_dtype(dtype):
             dtype = 'object'
 
-
         result = np.empty(self.shape, dtype=dtype)
 
         if result.shape[0] == 0:
@@ -948,7 +947,8 @@ class BlockManager(PandasObject):
                     values.append(blk.iget((i, loc)))
                     rls.append(rl)
 
-            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype).take(rls)
+            result = dtype.construct_array_type()._from_sequence(
+                values, dtype=dtype).take(rls)
             return result
 
         n = len(items)

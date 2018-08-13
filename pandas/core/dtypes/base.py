@@ -96,6 +96,13 @@ class _DtypeOpsMixin(object):
 
     @property
     def _is_numeric(self):
+        """
+        Whether columns with this dtype should be considered numeric.
+
+        By default ExtensionDtypes are assumed to be non-numeric.
+        They'll be excluded from operations that exclude non-numeric
+        columns, like groupby reductions.
+        """
         return False
 
 
@@ -112,6 +119,11 @@ class ExtensionDtype(_DtypeOpsMixin):
     * type
     * name
     * construct_from_string
+
+    The following properties affect the behavior of extension arrays
+    in operations:
+
+    * _is_numeric_dtype
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry

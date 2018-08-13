@@ -556,12 +556,14 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    from pandas.core.sparse.array import SparseArray, _make_index
+    from pandas.core.sparse.array import SparseArray
 
-    fill_values = [x.fill_value for x in to_concat if isinstance(x, SparseArray)]
+    fill_values = [x.fill_value for x in to_concat
+                   if isinstance(x, SparseArray)]
 
     if len(set(fill_values)) > 1:
-        raise ValueError("Cannot concatenate SparseArrays with different fill values")
+        raise ValueError("Cannot concatenate SparseArrays with different "
+                         "fill values")
 
     fill_value = list(fill_values)[0]
 
@@ -571,48 +573,6 @@ def _concat_sparse(to_concat, axis=0, typs=None):
                  for x in to_concat]
 
     return SparseArray._concat_same_type(to_concat)
-    #
-    # if len(typs) == 1:
-    #     # concat input as it is if all inputs are sparse
-    #     # and have the same fill_value
-    #     fill_values = {c.fill_value for c in to_concat}
-    #     if len(fill_values) == 1:
-    #         sp_values = [c.sp_values for c in to_concat]
-    #         indexes = [c.sp_index.to_int_index() for c in to_concat]
-    #
-    #         indices = []
-    #         loc = 0
-    #         for idx in indexes:
-    #             indices.append(idx.indices + loc)
-    #             loc += idx.length
-    #         sp_values = np.concatenate(sp_values)
-    #         indices = np.concatenate(indices)
-    #         sp_index = _make_index(loc, indices, kind=to_concat[0].sp_index)
-    #
-    #         return SparseArray(sp_values, sparse_index=sp_index,
-    #                            fill_value=to_concat[0].fill_value)
-    #
-    # # input may be sparse / dense mixed and may have different fill_value
-    # # input must contain sparse at least 1
-    # sparses = [c for c in to_concat if is_sparse(c)]
-    # fill_values = [c.fill_value for c in sparses]
-    # sp_indexes = [c.sp_index for c in sparses]
-    #
-    # # densify and regular concat
-    # import pdb; pdb.set_trace()
-    # to_concat = [np.asarray(x) for x in to_concat]
-    # result = np.concatenate(to_concat, axis=axis)
-    #
-    # if not len(typs - set(['sparse', 'f', 'i'])):
-    #     # sparsify if inputs are sparse and dense numerics
-    #     # first sparse input's fill_value and SparseIndex is used
-    #     result = SparseArray(result.ravel(), fill_value=fill_values[0],
-    #                          kind=sp_indexes[0])
-    # else:
-    #     # coerce to object if needed
-    #     result = result.astype('object')
-    # return result
-    #
 
 
 def _concat_rangeindex_same_dtype(indexes):

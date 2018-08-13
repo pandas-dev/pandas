@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_dtype_equal,
     is_timedelta64_dtype,
-    is_datetime64_dtype, is_datetimetz, is_sparse,
+    is_datetime64_dtype, is_datetimetz,
     is_categorical, is_categorical_dtype,
     is_integer_dtype,
     is_datetime64tz_dtype,
@@ -65,7 +65,6 @@ import pandas.core.missing as missing
 from pandas.core.base import PandasObject
 
 from pandas.core.arrays import Categorical
-from pandas.core.sparse.array import SparseArray
 
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -3104,161 +3103,6 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         # not using self.make_block_same_class as values can be non-tz dtype
         return make_block(
             values, placement=placement or slice(0, len(values), 1))
-
-
-# class SparseBlock(ExtensionBlock):
-#     """ implement as a list of sparse arrays of the same dtype """
-#     __slots__ = ()
-#     is_sparse = True
-#     is_numeric = True
-#     _box_to_block_values = False
-#     _can_hold_na = True
-#     _ftype = 'sparse'
-#     _concatenator = staticmethod(_concat._concat_sparse)
-#
-#     def __init__(self, values, placement, ndim=None):
-#         # Ensure that we have the underlying SparseArray here...
-#         if isinstance(values, ABCSeries):
-#             values = values.values
-#         assert isinstance(values, SparseArray)
-#         super(SparseBlock, self).__init__(values, placement, ndim=ndim)
-#
-#     @property
-#     def _holder(self):
-#         return SparseArray
-#
-#     @property
-#     def shape(self):
-#         return (len(self.mgr_locs), self.sp_index.length)
-#
-#     @property
-#     def fill_value(self):
-#         # return np.nan
-#         return self.values.fill_value
-#
-#     @fill_value.setter
-#     def fill_value(self, v):
-#         self.values.fill_value = v
-#
-#     @property
-#     def sp_values(self):
-#         return self.values.sp_values
-#
-#     @sp_values.setter
-#     def sp_values(self, v):
-#         # reset the sparse values
-#         self.values = SparseArray(v, sparse_index=self.sp_index,
-#                                   kind=self.kind, dtype=v.dtype,
-#                                   fill_value=self.values.fill_value,
-#                                   copy=False)
-#
-#     @property
-#     def sp_index(self):
-#         return self.values.sp_index
-#
-#     @property
-#     def kind(self):
-#         return self.values.kind
-#
-#     def _astype(self, dtype, copy=False, errors='raise', values=None,
-#                 klass=None, mgr=None, **kwargs):
-#         if values is None:
-#             values = self.values
-#         values = values.astype(dtype, copy=copy)
-#         return self.make_block_same_class(values=values,
-#                                           placement=self.mgr_locs)
-#
-#     def __len__(self):
-#         try:
-#             return self.sp_index.length
-#         except:
-#             return 0
-#
-#     def copy(self, deep=True, mgr=None):
-#         return self.make_block_same_class(values=self.values,
-#                                           sparse_index=self.sp_index,
-#                                           kind=self.kind, copy=deep,
-#                                           placement=self.mgr_locs)
-#
-#     def make_block_same_class(self, values, placement, sparse_index=None,
-#                               kind=None, dtype=None, fill_value=None,
-#                               copy=False, ndim=None):
-#         """ return a new block """
-#         if dtype is None:
-#             dtype = values.dtype
-#         if fill_value is None and not isinstance(values, SparseArray):
-#             fill_value = self.values.fill_value
-#
-#         # if not isinstance(values, SparseArray) and values.ndim != self.ndim:
-#         #     raise ValueError("ndim mismatch")
-#
-#         if values.ndim == 2:
-#             nitems = values.shape[0]
-#
-#             if nitems == 0:
-#                 # kludgy, but SparseBlocks cannot handle slices, where the
-#                 # output is 0-item, so let's convert it to a dense block: it
-#                 # won't take space since there's 0 items, plus it will preserve
-#                 # the dtype.
-#                 return self.make_block(np.empty(values.shape, dtype=dtype),
-#                                        placement)
-#             elif nitems > 1:
-#                 raise ValueError("Only 1-item 2d sparse blocks are supported")
-#             else:
-#                 values = values.reshape(values.shape[1])
-#
-#         new_values = SparseArray(values, sparse_index=sparse_index,
-#                                  kind=kind or self.kind, dtype=dtype,
-#                                  fill_value=fill_value, copy=copy)
-#         return self.make_block(new_values,
-#                                placement=placement)
-#
-#     def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
-#                     fill_value=None, **kwargs):
-#
-#         values = missing.interpolate_2d(self.values.to_dense(), method, axis,
-#                                         limit, fill_value)
-#         return self.make_block_same_class(values=values,
-#                                           placement=self.mgr_locs)
-#
-#     def fillna(self, value, limit=None, inplace=False, downcast=None,
-#                mgr=None):
-#         # we may need to upcast our fill to match our dtype
-#         if limit is not None:
-#             raise NotImplementedError("specifying a limit for 'fillna' has "
-#                                       "not been implemented yet")
-#         values = self.values if inplace else self.values.copy()
-#         values = values.fillna(value, downcast=downcast)
-#         return [self.make_block_same_class(values=values,
-#                                            placement=self.mgr_locs)]
-#
-#     def shift(self, periods, axis=0, mgr=None):
-#         """ shift the block by periods """
-#         N = len(self.values.T)
-#         indexer = np.zeros(N, dtype=int)
-#         if periods > 0:
-#             indexer[periods:] = np.arange(N - periods)
-#         else:
-#             indexer[:periods] = np.arange(-periods, N)
-#         new_values = self.values.to_dense().take(indexer)
-#         # convert integer to float if necessary. need to do a lot more than
-#         # that, handle boolean etc also
-#         new_values, fill_value = maybe_upcast(new_values)
-#         if periods > 0:
-#             new_values[:periods] = fill_value
-#         else:
-#             new_values[periods:] = fill_value
-#         return [self.make_block_same_class(new_values,
-#                                            placement=self.mgr_locs)]
-#
-#     def sparse_reindex(self, new_index):
-#         """ sparse reindex and return a new block
-#             current reindex only works for float64 dtype! """
-#         values = self.values
-#         values = values.sp_index.to_int_index().reindex(
-#             values.sp_values.astype('float64'), values.fill_value, new_index)
-#         return self.make_block_same_class(values, sparse_index=new_index,
-#                                           placement=self.mgr_locs)
 
 
 # -----------------------------------------------------------------
