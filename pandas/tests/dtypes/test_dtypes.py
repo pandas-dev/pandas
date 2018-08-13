@@ -807,25 +807,6 @@ def test_pandas_registry_find(dtype, expected):
     assert _pandas_registry.find(dtype) == expected
 
 
-"""
-    >>> is_bool_dtype(str)
-    False
-    >>> is_bool_dtype(int)
-    False
-    >>> is_bool_dtype(bool)
-    True
-    >>> is_bool_dtype(np.bool)
-    True
-    >>> is_bool_dtype(np.array(['a', 'b']))
-    False
-    >>> is_bool_dtype(pd.Series([1, 2]))
-    False
-    >>> is_bool_dtype(np.array([True, False]))
-    True
-    >>> is_bool_dtype(pd.SparseArray([True, False]))
-    True
- """
-
 @pytest.mark.parametrize('dtype, expected', [
     (str, False),
     (int, False),

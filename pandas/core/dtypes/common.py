@@ -159,6 +159,7 @@ def is_sparse(arr):
     from pandas.core.internals import BlockManager, Block
 
     if isinstance(arr, BlockManager):
+        # SparseArrays are only 1d
         if arr.ndim == 1:
             arr = arr.blocks[0]
         else:
@@ -1872,7 +1873,7 @@ def _get_dtype_type(arr_or_dtype):
     """
 
     # TODO(extension)
-    # replace with pandas_dtye
+    # replace with pandas_dtype
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
@@ -2008,6 +2009,11 @@ def pandas_dtype(dtype):
     TypeError if not a dtype
 
     """
+    # short-circuit
+    if isinstance(dtype, np.ndarray):
+        return dtype.dtype
+    elif isinstance(dtype, np.dtype):
+        return dtype
 
     # registered extension types
     result = _pandas_registry.find(dtype) or registry.find(dtype)
@@ -2016,12 +2022,6 @@ def pandas_dtype(dtype):
 
     # un-registered extension types
     elif isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
-        return dtype
-
-    # short-circuit
-    if isinstance(dtype, np.ndarray):
-        return dtype.dtype
-    elif isinstance(dtype, np.dtype):
         return dtype
 
     # try a numpy dtype
