@@ -19,26 +19,16 @@ class TestTimestampUnaryOps(object):
 
     # --------------------------------------------------------------
     # Timestamp.round
-
-    def test_round_day_naive(self):
-        dt = Timestamp('20130101 09:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130101')
-        assert result == expected
-
-        dt = Timestamp('20130101 19:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130102')
-        assert result == expected
-
-        dt = Timestamp('20130201 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130202')
-        assert result == expected
-
-        dt = Timestamp('20130104 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130105')
+    @pytest.mark.parametrize('timestamp_input, round_freq, date', [
+        ('20130101 09:10:11', 'D', '20130101'),
+        ('20130101 19:10:11', 'D', '20130102'),
+        ('20130201 12:00:00', 'D', '20130202'),
+        ('20130104 12:00:00', 'D', '20130105'),
+    ])
+    def test_round_day_naive(self, timestamp_input, round_freq, date):
+        dt = Timestamp(timestamp_input)
+        result = dt.round(round_freq)
+        expected = Timestamp(date)
         assert result == expected
 
     def test_round_tzaware(self):
