@@ -46,6 +46,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
         fill_value if fill_value is not None else np.nan)
 
     # Assert frame is as expected
+    # what is this test?
     sdf_obj = sdf.astype(object)
     tm.assert_sp_frame_equal(sdf_obj, expected)
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
@@ -60,7 +61,8 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     res_dtype = (bool if is_bool_dtype(dtype) else
                  float if was_upcast else
                  dtype)
-    tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
+    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subdtype),
+                           {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
 
     # However, adding a str column results in an upcast to object

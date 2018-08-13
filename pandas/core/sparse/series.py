@@ -9,6 +9,10 @@ import numpy as np
 import warnings
 import collections
 
+from pandas.core.dtypes.common import (
+    is_scalar,
+    is_sparse,
+)
 from pandas.core.dtypes.missing import isna, notna, is_integer
 
 from pandas.compat.numpy import function as nv
@@ -23,6 +27,7 @@ import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
 
+from pandas.core.sparse.dtype import SparseDtype
 from pandas.core.sparse.array import (
     make_sparse, SparseArray,
     _make_index)
@@ -32,6 +37,7 @@ import pandas._libs.sparse as splib
 from pandas.core.sparse.scipy_sparse import (
     _sparse_series_to_coo,
     _coo_to_sparse_series)
+from pandas.util._decorators import deprecate_kwarg
 
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
@@ -67,25 +73,38 @@ class SparseSeries(Series):
     def __init__(self, data=None, index=None, sparse_index=None, kind='block',
                  fill_value=None, name=None, dtype=None, copy=False,
                  fastpath=False):
+        # TODO: Most of this should be refactored and shared with Series
+        # 1. BlockManager -> array
+        # 2. Series.index, Series.name, index, name reconciliation
+        # 3. Implicit reindexing
+        # 4. Implicit broadcasting
+        # 5. Dict construction
         if isinstance(data, SingleBlockManager):
-            # TODO: share validation with Series
             index = data.index
             data = data.blocks[0].values
         elif isinstance(data, (ABCSeries, ABCSparseSeries)):
             index = data.index if index is None else index
             dtype = data.dtype if dtype is None else dtype
             name = data.name if name is None else name
+
+            if index is not None:
+                data = data.reindex(index)
+
         elif isinstance(data, collections.Mapping):
             data, index = Series()._init_dict(data, index=index)
+
+        elif is_scalar(data) and index is not None:
+            data = np.full(len(index), fill_value=data)
 
         super(SparseSeries, self).__init__(
             SparseArray(data,
                         sparse_index=sparse_index,
                         kind=kind,
                         dtype=dtype,
-                        fill_value=fill_value),
+                        fill_value=fill_value,
+                        copy=copy),
             index=index, name=name,
-            copy=copy, fastpath=fastpath
+            copy=False, fastpath=fastpath
         )
         # # we are called internally, so short-circuit
         # if fastpath:
@@ -557,6 +576,20 @@ class SparseSeries(Series):
                              kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
 
+    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
+                     mapping={True: 'raise', False: 'ignore'})
+    def astype(self, dtype, copy=True, errors='raise', **kwargs):
+        if not is_sparse(dtype):
+            # XXX: deprecate this auto-sparse of dtype?
+            # At least make consistent with SparseArray
+            dtype = SparseDtype(dtype)
+        return super(SparseSeries, self).astype(
+            dtype=dtype,
+            copy=copy,
+            errors=errors,
+            **kwargs
+        )
+
     def to_dense(self, sparse_only=False):
         """
         Convert SparseSeries to a Series.
@@ -605,7 +638,7 @@ class SparseSeries(Series):
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
-
+        # TODO: remove?
         return super(SparseSeries, self).reindex(index=index, method=method,
                                                  copy=copy, limit=limit,
                                                  **kwargs)

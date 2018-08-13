@@ -17,6 +17,7 @@ import pandas.util._test_decorators as td
 from pandas.compat import range, PY36
 from pandas.core.reshape.util import cartesian_product
 
+from pandas.core.sparse.api import SparseDtype
 import pandas.core.sparse.frame as spf
 
 from pandas._libs.sparse import BlockIndex, IntIndex
@@ -126,23 +127,23 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_constructor_dtype(self):
         arr = SparseSeries([np.nan, 1, 2, np.nan])
-        assert arr.dtype == np.float64
+        assert arr.dtype == SparseDtype(np.float64)
         assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([np.nan, 1, 2, np.nan], fill_value=0)
-        assert arr.dtype == np.float64
+        assert arr.dtype == SparseDtype(np.float64)
         assert arr.fill_value == 0
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64, fill_value=np.nan)
-        assert arr.dtype == np.int64
+        assert arr.dtype == SparseDtype(np.int64)
         assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
-        assert arr.dtype == np.int64
+        assert arr.dtype == SparseDtype(np.int64)
         assert arr.fill_value == 0
 
         arr = SparseSeries([0, 1, 2, 4], fill_value=0, dtype=np.int64)
-        assert arr.dtype == np.int64
+        assert arr.dtype == SparseDtype(np.int64)
         assert arr.fill_value == 0
 
     def test_iteration_and_str(self):
@@ -171,11 +172,11 @@ class TestSparseSeries(SharedWithSparse):
 
     def test_constructor_preserve_attr(self):
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
-        assert arr.dtype == np.int64
+        assert arr.dtype == SparseDtype(np.int64)
         assert arr.fill_value == 0
 
         s = pd.SparseSeries(arr, name='x')
-        assert s.dtype == np.int64
+        assert s.dtype == SparseDtype(np.int64)
         assert s.fill_value == 0
 
     def test_series_density(self):
@@ -353,7 +354,7 @@ class TestSparseSeries(SharedWithSparse):
         cop = self.bseries.astype(np.float64)
         assert cop is not self.bseries
         assert cop.sp_index is self.bseries.sp_index
-        assert cop.dtype == np.float64
+        assert cop.dtype == SparseDtype(np.float64)
 
         cop2 = self.iseries.copy()
 
@@ -401,7 +402,7 @@ class TestSparseSeries(SharedWithSparse):
                  np.int32, np.int16, np.int8]
         for typ in types:
             res = s.astype(typ)
-            assert res.dtype == typ
+            assert res.dtype == SparseDtype(typ)
             tm.assert_series_equal(res.to_dense(), orig.astype(typ))
 
     def test_kind(self):
@@ -537,9 +538,10 @@ class TestSparseSeries(SharedWithSparse):
                       [0, len(self.bseries) + 1])
 
         # Corner case
+        # XXX: changed test. Why wsa this considered a corner case?
         sp = SparseSeries(np.ones(10) * nan)
         exp = pd.Series(np.repeat(nan, 5))
-        tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp)
+        tm.assert_series_equal(sp.take([0, 1, 2, 3, 4]), exp.to_sparse())
 
         with tm.assert_produces_warning(FutureWarning):
             sp.take([1, 5], convert=True)

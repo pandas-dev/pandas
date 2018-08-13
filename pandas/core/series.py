@@ -35,7 +35,8 @@ from pandas.core.dtypes.common import (
     ensure_platform_int,
     pandas_dtype)
 from pandas.core.dtypes.generic import (
-    ABCSparseArray, ABCDataFrame, ABCIndexClass)
+    ABCSparseArray, ABCDataFrame, ABCIndexClass,
+    ABCSeries, ABCSparseSeries)
 from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
@@ -213,7 +214,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif isinstance(data, np.ndarray):
                 pass
-            elif isinstance(data, Series):
+            elif isinstance(data, (ABCSeries, ABCSparseSeries)):
                 if name is None:
                     name = data.name
                 if index is None:
