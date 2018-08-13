@@ -2484,6 +2484,7 @@ def hist_series(self, by=None, ax=None, grid=True, xlabelsize=None,
 
     """
     import matplotlib.pyplot as plt
+
     if by is None:
         if kwds.get('layout', None) is not None:
             raise ValueError("The 'layout' keyword is not supported when "
