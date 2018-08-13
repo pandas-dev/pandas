@@ -1808,16 +1808,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     argmin = deprecate(
         'argmin', idxmin, '0.21.0',
         msg=dedent("""\
-        'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
-        will be corrected to return the positional minimum in the future.
-        Use 'series.values.argmin' to get the position of the minimum row.""")
+        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
+        instead.
+        The behavior of 'argmin' will be corrected to return the positional
+        minimum in the future. For now, use 'series.values.argmin' or
+        'np.argmin(np.array(values))' to get the position of the minimum
+        row.""")
     )
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
         msg=dedent("""\
-        'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
-        will be corrected to return the positional maximum in the future.
-        Use 'series.values.argmax' to get the position of the maximum row.""")
+        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
+        instead.
+        The behavior of 'argmax' will be corrected to return the positional
+        maximum in the future. For now, use 'series.values.argmax' or
+        'np.argmax(np.array(values))' to get the position of the maximum
+        row.""")
     )
 
     def round(self, decimals=0, *args, **kwargs):
