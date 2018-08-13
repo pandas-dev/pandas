@@ -833,6 +833,7 @@ class TestBlockManager(object):
                 bm1.replace_list([1], [2], inplace=value)
 
     def test_swap_to_native_byteorder(self):
+        # Issue #4737
         native_byteorder = '='
         non_native_byteorder = '>' if sys.byteorder == 'little' else '<'
         mgr = create_single_mgr('{order}i2'.format(order=non_native_byteorder))
