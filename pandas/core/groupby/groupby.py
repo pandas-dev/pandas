@@ -579,29 +579,27 @@ b  2""")
             # a little trickery for aggregation functions that need an axis
             # argument
             kwargs_with_axis = kwargs.copy()
-            kwargs_wo_axis = kwargs.copy()
 
             if 'axis' not in kwargs_with_axis or \
                kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
-
             if (name == 'hist' and
-                    kwargs_wo_axis.pop('equal_bins', False) is True):
+                    kwargs.get('equal_bins', False) is True):
                 # GH-22222
-                bins = kwargs_wo_axis.get('bins')
+                bins = kwargs.get('bins')
                 if bins is None:
                     bins = 10  # use default value used in `hist_series`
                 if is_integer(bins):
                     # share the same numpy array for all group bins
                     bins = np.linspace(self.obj.min(),
                                        self.obj.max(), bins + 1)
-                kwargs_wo_axis['bins'] = bins
+                kwargs['bins'] = bins
 
             def curried_with_axis(x):
                 return f(x, *args, **kwargs_with_axis)
 
             def curried(x):
-                return f(x, *args, **kwargs_wo_axis)
+                return f(x, *args, **kwargs)
 
             # preserve the name so we can detect it when calling plot methods,
             # to avoid duplicates
@@ -674,7 +672,6 @@ b  2""")
               .format(input="dataframe",
                       examples=_apply_docs['dataframe_examples']))
     def apply(self, func, *args, **kwargs):
-
         func = self._is_builtin_func(func)
 
         # this is needed so we don't try and wrap strings. If we could

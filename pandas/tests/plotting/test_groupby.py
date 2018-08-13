@@ -14,57 +14,50 @@ import pytest
 
 
 @td.skip_if_no_mpl
-@pytest.mark.parametrize(
-    'bins, equal_bins',
-    zip([5, None, np.linspace(-3, 3, 10)], [True, False])
-)
-def test_hist_bins_match(bins, equal_bins):
-    # GH-22222
-    N = 100
-    np.random.seed(0)
-    df = DataFrame(np.append(np.random.randn(N), np.random.randn(N) / 10),
-                   columns=['rand'])
-    df['group'] = [0] * N + [1] * N
-    g = df.groupby('group')['rand']
-    axes = g.hist(bins=bins, alpha=0.7, equal_bins=equal_bins)
-    ax = axes[0]
-
-    if bins is None:
-        num_bins = 10  # default value used in `hist_series`
-    elif type(bins) == np.ndarray:
-        num_bins = len(bins) - 1
-    else:
-        num_bins = bins
-
-    # individual hist bar coordinates for:
-    # group0: points[:num_bins]
-    # group1: points[num_bins:]
-    points = np.array([patch.get_bbox().get_points()
-                       for patch in ax.patches])
-
-    if equal_bins or type(bins) == np.ndarray:
-        # width of the first bar in each group
-        bin_width_group0 = ax.patches[0].get_width()
-        bin_width_group1 = ax.patches[num_bins].get_width()
-        assert np.isclose(bin_width_group0, bin_width_group1)
-        # compare leftmost point on x-axis for each bar
-        # in the two groups
-        assert np.isclose(points[:num_bins, 0, 0],
-                          points[num_bins:, 0, 0]
-                          ).all()
-    else:
-        # range of values on x-axis (min, max) for each group
-        hist_ranges = DataFrame(
-            [[points[0, 0, 0], points[num_bins - 1, 1, 0]],
-             [points[num_bins, 0, 0], points[-1, 1, 0]]],
-            index=[0, 1], columns=['min', 'max'])
-        group_ranges = g.agg([min, max])
-        assert np.isclose(group_ranges, hist_ranges).all()
-    tm.close()
-
-
-@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
+    @pytest.mark.parametrize(
+        'bins, equal_bins',
+        zip([5, None, np.linspace(-3, 3, 10)], [True, False])
+    )
+    def test_hist_bins_match(self, bins, equal_bins):
+        # GH-22222
+        N = 100
+        df = DataFrame(np.append(np.linspace(-3, 3, N),
+                                 np.linspace(-1, 1, N)),
+                       columns=['rand'])
+        df['group'] = [0] * N + [1] * N
+        g = df.groupby('group')['rand']
+        axes = g.hist(bins=bins, alpha=0.7, equal_bins=equal_bins)
+        ax = axes[0]
+
+        if bins is None:
+            num_bins = 10  # default value used in `hist_series`
+        elif type(bins) == np.ndarray:
+            num_bins = len(bins) - 1
+        else:
+            num_bins = bins
+
+        # individual hist bar coordinates for:
+        # group0: points[:num_bins]
+        # group1: points[num_bins:]
+        points = np.array([patch.get_bbox().get_points()
+                           for patch in ax.patches])
+
+        if equal_bins or type(bins) == np.ndarray:
+            # compare leftmost point on x-axis for each bar
+            # in the two groups
+            assert np.isclose(points[:num_bins, 0, 0],
+                              points[num_bins:, 0, 0]
+                              ).all()
+        else:
+            # range of values on x-axis (min, max) for each group
+            hist_ranges = DataFrame(
+                [[points[0, 0, 0], points[num_bins - 1, 1, 0]],
+                 [points[num_bins, 0, 0], points[-1, 1, 0]]],
+                index=[0, 1], columns=['min', 'max'])
+            group_ranges = g.agg([min, max])
+            assert np.isclose(group_ranges, hist_ranges).all()
+        tm.close()
 
     def test_series_groupby_plotting_nominally_works(self):
         n = 10
