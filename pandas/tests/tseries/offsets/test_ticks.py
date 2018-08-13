@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 import pytest
 import numpy as np
-from hypothesis import given, assume, strategies as st
+from hypothesis import given, assume, example, strategies as st
 
 from pandas import Timedelta, Timestamp
 from pandas.tseries import offsets
@@ -36,9 +36,11 @@ def test_delta_to_tick():
     assert (tick == offsets.Day(3))
 
 
-@given(cls=st.sampled_from(tick_classes),
-       n=st.integers(-999, 999),
-       m=st.integers(-999, 999))
+@pytest.mark.parametrize('cls', tick_classes)
+@example(n=2, m=3)
+@example(n=800, m=300)
+@example(n=1000, m=5)
+@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
 def test_tick_add_sub(cls, n, m):
     # For all Tick subclasses and all integers n, m, we should have
     # tick(n) + tick(m) == tick(n+m)
@@ -54,8 +56,9 @@ def test_tick_add_sub(cls, n, m):
     assert left - right == expected
 
 
-@given(cls=st.sampled_from(tick_classes),
-       n=st.integers(-999, 999), m=st.integers(-999, 999))
+@pytest.mark.parametrize('cls', tick_classes)
+@example(n=2, m=3)
+@given(n=st.integers(-999, 999), m=st.integers(-999, 999))
 def test_tick_equality(cls, n, m):
     assume(m != n)
     # tick == tock iff tick.n == tock.n
@@ -67,6 +70,9 @@ def test_tick_equality(cls, n, m):
     right = cls(n)
     assert left == right
     assert not (left != right)
+
+    if n != 0:
+        assert cls(n) != cls(-n)
 
 
 # ---------------------------------------------------------------------
@@ -234,20 +240,7 @@ def test_tick_zero(cls1, cls2):
 
 @pytest.mark.parametrize('cls', tick_classes)
 def test_tick_equalities(cls):
-    assert cls(3) == cls(3)
     assert cls() == cls(1)
-
-    # not equals
-    assert cls(3) != cls(2)
-    assert cls(3) != cls(-3)
-
-
-@pytest.mark.parametrize('cls', tick_classes)
-def test_tick_operators(cls):
-    assert cls(3) + cls(2) == cls(5)
-    assert cls(3) - cls(2) == cls(1)
-    assert cls(800) + cls(300) == cls(1100)
-    assert cls(1000) - cls(5) == cls(995)
 
 
 @pytest.mark.parametrize('cls', tick_classes)

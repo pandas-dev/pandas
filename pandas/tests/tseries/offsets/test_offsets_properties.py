@@ -17,17 +17,10 @@ from hypothesis.extra.dateutil import timezones as dateutil_timezones
 import pandas as pd
 
 from pandas.tseries.offsets import (
-    Hour, Minute, Second, Milli, Micro, Nano,
     MonthEnd, MonthBegin, BMonthEnd, BMonthBegin,
     QuarterEnd, QuarterBegin, BQuarterEnd, BQuarterBegin,
     YearEnd, YearBegin, BYearEnd, BYearBegin,
 )
-
-
-tick_classes = [Hour, Minute, Second, Milli, Micro, Nano]
-yqm_classes = [MonthBegin, MonthEnd, BMonthBegin, BMonthEnd,
-               QuarterBegin, QuarterEnd, BQuarterBegin, BQuarterEnd,
-               YearBegin, YearEnd, BYearBegin, BYearEnd]
 
 # ----------------------------------------------------------------
 # Helpers for generating random data
@@ -50,35 +43,13 @@ gen_random_datetime = st.datetimes(
     timezones=st.one_of(st.none(), dateutil_timezones(), pytz_timezones())
 )
 
-# Register the various offset classes so st.from_type can create instances.
-# We *could* just append the strategies to a list, but this provides a nice
-# demo and enables future tests to use a simple e.g. `from_type(Hour)`.
-for cls in tick_classes + [MonthBegin, MonthEnd, BMonthBegin, BMonthEnd]:
-    st.register_type_strategy(cls, st.builds(
-        cls,
-        n=st.integers(-99, 99),
-        normalize=st.booleans(),
-    ))
-
-for cls in [YearBegin, YearEnd, BYearBegin, BYearEnd]:
-    st.register_type_strategy(cls, st.builds(
-        cls,
-        n=st.integers(-5, 5),
-        normalize=st.booleans(),
-        month=st.integers(min_value=1, max_value=12),
-    ))
-
-for cls in [QuarterBegin, QuarterEnd, BQuarterBegin, BQuarterEnd]:
-    st.register_type_strategy(cls, st.builds(
-        cls,
-        n=st.integers(-24, 24),
-        normalize=st.booleans(),
-        startingMonth=st.integers(min_value=1, max_value=12)
-    ))
-
-# This strategy can generate any kind of Offset in `tick_classes` or
-# `yqm_classes`, with arguments as specified directly above in registration.
-gen_yqm_offset = st.one_of([st.from_type(cls) for cls in yqm_classes])
+# The strategy for each type is registered in conftest.py, as they don't carry
+# enough runtime information (e.g. type hints) to infer how to build them.
+gen_yqm_offset = st.one_of(*map(st.from_type, [
+    MonthBegin, MonthEnd, BMonthBegin, BMonthEnd,
+    QuarterBegin, QuarterEnd, BQuarterBegin, BQuarterEnd,
+    YearBegin, YearEnd, BYearBegin, BYearEnd
+]))
 
 
 # ----------------------------------------------------------------

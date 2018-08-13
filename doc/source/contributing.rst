@@ -820,6 +820,8 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
    test_cool_feature.py::test_series[int8] PASSED
 
 
+.. _using-hypothesis:
+
 Using ``hypothesis``
 ~~~~~~~~~~~~~~~~~~~~
 
