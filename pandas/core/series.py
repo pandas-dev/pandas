@@ -518,7 +518,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         numpy.ndarray.compress
         """
         msg = ("Series.compress(condition) is deprecated. "
-               "Use Series[condition] instead.")
+               "Use 'Series[condition]' or "
+               "'np.asarray(series).compress(condition)' instead.")
         warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
