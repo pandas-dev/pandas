@@ -1807,7 +1807,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     argmin = deprecate(
         'argmin', idxmin, '0.21.0',
         msg=dedent("""\
-        the behaviour of 'Series.argmin' is deprecated, use 'idxmin' instead.
+        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
+        instead.
         The behavior of 'argmin' will be corrected to return the positional
         minimum in the future. For now, use 'series.values.argmin' or
         'np.argmin(np.array(values))' to get the position of the minimum
@@ -1816,7 +1817,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
         msg=dedent("""\
-        the behaviour of 'Series.argmax' is deprecated, use 'idxmax' instead.
+        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
+        instead.
         The behavior of 'argmax' will be corrected to return the positional
         maximum in the future. For now, use 'series.values.argmax' or
         'np.argmax(np.array(values))' to get the position of the maximum
