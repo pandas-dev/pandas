@@ -8,6 +8,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range
 from pandas.compat import set_function_name
 
+from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
     is_integer, is_scalar, is_float,
@@ -391,7 +392,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # coerce
         data = self._coerce_to_ndarray()
-        return data.astype(dtype=dtype, copy=False)
+        return astype_nansafe(data, dtype, copy=None)
 
     @property
     def _ndarray_values(self):

@@ -205,6 +205,24 @@ def test_dataframe_constructor_with_dtype():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("frame", [True, False])
+def test_astype_dispatches(frame):
+    data = pd.Series(DecimalArray([decimal.Decimal(2)]), name='a')
+    ctx = decimal.Context()
+    ctx.prec = 5
+
+    if frame:
+        data = data.to_frame()
+
+    result = data.astype(DecimalDtype(ctx))
+
+    if frame:
+        result = result['a']
+
+    assert result.dtype.context.prec == ctx.prec
+
+
+
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):

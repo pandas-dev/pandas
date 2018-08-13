@@ -15,6 +15,17 @@ class DecimalDtype(ExtensionDtype):
     name = 'decimal'
     na_value = decimal.Decimal('NaN')
 
+    def __init__(self, context=None):
+        self.context = context or decimal.getcontext()
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.context == other.context
+        return super(DecimalDtype, self).__eq__(other)
+
+    def __repr__(self):
+        return 'DecimalDtype(context={})'.format(self.context)
+
     @classmethod
     def construct_array_type(cls):
         """Return the array type associated with this dtype
@@ -35,13 +46,12 @@ class DecimalDtype(ExtensionDtype):
 
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
-    dtype = DecimalDtype()
 
-    def __init__(self, values, dtype=None, copy=False):
+    def __init__(self, values, dtype=None, copy=False, context=None):
         for val in values:
-            if not isinstance(val, self.dtype.type):
+            if not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " +
-                                str(self.dtype.type))
+                                str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
 
         self._data = values
@@ -51,6 +61,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         # those aliases are currently not working due to assumptions
         # in internal code (GH-20735)
         # self._values = self.values = self.data
+        self._dtype = DecimalDtype(context)
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
@@ -81,6 +96,11 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         if deep:
             return type(self)(self._data.copy())
         return type(self)(self)
+
+    def astype(self, dtype, copy=True):
+        if isinstance(dtype, type(self.dtype)):
+            return type(self)(self._data, context=dtype.context)
+        return super().astype(dtype, copy)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):

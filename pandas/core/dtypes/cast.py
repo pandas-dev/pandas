@@ -647,7 +647,17 @@ def coerce_to_dtypes(result, dtypes):
 
 def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
-        need to be very careful as the result shape could change! """
+        need to be very careful as the result shape could change!
+
+    Parameters
+    ----------
+    arr : ndarray
+    dtype : np.dtype
+    copy : bool or None, default True
+        Whether to copy during the `.astype` (True) or
+        just return a view (False). Passing `copy=None` will
+        attempt to return a view, but will copy if necessary.
+    """
 
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
@@ -735,7 +745,16 @@ def astype_nansafe(arr, dtype, copy=True):
 
     if copy:
         return arr.astype(dtype, copy=True)
-    return arr.view(dtype)
+    else:
+        try:
+            return arr.view(dtype)
+        except TypeError:
+            if copy is None:
+                # allowed to copy if necessary (e.g. object)
+                return arr.astype(dtype, copy=True)
+            else:
+                raise
+
 
 
 def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
