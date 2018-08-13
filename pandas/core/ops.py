@@ -1151,7 +1151,7 @@ def dispatch_to_extension_op(op, left, right):
                 new_right = [new_right]
             new_right = list(new_right)
         elif is_extension_array_dtype(right) and type(left) != type(right):
-            new_right = list(new_right)
+            new_right = list(right)
         else:
             new_right = right
 
@@ -1482,8 +1482,49 @@ def _bool_method_SERIES(cls, op, special):
     code duplication.
     """
 
+    def dispatch_to_extension_op(op, left, right):
+        """
+        Assume that left or right is a Series backed by an ExtensionArray,
+        apply the operator defined by op.
+        """
+
+        # The op calls will raise TypeError if the op is not defined
+        # on the ExtensionArray
+        # TODO(jreback)
+        # we need to listify to avoid ndarray, or non-same-type extension array
+        # dispatching
+
+        if is_extension_array_dtype(left):
+
+            new_left = left.values
+            if isinstance(right, np.ndarray):
+
+                # handle numpy scalars, this is a PITA
+                # TODO(jreback)
+                new_right = lib.item_from_zerodim(right)
+                if is_scalar(new_right):
+                    new_right = [new_right]
+                new_right = list(new_right)
+            elif is_extension_array_dtype(right) and type(left) != type(right):
+                new_right = list(new_right)
+            elif is_extension_array_dtype(right):
+                new_right = right.values
+            else:
+                new_right = right
+
+        else:
+
+            new_left = list(left.values)
+            new_right = right
+
+        res_values = op(new_left, new_right)
+        res_name = get_op_result_name(left, right)
+
+        return _construct_result(left, res_values, left.index, res_name)
+
     def na_op(x, y):
         try:
+            print(x,y)
             result = op(x, y)
         except TypeError:
             if isinstance(y, list):
@@ -1517,10 +1558,15 @@ def _bool_method_SERIES(cls, op, special):
         is_self_int_dtype = is_integer_dtype(self.dtype)
 
         self, other = _align_method_SERIES(self, other, align_asobject=True)
-
+        print(self, other)
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
+    
+        elif (is_extension_array_dtype(self) or
+                is_extension_array_dtype(other)):
+            # TODO: should this include `not is_scalar(right)`?
+            return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
             name = get_op_result_name(self, other)
