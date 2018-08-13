@@ -755,6 +755,23 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                           FutureWarning, stacklevel=2)
         return np.asarray(self, dtype=self.sp_values.dtype)
 
+    # ------------------------------------------------------------------------
+    # IO
+    # ------------------------------------------------------------------------
+    def __setstate__(self, state):
+        """Necessary for making this object picklable"""
+        if isinstance(state, tuple):
+            # Compat for pandas < 0.24.0
+            nd_state, own_state = state
+            sparse_values = np.array([])
+            sparse_values.__setstate__(nd_state)
+
+            self._sparse_values = sparse_values
+            self.fill_value, self._sparse_index = own_state[:2]
+            self._dtype = SparseDtype(sparse_values.dtype)
+        else:
+            self.__dict__.update(state)
+
     def nonzero(self):
         # TODO: Add to EA API? This is used by DataFrame.dropna
         if self.fill_value == 0:

@@ -1846,7 +1846,8 @@ def _get_dtype(arr_or_dtype):
             return PeriodDtype.construct_from_string(arr_or_dtype)
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtype.construct_from_string(arr_or_dtype)
-    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+    elif isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex,
+                                   ABCSparseArray, ABCSparseSeries)):
         return arr_or_dtype.dtype
 
     if hasattr(arr_or_dtype, 'dtype'):
@@ -1894,6 +1895,10 @@ def _get_dtype_type(arr_or_dtype):
         elif is_interval_dtype(arr_or_dtype):
             return IntervalDtypeType
         return _get_dtype_type(np.dtype(arr_or_dtype))
+    elif isinstance(arr_or_dtype, (ABCSparseSeries, ABCSparseArray,
+                                   SparseDtype)):
+        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+        return dtype.type
     try:
         return arr_or_dtype.dtype.type
     except AttributeError:

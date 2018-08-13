@@ -6,6 +6,7 @@ import pandas as pd
 
 from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
                                        CategoricalDtype, IntervalDtype)
+from pandas.core.sparse.api import SparseDtype
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
@@ -567,8 +568,8 @@ def test_is_offsetlike():
     (pd.DatetimeIndex([1, 2]).dtype, np.dtype('=M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),
     ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
-    (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),
-    (pd.SparseSeries([1, 2], dtype='int32').dtype, np.dtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32'), SparseDtype('int32')),
+    (pd.SparseSeries([1, 2], dtype='int32').dtype, SparseDtype('int32')),
     (PeriodDtype(freq='D'), PeriodDtype(freq='D')),
     ('period[D]', PeriodDtype(freq='D')),
     (IntervalDtype(), IntervalDtype()),
