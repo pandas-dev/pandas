@@ -32,7 +32,7 @@ class SetDtype(ExtensionDtype):
     """
     An ExtensionDtype to hold sets.
     """
-    name = 'Set'
+    name = 'set'
     type = object
     na_value = np.nan
 
@@ -149,13 +149,9 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         self._data, self._mask = coerce_to_array(
             values, mask=mask, copy=copy)
 
-    @property
-    def _constructor(self):
-        print('teeeest')
-        return SetArray.from_sequence
-
     @classmethod
-    def _from_sequence(cls, scalars, copy=False):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        # dtype is ignored
         return cls(scalars, copy=copy)
 
     @classmethod
@@ -236,24 +232,24 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
     def __len__(self):
         return len(self._data)
 
-#     def __repr__(self):
-#         """
-#         Return a string representation for this object.
-# 
-#         Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-#         py2/py3.
-#         """
-#         klass = self.__class__.__name__
-#         data = format_object_summary(self, default_pprint, False)
-#         attrs = format_object_attrs(self)
-#         space = " "
-# 
-#         prepr = (u(",%s") %
-#                  space).join(u("%s=%s") % (k, v) for k, v in attrs)
-# 
-#         res = u("%s(%s%s)") % (klass, data, prepr)
-# 
-#         return res
+    def __repr__(self):
+        """
+        Return a string representation for this object.
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
+        """
+        klass = self.__class__.__name__
+        data = format_object_summary(self, default_pprint, False)
+        attrs = format_object_attrs(self)
+        space = " "
+
+        prepr = (u(",%s") %
+                 space).join(u("%s=%s") % (k, v) for k, v in attrs)
+
+        res = u("%s(%s%s)") % (klass, data, prepr)
+
+        return res
 
     @property
     def nbytes(self):
@@ -272,11 +268,13 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask=mask)
 
-    def astype(self, copy=True):
+    def astype(self, dtype, copy=True, errors='raise', fill_value=None):
         """Cast to a NumPy array or SetArray with 'dtype'.
 
         Parameters
         ----------
+        dtype : str or dtype
+            Typecode or data-type to which the array is cast.
         copy : bool, default True
             Whether to copy the data, even if not necessary. If False,
             a copy is made only if the old dtype does not match the
@@ -315,6 +313,25 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         used for interacting with our indexers.
         """
         return self._data
+
+    def fillna(self, value, limit=None):
+        res = self._data.copy()
+        res[self._mask] = [value] * self._mask.sum()
+        return type(self)(res,
+                          mask=np.full_like(res, fill_value=False, dtype=bool),
+                          copy=False)
+
+    def dropna(self):
+        pass  # TODO
+
+    def unique(self):
+        raise NotImplementedError
+
+    def factorize(self):
+        raise NotImplementedError
+
+    def argsort(self):
+        raise NotImplementedError
 
 #     def value_counts(self, dropna=True):
 #         """
@@ -406,65 +423,10 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
                     result[~mask] = op(self._data[~mask], other[~mask])
 
             result[mask] = True if op_name == 'ne' else False
-            return result
+            return result.astype('bool')
 
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
-
-#     @classmethod
-#     def _create_arithmetic_method(cls, op):
-#         def arith_method(self, other):
-# 
-#             op_name = op.__name__
-#             mask = None
-#             if isinstance(other, SetArray):
-#                 other, mask = other._data, other._mask
-#             elif (isinstance(other, Series)
-#                   and isinstance(other.values, SetArray)):
-#                 other, mask = other.values._data, other.values._mask
-#             elif is_list_like(other):
-#                 other = np.asarray(other)
-#                 if other.ndim > 0 and len(self) != len(other):
-#                     raise ValueError('Lengths must match to compare')
-# 
-#             mask = self._mask | mask if mask is not None else self._mask
-#             result = np.full_like(self._data, fill_value=np.nan, dtype='O')
-# 
-#             # numpy will show a DeprecationWarning on invalid elementwise
-#             # comparisons, this will raise in the future
-#             with warnings.catch_warnings(record=True):
-#                 with np.errstate(all='ignore'):
-#                     result[~mask] = op(self._data[~mask], other[~mask])
-# 
-#             return result
-# 
-#         name = '__{name}__'.format(name=op.__name__)
-#         return set_function_name(arith_method, name, cls)
-
-#     def _maybe_mask_result(self, result, mask, other, op_name):
-#         """
-#         Parameters
-#         ----------
-#         result : array-like
-#         mask : array-like bool
-#         other : scalar or array-like
-#         op_name : str
-#         """
-# 
-#         # may need to fill infs
-#         # and mask wraparound
-#         if is_float_dtype(result):
-#             mask |= (result == np.inf) | (result == -np.inf)
-# 
-#         # if we have a float operand we are by-definition
-#         # a float result
-#         # or our op is a divide
-#         if ((is_float_dtype(other) or is_float(other)) or
-#                 (op_name in ['rtruediv', 'truediv', 'rdiv', 'div'])):
-#             result[mask] = np.nan
-#             return result
-# 
-#         return type(self)(result, mask=mask, dtype=self.dtype, copy=False)
 
     @classmethod
     def _create_arithmetic_method(cls, op):
@@ -497,35 +459,12 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         return set_function_name(arithmetic_method, name, cls)
 
 
-# IntegerArray._add_arithmetic_ops()
 SetArray._add_comparison_ops()
 SetArray.__sub__ = SetArray._create_arithmetic_method(operator.__sub__)
 SetArray.__or__ = SetArray._create_arithmetic_method(operator.__or__)
 SetArray.__xor__ = SetArray._create_arithmetic_method(operator.__xor__)
 SetArray.__and__ = SetArray._create_arithmetic_method(operator.__and__)
 
-
 module = sys.modules[__name__]
 setattr(module, 'SetDtype', SetDtype)
 registry.register(SetDtype)
-# _dtypes['Set'] = SetDtype()
-# 
-# 
-# # create the Dtype
-# _dtypes = {}
-# for dtype in ['int8', 'int16', 'int32', 'int64',
-#               'uint8', 'uint16', 'uint32', 'uint64']:
-# 
-#     if dtype.startswith('u'):
-#         name = "U{}".format(dtype[1:].capitalize())
-#     else:
-#         name = dtype.capitalize()
-#     classname = "{}Dtype".format(name)
-#     attributes_dict = {'type': getattr(np, dtype),
-#                        'name': name}
-#     dtype_type = type(classname, (_IntegerDtype, ), attributes_dict)
-#     setattr(module, classname, dtype_type)
-# 
-#     # register
-#     registry.register(dtype_type)
-#     _dtypes[dtype] = dtype_type()
