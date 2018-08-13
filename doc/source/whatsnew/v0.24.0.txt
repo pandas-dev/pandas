@@ -530,6 +530,7 @@ Deprecations
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 - :meth:`Series.ptp` is deprecated. Use ``numpy.ptp`` instead (:issue:`21614`)
 - :meth:`Series.compress` is deprecated. Use ``Series[condition]`` instead (:issue:`18262`)
+- The signature of :meth:`Series.to_csv` has been uniformed to that of doc:meth:`DataFrame.to_csv`: the name of the first argument is now 'path_or_buf', the order of subsequent arguments has changed, the 'header' argument now defaults to True. (:issue:`19715`)
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
 - :func:`pandas.read_table` is deprecated. Instead, use :func:`pandas.read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
 
@@ -678,7 +679,7 @@ MultiIndex
 
 - Removed compatibility for :class:`MultiIndex` pickles prior to version 0.8.0; compatibility with :class:`MultiIndex` pickles from version 0.13 forward is maintained (:issue:`21654`)
 - :meth:`MultiIndex.get_loc_level` (and as a consequence, ``.loc`` on a :class:``MultiIndex``ed object) will now raise a ``KeyError``, rather than returning an empty ``slice``, if asked a label which is present in the ``levels`` but is unused (:issue:`22221`)
--
+- Fix ``TypeError`` in Python 3 when creating :class:`MultiIndex` in which some levels have mixed types, e.g. when some labels are tuples (:issue:`15457`)
 
 I/O
 ^^^
