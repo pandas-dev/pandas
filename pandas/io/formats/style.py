@@ -577,7 +577,7 @@ class Styler(object):
         -----
         The output shape of ``func`` should match the input, i.e. if
         ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x.shape) == x.shape`` should be true.
+        then ``func(x).shape == x.shape`` should be true.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
