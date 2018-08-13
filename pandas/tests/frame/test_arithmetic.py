@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
+import operator
+
 import pytest
 import numpy as np
 
-from pandas.compat import range
+from pandas.compat import range, PY3
+import pandas.io.formats.printing as printing
 
 import pandas as pd
 import pandas.util.testing as tm
+
+from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 
 # -------------------------------------------------------------------
@@ -59,15 +64,6 @@ class TestFrameComparisons(object):
         result = getattr(empty, opname)(const).get_dtype_counts()
         tm.assert_series_equal(result, pd.Series([2], ['bool']))
 
-    @pytest.mark.parametrize('timestamps', [
-        [pd.Timestamp('2012-01-01 13:00:00+00:00')] * 2,
-        [pd.Timestamp('2012-01-01 13:00:00')] * 2])
-    def test_tz_aware_scalar_comparison(self, timestamps):
-        # Test for issue #15966
-        df = pd.DataFrame({'test': timestamps})
-        expected = pd.DataFrame({'test': [False, False]})
-        tm.assert_frame_equal(df == -1, expected)
-
 
 # -------------------------------------------------------------------
 # Arithmetic
@@ -88,192 +84,170 @@ class TestFrameFlexArithmetic(object):
              'B': ser * 2})
         tm.assert_frame_equal(result, expected)
 
+    def test_arith_flex_frame(self):
+        seriesd = tm.getSeriesData()
+        frame = pd.DataFrame(seriesd).copy()
 
-class TestFrameMulDiv(object):
-    """Tests for DataFrame multiplication and division"""
-    # ------------------------------------------------------------------
-    # Mod By Zero
+        mixed_float = pd.DataFrame({'A': frame['A'].copy().astype('float32'),
+                                    'B': frame['B'].copy().astype('float32'),
+                                    'C': frame['C'].copy().astype('float16'),
+                                    'D': frame['D'].copy().astype('float64')})
 
-    def test_df_mod_zero_df(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
+        intframe = pd.DataFrame({k: v.astype(int)
+                                 for k, v in seriesd.items()})
+        mixed_int = pd.DataFrame({'A': intframe['A'].copy().astype('int32'),
+                                  'B': np.ones(len(intframe), dtype='uint64'),
+                                  'C': intframe['C'].copy().astype('uint8'),
+                                  'D': intframe['D'].copy().astype('int64')})
 
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype='float64')
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
-        expected = pd.DataFrame({'first': first, 'second': second})
-        result = df % df
+        # force these all to int64 to avoid platform testing issues
+        intframe = pd.DataFrame({c: s for c, s in intframe.items()},
+                                dtype=np.int64)
+
+        ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
+        if not PY3:
+            aliases = {}
+        else:
+            aliases = {'div': 'truediv'}
+
+        for op in ops:
+            try:
+                alias = aliases.get(op, op)
+                f = getattr(operator, alias)
+                result = getattr(frame, op)(2 * frame)
+                exp = f(frame, 2 * frame)
+                tm.assert_frame_equal(result, exp)
+
+                # vs mix float
+                result = getattr(mixed_float, op)(2 * mixed_float)
+                exp = f(mixed_float, 2 * mixed_float)
+                tm.assert_frame_equal(result, exp)
+                _check_mixed_float(result, dtype=dict(C=None))
+
+                # vs mix int
+                if op in ['add', 'sub', 'mul']:
+                    result = getattr(mixed_int, op)(2 + mixed_int)
+                    exp = f(mixed_int, 2 + mixed_int)
+
+                    # no overflow in the uint
+                    dtype = None
+                    if op in ['sub']:
+                        dtype = dict(B='uint64', C=None)
+                    elif op in ['add', 'mul']:
+                        dtype = dict(C=None)
+                    tm.assert_frame_equal(result, exp)
+                    _check_mixed_int(result, dtype=dtype)
+
+                    # rops
+                    r_f = lambda x, y: f(y, x)
+                    result = getattr(frame, 'r' + op)(2 * frame)
+                    exp = r_f(frame, 2 * frame)
+                    tm.assert_frame_equal(result, exp)
+
+                    # vs mix float
+                    result = getattr(mixed_float, op)(2 * mixed_float)
+                    exp = f(mixed_float, 2 * mixed_float)
+                    tm.assert_frame_equal(result, exp)
+                    _check_mixed_float(result, dtype=dict(C=None))
+
+                    result = getattr(intframe, op)(2 * intframe)
+                    exp = f(intframe, 2 * intframe)
+                    tm.assert_frame_equal(result, exp)
+
+                    # vs mix int
+                    if op in ['add', 'sub', 'mul']:
+                        result = getattr(mixed_int, op)(2 + mixed_int)
+                        exp = f(mixed_int, 2 + mixed_int)
+
+                        # no overflow in the uint
+                        dtype = None
+                        if op in ['sub']:
+                            dtype = dict(B='uint64', C=None)
+                        elif op in ['add', 'mul']:
+                            dtype = dict(C=None)
+                        tm.assert_frame_equal(result, exp)
+                        _check_mixed_int(result, dtype=dtype)
+            except:
+                printing.pprint_thing("Failing operation %r" % op)
+                raise
+
+            # ndim >= 3
+            ndim_5 = np.ones(frame.shape + (3, 4, 5))
+            msg = "Unable to coerce to Series/DataFrame"
+            with tm.assert_raises_regex(ValueError, msg):
+                f(frame, ndim_5)
+
+            with tm.assert_raises_regex(ValueError, msg):
+                getattr(frame, op)(ndim_5)
+
+        # res_add = frame.add(frame)
+        # res_sub = frame.sub(frame)
+        # res_mul = frame.mul(frame)
+        # res_div = frame.div(2 * frame)
+
+        # tm.assert_frame_equal(res_add, frame + frame)
+        # tm.assert_frame_equal(res_sub, frame - frame)
+        # tm.assert_frame_equal(res_mul, frame * frame)
+        # tm.assert_frame_equal(res_div, frame / (2 * frame))
+
+        const_add = frame.add(1)
+        tm.assert_frame_equal(const_add, frame + 1)
+
+        # corner cases
+        result = frame.add(frame[:0])
+        tm.assert_frame_equal(result, frame * np.nan)
+
+        result = frame[:0].add(frame)
+        tm.assert_frame_equal(result, frame * np.nan)
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            frame.add(frame.iloc[0], fill_value=3)
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            frame.add(frame.iloc[0], axis='index', fill_value=3)
+
+    def test_arith_flex_series(self):
+        arr = np.array([[1., 2., 3.],
+                        [4., 5., 6.],
+                        [7., 8., 9.]])
+        df = pd.DataFrame(arr, columns=['one', 'two', 'three'],
+                          index=['a', 'b', 'c'])
+
+        row = df.xs('a')
+        col = df['two']
+        # after arithmetic refactor, add truediv here
+        ops = ['add', 'sub', 'mul', 'mod']
+        for op in ops:
+            f = getattr(df, op)
+            op = getattr(operator, op)
+            tm.assert_frame_equal(f(row), op(df, row))
+            tm.assert_frame_equal(f(col, axis=0), op(df.T, col).T)
+
+        # special case for some reason
+        tm.assert_frame_equal(df.add(row, axis=None), df + row)
+
+        # cases which will be refactored after big arithmetic refactor
+        tm.assert_frame_equal(df.div(row), df / row)
+        tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
+
+        # broadcasting issue in GH#7325
+        df = pd.DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype='int64')
+        expected = pd.DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
+        result = df.div(df[0], axis='index')
         tm.assert_frame_equal(result, expected)
 
-    def test_df_mod_zero_array(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong, as the integer portion is coerced to float
-        # ###
-        first = pd.Series([0, 0, 0, 0], dtype='float64')
-        second = pd.Series([np.nan, np.nan, np.nan, 0])
-        expected = pd.DataFrame({'first': first, 'second': second})
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values % df.values
-        result2 = pd.DataFrame(arr, index=df.index,
-                               columns=df.columns, dtype='float64')
-        result2.iloc[0:3, 1] = np.nan
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_mod_zero_int(self):
-        # GH#3590, modulo as ints
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        result = df % 0
-        expected = pd.DataFrame(np.nan, index=df.index, columns=df.columns)
+        df = pd.DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype='float64')
+        expected = pd.DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
+        result = df.div(df[0], axis='index')
         tm.assert_frame_equal(result, expected)
 
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float64') % 0
-        result2 = pd.DataFrame(arr, index=df.index, columns=df.columns)
-        tm.assert_frame_equal(result2, expected)
+    def test_arith_flex_zero_len_raises(self):
+        # GH#19522 passing fill_value to frame flex arith methods should
+        # raise even in the zero-length special cases
+        ser_len0 = pd.Series([])
+        df_len0 = pd.DataFrame([], columns=['A', 'B'])
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
 
-    def test_df_mod_zero_series_does_not_commute(self):
-        # GH#3590, modulo as ints
-        # not commutative with series
-        df = pd.DataFrame(np.random.randn(10, 5))
-        ser = df[0]
-        res = ser % df
-        res2 = df % ser
-        assert not res.fillna(0).equals(res2.fillna(0))
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df.add(ser_len0, fill_value='E')
 
-    # ------------------------------------------------------------------
-    # Division By Zero
-
-    def test_df_div_zero_df(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = df / df
-
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
-        expected = pd.DataFrame({'first': first, 'second': second})
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_div_zero_array(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        first = pd.Series([1.0, 1.0, 1.0, 1.0])
-        second = pd.Series([np.nan, np.nan, np.nan, 1])
-        expected = pd.DataFrame({'first': first, 'second': second})
-
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float') / df.values
-        result = pd.DataFrame(arr, index=df.index,
-                              columns=df.columns)
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_div_zero_int(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        result = df / 0
-        expected = pd.DataFrame(np.inf, index=df.index, columns=df.columns)
-        expected.iloc[0:3, 1] = np.nan
-        tm.assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatment
-        with np.errstate(all='ignore'):
-            arr = df.values.astype('float64') / 0
-        result2 = pd.DataFrame(arr, index=df.index,
-                               columns=df.columns)
-        tm.assert_frame_equal(result2, expected)
-
-    def test_df_div_zero_series_does_not_commute(self):
-        # integer div, but deal with the 0's (GH#9144)
-        df = pd.DataFrame(np.random.randn(10, 5))
-        ser = df[0]
-        res = ser / df
-        res2 = df / ser
-        assert not res.fillna(0).equals(res2.fillna(0))
-
-
-class TestFrameArithmetic(object):
-
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano',
-                       strict=True)
-    def test_df_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(pd.date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
-                                 pd.Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
-
-    @pytest.mark.parametrize('data', [
-        [1, 2, 3],
-        [1.1, 2.2, 3.3],
-        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
-        ['x', 'y', 1]])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_df_radd_str_invalid(self, dtype, data):
-        df = pd.DataFrame(data, dtype=dtype)
-        with pytest.raises(TypeError):
-            'foo_' + df
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_df_with_dtype_radd_int(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        expected = pd.DataFrame([2, 3, 4], dtype=dtype)
-        result = 1 + df
-        tm.assert_frame_equal(result, expected)
-        result = df + 1
-        tm.assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_df_with_dtype_radd_nan(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        expected = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-        result = np.nan + df
-        tm.assert_frame_equal(result, expected)
-        result = df + np.nan
-        tm.assert_frame_equal(result, expected)
-
-    def test_df_radd_str(self):
-        df = pd.DataFrame(['x', np.nan, 'x'])
-        tm.assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
-        tm.assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
-
-
-class TestPeriodFrameArithmetic(object):
-
-    def test_ops_frame_period(self):
-        # GH 13043
-        df = pd.DataFrame({'A': [pd.Period('2015-01', freq='M'),
-                                 pd.Period('2015-02', freq='M')],
-                           'B': [pd.Period('2014-01', freq='M'),
-                                 pd.Period('2014-02', freq='M')]})
-        assert df['A'].dtype == object
-        assert df['B'].dtype == object
-
-        p = pd.Period('2015-03', freq='M')
-        off = p.freq
-        # dtype will be object because of original dtype
-        exp = pd.DataFrame({'A': np.array([2 * off, 1 * off], dtype=object),
-                            'B': np.array([14 * off, 13 * off], dtype=object)})
-        tm.assert_frame_equal(p - df, exp)
-        tm.assert_frame_equal(df - p, -1 * exp)
-
-        df2 = pd.DataFrame({'A': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')],
-                            'B': [pd.Period('2015-05', freq='M'),
-                                  pd.Period('2015-06', freq='M')]})
-        assert df2['A'].dtype == object
-        assert df2['B'].dtype == object
-
-        exp = pd.DataFrame({'A': np.array([4 * off, 4 * off], dtype=object),
-                            'B': np.array([16 * off, 16 * off], dtype=object)})
-        tm.assert_frame_equal(df2 - df, exp)
-        tm.assert_frame_equal(df - df2, -1 * exp)
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df_len0.sub(df['A'], axis=None, fill_value=3)

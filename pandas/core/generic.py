@@ -1952,13 +1952,13 @@ class NDFrame(PandasObject, SelectionMixin):
             * Series
 
               - default is 'index'
-              - allowed values are: {'split','records','index'}
+              - allowed values are: {'split','records','index','table'}
 
             * DataFrame
 
               - default is 'columns'
               - allowed values are:
-                {'split','records','index','columns','values'}
+                {'split','records','index','columns','values','table'}
 
             * The format of the JSON string
 
@@ -6098,9 +6098,9 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
-              ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int),
-              e.g. df.interpolate(method='polynomial', order=4).
+              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
+              'spline' require that you also specify an `order` (int),
+              e.g. ``df.interpolate(method='polynomial', order=4)``.
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
               are all wrappers around the scipy interpolation methods of
@@ -6110,13 +6110,14 @@ class NDFrame(PandasObject, SelectionMixin):
               <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
               and `tutorial documentation
               <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
-            * 'from_derivatives' refers to BPoly.from_derivatives which
+            * 'from_derivatives' refers to
+              :meth:`scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18
 
             .. versionadded:: 0.18.1
 
-               Added support for the 'akima' method
+               Added support for the 'akima' method.
                Added interpolate method 'from_derivatives' which replaces
                'piecewise_polynomial' in scipy 0.18; backwards-compatible with
                scipy < 0.18

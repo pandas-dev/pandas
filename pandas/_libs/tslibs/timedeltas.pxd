@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-from cpython.datetime cimport timedelta
-
 from numpy cimport int64_t
 
 # Exposed for tslib, not intended for outside use.
