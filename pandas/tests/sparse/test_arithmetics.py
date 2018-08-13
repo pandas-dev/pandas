@@ -17,53 +17,53 @@ class TestSparseArrayArithmetics(object):
             # Unfortunately, trying to wrap the computation of each expected
             # value is with np.errstate() is too tedious.
 
-            # # sparse & sparse
-            # self._assert((a + b).to_dense(), a_dense + b_dense)
-            # self._assert((b + a).to_dense(), b_dense + a_dense)
-            #
-            # self._assert((a - b).to_dense(), a_dense - b_dense)
-            # self._assert((b - a).to_dense(), b_dense - a_dense)
-            #
-            # self._assert((a * b).to_dense(), a_dense * b_dense)
-            # self._assert((b * a).to_dense(), b_dense * a_dense)
-            #
-            # # pandas uses future division
-            # self._assert((a / b).to_dense(), a_dense * 1.0 / b_dense)
-            # self._assert((b / a).to_dense(), b_dense * 1.0 / a_dense)
-            #
-            # # ToDo: FIXME in GH 13843
-            # if not (self._base == pd.Series and a.dtype == SparseDtype('int64')):
-            #     self._assert((a // b).to_dense(), a_dense // b_dense)
-            #     self._assert((b // a).to_dense(), b_dense // a_dense)
-            #
-            # self._assert((a % b).to_dense(), a_dense % b_dense)
-            # self._assert((b % a).to_dense(), b_dense % a_dense)
-            #
-            # self._assert((a ** b).to_dense(), a_dense ** b_dense)
-            # self._assert((b ** a).to_dense(), b_dense ** a_dense)
-            #
-            # # sparse & dense
-            # self._assert((a + b_dense).to_dense(), a_dense + b_dense)
-            # self._assert((b_dense + a).to_dense(), b_dense + a_dense)
-            #
-            # self._assert((a - b_dense).to_dense(), a_dense - b_dense)
-            # self._assert((b_dense - a).to_dense(), b_dense - a_dense)
-            #
-            # self._assert((a * b_dense).to_dense(), a_dense * b_dense)
-            # self._assert((b_dense * a).to_dense(), b_dense * a_dense)
-            #
-            # # pandas uses future division
-            # self._assert((a / b_dense).to_dense(), a_dense * 1.0 / b_dense)
-            # self._assert((b_dense / a).to_dense(), b_dense * 1.0 / a_dense)
-            #
-            # # ToDo: FIXME in GH 13843
-            # if not (self._base == pd.Series and
-            #         a.dtype == SparseDtype('int64')):
-            #     self._assert((a // b_dense).to_dense(), a_dense // b_dense)
-            #     self._assert((b_dense // a).to_dense(), b_dense // a_dense)
-            #
-            # self._assert((a % b_dense).to_dense(), a_dense % b_dense)
-            # self._assert((b_dense % a).to_dense(), b_dense % a_dense)
+            # sparse & sparse
+            self._assert((a + b).to_dense(), a_dense + b_dense)
+            self._assert((b + a).to_dense(), b_dense + a_dense)
+
+            self._assert((a - b).to_dense(), a_dense - b_dense)
+            self._assert((b - a).to_dense(), b_dense - a_dense)
+
+            self._assert((a * b).to_dense(), a_dense * b_dense)
+            self._assert((b * a).to_dense(), b_dense * a_dense)
+
+            # pandas uses future division
+            self._assert((a / b).to_dense(), a_dense * 1.0 / b_dense)
+            self._assert((b / a).to_dense(), b_dense * 1.0 / a_dense)
+
+            # ToDo: FIXME in GH 13843
+            if not (self._base == pd.Series and a.dtype == SparseDtype('int64')):
+                self._assert((a // b).to_dense(), a_dense // b_dense)
+                self._assert((b // a).to_dense(), b_dense // a_dense)
+
+            self._assert((a % b).to_dense(), a_dense % b_dense)
+            self._assert((b % a).to_dense(), b_dense % a_dense)
+
+            self._assert((a ** b).to_dense(), a_dense ** b_dense)
+            self._assert((b ** a).to_dense(), b_dense ** a_dense)
+
+            # sparse & dense
+            self._assert((a + b_dense).to_dense(), a_dense + b_dense)
+            self._assert((b_dense + a).to_dense(), b_dense + a_dense)
+
+            self._assert((a - b_dense).to_dense(), a_dense - b_dense)
+            self._assert((b_dense - a).to_dense(), b_dense - a_dense)
+
+            self._assert((a * b_dense).to_dense(), a_dense * b_dense)
+            self._assert((b_dense * a).to_dense(), b_dense * a_dense)
+
+            # pandas uses future division
+            self._assert((a / b_dense).to_dense(), a_dense * 1.0 / b_dense)
+            self._assert((b_dense / a).to_dense(), b_dense * 1.0 / a_dense)
+
+            # ToDo: FIXME in GH 13843
+            if not (self._base == pd.Series and
+                    a.dtype == SparseDtype('int64')):
+                self._assert((a // b_dense).to_dense(), a_dense // b_dense)
+                self._assert((b_dense // a).to_dense(), b_dense // a_dense)
+
+            self._assert((a % b_dense).to_dense(), a_dense % b_dense)
+            self._assert((b_dense % a).to_dense(), b_dense % a_dense)
 
             self._assert((a ** b_dense).to_dense(), a_dense ** b_dense)
             self._assert((b_dense ** a).to_dense(), b_dense ** a_dense)
