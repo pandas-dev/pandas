@@ -1328,10 +1328,16 @@ class TestDataFrameFormatting(object):
                         '1  2.512000e-01')
         assert df_s == expected
 
-        df = DataFrame({'x': [0.19999, 100.0]})
-        expected = '        x\n0   0.200\n1 100.000'
+    def test_to_string_float_format_no_fixed_width(self):
+
+        df = DataFrame({'x': [0.19999]})
+        # GH 21625
+        expected = '      x\n0 0.200'
         assert df.to_string(float_format='%.3f') == expected
-        expected = '    x\n0   0\n1 100'
+
+        # GH 22270
+        df = DataFrame({'x': [100.0]})
+        expected = '    x\n0 100'
         assert df.to_string(float_format='%.0f') == expected
 
     def test_to_string_small_float_values(self):
