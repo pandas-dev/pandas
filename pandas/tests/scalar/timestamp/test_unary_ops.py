@@ -28,7 +28,7 @@ class TestTimestampUnaryOps(object):
         ('2000-01-05 05:09:15.13', 'H', '2000-01-05 05:00:00'),
         ('2000-01-05 05:09:15.13', 'S', '2000-01-05 05:09:15')
     ])
-    def test_test_round_frequencies(self, timestamp_input, round_freq, date):
+    def test_round_frequencies(self, timestamp_input, round_freq, date):
         dt = Timestamp(timestamp_input)
         result = dt.round(round_freq)
         expected = Timestamp(date)
