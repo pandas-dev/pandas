@@ -130,6 +130,10 @@ class TestDataFrameAnalytics(TestData):
             assert result.index is not result.columns
             assert result.index.equals(result.columns)
 
+    def test_corr_invalid_method(self):
+        df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        pytest.raises(ValueError, df.corr(method="____"))
+
     def test_cov(self):
         # min_periods no NAs (corner case)
         expected = self.frame.cov()
