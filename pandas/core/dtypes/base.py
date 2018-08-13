@@ -123,7 +123,7 @@ class ExtensionDtype(_DtypeOpsMixin):
     The following properties affect the behavior of extension arrays
     in operations:
 
-    * _is_numeric_dtype
+    * _is_numeric
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry
