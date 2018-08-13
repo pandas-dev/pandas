@@ -1815,11 +1815,6 @@ def cdate_range(start=None, end=None, periods=None, freq='C', tz=None,
         Normalize start/end dates to midnight before generating date range
     name : string, default None
         Name of the resulting DatetimeIndex
-    weekmask : string, Default 'Mon Tue Wed Thu Fri'
-        weekmask of valid business days, passed to ``numpy.busdaycalendar``
-    holidays : list
-        list/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``
     closed : string, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None)
