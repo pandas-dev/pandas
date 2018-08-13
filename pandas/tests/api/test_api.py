@@ -215,16 +215,6 @@ class TestTypes(object):
                 ignore_order=True)
 
 
-class TestCDateRange(object):
-
-    def test_deprecation_cdaterange(self):
-        # GH17596
-        from pandas.core.indexes.datetimes import cdate_range
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            cdate_range('2017-01-01', '2017-12-31')
-
-
 class TestCategoricalMove(object):
 
     def test_categorical_move(self):
