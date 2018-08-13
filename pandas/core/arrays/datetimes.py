@@ -1236,9 +1236,11 @@ def _generate_regular_range(cls, start, end, periods, freq):
         data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         tz = None
-        # Start and end should have the same timestamp by this point
+        # start and end should have the same timezone by this point
         if isinstance(start, Timestamp):
             tz = start.tz
+        elif isinstance(end, Timestamp):
+            tz = end.tz
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
