@@ -236,7 +236,6 @@ def concatenate_join_units(join_units, concat_axis, copy):
         raise AssertionError("Concatenating join units along axis0")
 
     empty_dtype, upcasted_na = get_empty_dtype_and_na(join_units)
-    assert empty_dtype == 'float'
 
     to_concat = [ju.get_reindexed_values(empty_dtype=empty_dtype,
                                          upcasted_na=upcasted_na)
