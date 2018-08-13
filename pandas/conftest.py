@@ -60,6 +60,26 @@ def spmatrix(request):
     return getattr(sparse, request.param + '_matrix')
 
 
+@pytest.fixture(params=[0, 1, 'index', 'columns'],
+                ids=lambda x: "axis {!r}".format(x))
+def axis(request):
+    """
+     Fixture for returning the axis numbers of a DataFrame.
+     """
+    return request.param
+
+
+axis_frame = axis
+
+
+@pytest.fixture(params=[0, 'index'], ids=lambda x: "axis {!r}".format(x))
+def axis_series(request):
+    """
+     Fixture for returning the axis numbers of a Series.
+     """
+    return request.param
+
+
 @pytest.fixture
 def ip():
     """
@@ -101,6 +121,41 @@ def all_arithmetic_operators(request):
     Fixture for dunder names for common arithmetic operations
     """
     return request.param
+
+
+# use sorted as dicts in py<3.6 have random order, which xdist doesn't like
+_cython_table = sorted(((key, value) for key, value in
+                        pd.core.base.SelectionMixin._cython_table.items()),
+                       key=lambda x: x[0].__name__)
+
+
+@pytest.fixture(params=_cython_table)
+def cython_table_items(request):
+    return request.param
+
+
+def _get_cython_table_params(ndframe, func_names_and_expected):
+    """combine frame, functions from SelectionMixin._cython_table
+    keys and expected result.
+
+    Parameters
+    ----------
+    ndframe : DataFrame or Series
+    func_names_and_expected : Sequence of two items
+        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The second item is the expected return value
+
+    Returns
+    -------
+    results : list
+        List of three items (DataFrame, function, expected result)
+    """
+    results = []
+    for func_name, expected in func_names_and_expected:
+        results.append((ndframe, func_name, expected))
+        results += [(ndframe, func, expected) for func, name in _cython_table
+                    if name == func_name]
+    return results
 
 
 @pytest.fixture(params=['__eq__', '__ne__', '__le__',

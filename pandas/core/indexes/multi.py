@@ -824,15 +824,6 @@ class MultiIndex(Index):
         self._tuples = lib.fast_zip(values)
         return self._tuples
 
-    # fml
-    @property
-    def _is_v1(self):
-        return False
-
-    @property
-    def _is_v2(self):
-        return False
-
     @property
     def _has_complex_internals(self):
         # to disable groupby tricks
@@ -912,8 +903,8 @@ class MultiIndex(Index):
             if stringify and not isinstance(k, compat.string_types):
                 k = str(k)
             return k
-        key = tuple([f(k, stringify)
-                     for k, stringify in zip(key, self._have_mixed_levels)])
+        key = tuple(f(k, stringify)
+                    for k, stringify in zip(key, self._have_mixed_levels))
         return hash_tuple(key)
 
     @Appender(Index.duplicated.__doc__)
@@ -2194,11 +2185,6 @@ class MultiIndex(Index):
 
         if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
-
-            # _get_level_indexer returns an empty slice if the key has
-            # been dropped from the MultiIndex
-            if isinstance(loc, slice) and loc.start == loc.stop:
-                raise KeyError(key)
             return _maybe_to_slice(loc)
 
         keylen = len(key)
@@ -2452,14 +2438,21 @@ class MultiIndex(Index):
 
         else:
 
-            loc = level_index.get_loc(key)
-            if isinstance(loc, slice):
-                return loc
-            elif level > 0 or self.lexsort_depth == 0:
-                return np.array(labels == loc, dtype=bool)
+            code = level_index.get_loc(key)
 
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
+            if level > 0 or self.lexsort_depth == 0:
+                # Desired level is not sorted
+                locs = np.array(labels == code, dtype=bool, copy=False)
+                if not locs.any():
+                    # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            i = labels.searchsorted(code, side='left')
+            j = labels.searchsorted(code, side='right')
+            if i == j:
+                # The label is present in self.levels[level] but unused:
+                raise KeyError(key)
             return slice(i, j)
 
     def get_locs(self, seq):
@@ -2842,22 +2835,6 @@ class MultiIndex(Index):
         new_labels = [np.delete(lab, loc) for lab in self.labels]
         return MultiIndex(levels=self.levels, labels=new_labels,
                           names=self.names, verify_integrity=False)
-
-    get_major_bounds = slice_locs
-
-    __bounds = None
-
-    @property
-    def _bounds(self):
-        """
-        Return or compute and return slice points for level 0, assuming
-        sortedness
-        """
-        if self.__bounds is None:
-            inds = np.arange(len(self.levels[0]))
-            self.__bounds = self.labels[0].searchsorted(inds)
-
-        return self.__bounds
 
     def _wrap_joined_index(self, joined, other):
         names = self.names if self.names == other.names else None

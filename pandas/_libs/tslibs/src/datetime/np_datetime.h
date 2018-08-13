@@ -14,8 +14,12 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
-#ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
-#define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
+#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
+
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
 #include <datetime.h>
@@ -43,8 +47,6 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          NPY_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result);
-
-int dayofweek(int y, int m, int d);
 
 extern const int days_per_month_table[2][12];
 
@@ -75,4 +77,4 @@ void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
 
-#endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_

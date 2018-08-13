@@ -6,7 +6,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import types
+import collections
 import warnings
 from textwrap import dedent
 
@@ -144,7 +144,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     Parameters
     ----------
-    data : array-like, dict, or scalar value
+    data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series
 
         .. versionchanged :: 0.23.0
@@ -163,7 +163,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = set(['dt', 'cat', 'str'])
+    _accessors = {'dt', 'cat', 'str'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -238,12 +238,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             elif is_extension_array_dtype(data):
                 pass
-            elif (isinstance(data, types.GeneratorType) or
-                  (compat.PY3 and isinstance(data, map))):
-                data = list(data)
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
+            # If data is Iterable but not list-like, consume into list.
+            elif (isinstance(data, collections.Iterable)
+                  and not isinstance(data, collections.Sized)):
+                data = list(data)
             else:
 
                 # handle sparse passed here (and force conversion)
@@ -2051,7 +2052,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             lvals = left.values
             rvals = right.values
         else:
-            left = self
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
@@ -2479,7 +2479,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
 
         # GH 5856/5853
         if inplace and self._is_cached:
@@ -2651,7 +2652,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
         index = self.index
 
         if level is not None:
@@ -3072,7 +3074,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         versionadded='.. versionadded:: 0.20.0',
         **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
@@ -3764,7 +3767,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def to_csv(self, path=None, index=True, sep=",", na_rep='',
                float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, compression=None, date_format=None,
+               mode='w', encoding=None, compression='infer', date_format=None,
                decimal='.'):
         """
         Write Series to a comma-separated values (csv) file
@@ -3792,10 +3795,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         encoding : string, optional
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
-        compression : string, optional
+        compression : None or string, default 'infer'
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            Allowed values are None, 'gzip', 'bz2', 'zip', 'xz', and 'infer'.
+            This input is only used when the first argument is a filename.
+
+            .. versionchanged:: 0.24.0
+               'infer' option added and set to default
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -3918,8 +3924,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if kwargs:
             raise TypeError('dropna() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
-
-        axis = self._get_axis_number(axis or 0)
+        # Validate the axis parameter
+        self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
