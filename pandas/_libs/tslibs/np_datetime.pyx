@@ -15,7 +15,7 @@ PyDateTime_IMPORT
 
 from numpy cimport int64_t
 
-cdef extern from "../src/datetime/np_datetime.h":
+cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
@@ -33,7 +33,7 @@ cdef extern from "../src/datetime/np_datetime.h":
 
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
-cdef extern from "../src/datetime/np_datetime_strings.h":
+cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(char *str, int len,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)

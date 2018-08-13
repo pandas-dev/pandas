@@ -8,7 +8,7 @@ from distutils.version import LooseVersion
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (DatetimeIndex, TimedeltaIndex, Int64Index,
-                    to_timedelta, timedelta_range, date_range,
+                    timedelta_range, date_range,
                     Series,
                     Timestamp, Timedelta)
 from pandas.errors import NullFrequencyError
@@ -25,103 +25,6 @@ def delta(request):
 @pytest.fixture(params=['B', 'D'])
 def freq(request):
     return request.param
-
-
-class TestTimedeltaIndexComparisons(object):
-    def test_tdi_cmp_str_invalid(self):
-        # GH 13624
-        tdi = TimedeltaIndex(['1 day', '2 days'])
-
-        for left, right in [(tdi, 'a'), ('a', tdi)]:
-            with pytest.raises(TypeError):
-                left > right
-
-            with pytest.raises(TypeError):
-                left == right
-
-            with pytest.raises(TypeError):
-                left != right
-
-    def test_comparisons_coverage(self):
-        rng = timedelta_range('1 days', periods=10)
-
-        result = rng < rng[3]
-        exp = np.array([True, True, True] + [False] * 7)
-        tm.assert_numpy_array_equal(result, exp)
-
-        # raise TypeError for now
-        pytest.raises(TypeError, rng.__lt__, rng[3].value)
-
-        result = rng == list(rng)
-        exp = rng == rng
-        tm.assert_numpy_array_equal(result, exp)
-
-    def test_comp_nat(self):
-        left = pd.TimedeltaIndex([pd.Timedelta('1 days'), pd.NaT,
-                                  pd.Timedelta('3 days')])
-        right = pd.TimedeltaIndex([pd.NaT, pd.NaT, pd.Timedelta('3 days')])
-
-        for lhs, rhs in [(left, right),
-                         (left.astype(object), right.astype(object))]:
-            result = rhs == lhs
-            expected = np.array([False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = rhs != lhs
-            expected = np.array([True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs == pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT == rhs, expected)
-
-            expected = np.array([True, True, True])
-            tm.assert_numpy_array_equal(lhs != pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT != lhs, expected)
-
-            expected = np.array([False, False, False])
-            tm.assert_numpy_array_equal(lhs < pd.NaT, expected)
-            tm.assert_numpy_array_equal(pd.NaT > lhs, expected)
-
-    def test_comparisons_nat(self):
-        tdidx1 = pd.TimedeltaIndex(['1 day', pd.NaT, '1 day 00:00:01', pd.NaT,
-                                    '1 day 00:00:01', '5 day 00:00:03'])
-        tdidx2 = pd.TimedeltaIndex(['2 day', '2 day', pd.NaT, pd.NaT,
-                                    '1 day 00:00:02', '5 days 00:00:03'])
-        tdarr = np.array([np.timedelta64(2, 'D'),
-                          np.timedelta64(2, 'D'), np.timedelta64('nat'),
-                          np.timedelta64('nat'),
-                          np.timedelta64(1, 'D') + np.timedelta64(2, 's'),
-                          np.timedelta64(5, 'D') + np.timedelta64(3, 's')])
-
-        cases = [(tdidx1, tdidx2), (tdidx1, tdarr)]
-
-        # Check pd.NaT is handles as the same as np.nan
-        for idx1, idx2 in cases:
-
-            result = idx1 < idx2
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx2 > idx1
-            expected = np.array([True, False, False, False, True, False])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 <= idx2
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx2 >= idx1
-            expected = np.array([True, False, False, False, True, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 == idx2
-            expected = np.array([False, False, False, False, False, True])
-            tm.assert_numpy_array_equal(result, expected)
-
-            result = idx1 != idx2
-            expected = np.array([True, True, True, True, True, False])
-            tm.assert_numpy_array_equal(result, expected)
 
 
 class TestTimedeltaIndexArithmetic(object):
@@ -527,14 +430,6 @@ class TestTimedeltaIndexArithmetic(object):
         if LooseVersion(np.__version__) >= LooseVersion('1.8'):
             tm.assert_numpy_array_equal(other - td, expected)
 
-    def test_ops_series(self):
-        # regression test for GH8813
-        td = Timedelta('1 day')
-        other = pd.Series([1, 2])
-        expected = pd.Series(pd.to_timedelta(['1 day', '2 days']))
-        tm.assert_series_equal(expected, td * other)
-        tm.assert_series_equal(expected, other * td)
-
     def test_ops_series_object(self):
         # GH 13043
         s = pd.Series([pd.Timestamp('2015-01-01', tz='US/Eastern'),
@@ -655,62 +550,6 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_frame_equal(actual, dfn)
         actual = df1 - pd.NaT
         tm.assert_frame_equal(actual, dfn)
-
-    def test_add_overflow(self):
-        # see gh-14068
-        msg = "too (big|large) to convert"
-        with tm.assert_raises_regex(OverflowError, msg):
-            to_timedelta(106580, 'D') + Timestamp('2000')
-        with tm.assert_raises_regex(OverflowError, msg):
-            Timestamp('2000') + to_timedelta(106580, 'D')
-
-        _NaT = int(pd.NaT) + 1
-        msg = "Overflow in int64 addition"
-        with tm.assert_raises_regex(OverflowError, msg):
-            to_timedelta([106580], 'D') + Timestamp('2000')
-        with tm.assert_raises_regex(OverflowError, msg):
-            Timestamp('2000') + to_timedelta([106580], 'D')
-        with tm.assert_raises_regex(OverflowError, msg):
-            to_timedelta([_NaT]) - Timedelta('1 days')
-        with tm.assert_raises_regex(OverflowError, msg):
-            to_timedelta(['5 days', _NaT]) - Timedelta('1 days')
-        with tm.assert_raises_regex(OverflowError, msg):
-            (to_timedelta([_NaT, '5 days', '1 hours']) -
-             to_timedelta(['7 seconds', _NaT, '4 hours']))
-
-        # These should not overflow!
-        exp = TimedeltaIndex([pd.NaT])
-        result = to_timedelta([pd.NaT]) - Timedelta('1 days')
-        tm.assert_index_equal(result, exp)
-
-        exp = TimedeltaIndex(['4 days', pd.NaT])
-        result = to_timedelta(['5 days', pd.NaT]) - Timedelta('1 days')
-        tm.assert_index_equal(result, exp)
-
-        exp = TimedeltaIndex([pd.NaT, pd.NaT, '5 hours'])
-        result = (to_timedelta([pd.NaT, '5 days', '1 hours']) +
-                  to_timedelta(['7 seconds', pd.NaT, '4 hours']))
-        tm.assert_index_equal(result, exp)
-
-    def test_timedeltaindex_add_timestamp_nat_masking(self):
-        # GH17991 checking for overflow-masking with NaT
-        tdinat = pd.to_timedelta(['24658 days 11:15:00', 'NaT'])
-
-        tsneg = Timestamp('1950-01-01')
-        ts_neg_variants = [tsneg,
-                           tsneg.to_pydatetime(),
-                           tsneg.to_datetime64().astype('datetime64[ns]'),
-                           tsneg.to_datetime64().astype('datetime64[D]')]
-
-        tspos = Timestamp('1980-01-01')
-        ts_pos_variants = [tspos,
-                           tspos.to_pydatetime(),
-                           tspos.to_datetime64().astype('datetime64[ns]'),
-                           tspos.to_datetime64().astype('datetime64[D]')]
-
-        for variant in ts_neg_variants + ts_pos_variants:
-            res = tdinat + variant
-            assert res[1] is pd.NaT
 
     def test_tdi_ops_attributes(self):
         rng = timedelta_range('2 days', periods=5, freq='2D', name='x')

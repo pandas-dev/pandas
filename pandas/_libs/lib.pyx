@@ -78,29 +78,30 @@ cdef bint PY2 = sys.version_info[0] == 2
 cdef double nan = <double>np.NaN
 
 
-def values_from_object(object o):
+def values_from_object(object obj):
     """ return my values or the object if we are say an ndarray """
-    cdef f
+    cdef func  # TODO: Does declaring this without a type accomplish anything?
 
-    f = getattr(o, 'get_values', None)
-    if f is not None:
-        o = f()
+    func = getattr(obj, 'get_values', None)
+    if func is not None:
+        obj = func()
 
-    return o
+    return obj
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(ndarray[object, ndim=1] arr):
+def memory_usage_of_objects(object[:] arr):
     """ return the memory usage of an object array in bytes,
     does not include the actual bytes of the pointers """
-    cdef Py_ssize_t i, n
-    cdef int64_t s = 0
+    cdef:
+        Py_ssize_t i, n
+        int64_t size = 0
 
     n = len(arr)
     for i in range(n):
-        s += arr[i].__sizeof__()
-    return s
+        size += arr[i].__sizeof__()
+    return size
 
 
 # ----------------------------------------------------------------------
