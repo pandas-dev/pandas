@@ -271,8 +271,20 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self._sparse_index = sparse_index
         self._sparse_values = sparse_values
         self._dtype = SparseDtype(sparse_values.dtype)
-        self._fill_value = None
         self.fill_value = fill_value
+
+    @classmethod
+    def _simple_new(cls, sparse_array, sparse_index, fill_value=None):
+        # type: (SparseArray, SparseIndex) -> 'SparseArray'
+        new = cls([])
+        new._sparse_index = sparse_index
+        new._sparse_values = sparse_array
+        new._dtype = sparse_array.dtype
+
+        if fill_value is None:
+            fill_value = sparse_array.fill_value
+        new.fill_value = fill_value
+        return new
 
     def __array__(self, dtype=None, copy=True):
         if self.sp_index.ngaps == 0:
@@ -316,17 +328,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def fill_value(self):
         return self._fill_value
 
-    @property
-    def kind(self):
-        """
-        The kind of sparse index for this array. One of {'integer', 'block'}.
-        """
-        # TODO: make this an abstract attribute of SparseIndex
-        if isinstance(self.sp_index, IntIndex):
-            return 'integer'
-        else:
-            return 'block'
-
     @fill_value.setter
     def fill_value(self, value):
         if not is_scalar(value):
@@ -338,6 +339,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # else:
         #     msg = 'unable to set fill_value {fill} to {dtype} dtype'
         #     raise ValueError(msg.format(fill=value, dtype=self.dtype))
+
+    @property
+    def kind(self):
+        """
+        The kind of sparse index for this array. One of {'integer', 'block'}.
+        """
+        # TODO: make this an abstract attribute of SparseIndex
+        if isinstance(self.sp_index, IntIndex):
+            return 'integer'
+        else:
+            return 'block'
 
     @property
     def _valid_sp_values(self):
@@ -614,15 +626,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return taken
 
     def copy(self, deep=False):
-        import pdb; pdb.set_trace()
         if deep:
             values = self.sp_values.copy()
-            index = self.sp_index.copy()
         else:
             values = self.sp_values
-            index = self.sp_index
 
-        return type(self)(values, sparse_index=index, copy=False, fill_value=self.fill_value)
+        return type(self)(values, sparse_index=self.sp_index, copy=False,
+                          fill_value=self.fill_value)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

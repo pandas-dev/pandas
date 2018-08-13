@@ -628,13 +628,13 @@ class SparseSeries(Series):
         Make a copy of the SparseSeries. Only the actual sparse values need to
         be copied
         """
-        new_data = self._data
-        import pdb; pdb.set_trace()
-        if deep:
-            new_data = self._data.copy()
-
+        # TODO: https://github.com/pandas-dev/pandas/issues/22314
+        # We skip the block manager till that is resolved.
+        new_data = self.values.copy(deep=deep)
         return self._constructor(new_data, sparse_index=self.sp_index,
-                                 fill_value=self.fill_value).__finalize__(self)
+                                 fill_value=self.fill_value,
+                                 index=self.index.copy(),
+                                 name=self.name).__finalize__(self)
 
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
     def reindex(self, index=None, method=None, copy=True, limit=None,
@@ -656,15 +656,13 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        # TODO
-        if not isinstance(new_index, splib.SparseIndex):
-            raise TypeError('new index must be a SparseIndex')
-
-        block = self.block.sparse_reindex(new_index)
-        new_data = SingleBlockManager(block, self.index)
-        return self._constructor(new_data, index=self.index,
-                                 sparse_index=new_index,
-                                 fill_value=self.fill_value).__finalize__(self)
+        # TODO: This was copied from SparseBlock.
+        # The dtype handling looks incorrect
+        # I also have no idea what it's supposed to do.
+        values = self.values
+        values = values.sp_index.to_int_index().reindex(
+            values.sp_values.astype('float64'), values.fill_value, new_index)
+        return self._constructor(values, index=self.index).__finalize__(self)
 
     @Appender(generic._shared_docs['take'])
     def take(self, indices, axis=0, convert=None, *args, **kwargs):
@@ -742,7 +740,8 @@ class SparseSeries(Series):
             return dense_valid.to_sparse(fill_value=self.fill_value)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0):
+        # XXX: release note for adding the default periods=1
         if periods == 0:
             return self.copy()
 

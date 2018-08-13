@@ -368,7 +368,7 @@ cdef class BlockIndex(SparseIndex):
 
     @property
     def nbytes(self):
-        return self.blocs.nbytes
+        return self.blocs.nbytes + self.blengths.nbytes
 
     @property
     def ngaps(self):
