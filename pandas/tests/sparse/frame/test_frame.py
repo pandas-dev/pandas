@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
+from pandas.errors import PerformanceWarning
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.tseries.offsets import BDay
 from pandas.util import testing as tm
@@ -724,11 +725,11 @@ class TestSparseDataFrame(SharedWithSparse):
         exp = pd.SparseDataFrame({'A': SparseArray([False, True, False, True],
                                                    dtype=np.bool,
                                                    fill_value=False,
-                                                   kind='block'),
+                                                   kind='integer'),
                                   'B': SparseArray([False, True, False, True],
                                                    dtype=np.bool,
                                                    fill_value=False,
-                                                   kind='block')},
+                                                   kind='integer')},
                                  default_fill_value=False)
         tm.assert_sp_frame_equal(res, exp)
         assert res['A'].dtype == SparseDtype(np.bool)
@@ -779,7 +780,8 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = sdf[:2].reindex(index, method='pad', limit=5)
 
-        expected = sdf[:2].reindex(index).fillna(method='pad')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = sdf[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected.values[-3:] = np.nan
         expected = expected.to_sparse()
@@ -787,7 +789,8 @@ class TestSparseDataFrame(SharedWithSparse):
 
         result = sdf[-2:].reindex(index, method='backfill', limit=5)
 
-        expected = sdf[-2:].reindex(index).fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = sdf[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected.values[:3] = np.nan
         expected = expected.to_sparse()
@@ -799,18 +802,22 @@ class TestSparseDataFrame(SharedWithSparse):
         sdf = df.to_sparse()
 
         result = sdf[:2].reindex(index)
-        result = result.fillna(method='pad', limit=5)
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = result.fillna(method='pad', limit=5)
 
-        expected = sdf[:2].reindex(index).fillna(method='pad')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = sdf[:2].reindex(index).fillna(method='pad')
         expected = expected.to_dense()
         expected.values[-3:] = np.nan
         expected = expected.to_sparse()
         tm.assert_frame_equal(result, expected)
 
         result = sdf[-2:].reindex(index)
-        result = result.fillna(method='backfill', limit=5)
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = result.fillna(method='backfill', limit=5)
 
-        expected = sdf[-2:].reindex(index).fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = sdf[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected.values[:3] = np.nan
         expected = expected.to_sparse()

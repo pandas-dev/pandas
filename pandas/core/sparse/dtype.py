@@ -20,7 +20,7 @@ class SparseDtype(ExtensionDtype):
     def __eq__(self, other):
         # TODO: test
         if isinstance(other, type(self)):
-            return self.type == other.type
+            return self.subdtype== other.subdtype
         else:
             return super(SparseDtype, self).__eq__(other)
 

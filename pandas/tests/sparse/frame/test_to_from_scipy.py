@@ -55,12 +55,9 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
-    was_upcast = ((fill_value is None or is_float(fill_value)) and
-                  not is_object_dtype(dtype) and
-                  not is_float_dtype(dtype))
-    res_dtype = (bool if is_bool_dtype(dtype) else
-                 float if was_upcast else
-                 dtype)
+    # XXX: verify this
+    was_upcast = False
+    res_dtype = bool if is_bool_dtype(dtype) else dtype
     tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subdtype),
                            {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
@@ -115,7 +112,8 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
     # Ensure dtype is preserved if possible
     res_dtype = object
-    tm.assert_contains_all(sdf.dtypes, {np.dtype(res_dtype)})
+    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subdtype),
+                           {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
 
 
