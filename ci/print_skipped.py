@@ -24,7 +24,9 @@ def parse_results(filename):
             out = ''
             if old_class != current_class:
                 ndigits = int(math.log(i, 10) + 1)
-                out += ('-' * (len(name + msg) + 4 + ndigits) + '\n')  # 4 for : + space + # + space
+
+                # 4 for : + space + # + space
+                out += ('-' * (len(name + msg) + 4 + ndigits) + '\n')
             out += '#{i} {name}: {msg}'.format(i=i, name=name, msg=msg)
             skipped.append(out)
             i += 1
