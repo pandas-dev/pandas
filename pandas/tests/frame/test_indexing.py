@@ -2215,7 +2215,7 @@ class TestDataFrameIndexing(TestData):
         sp_series = (pd.Series([0, 0, 1], index=[2, 1, 0])
                      .to_sparse(fill_value=0))
         df['new_column'] = sp_series
-        exp = pd.Series([1, 0, 0], name='new_column')
+        exp = pd.SparseSeries([1, 0, 0], name='new_column')
         assert_series_equal(df['new_column'], exp)
 
     def test_setitem_with_unaligned_tz_aware_datetime_column(self):
