@@ -6784,7 +6784,8 @@ class DataFrame(NDFrame):
                     correl[i, j] = c
                     correl[j, i] = c
         else:
-            raise ValueError("method must be either 'pearson', 'spearman' or 'kendall'")
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman' or 'kendall'")
 
         return self._constructor(correl, index=idx, columns=cols)
 
