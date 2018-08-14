@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
+from pandas.errors import PerformanceWarning
 import itertools
 
 
@@ -72,7 +73,6 @@ class TestSparseSeriesConcat(object):
         exp = pd.SparseDataFrame(exp)
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
-    @pytest.mark.xfail(reason="Do we want this?", strict=True)
     def test_concat_different_fill(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
         val2 = np.array([3, np.nan, 4, 0, 0])
@@ -81,12 +81,16 @@ class TestSparseSeriesConcat(object):
             sparse1 = pd.SparseSeries(val1, name='x', kind=kind)
             sparse2 = pd.SparseSeries(val2, name='y', kind=kind, fill_value=0)
 
-            res = pd.concat([sparse1, sparse2])
+            with tm.assert_produces_warning(PerformanceWarning):
+                res = pd.concat([sparse1, sparse2])
+
             exp = pd.concat([pd.Series(val1), pd.Series(val2)])
             exp = pd.SparseSeries(exp, kind=kind)
             tm.assert_sp_series_equal(res, exp)
 
-            res = pd.concat([sparse2, sparse1])
+            with tm.assert_produces_warning(PerformanceWarning):
+                res = pd.concat([sparse2, sparse1])
+
             exp = pd.concat([pd.Series(val2), pd.Series(val1)])
             exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
             tm.assert_sp_series_equal(res, exp)
@@ -156,6 +160,21 @@ class TestSparseSeriesConcat(object):
         exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
         tm.assert_sp_series_equal(res, exp)
 
+    @pytest.mark.xfail(reason="Correct result is unclear.", strict=True)
+    def test_concat_mixed_dtypes(self):
+        # Concatenating sparse, regular, and categorical.
+        # Who should "win" in the dtype determination?
+        # This test assumes that sparse wins.
+        df1 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
+        df2 = pd.DataFrame({"A": [1, 2, 3]})
+        df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
+
+        result = pd.concat([df1, df2, df3], ignore_index=True)
+        expected = pd.DataFrame({
+            "A": pd.SparseArray([1, 2, 3, 1, 2, 3, 'a', 'b', 'c'])
+        })
+        tm.assert_frame_equal(result, expected)
+
 
 class TestSparseDataFrameConcat(object):
 
@@ -221,20 +240,21 @@ class TestSparseDataFrameConcat(object):
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
-    @pytest.mark.xfail(reason="Do we want this", strict=True)
     def test_concat_different_fill_value(self):
         # 1st fill_value will be used
         sparse = self.dense1.to_sparse()
         sparse2 = self.dense2.to_sparse(fill_value=0)
 
-        res = pd.concat([sparse, sparse2])
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = pd.concat([sparse, sparse2])
         exp = pd.concat([self.dense1, self.dense2]).to_sparse()
-        tm.assert_sp_frame_equal(res, exp)
+        tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
-        res = pd.concat([sparse2, sparse])
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = pd.concat([sparse2, sparse])
         exp = pd.concat([self.dense2, self.dense1]).to_sparse(fill_value=0)
         exp._default_fill_value = np.nan
-        tm.assert_sp_frame_equal(res, exp)
+        tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True)
 
     def test_concat_different_columns_sort_warns(self):
         sparse = self.dense1.to_sparse()

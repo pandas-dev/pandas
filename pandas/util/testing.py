@@ -1538,6 +1538,14 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         Whether to check the data dtype is identical.
     check_kind : bool, default True
         Whether to just the kind of the sparse index for each column.
+    check_fill_value : bool, default True
+        Whether to check that left.fill_value matches right.fill_value
+    consolidate_block_indices : bool, default False
+        Whether to consolidate contiguous blocks for sparse arrays with
+        a BlockIndex. Some operations, e.g. concat, will end up with
+        block indices that could be consolidated. Setting this to true will
+        create a new BlockIndex for that array, with consolidated
+        block indices.
     """
 
     _check_isinstance(left, right, pd.SparseArray)
@@ -1597,6 +1605,14 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         Whether to check the SparseSeries name attribute.
     check_kind : bool, default True
         Whether to just the kind of the sparse index for each column.
+    check_fill_value : bool, default True
+        Whether to check that left.fill_value matches right.fill_value
+    consolidate_block_indices : bool, default False
+        Whether to consolidate contiguous blocks for sparse arrays with
+        a BlockIndex. Some operations, e.g. concat, will end up with
+        block indices that could be consolidated. Setting this to true will
+        create a new BlockIndex for that array, with consolidated
+        block indices.
     obj : str, default 'SparseSeries'
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
@@ -1644,6 +1660,14 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         Whether to check the SparseDataFrame class is identical.
     check_kind : bool, default True
         Whether to just the kind of the sparse index for each column.
+    check_fill_value : bool, default True
+        Whether to check that left.fill_value matches right.fill_value
+    consolidate_block_indices : bool, default False
+        Whether to consolidate contiguous blocks for sparse arrays with
+        a BlockIndex. Some operations, e.g. concat, will end up with
+        block indices that could be consolidated. Setting this to true will
+        create a new BlockIndex for that array, with consolidated
+        block indices.
     obj : str, default 'SparseDataFrame'
         Specify the object name being compared, internally used to show
         the appropriate assertion message.

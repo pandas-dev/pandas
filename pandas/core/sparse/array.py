@@ -642,15 +642,23 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        # TODO: validate same fill_type
-        # The basic idea is to
-        fill_value = set(x.fill_value for x in to_concat)
+        fill_values = list(x.fill_value for x in to_concat)
 
-        if len(fill_value) > 1:
-            raise ValueError("Cannot concatenate arrays with different fill"
-                             "values.")
-        else:
-            fill_value = list(fill_value)[0]
+        fill_value = fill_values[0]
+
+        if len(set(fill_values)) > 1:
+            warnings.warn("Concatenating sparse arrays with multiple fill "
+                          "values: '{}'. Picking the first and "
+                          "converting the rest.".format(fill_values),
+                          PerformanceWarning,
+                          stacklevel=6)
+            keep = to_concat[0]
+            to_concat2 = [keep]
+
+            for arr in to_concat[1:]:
+                to_concat2.append(cls(np.asarray(arr), fill_value=fill_value))
+
+            to_concat = to_concat2
 
         values = []
         length = 0
