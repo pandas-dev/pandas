@@ -302,9 +302,11 @@ class TestDatetime64(object):
         tm.assert_index_equal(result, expected)
         for date, expected in zip(dti, expected_months):
             result = unicodedata.normalize(
-                "NFD", date.month_name(locale=time_locale)
+                "NFD", compat.text_type(date.month_name(locale=time_locale))
             )
-            expected = unicodedata.normalize("NFD", expected.capitalize())
+            expected = compat.text_type(
+                unicodedata.normalize("NFD", expected.capitalize())
+            )
             assert result == expected
         dti = dti.append(DatetimeIndex([pd.NaT]))
         assert np.isnan(dti.month_name(locale=time_locale)[-1])
