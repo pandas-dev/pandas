@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
-                    date_range, Timestamp)
+                    date_range, Timestamp, compat)
 
 
 class TestTimeSeries(object):
@@ -291,11 +291,11 @@ class TestDatetime64(object):
         assert isinstance(result, pd.Index)
 
         result = pd.Index([
-            unicodedata.normalize("NFD", x.encode("utf-8"))
+            unicodedata.normalize("NFD", compat.text_type(x))
             for x in result
         ])
         expected = Index([
-            unicodedata.normalize("NFD", month.capitalize().encode("utf-8"))
+            unicodedata.normalize("NFD", compat.text_type(month).capitalize())
             for month in expected_months
         ])
 
