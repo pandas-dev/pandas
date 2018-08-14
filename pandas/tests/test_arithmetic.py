@@ -15,7 +15,7 @@ from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas._libs.tslibs import IncompatibleFrequency
 from pandas import (
     timedelta_range,
-    Timedelta, Timestamp, NaT, Series, TimedeltaIndex, DatetimeIndex,
+    Timedelta, Timestamp, NaT, Series, Index, TimedeltaIndex, DatetimeIndex,
     DataFrame)
 
 
@@ -71,6 +71,41 @@ def box_df_fail(request):
     Fixture equivalent to `box` fixture but xfailing the DataFrame case.
     """
     return request.param
+
+
+# ------------------------------------------------------------------
+# Numeric types Arithmetic Operations
+
+class TestNumericOps(object):
+
+    @pytest.mark.parametrize('opname', ['neg', 'pos', 'abs', 'inv', 'invert'])
+    @pytest.mark.parametrize('dtype', [int, float, object])
+    def test_numeric_unary_ops(self, box, dtype, opname):
+        # GH 22335
+        data = [-2, 0, 4, 5]
+        obj = box(data, dtype=dtype)
+
+        def call_method():
+            return getattr(obj, '__{}__'.format(opname))()
+
+        if opname == 'inv':
+            # GH 22335 - 'inv' was wrong and was removed
+            pytest.raises(AttributeError, call_method)
+            return
+        if opname == 'invert' and dtype is float:
+            # inversion of floats is undefined
+            pytest.raises(TypeError, call_method)
+            return
+        if dtype in (object, bool) and isinstance(obj, Index):
+            # GH 16873 - numeric operations on 'object' dtype might be removed
+            # from NDFrames as well
+            pytest.raises(TypeError, call_method)
+            return
+
+        result = call_method()
+        library_op = getattr(operator, opname)
+        expected = box([library_op(i) for i in data], dtype=dtype)
+        tm.assert_equal(result, expected)
 
 
 # ------------------------------------------------------------------

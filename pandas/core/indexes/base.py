@@ -4689,7 +4689,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__neg__ = make_invalid_op('__neg__')
         cls.__pos__ = make_invalid_op('__pos__')
         cls.__abs__ = make_invalid_op('__abs__')
-        cls.__inv__ = make_invalid_op('__inv__')
+        cls.__invert__ = make_invalid_op('__invert__')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -4786,7 +4786,7 @@ class Index(IndexOpsMixin, PandasObject):
         cls.__neg__ = _make_evaluate_unary(operator.neg, '__neg__')
         cls.__pos__ = _make_evaluate_unary(operator.pos, '__pos__')
         cls.__abs__ = _make_evaluate_unary(np.abs, '__abs__')
-        cls.__inv__ = _make_evaluate_unary(lambda x: -x, '__inv__')
+        cls.__invert__ = _make_evaluate_unary(np.invert, '__invert__')
 
     @classmethod
     def _add_numeric_methods(cls):

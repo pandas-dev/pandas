@@ -614,6 +614,8 @@ Indexing
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
+- Method :meth:`Index.__inv__` was suppressed, as it provided the same functionality as :meth:`Index.__neg__` rather than what its name suggested; :meth:`Index.__invert__` was added instead, and the ``~`` operator now works (analogously as for :class:`Series`) (:issue:`21688`)
+-
 
 Missing
 ^^^^^^^
@@ -686,6 +688,5 @@ Other
 - :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 - :meth: `~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
--
 -
 -
