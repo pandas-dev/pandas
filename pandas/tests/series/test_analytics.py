@@ -4,7 +4,6 @@
 from itertools import product
 from distutils.version import LooseVersion
 import operator
-import warnings
 import pytest
 
 from numpy import nan
