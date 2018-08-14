@@ -44,23 +44,50 @@ ctypedef fused numeric:
     cnp.float64_t
 
 
-cdef inline object get_value_at(ndarray arr, object loc):
+cdef inline Py_ssize_t validate_indexer(ndarray arr, object loc) except? -1:
+    """
+    Cast the given indexer `loc` to an integer.  If it is negative, i.e. a
+    python-style indexing-from-the-end indexer, translate it to a
+    from-the-front indexer.  Raise if this is not possible.
+
+    Parameters
+    ----------
+    arr : ndarray
+    loc : object
+
+    Returns
+    -------
+    idx : Py_ssize_t
+
+    Raises
+    ------
+    IndexError
+    """
     cdef:
-        Py_ssize_t i, sz
+        Py_ssize_t idx, size
         int casted
 
     if is_float_object(loc):
         casted = int(loc)
         if casted == loc:
             loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
 
-    if i < 0 and sz > 0:
-        i += sz
-    elif i >= sz or sz == 0:
+    idx = <Py_ssize_t>loc
+    size = cnp.PyArray_SIZE(arr)
+
+    if idx < 0 and size > 0:
+        idx += size
+    if idx >= size or size == 0 or idx < 0:
         raise IndexError('index out of bounds')
 
+    return idx
+
+
+cdef inline object get_value_at(ndarray arr, object loc):
+    cdef:
+        Py_ssize_t i
+
+    i = validate_indexer(arr, loc)
     return get_value_1d(arr, i)
 
 
@@ -71,19 +98,9 @@ cdef inline set_value_at_unsafe(ndarray arr, object loc, object value):
     flag above the loop and then eschew the check on each iteration.
     """
     cdef:
-        Py_ssize_t i, sz
-    if is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
+        Py_ssize_t i
 
-    if i < 0:
-        i += sz
-    elif i >= sz:
-        raise IndexError('index out of bounds')
-
+    i = validate_indexer(arr, loc)
     assign_value_1d(arr, i, value)
 
 

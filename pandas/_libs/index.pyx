@@ -51,21 +51,9 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
 
 cpdef object get_value_box(ndarray arr, object loc):
     cdef:
-        Py_ssize_t i, sz
+        Py_ssize_t i
 
-    if util.is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
-
-    if i < 0 and sz > 0:
-        i += sz
-
-    if i >= sz or sz == 0 or i < 0:
-        raise IndexError('index out of bounds')
-
+    i = util.validate_indexer(arr, loc)
     return get_value_at(arr, i, tz=None)
 
 
