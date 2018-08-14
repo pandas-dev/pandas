@@ -4835,6 +4835,14 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
+        if lib.is_scalar(other) or np.ndim(other) == 0:
+            new_data = {i: func(self.iloc[:, i], other)
+                        for i, col in enumerate(self.columns)}
+
+            result = self._constructor(new_data, index=self.index, copy=False)
+            result.columns = self.columns
+            return result
+
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
                                    try_cast=try_cast)

@@ -1350,7 +1350,7 @@ def _comp_method_SERIES(cls, op, special):
                 with np.errstate(all='ignore'):
                     result = method(y)
                 if result is NotImplemented:
-                    raise TypeError("invalid type comparison")
+                    return invalid_comparison(x, y, op)
             else:
                 result = op(x, y)
 
@@ -1365,6 +1365,10 @@ def _comp_method_SERIES(cls, op, special):
             self._get_axis_number(axis)
 
         res_name = get_op_result_name(self, other)
+
+        if isinstance(other, list):
+            # TODO: same for tuples?
+            other = np.asarray(other)
 
         if isinstance(other, ABCDataFrame):  # pragma: no cover
             # Defer to DataFrame implementation; fail early
@@ -1459,8 +1463,6 @@ def _comp_method_SERIES(cls, op, special):
 
         else:
             values = self.get_values()
-            if isinstance(other, list):
-                other = np.asarray(other)
 
             with np.errstate(all='ignore'):
                 res = na_op(values, other)
@@ -1741,7 +1743,8 @@ def _arith_method_FRAME(cls, op, special):
             if fill_value is not None:
                 self = self.fillna(fill_value)
 
-            return self._combine_const(other, na_op, try_cast=True)
+            pass_op = op if lib.is_scalar(other) else na_op
+            return self._combine_const(other, pass_op, try_cast=True)
 
     f.__name__ = op_name
 
