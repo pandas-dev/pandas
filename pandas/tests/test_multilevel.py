@@ -10,7 +10,8 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.index import Index, MultiIndex
-from pandas import Panel, DataFrame, Series, notna, isna, Timestamp, concat, read_csv
+from pandas import (Panel, DataFrame, Series, notna, isna, Timestamp, concat,
+                    read_csv)
 
 from pandas.core.dtypes.common import is_float_dtype, is_integer_dtype
 import pandas.core.common as com
@@ -486,7 +487,8 @@ class TestMultiLevel(Base):
         expected = df.loc['foo', 'one']
         tm.assert_frame_equal(result, expected)
 
-        # DataFrame with a MultiIndex containing duplicates (#13719)
+    def test_xs_with_duplicates(self):
+        # Issue #13719
         df_dup = concat([self.frame] * 2)
         assert not df_dup.index.is_unique
         expected = concat([self.frame.xs('one', level='second')] * 2)
