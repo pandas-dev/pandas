@@ -319,15 +319,14 @@ cdef class IndexEngine:
         # form the set of the results (like ismember)
         members = np.empty(n, dtype=np.uint8)
         for i in range(n):
-            val = util.get_value_1d(values, i)
+            val = values[i]
             if val in stargets:
                 if val not in d:
                     d[val] = []
                 d[val].append(i)
 
         for i in range(n_t):
-
-            val = util.get_value_1d(targets, i)
+            val = targets[i]
 
             # found
             if val in d:
