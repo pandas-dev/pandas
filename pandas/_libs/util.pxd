@@ -44,7 +44,7 @@ ctypedef fused numeric:
     cnp.float64_t
 
 
-cdef inline Py_ssize_t validate_indexer(ndarray arr, object loc) except? -1:
+cdef inline Py_ssize_t validate_indexer(ndarray arr, object loc) except -1:
     """
     Cast the given indexer `loc` to an integer.  If it is negative, i.e. a
     python-style indexing-from-the-end indexer, translate it to a
