@@ -956,3 +956,17 @@ class TestSparseArrayAnalytics(object):
         sparse = SparseArray([1, -1, 0, -2], fill_value=0)
         result = SparseArray([2, 0, 1, -1], fill_value=1)
         tm.assert_sp_array_equal(np.add(sparse, 1), result)
+
+    def test_nbytes_integer(self):
+        arr = SparseArray([1, 0, 0, 0, 2], kind='integer')
+        result = arr.nbytes
+        # (2 * 8) + 2 * 4
+        assert result == 24
+
+    def test_nbytes_block(selfs):
+        arr = SparseArray([1, 2, 0, 0, 0], kind='block')
+        result = arr.nbytes
+        # (2 * 8) + 4 + 4
+        # sp_values, blocs, blenghts
+        assert result == 24
+

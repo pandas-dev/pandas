@@ -208,7 +208,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             dtype = dtype.subdtype
 
         # TODO: index feels strange... can we deprecate it?
-        assert index is None
         if index is not None:
             if data is None:
                 data = np.nan
