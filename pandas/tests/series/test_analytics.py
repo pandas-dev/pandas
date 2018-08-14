@@ -599,7 +599,7 @@ class TestSeriesAnalytics(TestData):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(np.compress(cond, s), expected)
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             msg = "the 'axis' parameter is not supported"
             tm.assert_raises_regex(ValueError, msg, np.compress,
                                    cond, s, axis=1)
