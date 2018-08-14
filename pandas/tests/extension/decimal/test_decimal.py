@@ -226,7 +226,6 @@ def test_astype_dispatches(frame):
     assert result.dtype.context.prec == ctx.prec
 
 
-
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
