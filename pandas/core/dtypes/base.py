@@ -96,6 +96,7 @@ class _DtypeOpsMixin(object):
 
     @property
     def _is_numeric(self):
+        # type: () -> bool
         """
         Whether columns with this dtype should be considered numeric.
 
@@ -120,8 +121,13 @@ class ExtensionDtype(_DtypeOpsMixin):
     * name
     * construct_from_string
 
+<<<<<<< HEAD
     The following properties affect the behavior of extension arrays
     in operations:
+=======
+    The following attributes influence the behavior of the dtype in
+    pandas operations
+>>>>>>> ea-is-numeric
 
     * _is_numeric
 
