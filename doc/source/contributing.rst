@@ -658,7 +658,7 @@ extensions in `numpy.testing
 
 .. note::
 
-   The earliest supported pytest version is 3.1.0.
+   The earliest supported pytest version is 3.6.0.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -766,7 +766,7 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
@@ -788,7 +788,7 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
