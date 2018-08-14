@@ -18,15 +18,6 @@ from pandas.core import ops
 from pandas import Timedelta, Series, Index, TimedeltaIndex
 
 
-@pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
-                        pd.UInt64Index(np.arange(5, dtype='uint64')),
-                        pd.Int64Index(np.arange(5, dtype='int64')),
-                        pd.RangeIndex(5)],
-                ids=lambda x: type(x).__name__)
-def idx(request):
-    return request.param
-
-
 # ------------------------------------------------------------------
 # Comparisons
 
