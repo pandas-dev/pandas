@@ -207,6 +207,10 @@ def test_dataframe_constructor_with_dtype():
 
 @pytest.mark.parametrize("frame", [True, False])
 def test_astype_dispatches(frame):
+    # This is a dtype-specific test that ensures Series[decimal].astype
+    # gets all the way through to ExtensionArray.astype
+    # Designing a reliable smoke test that works for arbitrary data types
+    # is difficult.
     data = pd.Series(DecimalArray([decimal.Decimal(2)]), name='a')
     ctx = decimal.Context()
     ctx.prec = 5
