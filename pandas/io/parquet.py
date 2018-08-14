@@ -105,7 +105,9 @@ class PyArrowImpl(BaseImpl):
     def write(self, df, path, compression='snappy',
               coerce_timestamps='ms', index=True, **kwargs):
         self.validate_dataframe(df)
-        if self._pyarrow_lt_070:
+
+        # Only validate the index if we're writing it.
+        if self._pyarrow_lt_070 and index:
             self._validate_write_lt_070(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
