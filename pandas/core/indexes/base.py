@@ -238,7 +238,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = set(['str'])
+    _accessors = {'str'}
 
     str = CachedAccessor("str", StringMethods)
 
@@ -274,6 +274,26 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
 
+        elif (is_datetime64_any_dtype(data) or
+              (dtype is not None and is_datetime64_any_dtype(dtype)) or
+                'tz' in kwargs):
+            from pandas import DatetimeIndex
+            result = DatetimeIndex(data, copy=copy, name=name,
+                                   dtype=dtype, **kwargs)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                return Index(result.to_pydatetime(), dtype=_o_dtype)
+            else:
+                return result
+
+        elif (is_timedelta64_dtype(data) or
+              (dtype is not None and is_timedelta64_dtype(dtype))):
+            from pandas import TimedeltaIndex
+            result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is not None and _o_dtype == dtype:
+                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            else:
+                return result
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
@@ -290,27 +310,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
-            if (is_datetime64_any_dtype(data) or
-                (dtype is not None and is_datetime64_any_dtype(dtype)) or
-                    'tz' in kwargs):
-                from pandas import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name,
-                                       dtype=dtype, **kwargs)
-                if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
-                else:
-                    return result
-
-            elif (is_timedelta64_dtype(data) or
-                  (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas import TimedeltaIndex
-                result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-                if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
-                else:
-                    return result
-
             if dtype is not None:
                 try:
 
@@ -994,6 +993,12 @@ class Index(IndexOpsMixin, PandasObject):
         return self.copy(**kwargs)
 
     def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
         if memo is None:
             memo = {}
         return self.copy(deep=True)
@@ -1642,11 +1647,11 @@ class Index(IndexOpsMixin, PandasObject):
         # if we are mixed and have integers
         try:
             if is_positional and self.is_mixed():
-                # TODO: i, j are not used anywhere
+                # Validate start & stop
                 if start is not None:
-                    i = self.get_loc(start)  # noqa
+                    self.get_loc(start)
                 if stop is not None:
-                    j = self.get_loc(stop)  # noqa
+                    self.get_loc(stop)
                 is_positional = False
         except KeyError:
             if self.inferred_type == 'mixed-integer-float':
@@ -2458,7 +2463,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where < self.values[first])] = -1
+        result[(locs == 0) & (where.values < self.values[first])] = -1
 
         return result
 

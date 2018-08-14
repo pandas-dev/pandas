@@ -21,8 +21,8 @@ _tsd = tm.getTimeSeriesData()
 
 _frame = DataFrame(_seriesd)
 _frame2 = DataFrame(_seriesd, columns=['D', 'C', 'B', 'A'])
-_intframe = DataFrame(dict((k, v.astype(np.int64))
-                           for k, v in compat.iteritems(_seriesd)))
+_intframe = DataFrame({k: v.astype(np.int64)
+                       for k, v in compat.iteritems(_seriesd)})
 
 _tsframe = DataFrame(_tsd)
 _cat_frame = _frame.copy()
@@ -641,6 +641,13 @@ class TestPandasContainer(object):
         s = Series([4.56, 4.56, 4.56])
         result = read_json(s.to_json(), typ='series', precise_float=True)
         assert_series_equal(result, s, check_index_type=False)
+
+    def test_series_with_dtype(self):
+        # GH 21986
+        s = Series([4.56, 4.56, 4.56])
+        result = read_json(s.to_json(), typ='series', dtype=np.int64)
+        expected = Series([4] * 3)
+        assert_series_equal(result, expected)
 
     def test_frame_from_json_precise_float(self):
         df = DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])

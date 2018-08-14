@@ -788,11 +788,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
         if isinstance(indexer, tuple):
 
-            aligners = [not com.is_null_slice(idx) for idx in indexer]
-            sum_aligners = sum(aligners)
-            # TODO: single_aligner is not used
-            single_aligner = sum_aligners == 1  # noqa
-
             idx, cols = None, None
             sindexers = []
             for i, ix in enumerate(indexer):
@@ -865,9 +860,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         raise ValueError('Incompatible indexer with DataFrame')
 
     def _align_panel(self, indexer, df):
-        # TODO: is_frame, is_panel are unused
-        is_frame = self.obj.ndim == 2  # noqa
-        is_panel = self.obj.ndim >= 3  # noqa
         raise NotImplementedError("cannot set using an indexer with a Panel "
                                   "yet!")
 

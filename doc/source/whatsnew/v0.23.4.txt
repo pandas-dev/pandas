@@ -1,7 +1,7 @@
 .. _whatsnew_0234:
 
-v0.23.4
--------
+v0.23.4 (August 3, 2018)
+------------------------
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -20,8 +20,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
-- 
--
+- Python 3.7 with Windows gave all missing values for rolling variance calculations (:issue:`21813`)
 
 .. _whatsnew_0234.bug_fixes:
 
@@ -32,37 +31,6 @@ Bug Fixes
 
 - Bug where calling :func:`DataFrameGroupBy.agg` with a list of functions including ``ohlc`` as the non-initial element would raise a ``ValueError`` (:issue:`21716`)
 - Bug in ``roll_quantile`` caused a memory leak when calling ``.rolling(...).quantile(q)`` with ``q`` in (0,1) (:issue:`21965`)
--
-
-**Conversion**
-
--
--
-
-**Indexing**
-
--
--
-
-**I/O**
-
--
--
-
-**Categorical**
-
--
--
-
-**Timezones**
-
--
--
-
-**Timedelta**
-
--
--
 
 **Missing**
 

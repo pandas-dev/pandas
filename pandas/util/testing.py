@@ -504,23 +504,19 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
 
     try:
         locale.setlocale(lc_var, new_locale)
-
-        try:
-            normalized_locale = locale.getlocale()
-        except ValueError:
-            yield new_locale
+        normalized_locale = locale.getlocale()
+        if com._all_not_none(*normalized_locale):
+            yield '.'.join(normalized_locale)
         else:
-            if com._all_not_none(*normalized_locale):
-                yield '.'.join(normalized_locale)
-            else:
-                yield new_locale
+            yield new_locale
     finally:
         locale.setlocale(lc_var, current_locale)
 
 
 def can_set_locale(lc, lc_var=locale.LC_ALL):
     """
-    Check to see if we can set a locale without raising an Exception.
+    Check to see if we can set a locale, and subsequently get the locale,
+    without raising an Exception.
 
     Parameters
     ----------
@@ -538,7 +534,8 @@ def can_set_locale(lc, lc_var=locale.LC_ALL):
     try:
         with set_locale(lc, lc_var=lc_var):
             pass
-    except locale.Error:  # horrible name for a Exception subclass
+    except (ValueError,
+            locale.Error):  # horrible name for a Exception subclass
         return False
     else:
         return True
@@ -909,8 +906,8 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
     if exact == 'equiv':
         if type(left) != type(right):
             # allow equivalence of Int64Index/RangeIndex
-            types = set([type(left).__name__, type(right).__name__])
-            if len(types - set(['Int64Index', 'RangeIndex'])):
+            types = {type(left).__name__, type(right).__name__}
+            if len(types - {'Int64Index', 'RangeIndex'}):
                 msg = '{obj} classes are not equivalent'.format(obj=obj)
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
@@ -1348,7 +1345,9 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
-        If true, ignore the order of rows & columns
+        If True, ignore the order of index & columns.
+        Note: index labels must match their respective rows
+        (same as in columns) - same labels must be with the same data
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -1476,6 +1475,50 @@ def assert_panel_equal(left, right,
         for i, item in enumerate(right._get_axis(0)):
             msg = "non-matching item (left) '{item}'".format(item=item)
             assert item in left, msg
+
+
+def assert_equal(left, right, **kwargs):
+    """
+    Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
+
+    Parameters
+    ----------
+    left : Index, Series, or DataFrame
+    right : Index, Series, or DataFrame
+    **kwargs
+    """
+    if isinstance(left, pd.Index):
+        assert_index_equal(left, right, **kwargs)
+    elif isinstance(left, pd.Series):
+        assert_series_equal(left, right, **kwargs)
+    elif isinstance(left, pd.DataFrame):
+        assert_frame_equal(left, right, **kwargs)
+    else:
+        raise NotImplementedError(type(left))
+
+
+def box_expected(expected, box_cls):
+    """
+    Helper function to wrap the expected output of a test in a given box_class.
+
+    Parameters
+    ----------
+    expected : np.ndarray, Index, Series
+    box_cls : {Index, Series, DataFrame}
+
+    Returns
+    -------
+    subclass of box_cls
+    """
+    if box_cls is pd.Index:
+        expected = pd.Index(expected)
+    elif box_cls is pd.Series:
+        expected = pd.Series(expected)
+    elif box_cls is pd.DataFrame:
+        expected = pd.Series(expected).to_frame()
+    else:
+        raise NotImplementedError(box_cls)
+    return expected
 
 
 # -----------------------------------------------------------------------------
