@@ -194,8 +194,9 @@ class TestSparseArray(object):
         tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[-11])
         assert self.arr[-1] == self.arr[len(self.arr) - 1]
 
-    @pytest.mark.xfail(reason="https://github.com/pandas-dev/pandas/issues/22215",
-                       strict=True)
+    @pytest.mark.xfail(
+        reason="https://github.com/pandas-dev/pandas/issues/22215",
+        strict=True)
     def test_take_scalar(self):
         assert np.isnan(self.arr.take(0))
         assert np.isscalar(self.arr.take(2))
@@ -407,7 +408,8 @@ class TestSparseArray(object):
         res.sp_values[:3] = 27
         assert not (self.arr.sp_values[:3] == 27).any()
 
-        msg = "unable to coerce current fill_value nan to Sparse\\[int64\\] dtype"
+        msg = ("unable to coerce current fill_value nan "
+               "to Sparse\\[int64\\] dtype")
         with tm.assert_raises_regex(ValueError, msg):
             self.arr.astype('Sparse[i8]')
 
@@ -418,7 +420,8 @@ class TestSparseArray(object):
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
         msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
         with tm.assert_raises_regex(ValueError, msg):
-            raise pytest.xfail("https://github.com/pandas-dev/pandas/issues/22216")
+            raise pytest.xfail("https://github.com/pandas-dev/"
+                               "pandas/issues/22216")
             # arr.astype('i8')
 
     def test_astype_all(self, any_real_dtype):
@@ -570,9 +573,8 @@ class TestSparseArray(object):
             # check numpy compat
             dense[4:, :]
 
-    @pytest.mark.parametrize("op", ["add", "sub", "mul", "iadd", "isub", "imul",
-                                    "ifloordiv",
-                                    "itruediv",
+    @pytest.mark.parametrize("op", ["add", "sub", "mul", "iadd", "isub",
+                                    "imul", "ifloordiv", "itruediv",
                                     "truediv", "floordiv", "pow"])
     def test_binary_operators(self, op):
         op = getattr(operator, op)
@@ -969,4 +971,3 @@ class TestSparseArrayAnalytics(object):
         # (2 * 8) + 4 + 4
         # sp_values, blocs, blenghts
         assert result == 24
-

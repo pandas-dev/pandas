@@ -6,10 +6,7 @@ from pandas import SparseDataFrame, SparseSeries
 from distutils.version import LooseVersion
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_float_dtype,
-    is_object_dtype,
-    is_float)
-
+)
 
 scipy = pytest.importorskip('scipy')
 
@@ -56,7 +53,6 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
 
     # Ensure dtype is preserved if possible
     # XXX: verify this
-    was_upcast = False
     res_dtype = bool if is_bool_dtype(dtype) else dtype
     tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subdtype),
                            {np.dtype(res_dtype)})

@@ -193,7 +193,10 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     @pytest.mark.xfail(reson="what is this test doing?", strict=True)
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        super(TestArithmeticOps, self).test_arith_series_with_array(data, all_arithmetic_operators)
+        super(TestArithmeticOps, self).test_arith_series_with_array(
+            data, all_arithmetic_operators
+        )
+
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
 

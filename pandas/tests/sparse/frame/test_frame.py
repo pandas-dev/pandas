@@ -669,7 +669,7 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_sp_frame_equal(appended, expected[['A', 'B', 'C', 'D']],
                                  consolidate_block_indices=True)
 
-    @pytest.mark.xfail(reason="This is all broken..., it densifies", strict=True)
+    @pytest.mark.xfail(reason="This is all broken, it densifies", strict=True)
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
                                                       dtype=np.int64),

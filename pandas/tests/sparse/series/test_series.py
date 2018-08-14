@@ -973,23 +973,39 @@ class TestSparseSeries(SharedWithSparse):
         # XXX: SparseSeries.shift doesn't need to astype
         sparse = orig.to_sparse(fill_value=fill_value)
 
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).to_sparse(fill_value=fill_value))
-        tm.assert_sp_series_equal(sparse.shift(1),
-                                  orig.shift(1).to_sparse(fill_value=fill_value))
-        tm.assert_sp_series_equal(sparse.shift(2),
-                                  orig.shift(2).to_sparse(fill_value=fill_value))
-        tm.assert_sp_series_equal(sparse.shift(3),
-                                  orig.shift(3).to_sparse(fill_value=fill_value))
+        tm.assert_sp_series_equal(
+            sparse.shift(0),
+            orig.shift(0).to_sparse(fill_value=fill_value)
+        )
+        tm.assert_sp_series_equal(
+            sparse.shift(1),
+            orig.shift(1).to_sparse(fill_value=fill_value)
+        )
+        tm.assert_sp_series_equal(
+            sparse.shift(2),
+            orig.shift(2).to_sparse(fill_value=fill_value)
+        )
+        tm.assert_sp_series_equal(
+            sparse.shift(3),
+            orig.shift(3).to_sparse(fill_value=fill_value)
+        )
 
-        tm.assert_sp_series_equal(sparse.shift(-1),
-                                  orig.shift(-1).to_sparse(fill_value=fill_value))
-        tm.assert_sp_series_equal(sparse.shift(-2),
-                                  orig.shift(-2).to_sparse(fill_value=fill_value))
-        tm.assert_sp_series_equal(sparse.shift(-3),
-                                  orig.shift(-3).to_sparse(fill_value=fill_value))
-        tm.assert_sp_series_equal(sparse.shift(-4),
-                                  orig.shift(-4).to_sparse(fill_value=fill_value))
+        tm.assert_sp_series_equal(
+            sparse.shift(-1),
+            orig.shift(-1).to_sparse(fill_value=fill_value)
+        )
+        tm.assert_sp_series_equal(
+            sparse.shift(-2),
+            orig.shift(-2).to_sparse(fill_value=fill_value)
+        )
+        tm.assert_sp_series_equal(
+            sparse.shift(-3),
+            orig.shift(-3).to_sparse(fill_value=fill_value)
+        )
+        tm.assert_sp_series_equal(
+            sparse.shift(-4),
+            orig.shift(-4).to_sparse(fill_value=fill_value)
+        )
 
     def test_combine_first(self):
         s = self.bseries

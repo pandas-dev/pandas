@@ -32,7 +32,8 @@ class TestSparseArrayArithmetics(object):
             self._assert((b / a).to_dense(), b_dense * 1.0 / a_dense)
 
             # ToDo: FIXME in GH 13843
-            if not (self._base == pd.Series and a.dtype == SparseDtype('int64')):
+            if not (self._base == pd.Series and
+                    a.dtype == SparseDtype('int64')):
                 self._assert((a // b).to_dense(), a_dense // b_dense)
                 self._assert((b // a).to_dense(), b_dense // a_dense)
 

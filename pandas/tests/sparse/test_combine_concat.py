@@ -38,7 +38,8 @@ class TestSparseSeriesConcat(object):
 
     @pytest.mark.parametrize('kind', [
         'integer',
-        pytest.param('block', marks=pytest.mark.xfail(reason='Broken', strict="TODO")),
+        pytest.param('block',
+                     marks=pytest.mark.xfail(reason='Broken', strict="TODO")),
     ])
     def test_concat(self, kind):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -126,8 +127,10 @@ class TestSparseSeriesConcat(object):
         tm.assert_sp_series_equal(res, exp, consolidate_block_indices=True)
 
     @pytest.mark.parametrize('kind', [
-        pytest.param('integer', marks=pytest.mark.xfail(reason="We return Series[Sparse].")),
-        pytest.param('block', marks=pytest.mark.xfail(reason='Broken', strict="TODO")),
+        pytest.param('integer',
+                     marks=pytest.mark.xfail(reason="Return Series[Sparse]")),
+        pytest.param('block',
+                     marks=pytest.mark.xfail(reason='Broken', strict="TODO")),
     ])
     def test_concat_sparse_dense(self, kind):
         # use first input's fill_value

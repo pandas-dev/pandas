@@ -666,10 +666,13 @@ class TestSparseDataFrameIndexing(object):
         assert np.isnan(sparse.loc[1, 'z'])
         assert sparse.loc[2, 'z'] == 4
 
-        # have to specify `kind='integer'`, since we construct a new SparseArray
-        # here, and the default sparse type is integer there, but block in SparseSeries
-        tm.assert_sp_series_equal(sparse.loc[0], orig.loc[0].to_sparse(kind='integer'))
-        tm.assert_sp_series_equal(sparse.loc[1], orig.loc[1].to_sparse(kind='integer'))
+        # have to specify `kind='integer'`, since we construct a
+        # new SparseArray here, and the default sparse type is
+        # integer there, but block in SparseSeries
+        tm.assert_sp_series_equal(sparse.loc[0],
+                                  orig.loc[0].to_sparse(kind='integer'))
+        tm.assert_sp_series_equal(sparse.loc[1],
+                                  orig.loc[1].to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.loc[2, :],
                                   orig.loc[2, :].to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.loc[2, :],
@@ -725,8 +728,10 @@ class TestSparseDataFrameIndexing(object):
         assert np.isnan(sparse.loc['b', 'z'])
         assert sparse.loc['c', 'z'] == 4
 
-        tm.assert_sp_series_equal(sparse.loc['a'], orig.loc['a'].to_sparse(kind='integer'))
-        tm.assert_sp_series_equal(sparse.loc['b'], orig.loc['b'].to_sparse(kind='integer'))
+        tm.assert_sp_series_equal(sparse.loc['a'],
+                                  orig.loc['a'].to_sparse(kind='integer'))
+        tm.assert_sp_series_equal(sparse.loc['b'],
+                                  orig.loc['b'].to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.loc['b', :],
                                   orig.loc['b', :].to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.loc['b', :],
@@ -784,8 +789,10 @@ class TestSparseDataFrameIndexing(object):
         assert sparse.iloc[1, 1] == 3
         assert np.isnan(sparse.iloc[2, 0])
 
-        tm.assert_sp_series_equal(sparse.iloc[0], orig.loc[0].to_sparse(kind='integer'))
-        tm.assert_sp_series_equal(sparse.iloc[1], orig.loc[1].to_sparse(kind='integer'))
+        tm.assert_sp_series_equal(sparse.iloc[0],
+                                  orig.loc[0].to_sparse(kind='integer'))
+        tm.assert_sp_series_equal(sparse.iloc[1],
+                                  orig.loc[1].to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.iloc[2, :],
                                   orig.iloc[2, :].to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.iloc[2, :],
