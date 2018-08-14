@@ -290,9 +290,14 @@ class TestDatetime64(object):
         # https://github.com/pandas-dev/pandas/issues/22342
         assert isinstance(result, pd.Index)
 
-        result = pd.Index([unicodedata.normalize("NFD", x) for x in result])
-        expected = Index([unicodedata.normalize("NFD", month.capitalize())
-                          for month in expected_months])
+        result = pd.Index([
+            unicodedata.normalize("NFD", x.encode("utf-8"))
+            for x in result
+        ])
+        expected = Index([
+            unicodedata.normalize("NFD", month.capitalize().encode("utf-8"))
+            for month in expected_months
+        ])
 
         tm.assert_index_equal(result, expected)
         for date, expected in zip(dti, expected_months):
