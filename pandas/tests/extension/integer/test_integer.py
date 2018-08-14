@@ -705,10 +705,11 @@ def test_groupby_mean_included():
     })
 
     result = df.groupby("A").sum()
+    # TODO(#22346): preserve Int64 dtype
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
-        "C": IntegerArray([1, 3], dtype="Int64")
-    })
+        "C": np.array([1, 3], dtype="int64")
+    }, index=pd.Index(['a', 'b'], name='A'))
     tm.assert_frame_equal(result, expected)
 
 
