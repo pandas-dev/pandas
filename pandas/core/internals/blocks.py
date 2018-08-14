@@ -644,7 +644,6 @@ class Block(PandasObject):
 
                 if self.is_extension:
                     values = self.values.astype(dtype)
-
                 else:
                     if issubclass(dtype.type,
                                   (compat.text_type, compat.string_types)):
