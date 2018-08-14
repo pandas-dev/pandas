@@ -132,7 +132,9 @@ class TestDataFrameAnalytics(TestData):
 
     def test_corr_invalid_method(self):
         df = pd.DataFrame(np.random.normal(size=(10, 2)))
-        with pytest.raises(ValueError):
+        pttrn = ("method must be either 'pearson', 'spearman', "
+                 "or 'kendall'")
+        with tm.assert_raises_regex(ValueError, pttrn):
             df.corr(method="____")
 
     def test_cov(self):
