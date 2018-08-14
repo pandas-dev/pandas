@@ -287,7 +287,7 @@ def dicts_to_array(list dicts, list columns):
             else:
                 result[i, j] = onan
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def fast_zip(list ndarrays):
@@ -329,7 +329,7 @@ def fast_zip(list ndarrays):
             Py_INCREF(val)
             PyArray_ITER_NEXT(it)
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
@@ -646,7 +646,7 @@ def row_bool_subset(ndarray[float64_t, ndim=2] values,
                 out[pos, j] = values[i, j]
             pos += 1
 
-    return out.base  # `.base` to access underlying np.ndarray
+    return np.asarray(out)
 
 
 @cython.boundscheck(False)
@@ -668,7 +668,7 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
                 out[pos, j] = values[i, j]
             pos += 1
 
-    return out.base  # `.base` to access underlying np.ndarray
+    return np.asarray(out)
 
 
 @cython.boundscheck(False)
@@ -2178,7 +2178,7 @@ def to_object_array(list rows, int min_width=0):
         for j in range(len(row)):
             result[i, j] = row[j]
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def tuples_to_object_array(object[:] tuples):
@@ -2195,7 +2195,7 @@ def tuples_to_object_array(object[:] tuples):
         for j in range(k):
             result[i, j] = tup[j]
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def to_object_array_tuples(list rows):
@@ -2226,7 +2226,7 @@ def to_object_array_tuples(list rows):
             for j in range(len(row)):
                 result[i, j] = row[j]
 
-    return result.base  # `.base` to access underlying np.ndarray
+    return np.asarray(result)
 
 
 def fast_multiget(dict mapping, ndarray keys, default=np.nan):
