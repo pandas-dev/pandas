@@ -100,7 +100,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def astype(self, dtype, copy=True):
         if isinstance(dtype, type(self.dtype)):
             return type(self)(self._data, context=dtype.context)
-        return super().astype(dtype, copy)
+        return super(DecimalArray, self).astype(dtype, copy)
 
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
