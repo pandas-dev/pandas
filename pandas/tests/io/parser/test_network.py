@@ -14,9 +14,7 @@ import pandas.util._test_decorators as td
 from pandas import DataFrame
 from pandas.io.parsers import read_csv
 from pandas.compat import BytesIO, StringIO
-import locale
 
-locale.setlocale(locale.LC_ALL, "zh_CN.UTF-8")
 
 @pytest.mark.network
 @pytest.mark.parametrize(
