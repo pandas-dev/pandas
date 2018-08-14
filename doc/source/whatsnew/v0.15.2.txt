@@ -165,7 +165,7 @@ Other enhancements:
 - Added support for ``utcfromtimestamp()``, ``fromtimestamp()``, and ``combine()`` on `Timestamp` class (:issue:`5351`).
 - Added Google Analytics (`pandas.io.ga`) basic documentation (:issue:`8835`). See `here <http://pandas.pydata.org/pandas-docs/version/0.15.2/remote_data.html#remote-data-ga>`__.
 - ``Timedelta`` arithmetic returns ``NotImplemented`` in unknown cases, allowing extensions by custom classes (:issue:`8813`).
-- ``Timedelta`` now supports arithemtic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
+- ``Timedelta`` now supports arithmetic with ``numpy.ndarray`` objects of the appropriate dtype (numpy 1.8 or newer only) (:issue:`8884`).
 - Added ``Timedelta.to_timedelta64()`` method to the public API (:issue:`8884`).
 - Added ``gbq.generate_bq_schema()`` function to the gbq module (:issue:`8325`).
 - ``Series`` now works with map objects the same way as generators (:issue:`8909`).
@@ -173,7 +173,7 @@ Other enhancements:
 - ``to_datetime`` gains an ``exact`` keyword to allow for a format to not require an exact match for a provided format string (if its ``False``). ``exact`` defaults to ``True`` (meaning that exact matching is still the default)  (:issue:`8904`)
 - Added ``axvlines`` boolean option to parallel_coordinates plot function, determines whether vertical lines will be printed, default is True
 - Added ability to read table footers to read_html (:issue:`8552`)
-- ``to_sql`` now infers datatypes of non-NA values for columns that contain NA values and have dtype ``object`` (:issue:`8778`).
+- ``to_sql`` now infers data types of non-NA values for columns that contain NA values and have dtype ``object`` (:issue:`8778`).
 
 
 .. _whatsnew_0152.performance:
@@ -199,7 +199,7 @@ Bug Fixes
 - Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
 - Unclear error message in csv parsing when passing dtype and names and the parsed data is a different data type (:issue:`8833`)
-- Bug in slicing a multi-index with an empty list and at least one boolean indexer (:issue:`8781`)
+- Bug in slicing a MultiIndex with an empty list and at least one boolean indexer (:issue:`8781`)
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - Fixed several outstanding bugs for ``Timedelta`` arithmetic and comparisons (:issue:`8813`, :issue:`5963`, :issue:`5436`).
@@ -215,7 +215,7 @@ Bug Fixes
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
 - Fix: The font size was only set on x axis if vertical or the y axis if horizontal. (:issue:`8765`)
 - Fixed division by 0 when reading big csv files in python 3 (:issue:`8621`)
-- Bug in outputting a Multindex with ``to_html,index=False`` which would add an extra column (:issue:`8452`)
+- Bug in outputting a MultiIndex with ``to_html,index=False`` which would add an extra column (:issue:`8452`)
 - Imported categorical variables from Stata files retain the ordinal information in the underlying data (:issue:`8836`).
 - Defined ``.size`` attribute across ``NDFrame`` objects to provide compat with numpy >= 1.9.1; buggy with ``np.array_split`` (:issue:`8846`)
 - Skip testing of histogram plots for matplotlib <= 1.2 (:issue:`8648`).
@@ -230,11 +230,11 @@ Bug Fixes
 - Bug where index name was still used when plotting a series with ``use_index=False`` (:issue:`8558`).
 - Bugs when trying to stack multiple columns, when some (or all) of the level names are numbers (:issue:`8584`).
 - Bug in ``MultiIndex`` where ``__contains__`` returns wrong result if index is not lexically sorted or unique (:issue:`7724`)
-- BUG CSV: fix problem with trailing whitespace in skipped rows, (:issue:`8679`), (:issue:`8661`), (:issue:`8983`)
+- BUG CSV: fix problem with trailing white space in skipped rows, (:issue:`8679`), (:issue:`8661`), (:issue:`8983`)
 - Regression in ``Timestamp`` does not parse 'Z' zone designator for UTC (:issue:`8771`)
 - Bug in `StataWriter` the produces writes strings with 244 characters irrespective of actual size (:issue:`8969`)
 - Fixed ValueError raised by cummin/cummax when datetime64 Series contains NaT. (:issue:`8965`)
-- Bug in Datareader returns object dtype if there are missing values (:issue:`8980`)
+- Bug in DataReader returns object dtype if there are missing values (:issue:`8980`)
 - Bug in plotting if sharex was enabled and index was a timeseries, would show labels on multiple axes (:issue:`3964`).
 - Bug where passing a unit to the TimedeltaIndex constructor applied the to nano-second conversion twice. (:issue:`9011`).
 - Bug in plotting of a period-like array (:issue:`9012`)

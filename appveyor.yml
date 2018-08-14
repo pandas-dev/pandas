@@ -20,12 +20,14 @@ environment:
   matrix:
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       CONDA_PY: "36"
       CONDA_NPY: "113"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
@@ -73,19 +75,12 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest>=3.1.0 pytest-xdist
+  - cmd: conda env create -q -n pandas --file=ci\appveyor-%CONDA_PY%.yaml
   - cmd: activate pandas
-  - cmd: pip install moto
-  - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.run
-  - cmd: echo "installing requirements from %REQ%"
-  - cmd: conda install -n pandas --file=%REQ%
   - cmd: conda list -n pandas
-  - cmd: echo "installing requirements from %REQ% - done"
-
-  # add some pip only reqs to the env
-  - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.pip
-  - cmd: echo "installing requirements from %REQ%"
-  - cmd: pip install -Ur %REQ%
+  # uninstall pandas if it's present
+  - cmd: conda remove pandas -y --force & exit 0
+  - cmd: pip uninstall -y pandas & exit 0
 
   # build em using the local source checkout in the correct windows env
   - cmd: '%CMD_IN_ENV% python setup.py build_ext --inplace'

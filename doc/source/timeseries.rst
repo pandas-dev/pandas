@@ -28,11 +28,11 @@ a tremendous amount of new functionality for manipulating time series data.
 
 In working with time series data, we will frequently seek to:
 
-  - generate sequences of fixed-frequency dates and time spans
-  - conform or convert time series to a particular frequency
-  - compute "relative" dates based on various non-standard time increments
-    (e.g. 5 business days before the last business day of the year), or "roll"
-    dates forward or backward
+* generate sequences of fixed-frequency dates and time spans
+* conform or convert time series to a particular frequency
+* compute "relative" dates based on various non-standard time increments
+  (e.g. 5 business days before the last business day of the year), or "roll"
+  dates forward or backward
 
 pandas provides a relatively compact and self-contained set of tools for
 performing the above tasks.
@@ -185,6 +185,19 @@ options like ``dayfirst`` or ``format``, so use ``to_datetime`` if these are req
 
     pd.Timestamp('2010/11/12')
 
+You can also use the ``DatetimeIndex`` constructor directly:
+
+.. ipython:: python
+
+    pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'])
+
+The string 'infer' can be passed in order to set the frequency of the index as the
+inferred frequency upon creation:
+
+.. ipython:: python
+
+    pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
+
 Providing a Format Argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -226,8 +239,8 @@ You can pass only the columns that you need to assemble.
 
 ``pd.to_datetime`` looks for standard designations of the datetime component in the column names, including:
 
-- required: ``year``, ``month``, ``day``
-- optional: ``hour``, ``minute``, ``second``, ``millisecond``, ``microsecond``, ``nanosecond``
+* required: ``year``, ``month``, ``day``
+* optional: ``hour``, ``minute``, ``second``, ``millisecond``, ``microsecond``, ``nanosecond``
 
 Invalid Data
 ~~~~~~~~~~~~
@@ -257,7 +270,7 @@ Pass ``errors='coerce'`` to convert unparseable data to ``NaT`` (not a time):
 Epoch Timestamps
 ~~~~~~~~~~~~~~~~
 
-pandas supports converting integer or float epoch times to ``Timestamp`` and 
+pandas supports converting integer or float epoch times to ``Timestamp`` and
 ``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
 objects are stored internally. However, epochs are often stored in another ``unit``
 which can be specified. These are computed from the starting point specified by the
@@ -304,11 +317,12 @@ To invert the operation from above, namely, to convert from a ``Timestamp`` to a
    stamps = pd.date_range('2012-10-08 18:15:05', periods=4, freq='D')
    stamps
 
-We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conversion unit.
+We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by the
+"unit" (1 second).
 
 .. ipython:: python
 
-   stamps.view('int64') // pd.Timedelta(1, unit='s')
+   (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
 
 .. _timeseries.origin:
 
@@ -392,6 +406,18 @@ of those specified will not be generated:
 
    pd.bdate_range(start=start, periods=20)
 
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
+resulting ``DatetimeIndex``:
+
+.. ipython:: python
+
+   pd.date_range('2018-01-01', '2018-01-05', periods=5)
+
+   pd.date_range('2018-01-01', '2018-01-05', periods=10)
+
 .. _timeseries.custom-freq-ranges:
 
 Custom Frequency Ranges
@@ -450,14 +476,14 @@ Indexing
 One of the main uses for ``DatetimeIndex`` is as an index for pandas objects.
 The ``DatetimeIndex`` class contains many time series related optimizations:
 
-  - A large range of dates for various offsets are pre-computed and cached
-    under the hood in order to make generating subsequent date ranges very fast
-    (just have to grab a slice).
-  - Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
-  - Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
-    very fast (important for fast data alignment).
-  - Quick access to date fields via properties such as ``year``, ``month``, etc.
-  - Regularization functions like ``snap`` and very fast ``asof`` logic.
+* A large range of dates for various offsets are pre-computed and cached
+  under the hood in order to make generating subsequent date ranges very fast
+  (just have to grab a slice).
+* Fast shifting using the ``shift`` and ``tshift`` method on pandas objects.
+* Unioning of overlapping ``DatetimeIndex`` objects with the same frequency is
+  very fast (important for fast data alignment).
+* Quick access to date fields via properties such as ``year``, ``month``, etc.
+* Regularization functions like ``snap`` and very fast ``asof`` logic.
 
 ``DatetimeIndex`` objects have all the basic functionality of regular ``Index``
 objects, and a smorgasbord of advanced time series specific methods for easy
@@ -698,6 +724,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     nanosecond,"The nanoseconds of the datetime"
     date,"Returns datetime.date (does not contain timezone information)"
     time,"Returns datetime.time (does not contain timezone information)"
+    timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
@@ -784,11 +811,11 @@ We could have done the same thing with ``DateOffset``:
 
 The key features of a ``DateOffset`` object are:
 
-- It can be added / subtracted to/from a datetime object to obtain a
+* It can be added / subtracted to/from a datetime object to obtain a
   shifted date.
-- It can be multiplied by an integer (positive or negative) so that the
+* It can be multiplied by an integer (positive or negative) so that the
   increment will be applied multiple times.
-- It has :meth:`~pandas.DateOffset.rollforward` and 
+* It has :meth:`~pandas.DateOffset.rollforward` and
   :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or 
   backward to the next or previous "offset date".
 
@@ -1737,7 +1764,7 @@ If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``,
       ...
    ValueError: Input has different freq from Period(freq=H)
 
-If ``Period`` has other freqs, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
+If ``Period`` has other frequencies, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
 
 .. ipython:: python
 
@@ -2051,9 +2078,9 @@ To supply the time zone, you can use the ``tz`` keyword to ``date_range`` and
 other functions. Dateutil time zone strings are distinguished from ``pytz``
 time zones by starting with ``dateutil/``.
 
-- In ``pytz`` you can find a list of common (and less common) time zones using
+* In ``pytz`` you can find a list of common (and less common) time zones using
   ``from pytz import common_timezones, all_timezones``.
-- ``dateutil`` uses the OS timezones so there isn't a fixed list available. For
+* ``dateutil`` uses the OS timezones so there isn't a fixed list available. For
   common zones, the names are the same as ``pytz``.
 
 .. ipython:: python
@@ -2143,8 +2170,8 @@ still considered to be equal even if they are in different time zones:
    rng_berlin[5]
    rng_eastern[5] == rng_berlin[5]
 
-Like ``Series``, ``DataFrame``, and ``DatetimeIndex``, ``Timestamp``s can be converted to other
-time zones using ``tz_convert``:
+Like ``Series``, ``DataFrame``, and ``DatetimeIndex``; ``Timestamp`` objects
+can be converted to other time zones using ``tz_convert``:
 
 .. ipython:: python
 

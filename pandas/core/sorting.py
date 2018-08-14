@@ -3,8 +3,8 @@
 import numpy as np
 from pandas.compat import long, string_types, PY3
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
-    _ensure_int64,
+    ensure_platform_int,
+    ensure_int64,
     is_list_like,
     is_categorical_dtype)
 from pandas.core.dtypes.cast import infer_dtype_from_array
@@ -52,7 +52,21 @@ def get_group_index(labels, shape, sort, xnull):
                 return i
         return len(shape)
 
-    def loop(labels, shape):
+    def maybe_lift(lab, size):
+        # promote nan values (assigned -1 label in lab array)
+        # so that all output values are non-negative
+        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+
+    labels = map(ensure_int64, labels)
+    if not xnull:
+        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+
+    labels = list(labels)
+    shape = list(shape)
+
+    # Iteratively process all the labels in chunks sized so less
+    # than _INT64_MAX unique int ids will be required for each chunk
+    while True:
         # how many levels can be done without overflow:
         nlev = _int64_cut_off(shape)
 
@@ -74,7 +88,7 @@ def get_group_index(labels, shape, sort, xnull):
             out[mask] = -1
 
         if nlev == len(shape):  # all levels done!
-            return out
+            break
 
         # compress what has been done so far in order to avoid overflow
         # to retain lexical ranks, obs_ids should be sorted
@@ -83,16 +97,7 @@ def get_group_index(labels, shape, sort, xnull):
         labels = [comp_ids] + labels[nlev:]
         shape = [len(obs_ids)] + shape[nlev:]
 
-        return loop(labels, shape)
-
-    def maybe_lift(lab, size):  # pormote nan values
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
-
-    labels = map(_ensure_int64, labels)
-    if not xnull:
-        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
-
-    return loop(list(labels), list(shape))
+    return out
 
 
 def get_compressed_ids(labels, sizes):
@@ -333,9 +338,9 @@ def get_group_index_sorter(group_index, ngroups):
     do_groupsort = (count > 0 and ((alpha + beta * ngroups) <
                                    (count * np.log(count))))
     if do_groupsort:
-        sorter, _ = algos.groupsort_indexer(_ensure_int64(group_index),
+        sorter, _ = algos.groupsort_indexer(ensure_int64(group_index),
                                             ngroups)
-        return _ensure_platform_int(sorter)
+        return ensure_platform_int(sorter)
     else:
         return group_index.argsort(kind='mergesort')
 
@@ -350,7 +355,7 @@ def compress_group_index(group_index, sort=True):
     size_hint = min(len(group_index), hashtable._SIZE_HINT_LIMIT)
     table = hashtable.Int64HashTable(size_hint)
 
-    group_index = _ensure_int64(group_index)
+    group_index = ensure_int64(group_index)
 
     # note, group labels come out ascending (ie, 1,2,3 etc)
     comp_ids, obs_group_ids = table.get_labels_groupby(group_index)
@@ -457,7 +462,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     if not is_list_like(labels):
         raise TypeError("Only list-like objects or None are allowed to be"
                         "passed to safe_sort as labels")
-    labels = _ensure_platform_int(np.asarray(labels))
+    labels = ensure_platform_int(np.asarray(labels))
 
     from pandas import Index
     if not assume_unique and not Index(values).is_unique:
@@ -469,7 +474,7 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
             values, algorithms._hashtables)
         t = hash_klass(len(values))
         t.map_locations(values)
-        sorter = _ensure_platform_int(t.lookup(ordered))
+        sorter = ensure_platform_int(t.lookup(ordered))
 
     reverse_indexer = np.empty(len(sorter), dtype=np.int_)
     reverse_indexer.put(sorter, np.arange(len(sorter)))
@@ -482,4 +487,4 @@ def safe_sort(values, labels=None, na_sentinel=-1, assume_unique=False):
     new_labels = reverse_indexer.take(labels, mode='wrap')
     np.putmask(new_labels, mask, na_sentinel)
 
-    return ordered, _ensure_platform_int(new_labels)
+    return ordered, ensure_platform_int(new_labels)

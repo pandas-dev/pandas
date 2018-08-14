@@ -21,7 +21,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_table)
+                    date_range, NaT, read_csv)
 from pandas.compat import (range, zip, lrange, StringIO, PY3,
                            u, lzip, is_platform_windows,
                            is_platform_32bit)
@@ -244,7 +244,7 @@ class TestDataFrameFormatting(object):
             assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
-        assert printing.pprint_thing(set([1])) == '{1}'
+        assert printing.pprint_thing({1}) == '{1}'
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
@@ -304,6 +304,44 @@ class TestDataFrameFormatting(object):
                             'display.max_rows', 5000):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
+
+    def test_repr_truncates_terminal_size(self):
+        # https://github.com/pandas-dev/pandas/issues/21180
+        # TODO: use mock fixutre.
+        # This is being backported, so doing it directly here.
+        try:
+            from unittest import mock
+        except ImportError:
+            mock = pytest.importorskip("mock")
+
+        terminal_size = (118, 96)
+        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
+                        return_value=terminal_size)
+        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
+                        return_value=terminal_size)
+
+        index = range(5)
+        columns = pd.MultiIndex.from_tuples([
+            ('This is a long title with > 37 chars.', 'cat'),
+            ('This is a loooooonger title with > 43 chars.', 'dog'),
+        ])
+        df = pd.DataFrame(1, index=index, columns=columns)
+
+        with p1, p2:
+            result = repr(df)
+
+        h1, h2 = result.split('\n')[:2]
+        assert 'long' in h1
+        assert 'loooooonger' in h1
+        assert 'cat' in h2
+        assert 'dog' in h2
+
+        # regular columns
+        df2 = pd.DataFrame({"A" * 41: [1, 2], 'B' * 41: [1, 2]})
+        with p1, p2:
+            result = repr(df2)
+
+        assert df2.columns[0] in result.split('\n')[0]
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -916,8 +954,8 @@ class TestDataFrameFormatting(object):
         dm = DataFrame({u('c/\u03c3'): Series({'test': np.nan})})
         compat.text_type(dm.to_string())
 
-    def test_string_repr_encoding(self):
-        filepath = tm.get_data_path('unicode_series.csv')
+    def test_string_repr_encoding(self, datapath):
+        filepath = datapath('io', 'formats', 'data', 'unicode_series.csv')
         df = pd.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])
@@ -1187,8 +1225,8 @@ class TestDataFrameFormatting(object):
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join(re.sub(r'\s+', ' ', x).strip() for x in lines[1:])
-        recons = read_table(StringIO(joined), names=header,
-                            header=None, sep=' ')
+        recons = read_csv(StringIO(joined), names=header,
+                          header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         assert recons['A'].count() == biggie['A'].count()
         assert (np.abs(recons['A'].dropna() -
@@ -1548,8 +1586,12 @@ c  10  11  12  13  14\
             assert '...' in df._repr_html_()
 
     def test_info_repr(self):
+        # GH#21746 For tests inside a terminal (i.e. not CI) we need to detect
+        # the terminal size to ensure that we try to print something "too big"
+        term_width, term_height = get_terminal_size()
+
         max_rows = 60
-        max_cols = 20
+        max_cols = 20 + (max(term_width, 80) - 80) // 4
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})

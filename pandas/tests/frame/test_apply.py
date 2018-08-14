@@ -4,7 +4,10 @@ from __future__ import print_function
 
 import pytest
 
+import operator
+from collections import OrderedDict
 from datetime import datetime
+from itertools import chain
 
 import warnings
 import numpy as np
@@ -17,6 +20,7 @@ from pandas.core.apply import frame_apply
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
+from pandas.conftest import _get_cython_table_params
 from pandas.tests.frame.common import TestData
 
 
@@ -116,16 +120,15 @@ class TestDataFrameApply(TestData):
         rs = df.T.apply(lambda s: s[0], axis=0)
         assert_series_equal(rs, xp)
 
-    def test_with_string_args(self):
+    @pytest.mark.parametrize('arg', ['sum', 'mean', 'min', 'max', 'std'])
+    def test_with_string_args(self, arg):
+        result = self.frame.apply(arg)
+        expected = getattr(self.frame, arg)()
+        tm.assert_series_equal(result, expected)
 
-        for arg in ['sum', 'mean', 'min', 'max', 'std']:
-            result = self.frame.apply(arg)
-            expected = getattr(self.frame, arg)()
-            tm.assert_series_equal(result, expected)
-
-            result = self.frame.apply(arg, axis=1)
-            expected = getattr(self.frame, arg)(axis=1)
-            tm.assert_series_equal(result, expected)
+        result = self.frame.apply(arg, axis=1)
+        expected = getattr(self.frame, arg)(axis=1)
+        tm.assert_series_equal(result, expected)
 
     def test_apply_broadcast_deprecated(self):
         with tm.assert_produces_warning(FutureWarning):
@@ -315,14 +318,14 @@ class TestDataFrameApply(TestData):
         df = DataFrame(np.random.randn(20, 10))
 
         result0 = df.apply(Series.describe, axis=0)
-        expected0 = DataFrame(dict((i, v.describe())
-                                   for i, v in compat.iteritems(df)),
+        expected0 = DataFrame({i: v.describe()
+                               for i, v in compat.iteritems(df)},
                               columns=df.columns)
         assert_frame_equal(result0, expected0)
 
         result1 = df.apply(Series.describe, axis=1)
-        expected1 = DataFrame(dict((i, v.describe())
-                                   for i, v in compat.iteritems(df.T)),
+        expected1 = DataFrame({i: v.describe()
+                               for i, v in compat.iteritems(df.T)},
                               columns=df.index).T
         assert_frame_equal(result1, expected1)
 
@@ -552,6 +555,14 @@ class TestDataFrameApply(TestData):
         df = DataFrame({'dt': ['a', 'b', 'c', 'a']}, dtype='category')
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
+
+    def test_apply_dup_names_multi_agg(self):
+        # GH 21063
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=['a', 'a'])
+        expected = pd.DataFrame([[0, 1]], columns=['a', 'a'], index=['min'])
+        result = df.agg(['min'])
+
+        tm.assert_frame_equal(result, expected)
 
 
 class TestInferOutputShape(object):
@@ -804,81 +815,107 @@ class TestInferOutputShape(object):
         assert_frame_equal(result, expected)
 
 
-def zip_frames(*frames):
+def zip_frames(frames, axis=1):
     """
-    take a list of frames, zip the columns together for each
-    assume that these all have the first frame columns
+    take a list of frames, zip them together under the
+    assumption that these all have the first frames' index/columns.
 
-    return a new frame
+    Returns
+    -------
+    new_frame : DataFrame
     """
-    columns = frames[0].columns
-    zipped = [f[c] for c in columns for f in frames]
-    return pd.concat(zipped, axis=1)
+    if axis == 1:
+        columns = frames[0].columns
+        zipped = [f.loc[:, c] for c in columns for f in frames]
+        return pd.concat(zipped, axis=1)
+    else:
+        index = frames[0].index
+        zipped = [f.loc[i, :] for i in index for f in frames]
+        return pd.DataFrame(zipped)
 
 
 class TestDataFrameAggregate(TestData):
 
-    def test_agg_transform(self):
+    def test_agg_transform(self, axis):
+        other_axis = 1 if axis in {0, 'index'} else 0
 
         with np.errstate(all='ignore'):
 
-            f_sqrt = np.sqrt(self.frame)
             f_abs = np.abs(self.frame)
+            f_sqrt = np.sqrt(self.frame)
 
             # ufunc
-            result = self.frame.transform(np.sqrt)
+            result = self.frame.transform(np.sqrt, axis=axis)
             expected = f_sqrt.copy()
             assert_frame_equal(result, expected)
 
-            result = self.frame.apply(np.sqrt)
+            result = self.frame.apply(np.sqrt, axis=axis)
             assert_frame_equal(result, expected)
 
-            result = self.frame.transform(np.sqrt)
+            result = self.frame.transform(np.sqrt, axis=axis)
             assert_frame_equal(result, expected)
 
             # list-like
-            result = self.frame.apply([np.sqrt])
+            result = self.frame.apply([np.sqrt], axis=axis)
             expected = f_sqrt.copy()
-            expected.columns = pd.MultiIndex.from_product(
-                [self.frame.columns, ['sqrt']])
+            if axis in {0, 'index'}:
+                expected.columns = pd.MultiIndex.from_product(
+                    [self.frame.columns, ['sqrt']])
+            else:
+                expected.index = pd.MultiIndex.from_product(
+                    [self.frame.index, ['sqrt']])
             assert_frame_equal(result, expected)
 
-            result = self.frame.transform([np.sqrt])
+            result = self.frame.transform([np.sqrt], axis=axis)
             assert_frame_equal(result, expected)
 
             # multiple items in list
             # these are in the order as if we are applying both
             # functions per series and then concatting
-            expected = zip_frames(f_sqrt, f_abs)
-            expected.columns = pd.MultiIndex.from_product(
-                [self.frame.columns, ['sqrt', 'absolute']])
-            result = self.frame.apply([np.sqrt, np.abs])
+            result = self.frame.apply([np.abs, np.sqrt], axis=axis)
+            expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
+            if axis in {0, 'index'}:
+                expected.columns = pd.MultiIndex.from_product(
+                    [self.frame.columns, ['absolute', 'sqrt']])
+            else:
+                expected.index = pd.MultiIndex.from_product(
+                    [self.frame.index, ['absolute', 'sqrt']])
             assert_frame_equal(result, expected)
 
-            result = self.frame.transform(['sqrt', np.abs])
+            result = self.frame.transform([np.abs, 'sqrt'], axis=axis)
             assert_frame_equal(result, expected)
 
-    def test_transform_and_agg_err(self):
+    def test_transform_and_agg_err(self, axis):
         # cannot both transform and agg
         def f():
-            self.frame.transform(['max', 'min'])
+            self.frame.transform(['max', 'min'], axis=axis)
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
-                self.frame.agg(['max', 'sqrt'])
+                self.frame.agg(['max', 'sqrt'], axis=axis)
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
-                self.frame.transform(['max', 'sqrt'])
+                self.frame.transform(['max', 'sqrt'], axis=axis)
         pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
         def f():
             with np.errstate(all='ignore'):
-                df.agg({'A': ['abs', 'sum'], 'B': ['mean', 'max']})
+                df.agg({'A': ['abs', 'sum'], 'B': ['mean', 'max']}, axis=axis)
+
+    @pytest.mark.parametrize('method', [
+        'abs', 'shift', 'pct_change', 'cumsum', 'rank',
+    ])
+    def test_transform_method_name(self, method):
+        # https://github.com/pandas-dev/pandas/issues/19760
+        df = pd.DataFrame({"A": [-1, 2]})
+        result = df.transform(method)
+        expected = operator.methodcaller(method)(df)
+        tm.assert_frame_equal(result, expected)
 
     def test_demo(self):
         # demonstration tests
@@ -897,48 +934,87 @@ class TestDataFrameAggregate(TestData):
                              index=['max', 'min', 'sum'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
+    def test_agg_multiple_mixed_no_warning(self):
+        # https://github.com/pandas-dev/pandas/issues/20909
+        mdf = pd.DataFrame({'A': [1, 2, 3],
+                            'B': [1., 2., 3.],
+                            'C': ['foo', 'bar', 'baz'],
+                            'D': pd.date_range('20130101', periods=3)})
+        expected = pd.DataFrame({"A": [1, 6], 'B': [1.0, 6.0],
+                                 "C": ['bar', 'foobarbaz'],
+                                 "D": [pd.Timestamp('2013-01-01'), pd.NaT]},
+                                index=['min', 'sum'])
+        # sorted index
+        with tm.assert_produces_warning(None):
+            result = mdf.agg(['min', 'sum'])
+
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(None):
+            result = mdf[['D', 'C', 'B', 'A']].agg(['sum', 'min'])
+
+        # For backwards compatibility, the result's index is
+        # still sorted by function name, so it's ['min', 'sum']
+        # not ['sum', 'min'].
+        expected = expected[['D', 'C', 'B', 'A']]
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_dict_nested_renaming_depr(self):
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df.agg({'A': {'foo': 'min'},
                     'B': {'bar': 'max'}})
 
-    def test_agg_reduce(self):
+    def test_agg_reduce(self, axis):
+        other_axis = 1 if axis in {0, 'index'} else 0
+        name1, name2 = self.frame.axes[other_axis].unique()[:2].sort_values()
+
         # all reducers
-        expected = zip_frames(self.frame.mean().to_frame(),
-                              self.frame.max().to_frame(),
-                              self.frame.sum().to_frame()).T
-        expected.index = ['mean', 'max', 'sum']
-        result = self.frame.agg(['mean', 'max', 'sum'])
+        expected = pd.concat([self.frame.mean(axis=axis),
+                              self.frame.max(axis=axis),
+                              self.frame.sum(axis=axis),
+                              ], axis=1)
+        expected.columns = ['mean', 'max', 'sum']
+        expected = expected.T if axis in {0, 'index'} else expected
+
+        result = self.frame.agg(['mean', 'max', 'sum'], axis=axis)
         assert_frame_equal(result, expected)
 
         # dict input with scalars
-        result = self.frame.agg({'A': 'mean', 'B': 'sum'})
-        expected = Series([self.frame.A.mean(), self.frame.B.sum()],
-                          index=['A', 'B'])
-        assert_series_equal(result.reindex_like(expected), expected)
+        func = OrderedDict([(name1, 'mean'), (name2, 'sum')])
+        result = self.frame.agg(func, axis=axis)
+        expected = Series([self.frame.loc(other_axis)[name1].mean(),
+                           self.frame.loc(other_axis)[name2].sum()],
+                          index=[name1, name2])
+        assert_series_equal(result, expected)
 
         # dict input with lists
-        result = self.frame.agg({'A': ['mean'], 'B': ['sum']})
-        expected = DataFrame({'A': Series([self.frame.A.mean()],
-                                          index=['mean']),
-                              'B': Series([self.frame.B.sum()],
-                                          index=['sum'])})
-        assert_frame_equal(result.reindex_like(expected), expected)
+        func = OrderedDict([(name1, ['mean']), (name2, ['sum'])])
+        result = self.frame.agg(func, axis=axis)
+        expected = DataFrame({
+            name1: Series([self.frame.loc(other_axis)[name1].mean()],
+                          index=['mean']),
+            name2: Series([self.frame.loc(other_axis)[name2].sum()],
+                          index=['sum'])})
+        expected = expected.T if axis in {1, 'columns'} else expected
+        assert_frame_equal(result, expected)
 
         # dict input with lists with multiple
-        result = self.frame.agg({'A': ['mean', 'sum'],
-                                 'B': ['sum', 'max']})
-        expected = DataFrame({'A': Series([self.frame.A.mean(),
-                                           self.frame.A.sum()],
-                                          index=['mean', 'sum']),
-                              'B': Series([self.frame.B.sum(),
-                                           self.frame.B.max()],
-                                          index=['sum', 'max'])})
-        assert_frame_equal(result.reindex_like(expected), expected)
+        func = OrderedDict([(name1, ['mean', 'sum']), (name2, ['sum', 'max'])])
+        result = self.frame.agg(func, axis=axis)
+        expected = DataFrame(OrderedDict([
+            (name1, Series([self.frame.loc(other_axis)[name1].mean(),
+                           self.frame.loc(other_axis)[name1].sum()],
+                           index=['mean', 'sum'])),
+            (name2, Series([self.frame.loc(other_axis)[name2].sum(),
+                           self.frame.loc(other_axis)[name2].max()],
+                           index=['sum', 'max'])),
+        ]))
+        expected = expected.T if axis in {1, 'columns'} else expected
+        assert_frame_equal(result, expected)
 
     def test_nuiscance_columns(self):
 
@@ -1012,3 +1088,67 @@ class TestDataFrameAggregate(TestData):
         expected = df.size
 
         assert result == expected
+
+    @pytest.mark.parametrize("df, func, expected", chain(
+        _get_cython_table_params(
+            DataFrame(), [
+                ('sum', Series()),
+                ('max', Series()),
+                ('min', Series()),
+                ('all', Series(dtype=bool)),
+                ('any', Series(dtype=bool)),
+                ('mean', Series()),
+                ('prod', Series()),
+                ('std', Series()),
+                ('var', Series()),
+                ('median', Series()),
+            ]),
+        _get_cython_table_params(
+            DataFrame([[np.nan, 1], [1, 2]]), [
+                ('sum', Series([1., 3])),
+                ('max', Series([1., 2])),
+                ('min', Series([1., 1])),
+                ('all', Series([True, True])),
+                ('any', Series([True, True])),
+                ('mean', Series([1, 1.5])),
+                ('prod', Series([1., 2])),
+                ('std', Series([np.nan, 0.707107])),
+                ('var', Series([np.nan, 0.5])),
+                ('median', Series([1, 1.5])),
+            ]),
+    ))
+    def test_agg_cython_table(self, df, func, expected, axis):
+        # GH21224
+        # test reducing functions in
+        # pandas.core.base.SelectionMixin._cython_table
+        result = df.agg(func, axis=axis)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("df, func, expected", chain(
+        _get_cython_table_params(
+            DataFrame(), [
+                ('cumprod', DataFrame()),
+                ('cumsum', DataFrame()),
+            ]),
+        _get_cython_table_params(
+            DataFrame([[np.nan, 1], [1, 2]]), [
+                ('cumprod', DataFrame([[np.nan, 1], [1., 2.]])),
+                ('cumsum', DataFrame([[np.nan, 1], [1., 3.]])),
+            ]),
+    ))
+    def test_agg_cython_table_transform(self, df, func, expected, axis):
+        # GH21224
+        # test transforming functions in
+        # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        result = df.agg(func, axis=axis)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("df, func, expected", _get_cython_table_params(
+        DataFrame([['a', 'b'], ['b', 'a']]), [
+            ['cumprod', TypeError],
+        ]),
+    )
+    def test_agg_cython_table_raises(self, df, func, expected, axis):
+        # GH21224
+        with pytest.raises(expected):
+            df.agg(func, axis=axis)

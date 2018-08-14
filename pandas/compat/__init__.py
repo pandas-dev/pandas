@@ -40,10 +40,11 @@ import inspect
 from collections import namedtuple
 
 PY2 = sys.version_info[0] == 2
-PY3 = (sys.version_info[0] >= 3)
-PY35 = (sys.version_info >= (3, 5))
-PY36 = (sys.version_info >= (3, 6))
-PYPY = (platform.python_implementation() == 'PyPy')
+PY3 = sys.version_info[0] >= 3
+PY35 = sys.version_info >= (3, 5)
+PY36 = sys.version_info >= (3, 6)
+PY37 = sys.version_info >= (3, 7)
+PYPY = platform.python_implementation() == 'PyPy'
 
 try:
     import __builtin__ as builtins
@@ -425,7 +426,7 @@ parse_date = _date_parser.parse
 
 # In Python 3.7, the private re._pattern_type is removed.
 # Python 3.5+ have typing.re.Pattern
-if PY35:
+if PY36:
     import typing
     re_type = typing.re.Pattern
 else:

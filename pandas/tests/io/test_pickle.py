@@ -12,7 +12,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
-
+import glob
 import pytest
 from warnings import catch_warnings
 
@@ -184,27 +184,25 @@ def compare_sp_frame_float(result, expected, typ, version):
         tm.assert_sp_frame_equal(result, expected)
 
 
+files = glob.glob(os.path.join(os.path.dirname(__file__), "data",
+                  "legacy_pickle", "*", "*.pickle"))
+
+
+@pytest.fixture(params=files)
+def legacy_pickle(request, datapath):
+    return datapath(request.param)
+
+
 # ---------------------
 # tests
 # ---------------------
-def legacy_pickle_versions():
-    # yield the pickle versions
-    path = tm.get_data_path('legacy_pickle')
-    for v in os.listdir(path):
-        p = os.path.join(path, v)
-        if os.path.isdir(p):
-            for f in os.listdir(p):
-                yield (v, f)
-
-
-@pytest.mark.parametrize('version, f', legacy_pickle_versions())
-def test_pickles(current_pickle_data, version, f):
+def test_pickles(current_pickle_data, legacy_pickle):
     if not is_platform_little_endian():
         pytest.skip("known failure on non-little endian")
 
-    vf = tm.get_data_path('legacy_pickle/{}/{}'.format(version, f))
+    version = os.path.basename(os.path.dirname(legacy_pickle))
     with catch_warnings(record=True):
-        compare(current_pickle_data, vf, version)
+        compare(current_pickle_data, legacy_pickle, version)
 
 
 def test_round_trip_current(current_pickle_data):
@@ -220,7 +218,7 @@ def test_round_trip_current(current_pickle_data):
             with open(path, 'rb') as fh:
                 fh.seek(0)
                 return c_pickle.load(fh)
-    except:
+    except ImportError:
         c_pickler = None
         c_unpickler = None
 
@@ -260,12 +258,11 @@ def test_round_trip_current(current_pickle_data):
                     compare_element(result, expected, typ)
 
 
-def test_pickle_v0_14_1():
+def test_pickle_v0_14_1(datapath):
 
     cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
                          categories=['a', 'b', 'c', 'd'])
-    pickle_path = os.path.join(tm.get_data_path(),
-                               'categorical_0_14_1.pickle')
+    pickle_path = datapath('io', 'data', 'categorical_0_14_1.pickle')
     # This code was executed once on v0.14.1 to generate the pickle:
     #
     # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],
@@ -275,14 +272,13 @@ def test_pickle_v0_14_1():
     tm.assert_categorical_equal(cat, pd.read_pickle(pickle_path))
 
 
-def test_pickle_v0_15_2():
+def test_pickle_v0_15_2(datapath):
     # ordered -> _ordered
     # GH 9347
 
     cat = pd.Categorical(values=['a', 'b', 'c'], ordered=False,
                          categories=['a', 'b', 'c', 'd'])
-    pickle_path = os.path.join(tm.get_data_path(),
-                               'categorical_0_15_2.pickle')
+    pickle_path = datapath('io', 'data', 'categorical_0_15_2.pickle')
     # This code was executed once on v0.15.2 to generate the pickle:
     #
     # cat = Categorical(labels=np.arange(3), levels=['a', 'b', 'c', 'd'],

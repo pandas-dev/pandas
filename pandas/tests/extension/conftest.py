@@ -31,6 +31,15 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
+def data_repeated():
+    """Return different versions of data for count times"""
+    def gen(count):
+        for _ in range(count):
+            yield NotImplementedError
+    yield gen
+
+
+@pytest.fixture
 def data_for_sorting():
     """Length-3 array with a known sort order.
 
@@ -57,7 +66,7 @@ def na_cmp():
     Should return a function of two arguments that returns
     True if both arguments are (scalar) NA for your type.
 
-    By default, uses ``operator.or``
+    By default, uses ``operator.is_``
     """
     return operator.is_
 

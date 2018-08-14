@@ -25,11 +25,11 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, needs_i8_conversion,
     is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_interval_dtype,
-    is_scalar, is_list_like,
-    _ensure_platform_int, _ensure_object,
-    _ensure_float64, _ensure_uint64,
-    _ensure_int64)
+    is_timedelta64_dtype, is_datetimelike,
+    is_interval_dtype, is_scalar, is_list_like,
+    ensure_platform_int, ensure_object,
+    ensure_float64, ensure_uint64,
+    ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -73,32 +73,32 @@ def _ensure_data(values, dtype=None):
     # we check some simple dtypes first
     try:
         if is_object_dtype(dtype):
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         if is_bool_dtype(values) or is_bool_dtype(dtype):
             # we are actually coercing to uint64
             # until our algos support uint8 directly (see TODO)
             return np.asarray(values).astype('uint64'), 'bool', 'uint64'
         elif is_signed_integer_dtype(values) or is_signed_integer_dtype(dtype):
-            return _ensure_int64(values), 'int64', 'int64'
+            return ensure_int64(values), 'int64', 'int64'
         elif (is_unsigned_integer_dtype(values) or
               is_unsigned_integer_dtype(dtype)):
-            return _ensure_uint64(values), 'uint64', 'uint64'
+            return ensure_uint64(values), 'uint64', 'uint64'
         elif is_float_dtype(values) or is_float_dtype(dtype):
-            return _ensure_float64(values), 'float64', 'float64'
+            return ensure_float64(values), 'float64', 'float64'
         elif is_object_dtype(values) and dtype is None:
-            return _ensure_object(np.asarray(values)), 'object', 'object'
+            return ensure_object(np.asarray(values)), 'object', 'object'
         elif is_complex_dtype(values) or is_complex_dtype(dtype):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
             with catch_warnings(record=True):
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             return values, 'float64', 'float64'
 
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
         # and it is incompat this will fall thru to here
-        return _ensure_object(values), 'object', 'object'
+        return ensure_object(values), 'object', 'object'
 
     # datetimelike
     if (needs_i8_conversion(values) or
@@ -129,13 +129,13 @@ def _ensure_data(values, dtype=None):
 
         # we are actually coercing to int64
         # until our algos support int* directly (not all do)
-        values = _ensure_int64(values)
+        values = ensure_int64(values)
 
         return values, dtype, 'int64'
 
     # we have failed, return object
-    values = np.asarray(values)
-    return _ensure_object(values), 'object', 'object'
+    values = np.asarray(values, dtype=np.object)
+    return ensure_object(values), 'object', 'object'
 
 
 def _reconstruct_data(values, dtype, original):
@@ -154,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     """
     from pandas import Index
     if is_extension_array_dtype(dtype):
-        pass
+        values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
@@ -262,7 +262,7 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = com._asarray_tuplesafe(values)
+    values = com.asarray_tuplesafe(values)
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
     to_match, _, _ = _ensure_data(to_match, dtype)
     table = htable(min(len(to_match), 1000000))
@@ -306,8 +306,8 @@ def unique(values):
     >>> pd.unique(pd.Series([2] + [1] * 5))
     array([2, 1])
 
-    >>> pd.unique(Series([pd.Timestamp('20160101'),
-    ...                   pd.Timestamp('20160101')]))
+    >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
+    ...                     pd.Timestamp('20160101')]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
@@ -326,20 +326,20 @@ def unique(values):
     An unordered Categorical will return categories in the
     order of appearance.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'))))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
     An ordered Categorical preserves the category ordering.
 
-    >>> pd.unique(Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'),
-    ...                                 ordered=True)))
+    >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
+    ...                                    categories=list('abc'),
+    ...                                    ordered=True)))
     [b, a, c]
     Categories (3, object): [a < b < c]
 
@@ -407,6 +407,13 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
+    if is_categorical_dtype(comps):
+        # TODO(extension)
+        # handle categoricals
+        return comps._values.isin(values)
+
+    comps = com.values_from_object(comps)
+
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
@@ -422,7 +429,7 @@ def isin(comps, values):
             values = values.astype('int64', copy=False)
             comps = comps.astype('int64', copy=False)
             f = lambda x, y: htable.ismember_int64(x, y)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             values = values.astype(object)
             comps = comps.astype(object)
 
@@ -430,8 +437,7 @@ def isin(comps, values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
-            checknull = isna(values).any()
-            f = lambda x, y: htable.ismember_float64(x, y, checknull)
+            f = lambda x, y: htable.ismember_float64(x, y)
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)
@@ -468,7 +474,7 @@ def _factorize_array(values, na_sentinel=-1, size_hint=None,
     labels = table.get_labels(values, uniques, 0, na_sentinel,
                               na_value=na_value)
 
-    labels = _ensure_platform_int(labels)
+    labels = ensure_platform_int(labels)
     uniques = uniques.to_array()
     return labels, uniques
 
@@ -506,7 +512,7 @@ _shared_docs['factorize'] = """
     See Also
     --------
     pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique valuse in an array.
+    pandas.unique : Find the unique value in an array.
 
     Examples
     --------
@@ -551,7 +557,7 @@ _shared_docs['factorize'] = """
     [a, c]
     Categories (3, object): [a, b, c]
 
-    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
 
     For all other pandas objects, an Index of the appropriate type is
@@ -569,8 +575,8 @@ _shared_docs['factorize'] = """
 @Substitution(
     values=dedent("""\
     values : sequence
-        A 1-D seqeunce. Sequences that aren't pandas objects are
-        coereced to ndarrays before factorization.
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
     """),
     order=dedent("""\
     order
@@ -698,7 +704,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -791,7 +797,7 @@ def duplicated(values, keep='first'):
     return f(values, keep=keep)
 
 
-def mode(values):
+def mode(values, dropna=True):
     """
     Returns the mode(s) of an array.
 
@@ -799,6 +805,10 @@ def mode(values):
     ----------
     values : array-like
         Array over which to check for duplicate values.
+    dropna : boolean, default True
+        Don't consider counts of NaN/NaT.
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -811,20 +821,18 @@ def mode(values):
 
     # categorical is a fast-path
     if is_categorical_dtype(values):
-
         if isinstance(values, Series):
-            return Series(values.values.mode(), name=values.name)
-        return values.mode()
+            return Series(values.values.mode(dropna=dropna), name=values.name)
+        return values.mode(dropna=dropna)
+
+    if dropna and is_datetimelike(values):
+        mask = values.isnull()
+        values = values[~mask]
 
     values, dtype, ndtype = _ensure_data(values)
 
-    # TODO: this should support float64
-    if ndtype not in ['int64', 'uint64', 'object']:
-        ndtype = 'object'
-        values = _ensure_object(values)
-
     f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
-    result = f(values)
+    result = f(values, dropna=dropna)
     try:
         result = np.sort(result)
     except TypeError as e:
@@ -1067,8 +1075,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1124,9 +1132,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]
@@ -1136,7 +1147,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds
@@ -1293,7 +1308,7 @@ def _take_nd_object(arr, indexer, out, axis, fill_value, mask_info):
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(_ensure_platform_int(indexer), axis=axis, out=out)
+        arr.take(ensure_platform_int(indexer), axis=axis, out=out)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask
@@ -1434,11 +1449,105 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
             return func
 
     def func(arr, indexer, out, fill_value=np.nan):
-        indexer = _ensure_int64(indexer)
+        indexer = ensure_int64(indexer)
         _take_nd_object(arr, indexer, out, axis=axis, fill_value=fill_value,
                         mask_info=mask_info)
 
     return func
+
+
+def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
+    """
+    Take elements from an array.
+
+    .. versionadded:: 0.23.0
+
+    Parameters
+    ----------
+    arr : sequence
+        Non array-likes (sequences without a dtype) are coerced
+        to an ndarray.
+    indices : sequence of integers
+        Indices to be taken.
+    axis : int, default 0
+        The axis over which to select values.
+    allow_fill : bool, default False
+        How to handle negative values in `indices`.
+
+        * False: negative values in `indices` indicate positional indices
+          from the right (the default). This is similar to :func:`numpy.take`.
+
+        * True: negative values in `indices` indicate
+          missing values. These values are set to `fill_value`. Any other
+          other negative values raise a ``ValueError``.
+
+    fill_value : any, optional
+        Fill value to use for NA-indices when `allow_fill` is True.
+        This may be ``None``, in which case the default NA value for
+        the type (``self.dtype.na_value``) is used.
+
+        For multi-dimensional `arr`, each *element* is filled with
+        `fill_value`.
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+        Same type as the input.
+
+    Raises
+    ------
+    IndexError
+        When `indices` is out of bounds for the array.
+    ValueError
+        When the indexer contains negative values other than ``-1``
+        and `allow_fill` is True.
+
+    Notes
+    -----
+    When `allow_fill` is False, `indices` may be whatever dimensionality
+    is accepted by NumPy for `arr`.
+
+    When `allow_fill` is True, `indices` should be 1-D.
+
+    See Also
+    --------
+    numpy.take
+
+    Examples
+    --------
+    >>> from pandas.api.extensions import take
+
+    With the default ``allow_fill=False``, negative numbers indicate
+    positional indices from the right.
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1])
+    array([10, 10, 30])
+
+    Setting ``allow_fill=True`` will place `fill_value` in those positions.
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
+    array([10., 10., nan])
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
+    ...      fill_value=-10)
+    array([ 10,  10, -10])
+    """
+    from pandas.core.indexing import validate_indices
+
+    if not is_array_like(arr):
+        arr = np.asarray(arr)
+
+    indices = np.asarray(indices, dtype=np.intp)
+
+    if allow_fill:
+        # Pandas style, -1 means NA
+        validate_indices(indices, len(arr))
+        result = take_1d(arr, indices, axis=axis, allow_fill=True,
+                         fill_value=fill_value)
+    else:
+        # NumPy style
+        result = arr.take(indices, axis=axis)
+    return result
 
 
 def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
@@ -1455,7 +1564,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
-        indicies are filed with fill_value
+        indices are filed with fill_value
     axis : int, default 0
         Axis to take from
     out : ndarray or None, default None
@@ -1490,12 +1599,16 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     if is_sparse(arr):
         arr = arr.get_values()
+    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
+        arr = arr.values
+
+    arr = np.asarray(arr)
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()
     else:
-        indexer = _ensure_int64(indexer, copy=False)
+        indexer = ensure_int64(indexer, copy=False)
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()
             mask_info = None, False
@@ -1573,11 +1686,11 @@ def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
         if row_idx is None:
             row_idx = np.arange(arr.shape[0], dtype=np.int64)
         else:
-            row_idx = _ensure_int64(row_idx)
+            row_idx = ensure_int64(row_idx)
         if col_idx is None:
             col_idx = np.arange(arr.shape[1], dtype=np.int64)
         else:
-            col_idx = _ensure_int64(col_idx)
+            col_idx = ensure_int64(col_idx)
         indexer = row_idx, col_idx
         if not allow_fill:
             dtype, fill_value = arr.dtype, arr.dtype.type()

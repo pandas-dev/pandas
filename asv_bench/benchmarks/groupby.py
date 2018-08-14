@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    TimeGrouper, Categorical)
+                    TimeGrouper, Categorical, Timestamp)
 import pandas.util.testing as tm
 
 from .pandas_vb_common import setup  # noqa
@@ -142,7 +142,7 @@ class Nth(object):
     def time_series_nth_any(self, dtype):
         self.df['values'].groupby(self.df['key']).nth(0, dropna='any')
 
-    def time_groupby_nth_all(self, dtype):
+    def time_series_nth_all(self, dtype):
         self.df['values'].groupby(self.df['key']).nth(0, dropna='all')
 
     def time_series_nth(self, dtype):
@@ -383,6 +383,25 @@ class GroupByMethods(object):
 
     def time_dtype_as_field(self, dtype, method, application):
         self.as_field_method()
+
+
+class RankWithTies(object):
+    # GH 21237
+    goal_time = 0.2
+    param_names = ['dtype', 'tie_method']
+    params = [['float64', 'float32', 'int64', 'datetime64'],
+              ['first', 'average', 'dense', 'min', 'max']]
+
+    def setup(self, dtype, tie_method):
+        N = 10**4
+        if dtype == 'datetime64':
+            data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
+        else:
+            data = np.array([1] * N, dtype=dtype)
+        self.df = DataFrame({'values': data, 'key': ['foo'] * N})
+
+    def time_rank_ties(self, dtype, tie_method):
+        self.df.groupby('key').rank(method=tie_method)
 
 
 class Float32(object):

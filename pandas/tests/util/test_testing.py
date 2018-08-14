@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import textwrap
+import os
 import pandas as pd
 import pytest
 import numpy as np
@@ -503,6 +505,25 @@ Attribute "names" are different
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2)
 
+    def test_categorical_index_equality(self):
+        expected = """Index are different
+
+Attribute "dtype" are different
+\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
+                               pd.Index(pd.Categorical(['a', 'b'],
+                                        categories=['a', 'b', 'c'])))
+
+    def test_categorical_index_equality_relax_categories_check(self):
+        assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
+                           pd.Index(pd.Categorical(['a', 'b'],
+                                    categories=['a', 'b', 'c'])),
+                           check_categorical=False)
+
 
 class TestAssertSeriesEqual(object):
 
@@ -599,6 +620,25 @@ Series values are different \\(33\\.33333 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 4]),
                                 check_less_precise=True)
+
+    def test_categorical_series_equality(self):
+        expected = """Attributes are different
+
+Attribute "dtype" are different
+\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
+                                pd.Series(pd.Categorical(['a', 'b'],
+                                          categories=['a', 'b', 'c'])))
+
+    def test_categorical_series_equality_relax_categories_check(self):
+        assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
+                            pd.Series(pd.Categorical(['a', 'b'],
+                                      categories=['a', 'b', 'c'])),
+                            check_categorical=False)
 
 
 class TestAssertFrameEqual(object):
@@ -781,6 +821,21 @@ Attribute "ordered" are different
             tm.assert_categorical_equal(a, b)
 
 
+class TestAssertIntervalArrayEqual(object):
+    def test_interval_array_equal_message(self):
+        a = pd.interval_range(0, periods=4).values
+        b = pd.interval_range(1, periods=4).values
+
+        msg = textwrap.dedent("""\
+            IntervalArray.left are different
+
+            IntervalArray.left values are different \\(100.0 %\\)
+            \\[left\\]:  Int64Index\\(\\[0, 1, 2, 3\\], dtype='int64'\\)
+            \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)""")
+        with tm.assert_raises_regex(AssertionError, msg):
+            tm.assert_interval_array_equal(a, b)
+
+
 class TestRNGContext(object):
 
     def test_RNGContext(self):
@@ -803,3 +858,20 @@ class TestLocale(object):
         # GH9744
         locales = tm.get_locales()
         assert len(locales) >= 1
+
+
+def test_datapath_missing(datapath, request):
+    if not request.config.getoption("--strict-data-files"):
+        pytest.skip("Need to set '--strict-data-files'")
+
+    with pytest.raises(ValueError):
+        datapath('not_a_file')
+
+    result = datapath('data', 'iris.csv')
+    expected = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        'data',
+        'iris.csv'
+    )
+
+    assert result == expected

@@ -629,9 +629,30 @@ class TestSparseDataFrame(SharedWithSparse):
 
         a = self.frame.iloc[:5, :3]
         b = self.frame.iloc[5:]
-        appended = a.append(b)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # Stacklevel is set for pd.concat, not append
+            appended = a.append(b)
         tm.assert_sp_frame_equal(appended.iloc[:, :3], self.frame.iloc[:, :3],
                                  exact_indices=False)
+
+        a = a[['B', 'C', 'A']].head(2)
+        b = b.head(2)
+
+        expected = pd.SparseDataFrame({
+            "B": [0., 1, None, 3],
+            "C": [0., 1, 5, 6],
+            "A": [None, None, 2, 3],
+            "D": [None, None, 5, None],
+        }, index=a.index | b.index, columns=['B', 'C', 'A', 'D'])
+        with tm.assert_produces_warning(None):
+            appended = a.append(b, sort=False)
+
+        tm.assert_frame_equal(appended, expected)
+
+        with tm.assert_produces_warning(None):
+            appended = a.append(b, sort=True)
+
+        tm.assert_sp_frame_equal(appended, expected[['A', 'B', 'C', 'D']])
 
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
@@ -1110,7 +1131,8 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_frame_equal(df_blocks['float64'], df)
 
     @pytest.mark.xfail(reason='nan column names in _init_dict problematic '
-                              '(GH 16894)')
+                              '(GH#16894)',
+                       strict=True)
     def test_nan_columnname(self):
         # GH 8822
         nan_colname = DataFrame(Series(1.0, index=[0]), columns=[nan])
@@ -1236,8 +1258,8 @@ class TestSparseDataFrameAnalytics(object):
         for func in funcs:
             getattr(np, func)(self.frame)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)',
+                       strict=True)
     def test_quantile(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]
@@ -1253,8 +1275,8 @@ class TestSparseDataFrameAnalytics(object):
         tm.assert_series_equal(result, dense_expected)
         tm.assert_sp_series_equal(result, sparse_expected)
 
-    @pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                              '(GH 17386)')
+    @pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)',
+                       strict=True)
     def test_quantile_multi(self):
         # GH 17386
         data = [[1, 1], [2, 10], [3, 100], [nan, nan]]

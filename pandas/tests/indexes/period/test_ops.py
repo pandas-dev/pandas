@@ -401,6 +401,18 @@ class TestPeriodIndexOps(Ops):
         assert not idx.equals(list(idx3))
         assert not idx.equals(pd.Series(idx3))
 
+    def test_freq_setter_deprecated(self):
+        # GH 20678
+        idx = pd.period_range('2018Q1', periods=4, freq='Q')
+
+        # no warning for getter
+        with tm.assert_produces_warning(None):
+            idx.freq
+
+        # warning for setter
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = pd.offsets.Day()
+
 
 class TestPeriodIndexSeriesMethods(object):
     """ Test PeriodIndex and Period Series Ops consistency """

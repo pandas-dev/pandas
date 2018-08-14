@@ -10,7 +10,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_float_dtype
 from pandas import (Series, DataFrame, Index, date_range, isna, notna,
-                    pivot, MultiIndex)
+                    MultiIndex)
 from pandas.core.nanops import nanall, nanany
 from pandas.core.panel import Panel
 
@@ -182,10 +182,6 @@ class SafeForLongAndSparse(object):
 
 
 class SafeForSparse(object):
-
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        assert_panel_equal(x, y)
 
     def test_get_axis(self):
         assert (self.panel._get_axis(0) is self.panel.items)
@@ -477,8 +473,6 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         with catch_warnings(record=True):
-
-            # LongPanel with one item
             lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
             with pytest.raises(ValueError):
                 self.panel['ItemE'] = lp
@@ -904,10 +898,6 @@ class CheckIndexing(object):
 
 class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
-
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        assert_panel_equal(x, y)
 
     def setup_method(self, method):
         self.panel = make_test_panel()
@@ -1534,7 +1524,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
             assert_panel_equal(result, expected)
 
-            # neg indicies ok
+            # neg indices ok
             expected = self.panel.reindex(minor=['D', 'D', 'B', 'C'])
             result = self.panel.take([3, -1, 1, 2], axis=2)
             assert_panel_equal(result, expected)
@@ -2154,8 +2144,8 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert (f1.items == [1, 2]).all()
             assert (f2.items == [1, 2]).all()
 
-            ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
-                                         names=['first', 'second'])
+            MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
+                                   names=['first', 'second'])
 
     def test_multiindex_blocks(self):
         with catch_warnings(record=True):
@@ -2462,9 +2452,9 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         pytest.raises(NotImplementedError, self.panel.sort_values, 'ItemA')
 
 
-class TestLongPanel(object):
+class TestPanelFrame(object):
     """
-    LongPanel no longer exists, but...
+    Check that conversions to and from Panel to DataFrame work.
     """
 
     def setup_method(self, method):
@@ -2686,30 +2676,6 @@ class TestLongPanel(object):
             pytest.raises(Exception, lp1.join,
                           self.panel.filter(['ItemB', 'ItemC']))
 
-    def test_pivot(self):
-        with catch_warnings(record=True):
-            from pandas.core.reshape.reshape import _slow_pivot
-
-            one, two, three = (np.array([1, 2, 3, 4, 5]),
-                               np.array(['a', 'b', 'c', 'd', 'e']),
-                               np.array([1, 2, 3, 5, 4.]))
-            df = pivot(one, two, three)
-            assert df['a'][1] == 1
-            assert df['b'][2] == 2
-            assert df['c'][3] == 3
-            assert df['d'][4] == 5
-            assert df['e'][5] == 4
-            assert_frame_equal(df, _slow_pivot(one, two, three))
-
-            # weird overlap, TODO: test?
-            a, b, c = (np.array([1, 2, 3, 4, 4]),
-                       np.array(['a', 'a', 'a', 'a', 'a']),
-                       np.array([1., 2., 3., 4., 5.]))
-            pytest.raises(Exception, pivot, a, b, c)
-
-            # corner case, empty
-            df = pivot(np.array([]), np.array([]), np.array([]))
-
 
 def test_panel_index():
     index = panelm.panel_index([1, 2, 3, 4], [1, 2, 3])
@@ -2717,3 +2683,10 @@ def test_panel_index():
                                        np.repeat([1, 2, 3], 4)],
                                       names=['time', 'panel'])
     tm.assert_index_equal(index, expected)
+
+
+def test_panel_np_all():
+    with catch_warnings(record=True):
+        wp = Panel({"A": DataFrame({'b': [1, 2]})})
+    result = np.all(wp)
+    assert result == np.bool_(True)

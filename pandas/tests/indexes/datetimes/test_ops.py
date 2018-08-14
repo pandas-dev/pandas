@@ -9,15 +9,9 @@ import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Timestamp,
                     date_range, _np_version_under1p10, Index,
                     bdate_range)
-from pandas.tseries.offsets import BMonthEnd, CDay, BDay
+from pandas.tseries.offsets import BMonthEnd, CDay, BDay, Day, Hour
 from pandas.tests.test_base import Ops
-
-
-@pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
-                        'dateutil/Asia/Singapore',
-                        'dateutil/US/Pacific'])
-def tz_fixture(request):
-    return request.param
+from pandas.core.dtypes.generic import ABCDateOffset
 
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
@@ -52,8 +46,8 @@ class TestDatetimeIndexOps(Ops):
         assert s.day == 10
         pytest.raises(AttributeError, lambda: s.weekday)
 
-    def test_minmax_tz(self, tz_fixture):
-        tz = tz_fixture
+    def test_minmax_tz(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # monotonic
         idx1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
                                  '2011-01-03'], tz=tz)
@@ -102,8 +96,8 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, dr, out=0)
 
-    def test_repeat_range(self, tz_fixture):
-        tz = tz_fixture
+    def test_repeat_range(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         rng = date_range('1/1/2000', '1/1/2001')
 
         result = rng.repeat(5)
@@ -134,8 +128,8 @@ class TestDatetimeIndexOps(Ops):
             tm.assert_index_equal(res, exp)
             assert res.freq is None
 
-    def test_repeat(self, tz_fixture):
-        tz = tz_fixture
+    def test_repeat(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         reps = 2
         msg = "the 'axis' parameter is not supported"
 
@@ -157,8 +151,8 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_raises_regex(ValueError, msg, np.repeat,
                                rng, reps, axis=1)
 
-    def test_resolution(self, tz_fixture):
-        tz = tz_fixture
+    def test_resolution(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         for freq, expected in zip(['A', 'Q', 'M', 'D', 'H', 'T',
                                    'S', 'L', 'U'],
                                   ['day', 'day', 'day', 'day', 'hour',
@@ -168,8 +162,8 @@ class TestDatetimeIndexOps(Ops):
                                 tz=tz)
             assert idx.resolution == expected
 
-    def test_value_counts_unique(self, tz_fixture):
-        tz = tz_fixture
+    def test_value_counts_unique(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH 7735
         idx = pd.date_range('2011-01-01 09:00', freq='H', periods=10)
         # create repeated values, 'n'th element is repeated by n+1 times
@@ -269,8 +263,9 @@ class TestDatetimeIndexOps(Ops):
          [pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
           '2011-01-05'])
     ])
-    def test_order_without_freq(self, index_dates, expected_dates, tz_fixture):
-        tz = tz_fixture
+    def test_order_without_freq(self, index_dates, expected_dates,
+                                tz_naive_fixture):
+        tz = tz_naive_fixture
 
         # without freq
         index = DatetimeIndex(index_dates, tz=tz, name='idx')
@@ -355,11 +350,11 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_numpy_array_equal(result, exp)
 
     def test_nat(self, tz_naive_fixture):
-        timezone = tz_naive_fixture
+        tz = tz_naive_fixture
         assert pd.DatetimeIndex._na_value is pd.NaT
         assert pd.DatetimeIndex([])._na_value is pd.NaT
 
-        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=timezone)
+        idx = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, False]))
@@ -367,7 +362,7 @@ class TestDatetimeIndexOps(Ops):
         tm.assert_numpy_array_equal(idx._nan_idxs,
                                     np.array([], dtype=np.intp))
 
-        idx = pd.DatetimeIndex(['2011-01-01', 'NaT'], tz=timezone)
+        idx = pd.DatetimeIndex(['2011-01-01', 'NaT'], tz=tz)
         assert idx._can_hold_na
 
         tm.assert_numpy_array_equal(idx._isnan, np.array([False, True]))
@@ -405,6 +400,50 @@ class TestDatetimeIndexOps(Ops):
         assert not idx.equals(list(idx3))
         assert not idx.equals(pd.Series(idx3))
 
+    @pytest.mark.parametrize('values', [
+        ['20180101', '20180103', '20180105'], []])
+    @pytest.mark.parametrize('freq', [
+        '2D', Day(2), '2B', BDay(2), '48H', Hour(48)])
+    @pytest.mark.parametrize('tz', [None, 'US/Eastern'])
+    def test_freq_setter(self, values, freq, tz):
+        # GH 20678
+        idx = DatetimeIndex(values, tz=tz)
+
+        # can set to an offset, converting from string if necessary
+        idx.freq = freq
+        assert idx.freq == freq
+        assert isinstance(idx.freq, ABCDateOffset)
+
+        # can reset to None
+        idx.freq = None
+        assert idx.freq is None
+
+    def test_freq_setter_errors(self):
+        # GH 20678
+        idx = DatetimeIndex(['20180101', '20180103', '20180105'])
+
+        # setting with an incompatible freq
+        msg = ('Inferred frequency 2D from passed values does not conform to '
+               'passed frequency 5D')
+        with tm.assert_raises_regex(ValueError, msg):
+            idx.freq = '5D'
+
+        # setting with non-freq string
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            idx.freq = 'foo'
+
+    def test_offset_deprecated(self):
+        # GH 20716
+        idx = pd.DatetimeIndex(['20180101', '20180102'])
+
+        # getter deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            idx.offset
+
+        # setter deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            idx.offset = BDay()
+
 
 class TestBusinessDatetimeIndex(object):
 
@@ -420,7 +459,7 @@ class TestBusinessDatetimeIndex(object):
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.offset is not None
+        assert unpickled.freq is not None
 
     def test_copy(self):
         cp = self.rng.copy()
@@ -430,15 +469,15 @@ class TestBusinessDatetimeIndex(object):
     def test_shift(self):
         shifted = self.rng.shift(5)
         assert shifted[0] == self.rng[5]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(-5)
         assert shifted[5] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(0)
         assert shifted[0] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         rng = date_range(START, END, freq=BMonthEnd())
         shifted = rng.shift(1, freq=BDay())
@@ -485,15 +524,15 @@ class TestCustomDatetimeIndex(object):
 
         shifted = self.rng.shift(5)
         assert shifted[0] == self.rng[5]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(-5)
         assert shifted[5] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(0)
         assert shifted[0] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         # PerformanceWarning
         with warnings.catch_warnings(record=True):
@@ -503,7 +542,7 @@ class TestCustomDatetimeIndex(object):
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.offset is not None
+        assert unpickled.freq is not None
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
