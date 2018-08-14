@@ -1236,16 +1236,31 @@ class TestCanHoldElement(object):
                 (operator.truediv, 'bool'),
                 (operator.mod, 'i8'),
                 (operator.mod, 'complex128'),
-                (operator.mod, '<M8[ns]'),
-                (operator.mod, '<m8[ns]'),
                 (operator.pow, 'bool')}
         if (op, dtype) in skip:
             pytest.skip("Invalid combination {},{}".format(op, dtype))
+
         e = DummyElement(value, dtype)
         s = pd.DataFrame({"A": [e.value, e.value]}, dtype=e.dtype)
-        result = op(s, e).dtypes
-        expected = op(s, value).dtypes
-        assert_series_equal(result, expected)
+
+        invalid = {(operator.pow, '<M8[ns]'),
+                   (operator.mod, '<M8[ns]'),
+                   (operator.truediv, '<M8[ns]'),
+                   (operator.mul, '<M8[ns]'),
+                   (operator.add, '<M8[ns]'),
+                   (operator.pow, '<m8[ns]'),
+                   (operator.mod, '<m8[ns]'),
+                   (operator.mul, '<m8[ns]')}
+
+        if (op, dtype) in invalid:
+            with pytest.raises(TypeError):
+                result = op(s, e.value)
+        else:
+            # FIXME: Since dispatching to Series, this test no longer
+            # asserts anything meaningful
+            result = op(s, e.value).dtypes
+            expected = op(s, value).dtypes
+            assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('typestr, holder', [
