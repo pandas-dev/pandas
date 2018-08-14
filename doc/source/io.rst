@@ -4570,6 +4570,8 @@ dtypes, including extension dtypes such as datetime with tz.
 Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
+* The index is included in the output by default, which can cause problems with non-Pandas consumers that are
+  not expecting that extra column. You can, however, omit indexes. (See below)
 * Index level names, if specified, must be strings.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
@@ -4632,6 +4634,40 @@ Read only certain columns of a parquet file.
    import os
    os.remove('example_pa.parquet')
    os.remove('example_fp.parquet')
+
+
+Omitting Indexes
+''''''''''''''''
+
+Dumping a ``DataFrame`` to parquet includes the implicit index as one or more
+columns in the output file. Thus, this code:
+
+.. ipython:: python
+
+    import pandas
+
+    df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet')
+
+creates a parquet file with *three* columns: ``a``, ``b``, and ``__index_level_0__``.
+
+This unexpected extra column causes some databases like Amazon Redshift to reject
+the file, because that column doesn't exist in the target table.
+
+If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
+:func:`~pandas.DataFrame.to_parquet`:
+
+.. ipython:: python
+
+    import pandas
+
+    df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet', index=False)
+
+This creates a parquet file with just the two expected columns, ``a`` and ``b``.
+If your ``DataFrame`` has a custom index, you won't get it back when you load
+this file into a ``DataFrame``.
+
 
 .. _io.sql:
 
