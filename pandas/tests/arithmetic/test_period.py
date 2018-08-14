@@ -3,7 +3,6 @@
 # behave identically.
 # Specifically for Period dtype
 import operator
-from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -17,7 +16,7 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.core.indexes.period as period
 from pandas.core import ops
 from pandas import (
-    Period, PeriodIndex, period_range, Timedelta, Series, NaT,
+    Period, PeriodIndex, period_range, Series, NaT,
     _np_version_under1p10)
 
 

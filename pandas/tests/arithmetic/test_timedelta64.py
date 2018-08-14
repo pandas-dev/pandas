@@ -22,11 +22,12 @@ from pandas import (
 # ------------------------------------------------------------------
 # Fixtures
 
-@pytest.fixture(params=[pd.Index,
-                        Series,
-                        pytest.param(pd.DataFrame,
-                                     marks=pytest.mark.xfail(strict=True))],
-                ids=lambda x: x.__name__)
+@pytest.fixture(params=[
+    pd.Index,
+    Series,
+    pytest.param(pd.DataFrame,
+                 marks=pytest.mark.xfail(strict=True))
+], ids=lambda x: x.__name__)
 def box_df_fail(request):
     """
     Fixture equivalent to `box` fixture but xfailing the DataFrame case.
@@ -1334,8 +1335,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
         tm.assert_equal(res3, expected_sub)
 
     @pytest.mark.parametrize('obox', [np.array, pd.Index, pd.Series])
-    def test_td64arr_addsub_anchored_offset_arraylike(self, obox,
-            box_df_broadcast_failure):
+    def test_td64arr_addsub_anchored_offset_arraylike(
+            self, obox, box_df_broadcast_failure):
         # GH#18824
         box = box_df_broadcast_failure
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
