@@ -28,7 +28,6 @@ from pandas.compat.numpy import function as nv
 from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_scalar,
-    is_integer,
     ensure_float)
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.missing import isna, notna
@@ -582,13 +581,12 @@ b  2""")
             if 'axis' not in kwargs_with_axis or \
                kwargs_with_axis['axis'] is None:
                 kwargs_with_axis['axis'] = self.axis
-            if (name == 'hist' and
-                    kwargs.get('equal_bins', False) is True):
+            if name == 'hist' and kwargs.get('equal_bins', False):
                 # GH-22222
                 bins = kwargs.get('bins')
                 if bins is None:
                     bins = 10  # use default value used in `hist_series`
-                if is_integer(bins):
+                if is_scalar(bins):
                     # share the same numpy array for all group bins
                     bins = np.linspace(self.obj.min(),
                                        self.obj.max(), bins + 1)
