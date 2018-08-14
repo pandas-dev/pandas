@@ -109,78 +109,102 @@ class TestInterval(object):
         with tm.assert_raises_regex(TypeError, msg):
             iv.length
 
-    def test_math_add(self, interval):
-        expected = Interval(1, 2)
-        actual = interval + 1
-        assert expected == actual
+    def test_math_add(self, closed):
+        interval = Interval(0, 1, closed=closed)
+        expected = Interval(1, 2, closed=closed)
 
-        expected = Interval(1, 2)
-        actual = 1 + interval
-        assert expected == actual
+        result = interval + 1
+        assert result == expected
 
-        actual = interval
-        actual += 1
-        assert expected == actual
+        result = 1 + interval
+        assert result == expected
+
+        result = interval
+        result += 1
+        assert result == expected
 
         msg = r"unsupported operand type\(s\) for \+"
         with tm.assert_raises_regex(TypeError, msg):
-            interval + Interval(1, 2)
+            interval + interval
 
         with tm.assert_raises_regex(TypeError, msg):
             interval + 'foo'
 
-    def test_math_sub(self, interval):
-        expected = Interval(-1, 0)
-        actual = interval - 1
-        assert expected == actual
+    def test_math_sub(self, closed):
+        interval = Interval(0, 1, closed=closed)
+        expected = Interval(-1, 0, closed=closed)
 
-        actual = interval
-        actual -= 1
-        assert expected == actual
+        result = interval - 1
+        assert result == expected
+
+        result = interval
+        result -= 1
+        assert result == expected
 
         msg = r"unsupported operand type\(s\) for -"
         with tm.assert_raises_regex(TypeError, msg):
-            interval - Interval(1, 2)
+            interval - interval
 
         with tm.assert_raises_regex(TypeError, msg):
             interval - 'foo'
 
-    def test_math_mult(self, interval):
-        expected = Interval(0, 2)
-        actual = interval * 2
-        assert expected == actual
+    def test_math_mult(self, closed):
+        interval = Interval(0, 1, closed=closed)
+        expected = Interval(0, 2, closed=closed)
 
-        expected = Interval(0, 2)
-        actual = 2 * interval
-        assert expected == actual
+        result = interval * 2
+        assert result == expected
 
-        actual = interval
-        actual *= 2
-        assert expected == actual
+        result = 2 * interval
+        assert result == expected
+
+        result = interval
+        result *= 2
+        assert result == expected
 
         msg = r"unsupported operand type\(s\) for \*"
         with tm.assert_raises_regex(TypeError, msg):
-            interval * Interval(1, 2)
+            interval * interval
 
         msg = r"can\'t multiply sequence by non-int"
         with tm.assert_raises_regex(TypeError, msg):
             interval * 'foo'
 
-    def test_math_div(self, interval):
-        expected = Interval(0, 0.5)
-        actual = interval / 2.0
-        assert expected == actual
+    def test_math_div(self, closed):
+        interval = Interval(0, 1, closed=closed)
+        expected = Interval(0, 0.5, closed=closed)
 
-        actual = interval
-        actual /= 2.0
-        assert expected == actual
+        result = interval / 2.0
+        assert result == expected
+
+        result = interval
+        result /= 2.0
+        assert result == expected
 
         msg = r"unsupported operand type\(s\) for /"
         with tm.assert_raises_regex(TypeError, msg):
-            interval / Interval(1, 2)
+            interval / interval
 
         with tm.assert_raises_regex(TypeError, msg):
             interval / 'foo'
+
+    def test_math_floordiv(self, closed):
+        interval = Interval(1, 2, closed=closed)
+        expected = Interval(0, 1, closed=closed)
+
+        result = interval // 2
+        assert result == expected
+
+        result = interval
+        result //= 2
+        assert result == expected
+
+        msg = r"unsupported operand type\(s\) for //"
+        with tm.assert_raises_regex(TypeError, msg):
+            interval // interval
+
+        with tm.assert_raises_regex(TypeError, msg):
+            interval // 'foo'
 
     def test_constructor_errors(self):
         msg = "invalid option for 'closed': foo"
