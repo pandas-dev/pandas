@@ -19,26 +19,19 @@ class TestTimestampUnaryOps(object):
 
     # --------------------------------------------------------------
     # Timestamp.round
-
-    def test_round_day_naive(self):
-        dt = Timestamp('20130101 09:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130101')
-        assert result == expected
-
-        dt = Timestamp('20130101 19:10:11')
-        result = dt.round('D')
-        expected = Timestamp('20130102')
-        assert result == expected
-
-        dt = Timestamp('20130201 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130202')
-        assert result == expected
-
-        dt = Timestamp('20130104 12:00:00')
-        result = dt.round('D')
-        expected = Timestamp('20130105')
+    @pytest.mark.parametrize('timestamp, freq, expected', [
+        ('20130101 09:10:11', 'D', '20130101'),
+        ('20130101 19:10:11', 'D', '20130102'),
+        ('20130201 12:00:00', 'D', '20130202'),
+        ('20130104 12:00:00', 'D', '20130105'),
+        ('2000-01-05 05:09:15.13', 'D', '2000-01-05 00:00:00'),
+        ('2000-01-05 05:09:15.13', 'H', '2000-01-05 05:00:00'),
+        ('2000-01-05 05:09:15.13', 'S', '2000-01-05 05:09:15')
+    ])
+    def test_round_frequencies(self, timestamp, freq, expected):
+        dt = Timestamp(timestamp)
+        result = dt.round(freq)
+        expected = Timestamp(expected)
         assert result == expected
 
     def test_round_tzaware(self):
@@ -84,16 +77,6 @@ class TestTimestampUnaryOps(object):
         stamp = Timestamp('2000-01-05 05:09:15.13')
         with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
             stamp.round('foo')
-
-    @pytest.mark.parametrize('freq, expected', [
-        ('D', Timestamp('2000-01-05 00:00:00')),
-        ('H', Timestamp('2000-01-05 05:00:00')),
-        ('S', Timestamp('2000-01-05 05:09:15'))])
-    def test_round_frequencies(self, freq, expected):
-        stamp = Timestamp('2000-01-05 05:09:15.13')
-
-        result = stamp.round(freq=freq)
-        assert result == expected
 
     @pytest.mark.parametrize('test_input, rounder, freq, expected', [
         ('2117-01-01 00:00:45', 'floor', '15s', '2117-01-01 00:00:45'),
