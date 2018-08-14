@@ -63,6 +63,15 @@ class TestDatetime64DataFrameComparison(object):
         expected = pd.DataFrame({'test': [False, False]})
         tm.assert_frame_equal(df == -1, expected)
 
+    def test_dt64_nat_comparison(self):
+        # GH#22242, GH#22163 DataFrame considered NaT == ts incorrectly
+        ts = pd.Timestamp.now()
+        df = pd.DataFrame([ts, pd.NaT])
+        expected = pd.DataFrame([True, False])
+
+        result = df == ts
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDatetime64SeriesComparison(object):
     # TODO: moved from tests.series.test_operators; needs cleanup
@@ -640,10 +649,22 @@ class TestDatetimeIndexComparisons(object):
 # Arithmetic
 
 class TestFrameArithmetic(object):
+    def test_dt64arr_sub_dtscalar(self, box):
+        # GH#8554, GH#22163 DataFrame op should _not_ return dt64 dtype
+        idx = pd.date_range('2013-01-01', periods=3)
+        idx = tm.box_expected(idx, box)
 
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano',
-                       strict=True)
+        ts = pd.Timestamp('2013-01-01')
+        # TODO: parametrize over scalar types
+
+        expected = pd.TimedeltaIndex(['0 Days', '1 Day', '2 Days'])
+        expected = tm.box_expected(expected, box)
+
+        result = idx - ts
+        tm.assert_equal(result, expected)
+
     def test_df_sub_datetime64_not_ns(self):
+        # GH#7996, GH#22163 ensure non-nano datetime64 is converted to nano
         df = pd.DataFrame(pd.date_range('20130101', periods=3))
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
@@ -992,9 +1013,11 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             op(dti, other)
 
-    def test_dti_add_timestamp_raises(self):
+    def test_dti_add_timestamp_raises(self, box):
+        # GH#22163 ensure DataFrame doesn't cast Timestamp to i8
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        msg = "cannot add DatetimeIndex and Timestamp"
+        idx = tm.box_expected(idx, box)
+        msg = "cannot add"
         with tm.assert_raises_regex(TypeError, msg):
             idx + Timestamp('2011-01-01')
 
@@ -1090,13 +1113,17 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
 
-    def test_dti_add_timedeltalike(self, tz_naive_fixture, delta):
+    def test_dti_add_timedeltalike(self, tz_naive_fixture, delta, box):
+        # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
+        rng = tm.box_expected(rng, box)
+
         result = rng + delta
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
-        tm.assert_index_equal(result, expected)
+        expected = tm.box_expected(expected, box)
+        tm.assert_equal(result, expected)
 
     def test_dti_iadd_timedeltalike(self, tz_naive_fixture, delta):
         tz = tz_naive_fixture
@@ -1662,14 +1689,8 @@ class TestDatetimeIndexArithmetic(object):
             res3 = dti - other
         tm.assert_series_equal(res3, expected_sub)
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        pd.Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="Returns object dtype",
-                                             strict=True))
-    ], ids=lambda x: x.__name__)
     def test_dti_add_offset_tzaware(self, tz_aware_fixture, box):
+        # GH#21610, GH#22163 ensure DataFrame doesn't return object-dtype
         timezone = tz_aware_fixture
         if timezone == 'US/Pacific':
             dates = date_range('2012-11-01', periods=3, tz=timezone)

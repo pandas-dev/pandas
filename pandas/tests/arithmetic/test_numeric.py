@@ -58,13 +58,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         tm.assert_series_equal(expected, td * other)
         tm.assert_series_equal(expected, other * td)
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="block.eval incorrect",
-                                             strict=True))
-    ])
     @pytest.mark.parametrize('index', [
         pd.Int64Index(range(1, 11)),
         pd.UInt64Index(range(1, 11)),
@@ -79,7 +72,7 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
     def test_numeric_arr_mul_tdscalar(self, scalar_td, index, box):
         # GH#19333
 
-        if (box is Series and
+        if (box in [Series, pd.DataFrame] and
                 type(scalar_td) is timedelta and index.dtype == 'f8'):
             raise pytest.xfail(reason="Cannot multiply timedelta by float")
 

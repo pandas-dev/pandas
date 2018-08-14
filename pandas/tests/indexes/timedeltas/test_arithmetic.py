@@ -473,7 +473,6 @@ class TestTimedeltaIndexArithmetic(object):
         scalar1 = pd.to_timedelta('00:00:01')
         scalar2 = pd.to_timedelta('00:00:02')
         timedelta_NaT = pd.to_timedelta('NaT')
-        NA = np.nan
 
         actual = scalar1 + scalar1
         assert actual == scalar2
@@ -541,10 +540,10 @@ class TestTimedeltaIndexArithmetic(object):
         actual = df1 - timedelta_NaT
         tm.assert_frame_equal(actual, dfn)
 
-        actual = df1 + NA
-        tm.assert_frame_equal(actual, dfn)
-        actual = df1 - NA
-        tm.assert_frame_equal(actual, dfn)
+        with pytest.raises(TypeError):
+            df1 + np.nan
+        with pytest.raises(TypeError):
+            df1 - np.nan
 
         actual = df1 + pd.NaT  # NaT is datetime, not timedelta
         tm.assert_frame_equal(actual, dfn)
