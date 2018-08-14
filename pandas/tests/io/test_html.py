@@ -153,57 +153,57 @@ class TestReadHtml(object):
         assert not df.empty
 
     def test_skiprows_int(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=1)
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=1)
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows=1)
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=1)
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_xrange(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=range(2))[0]
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=range(2))[0]
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows=range(2))[0]
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=range(2))[0]
         tm.assert_frame_equal(df1, df2)
 
     def test_skiprows_list(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=[1, 2])
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=[2, 1])
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows=[1, 2])
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=[2, 1])
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_set(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows={1, 2})
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows={2, 1})
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows={1, 2})
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows={2, 1})
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_slice(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=1)
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=1)
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows=1)
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=1)
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_slice_short(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=slice(2))
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=slice(2))
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows=slice(2))
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=slice(2))
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_slice_long(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=slice(2, 5))
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=slice(4, 1, -1))
+        df1 = self.read_html(self.spam_data, '.*Water.*', skip_rows=slice(2, 5))
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=slice(4, 1, -1))
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_ndarray(self):
         df1 = self.read_html(self.spam_data, '.*Water.*',
-                             skiprows=np.arange(2))
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=np.arange(2))
+                             skip_rows=np.arange(2))
+        df2 = self.read_html(self.spam_data, 'Unit', skip_rows=np.arange(2))
 
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_invalid(self):
         with tm.assert_raises_regex(TypeError, 'is not a valid type '
                                     'for skipping rows'):
-            self.read_html(self.spam_data, '.*Water.*', skiprows='asdf')
+            self.read_html(self.spam_data, '.*Water.*', skip_rows='asdf')
 
     def test_index(self):
         df1 = self.read_html(self.spam_data, '.*Water.*', index_col=0)
@@ -312,18 +312,18 @@ class TestReadHtml(object):
     @pytest.mark.slow
     def test_multiindex_header_skiprows_tuples(self):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df = self._bank_data(header=[0, 1], skiprows=1,
+            df = self._bank_data(header=[0, 1], skip_rows=1,
                                  tupleize_cols=True)[0]
             assert isinstance(df.columns, Index)
 
     @pytest.mark.slow
     def test_multiindex_header_skiprows(self):
-        df = self._bank_data(header=[0, 1], skiprows=1)[0]
+        df = self._bank_data(header=[0, 1], skip_rows=1)[0]
         assert isinstance(df.columns, MultiIndex)
 
     @pytest.mark.slow
     def test_multiindex_header_index_skiprows(self):
-        df = self._bank_data(header=[0, 1], index_col=[0, 1], skiprows=1)[0]
+        df = self._bank_data(header=[0, 1], index_col=[0, 1], skip_rows=1)[0]
         assert isinstance(df.index, MultiIndex)
         assert isinstance(df.columns, MultiIndex)
 
@@ -340,7 +340,7 @@ class TestReadHtml(object):
     def test_negative_skiprows(self):
         with tm.assert_raises_regex(ValueError,
                                     r'\(you passed a negative value\)'):
-            self.read_html(self.spam_data, 'Water', skiprows=-1)
+            self.read_html(self.spam_data, 'Water', skip_rows=-1)
 
     @network
     def test_multiple_matches(self):

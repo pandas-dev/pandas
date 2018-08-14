@@ -65,7 +65,7 @@ A,B,C
 """
         # this should ignore the first four lines (including comments)
         expected = np.array([[1., 2., 4.], [5., np.nan, 10.]])
-        df = self.read_csv(StringIO(data), comment='#', skiprows=4)
+        df = self.read_csv(StringIO(data), comment='#', skip_rows=4)
         tm.assert_numpy_array_equal(df.values, expected)
 
     def test_comment_header(self):
@@ -91,11 +91,11 @@ A,B,C
 1,2.,4.
 5.,NaN,10.0
 """
-        # skiprows should skip the first 4 lines (including comments), while
+        # skip_rows should skip the first 4 lines (including comments), while
         # header should start from the second non-commented line starting
         # with line 5
         expected = np.array([[1., 2., 4.], [5., np.nan, 10.]])
-        df = self.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
+        df = self.read_csv(StringIO(data), comment='#', skip_rows=4, header=1)
         tm.assert_numpy_array_equal(df.values, expected)
 
     def test_custom_comment_char(self):

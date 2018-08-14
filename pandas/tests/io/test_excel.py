@@ -110,11 +110,11 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['A', 'B', 'C'])
         df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0, usecols=3)
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        df2 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                index_col=0, usecols=3)
 
         with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+            df3 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                    index_col=0, parse_cols=3)
 
         # TODO add index to xls file)
@@ -128,11 +128,11 @@ class ReadingTestsBase(SharedItems):
         dfref = dfref.reindex(columns=['B', 'C'])
         df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
                                usecols=[0, 2, 3])
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        df2 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                index_col=0, usecols=[0, 2, 3])
 
         with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+            df3 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                    index_col=0, parse_cols=[0, 2, 3])
 
         # TODO add index to xls file)
@@ -147,11 +147,11 @@ class ReadingTestsBase(SharedItems):
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
                                usecols='A:D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        df3 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                index_col=0, usecols='A:D')
 
         with tm.assert_produces_warning(FutureWarning):
-            df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+            df4 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                    index_col=0, parse_cols='A:D')
 
         # TODO add index to xls, read xls ignores index name ?
@@ -162,7 +162,7 @@ class ReadingTestsBase(SharedItems):
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
                                usecols='A,C,D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        df3 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                index_col=0, usecols='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
@@ -171,7 +171,7 @@ class ReadingTestsBase(SharedItems):
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
                                usecols='A,C:D')
-        df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        df3 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                index_col=0, usecols='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
@@ -235,12 +235,12 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
 
         df1 = read_excel(excel, 0, index_col=0)
-        df2 = read_excel(excel, 1, skiprows=[1], index_col=0)
+        df2 = read_excel(excel, 1, skip_rows=[1], index_col=0)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
         df1 = excel.parse(0, index_col=0)
-        df2 = excel.parse(1, skiprows=[1], index_col=0)
+        df2 = excel.parse(1, skip_rows=[1], index_col=0)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
 
@@ -263,7 +263,7 @@ class ReadingTestsBase(SharedItems):
         dfref = self.get_csv_refdf('test1')
 
         df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0)
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
+        df2 = self.get_exceldf('test1', ext, 'Sheet2', skip_rows=[1],
                                index_col=0)
         # TODO add index to file
         tm.assert_frame_equal(df1, dfref, check_names=False)
@@ -773,7 +773,7 @@ class TestXlrdReader(ReadingTestsBase):
         tm.assert_frame_equal(actual, expected)
 
         actual = read_excel(mi_file, 'both_name_skiprows', index_col=[0, 1],
-                            header=[0, 1], skiprows=2)
+                            header=[0, 1], skip_rows=2)
         tm.assert_frame_equal(actual, expected)
 
     @td.skip_if_no('xlsxwriter')
@@ -968,7 +968,7 @@ class TestXlrdReader(ReadingTestsBase):
         # GH 4903
         actual = pd.read_excel(os.path.join(self.dirpath,
                                             'testskiprows' + ext),
-                               'skiprows_list', skiprows=[0, 2])
+                               'skiprows_list', skip_rows=[0, 2])
         expected = DataFrame([[1, 2.5, pd.Timestamp('2015-01-01'), True],
                               [2, 3.5, pd.Timestamp('2015-01-02'), False],
                               [3, 4.5, pd.Timestamp('2015-01-03'), False],
@@ -978,7 +978,7 @@ class TestXlrdReader(ReadingTestsBase):
 
         actual = pd.read_excel(os.path.join(self.dirpath,
                                             'testskiprows' + ext),
-                               'skiprows_list', skiprows=np.array([0, 2]))
+                               'skiprows_list', skip_rows=np.array([0, 2]))
         tm.assert_frame_equal(actual, expected)
 
     def test_read_excel_nrows(self, ext):

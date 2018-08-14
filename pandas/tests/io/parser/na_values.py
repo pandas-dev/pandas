@@ -104,15 +104,15 @@ ignore,this,row
                              [nan, 5, nan],
                              [7, 8, nan]])
 
-        df = self.read_csv(StringIO(data), na_values=['baz'], skiprows=[1])
+        df = self.read_csv(StringIO(data), na_values=['baz'], skip_rows=[1])
         tm.assert_numpy_array_equal(df.values, expected)
 
         df2 = self.read_table(StringIO(data), sep=',', na_values=['baz'],
-                              skiprows=[1])
+                              skip_rows=[1])
         tm.assert_numpy_array_equal(df2.values, expected)
 
         df3 = self.read_table(StringIO(data), sep=',', na_values='baz',
-                              skiprows=[1])
+                              skip_rows=[1])
         tm.assert_numpy_array_equal(df3.values, expected)
 
     def test_bool_na_values(self):

@@ -144,7 +144,7 @@ false_values : list, default None
     Values to consider as False
 skipinitialspace : boolean, default False
     Skip spaces after delimiter.
-skiprows : list-like or integer or callable, default None
+skip_rows : list-like or integer or callable, default None
     Line numbers to skip (0-indexed) or number of lines to skip (int)
     at the start of the file.
 
@@ -264,7 +264,7 @@ comment : str, default None
     of a line, the line will be ignored altogether. This parameter must be a
     single character. Like empty lines (as long as ``skip_blank_lines=True``),
     fully commented lines are ignored by the parameter `header` but not by
-    `skiprows`. For example, if ``comment='#'``, parsing
+    `skip_rows`. For example, if ``comment='#'``, parsing
     ``#empty\\na,b,c\\n1,2,3`` with ``header=0`` will result in 'a,b,c' being
     treated as the header.
 encoding : str, default None
@@ -347,7 +347,7 @@ colspecs : list of pairs (int, int) or 'infer'. optional
     fields of each line as half-open intervals (i.e.,  [from, to[ ).
     String value 'infer' can be used to instruct the parser to try
     detecting the column specifications from the first 100 rows of
-    the data which are not being skipped via skiprows (default='infer').
+    the data which are not being skipped via skip_rows (default='infer').
 widths : list of ints. optional
     A list of field widths which can be used instead of 'colspecs' if
     the intervals are contiguous.
@@ -479,7 +479,7 @@ _parser_defaults = {
     'index_col': None,
     'names': None,
     'prefix': None,
-    'skiprows': None,
+    'skip_rows': None,
     'na_values': None,
     'true_values': None,
     'false_values': None,
@@ -572,7 +572,7 @@ def _make_parser_function(name, default_sep=','):
                  true_values=None,
                  false_values=None,
                  skipinitialspace=False,
-                 skiprows=None,
+                 skip_rows=None,
                  nrows=None,
 
                  # NA and Missing Data Handling
@@ -664,7 +664,7 @@ def _make_parser_function(name, default_sep=','):
                     index_col=index_col,
                     names=names,
                     prefix=prefix,
-                    skiprows=skiprows,
+                    skip_rows=skip_rows,
                     na_values=na_values,
                     true_values=true_values,
                     false_values=false_values,
@@ -960,7 +960,7 @@ class TextFileReader(BaseIterator):
         names = options['names']
         converters = options['converters']
         na_values = options['na_values']
-        skiprows = options['skiprows']
+        skip_rows = options['skip_rows']
 
         _validate_header_arg(options['header'])
 
@@ -1009,22 +1009,22 @@ class TextFileReader(BaseIterator):
         keep_default_na = options['keep_default_na']
         na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
 
-        # handle skiprows; this is internally handled by the
+        # handle skip_rows; this is internally handled by the
         # c-engine, so only need for python parsers
         if engine != 'c':
-            if is_integer(skiprows):
-                skiprows = lrange(skiprows)
-            if skiprows is None:
-                skiprows = set()
-            elif not callable(skiprows):
-                skiprows = set(skiprows)
+            if is_integer(skip_rows):
+                skip_rows = lrange(skip_rows)
+            if skip_rows is None:
+                skip_rows = set()
+            elif not callable(skip_rows):
+                skip_rows = set(skip_rows)
 
         # put stuff back
         result['names'] = names
         result['converters'] = converters
         result['na_values'] = na_values
         result['na_fvalues'] = na_fvalues
-        result['skiprows'] = skiprows
+        result['skip_rows'] = skip_rows
 
         return result, engine
 
@@ -2007,7 +2007,7 @@ def TextParser(*args, **kwds):
     parse_dates : boolean, default False
     keep_date_col : boolean, default False
     date_parser : function, default None
-    skiprows : list of integers
+    skip_rows : list of integers
         Row numbers to skip
     skipfooter : int
         Number of line at bottom of file to skip
@@ -2056,12 +2056,12 @@ class PythonParser(ParserBase):
         self.encoding = kwds['encoding']
         self.compression = kwds['compression']
         self.memory_map = kwds['memory_map']
-        self.skiprows = kwds['skiprows']
+        self.skip_rows = kwds['skip_rows']
 
-        if callable(self.skiprows):
-            self.skipfunc = self.skiprows
+        if callable(self.skip_rows):
+            self.skipfunc = self.skip_rows
         else:
-            self.skipfunc = lambda x: x in self.skiprows
+            self.skipfunc = lambda x: x in self.skip_rows
 
         self.skipfooter = _validate_skipfooter_arg(kwds['skipfooter'])
         self.delimiter = kwds['delimiter']
@@ -2974,8 +2974,8 @@ class PythonParser(ParserBase):
                     new_rows = self.data[self.pos:self.pos + rows]
                     new_pos = self.pos + rows
 
-                # Check for stop rows. n.b.: self.skiprows is a set.
-                if self.skiprows:
+                # Check for stop rows. n.b.: self.skip_rows is a set.
+                if self.skip_rows:
                     new_rows = [row for i, row in enumerate(new_rows)
                                 if not self.skipfunc(i + self.pos)]
 
@@ -3001,7 +3001,7 @@ class PythonParser(ParserBase):
                                 new_rows.append(new_row)
 
                 except StopIteration:
-                    if self.skiprows:
+                    if self.skip_rows:
                         new_rows = [row for i, row in enumerate(new_rows)
                                     if not self.skipfunc(i + self.pos)]
                     lines.extend(new_rows)
@@ -3365,13 +3365,13 @@ class FixedWidthReader(BaseIterator):
     A reader of fixed-width lines.
     """
 
-    def __init__(self, f, colspecs, delimiter, comment, skiprows=None):
+    def __init__(self, f, colspecs, delimiter, comment, skip_rows=None):
         self.f = f
         self.buffer = None
         self.delimiter = '\r\n' + delimiter if delimiter else '\n\r\t '
         self.comment = comment
         if colspecs == 'infer':
-            self.colspecs = self.detect_colspecs(skiprows=skiprows)
+            self.colspecs = self.detect_colspecs(skip_rows=skip_rows)
         else:
             self.colspecs = colspecs
 
@@ -3387,14 +3387,14 @@ class FixedWidthReader(BaseIterator):
                 raise TypeError('Each column specification must be '
                                 '2 element tuple or list of integers')
 
-    def get_rows(self, n, skiprows=None):
+    def get_rows(self, n, skip_rows=None):
         """
         Read rows from self.f, skipping as specified.
 
         We distinguish buffer_rows (the first <= n lines)
         from the rows returned to detect_colspecs because
         it's simpler to leave the other locations with
-        skiprows logic alone than to modify them to deal
+        skip_rows logic alone than to modify them to deal
         with the fact we skipped some rows here as well.
 
         Parameters
@@ -3402,7 +3402,7 @@ class FixedWidthReader(BaseIterator):
         n : int
             Number of rows to read from self.f, not counting
             rows that are skipped.
-        skiprows: set, optional
+        skip_rows: set, optional
             Indices of rows to skip.
 
         Returns
@@ -3411,12 +3411,12 @@ class FixedWidthReader(BaseIterator):
             A list containing the rows to read.
 
         """
-        if skiprows is None:
-            skiprows = set()
+        if skip_rows is None:
+            skip_rows = set()
         buffer_rows = []
         detect_rows = []
         for i, row in enumerate(self.f):
-            if i not in skiprows:
+            if i not in skip_rows:
                 detect_rows.append(row)
             buffer_rows.append(row)
             if len(detect_rows) >= n:
@@ -3424,11 +3424,11 @@ class FixedWidthReader(BaseIterator):
         self.buffer = iter(buffer_rows)
         return detect_rows
 
-    def detect_colspecs(self, n=100, skiprows=None):
+    def detect_colspecs(self, n=100, skip_rows=None):
         # Regex escape the delimiters
         delimiters = ''.join(r'\%s' % x for x in self.delimiter)
         pattern = re.compile('([^%s]+)' % delimiters)
-        rows = self.get_rows(n, skiprows)
+        rows = self.get_rows(n, skip_rows)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
@@ -3471,4 +3471,4 @@ class FixedWidthFieldParser(PythonParser):
 
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
-                                     self.comment, self.skiprows)
+                                     self.comment, self.skip_rows)

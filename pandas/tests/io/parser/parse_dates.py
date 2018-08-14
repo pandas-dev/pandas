@@ -349,7 +349,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
         parser = lambda d: parse_date(d, day_first=True)
         pytest.raises(TypeError, self.read_csv,
-                      StringIO(text), skiprows=[0],
+                      StringIO(text), skip_rows=[0],
                       names=['time', 'Q', 'NTU'], index_col=0,
                       parse_dates=True, date_parser=parser,
                       na_values=['NA'])

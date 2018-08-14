@@ -294,7 +294,7 @@ cdef class TextReader:
         object header, orig_header, names, header_start, header_end
         object index_col
         object low_memory
-        object skiprows
+        object skip_rows
         object dtype
         object encoding
         object compression
@@ -348,7 +348,7 @@ cdef class TextReader:
                   false_values=None,
                   allow_leading_cols=True,
                   low_memory=False,
-                  skiprows=None,
+                  skip_rows=None,
                   skipfooter=0,
                   verbose=False,
                   mangle_dupe_cols=True,
@@ -436,8 +436,8 @@ cdef class TextReader:
         self.parser.error_bad_lines = int(error_bad_lines)
         self.parser.warn_bad_lines = int(warn_bad_lines)
 
-        self.skiprows = skiprows
-        if skiprows is not None:
+        self.skip_rows = skip_rows
+        if skip_rows is not None:
             self._make_skiprow_set()
 
         self.skipfooter = skipfooter
@@ -605,13 +605,13 @@ cdef class TextReader:
             self.parser.quotechar = ord(quote_char)
 
     cdef _make_skiprow_set(self):
-        if isinstance(self.skiprows, (int, np.integer)):
-            parser_set_skipfirstnrows(self.parser, self.skiprows)
-        elif not callable(self.skiprows):
-            for i in self.skiprows:
+        if isinstance(self.skip_rows, (int, np.integer)):
+            parser_set_skipfirstnrows(self.parser, self.skip_rows)
+        elif not callable(self.skip_rows):
+            for i in self.skip_rows:
                 parser_add_skiprow(self.parser, i)
         else:
-            self.parser.skipfunc = <PyObject *> self.skiprows
+            self.parser.skipfunc = <PyObject *> self.skip_rows
 
     cdef _setup_parser_source(self, source):
         cdef:

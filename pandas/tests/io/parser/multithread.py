@@ -43,7 +43,7 @@ class MultithreadTests(object):
             return self.read_csv(path,
                                  index_col=0,
                                  header=None,
-                                 skiprows=int(start) + 1,
+                                 skip_rows=int(start) + 1,
                                  nrows=nrows,
                                  parse_dates=[9])
 

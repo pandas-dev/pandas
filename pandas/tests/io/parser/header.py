@@ -152,7 +152,7 @@ two,7,8,9,10,11,12"""
         tm.assert_frame_equal(df, result)
 
         # to_csv, tuples
-        result = self.read_csv(StringIO(data), skiprows=3,
+        result = self.read_csv(StringIO(data), skip_rows=3,
                                names=[('a', 'q'), ('a', 'r'), ('a', 's'),
                                       ('b', 't'), ('c', 'u'), ('c', 'v')],
                                index_col=0)
@@ -161,7 +161,7 @@ two,7,8,9,10,11,12"""
         # to_csv, namedtuples
         TestTuple = namedtuple('names', ['first', 'second'])
         result = self.read_csv(
-            StringIO(data), skiprows=3, index_col=0,
+            StringIO(data), skip_rows=3, index_col=0,
             names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
                    TestTuple('a', 's'), TestTuple('b', 't'),
                    TestTuple('c', 'u'), TestTuple('c', 'v')])
@@ -177,7 +177,7 @@ two,7,8,9,10,11,12"""
         tm.assert_frame_equal(df, result)
 
         # common, tuples
-        result = self.read_csv(StringIO(data), skiprows=2,
+        result = self.read_csv(StringIO(data), skip_rows=2,
                                names=[('a', 'q'), ('a', 'r'), ('a', 's'),
                                       ('b', 't'), ('c', 'u'), ('c', 'v')],
                                index_col=0)
@@ -186,7 +186,7 @@ two,7,8,9,10,11,12"""
         # common, namedtuples
         TestTuple = namedtuple('names', ['first', 'second'])
         result = self.read_csv(
-            StringIO(data), skiprows=2, index_col=0,
+            StringIO(data), skip_rows=2, index_col=0,
             names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
                    TestTuple('a', 's'), TestTuple('b', 't'),
                    TestTuple('c', 'u'), TestTuple('c', 'v')])
@@ -202,7 +202,7 @@ q,r,s,t,u,v
         tm.assert_frame_equal(df.reset_index(drop=True), result)
 
         # common, no index_col, tuples
-        result = self.read_csv(StringIO(data), skiprows=2,
+        result = self.read_csv(StringIO(data), skip_rows=2,
                                names=[('a', 'q'), ('a', 'r'), ('a', 's'),
                                       ('b', 't'), ('c', 'u'), ('c', 'v')],
                                index_col=None)
@@ -211,7 +211,7 @@ q,r,s,t,u,v
         # common, no index_col, namedtuples
         TestTuple = namedtuple('names', ['first', 'second'])
         result = self.read_csv(
-            StringIO(data), skiprows=2, index_col=None,
+            StringIO(data), skip_rows=2, index_col=None,
             names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
                    TestTuple('a', 's'), TestTuple('b', 't'),
                    TestTuple('c', 'u'), TestTuple('c', 'v')])

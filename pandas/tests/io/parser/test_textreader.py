@@ -329,7 +329,7 @@ a,b,c
                       index=[0, 5, 7, 12])
 
         for _ in range(100):
-            df = read_csv(StringIO('a,b\nc\n'), skiprows=0,
+            df = read_csv(StringIO('a,b\nc\n'), skip_rows=0,
                           names=['a'], engine='c')
             assert_frame_equal(df, a)
 

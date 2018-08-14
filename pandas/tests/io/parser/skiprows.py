@@ -30,10 +30,10 @@ class SkipRowsTests(object):
 1/2/2000,4,5,6
 1/3/2000,7,8,9
 """
-        data = self.read_csv(StringIO(text), skiprows=lrange(6), header=None,
+        data = self.read_csv(StringIO(text), skip_rows=lrange(6), header=None,
                              index_col=0, parse_dates=True)
 
-        data2 = self.read_csv(StringIO(text), skiprows=6, header=None,
+        data2 = self.read_csv(StringIO(text), skip_rows=6, header=None,
                               index_col=0, parse_dates=True)
 
         expected = DataFrame(np.arange(1., 10.).reshape((3, 3)),
@@ -52,7 +52,7 @@ class SkipRowsTests(object):
         condensed_text = "a,b,c\n" + \
                          "\n".join([",".join([str(i), str(i + 1), str(i + 2)])
                                     for i in [0, 1, 2, 3, 4, 6, 8, 9]])
-        data = self.read_csv(StringIO(text), skiprows=[6, 8])
+        data = self.read_csv(StringIO(text), skip_rows=[6, 8])
         condensed_data = self.read_csv(StringIO(condensed_text))
         tm.assert_frame_equal(data, condensed_data)
 
@@ -68,7 +68,7 @@ class SkipRowsTests(object):
 1/2/2000,4,5,6
 1/3/2000,7,8,9
 """
-        data = self.read_csv(StringIO(text), skiprows=6, header=None,
+        data = self.read_csv(StringIO(text), skip_rows=6, header=None,
                              index_col=0, parse_dates=True)
 
         expected = DataFrame(np.arange(1., 10.).reshape((3, 3)),
@@ -90,7 +90,7 @@ line 22",2
                     [3, 'line 31', 1]]
         expected = DataFrame(expected, columns=[
             'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
+        df = self.read_csv(StringIO(data), skip_rows=[1])
         tm.assert_frame_equal(df, expected)
 
         data = ('a,b,c\n~a\n b~,~e\n d~,'
@@ -100,7 +100,7 @@ line 22",2
             'a', 'b', 'c'])
         df = self.read_csv(StringIO(data),
                            quotechar="~",
-                           skiprows=[2])
+                           skip_rows=[2])
         tm.assert_frame_equal(df, expected)
 
         data = ('Text,url\n~example\n '
@@ -112,7 +112,7 @@ line 22",2
             'Text', 'url'])
         df = self.read_csv(StringIO(data),
                            quotechar="~",
-                           skiprows=[1, 3])
+                           skip_rows=[1, 3])
         tm.assert_frame_equal(df, expected)
 
     def test_skiprow_with_quote(self):
@@ -125,7 +125,7 @@ line 22",2
                     [3, "line '31' line 32", 1]]
         expected = DataFrame(expected, columns=[
             'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
+        df = self.read_csv(StringIO(data), skip_rows=[1])
         tm.assert_frame_equal(df, expected)
 
     def test_skiprow_with_newline_and_quote(self):
@@ -138,7 +138,7 @@ line 22",2
                     [3, "line \n'31' line 32", 1]]
         expected = DataFrame(expected, columns=[
             'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
+        df = self.read_csv(StringIO(data), skip_rows=[1])
         tm.assert_frame_equal(df, expected)
 
         data = """id,text,num_lines
@@ -149,7 +149,7 @@ line 22",2
                     [3, "line '31\n' line 32", 1]]
         expected = DataFrame(expected, columns=[
             'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
+        df = self.read_csv(StringIO(data), skip_rows=[1])
         tm.assert_frame_equal(df, expected)
 
         data = """id,text,num_lines
@@ -160,7 +160,7 @@ line 22",2
                     [3, "line '31\n' \r\tline 32", 1]]
         expected = DataFrame(expected, columns=[
             'id', 'text', 'num_lines'])
-        df = self.read_csv(StringIO(data), skiprows=[1])
+        df = self.read_csv(StringIO(data), skip_rows=[1])
         tm.assert_frame_equal(df, expected)
 
     def test_skiprows_lineterminator(self):
@@ -176,19 +176,19 @@ line 22",2
                                       'oflag'])
 
         # test with default line terminators "LF" and "CRLF"
-        df = self.read_csv(StringIO(data), skiprows=1, delim_whitespace=True,
+        df = self.read_csv(StringIO(data), skip_rows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
 
         df = self.read_csv(StringIO(data.replace('\n', '\r\n')),
-                           skiprows=1, delim_whitespace=True,
+                           skip_rows=1, delim_whitespace=True,
                            names=['date', 'time', 'var', 'flag', 'oflag'])
         tm.assert_frame_equal(df, expected)
 
         # "CR" is not respected with the Python parser yet
         if self.engine == 'c':
             df = self.read_csv(StringIO(data.replace('\n', '\r')),
-                               skiprows=1, delim_whitespace=True,
+                               skip_rows=1, delim_whitespace=True,
                                names=['date', 'time', 'var', 'flag', 'oflag'])
             tm.assert_frame_equal(df, expected)
 
@@ -197,29 +197,29 @@ line 22",2
         data = 'a"\nb"\na\n1'
         expected = DataFrame({'a': [1]})
 
-        df = self.read_csv(StringIO(data), skiprows=2)
+        df = self.read_csv(StringIO(data), skip_rows=2)
         tm.assert_frame_equal(df, expected)
 
     def test_skiprows_callable(self):
         data = 'a\n1\n2\n3\n4\n5'
 
-        skiprows = lambda x: x % 2 == 0
+        skip_rows = lambda x: x % 2 == 0
         expected = DataFrame({'1': [3, 5]})
-        df = self.read_csv(StringIO(data), skiprows=skiprows)
+        df = self.read_csv(StringIO(data), skip_rows=skip_rows)
         tm.assert_frame_equal(df, expected)
 
         expected = DataFrame({'foo': [3, 5]})
-        df = self.read_csv(StringIO(data), skiprows=skiprows,
+        df = self.read_csv(StringIO(data), skip_rows=skip_rows,
                            header=0, names=['foo'])
         tm.assert_frame_equal(df, expected)
 
-        skiprows = lambda x: True
+        skip_rows = lambda x: True
         msg = "No columns to parse from file"
         with tm.assert_raises_regex(EmptyDataError, msg):
-            self.read_csv(StringIO(data), skiprows=skiprows)
+            self.read_csv(StringIO(data), skip_rows=skip_rows)
 
         # This is a bad callable and should raise.
         msg = "by zero"
-        skiprows = lambda x: 1 / 0
+        skip_rows = lambda x: 1 / 0
         with tm.assert_raises_regex(ZeroDivisionError, msg):
-            self.read_csv(StringIO(data), skiprows=skiprows)
+            self.read_csv(StringIO(data), skip_rows=skip_rows)

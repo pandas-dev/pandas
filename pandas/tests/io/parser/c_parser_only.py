@@ -423,7 +423,7 @@ No,No,No"""
 9 2 3 # skipped line
 # comment"""
         df = self.read_csv(StringIO(test_input), comment='#', header=None,
-                           delimiter='\\s+', skiprows=0,
+                           delimiter='\\s+', skip_rows=0,
                            error_bad_lines=False)
         error = sys.stderr.getvalue()
         # skipped lines 2, 3, 4, 9

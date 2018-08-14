@@ -68,7 +68,7 @@ bar|4|5|6
 baz|7|8|9
 """
         data3 = self.read_csv(StringIO(text), index_col=0,
-                              sep=None, skiprows=2)
+                              sep=None, skip_rows=2)
         tm.assert_frame_equal(data, data3)
 
         text = u("""ignore this
@@ -85,7 +85,7 @@ baz|7|8|9
             from io import TextIOWrapper
             s = TextIOWrapper(s, encoding='utf-8')
 
-        data4 = self.read_csv(s, index_col=0, sep=None, skiprows=2,
+        data4 = self.read_csv(s, index_col=0, sep=None, skip_rows=2,
                               encoding='utf-8')
         tm.assert_frame_equal(data, data4)
 

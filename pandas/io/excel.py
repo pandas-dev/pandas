@@ -130,7 +130,7 @@ false_values : list, default None
 
     .. versionadded:: 0.19.0
 
-skiprows : list-like
+skip_rows : list-like
     Rows to skip at the beginning (0-indexed)
 nrows : int, default None
     Number of rows to parse
@@ -295,7 +295,7 @@ def read_excel(io,
                converters=None,
                true_values=None,
                false_values=None,
-               skiprows=None,
+               skip_rows=None,
                nrows=None,
                na_values=None,
                parse_dates=False,
@@ -330,7 +330,7 @@ def read_excel(io,
         converters=converters,
         true_values=true_values,
         false_values=false_values,
-        skiprows=skiprows,
+        skip_rows=skip_rows,
         nrows=nrows,
         na_values=na_values,
         parse_dates=parse_dates,
@@ -422,7 +422,7 @@ class ExcelFile(object):
               converters=None,
               true_values=None,
               false_values=None,
-              skiprows=None,
+              skip_rows=None,
               nrows=None,
               na_values=None,
               parse_dates=False,
@@ -457,7 +457,7 @@ class ExcelFile(object):
                                  converters=converters,
                                  true_values=true_values,
                                  false_values=false_values,
-                                 skiprows=skiprows,
+                                 skip_rows=skip_rows,
                                  nrows=nrows,
                                  na_values=na_values,
                                  parse_dates=parse_dates,
@@ -511,7 +511,7 @@ class ExcelFile(object):
                      dtype=None,
                      true_values=None,
                      false_values=None,
-                     skiprows=None,
+                     skip_rows=None,
                      nrows=None,
                      na_values=None,
                      verbose=False,
@@ -649,8 +649,8 @@ class ExcelFile(object):
                     header_names = []
                     control_row = [True] * len(data[0])
                     for row in header:
-                        if is_integer(skiprows):
-                            row += skiprows
+                        if is_integer(skip_rows):
+                            row += skip_rows
 
                         data[row], control_row = _fill_mi_header(
                             data[row], control_row)
@@ -687,7 +687,7 @@ class ExcelFile(object):
                                     dtype=dtype,
                                     true_values=true_values,
                                     false_values=false_values,
-                                    skiprows=skiprows,
+                                    skip_rows=skip_rows,
                                     nrows=nrows,
                                     na_values=na_values,
                                     parse_dates=parse_dates,

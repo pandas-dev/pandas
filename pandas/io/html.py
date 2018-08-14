@@ -85,32 +85,32 @@ def _remove_whitespace(s, regex=_RE_WHITESPACE):
     return regex.sub(' ', s.strip())
 
 
-def _get_skiprows(skiprows):
+def _get_skiprows(skip_rows):
     """Get an iterator given an integer, slice or container.
 
     Parameters
     ----------
-    skiprows : int, slice, container
+    skip_rows : int, slice, container
         The iterator to use to skip rows; can also be a slice.
 
     Raises
     ------
     TypeError
-        * If `skiprows` is not a slice, integer, or Container
+        * If `skip_rows` is not a slice, integer, or Container
 
     Returns
     -------
     it : iterable
         A proper iterator to use to skip rows of a DataFrame.
     """
-    if isinstance(skiprows, slice):
-        return lrange(skiprows.start or 0, skiprows.stop, skiprows.step or 1)
-    elif isinstance(skiprows, numbers.Integral) or is_list_like(skiprows):
-        return skiprows
-    elif skiprows is None:
+    if isinstance(skip_rows, slice):
+        return lrange(skip_rows.start or 0, skip_rows.stop, skip_rows.step or 1)
+    elif isinstance(skip_rows, numbers.Integral) or is_list_like(skip_rows):
+        return skip_rows
+    elif skip_rows is None:
         return 0
     raise TypeError('%r is not a valid type for skipping rows' %
-                    type(skiprows).__name__)
+                    type(skip_rows).__name__)
 
 
 def _read(obj):
@@ -779,7 +779,7 @@ def _expand_elements(body):
 def _data_to_frame(**kwargs):
     head, body, foot = kwargs.pop('data')
     header = kwargs.pop('header')
-    kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
+    kwargs['skip_rows'] = _get_skiprows(kwargs['skip_rows'])
     if head:
         body = head + body
 
@@ -922,7 +922,7 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
 
 def read_html(io, match='.+', flavor=None, header=None, index_col=None,
-              skiprows=None, attrs=None, parse_dates=False,
+              skip_rows=None, attrs=None, parse_dates=False,
               tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
               keep_default_na=True, displayed_only=True):
@@ -956,7 +956,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     index_col : int or list-like or None, optional
         The column (or list of columns) to use to create the index.
 
-    skiprows : int or list-like or slice or None, optional
+    skip_rows : int or list-like or slice or None, optional
         0-based. Number of rows to skip after parsing the column integer. If a
         sequence of integers or a slice is given, will skip the rows indexed by
         that sequence.  Note that a single element sequence means 'skip the nth
@@ -1060,7 +1060,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
         .. versionadded:: 0.21.0
 
     Similar to :func:`~pandas.read_csv` the `header` argument is applied
-    **after** `skiprows` is applied.
+    **after** `skip_rows` is applied.
 
     This function will *always* return a list of :class:`DataFrame` *or*
     it will fail, e.g., it will *not* return an empty list.
@@ -1077,13 +1077,13 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
     _importers()
 
     # Type check here. We don't want to parse only to fail because of an
-    # invalid value of an integer skiprows.
-    if isinstance(skiprows, numbers.Integral) and skiprows < 0:
+    # invalid value of an integer skip_rows.
+    if isinstance(skip_rows, numbers.Integral) and skip_rows < 0:
         raise ValueError('cannot skip rows starting from the end of the '
                          'data (you passed a negative value)')
     _validate_header_arg(header)
     return _parse(flavor=flavor, io=io, match=match, header=header,
-                  index_col=index_col, skiprows=skiprows,
+                  index_col=index_col, skip_rows=skip_rows,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,

@@ -377,10 +377,10 @@ DataCol1   DataCol2
      0.0        1.0
    101.6      956.1
 """.strip()
-        expected = read_csv(StringIO(test), skiprows=2,
+        expected = read_csv(StringIO(test), skip_rows=2,
                             delim_whitespace=True)
         tm.assert_frame_equal(expected, read_fwf(
-            StringIO(test), skiprows=2))
+            StringIO(test), skip_rows=2))
 
     def test_skiprows_by_index_inference(self):
         test = """
@@ -391,10 +391,10 @@ Once more to be skipped
 456  78   9      456
 """.strip()
 
-        expected = read_csv(StringIO(test), skiprows=[0, 2],
+        expected = read_csv(StringIO(test), skip_rows=[0, 2],
                             delim_whitespace=True)
         tm.assert_frame_equal(expected, read_fwf(
-            StringIO(test), skiprows=[0, 2]))
+            StringIO(test), skip_rows=[0, 2]))
 
     def test_skiprows_inference_empty(self):
         test = """
@@ -404,7 +404,7 @@ AA   BBB  C
 """.strip()
 
         with pytest.raises(EmptyDataError):
-            read_fwf(StringIO(test), skiprows=3)
+            read_fwf(StringIO(test), skip_rows=3)
 
     def test_whitespace_preservation(self):
         # Addresses Issue #16772
@@ -417,7 +417,7 @@ AA   BBB  C
  a bbb
  ccdd """
         result = read_fwf(StringIO(test_data), widths=[3, 3],
-                          header=None, skiprows=[0], delimiter="\n\t")
+                          header=None, skip_rows=[0], delimiter="\n\t")
 
         tm.assert_frame_equal(result, expected)
 
@@ -431,6 +431,6 @@ cc,dd"""
 a \tbbb
 cc\tdd """
         result = read_fwf(StringIO(test_data), widths=[3, 3],
-                          header=None, skiprows=[0])
+                          header=None, skip_rows=[0])
 
         tm.assert_frame_equal(result, expected)

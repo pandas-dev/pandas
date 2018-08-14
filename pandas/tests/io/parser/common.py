@@ -146,7 +146,7 @@ skip
             it = self.read_table(StringIO(data), sep=',',
                                  header=1, comment='#',
                                  iterator=True, chunksize=1,
-                                 skiprows=[2])
+                                 skip_rows=[2])
             it.read(5)
 
         # middle chunk
@@ -162,7 +162,7 @@ skip
         with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
-                                 skiprows=[2])
+                                 skip_rows=[2])
             it.read(3)
 
         # last chunk
@@ -178,7 +178,7 @@ skip
         with tm.assert_raises_regex(Exception, msg):
             it = self.read_table(StringIO(data), sep=',', header=1,
                                  comment='#', iterator=True, chunksize=1,
-                                 skiprows=[2])
+                                 skip_rows=[2])
             it.read()
 
         # skipfooter is not supported with the C parser yet
@@ -507,8 +507,8 @@ bar,foo"""
         tm.assert_frame_equal(chunks[1], df[2:4])
         tm.assert_frame_equal(chunks[2], df[4:])
 
-        # pass skiprows
-        parser = TextParser(lines, index_col=0, chunksize=2, skiprows=[1])
+        # pass skip_rows
+        parser = TextParser(lines, index_col=0, chunksize=2, skip_rows=[1])
         chunks = list(parser)
         tm.assert_frame_equal(chunks[0], df[1:3])
 
@@ -745,9 +745,9 @@ A,B,C
                         from io import TextIOWrapper
                         s = TextIOWrapper(s, encoding='utf-8')
 
-                    result = self.read_csv(path, encoding=enc, skiprows=2,
+                    result = self.read_csv(path, encoding=enc, skip_rows=2,
                                            sep=sep)
-                    expected = self.read_csv(s, encoding='utf-8', skiprows=2,
+                    expected = self.read_csv(s, encoding='utf-8', skip_rows=2,
                                              sep=sep)
                     s.close()
 
@@ -1041,7 +1041,7 @@ A,B,C
 
         # SKIP_LINE
         data = 'a,b,c\n4,5,6\nskipme'
-        result = self.read_csv(StringIO(data), skiprows=[2])
+        result = self.read_csv(StringIO(data), skip_rows=[2])
         tm.assert_frame_equal(result, expected)
 
         # With skip_blank_lines = False
@@ -1144,11 +1144,11 @@ A,B,C
         # lines with trailing whitespace and blank lines
         df = self.read_csv(StringIO(data.replace(',', '  ')),
                            header=None, delim_whitespace=True,
-                           skiprows=[0, 1, 2, 3, 5, 6], skip_blank_lines=True)
+                           skip_rows=[0, 1, 2, 3, 5, 6], skip_blank_lines=True)
         tm.assert_frame_equal(df, expected)
         df = self.read_table(StringIO(data.replace(',', '  ')),
                              header=None, delim_whitespace=True,
-                             skiprows=[0, 1, 2, 3, 5, 6],
+                             skip_rows=[0, 1, 2, 3, 5, 6],
                              skip_blank_lines=True)
         tm.assert_frame_equal(df, expected)
 
@@ -1157,7 +1157,7 @@ A,B,C
                               "C": [4., 10]})
         df = self.read_table(StringIO(data.replace(',', '  ')),
                              delim_whitespace=True,
-                             skiprows=[1, 2, 3, 5, 6], skip_blank_lines=True)
+                             skip_rows=[1, 2, 3, 5, 6], skip_blank_lines=True)
         tm.assert_frame_equal(df, expected)
 
     def test_raise_on_sep_with_delim_whitespace(self):
