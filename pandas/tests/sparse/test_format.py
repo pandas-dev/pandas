@@ -8,7 +8,6 @@ import pandas.util.testing as tm
 from pandas.compat import (is_platform_windows,
                            is_platform_32bit)
 from pandas.core.config import option_context
-from pandas.errors import PerformanceWarning
 
 use_32bit_repr = is_platform_windows() or is_platform_32bit()
 
@@ -124,10 +123,9 @@ class TestSparseDataFrameFormatting(object):
         sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
         res = sdf.copy()
 
-        with tm.assert_produces_warning(PerformanceWarning):
-            # Ignore the warning
-            with pd.option_context('mode.chained_assignment', None):
-                sdf[0][1] = 2  # This line triggers the bug
+        # Ignore the warning
+        with pd.option_context('mode.chained_assignment', None):
+            sdf[0][1] = 2  # This line triggers the bug
 
         repr(sdf)
         tm.assert_sp_frame_equal(sdf, res)

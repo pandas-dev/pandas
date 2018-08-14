@@ -10,7 +10,6 @@ import pandas as pd
 
 from pandas import Series, DataFrame, bdate_range, Panel
 from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.errors import PerformanceWarning
 from pandas.tseries.offsets import BDay
 from pandas.util import testing as tm
 from pandas.compat import lrange
@@ -461,8 +460,7 @@ class TestSparseDataFrame(SharedWithSparse):
         # ok, as the index gets converted to object
         frame = self.frame.copy()
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             res = frame.set_value('foobar', 'B', 1.5)
         assert res.index.dtype == 'object'
 
@@ -470,24 +468,20 @@ class TestSparseDataFrame(SharedWithSparse):
         res.index = res.index.astype(object)
 
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             res = self.frame.set_value('foobar', 'B', 1.5)
         assert res.index[-1] == 'foobar'
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             assert res.get_value('foobar', 'B') == 1.5
 
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             res2 = res.set_value('foobar', 'qux', 1.5)
         tm.assert_index_equal(res2.columns,
                               pd.Index(list(self.frame.columns)))
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             assert res2.get_value('foobar', 'qux') == 1.5
 
     def test_fancy_index_misc(self):
@@ -594,9 +588,8 @@ class TestSparseDataFrame(SharedWithSparse):
         # issuecomment-361696418
         # chained setitem used to cause consolidation
         sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
-        with tm.assert_produces_warning(PerformanceWarning):
-            with pd.option_context('mode.chained_assignment', None):
-                sdf[0][1] = 2
+        with pd.option_context('mode.chained_assignment', None):
+            sdf[0][1] = 2
         assert len(sdf._data.blocks) == 2
 
     def test_delitem(self):

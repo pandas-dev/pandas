@@ -382,9 +382,9 @@ class SparseArray(PandasObject, np.ndarray):
         # If indexer is not a single int position, easiest to handle via dense
         if not is_scalar(indexer):
             warnings.warn(
-                'Setting SparseSeries/Array values is particularly '
-                'inefficient when indexing with multiple keys because the '
-                'whole series is made dense interim.',
+                'Setting SparseSeries/Array values is inefficient when '
+                'indexing with multiple keys because the whole series '
+                'is made dense interim.',
                 PerformanceWarning, stacklevel=2)
 
             values = self.to_dense()
@@ -392,16 +392,15 @@ class SparseArray(PandasObject, np.ndarray):
             return SparseArray(values, kind=self.kind,
                                fill_value=self.fill_value)
 
-        warnings.warn(
-            'Setting SparseSeries/Array values is inefficient '
-            '(a copy of data is made).', PerformanceWarning, stacklevel=2)
-
         # If label already in sparse index, just switch the value on a copy
         idx = self.sp_index.lookup(indexer)
         if idx != -1:
-            obj = self.copy()
-            obj.sp_values[idx] = value
-            return obj
+            self.sp_values[idx] = value
+            return self
+
+        warnings.warn(
+            'Setting new SparseSeries values is inefficient '
+            '(a copy of data is made).', PerformanceWarning, stacklevel=2)
 
         # Otherwise, construct a new array, and insert the new value in the
         # correct position
@@ -410,6 +409,7 @@ class SparseArray(PandasObject, np.ndarray):
 
         indices = np.insert(indices, pos, indexer)
         sp_values = np.insert(self.sp_values, pos, value)
+
         # Length can be increased when adding a new value into index
         length = max(self.sp_index.length, indexer + 1)
         sp_index = _make_index(length, indices, self.kind)

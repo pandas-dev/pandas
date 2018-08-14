@@ -486,14 +486,12 @@ class TestSparseSeries(SharedWithSparse):
     def test_set_value(self):
         idx = self.btseries.index[7]
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             self.btseries.set_value(idx, 0)
         assert self.btseries[idx] == 0
 
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False,
-                                        ignore_extra=True):
+                                        check_stacklevel=False):
             self.iseries.set_value('foobar', 0)
         assert self.iseries.index[-1] == 'foobar'
         assert self.iseries['foobar'] == 0

@@ -277,11 +277,13 @@ class SparseSeries(Series):
         else:
             fill_value = self.fill_value
 
-        # Assume: If result size matches, old sparse index is valid (ok???)
+        # Only reuse old sparse index if result size matches
+        # (fails e.g. for ~sparseseries)
         if np.size(result) == self.sp_index.npoints:
             sp_index = self.sp_index
         else:
             sp_index = None
+
         return self._constructor(result, index=self.index,
                                  sparse_index=sp_index,
                                  fill_value=fill_value,
@@ -490,10 +492,10 @@ class SparseSeries(Series):
                       "in a future release. Please use "
                       ".at[] or .iat[] accessors instead", FutureWarning,
                       stacklevel=2)
+        self._data = self._data.copy()
         return self._set_value(label, value, takeable=takeable)
 
     def _set_value(self, label, value, takeable=False):
-        self._data = self._data.copy()
         try:
             idx = self.index.get_loc(label)
         except KeyError:
