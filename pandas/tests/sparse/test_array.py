@@ -928,3 +928,9 @@ class TestSparseArrayAnalytics(object):
         sparse = SparseArray([1, -1, 0, -2], fill_value=0)
         result = SparseArray([2, 0, 1, -1], fill_value=1)
         tm.assert_sp_array_equal(np.add(sparse, 1), result)
+
+    def test_tolist(self):
+        sparse = SparseArray([1, np.nan, 2, np.nan, -2])
+        assert isinstance(sparse.tolist(), list)
+        tm.assert_numpy_array_equal(np.array(sparse.tolist()),
+                                    np.array([1, np.nan, 2, np.nan, -2]))
