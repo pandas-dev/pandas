@@ -1874,7 +1874,7 @@ class DataFrame(NDFrame):
         to_feather(self, fname)
 
     def to_parquet(self, fname, engine='auto', compression='snappy',
-                   index=True, **kwargs):
+                   index=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -1896,9 +1896,10 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-        index : bool, default True
+        index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
-            If ``False``, they will not be written to the file.
+            If ``False``, they will not be written to the file. If ``None``, the
+            behavior depends on the chosen engine.
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
