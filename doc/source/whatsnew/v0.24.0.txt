@@ -183,7 +183,7 @@ Other Enhancements
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
-- Added :meth:`Resampler.quantile` (:issue:`15023`).
+- :ref:`Series.resample` and :ref:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 
 .. _whatsnew_0240.api_breaking:
 

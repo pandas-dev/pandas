@@ -782,6 +782,15 @@ class Base(object):
             assert rk == gk
             assert_series_equal(rv, gv)
 
+    def test_resample_quantile(self):
+        # GH 15023
+        s = self.create_series()
+        q = 0.75
+        freq = 'H'
+        result = s.resample(freq).quantile(q)
+        expected = s.resample(freq).agg(lambda x: x.quantile(q))
+        tm.assert_series_equal(result, expected)
+
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range
@@ -2175,13 +2184,6 @@ class TestDatetimeIndex(Base):
         tm.assert_series_equal(res, exp)
         res = df['timestamp'].resample('2D').first()
         tm.assert_series_equal(res, exp)
-
-    def test_resample_quantile(self):
-        # GH 15023
-        s = pd.Series(range(20), index=date_range('2016-01-01', periods=20))
-        result = s.resample('W').quantile(0.75)
-        expected = s.resample('W').agg(lambda x: x.quantile(0.75))
-        tm.assert_series_equal(result, expected)
 
 
 class TestPeriodIndex(Base):
