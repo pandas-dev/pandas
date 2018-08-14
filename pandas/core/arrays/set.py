@@ -36,6 +36,28 @@ class SetDtype(ExtensionDtype):
     type = object
     na_value = np.nan
 
+    def __hash__(self):
+        # XXX: this needs to be part of the interface.
+        return hash(str(self))
+
+    def __eq__(self, other):
+        # TODO: test
+        if isinstance(other, type(self)):
+            return True
+        else:
+            return super(SetDtype, self).__eq__(other)
+
+    @property
+    def _is_numeric(self):
+        return False
+
+    @property
+    def name(self):
+        return 'set'
+
+    def __repr__(self):
+        return self.name
+
     @classmethod
     def construct_array_type(cls):
         """Return the array type associated with this dtype
@@ -56,6 +78,16 @@ class SetDtype(ExtensionDtype):
             return cls()
         raise TypeError("Cannot construct a '{}' from "
                         "'{}'".format(cls, string))
+
+#     @classmethod
+#     def is_dtype(cls, dtype):
+#         dtype = getattr(dtype, 'dtype', dtype)
+#         if (isinstance(dtype, compat.string_types) and
+#                 dtype == 'set'):
+#             return True
+#         elif isinstance(dtype, cls):
+#             return True
+#         return isinstance(dtype, np.dtype) or dtype == 'set'
 
 
 def to_set_array(values):
@@ -293,7 +325,7 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         """
 
         # if we are astyping to an existing IntegerDtype we can fastpath
-        if isinstance(dtype, _SetDtype):
+        if isinstance(dtype, SetDtype):
             result = self._data.astype(dtype.type,
                                        casting='same_kind', copy=False)
             return type(self)(result, mask=self._mask, copy=False)
