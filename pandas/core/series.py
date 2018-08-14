@@ -1935,10 +1935,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if method in ['pearson', 'spearman', 'kendall']:
             return nanops.nancorr(this.values, other.values, method=method,
                                   min_periods=min_periods)
-        else:
-            raise ValueError("method must be either 'pearson', "
-                             "'spearman', or 'kendall', '{method}' "
-                             "was supplied".format(method=method))
+
+        raise ValueError("method must be either 'pearson', "
+                         "'spearman', or 'kendall', '{method}' "
+                         "was supplied".format(method=method))
 
     def cov(self, other, min_periods=None):
         """

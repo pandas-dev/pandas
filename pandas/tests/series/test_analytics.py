@@ -779,11 +779,12 @@ class TestSeriesAnalytics(TestData):
         tm.assert_almost_equal(A.corr(B, method='spearman'), sexp)
 
     def test_corr_invalid_method(self):
+        # GH PR #22298
         s1 = pd.Series(np.random.randn(10))
         s2 = pd.Series(np.random.randn(10))
-        pttrn = ("method must be either 'pearson', 'spearman', "
-                 "or 'kendall'")
-        with tm.assert_raises_regex(ValueError, pttrn):
+        msg = ("method must be either 'pearson', 'spearman', "
+               "or 'kendall'")
+        with tm.assert_raises_regex(ValueError, msg):
             s1.corr(s2, method="____")
 
     def test_cov(self):
