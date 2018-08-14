@@ -756,7 +756,6 @@ def astype_nansafe(arr, dtype, copy=True):
                 raise
 
 
-
 def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
                           convert_timedeltas=True, copy=True):
     """ if we have an object dtype, try to coerce dates and/or numbers """
