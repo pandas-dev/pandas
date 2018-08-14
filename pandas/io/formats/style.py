@@ -30,6 +30,8 @@ from pandas.core.generic import _shared_docs
 import pandas.core.common as com
 from pandas.core.indexing import _maybe_numeric_slice, _non_reducing_slice
 from pandas.util._decorators import Appender
+from pandas.core.dtypes.generic import ABCSeries
+
 try:
     import matplotlib.pyplot as plt
     from matplotlib import colors
@@ -997,8 +999,12 @@ class Styler(object):
         """Draw bar chart in dataframe cells"""
 
         # Get input value range.
-        smin = s.values.min() if vmin is None else vmin
-        smax = s.values.max() if vmax is None else vmax
+        smin = s.min() if vmin is None else vmin
+        if isinstance(smin, ABCSeries):
+            smin = smin.min()
+        smax = s.max() if vmax is None else vmax
+        if isinstance(smax, ABCSeries):
+            smax = smax.max()
         if align == 'mid':
             smin = min(0, smin)
             smax = max(0, smax)
@@ -1025,6 +1031,8 @@ class Styler(object):
             return css
 
         def css(x):
+            if pd.isna(x):
+                return ''
             if align == 'left':
                 return css_bar(0, x, colors[x > zero])
             else:
