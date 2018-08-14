@@ -150,7 +150,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     ----------
     data : array-like
     sparse_index : SparseIndex, optional
-    index : Any
+    index : Index
     fill_value : scalar, optional
         The fill_value to use for this array. By default, this is depends
         on the dtype of data.
@@ -160,15 +160,26 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         ========== ==========
         float      ``np.nan``
         int        ``0``
+        bool       False
+        datetime64 ``pd.NaT``
         ========== ==========
 
         When ``data`` is already a ``SparseArray``, ``data.fill_value``
         is used unless specified, regardless of `data.dtype``.
 
-    kind : {'integer', 'block'}
-        How to store the locations of the non-fill-value values.
+    kind : {'integer', 'block'}, default 'integer'
+        The type of storage for sparse locations.
+
+        * 'block': Stores a `block` and `block_length` for each
+          contiguous *span* of sparse values. This is best when
+          sparse data tends to be clumped together, with large
+          regsions of ``fill-value`` values between sparse values.
+        * 'integer': uses an integer to store the location of
+          each sparse value.
+
     dtype : np.dtype, optional
     copy : bool, default False
+        Whether to explicitly copy the incoming `data` array.
     """
 
     __array_priority__ = 15
@@ -197,6 +208,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             dtype = dtype.subdtype
 
         # TODO: index feels strange... can we deprecate it?
+        assert index is None
         if index is not None:
             if data is None:
                 data = np.nan
@@ -217,7 +229,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if not is_array_like(data):
             try:
-                # ajelijfalsejdataj0
                 # probably shared code in sanitize_series
                 from pandas.core.series import _sanitize_array
                 data = _sanitize_array(data, index=None)
@@ -254,8 +265,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 raise AssertionError("Non array-like type {type} must "
                                      "have the same length as the index"
                                      .format(type=type(sparse_values)))
-        # TODO: copy is unused
-
         self._sparse_index = sparse_index
         self._sparse_values = sparse_values
         self._dtype = SparseDtype(sparse_values.dtype)
