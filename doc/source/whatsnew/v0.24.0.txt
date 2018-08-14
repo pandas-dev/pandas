@@ -635,7 +635,7 @@ I/O
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 - :func:`DataFrame.to_string()`, :func:`DataFrame.to_html()` and
   :func:`DataFrame.to_latex()` will correctly format output when a string is
-  passed as the ``float_format`` argument (:issue:`21625` and :issue:`22270`)
+  passed as the ``float_format`` argument (:issue:`21625`, :issue:`22270`)
 
 Plotting
 ^^^^^^^^
