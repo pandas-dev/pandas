@@ -6,6 +6,7 @@ import pytest
 from collections import OrderedDict
 
 from pandas import DataFrame, Series
+from pandas.core.sparse.api import SparseDtype
 import pandas as pd
 
 from numpy import nan
@@ -246,7 +247,10 @@ class TestGetDummies(object):
                              dtype=np.uint8)
         expected = expected.astype({"C": np.int64})
         if sparse:
-            raise pytest.xfail(reason="can't make expected")
+            expected.iloc[1:] = expected.iloc[1:].astype(SparseDtype("uint8"))
+            # seemingly impossible to make expected .
+            # raise pytest.xfail(reason="can't make expected")
+            pass
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_subset(self, df, sparse):
