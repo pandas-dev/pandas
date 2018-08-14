@@ -563,40 +563,6 @@ class NumericInt(Numeric):
         idx = self._holder([1, 2], name='asdf')
         assert idx.name == idx[1:].name
 
-    def test_ufunc_coercions(self):
-        idx = self._holder([1, 2, 3, 4, 5], name='x')
-
-        result = np.sqrt(idx)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = np.divide(idx, 2.)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
-        # _evaluate_numeric_binop
-        result = idx + 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([3., 4., 5., 6., 7.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx - 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([-1., 0., 1., 2., 3.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx * 1.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([1., 2., 3., 4., 5.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx / 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
 
 class TestInt64Index(NumericInt):
     _dtype = 'int64'

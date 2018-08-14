@@ -3,6 +3,7 @@
 # behave identically.
 from datetime import datetime, timedelta
 import operator
+from distutils.version import LooseVersion
 
 import pytest
 import numpy as np
@@ -248,6 +249,310 @@ class TestAddSubNaTMasking(object):
 
 class TestTimedeltaArraylikeAddSubOps(object):
     # Tests for timedelta64[ns] __add__, __sub__, __radd__, __rsub__
+
+    # ------------------------------------------------------------------
+    # Tests moved from older test_arithmetic files but not yet
+    # cleaned up and parametrized over `box`
+
+    def test_timedelta_ops_with_missing_values(self):
+        # setup
+        tdser1 = pd.to_timedelta(Series(['00:00:01']))
+        tdser2 = pd.to_timedelta(Series(['00:00:02']))
+        tdnat_ser = pd.to_timedelta(Series([pd.NaT]))
+        tddf1 = pd.DataFrame(['00:00:01']).apply(pd.to_timedelta)
+        tddf2 = pd.DataFrame(['00:00:02']).apply(pd.to_timedelta)
+        tdnat_df = pd.DataFrame([pd.NaT]).apply(pd.to_timedelta)
+        td_scalar1 = pd.to_timedelta('00:00:01')
+        td_scalar2 = pd.to_timedelta('00:00:02')
+
+        actual = td_scalar1 + td_scalar1
+        assert actual == td_scalar2
+        actual = td_scalar2 - td_scalar1
+        assert actual == td_scalar1
+
+        actual = tdser1 + tdser1
+        tm.assert_series_equal(actual, tdser2)
+        actual = tdser2 - tdser1
+        tm.assert_series_equal(actual, tdser1)
+
+        actual = tdser1 + td_scalar1
+        tm.assert_series_equal(actual, tdser2)
+        actual = td_scalar1 + tdser1
+        tm.assert_series_equal(actual, tdser2)
+        actual = tdser2 - td_scalar1
+        tm.assert_series_equal(actual, tdser1)
+        actual = -td_scalar1 + tdser2
+        tm.assert_series_equal(actual, tdser1)
+
+        actual = tdser1 + pd.NaT
+        tm.assert_series_equal(actual, tdnat_ser)
+        actual = pd.NaT + tdser1
+        tm.assert_series_equal(actual, tdnat_ser)
+        actual = tdser1 - pd.NaT
+        tm.assert_series_equal(actual, tdnat_ser)
+        actual = -pd.NaT + tdser1
+        tm.assert_series_equal(actual, tdnat_ser)
+
+        with pytest.raises(TypeError):
+            tdser1 + np.nan
+        with pytest.raises(TypeError):
+            np.nan + tdser1
+        with pytest.raises(TypeError):
+            tdser1 - np.nan
+        with pytest.raises(TypeError):
+            -np.nan + tdser1
+
+        actual = tdser1 + pd.NaT
+        tm.assert_series_equal(actual, tdnat_ser)
+        actual = tdser2 - pd.NaT
+        tm.assert_series_equal(actual, tdnat_ser)
+
+        actual = tdser1 + tddf1
+        tm.assert_frame_equal(actual, tddf2)
+        actual = tdser2 - tddf1
+        tm.assert_frame_equal(actual, tddf1)
+        actual = tddf1 + tdser1
+        tm.assert_frame_equal(actual, tddf2)
+        actual = tddf2 - tdser1
+        tm.assert_frame_equal(actual, tddf1)
+
+        actual = tddf1 + tddf1
+        tm.assert_frame_equal(actual, tddf2)
+        actual = tddf2 - tddf1
+        tm.assert_frame_equal(actual, tddf1)
+
+        actual = tddf1 + td_scalar1
+        tm.assert_frame_equal(actual, tddf2)
+        actual = tddf2 - td_scalar1
+        tm.assert_frame_equal(actual, tddf1)
+
+        actual = tddf1 + pd.NaT
+        tm.assert_frame_equal(actual, tdnat_df)
+        actual = tddf1 - pd.NaT
+        tm.assert_frame_equal(actual, tdnat_df)
+
+        with pytest.raises(TypeError):
+            tddf1 + np.nan
+        with pytest.raises(TypeError):
+            tddf1 - np.nan
+
+        actual = tddf1 + pd.NaT  # NaT is datetime, not timedelta
+        tm.assert_frame_equal(actual, tdnat_df)
+        actual = tddf1 - pd.NaT
+        tm.assert_frame_equal(actual, tdnat_df)
+
+    def test_subtraction_ops(self):
+        # with datetimes/timedelta and tdi/dti
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = pd.date_range('20130101', periods=3, name='bar')
+        td = Timedelta('1 days')
+        dt = Timestamp('20130101')
+
+        pytest.raises(TypeError, lambda: tdi - dt)
+        pytest.raises(TypeError, lambda: tdi - dti)
+        pytest.raises(TypeError, lambda: td - dt)
+        pytest.raises(TypeError, lambda: td - dti)
+
+        result = dt - dti
+        expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'], name='bar')
+        tm.assert_index_equal(result, expected)
+
+        result = dti - dt
+        expected = TimedeltaIndex(['0 days', '1 days', '2 days'], name='bar')
+        tm.assert_index_equal(result, expected)
+
+        result = tdi - td
+        expected = TimedeltaIndex(['0 days', pd.NaT, '1 days'], name='foo')
+        tm.assert_index_equal(result, expected, check_names=False)
+
+        result = td - tdi
+        expected = TimedeltaIndex(['0 days', pd.NaT, '-1 days'], name='foo')
+        tm.assert_index_equal(result, expected, check_names=False)
+
+        result = dti - td
+        expected = DatetimeIndex(
+            ['20121231', '20130101', '20130102'], name='bar')
+        tm.assert_index_equal(result, expected, check_names=False)
+
+        result = dt - tdi
+        expected = DatetimeIndex(['20121231', pd.NaT, '20121230'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+    def test_subtraction_ops_with_tz(self):
+
+        # check that dt/dti subtraction ops with tz are validated
+        dti = pd.date_range('20130101', periods=3)
+        ts = Timestamp('20130101')
+        dt = ts.to_pydatetime()
+        dti_tz = pd.date_range('20130101', periods=3).tz_localize('US/Eastern')
+        ts_tz = Timestamp('20130101').tz_localize('US/Eastern')
+        ts_tz2 = Timestamp('20130101').tz_localize('CET')
+        dt_tz = ts_tz.to_pydatetime()
+        td = Timedelta('1 days')
+
+        def _check(result, expected):
+            assert result == expected
+            assert isinstance(result, Timedelta)
+
+        # scalars
+        result = ts - ts
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = dt_tz - ts_tz
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = ts_tz - dt_tz
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        # tz mismatches
+        pytest.raises(TypeError, lambda: dt_tz - ts)
+        pytest.raises(TypeError, lambda: dt_tz - dt)
+        pytest.raises(TypeError, lambda: dt_tz - ts_tz2)
+        pytest.raises(TypeError, lambda: dt - dt_tz)
+        pytest.raises(TypeError, lambda: ts - dt_tz)
+        pytest.raises(TypeError, lambda: ts_tz2 - ts)
+        pytest.raises(TypeError, lambda: ts_tz2 - dt)
+        pytest.raises(TypeError, lambda: ts_tz - ts_tz2)
+
+        # with dti
+        pytest.raises(TypeError, lambda: dti - ts_tz)
+        pytest.raises(TypeError, lambda: dti_tz - ts)
+        pytest.raises(TypeError, lambda: dti_tz - ts_tz2)
+
+        result = dti_tz - dt_tz
+        expected = TimedeltaIndex(['0 days', '1 days', '2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = dt_tz - dti_tz
+        expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = dti_tz - ts_tz
+        expected = TimedeltaIndex(['0 days', '1 days', '2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = ts_tz - dti_tz
+        expected = TimedeltaIndex(['0 days', '-1 days', '-2 days'])
+        tm.assert_index_equal(result, expected)
+
+        result = td - td
+        expected = Timedelta('0 days')
+        _check(result, expected)
+
+        result = dti_tz - td
+        expected = DatetimeIndex(
+            ['20121231', '20130101', '20130102'], tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+    def test_dti_tdi_numeric_ops(self):
+        # These are normally union/diff set-like ops
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = pd.date_range('20130101', periods=3, name='bar')
+
+        # TODO(wesm): unused?
+        # td = Timedelta('1 days')
+        # dt = Timestamp('20130101')
+
+        result = tdi - tdi
+        expected = TimedeltaIndex(['0 days', pd.NaT, '0 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = tdi + tdi
+        expected = TimedeltaIndex(['2 days', pd.NaT, '4 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = dti - tdi  # name will be reset
+        expected = DatetimeIndex(['20121231', pd.NaT, '20130101'])
+        tm.assert_index_equal(result, expected)
+
+    def test_addition_ops(self):
+        # with datetimes/timedelta and tdi/dti
+        tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        dti = pd.date_range('20130101', periods=3, name='bar')
+        td = Timedelta('1 days')
+        dt = Timestamp('20130101')
+
+        result = tdi + dt
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130103'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = dt + tdi
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130103'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = td + tdi
+        expected = TimedeltaIndex(['2 days', pd.NaT, '3 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        result = tdi + td
+        expected = TimedeltaIndex(['2 days', pd.NaT, '3 days'], name='foo')
+        tm.assert_index_equal(result, expected)
+
+        # unequal length
+        pytest.raises(ValueError, lambda: tdi + dti[0:1])
+        pytest.raises(ValueError, lambda: tdi[0:1] + dti)
+
+        result = tdi + dti  # name will be reset
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
+        tm.assert_index_equal(result, expected)
+
+        result = dti + tdi  # name will be reset
+        expected = DatetimeIndex(['20130102', pd.NaT, '20130105'])
+        tm.assert_index_equal(result, expected)
+
+        result = dt + td
+        expected = Timestamp('20130102')
+        assert result == expected
+
+        result = td + dt
+        expected = Timestamp('20130102')
+        assert result == expected
+
+    def test_ops_ndarray(self):
+        td = Timedelta('1 day')
+
+        # timedelta, timedelta
+        other = pd.to_timedelta(['1 day']).values
+        expected = pd.to_timedelta(['2 days']).values
+        tm.assert_numpy_array_equal(td + other, expected)
+        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
+            tm.assert_numpy_array_equal(other + td, expected)
+        pytest.raises(TypeError, lambda: td + np.array([1]))
+        pytest.raises(TypeError, lambda: np.array([1]) + td)
+
+        expected = pd.to_timedelta(['0 days']).values
+        tm.assert_numpy_array_equal(td - other, expected)
+        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
+            tm.assert_numpy_array_equal(-other + td, expected)
+        pytest.raises(TypeError, lambda: td - np.array([1]))
+        pytest.raises(TypeError, lambda: np.array([1]) - td)
+
+        expected = pd.to_timedelta(['2 days']).values
+        tm.assert_numpy_array_equal(td * np.array([2]), expected)
+        tm.assert_numpy_array_equal(np.array([2]) * td, expected)
+        pytest.raises(TypeError, lambda: td * other)
+        pytest.raises(TypeError, lambda: other * td)
+
+        tm.assert_numpy_array_equal(td / other,
+                                    np.array([1], dtype=np.float64))
+        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
+            tm.assert_numpy_array_equal(other / td,
+                                        np.array([1], dtype=np.float64))
+
+        # timedelta, datetime
+        other = pd.to_datetime(['2000-01-01']).values
+        expected = pd.to_datetime(['2000-01-02']).values
+        tm.assert_numpy_array_equal(td + other, expected)
+        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
+            tm.assert_numpy_array_equal(other + td, expected)
+
+        expected = pd.to_datetime(['1999-12-31']).values
+        tm.assert_numpy_array_equal(-td + other, expected)
+        if LooseVersion(np.__version__) >= LooseVersion('1.8'):
+            tm.assert_numpy_array_equal(other - td, expected)
 
     # TODO: moved from tests.series.test_operators, needs splitting, cleanup,
     # de-duplication, box-parametrization...
@@ -1531,6 +1836,45 @@ class TestTimedeltaArraylikeMulDivOps(object):
             assert result is NotImplemented
         else:
             tm.assert_equal(result, expected)
+
+
+class TestUFuncCompat(object):
+    def test_ufunc_coercions(self):
+        # normal ops are also tested in tseries/test_timedeltas.py
+        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
+                             freq='2H', name='x')
+
+        for result in [idx * 2, np.multiply(idx, 2)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['4H', '8H', '12H', '16H', '20H'],
+                                 freq='4H', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '4H'
+
+        for result in [idx / 2, np.divide(idx, 2)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['1H', '2H', '3H', '4H', '5H'],
+                                 freq='H', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == 'H'
+
+        idx = TimedeltaIndex(['2H', '4H', '6H', '8H', '10H'],
+                             freq='2H', name='x')
+        for result in [-idx, np.negative(idx)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['-2H', '-4H', '-6H', '-8H', '-10H'],
+                                 freq='-2H', name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq == '-2H'
+
+        idx = TimedeltaIndex(['-2H', '-1H', '0H', '1H', '2H'],
+                             freq='H', name='x')
+        for result in [abs(idx), np.absolute(idx)]:
+            assert isinstance(result, TimedeltaIndex)
+            exp = TimedeltaIndex(['2H', '1H', '0H', '1H', '2H'],
+                                 freq=None, name='x')
+            tm.assert_index_equal(result, exp)
+            assert result.freq is None
 
 
 class TestTimedeltaArraylikeInvalidArithmeticOps(object):
