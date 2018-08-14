@@ -263,7 +263,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _simple_new(cls, sparse_array, sparse_index, fill_value=None):
-        # type: (SparseArray, SparseIndex) -> 'SparseArray'
+        # type: (SparseArray, SparseIndex, Any) -> 'SparseArray'
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
