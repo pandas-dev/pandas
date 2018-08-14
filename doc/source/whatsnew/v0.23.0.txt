@@ -1342,7 +1342,6 @@ Plotting
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
 - :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
 - :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
-- Bug in providing color array as color for a single plot (:issue:`20726`)
 
 
 Groupby/Resample/Rolling

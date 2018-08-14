@@ -323,3 +323,15 @@ class TestDataFramePlots(TestPlotBase):
         color_before = cm.gnuplot(range(5))
         color_after = _get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
+
+        # Original bug report example.
+        import numpy as np
+        import pandas as pd
+
+        df = pd.DataFrame(np.abs(np.random.randn(48, 4)),
+                          columns=list("ABCD"))
+
+        color_list = cm.gnuplot(np.linspace(0, 1, 16))
+        p = df.A.plot.bar(figsize=(16, 7), color=color_list)
+        assert (p.patches[1].get_facecolor()
+                == p.patches[17].get_facecolor())
