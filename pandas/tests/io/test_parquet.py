@@ -372,8 +372,13 @@ class TestBasic(Base):
         # ENH 20768
         # Ensure index=False omits the index from the written Parquet file.
         df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']})
+
+        # Because we're dropping the index, we expect the loaded dataframe to
+        # have the default integer index.
+        expected = df.reset_index(drop=True)
+
         check_round_trip(df, engine, write_kwargs={'index': False},
-                         check_names=['a', 'b'])
+                         expected=expected)
 
     def test_write_ignoring_custom_index(self, engine):
         # ENH 20768
@@ -381,8 +386,10 @@ class TestBasic(Base):
         # even if we're using a custom one.s
         df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']},
                           index=['zyx', 'wvu', 'tsr'])
+
+        expected = df.reset_index(drop=True)
         check_round_trip(df, engine, write_kwargs={'index': False},
-                         check_names=['a', 'b'])
+                         expected=expected)
 
     def test_write_ignoring_multiindex(self, engine):
         # ENH 20768
@@ -392,8 +399,9 @@ class TestBasic(Base):
         df = pd.DataFrame({'one': [i for i in range(8)],
                            'two': [-i for i in range(8)]}, index=arrays)
 
+        expected = df.reset_index(drop=True)
         check_round_trip(df, engine, write_kwargs={'index': False},
-                         check_names=['one', 'two'])
+                         expected=expected)
 
 
 class TestParquetPyArrow(Base):
