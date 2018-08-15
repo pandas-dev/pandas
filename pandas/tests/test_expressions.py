@@ -390,10 +390,10 @@ class TestExpressions(object):
                 with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df.a)
 
-                with tm.assert_raises_regex(TypeError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df)
 
-                with tm.assert_raises_regex(TypeError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):
