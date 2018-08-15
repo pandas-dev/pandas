@@ -60,6 +60,7 @@ Excel
 
    read_excel
    ExcelFile.parse
+   ExcelWriter
 
 JSON
 ~~~~
