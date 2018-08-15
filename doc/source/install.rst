@@ -202,7 +202,7 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://doc.pytest.org/en/latest/>`__ and run:
+<http://doc.pytest.org/en/latest/>`__ >= 3.6 and run:
 
 ::
 
@@ -210,7 +210,7 @@ installed), make sure you have `pytest
     >>> pd.test()
     running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
     ============================= test session starts =============================
-    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    platform win32 -- Python 3.6.2, pytest-3.6.0, py-1.4.34, pluggy-0.4.0
     rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
     collected 12145 items / 3 skipped
 
