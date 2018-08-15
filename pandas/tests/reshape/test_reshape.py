@@ -247,10 +247,16 @@ class TestGetDummies(object):
                              dtype=np.uint8)
         expected = expected.astype({"C": np.int64})
         if sparse:
-            expected.iloc[1:] = expected.iloc[1:].astype(SparseDtype("uint8"))
-            # seemingly impossible to make expected .
-            # raise pytest.xfail(reason="can't make expected")
-            pass
+            # work around astyping & assigning with duplicate columns
+            # https://github.com/pandas-dev/pandas/issues/14427
+            expected = pd.concat([
+                pd.Series([1, 2, 3], name='C'),
+                pd.Series([1, 0, 1], name='bad_a', dtype='Sparse[uint8]'),
+                pd.Series([0, 1, 0], name='bad_b', dtype='Sparse[uint8]'),
+                pd.Series([1, 1, 0], name='bad_b', dtype='Sparse[uint8]'),
+                pd.Series([0, 0, 1], name='bad_c', dtype='Sparse[uint8]'),
+            ], axis=1)
+
         assert_frame_equal(result, expected)
 
     def test_dataframe_dummies_subset(self, df, sparse):
@@ -336,10 +342,10 @@ class TestGetDummies(object):
         columns = ['A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan']
         expected[columns] = expected[columns].astype(e_dtype)
         if sparse:
-            expected[columns] = expected[columns].apply(
+            tmp = expected[columns].apply(
                 lambda x: pd.SparseSeries(x)
             )
-            raise pytest.xfail(reason="that apply is broken?")
+            expected[tmp.columns] = tmp
         assert_frame_equal(result, expected)
 
         result = get_dummies(df, dummy_na=False, sparse=sparse, dtype=dtype)

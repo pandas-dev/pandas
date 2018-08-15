@@ -2298,7 +2298,8 @@ class TimeDeltaBlock(DatetimeLikeBlockMixin, IntBlock):
         return result
 
     def should_store(self, value):
-        return issubclass(value.dtype.type, np.timedelta64)
+        return (issubclass(value.dtype.type, np.timedelta64) and
+                not is_extension_array_dtype(value))
 
     def to_native_types(self, slicer=None, na_rep=None, quoting=None,
                         **kwargs):
@@ -2337,7 +2338,8 @@ class BoolBlock(NumericBlock):
         return isinstance(element, (bool, np.bool_))
 
     def should_store(self, value):
-        return issubclass(value.dtype.type, np.bool_)
+        return (issubclass(value.dtype.type, np.bool_) and not
+                is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -2879,7 +2881,8 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def should_store(self, value):
         return (issubclass(value.dtype.type, np.datetime64) and
-                not is_datetimetz(value))
+                not is_datetimetz(value) and
+                not is_extension_array_dtype(value))
 
     def set(self, locs, values, check=False):
         """

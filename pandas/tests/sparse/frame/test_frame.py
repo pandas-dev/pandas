@@ -582,6 +582,20 @@ class TestSparseDataFrame(SharedWithSparse):
 
         self._check_all(_check_frame)
 
+    @pytest.mark.parametrize('values', [
+        [True, False],
+        [0, 1],
+        [1, None],
+        ['a', 'b'],
+        [pd.Timestamp('2017'), pd.NaT],
+        [pd.Timedelta('10s'), pd.NaT],
+    ])
+    def test_setitem_more(self, values):
+        df = pd.DataFrame({"A": values})
+        df['A'] = pd.SparseArray(values)
+        expected = pd.DataFrame({'A': pd.SparseArray(values)})
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_corner(self):
         self.frame['a'] = self.frame['B']
         tm.assert_sp_series_equal(self.frame['a'], self.frame['B'],
