@@ -3,6 +3,7 @@
 
 import locale
 import calendar
+import unicodedata
 import pytest
 
 from datetime import datetime, time, date
@@ -13,7 +14,8 @@ import pandas as pd
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
-                    PeriodIndex, DatetimeIndex, TimedeltaIndex)
+                    PeriodIndex, DatetimeIndex, TimedeltaIndex,
+                    compat)
 import pandas.core.common as com
 
 import dateutil
@@ -308,10 +310,23 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
+
+        # work around https://github.com/pandas-dev/pandas/issues/22342
+        result = result.str.normalize("NFD")
+        expected = expected.str.normalize("NFD")
+
         tm.assert_series_equal(result, expected)
+
         for s_date, expected in zip(s, expected_months):
-            result = s_date.month_name(locale=time_locale)
-            assert result == expected.capitalize()
+            result = unicodedata.normalize(
+                "NFD", compat.text_type(s_date.month_name(locale=time_locale))
+            )
+            expected = compat.text_type(
+                unicodedata.normalize("NFD", expected.capitalize())
+            )
+
+            assert result == expected
+
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.month_name(locale=time_locale).iloc[-1])
 

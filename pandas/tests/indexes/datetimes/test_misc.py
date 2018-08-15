@@ -288,18 +288,10 @@ class TestDatetime64(object):
 
         # work around different normalization schemes
         # https://github.com/pandas-dev/pandas/issues/22342
-        assert isinstance(result, pd.Index)
-
-        result = pd.Index([
-            unicodedata.normalize("NFD", compat.text_type(x))
-            for x in result
-        ])
-        expected = Index([
-            unicodedata.normalize("NFD", compat.text_type(month).capitalize())
-            for month in expected_months
-        ])
-
+        result = result.str.normalize("NFD")
+        expected = expected.str.normalize("NDF")
         tm.assert_index_equal(result, expected)
+
         for date, expected in zip(dti, expected_months):
             result = unicodedata.normalize(
                 "NFD", compat.text_type(date.month_name(locale=time_locale))
