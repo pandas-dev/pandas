@@ -653,6 +653,7 @@ def astype_nansafe(arr, dtype, copy=True):
     ----------
     arr : ndarray
     dtype : np.dtype
+    copy : bool, default True
     """
 
     # dispatch on extension dtype if needed
