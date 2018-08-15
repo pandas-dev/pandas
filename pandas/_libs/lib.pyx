@@ -22,7 +22,7 @@ PyDateTime_IMPORT
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport (ndarray, PyArray_GETITEM,
+from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
                     int64_t,
@@ -137,10 +137,10 @@ cpdef bint is_scalar(object val):
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
-            or util.is_offset_object(val))
+            or is_offset(val))
 
 
-cpdef item_from_zerodim(object val):
+def item_from_zerodim(object val):
     """
     If the value is a zerodim array, return the item it contains.
 
@@ -173,7 +173,7 @@ cpdef item_from_zerodim(object val):
 @cython.boundscheck(False)
 def fast_unique_multiple(list arrays):
     cdef:
-        object[:] buf
+        ndarray[object] buf
         Py_ssize_t k = len(arrays)
         Py_ssize_t i, j, n
         list uniques = []
@@ -269,7 +269,7 @@ def fast_unique_multiple_list_gen(object gen, bint sort=True):
 def dicts_to_array(list dicts, list columns):
     cdef:
         Py_ssize_t i, j, k, n
-        object[:, :] result
+        ndarray[object, ndim=2] result
         dict row
         object col, onan = np.nan
 
@@ -287,7 +287,7 @@ def dicts_to_array(list dicts, list columns):
             else:
                 result[i, j] = onan
 
-    return np.asarray(result)
+    return result
 
 
 def fast_zip(list ndarrays):
@@ -296,7 +296,7 @@ def fast_zip(list ndarrays):
     """
     cdef:
         Py_ssize_t i, j, k, n
-        object[:] result
+        ndarray[object] result
         flatiter it
         object val, tup
 
@@ -329,10 +329,10 @@ def fast_zip(list ndarrays):
             Py_INCREF(val)
             PyArray_ITER_NEXT(it)
 
-    return np.asarray(result)
+    return result
 
 
-def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
+def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
     """
     Reverse indexing operation.
 
@@ -359,7 +359,7 @@ def get_reverse_indexer(int64_t[:] indexer, Py_ssize_t length):
     return rev_indexer
 
 
-def has_infs_f4(float32_t[:] arr):
+def has_infs_f4(ndarray[float32_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         float32_t inf, neginf, val
@@ -374,7 +374,7 @@ def has_infs_f4(float32_t[:] arr):
     return False
 
 
-def has_infs_f8(float64_t[:] arr):
+def has_infs_f8(ndarray[float64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         float64_t inf, neginf, val
@@ -476,7 +476,7 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
     return True
 
 
-def astype_intsafe(object[:] arr, new_dtype):
+def astype_intsafe(ndarray[object] arr, new_dtype):
     cdef:
         Py_ssize_t i, n = len(arr)
         object v
@@ -545,7 +545,8 @@ def clean_index_list(list obj):
 
     # don't force numpy coerce with nan's
     inferred = infer_dtype(obj)
-    if inferred in ['string', 'bytes', 'unicode', 'mixed', 'mixed-integer']:
+    if inferred in ['string', 'bytes', 'unicode',
+                    'mixed', 'mixed-integer']:
         return np.asarray(obj, dtype=object), 0
     elif inferred in ['integer']:
 
@@ -566,7 +567,7 @@ def clean_index_list(list obj):
 # is a general, O(max(len(values), len(binner))) method.
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def generate_bins_dt64(ndarray[int64_t] values, int64_t[:] binner,
+def generate_bins_dt64(ndarray[int64_t] values, ndarray[int64_t] binner,
                        object closed='left', bint hasnans=0):
     """
     Int64 (datetime64) version of generic python version in groupby.py
@@ -633,7 +634,7 @@ def row_bool_subset(ndarray[float64_t, ndim=2] values,
                     ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i, j, n, k, pos = 0
-        float64_t[:, :] out
+        ndarray[float64_t, ndim=2] out
 
     n, k = (<object> values).shape
     assert (n == len(mask))
@@ -646,7 +647,7 @@ def row_bool_subset(ndarray[float64_t, ndim=2] values,
                 out[pos, j] = values[i, j]
             pos += 1
 
-    return np.asarray(out)
+    return out
 
 
 @cython.boundscheck(False)
@@ -655,7 +656,7 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
                            ndarray[uint8_t, cast=True] mask):
     cdef:
         Py_ssize_t i, j, n, k, pos = 0
-        object[:, :] out
+        ndarray[object, ndim=2] out
 
     n, k = (<object> values).shape
     assert (n == len(mask))
@@ -668,12 +669,13 @@ def row_bool_subset_object(ndarray[object, ndim=2] values,
                 out[pos, j] = values[i, j]
             pos += 1
 
-    return np.asarray(out)
+    return out
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def get_level_sorter(ndarray[int64_t, ndim=1] label, int64_t[:] starts):
+def get_level_sorter(ndarray[int64_t, ndim=1] label,
+                     ndarray[int64_t, ndim=1] starts):
     """
     argsort for a single level of a multi-index, keeping the order of higher
     levels unchanged. `starts` points to starts of same-key indices w.r.t
@@ -696,7 +698,7 @@ def get_level_sorter(ndarray[int64_t, ndim=1] label, int64_t[:] starts):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
-                   int64_t[:] labels,
+                   ndarray[int64_t, ndim=1] labels,
                    Py_ssize_t max_bin,
                    int axis):
     cdef:
@@ -723,7 +725,7 @@ def count_level_2d(ndarray[uint8_t, ndim=2, cast=True] mask,
     return counts
 
 
-def generate_slices(int64_t[:] labels, Py_ssize_t ngroups):
+def generate_slices(ndarray[int64_t] labels, Py_ssize_t ngroups):
     cdef:
         Py_ssize_t i, group_size, n, start
         int64_t lab
@@ -752,7 +754,7 @@ def generate_slices(int64_t[:] labels, Py_ssize_t ngroups):
     return starts, ends
 
 
-def indices_fast(object index, int64_t[:] labels, list keys,
+def indices_fast(object index, ndarray[int64_t] labels, list keys,
                  list sorted_labels):
     cdef:
         Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
@@ -822,6 +824,10 @@ cpdef bint is_interval(object obj):
 cpdef bint is_period(object val):
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
+
+
+cdef inline bint is_offset(object val):
+    return getattr(val, '_typ', '_typ') == 'dateoffset'
 
 
 _TYPE_MAP = {
@@ -1225,7 +1231,7 @@ def infer_dtype(object value, bint skipna=False):
         if is_bytes_array(values, skipna=skipna):
             return 'bytes'
 
-    elif util.is_period_object(val):
+    elif is_period(val):
         if is_period_array(values):
             return 'period'
 
@@ -1672,7 +1678,7 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
 
 cdef class PeriodValidator(TemporalValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return util.is_period_object(value)
+        return is_period(value)
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_period(value)
@@ -2062,7 +2068,8 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
     return objects
 
 
-def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
+def map_infer_mask(ndarray arr, object f, ndarray[uint8_t] mask,
+                   bint convert=1):
     """
     Substitute for np.vectorize with pandas-friendly dtype inference
 
@@ -2088,8 +2095,11 @@ def map_infer_mask(ndarray arr, object f, uint8_t[:] mask, bint convert=1):
         else:
             val = f(util.get_value_at(arr, i))
 
-            # unbox if 0-dim array GH#690
-            val = item_from_zerodim(val)
+            if util.is_array(val) and PyArray_NDIM(val) == 0:
+                # unbox 0-dim arrays, GH#690
+                # TODO: is there a faster way to unbox?
+                #   item_from_zerodim?
+                val = val.item()
 
         result[i] = val
 
@@ -2125,8 +2135,11 @@ def map_infer(ndarray arr, object f, bint convert=1):
     for i in range(n):
         val = f(util.get_value_at(arr, i))
 
-        # unbox if 0-dim array GH#690
-        val = item_from_zerodim(val)
+        if util.is_array(val) and PyArray_NDIM(val) == 0:
+            # unbox 0-dim arrays, GH#690
+            # TODO: is there a faster way to unbox?
+            #   item_from_zerodim?
+            val = val.item()
 
         result[i] = val
 
@@ -2159,7 +2172,7 @@ def to_object_array(list rows, int min_width=0):
     """
     cdef:
         Py_ssize_t i, j, n, k, tmp
-        object[:, :] result
+        ndarray[object, ndim=2] result
         list row
 
     n = len(rows)
@@ -2178,13 +2191,13 @@ def to_object_array(list rows, int min_width=0):
         for j in range(len(row)):
             result[i, j] = row[j]
 
-    return np.asarray(result)
+    return result
 
 
-def tuples_to_object_array(object[:] tuples):
+def tuples_to_object_array(ndarray[object] tuples):
     cdef:
         Py_ssize_t i, j, n, k, tmp
-        object[:, :] result
+        ndarray[object, ndim=2] result
         tuple tup
 
     n = len(tuples)
@@ -2195,13 +2208,13 @@ def tuples_to_object_array(object[:] tuples):
         for j in range(k):
             result[i, j] = tup[j]
 
-    return np.asarray(result)
+    return result
 
 
 def to_object_array_tuples(list rows):
     cdef:
         Py_ssize_t i, j, n, k, tmp
-        object[:, :] result
+        ndarray[object, ndim=2] result
         tuple row
 
     n = len(rows)
@@ -2226,7 +2239,7 @@ def to_object_array_tuples(list rows):
             for j in range(len(row)):
                 result[i, j] = row[j]
 
-    return np.asarray(result)
+    return result
 
 
 def fast_multiget(dict mapping, ndarray keys, default=np.nan):
