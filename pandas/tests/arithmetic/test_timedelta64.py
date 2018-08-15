@@ -834,8 +834,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
                                                     "incorrectly",
                                              strict=True, raises=ValueError))
     ], ids=lambda x: x.__name__)
-    def test_td64arr_add_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
+    def test_td64arr_add_int_series_invalid(self, box, td_series):
+        tdser = tm.box_expected(td_series, box)
         err = TypeError if box is not pd.Index else NullFrequencyError
         with pytest.raises(err):
             tdser + Series([2, 3, 4])
@@ -852,8 +852,8 @@ class TestTimedeltaArraylikeAddSubOps(object):
                                                     "incorrectly",
                                              strict=True, raises=ValueError))
     ], ids=lambda x: x.__name__)
-    def test_td64arr_radd_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
+    def test_td64arr_radd_int_series_invalid(self, box, td_series):
+        tdser = tm.box_expected(td_series, box)
         err = TypeError if box is not pd.Index else NullFrequencyError
         with pytest.raises(err):
             Series([2, 3, 4]) + tdser
@@ -866,16 +866,16 @@ class TestTimedeltaArraylikeAddSubOps(object):
                                                     "incorrectly",
                                              strict=True, raises=ValueError))
     ], ids=lambda x: x.__name__)
-    def test_td64arr_sub_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
+    def test_td64arr_sub_int_series_invalid(self, box, td_series):
+        tdser = tm.box_expected(td_series, box)
         err = TypeError if box is not pd.Index else NullFrequencyError
         with pytest.raises(err):
             tdser - Series([2, 3, 4])
 
     @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds',
                        strict=True)
-    def test_td64arr_rsub_int_series_invalid(self, box, tdser):
-        tdser = tm.box_expected(tdser, box)
+    def test_td64arr_rsub_int_series_invalid(self, box, td_series):
+        tdser = tm.box_expected(td_series, box)
         with pytest.raises(TypeError):
             Series([2, 3, 4]) - tdser
 
@@ -917,14 +917,15 @@ class TestTimedeltaArraylikeAddSubOps(object):
             ser - pd.Index(other)
 
     @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
-    def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar, tdser):
+    def test_td64arr_add_sub_numeric_scalar_invalid(self, box, scalar,
+                                                    td_series):
 
         if box is pd.DataFrame and isinstance(scalar, np.ndarray):
             # raises ValueError
             pytest.xfail(reason="reversed ops return incorrect answers "
                                 "instead of raising.")
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(td_series, box)
         err = TypeError
         if box is pd.Index and not isinstance(scalar, float):
             err = NullFrequencyError
@@ -955,11 +956,12 @@ class TestTimedeltaArraylikeAddSubOps(object):
         Series([1, 2, 3])
         # TODO: Add DataFrame in here?
     ], ids=lambda x: type(x).__name__)
-    def test_td64arr_add_sub_numeric_arr_invalid(self, box, vec, dtype, tdser):
+    def test_td64arr_add_sub_numeric_arr_invalid(self, box, vec, dtype,
+                                                 td_series):
         if type(vec) is Series and not dtype.startswith('float'):
             pytest.xfail(reason='GH#19123 integer interpreted as nanos')
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(td_series, box)
         err = TypeError
         if box is pd.Index and not dtype.startswith('float'):
             err = NullFrequencyError
@@ -1641,13 +1643,13 @@ class TestTimedeltaArraylikeMulDivOps(object):
     # Operations with numeric others
 
     @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
-    def test_td64arr_mul_numeric_scalar(self, box, one, tdser):
+    def test_td64arr_mul_numeric_scalar(self, box, one, td_series):
         # GH#4521
         # divide/multiply by integers
         expected = Series(['-59 Days', '-59 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(td_series, box)
         expected = tm.box_expected(expected, box)
 
         result = tdser * (-one)
@@ -1665,12 +1667,12 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize('two', [2, 2.0, np.array(2), np.array(2.0)])
-    def test_td64arr_div_numeric_scalar(self, box, two, tdser):
+    def test_td64arr_div_numeric_scalar(self, box, two, td_series):
         # GH#4521
         # divide/multiply by integers
         expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(td_series, box)
         expected = tm.box_expected(expected, box)
 
         result = tdser / two
@@ -1692,7 +1694,8 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
-    def test_td64arr_rmul_numeric_array(self, op, box, vector, dtype, tdser):
+    def test_td64arr_rmul_numeric_array(self, op, box, vector, dtype,
+                                        td_series):
         # GH#4521
         # divide/multiply by integers
         vector = vector.astype(dtype)
@@ -1700,7 +1703,7 @@ class TestTimedeltaArraylikeMulDivOps(object):
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
                           dtype='timedelta64[ns]')
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(td_series, box)
         # TODO: Make this up-casting more systematic?
         box = Series if (box is pd.Index and type(vector) is Series) else box
         expected = tm.box_expected(expected, box)
@@ -1723,14 +1726,14 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         pd.Index([20, 30, 40]),
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
-    def test_td64arr_div_numeric_array(self, box, vector, dtype, tdser):
+    def test_td64arr_div_numeric_array(self, box, vector, dtype, td_series):
         # GH#4521
         # divide/multiply by integers
         vector = vector.astype(dtype)
         expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
                           dtype='timedelta64[ns]')
 
-        tdser = tm.box_expected(tdser, box)
+        tdser = tm.box_expected(td_series, box)
         box = Series if (box is pd.Index and type(vector) is Series) else box
         expected = tm.box_expected(expected, box)
 

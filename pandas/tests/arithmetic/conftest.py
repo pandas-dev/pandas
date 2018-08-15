@@ -38,7 +38,7 @@ def idx(request):
 
 
 @pytest.fixture
-def tdser():
+def td_series():
     """
     Return a Series with dtype='timedelta64[ns]', including a NaT.
     """
