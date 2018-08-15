@@ -868,6 +868,24 @@ normalized after the function is applied.
    hour.apply(pd.Timestamp('2014-01-01 23:00'))
 
 
+Day vs. CalendarDay
+~~~~~~~~~~~~~~~~~~~
+
+:class:`Day` (``'D'``) is a timedelta-like offset that respects absolute time
+arithmetic and essentially is an alias for 24 :class:`Hour`. This offset is the default
+argument to many Pandas time related function like :func:`date_range` and :func:`timedelta_range`.
+
+:class:`CalendarDay` (``'CD'``) is a relativetimedelta-like offset that respects
+calendar time arithmetic. :class:`CalendarDay` is useful preserving calendar day
+semantics with date times with have day light savings transitions.
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
+
+
 Parametric Offsets
 ~~~~~~~~~~~~~~~~~~
 
