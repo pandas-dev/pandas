@@ -3,6 +3,7 @@
 cimport cython
 from cython cimport Py_ssize_t
 
+from cpython cimport PyObject
 from cpython.slice cimport PySlice_Check
 
 cdef extern from "Python.h":
@@ -12,7 +13,7 @@ import numpy as np
 from numpy cimport int64_t
 
 cdef extern from "compat_helper.h":
-    cdef int slice_get_indices(object s, Py_ssize_t length,
+    cdef int slice_get_indices(PyObject* s, Py_ssize_t length,
                                Py_ssize_t *start, Py_ssize_t *stop,
                                Py_ssize_t *step,
                                Py_ssize_t *slicelength) except -1
@@ -248,7 +249,7 @@ cpdef Py_ssize_t slice_len(
     if slc is None:
         raise TypeError("slc must be slice")
 
-    slice_get_indices(<object>slc, objlen,
+    slice_get_indices(<PyObject *>slc, objlen,
                       &start, &stop, &step, &length)
 
     return length
@@ -268,7 +269,7 @@ cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     if slc is None:
         raise TypeError("slc should be a slice")
 
-    slice_get_indices(<object>slc, objlen,
+    slice_get_indices(<PyObject *>slc, objlen,
                       &start, &stop, &step, &length)
 
     return start, stop, step, length
