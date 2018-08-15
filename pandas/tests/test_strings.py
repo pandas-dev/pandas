@@ -946,16 +946,6 @@ class TestStringMethods(object):
                                     "unexpected keyword "
                                     "argument 'as_indexer'"):
             result = values.str.match('.*BAD[_]+.*BAD', as_indexer=True)
-        with tm.assert_raises_regex(TypeError,
-                                    "str_match() got an "
-                                    "unexpected keyword "
-                                    "argument 'as_indexer'"):
-            result = values.str.match('.*BAD[_]+.*BAD', as_indexer=False)
-        with tm.assert_raises_regex(TypeError,
-                                    "str_match() got an "
-                                    "unexpected keyword "
-                                    "argument 'as_indexer'"):
-            result = values.str.match('.*(BAD[_]+).*(BAD)', as_indexer=True)
 
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
