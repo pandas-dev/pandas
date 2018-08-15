@@ -653,10 +653,6 @@ def astype_nansafe(arr, dtype, copy=True):
     ----------
     arr : ndarray
     dtype : np.dtype
-    copy : bool or None, default True
-        Whether to copy during the `.astype` (True) or
-        just return a view (False). Passing `copy=None` will
-        attempt to return a view, but will copy if necessary.
     """
 
     # dispatch on extension dtype if needed
@@ -745,15 +741,7 @@ def astype_nansafe(arr, dtype, copy=True):
 
     if copy:
         return arr.astype(dtype, copy=True)
-    else:
-        try:
-            return arr.view(dtype)
-        except TypeError:
-            if copy is None:
-                # allowed to copy if necessary (e.g. object)
-                return arr.astype(dtype, copy=True)
-            else:
-                raise
+    return arr.view(dtype)
 
 
 def maybe_convert_objects(values, convert_dates=True, convert_numeric=True,
