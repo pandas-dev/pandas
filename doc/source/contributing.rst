@@ -652,7 +652,7 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses `pytest
-<http://doc.pytest.org/en/latest/>`_ and the convenient
+<http://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
@@ -702,7 +702,7 @@ Transitioning to ``pytest``
     class TestReallyCoolFeature(object):
         ....
 
-Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
+Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -837,7 +837,7 @@ On Windows, one can type::
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
-For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
+For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
     .. versionadded:: 0.20.0
 
