@@ -321,8 +321,9 @@ class TestSeriesDatetimeValues(TestData):
             result = unicodedata.normalize(
                 "NFD", compat.text_type(s_date.month_name(locale=time_locale))
             )
-            expected = compat.text_type(
-                unicodedata.normalize("NFD", expected.capitalize())
+            expected = unicodedata.normalize(
+                "NFD",
+                compat.text_type(expected.capitalize())
             )
 
             assert result == expected
