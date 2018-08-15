@@ -298,10 +298,12 @@ class TestDatetime64(object):
                 # not worth testing at this point
                 break
             result = unicodedata.normalize(
-                "NFD", compat.text_type(date.month_name(locale=time_locale))
+                "NFD",
+                compat.text_type(date.month_name(locale=time_locale))
             )
             expected = unicodedata.normalize(
-                compat.text_type("NFD", expected.capitalize())
+                "NFD",
+                compat.text_type(expected.capitalize())
             )
             assert result == expected
         dti = dti.append(DatetimeIndex([pd.NaT]))
