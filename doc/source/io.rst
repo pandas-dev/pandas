@@ -186,7 +186,7 @@ false_values : list, default ``None``
   Values to consider as ``False``.
 skipinitialspace : boolean, default ``False``
   Skip spaces after delimiter.
-skiprows : list-like or integer, default ``None``
+skip_rows : list-like or integer, default ``None``
   Line numbers to skip (0-indexed) or number of lines to skip (int) at the start
   of the file.
 
@@ -197,7 +197,7 @@ skiprows : list-like or integer, default ``None``
 
      data = 'col1,col2,col3\na,b,1\na,b,2\nc,d,3'
      pd.read_csv(StringIO(data))
-     pd.read_csv(StringIO(data), skiprows=lambda x: x % 2 != 0)
+     pd.read_csv(StringIO(data), skip_rows=lambda x: x % 2 != 0)
 
 skipfooter : int, default ``0``
   Number of lines at bottom of file to skip (unsupported with engine='c').
@@ -326,7 +326,7 @@ comment : str, default ``None``
   Indicates remainder of line should not be parsed. If found at the beginning of
   a line, the line will be ignored altogether. This parameter must be a single
   character. Like empty lines (as long as ``skip_blank_lines=True``), fully
-  commented lines are ignored by the parameter `header` but not by `skiprows`.
+  commented lines are ignored by the parameter `header` but not by `skip_rows`.
   For example, if ``comment='#'``, parsing '#empty\\na,b,c\\n1,2,3' with
   `header=0` will result in 'a,b,c' being treated as the header.
 encoding : str, default ``None``
@@ -651,24 +651,24 @@ If ``skip_blank_lines=False``, then ``read_csv`` will not ignore blank lines:
 
    The presence of ignored lines might create ambiguities involving line numbers;
    the parameter ``header`` uses row numbers (ignoring commented/empty
-   lines), while ``skiprows`` uses line numbers (including commented/empty lines):
+   lines), while ``skip_rows`` uses line numbers (including commented/empty lines):
 
    .. ipython:: python
 
       data = '#comment\na,b,c\nA,B,C\n1,2,3'
       pd.read_csv(StringIO(data), comment='#', header=1)
       data = 'A,B,C\n#comment\na,b,c\n1,2,3'
-      pd.read_csv(StringIO(data), comment='#', skiprows=2)
+      pd.read_csv(StringIO(data), comment='#', skip_rows=2)
 
-   If both ``header`` and ``skiprows`` are specified, ``header`` will be
-   relative to the end of ``skiprows``. For example:
+   If both ``header`` and ``skip_rows`` are specified, ``header`` will be
+   relative to the end of ``skip_rows``. For example:
 
    .. ipython:: python
 
       data = '# empty\n# second empty line\n# third empty' \
                 'line\nX,Y,Z\n1,2,3\nA,B,C\n1,2.,4.\n5.,NaN,10.0'
       print(data)
-      pd.read_csv(StringIO(data), comment='#', skiprows=4, header=1)
+      pd.read_csv(StringIO(data), comment='#', skip_rows=4, header=1)
 
 .. _io.comments:
 
@@ -2373,14 +2373,14 @@ Specify a number of rows to skip:
 
 .. code-block:: python
 
-   dfs = pd.read_html(url, skiprows=0)
+   dfs = pd.read_html(url, skip_rows=0)
 
 Specify a number of rows to skip using a list (``xrange`` (Python 2 only) works
 as well):
 
 .. code-block:: python
 
-   dfs = pd.read_html(url, skiprows=range(2))
+   dfs = pd.read_html(url, skip_rows=range(2))
 
 Specify an HTML attribute:
 

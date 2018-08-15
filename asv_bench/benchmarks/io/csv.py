@@ -87,9 +87,9 @@ class ReadCSVSkipRows(BaseIO):
     goal_time = 0.2
     fname = '__test__.csv'
     params = [None, 10000]
-    param_names = ['skiprows']
+    param_names = ['skip_rows']
 
-    def setup(self, skiprows):
+    def setup(self, skip_rows):
         N = 20000
         index = tm.makeStringIndex(N)
         df = DataFrame({'float1': np.random.randn(N),
@@ -100,8 +100,8 @@ class ReadCSVSkipRows(BaseIO):
                        index=index)
         df.to_csv(self.fname)
 
-    def time_skipprows(self, skiprows):
-        read_csv(self.fname, skiprows=skiprows)
+    def time_skipprows(self, skip_rows):
+        read_csv(self.fname, skip_rows=skip_rows)
 
 
 class ReadUint64Integers(StringIORewind):
