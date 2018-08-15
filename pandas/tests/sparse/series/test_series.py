@@ -11,6 +11,7 @@ import pandas as pd
 
 from pandas import (Series, DataFrame, bdate_range,
                     isna, compat, _np_version_under1p12)
+from pandas.errors import PerformanceWarning
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -1231,7 +1232,6 @@ class TestSparseSeriesScipyInteraction(object):
         exp = pd.SparseDataFrame(exp)
         tm.assert_sp_frame_equal(res, exp)
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_concat_different_fill(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
         val2 = np.array([3, np.nan, 4, 0, 0])
@@ -1240,12 +1240,14 @@ class TestSparseSeriesScipyInteraction(object):
             sparse1 = pd.SparseSeries(val1, name='x', kind=kind)
             sparse2 = pd.SparseSeries(val2, name='y', kind=kind, fill_value=0)
 
-            res = pd.concat([sparse1, sparse2])
+            with tm.assert_produces_warning(PerformanceWarning):
+                res = pd.concat([sparse1, sparse2])
             exp = pd.concat([pd.Series(val1), pd.Series(val2)])
             exp = pd.SparseSeries(exp, kind=kind)
             tm.assert_sp_series_equal(res, exp)
 
-            res = pd.concat([sparse2, sparse1])
+            with tm.assert_produces_warning(PerformanceWarning):
+                res = pd.concat([sparse2, sparse1])
             exp = pd.concat([pd.Series(val2), pd.Series(val1)])
             exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
             tm.assert_sp_series_equal(res, exp)
@@ -1263,7 +1265,6 @@ class TestSparseSeriesScipyInteraction(object):
         assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_concat_different_kind(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
         val2 = np.array([3, np.nan, 4, 0, 0])
@@ -1271,12 +1272,14 @@ class TestSparseSeriesScipyInteraction(object):
         sparse1 = pd.SparseSeries(val1, name='x', kind='integer')
         sparse2 = pd.SparseSeries(val2, name='y', kind='block', fill_value=0)
 
-        res = pd.concat([sparse1, sparse2])
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = pd.concat([sparse1, sparse2])
         exp = pd.concat([pd.Series(val1), pd.Series(val2)])
         exp = pd.SparseSeries(exp, kind='integer')
         tm.assert_sp_series_equal(res, exp)
 
-        res = pd.concat([sparse2, sparse1])
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = pd.concat([sparse2, sparse1])
         exp = pd.concat([pd.Series(val2), pd.Series(val1)])
         exp = pd.SparseSeries(exp, kind='block', fill_value=0)
         tm.assert_sp_series_equal(res, exp)
