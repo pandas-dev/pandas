@@ -33,7 +33,7 @@ def zero(request):
                         pd.UInt64Index(np.arange(5, dtype='uint64')),
                         pd.RangeIndex(5)],
                 ids=lambda x: type(x).__name__)
-def idx(request):
+def numeric_index(request):
     return request.param
 
 

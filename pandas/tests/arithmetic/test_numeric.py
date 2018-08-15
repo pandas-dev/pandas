@@ -137,7 +137,8 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
 
 class TestDivisionByZero(object):
 
-    def test_div_zero(self, zero, idx):
+    def test_div_zero(self, zero, numeric_index):
+        idx = numeric_index
         expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
                             dtype=np.float64)
         result = idx / zero
@@ -145,7 +146,8 @@ class TestDivisionByZero(object):
         ser_compat = Series(idx).astype('i8') / np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
-    def test_floordiv_zero(self, zero, idx):
+    def test_floordiv_zero(self, zero, numeric_index):
+        idx = numeric_index
         expected = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
                             dtype=np.float64)
 
@@ -154,7 +156,8 @@ class TestDivisionByZero(object):
         ser_compat = Series(idx).astype('i8') // np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
-    def test_mod_zero(self, zero, idx):
+    def test_mod_zero(self, zero, numeric_index):
+        idx = numeric_index
         expected = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan],
                             dtype=np.float64)
         result = idx % zero
@@ -162,14 +165,13 @@ class TestDivisionByZero(object):
         ser_compat = Series(idx).astype('i8') % np.array(zero).astype('i8')
         tm.assert_series_equal(ser_compat, Series(result))
 
-    def test_divmod_zero(self, zero, idx):
-
+    def test_divmod_zero(self, zero, numeric_index):
         exleft = pd.Index([np.nan, np.inf, np.inf, np.inf, np.inf],
                           dtype=np.float64)
         exright = pd.Index([np.nan, np.nan, np.nan, np.nan, np.nan],
                            dtype=np.float64)
 
-        result = divmod(idx, zero)
+        result = divmod(numeric_index, zero)
         tm.assert_index_equal(result[0], exleft)
         tm.assert_index_equal(result[1], exright)
 
@@ -379,28 +381,29 @@ class TestMultiplicationDivision(object):
         result = second / first
         tm.assert_series_equal(result, expected)
 
-    def test_div_int(self, idx):
+    def test_div_int(self, numeric_index):
         # truediv under PY3
-        result = idx / 1
-        expected = idx
+        result = numeric_index / 1
+        expected = numeric_index
         if PY3:
             expected = expected.astype('float64')
         tm.assert_index_equal(result, expected)
 
-        result = idx / 2
+        result = numeric_index / 2
         if PY3:
             expected = expected.astype('float64')
-        expected = Index(idx.values / 2)
+        expected = Index(numeric_index.values / 2)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul, operator.floordiv])
-    def test_mul_int_identity(self, op, idx, box):
-        idx = tm.box_expected(idx, box)
+    def test_mul_int_identity(self, op, numeric_index, box):
+        idx = tm.box_expected(numeric_index, box)
 
         result = op(idx, 1)
         tm.assert_equal(result, idx)
 
-    def test_mul_int_array(self, idx):
+    def test_mul_int_array(self, numeric_index):
+        idx = numeric_index
         didx = idx * idx
 
         result = idx * np.array(5, dtype='int64')
@@ -410,58 +413,60 @@ class TestMultiplicationDivision(object):
         result = idx * np.arange(5, dtype=arr_dtype)
         tm.assert_index_equal(result, didx)
 
-    def test_mul_int_series(self, idx):
+    def test_mul_int_series(self, numeric_index):
+        idx = numeric_index
         didx = idx * idx
 
         arr_dtype = 'uint64' if isinstance(idx, pd.UInt64Index) else 'int64'
         result = idx * Series(np.arange(5, dtype=arr_dtype))
         tm.assert_series_equal(result, Series(didx))
 
-    def test_mul_float_series(self, idx):
+    def test_mul_float_series(self, numeric_index):
         rng5 = np.arange(5, dtype='float64')
 
-        result = idx * Series(rng5 + 0.1)
+        result = numeric_index * Series(rng5 + 0.1)
         expected = Series(rng5 * (rng5 + 0.1))
         tm.assert_series_equal(result, expected)
 
-    def test_mul_index(self, idx):
+    def test_mul_index(self, numeric_index):
         # in general not true for RangeIndex
-        if not isinstance(idx, pd.RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
+        if not isinstance(numeric_index, pd.RangeIndex):
+            result = numeric_index * numeric_index
+            tm.assert_index_equal(result, numeric_index ** 2)
 
-    def test_mul_datelike_raises(self, idx):
+    def test_mul_datelike_raises(self, numeric_index):
         with pytest.raises(TypeError):
-            idx * pd.date_range('20130101', periods=5)
+            numeric_index * pd.date_range('20130101', periods=5)
 
-    def test_mul_size_mismatch_raises(self, idx):
+    def test_mul_size_mismatch_raises(self, numeric_index):
         with pytest.raises(ValueError):
-            idx * idx[0:3]
+            numeric_index * numeric_index[0:3]
         with pytest.raises(ValueError):
-            idx * np.array([1, 2])
+            numeric_index * np.array([1, 2])
 
     @pytest.mark.parametrize('op', [operator.pow, ops.rpow])
-    def test_pow_float(self, op, idx, box):
+    def test_pow_float(self, op, numeric_index, box):
         # test power calculations both ways, GH#14973
-        expected = pd.Float64Index(op(idx.values, 2.0))
+        expected = pd.Float64Index(op(numeric_index.values, 2.0))
 
-        idx = tm.box_expected(idx, box)
+        idx = tm.box_expected(numeric_index, box)
         expected = tm.box_expected(expected, box)
 
         result = op(idx, 2.0)
         tm.assert_equal(result, expected)
 
-    def test_modulo(self, idx, box):
+    def test_modulo(self, numeric_index, box):
         # GH#9244
-        expected = Index(idx.values % 2)
+        expected = Index(numeric_index.values % 2)
 
-        idx = tm.box_expected(idx, box)
+        idx = tm.box_expected(numeric_index, box)
         expected = tm.box_expected(expected, box)
 
         result = idx % 2
         tm.assert_equal(result, expected)
 
-    def test_divmod(self, idx):
+    def test_divmod(self, numeric_index):
+        idx = numeric_index
         result = divmod(idx, 2)
         with np.errstate(all='ignore'):
             div, mod = divmod(idx.values, 2)
@@ -479,7 +484,8 @@ class TestMultiplicationDivision(object):
 
     @pytest.mark.xfail(reason='GH#19252 Series has no __rdivmod__',
                        strict=True)
-    def test_divmod_series(self, idx):
+    def test_divmod_series(self, numeric_index):
+        idx = numeric_index
         other = np.ones(idx.values.shape, dtype=idx.values.dtype) * 2
         result = divmod(idx, Series(other))
         with np.errstate(all='ignore'):
