@@ -6,6 +6,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     needs_i8_conversion,
     is_integer_dtype,
+    is_float,
     is_bool,
     is_bool_dtype,
     is_scalar)
@@ -174,6 +175,12 @@ class Int64Index(NumericIndex):
     _engine_type = libindex.Int64Engine
     _default_dtype = np.int64
 
+    def __contains__(self, key):
+        hash(key)
+        if is_float(key) and int(key) != key:
+            return False
+        return key in self._engine
+
     @property
     def inferred_type(self):
         """Always 'integer' for ``Int64Index``"""
@@ -231,6 +238,12 @@ class UInt64Index(NumericIndex):
     _can_hold_na = False
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
+
+    def __contains__(self, key):
+        hash(key)
+        if is_float(key) and int(key) != key:
+            return False
+        return key in self._engine
 
     @property
     def inferred_type(self):
