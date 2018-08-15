@@ -50,11 +50,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
 
 
 cpdef object get_value_box(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i
-
-    i = util.validate_indexer(arr, loc)
-    return get_value_at(arr, i, tz=None)
+    return get_value_at(arr, loc, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
