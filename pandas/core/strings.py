@@ -2456,9 +2456,8 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
-        result = str_match(self._parent, pat, case=case, flags=flags, na=na,
-                           as_indexer=as_indexer)
+    def match(self, pat, case=True, flags=0, na=np.nan):
+        result = str_match(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result)
 
     @copy(str_replace)
