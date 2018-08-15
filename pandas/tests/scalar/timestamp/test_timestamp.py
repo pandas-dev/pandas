@@ -5,6 +5,7 @@ import pytest
 import dateutil
 import calendar
 import locale
+import unicodedata
 import numpy as np
 
 from dateutil.tz import tzutc
@@ -20,7 +21,7 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import long, PY3
+from pandas.compat import long, PY3, text_type
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import Timestamp, Period, Timedelta, NaT
 
@@ -113,11 +114,25 @@ class TestTimestampProperties(object):
             expected_month = 'August'
         else:
             with tm.set_locale(time_locale, locale.LC_TIME):
-                expected_day = calendar.day_name[0].capitalize()
-                expected_month = calendar.month_name[8].capitalize()
+                expected_day = unicodedata.normalize(
+                    "NFD", text_type(calendar.day_name[0].capitalize())
+                )
+                expected_month = unicodedata.normalize(
+                    "NFD", calendar.month_name[8].capitalize()
+                )
 
-        assert data.day_name(time_locale) == expected_day
-        assert data.month_name(time_locale) == expected_month
+        # Work around https://github.com/pandas-dev/pandas/issues/22342
+        # different normalizations
+
+        result_day = unicodedata.normalize(
+            "NFD", data.day_name(time_locale)
+        )
+        result_month = unicodedata.normalize(
+            "NFD", data.month_name_name(time_locale)
+        )
+
+        assert result_day == expected_day
+        assert result_month == expected_month
 
         # Test NaT
         nan_ts = Timestamp(NaT)

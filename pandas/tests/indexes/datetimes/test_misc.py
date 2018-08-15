@@ -289,7 +289,7 @@ class TestDatetime64(object):
         # work around different normalization schemes
         # https://github.com/pandas-dev/pandas/issues/22342
         result = result.str.normalize("NFD")
-        expected = expected.str.normalize("NDF")
+        expected = expected.str.normalize("NFD")
         tm.assert_index_equal(result, expected)
 
         for date, expected in zip(dti, expected_months):
