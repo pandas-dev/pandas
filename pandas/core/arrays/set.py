@@ -51,10 +51,6 @@ class SetDtype(ExtensionDtype):
     def _is_numeric(self):
         return False
 
-    @property
-    def name(self):
-        return 'set'
-
     def __repr__(self):
         return self.name
 
@@ -74,7 +70,7 @@ class SetDtype(ExtensionDtype):
         Construction from a string, raise a TypeError if not
         possible
         """
-        if string == cls.name:
+        if string == cls.name or string is set:
             return cls()
         raise TypeError("Cannot construct a '{}' from "
                         "'{}'".format(cls, string))
@@ -134,7 +130,7 @@ def coerce_to_array(values, mask=None, copy=False):
         return values, mask
 
     values = np.array(values, copy=copy)
-    if not is_object_dtype(values):
+    if not (is_object_dtype(values) or isna(values).all()):
         raise TypeError("{} cannot be converted to a SetDtype".format(
             values.dtype))
 
@@ -166,7 +162,7 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
     def dtype(self):
         return SetDtype()
 
-    def __init__(self, values, mask=None, copy=False):
+    def __init__(self, values, mask=None, dtype=None, copy=False):
         """
         Parameters
         ----------
@@ -332,7 +328,7 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
 
         # coerce
         data = self._coerce_to_ndarray()
-        return data.astype(copy=False)
+        return data.astype(dtype, copy=False)
 
     @property
     def _ndarray_values(self):
@@ -346,7 +342,7 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         """
         return self._data
 
-    def fillna(self, value, limit=None):
+    def fillna(self, value=None, method=None, limit=None):
         res = self._data.copy()
         res[self._mask] = [value] * self._mask.sum()
         return type(self)(res,
@@ -354,7 +350,10 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
                           copy=False)
 
     def dropna(self):
-        pass  # TODO
+        res = self._data[~self._mask]
+        return type(self)(res,
+                          mask=np.full_like(res, fill_value=False, dtype=bool),
+                          copy=False)
 
     def unique(self):
         raise NotImplementedError
@@ -440,6 +439,8 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
             elif (isinstance(other, Series)
                   and isinstance(other.values, SetArray)):
                 other, mask = other.values._data, other.values._mask
+            elif isinstance(other, set) or (is_scalar(other) and isna(other)):
+                other = np.array([other] * len(self))
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
@@ -463,12 +464,14 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
     @classmethod
     def _create_arithmetic_method(cls, op):
         def arithmetic_method(self, other):
- 
+
             op_name = op.__name__
             mask = None
             #print(other)
             if isinstance(other, SetArray):
                 other, mask = other._data, other._mask
+            elif isinstance(other, set) or (is_scalar(other) and isna(other)):
+                other = np.array([other] * len(self))
             elif is_list_like(other):
                 other = np.asarray(other)
                 #print(other)
@@ -484,15 +487,19 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
 
             with np.errstate(all='ignore'):
                 result[~mask] = op(self._data[~mask], other[~mask])
- 
+
             return type(self)(result, mask=mask, copy=False)
- 
+        
         name = '__{name}__'.format(name=op.__name__)
+        def raiser(self, other):
+            raise NotImplementedError
+        if name != '__sub__':
+            return raiser
         return set_function_name(arithmetic_method, name, cls)
 
 
 SetArray._add_comparison_ops()
-SetArray.__sub__ = SetArray._create_arithmetic_method(operator.__sub__)
+SetArray._add_arithmetic_ops()
 SetArray.__or__ = SetArray._create_arithmetic_method(operator.__or__)
 SetArray.__xor__ = SetArray._create_arithmetic_method(operator.__xor__)
 SetArray.__and__ = SetArray._create_arithmetic_method(operator.__and__)
