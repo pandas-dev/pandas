@@ -938,15 +938,6 @@ class TestStringMethods(object):
         exp = Series([True, NA, False])
         tm.assert_series_equal(result, exp)
 
-        # GH 22316 test the removal of as_indexer from match
-        values = Series(['fooBAD__barBAD', NA, 'foo'])
-        exp = Series([True, NA, False])
-        with tm.assert_raises_regex(TypeError,
-                                    "got an unexpected "
-                                    "keyword argument "
-                                    "'as_indexer'"):
-            result = values.str.match('.*BAD[_]+.*BAD', as_indexer=True)
-
         # mixed
         mixed = Series(['aBAD_BAD', NA, 'BAD_b_BAD', True, datetime.today(),
                         'foo', None, 1, 2.])
