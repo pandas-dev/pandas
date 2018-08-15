@@ -128,7 +128,7 @@ class TestTimestampProperties(object):
             "NFD", data.day_name(time_locale)
         )
         result_month = unicodedata.normalize(
-            "NFD", data.month_name_name(time_locale)
+            "NFD", data.month_name(time_locale)
         )
 
         assert result_day == expected_day
