@@ -942,8 +942,9 @@ class TestStringMethods(object):
         values = Series(['fooBAD__barBAD', NA, 'foo'])
         exp = Series([True, NA, False])
         with tm.assert_raises_regex(TypeError,
-                                    "match() got an unexpected "
-                                    "keyword argument 'as_indexer'"):
+                                    "got an unexpected "
+                                    "keyword argument "
+                                    "'as_indexer'"):
             result = values.str.match('.*BAD[_]+.*BAD', as_indexer=True)
 
         # mixed
