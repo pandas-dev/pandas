@@ -1,17 +1,23 @@
-cimport numpy as cnp
-import numpy as np
-
-cimport util
-cimport cython
-import cython
-from numpy cimport ndarray
-from tslib import Timestamp
-from tslibs.timezones cimport tz_compare
+# -*- coding: utf-8 -*-
+import numbers
 
 from cpython.object cimport (Py_EQ, Py_NE, Py_GT, Py_LT, Py_GE, Py_LE,
                              PyObject_RichCompare)
 
-import numbers
+cimport cython
+from cython cimport Py_ssize_t
+
+import numpy as np
+from numpy cimport ndarray
+
+
+cimport util
+util.import_array()
+
+from tslibs import Timestamp
+from tslibs.timezones cimport tz_compare
+
+
 _VALID_CLOSED = frozenset(['left', 'right', 'both', 'neither'])
 
 
@@ -97,6 +103,26 @@ cdef class IntervalMixin(object):
             # length not defined for some types, e.g. string
             msg = 'cannot compute length between {left!r} and {right!r}'
             raise TypeError(msg.format(left=self.left, right=self.right))
+
+    def _check_closed_matches(self, other, name='other'):
+        """Check if the closed attribute of `other` matches.
+
+        Note that 'left' and 'right' are considered different from 'both'.
+
+        Parameters
+        ----------
+        other : Interval, IntervalIndex, IntervalArray
+        name : str
+            Name to use for 'other' in the error message.
+
+        Raises
+        ------
+        ValueError
+            When `other` is not closed exactly the same as self.
+        """
+        if self.closed != other.closed:
+            msg = "'{}.closed' is '{}', expected '{}'."
+            raise ValueError(msg.format(name, other.closed, self.closed))
 
 
 cdef _interval_like(other):
@@ -300,36 +326,37 @@ cdef class Interval(IntervalMixin):
 
     def __add__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left + y, self.right + y)
+            return Interval(self.left + y, self.right + y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left + self, y.right + self)
+            return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __sub__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left - y, self.right - y)
+            return Interval(self.left - y, self.right - y, closed=self.closed)
         return NotImplemented
 
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left * y, self.right * y)
+            return Interval(self.left * y, self.right * y, closed=self.closed)
         elif isinstance(y, Interval) and isinstance(self, numbers.Number):
-            return Interval(y.left * self, y.right * self)
+            return Interval(y.left * self, y.right * self, closed=y.closed)
         return NotImplemented
 
     def __div__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y)
+            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __truediv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left / y, self.right / y)
+            return Interval(self.left / y, self.right / y, closed=self.closed)
         return NotImplemented
 
     def __floordiv__(self, y):
         if isinstance(y, numbers.Number):
-            return Interval(self.left // y, self.right // y)
+            return Interval(
+                self.left // y, self.right // y, closed=self.closed)
         return NotImplemented
 
 
@@ -366,7 +393,7 @@ cpdef intervals_to_interval_bounds(ndarray intervals,
 
     for i in range(len(intervals)):
         interval = intervals[i]
-        if util._checknull(interval):
+        if interval is None or util.is_nan(interval):
             left[i] = np.nan
             right[i] = np.nan
             continue

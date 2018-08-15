@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 
 from pandas.compat import zip
@@ -54,7 +55,7 @@ def _get_array_list(arr, others):
     """
     from pandas.core.series import Series
 
-    if len(others) and isinstance(com._values_from_object(others)[0],
+    if len(others) and isinstance(com.values_from_object(others)[0],
                                   (list, np.ndarray, Series)):
         arrays = [arr] + list(others)
     else:
@@ -292,6 +293,9 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     See Also
     --------
     match : analogous, but stricter, relying on re.match instead of re.search
+    Series.str.startswith : Test if the start of each string element matches a
+        pattern.
+    Series.str.endswith : Same as startswith, but tests the end of string.
 
     Examples
     --------
@@ -701,7 +705,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = libops.vec_binop(com._values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(com.values_from_object(arr), repeats, rep)
         return result
 
 
@@ -923,7 +927,7 @@ def str_extract(arr, pat, flags=0, expand=True):
     if expand:
         return _str_extract_frame(arr._orig, pat, flags=flags)
     else:
-        result, name = _str_extract_noexpand(arr._data, pat, flags=flags)
+        result, name = _str_extract_noexpand(arr._parent, pat, flags=flags)
         return arr._wrap_result(result, name=name, expand=expand)
 
 
@@ -961,7 +965,7 @@ def str_extractall(arr, pat, flags=0):
     A pattern with one group will return a DataFrame with one column.
     Indices with no matches will not appear in the result.
 
-    >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
+    >>> s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
     >>> s.str.extractall(r"[ab](\d)")
              0
       match
@@ -1053,13 +1057,13 @@ def str_get_dummies(arr, sep='|'):
 
     Examples
     --------
-    >>> Series(['a|b', 'a', 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  1  0  0
     2  1  0  1
 
-    >>> Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  0  0  0
@@ -1078,7 +1082,7 @@ def str_get_dummies(arr, sep='|'):
     tags = set()
     for ts in arr.str.split(sep):
         tags.update(ts)
-    tags = sorted(tags - set([""]))
+    tags = sorted(tags - {""})
 
     dummies = np.empty((len(arr), len(tags)), dtype=np.int64)
 
@@ -1104,10 +1108,17 @@ def str_join(arr, sep):
     Returns
     -------
     Series/Index: object
+        The list entries concatenated by intervening occurrences of the
+        delimiter.
+
+    Raises
+    -------
+    AttributeError
+        If the supplied Series contains neither strings nor lists.
 
     Notes
     -----
-    If any of the lists does not contain string objects the result of the join
+    If any of the list items is not a string object, the result of the join
     will be `NaN`.
 
     See Also
@@ -1117,13 +1128,12 @@ def str_join(arr, sep):
 
     Examples
     --------
-
     Example with a list that contains non-string elements.
 
     >>> s = pd.Series([['lion', 'elephant', 'zebra'],
     ...                [1.1, 2.2, 3.3],
     ...                ['cat', np.nan, 'dog'],
-    ...                ['cow', 4.5, 'goat']
+    ...                ['cow', 4.5, 'goat'],
     ...                ['duck', ['swan', 'fish'], 'guppy']])
     >>> s
     0        [lion, elephant, zebra]
@@ -1133,8 +1143,8 @@ def str_join(arr, sep):
     4    [duck, [swan, fish], guppy]
     dtype: object
 
-    Join all lists using an '-', the lists containing object(s) of types other
-    than str will become a NaN.
+    Join all lists using a '-'. The lists containing object(s) of types other
+    than str will produce a NaN.
 
     >>> s.str.join('-')
     0    lion-elephant-zebra
@@ -1717,7 +1727,7 @@ def str_encode(arr, encoding, errors="strict"):
 
 def _noarg_wrapper(f, docstring=None, **kargs):
     def wrapper(self):
-        result = _na_map(f, self._data, **kargs)
+        result = _na_map(f, self._parent, **kargs)
         return self._wrap_result(result)
 
     wrapper.__name__ = f.__name__
@@ -1731,15 +1741,15 @@ def _noarg_wrapper(f, docstring=None, **kargs):
 
 def _pat_wrapper(f, flags=False, na=False, **kwargs):
     def wrapper1(self, pat):
-        result = f(self._data, pat)
+        result = f(self._parent, pat)
         return self._wrap_result(result)
 
     def wrapper2(self, pat, flags=0, **kwargs):
-        result = f(self._data, pat, flags=flags, **kwargs)
+        result = f(self._parent, pat, flags=flags, **kwargs)
         return self._wrap_result(result)
 
     def wrapper3(self, pat, na=np.nan):
-        result = f(self._data, pat, na=na)
+        result = f(self._parent, pat, na=na)
         return self._wrap_result(result)
 
     wrapper = wrapper3 if na else wrapper2 if flags else wrapper1
@@ -1779,7 +1789,7 @@ class StringMethods(NoNewAttributesMixin):
         self._is_categorical = is_categorical_dtype(data)
 
         # .values.categories works for both Series/Index
-        self._data = data.values.categories if self._is_categorical else data
+        self._parent = data.values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -2062,6 +2072,7 @@ class StringMethods(NoNewAttributesMixin):
         See Also
         --------
         split : Split each string in the Series/Index
+        join : Join lists contained as elements in the Series/Index
 
         Examples
         --------
@@ -2329,58 +2340,94 @@ class StringMethods(NoNewAttributesMixin):
         'side': 'beginning',
         'method': 'split'})
     def split(self, pat=None, n=-1, expand=False):
-        result = str_split(self._data, pat, n=n)
+        result = str_split(self._parent, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'end',
         'method': 'rsplit'})
     def rsplit(self, pat=None, n=-1, expand=False):
-        result = str_rsplit(self._data, pat, n=n)
+        result = str_rsplit(self._parent, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
     _shared_docs['str_partition'] = ("""
-    Split the string at the %(side)s occurrence of `sep`, and return 3 elements
-    containing the part before the separator, the separator itself,
-    and the part after the separator.
+    Split the string at the %(side)s occurrence of `sep`.
+
+    This method splits the string at the %(side)s occurrence of `sep`,
+    and returns 3 elements containing the part before the separator,
+    the separator itself, and the part after the separator.
     If the separator is not found, return %(return)s.
 
     Parameters
     ----------
-    pat : string, default whitespace
+    pat : str, default whitespace
         String to split on.
     expand : bool, default True
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+        If True, return DataFrame/MultiIndex expanding dimensionality.
+        If False, return Series/Index.
 
     Returns
     -------
-    split : DataFrame/MultiIndex or Series/Index of objects
+    DataFrame/MultiIndex or Series/Index of objects
 
     See Also
     --------
     %(also)s
+    Series.str.split : Split strings around given separators.
+    str.partition : Standard library version.
 
     Examples
     --------
 
-    >>> s = Series(['A_B_C', 'D_E_F', 'X'])
-    0    A_B_C
-    1    D_E_F
-    2        X
+
+    >>> s = pd.Series(['Linda van der Berg', 'George Pitt-Rivers'])
+    >>> s
+    0    Linda van der Berg
+    1    George Pitt-Rivers
     dtype: object
 
-    >>> s.str.partition('_')
-       0  1    2
-    0  A  _  B_C
-    1  D  _  E_F
-    2  X
+    >>> s.str.partition()
+            0  1             2
+    0   Linda     van der Berg
+    1  George      Pitt-Rivers
 
-    >>> s.str.rpartition('_')
-         0  1  2
-    0  A_B  _  C
-    1  D_E  _  F
-    2          X
+    To partition by the last space instead of the first one:
+
+    >>> s.str.rpartition()
+                   0  1            2
+    0  Linda van der            Berg
+    1         George     Pitt-Rivers
+
+    To partition by something different than a space:
+
+    >>> s.str.partition('-')
+                        0  1       2
+    0  Linda van der Berg
+    1         George Pitt  -  Rivers
+
+    To return a Series containining tuples instead of a DataFrame:
+
+    >>> s.str.partition('-', expand=False)
+    0    (Linda van der Berg, , )
+    1    (George Pitt, -, Rivers)
+    dtype: object
+
+    Also available on indices:
+
+    >>> idx = pd.Index(['X 123', 'Y 999'])
+    >>> idx
+    Index(['X 123', 'Y 999'], dtype='object')
+
+    Which will create a MultiIndex:
+
+    >>> idx.str.partition()
+    MultiIndex(levels=[['X', 'Y'], [' '], ['123', '999']],
+               labels=[[0, 1], [0, 0], [0, 1]])
+
+    Or an index with tuples with ``expand=False``:
+
+    >>> idx.str.partition(expand=False)
+    Index([('X', ' ', '123'), ('Y', ' ', '999')], dtype='object')
     """)
 
     @Appender(_shared_docs['str_partition'] % {
@@ -2391,7 +2438,7 @@ class StringMethods(NoNewAttributesMixin):
     })
     def partition(self, pat=' ', expand=True):
         f = lambda x: x.partition(pat)
-        result = _na_map(f, self._data)
+        result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
     @Appender(_shared_docs['str_partition'] % {
@@ -2402,45 +2449,45 @@ class StringMethods(NoNewAttributesMixin):
     })
     def rpartition(self, pat=' ', expand=True):
         f = lambda x: x.rpartition(pat)
-        result = _na_map(f, self._data)
+        result = _na_map(f, self._parent)
         return self._wrap_result(result, expand=expand)
 
     @copy(str_get)
     def get(self, i):
-        result = str_get(self._data, i)
+        result = str_get(self._parent, i)
         return self._wrap_result(result)
 
     @copy(str_join)
     def join(self, sep):
-        result = str_join(self._data, sep)
+        result = str_join(self._parent, sep)
         return self._wrap_result(result)
 
     @copy(str_contains)
     def contains(self, pat, case=True, flags=0, na=np.nan, regex=True):
-        result = str_contains(self._data, pat, case=case, flags=flags, na=na,
+        result = str_contains(self._parent, pat, case=case, flags=flags, na=na,
                               regex=regex)
         return self._wrap_result(result)
 
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
-        result = str_match(self._data, pat, case=case, flags=flags, na=na,
+        result = str_match(self._parent, pat, case=case, flags=flags, na=na,
                            as_indexer=as_indexer)
         return self._wrap_result(result)
 
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
-        result = str_replace(self._data, pat, repl, n=n, case=case,
+        result = str_replace(self._parent, pat, repl, n=n, case=case,
                              flags=flags, regex=regex)
         return self._wrap_result(result)
 
     @copy(str_repeat)
     def repeat(self, repeats):
-        result = str_repeat(self._data, repeats)
+        result = str_repeat(self._parent, repeats)
         return self._wrap_result(result)
 
     @copy(str_pad)
     def pad(self, width, side='left', fillchar=' '):
-        result = str_pad(self._data, width, side=side, fillchar=fillchar)
+        result = str_pad(self._parent, width, side=side, fillchar=fillchar)
         return self._wrap_result(result)
 
     _shared_docs['str_pad'] = ("""
@@ -2533,27 +2580,27 @@ class StringMethods(NoNewAttributesMixin):
         4     NaN
         dtype: object
         """
-        result = str_pad(self._data, width, side='left', fillchar='0')
+        result = str_pad(self._parent, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
     @copy(str_slice)
     def slice(self, start=None, stop=None, step=None):
-        result = str_slice(self._data, start, stop, step)
+        result = str_slice(self._parent, start, stop, step)
         return self._wrap_result(result)
 
     @copy(str_slice_replace)
     def slice_replace(self, start=None, stop=None, repl=None):
-        result = str_slice_replace(self._data, start, stop, repl)
+        result = str_slice_replace(self._parent, start, stop, repl)
         return self._wrap_result(result)
 
     @copy(str_decode)
     def decode(self, encoding, errors="strict"):
-        result = str_decode(self._data, encoding, errors)
+        result = str_decode(self._parent, encoding, errors)
         return self._wrap_result(result)
 
     @copy(str_encode)
     def encode(self, encoding, errors="strict"):
-        result = str_encode(self._data, encoding, errors)
+        result = str_encode(self._parent, encoding, errors)
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = (r"""
@@ -2622,38 +2669,38 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
                                                method='strip'))
     def strip(self, to_strip=None):
-        result = str_strip(self._data, to_strip, side='both')
+        result = str_strip(self._parent, to_strip, side='both')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left side',
                                                method='lstrip'))
     def lstrip(self, to_strip=None):
-        result = str_strip(self._data, to_strip, side='left')
+        result = str_strip(self._parent, to_strip, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['str_strip'] % dict(side='right side',
                                                method='rstrip'))
     def rstrip(self, to_strip=None):
-        result = str_strip(self._data, to_strip, side='right')
+        result = str_strip(self._parent, to_strip, side='right')
         return self._wrap_result(result)
 
     @copy(str_wrap)
     def wrap(self, width, **kwargs):
-        result = str_wrap(self._data, width, **kwargs)
+        result = str_wrap(self._parent, width, **kwargs)
         return self._wrap_result(result)
 
     @copy(str_get_dummies)
     def get_dummies(self, sep='|'):
         # we need to cast to Series of strings as only that has all
         # methods available for making the dummies...
-        data = self._orig.astype(str) if self._is_categorical else self._data
+        data = self._orig.astype(str) if self._is_categorical else self._parent
         result, name = str_get_dummies(data, sep)
         return self._wrap_result(result, use_codes=(not self._is_categorical),
                                  name=name, expand=True)
 
     @copy(str_translate)
     def translate(self, table, deletechars=None):
-        result = str_translate(self._data, table, deletechars)
+        result = str_translate(self._parent, table, deletechars)
         return self._wrap_result(result)
 
     count = _pat_wrapper(str_count, flags=True)
@@ -2696,14 +2743,15 @@ class StringMethods(NoNewAttributesMixin):
               dict(side='lowest', method='find',
                    also='rfind : Return highest indexes in each strings'))
     def find(self, sub, start=0, end=None):
-        result = str_find(self._data, sub, start=start, end=end, side='left')
+        result = str_find(self._parent, sub, start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['find'] %
               dict(side='highest', method='rfind',
                    also='find : Return lowest indexes in each strings'))
     def rfind(self, sub, start=0, end=None):
-        result = str_find(self._data, sub, start=start, end=end, side='right')
+        result = str_find(self._parent, sub,
+                          start=start, end=end, side='right')
         return self._wrap_result(result)
 
     def normalize(self, form):
@@ -2722,7 +2770,7 @@ class StringMethods(NoNewAttributesMixin):
         """
         import unicodedata
         f = lambda x: unicodedata.normalize(form, compat.u_safe(x))
-        result = _na_map(f, self._data)
+        result = _na_map(f, self._parent)
         return self._wrap_result(result)
 
     _shared_docs['index'] = ("""
@@ -2753,22 +2801,61 @@ class StringMethods(NoNewAttributesMixin):
               dict(side='lowest', similar='find', method='index',
                    also='rindex : Return highest indexes in each strings'))
     def index(self, sub, start=0, end=None):
-        result = str_index(self._data, sub, start=start, end=end, side='left')
+        result = str_index(self._parent, sub,
+                           start=start, end=end, side='left')
         return self._wrap_result(result)
 
     @Appender(_shared_docs['index'] %
               dict(side='highest', similar='rfind', method='rindex',
                    also='index : Return lowest indexes in each strings'))
     def rindex(self, sub, start=0, end=None):
-        result = str_index(self._data, sub, start=start, end=end, side='right')
+        result = str_index(self._parent, sub,
+                           start=start, end=end, side='right')
         return self._wrap_result(result)
 
     _shared_docs['len'] = ("""
-    Compute length of each string in the Series/Index.
+    Computes the length of each element in the Series/Index. The element may be
+    a sequence (such as a string, tuple or list) or a collection
+    (such as a dictionary).
 
     Returns
     -------
-    lengths : Series/Index of integer values
+    Series or Index of int
+        A Series or Index of integer values indicating the length of each
+        element in the Series or Index.
+
+    See Also
+    --------
+    str.len : Python built-in function returning the length of an object.
+    Series.size : Returns the length of the Series.
+
+    Examples
+    --------
+    Returns the length (number of characters) in a string. Returns the
+    number of entries for dictionaries, lists or tuples.
+
+    >>> s = pd.Series(['dog',
+    ...                 '',
+    ...                 5,
+    ...                 {'foo' : 'bar'},
+    ...                 [2, 3, 5, 7],
+    ...                 ('one', 'two', 'three')])
+    >>> s
+    0                  dog
+    1
+    2                    5
+    3       {'foo': 'bar'}
+    4         [2, 3, 5, 7]
+    5    (one, two, three)
+    dtype: object
+    >>> s.str.len()
+    0    3.0
+    1    0.0
+    2    NaN
+    3    1.0
+    4    4.0
+    5    3.0
+    dtype: float64
     """)
     len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
 
@@ -2860,12 +2947,144 @@ class StringMethods(NoNewAttributesMixin):
                               _shared_docs['swapcase'])
 
     _shared_docs['ismethods'] = ("""
-    Check whether all characters in each string in the Series/Index
-    are %(type)s. Equivalent to :meth:`str.%(method)s`.
+    Check whether all characters in each string are %(type)s.
+
+    This is equivalent to running the Python string method
+    :meth:`str.%(method)s` for each element of the Series/Index. If a string
+    has zero characters, ``False`` is returned for that check.
 
     Returns
     -------
-    is : Series/array of boolean values
+    Series or Index of bool
+        Series or Index of boolean values with the same length as the original
+        Series/Index.
+
+    See Also
+    --------
+    Series.str.isalpha : Check whether all characters are alphabetic.
+    Series.str.isnumeric : Check whether all characters are numeric.
+    Series.str.isalnum : Check whether all characters are alphanumeric.
+    Series.str.isdigit : Check whether all characters are digits.
+    Series.str.isdecimal : Check whether all characters are decimal.
+    Series.str.isspace : Check whether all characters are whitespace.
+    Series.str.islower : Check whether all characters are lowercase.
+    Series.str.isupper : Check whether all characters are uppercase.
+    Series.str.istitle : Check whether all characters are titlecase.
+
+    Examples
+    --------
+    **Checks for Alphabetic and Numeric Characters**
+
+    >>> s1 = pd.Series(['one', 'one1', '1', ''])
+
+    >>> s1.str.isalpha()
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
+
+    >>> s1.str.isnumeric()
+    0    False
+    1    False
+    2     True
+    3    False
+    dtype: bool
+
+    >>> s1.str.isalnum()
+    0     True
+    1     True
+    2     True
+    3    False
+    dtype: bool
+
+    Note that checks against characters mixed with any additional punctuation
+    or whitespace will evaluate to false for an alphanumeric check.
+
+    >>> s2 = pd.Series(['A B', '1.5', '3,000'])
+    >>> s2.str.isalnum()
+    0    False
+    1    False
+    2    False
+    dtype: bool
+
+    **More Detailed Checks for Numeric Characters**
+
+    There are several different but overlapping sets of numeric characters that
+    can be checked for.
+
+    >>> s3 = pd.Series(['23', '³', '⅕', ''])
+
+    The ``s3.str.isdecimal`` method checks for characters used to form numbers
+    in base 10.
+
+    >>> s3.str.isdecimal()
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
+
+    The ``s.str.isdigit`` method is the same as ``s3.str.isdecimal`` but also
+    includes special digits, like superscripted and subscripted digits in
+    unicode.
+
+    >>> s3.str.isdigit()
+    0     True
+    1     True
+    2    False
+    3    False
+    dtype: bool
+
+    The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but also
+    includes other characters that can represent quantities such as unicode
+    fractions.
+
+    >>> s3.str.isnumeric()
+    0     True
+    1     True
+    2     True
+    3    False
+    dtype: bool
+
+    **Checks for Whitespace**
+
+    >>> s4 = pd.Series([' ', '\\t\\r\\n ', ''])
+    >>> s4.str.isspace()
+    0     True
+    1     True
+    2    False
+    dtype: bool
+
+    **Checks for Character Case**
+
+    >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
+
+    >>> s5.str.islower()
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
+
+    >>> s5.str.isupper()
+    0    False
+    1    False
+    2     True
+    3    False
+    dtype: bool
+
+    The ``s5.str.istitle`` method checks for whether all words are in title
+    case (whether only the first letter of each word is capitalized). Words are
+    assumed to be as any sequence of non-numeric characters seperated by
+    whitespace characters.
+
+    >>> s5.str.istitle()
+    0    False
+    1     True
+    2    False
+    3    False
+    dtype: bool
     """)
     _shared_docs['isalnum'] = dict(type='alphanumeric', method='isalnum')
     _shared_docs['isalpha'] = dict(type='alphabetic', method='isalpha')

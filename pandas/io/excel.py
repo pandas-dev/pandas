@@ -9,29 +9,32 @@ from datetime import datetime, date, time, MINYEAR, timedelta
 import os
 import abc
 import warnings
-import numpy as np
+from textwrap import fill
 from io import UnsupportedOperation
+from distutils.version import LooseVersion
+
+import numpy as np
+
+import pandas._libs.json as json
+from pandas.util._decorators import Appender, deprecate_kwarg
+from pandas.errors import EmptyDataError
+
+import pandas.compat as compat
+from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
+                           string_types, OrderedDict)
 
 from pandas.core.dtypes.common import (
     is_integer, is_float,
     is_bool, is_list_like)
 
+from pandas.core import config
 from pandas.core.frame import DataFrame
+
 from pandas.io.parsers import TextParser
-from pandas.errors import EmptyDataError
 from pandas.io.common import (_is_url, _urlopen, _validate_header_arg,
                               get_filepath_or_buffer, _NA_VALUES,
                               _stringify_path)
-import pandas._libs.json as json
-from pandas.compat import (map, zip, reduce, range, lrange, u, add_metaclass,
-                           string_types, OrderedDict)
-from pandas.core import config
 from pandas.io.formats.printing import pprint_thing
-import pandas.compat as compat
-from warnings import warn
-from distutils.version import LooseVersion
-from pandas.util._decorators import Appender, deprecate_kwarg
-from textwrap import fill
 
 __all__ = ["read_excel", "ExcelWriter", "ExcelFile"]
 
@@ -527,8 +530,8 @@ class ExcelFile(object):
                                       "is not implemented")
 
         if parse_dates is True and index_col is None:
-            warn("The 'parse_dates=True' keyword of read_excel was provided"
-                 " without an 'index_col' keyword value.")
+            warnings.warn("The 'parse_dates=True' keyword of read_excel was "
+                          "provided without an 'index_col' keyword value.")
 
         import xlrd
         from xlrd import (xldate, XL_CELL_DATE,
@@ -644,7 +647,7 @@ class ExcelFile(object):
             if header is not None:
                 if is_list_like(header):
                     header_names = []
-                    control_row = [True for x in data[0]]
+                    control_row = [True] * len(data[0])
                     for row in header:
                         if is_integer(skiprows):
                             row += skiprows

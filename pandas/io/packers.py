@@ -57,6 +57,7 @@ from pandas import (Timestamp, Period, Series, DataFrame,  # noqa
                     Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
                     Categorical, CategoricalIndex, IntervalIndex, Interval,
                     TimedeltaIndex)
+from pandas.core.arrays import IntervalArray
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.generic import NDFrame
@@ -402,13 +403,17 @@ def encode(obj):
                     u'freq': u_safe(getattr(obj, 'freqstr', None)),
                     u'tz': tz,
                     u'compress': compressor}
-        elif isinstance(obj, IntervalIndex):
-            return {u'typ': u'interval_index',
+        elif isinstance(obj, (IntervalIndex, IntervalArray)):
+            if isinstance(obj, IntervalIndex):
+                typ = u'interval_index'
+            else:
+                typ = u'interval_array'
+            return {u'typ': typ,
                     u'klass': u(obj.__class__.__name__),
                     u'name': getattr(obj, 'name', None),
-                    u'left': getattr(obj, '_left', None),
-                    u'right': getattr(obj, '_right', None),
-                    u'closed': getattr(obj, '_closed', None)}
+                    u'left': getattr(obj, 'left', None),
+                    u'right': getattr(obj, 'right', None),
+                    u'closed': getattr(obj, 'closed', None)}
         elif isinstance(obj, MultiIndex):
             return {u'typ': u'multi_index',
                     u'klass': u(obj.__class__.__name__),
@@ -610,7 +615,7 @@ def decode(obj):
             result = result.tz_localize('UTC').tz_convert(tz)
         return result
 
-    elif typ == u'interval_index':
+    elif typ in (u'interval_index', 'interval_array'):
         return globals()[obj[u'klass']].from_arrays(obj[u'left'],
                                                     obj[u'right'],
                                                     obj[u'closed'],

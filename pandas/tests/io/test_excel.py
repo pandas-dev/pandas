@@ -2227,7 +2227,8 @@ class TestExcelWriterEngineTests(object):
     pytest.param('xlwt',
                  marks=pytest.mark.xfail(reason='xlwt does not support '
                                                 'openpyxl-compatible '
-                                                'style dicts')),
+                                                'style dicts',
+                                         strict=True)),
     'xlsxwriter',
     'openpyxl',
 ])
@@ -2241,6 +2242,7 @@ def test_styler_to_excel(engine):
                           ['', 'font-style: italic', ''],
                           ['', '', 'text-align: right'],
                           ['background-color: red', '', ''],
+                          ['number-format: 0%', '', ''],
                           ['', '', ''],
                           ['', '', ''],
                           ['', '', '']],
@@ -2266,7 +2268,7 @@ def test_styler_to_excel(engine):
 
     # Prepare spreadsheets
 
-    df = DataFrame(np.random.randn(10, 3))
+    df = DataFrame(np.random.randn(11, 3))
     with ensure_clean('.xlsx' if engine != 'xlwt' else '.xls') as path:
         writer = ExcelWriter(path, engine=engine)
         df.to_excel(writer, sheet_name='frame')
@@ -2294,7 +2296,7 @@ def test_styler_to_excel(engine):
                 n_cells += 1
 
         # ensure iteration actually happened:
-        assert n_cells == (10 + 1) * (3 + 1)
+        assert n_cells == (11 + 1) * (3 + 1)
 
         # (2) check styling with default converter
 
@@ -2344,13 +2346,16 @@ def test_styler_to_excel(engine):
                     assert cell1.fill.patternType != cell2.fill.patternType
                     assert cell2.fill.fgColor.rgb == alpha + 'FF0000'
                     assert cell2.fill.patternType == 'solid'
+                elif ref == 'B9':
+                    assert cell1.number_format == 'General'
+                    assert cell2.number_format == '0%'
                 else:
                     assert_equal_style(cell1, cell2)
 
                 assert cell1.value == cell2.value
                 n_cells += 1
 
-        assert n_cells == (10 + 1) * (3 + 1)
+        assert n_cells == (11 + 1) * (3 + 1)
 
         # (3) check styling with custom converter
         n_cells = 0
@@ -2359,7 +2364,7 @@ def test_styler_to_excel(engine):
             assert len(col1) == len(col2)
             for cell1, cell2 in zip(col1, col2):
                 ref = '%s%d' % (cell2.column, cell2.row)
-                if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8'):
+                if ref in ('B2', 'C3', 'D4', 'B5', 'C6', 'D7', 'B8', 'B9'):
                     assert not cell1.font.bold
                     assert cell2.font.bold
                 else:
@@ -2368,7 +2373,7 @@ def test_styler_to_excel(engine):
                 assert cell1.value == cell2.value
                 n_cells += 1
 
-        assert n_cells == (10 + 1) * (3 + 1)
+        assert n_cells == (11 + 1) * (3 + 1)
 
 
 @td.skip_if_no('openpyxl')

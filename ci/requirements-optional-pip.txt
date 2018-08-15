@@ -24,6 +24,7 @@ s3fs
 scipy
 seaborn
 sqlalchemy
+statsmodels
 xarray
 xlrd
 xlsxwriter

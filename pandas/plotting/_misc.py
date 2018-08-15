@@ -49,7 +49,7 @@ def scatter_matrix(frame, alpha=0.5, figsize=None, ax=None, grid=False,
 
     Examples
     --------
-    >>> df = DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
+    >>> df = pd.DataFrame(np.random.randn(1000, 4), columns=['A','B','C','D'])
     >>> scatter_matrix(df, alpha=0.2)
     """
 
@@ -338,7 +338,7 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
     classes = frame[class_column].drop_duplicates()
     df = frame.drop(class_column, axis=1)
     t = np.linspace(-pi, pi, samples)
-    used_legends = set([])
+    used_legends = set()
 
     color_values = _get_standard_colors(num_colors=len(classes),
                                         colormap=colormap, color_type='random',
@@ -518,7 +518,7 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     else:
         df = frame[cols]
 
-    used_legends = set([])
+    used_legends = set()
 
     ncols = len(df.columns)
 

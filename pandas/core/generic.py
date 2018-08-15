@@ -12,8 +12,8 @@ import pandas as pd
 
 from pandas._libs import tslib, properties
 from pandas.core.dtypes.common import (
-    _ensure_int64,
-    _ensure_object,
+    ensure_int64,
+    ensure_object,
     is_scalar,
     is_number,
     is_integer, is_bool,
@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.generic import ABCSeries, ABCPanel, ABCDataFrame
 
 from pandas.core.base import PandasObject, SelectionMixin
-from pandas.core.index import (Index, MultiIndex, _ensure_index,
+from pandas.core.index import (Index, MultiIndex, ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -716,6 +716,66 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_values, *new_axes).__finalize__(self)
 
+    def droplevel(self, level, axis=0):
+        """Return DataFrame with requested index / column level(s) removed.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        level : int, str, or list-like
+            If a string is given, must be the name of a level
+            If list-like, elements must be names or positional indexes
+            of levels.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+
+
+        Returns
+        -------
+        DataFrame.droplevel()
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([
+        ...:     [1, 2, 3, 4],
+        ...:     [5, 6, 7, 8],
+        ...:     [9, 10, 11, 12]
+        ...: ]).set_index([0, 1]).rename_axis(['a', 'b'])
+
+        >>> df.columns = pd.MultiIndex.from_tuples([
+        ...:    ('c', 'e'), ('d', 'f')
+        ...:], names=['level_1', 'level_2'])
+
+        >>> df
+        level_1   c   d
+        level_2   e   f
+        a b
+        1 2      3   4
+        5 6      7   8
+        9 10    11  12
+
+        >>> df.droplevel('a')
+        level_1   c   d
+        level_2   e   f
+        b
+        2        3   4
+        6        7   8
+        10      11  12
+
+        >>> df.droplevel('level2', axis=1)
+        level_1   c   d
+        a b
+        1 2      3   4
+        5 6      7   8
+        9 10    11  12
+
+        """
+        labels = self._get_axis(axis)
+        new_labels = labels.droplevel(level)
+        result = self.set_axis(new_labels, axis=axis, inplace=False)
+        return result
+
     def pop(self, item):
         """
         Return item and drop from frame. Raise KeyError if not found.
@@ -1024,13 +1084,14 @@ class NDFrame(PandasObject, SelectionMixin):
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            # Validate the axis
+            self._get_axis_number(axis)
 
         if kwargs:
             raise TypeError('rename() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
 
-        if com._count_not_none(*axes.values()) == 0:
+        if com.count_not_none(*axes.values()) == 0:
             raise TypeError('must pass an index to rename')
 
         # renamer function if passed a dict
@@ -1205,7 +1266,7 @@ class NDFrame(PandasObject, SelectionMixin):
                    for a in self._AXIS_ORDERS)
 
     def __neg__(self):
-        values = com._values_from_object(self)
+        values = com.values_from_object(self)
         if is_bool_dtype(values):
             arr = operator.inv(values)
         elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
@@ -1217,7 +1278,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.__array_wrap__(arr)
 
     def __pos__(self):
-        values = com._values_from_object(self)
+        values = com.values_from_object(self)
         if (is_bool_dtype(values) or is_period_arraylike(values)):
             arr = values
         elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
@@ -1230,7 +1291,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def __invert__(self):
         try:
-            arr = operator.inv(com._values_from_object(self))
+            arr = operator.inv(com.values_from_object(self))
             return self.__array_wrap__(arr)
         except Exception:
 
@@ -1527,7 +1588,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         # Validate keys
-        keys = com._maybe_make_list(keys)
+        keys = com.maybe_make_list(keys)
         invalid_keys = [k for k in keys if not
                         self._is_label_or_level_reference(k, axis=axis)]
 
@@ -1693,7 +1754,7 @@ class NDFrame(PandasObject, SelectionMixin):
     # Array Interface
 
     def __array__(self, dtype=None):
-        return com._values_from_object(self)
+        return com.values_from_object(self)
 
     def __array_wrap__(self, result, context=None):
         d = self._construct_axes_dict(self._AXIS_ORDERS, copy=False)
@@ -1776,70 +1837,103 @@ class NDFrame(PandasObject, SelectionMixin):
     # I/O Methods
 
     _shared_docs['to_excel'] = """
-    Write %(klass)s to an excel sheet
-    %(versionadded_to_excel)s
+    Write %(klass)s to an excel sheet.
+
+    To write a single %(klass)s to an excel .xlsx file it is only necessary to
+    specify a target file name. To write to multiple sheets it is necessary to
+    create an `ExcelWriter` object with a target file name, and specify a sheet
+    in the file to write to. Multiple sheets may be written to by
+    specifying unique `sheet_name`. With all data written to the file it is
+    necessary to save the changes. Note that creating an ExcelWriter object
+    with a file name that already exists will result in the contents of the
+    existing file being erased.
 
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
-        File path or existing ExcelWriter
+        File path or existing ExcelWriter.
     sheet_name : string, default 'Sheet1'
-        Name of sheet which will contain DataFrame
+        Name of sheet which will contain DataFrame.
     na_rep : string, default ''
-        Missing data representation
-    float_format : string, default None
-        Format string for floating point numbers
-    columns : sequence, optional
-        Columns to write
+        Missing data representation.
+    float_format : string, optional
+        Format string for floating point numbers. For example
+        ``float_format="%%.2f"`` will format 0.1234 to 0.12.
+    columns : sequence or list of string, optional
+        Columns to write.
     header : boolean or list of string, default True
         Write out the column names. If a list of strings is given it is
-        assumed to be aliases for the column names
+        assumed to be aliases for the column names.
     index : boolean, default True
-        Write row names (index)
-    index_label : string or sequence, default None
-        Column label for index column(s) if desired. If None is given, and
+        Write row names (index).
+    index_label : string or sequence, optional
+        Column label for index column(s) if desired. If not specified, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    startrow :
-        upper left cell row to dump data frame
-    startcol :
-        upper left cell column to dump data frame
-    engine : string, default None
-        write engine to use - you can also set this via the options
-        ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+    startrow : integer, default 0
+        Upper left cell row to dump data frame.
+    startcol : integer, default 0
+        Upper left cell column to dump data frame.
+    engine : string, optional
+        Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
+        via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
     merge_cells : boolean, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding: string, default None
-        encoding of the resulting excel file. Only necessary for xlwt,
+    encoding : string, optional
+        Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
     inf_rep : string, default 'inf'
         Representation for infinity (there is no native representation for
-        infinity in Excel)
-    freeze_panes : tuple of integer (length 2), default None
+        infinity in Excel).
+    verbose : boolean, default True
+        Display more information in the error logs.
+    freeze_panes : tuple of integer (length 2), optional
         Specifies the one-based bottommost row and rightmost column that
-        is to be frozen
+        is to be frozen.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.20.0.
 
     Notes
     -----
-    If passing an existing ExcelWriter object, then the sheet will be added
-    to the existing workbook.  This can be used to save different
-    DataFrames to one workbook:
+    For compatibility with :meth:`~DataFrame.to_csv`,
+    to_excel serializes lists and dicts to strings before writing.
 
-    >>> writer = pd.ExcelWriter('output.xlsx')
-    >>> df1.to_excel(writer,'Sheet1')
-    >>> df2.to_excel(writer,'Sheet2')
+    Once a workbook has been saved it is not possible write further data
+    without rewriting the whole workbook.
+
+    See Also
+    --------
+    pandas.read_excel
+    pandas.ExcelWriter
+
+    Examples
+    --------
+
+    Create, write to and save a workbook:
+
+    >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
+    ...                   index=['row 1', 'row 2'],
+    ...                   columns=['col 1', 'col 2'])
+    >>> df1.to_excel("output.xlsx")
+
+    To specify the sheet name:
+
+    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
+
+    If you wish to write to more than one sheet in the workbook, it is
+    necessary to specify an ExcelWriter object:
+
+    >>> writer = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel(writer, sheet_name='Sheet1')
+    >>> df2 = df1.copy()
+    >>> df2.to_excel(writer, sheet_name='Sheet2')
     >>> writer.save()
-
-    For compatibility with to_csv, to_excel serializes lists and dicts to
-    strings before writing.
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
-                default_handler=None, lines=False, compression=None,
+                default_handler=None, lines=False, compression='infer',
                 index=True):
         """
         Convert the object to a JSON string.
@@ -1858,13 +1952,13 @@ class NDFrame(PandasObject, SelectionMixin):
             * Series
 
               - default is 'index'
-              - allowed values are: {'split','records','index'}
+              - allowed values are: {'split','records','index','table'}
 
             * DataFrame
 
               - default is 'columns'
               - allowed values are:
-                {'split','records','index','columns','values'}
+                {'split','records','index','columns','values','table'}
 
             * The format of the JSON string
 
@@ -1905,13 +1999,14 @@ class NDFrame(PandasObject, SelectionMixin):
             like.
 
             .. versionadded:: 0.19.0
-
-        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
+                       default 'infer'
             A string representing the compression to use in the output file,
             only used when the first argument is a filename.
 
             .. versionadded:: 0.21.0
-
+            .. versionchanged:: 0.24.0
+               'infer' option added and set to default
         index : boolean, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
@@ -3095,7 +3190,7 @@ class NDFrame(PandasObject, SelectionMixin):
             # that means that their are list/ndarrays inside the Series!
             # so just return them (GH 6394)
             if not is_list_like(new_values) or self.ndim == 1:
-                return com._maybe_box_datetimelike(new_values)
+                return com.maybe_box_datetimelike(new_values)
 
             result = self._constructor_sliced(
                 new_values, index=self.columns,
@@ -3235,7 +3330,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         # Case for non-unique axis
         else:
-            labels = _ensure_object(com._index_labels_to_array(labels))
+            labels = ensure_object(com.index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
@@ -3800,7 +3895,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _needs_reindex_multi(self, axes, method, level):
         """Check if we do need a multi reindex."""
-        return ((com._count_not_none(*axes.values()) == self._AXIS_LEN) and
+        return ((com.count_not_none(*axes.values()) == self._AXIS_LEN) and
                 method is None and level is None and not self._is_mixed_type)
 
     def _reindex_multi(self, axes, copy, fill_value):
@@ -3889,9 +3984,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if index is None:
                 continue
 
-            index = _ensure_index(index)
+            index = ensure_index(index)
             if indexer is not None:
-                indexer = _ensure_int64(indexer)
+                indexer = ensure_int64(indexer)
 
             # TODO: speed up on homogeneous DataFrame objects
             new_data = new_data.reindex_indexer(index, indexer, axis=baxis,
@@ -3974,7 +4069,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         import re
 
-        nkw = com._count_not_none(items, like, regex)
+        nkw = com.count_not_none(items, like, regex)
         if nkw > 1:
             raise TypeError('Keyword arguments `items`, `like`, or `regex` '
                             'are mutually exclusive')
@@ -4220,7 +4315,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_length = self.shape[axis]
 
         # Process random_state argument
-        rs = com._random_state(random_state)
+        rs = com.random_state(random_state)
 
         # Check weights for compliance
         if weights is not None:
@@ -5206,6 +5301,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.copy(deep=deep)
 
     def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
         if memo is None:
             memo = {}
         return self.copy(deep=True)
@@ -5997,9 +6098,9 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'index', 'values': use the actual numerical values of the index
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial' is passed to
-              ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
-              require that you also specify an `order` (int),
-              e.g. df.interpolate(method='polynomial', order=4).
+              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
+              'spline' require that you also specify an `order` (int),
+              e.g. ``df.interpolate(method='polynomial', order=4)``.
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
               are all wrappers around the scipy interpolation methods of
@@ -6009,13 +6110,14 @@ class NDFrame(PandasObject, SelectionMixin):
               <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
               and `tutorial documentation
               <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
-            * 'from_derivatives' refers to BPoly.from_derivatives which
+            * 'from_derivatives' refers to
+              :meth:`scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18
 
             .. versionadded:: 0.18.1
 
-               Added support for the 'akima' method
+               Added support for the 'akima' method.
                Added interpolate method 'from_derivatives' which replaces
                'piecewise_polynomial' in scipy 0.18; backwards-compatible with
                scipy < 0.18
@@ -6520,9 +6622,11 @@ class NDFrame(PandasObject, SelectionMixin):
         # GH 17276
         # numpy doesn't like NaN as a clip value
         # so ignore
-        if np.any(pd.isnull(lower)):
+        # GH 19992
+        # numpy doesn't drop a list-like bound containing NaN
+        if not is_list_like(lower) and np.any(pd.isnull(lower)):
             lower = None
-        if np.any(pd.isnull(upper)):
+        if not is_list_like(upper) and np.any(pd.isnull(upper)):
             upper = None
 
         # GH 2747 (arguments were reversed)
@@ -6547,32 +6651,88 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def clip_upper(self, threshold, axis=None, inplace=False):
         """
-        Return copy of input with values above given value(s) truncated.
+        Trim values above a given threshold.
+
+        Elements above the `threshold` will be changed to match the
+        `threshold` value(s). Threshold can be a single value or an array,
+        in the latter case it performs the truncation element-wise.
 
         Parameters
         ----------
-        threshold : float or array_like
-        axis : int or string axis name, optional
-            Align object with threshold along the given axis.
+        threshold : numeric or array-like
+            Maximum value allowed. All values above threshold will be set to
+            this value.
+
+            * float : every value is compared to `threshold`.
+            * array-like : The shape of `threshold` should match the object
+              it's compared to. When `self` is a Series, `threshold` should be
+              the length. When `self` is a DataFrame, `threshold` should 2-D
+              and the same shape as `self` for ``axis=None``, or 1-D and the
+              same length as the axis being compared.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Align object with `threshold` along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
+            Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
 
-        See Also
-        --------
-        clip
-
         Returns
         -------
-        clipped : same type as input
+        clipped
+            Original data with values trimmed.
+
+        See Also
+        --------
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s)
+        DataFrame.clip_lower : Trim DataFrame values below given
+            threshold(s)
+        Series.clip : General purpose method to trim Series values to given
+            threshold(s)
+        Series.clip_lower : Trim Series values below given threshold(s)
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3, 4, 5])
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        4    5
+        dtype: int64
+
+        >>> s.clip_upper(3)
+        0    1
+        1    2
+        2    3
+        3    3
+        4    3
+        dtype: int64
+
+        >>> t = [5, 4, 3, 2, 1]
+        >>> t
+        [5, 4, 3, 2, 1]
+
+        >>> s.clip_upper(t)
+        0    1
+        1    2
+        2    3
+        3    2
+        4    1
+        dtype: int64
         """
         return self._clip_with_one_bound(threshold, method=self.le,
                                          axis=axis, inplace=inplace)
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
-        Return copy of the input with values below a threshold truncated.
+        Trim values below a given threshold.
+
+        Elements below the `threshold` will be changed to match the
+        `threshold` value(s). Threshold can be a single value or an array,
+        in the latter case it performs the truncation element-wise.
 
         Parameters
         ----------
@@ -6595,19 +6755,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
 
-        See Also
-        --------
-        Series.clip : Return copy of input with values below and above
-            thresholds truncated.
-        Series.clip_upper : Return copy of input with values above
-            threshold truncated.
-
         Returns
         -------
-        clipped : same type as input
+        clipped
+            Original data with values trimmed.
+
+        See Also
+        --------
+        DataFrame.clip : General purpose method to trim DataFrame values to
+            given threshold(s)
+        DataFrame.clip_upper : Trim DataFrame values above given
+            threshold(s)
+        Series.clip : General purpose method to trim Series values to given
+            threshold(s)
+        Series.clip_upper : Trim Series values above given threshold(s)
 
         Examples
         --------
+
         Series single threshold clipping:
 
         >>> s = pd.Series([5, 6, 7, 8, 9])
@@ -6659,13 +6824,13 @@ class NDFrame(PandasObject, SelectionMixin):
         `threshold` should be the same length as the axis specified by
         `axis`.
 
-        >>> df.clip_lower(np.array([3, 3, 5]), axis='index')
+        >>> df.clip_lower([3, 3, 5], axis='index')
            A  B
         0  3  3
         1  3  4
         2  5  6
 
-        >>> df.clip_lower(np.array([4, 5]), axis='columns')
+        >>> df.clip_lower([4, 5], axis='columns')
            A  B
         0  4  5
         1  4  5
@@ -7357,6 +7522,10 @@ class NDFrame(PandasObject, SelectionMixin):
             msg = "rank does not make sense when ndim > 2"
             raise NotImplementedError(msg)
 
+        if na_option not in {'keep', 'top', 'bottom'}:
+            msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+            raise ValueError(msg)
+
         def ranker(data):
             ranks = algos.rank(data.values, axis=axis, method=method,
                                ascending=ascending, na_option=na_option,
@@ -7589,7 +7758,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         # align the cond to same shape as myself
-        cond = com._apply_if_callable(cond, self)
+        cond = com.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
             cond, _ = cond.align(self, join='right', broadcast_axis=1)
         else:
@@ -7659,7 +7828,7 @@ class NDFrame(PandasObject, SelectionMixin):
                         if try_quick:
 
                             try:
-                                new_other = com._values_from_object(self)
+                                new_other = com.values_from_object(self)
                                 new_other = new_other.copy()
                                 new_other[icond] = other
                                 other = new_other
@@ -7717,9 +7886,7 @@ class NDFrame(PandasObject, SelectionMixin):
             return self._constructor(new_data).__finalize__(self)
 
     _shared_docs['where'] = ("""
-        Return an object of same shape as self and whose corresponding
-        entries are from self where `cond` is %(cond)s and otherwise are from
-        `other`.
+        Replace values where the condition is %(cond_rev)s.
 
         Parameters
         ----------
@@ -7744,23 +7911,27 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as other.
 
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        axis : alignment axis if needed, default None
-        level : alignment level if needed, default None
-        errors : str, {'raise', 'ignore'}, default 'raise'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
-
+            Whether to perform the operation in place on the data.
+        axis : int, default None
+            Alignment axis if needed.
+        level : int, default None
+            Alignment level if needed.
+        errors : str, {'raise', 'ignore'}, default `raise`
             Note that currently this parameter won't affect
             the results and will always coerce to a suitable dtype.
 
+            - `raise` : allow exceptions to be raised.
+            - `ignore` : suppress exceptions. On error return original object.
+
         try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
+            Try to cast the result back to the input type (if possible).
         raise_on_error : boolean, default True
             Whether to raise on invalid data types (e.g. trying to where on
-            strings)
+            strings).
 
             .. deprecated:: 0.21.0
+
+               Use `errors`.
 
         Returns
         -------
@@ -7780,6 +7951,11 @@ class NDFrame(PandasObject, SelectionMixin):
         For further details and examples see the ``%(name)s`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
+        See Also
+        --------
+        :func:`DataFrame.%(name_other)s` : Return an object of same shape as
+            self
+
         Examples
         --------
         >>> s = pd.Series(range(5))
@@ -7789,6 +7965,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2.0
         3    3.0
         4    4.0
+        dtype: float64
 
         >>> s.mask(s > 0)
         0    0.0
@@ -7796,13 +7973,15 @@ class NDFrame(PandasObject, SelectionMixin):
         2    NaN
         3    NaN
         4    NaN
+        dtype: float64
 
         >>> s.where(s > 1, 10)
-        0    10.0
-        1    10.0
-        2    2.0
-        3    3.0
-        4    4.0
+        0    10
+        1    10
+        2    2
+        3    3
+        4    4
+        dtype: int64
 
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
         >>> m = df %% 3 == 0
@@ -7827,10 +8006,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2  True  True
         3  True  True
         4  True  True
-
-        See Also
-        --------
-        :func:`DataFrame.%(name_other)s`
         """)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
@@ -7850,7 +8025,7 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 errors = 'ignore'
 
-        other = com._apply_if_callable(other, self)
+        other = com.apply_if_callable(other, self)
         return self._where(cond, other, inplace, axis, level,
                            errors=errors, try_cast=try_cast)
 
@@ -7872,7 +8047,11 @@ class NDFrame(PandasObject, SelectionMixin):
                 errors = 'ignore'
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        cond = com._apply_if_callable(cond, self)
+        cond = com.apply_if_callable(cond, self)
+
+        # see gh-21891
+        if not hasattr(cond, "__invert__"):
+            cond = np.array(cond)
 
         return self.where(~cond, other=other, inplace=inplace, axis=axis,
                           level=level, try_cast=try_cast,
@@ -8663,7 +8842,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ldesc = [describe_1d(s) for _, s in data.iteritems()]
         # set a convenient order for rows
         names = []
-        ldesc_indexes = sorted([x.index for x in ldesc], key=len)
+        ldesc_indexes = sorted((x.index for x in ldesc), key=len)
         for idxnames in ldesc_indexes:
             for name in idxnames:
                 if name not in names:
@@ -8816,7 +8995,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                   **kwargs)) - 1)
         rs = rs.reindex_like(data)
         if freq is None:
-            mask = isna(com._values_from_object(data))
+            mask = isna(com.values_from_object(data))
             np.putmask(rs.values, mask, np.nan)
         return rs
 
@@ -9023,16 +9202,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ewm = ewm
 
-        @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
-        def transform(self, func, *args, **kwargs):
-            result = self.agg(func, *args, **kwargs)
-            if is_scalar(result) or len(result) != len(self):
-                raise ValueError("transforms cannot produce "
-                                 "aggregated results")
+    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, *args, **kwargs):
+        result = self.agg(func, *args, **kwargs)
+        if is_scalar(result) or len(result) != len(self):
+            raise ValueError("transforms cannot produce "
+                             "aggregated results")
 
-            return result
-
-        cls.transform = transform
+        return result
 
     # ----------------------------------------------------------------------
     # Misc methods
@@ -9093,6 +9270,115 @@ class NDFrame(PandasObject, SelectionMixin):
                                              'klass': 'NDFrame'})
     def last_valid_index(self):
         return self._find_valid_index('last')
+
+    def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
+               columns=None, header=True, index=True, index_label=None,
+               mode='w', encoding=None, compression='infer', quoting=None,
+               quotechar='"', line_terminator='\n', chunksize=None,
+               tupleize_cols=None, date_format=None, doublequote=True,
+               escapechar=None, decimal='.'):
+        r"""Write object to a comma-separated values (csv) file
+
+        Parameters
+        ----------
+        path_or_buf : string or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
+            .. versionchanged:: 0.24.0
+                Was previously named "path" for Series.
+        sep : character, default ','
+            Field delimiter for the output file.
+        na_rep : string, default ''
+            Missing data representation
+        float_format : string, default None
+            Format string for floating point numbers
+        columns : sequence, optional
+            Columns to write
+        header : boolean or list of string, default True
+            Write out the column names. If a list of strings is given it is
+            assumed to be aliases for the column names
+            .. versionchanged:: 0.24.0
+                Previously defaulted to False for Series.
+        index : boolean, default True
+            Write row names (index)
+        index_label : string or sequence, or False, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the object uses MultiIndex.  If
+            False do not print fields for index names. Use index_label=False
+            for easier importing in R
+        mode : str
+            Python write mode, default 'w'
+        encoding : string, optional
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
+                      default 'infer'
+            If 'infer' and `path_or_buf` is path-like, then detect compression
+            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
+            (otherwise no compression).
+
+            .. versionchanged:: 0.24.0
+               'infer' option added and set to default
+        line_terminator : string, default ``'\n'``
+            The newline character or character sequence to use in the output
+            file
+        quoting : optional constant from csv module
+            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric
+        quotechar : string (length 1), default '\"'
+            character used to quote fields
+        doublequote : boolean, default True
+            Control quoting of `quotechar` inside a field
+        escapechar : string (length 1), default None
+            character used to escape `sep` and `quotechar` when appropriate
+        chunksize : int or None
+            rows to write at a time
+        tupleize_cols : boolean, default False
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
+        date_format : string, default None
+            Format string for datetime objects
+        decimal: string, default '.'
+            Character recognized as decimal separator. E.g. use ',' for
+            European data
+
+        .. versionchanged:: 0.24.0
+            The order of arguments for Series was changed.
+        """
+
+        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
+
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = False
+
+        from pandas.io.formats.csvs import CSVFormatter
+        formatter = CSVFormatter(df, path_or_buf,
+                                 line_terminator=line_terminator, sep=sep,
+                                 encoding=encoding,
+                                 compression=compression, quoting=quoting,
+                                 na_rep=na_rep, float_format=float_format,
+                                 cols=columns, header=header, index=index,
+                                 index_label=index_label, mode=mode,
+                                 chunksize=chunksize, quotechar=quotechar,
+                                 tupleize_cols=tupleize_cols,
+                                 date_format=date_format,
+                                 doublequote=doublequote,
+                                 escapechar=escapechar, decimal=decimal)
+        formatter.save()
+
+        if path_or_buf is None:
+            return formatter.path_or_buf.getvalue()
 
 
 def _doc_parms(cls):
@@ -9747,7 +10033,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
         else:
             axis = self._get_axis_number(axis)
 
-        y = com._values_from_object(self).copy()
+        y = com.values_from_object(self).copy()
 
         if (skipna and
                 issubclass(y.dtype.type, (np.datetime64, np.timedelta64))):

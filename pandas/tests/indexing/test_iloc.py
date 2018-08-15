@@ -126,6 +126,33 @@ class TestiLoc(Base):
                           typs=['labels', 'mixed', 'ts', 'floats', 'empty'],
                           fails=IndexError)
 
+    @pytest.mark.parametrize('dims', [1, 2])
+    def test_iloc_getitem_invalid_scalar(self, dims):
+        # GH 21982
+
+        if dims == 1:
+            s = Series(np.arange(10))
+        else:
+            s = DataFrame(np.arange(100).reshape(10, 10))
+
+        tm.assert_raises_regex(TypeError, 'Cannot index by location index',
+                               lambda: s.iloc['a'])
+
+    def test_iloc_array_not_mutating_negative_indices(self):
+
+        # GH 21867
+        array_with_neg_numbers = np.array([1, 2, -1])
+        array_copy = array_with_neg_numbers.copy()
+        df = pd.DataFrame({
+            'A': [100, 101, 102],
+            'B': [103, 104, 105],
+            'C': [106, 107, 108]},
+            index=[1, 2, 3])
+        df.iloc[array_with_neg_numbers]
+        tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
+        df.iloc[:, array_with_neg_numbers]
+        tm.assert_numpy_array_equal(array_with_neg_numbers, array_copy)
+
     def test_iloc_getitem_list_int(self):
 
         # list of ints

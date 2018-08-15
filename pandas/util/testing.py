@@ -19,7 +19,7 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, IntervalArray
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -504,23 +504,19 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
 
     try:
         locale.setlocale(lc_var, new_locale)
-
-        try:
-            normalized_locale = locale.getlocale()
-        except ValueError:
-            yield new_locale
+        normalized_locale = locale.getlocale()
+        if com._all_not_none(*normalized_locale):
+            yield '.'.join(normalized_locale)
         else:
-            if com._all_not_none(*normalized_locale):
-                yield '.'.join(normalized_locale)
-            else:
-                yield new_locale
+            yield new_locale
     finally:
         locale.setlocale(lc_var, current_locale)
 
 
 def can_set_locale(lc, lc_var=locale.LC_ALL):
     """
-    Check to see if we can set a locale without raising an Exception.
+    Check to see if we can set a locale, and subsequently get the locale,
+    without raising an Exception.
 
     Parameters
     ----------
@@ -538,7 +534,8 @@ def can_set_locale(lc, lc_var=locale.LC_ALL):
     try:
         with set_locale(lc, lc_var=lc_var):
             pass
-    except locale.Error:  # horrible name for a Exception subclass
+    except (ValueError,
+            locale.Error):  # horrible name for a Exception subclass
         return False
     else:
         return True
@@ -883,7 +880,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         assert_attr_equal('freq', left, right, obj=obj)
     if (isinstance(left, pd.IntervalIndex) or
             isinstance(right, pd.IntervalIndex)):
-        assert_attr_equal('closed', left, right, obj=obj)
+        assert_interval_array_equal(left.values, right.values)
 
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
@@ -907,8 +904,8 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
     if exact == 'equiv':
         if type(left) != type(right):
             # allow equivalence of Int64Index/RangeIndex
-            types = set([type(left).__name__, type(right).__name__])
-            if len(types - set(['Int64Index', 'RangeIndex'])):
+            types = {type(left).__name__, type(right).__name__}
+            if len(types - {'Int64Index', 'RangeIndex'}):
                 msg = '{obj} classes are not equivalent'.format(obj=obj)
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
@@ -1019,6 +1016,31 @@ def assert_categorical_equal(left, right, check_dtype=True,
                            obj='{obj}.values'.format(obj=obj))
 
     assert_attr_equal('ordered', left, right, obj=obj)
+
+
+def assert_interval_array_equal(left, right, exact='equiv',
+                                obj='IntervalArray'):
+    """Test that two IntervalArrays are equivalent.
+
+    Parameters
+    ----------
+    left, right : IntervalArray
+        The IntervalArrays to compare.
+    exact : bool / string {'equiv'}, default 'equiv'
+        Whether to check the Index class, dtype and inferred_type
+        are identical. If 'equiv', then RangeIndex can be substituted for
+        Int64Index as well.
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
+    """
+    _check_isinstance(left, right, IntervalArray)
+
+    assert_index_equal(left.left, right.left, exact=exact,
+                       obj='{obj}.left'.format(obj=obj))
+    assert_index_equal(left.right, right.right, exact=exact,
+                       obj='{obj}.left'.format(obj=obj))
+    assert_attr_equal('closed', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
@@ -1249,10 +1271,7 @@ def assert_series_equal(left, right, check_dtype=True,
             assert_numpy_array_equal(left.get_values(), right.get_values(),
                                      check_dtype=check_dtype)
     elif is_interval_dtype(left) or is_interval_dtype(right):
-        # TODO: big hack here
-        left = pd.IntervalIndex(left)
-        right = pd.IntervalIndex(right)
-        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
+        assert_interval_array_equal(left.values, right.values)
 
     elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
           is_extension_array_dtype(right) and not is_categorical_dtype(right)):
@@ -1324,7 +1343,9 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
-        If true, ignore the order of rows & columns
+        If True, ignore the order of index & columns.
+        Note: index labels must match their respective rows
+        (same as in columns) - same labels must be with the same data
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message
@@ -1452,6 +1473,50 @@ def assert_panel_equal(left, right,
         for i, item in enumerate(right._get_axis(0)):
             msg = "non-matching item (left) '{item}'".format(item=item)
             assert item in left, msg
+
+
+def assert_equal(left, right, **kwargs):
+    """
+    Wrapper for tm.assert_*_equal to dispatch to the appropriate test function.
+
+    Parameters
+    ----------
+    left : Index, Series, or DataFrame
+    right : Index, Series, or DataFrame
+    **kwargs
+    """
+    if isinstance(left, pd.Index):
+        assert_index_equal(left, right, **kwargs)
+    elif isinstance(left, pd.Series):
+        assert_series_equal(left, right, **kwargs)
+    elif isinstance(left, pd.DataFrame):
+        assert_frame_equal(left, right, **kwargs)
+    else:
+        raise NotImplementedError(type(left))
+
+
+def box_expected(expected, box_cls):
+    """
+    Helper function to wrap the expected output of a test in a given box_class.
+
+    Parameters
+    ----------
+    expected : np.ndarray, Index, Series
+    box_cls : {Index, Series, DataFrame}
+
+    Returns
+    -------
+    subclass of box_cls
+    """
+    if box_cls is pd.Index:
+        expected = pd.Index(expected)
+    elif box_cls is pd.Series:
+        expected = pd.Series(expected)
+    elif box_cls is pd.DataFrame:
+        expected = pd.Series(expected).to_frame()
+    else:
+        raise NotImplementedError(box_cls)
+    return expected
 
 
 # -----------------------------------------------------------------------------

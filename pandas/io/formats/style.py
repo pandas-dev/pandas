@@ -577,7 +577,7 @@ class Styler(object):
         -----
         The output shape of ``func`` should match the input, i.e. if
         ``x`` is the input row, column, or table (depending on ``axis``),
-        then ``func(x.shape) == x.shape`` should be true.
+        then ``func(x).shape == x.shape`` should be true.
 
         This is similar to ``DataFrame.apply``, except that ``axis=None``
         applies the function to the entire DataFrame at once,
@@ -913,21 +913,22 @@ class Styler(object):
     def _background_gradient(s, cmap='PuBu', low=0, high=0,
                              text_color_threshold=0.408):
         """Color background in a range according to the data."""
-        with _mpl(Styler.background_gradient) as (plt, colors):
-            rng = s.max() - s.min()
-            # extend lower / upper bounds, compresses color range
-            norm = colors.Normalize(s.min() - (rng * low),
-                                    s.max() + (rng * high))
-            # matplotlib modifies inplace?
-            # https://github.com/matplotlib/matplotlib/issues/5427
-            normed = norm(s.values)
-            c = [colors.rgb2hex(x) for x in plt.cm.get_cmap(cmap)(normed)]
-            if (not isinstance(text_color_threshold, (float, int)) or
-                    not 0 <= text_color_threshold <= 1):
-                msg = "`text_color_threshold` must be a value from 0 to 1."
-                raise ValueError(msg)
+        if (not isinstance(text_color_threshold, (float, int)) or
+                not 0 <= text_color_threshold <= 1):
+            msg = "`text_color_threshold` must be a value from 0 to 1."
+            raise ValueError(msg)
 
-            def relative_luminance(color):
+        with _mpl(Styler.background_gradient) as (plt, colors):
+            smin = s.values.min()
+            smax = s.values.max()
+            rng = smax - smin
+            # extend lower / upper bounds, compresses color range
+            norm = colors.Normalize(smin - (rng * low), smax + (rng * high))
+            # matplotlib colors.Normalize modifies inplace?
+            # https://github.com/matplotlib/matplotlib/issues/5427
+            rgbas = plt.cm.get_cmap(cmap)(norm(s.values))
+
+            def relative_luminance(rgba):
                 """
                 Calculate relative luminance of a color.
 
@@ -936,25 +937,33 @@ class Styler(object):
 
                 Parameters
                 ----------
-                color : matplotlib color
-                    Hex code, rgb-tuple, or HTML color name.
+                color : rgb or rgba tuple
 
                 Returns
                 -------
                 float
                     The relative luminance as a value from 0 to 1
                 """
-                rgb = colors.colorConverter.to_rgba_array(color)[:, :3]
-                rgb = np.where(rgb <= .03928, rgb / 12.92,
-                               ((rgb + .055) / 1.055) ** 2.4)
-                lum = rgb.dot([.2126, .7152, .0722])
-                return lum.item()
+                r, g, b = (
+                    x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055 ** 2.4)
+                    for x in rgba[:3]
+                )
+                return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-            text_colors = ['#f1f1f1' if relative_luminance(x) <
-                           text_color_threshold else '#000000' for x in c]
+            def css(rgba):
+                dark = relative_luminance(rgba) < text_color_threshold
+                text_color = '#f1f1f1' if dark else '#000000'
+                return 'background-color: {b};color: {c};'.format(
+                    b=colors.rgb2hex(rgba), c=text_color
+                )
 
-            return ['background-color: {color};color: {tc}'.format(
-                    color=color, tc=tc) for color, tc in zip(c, text_colors)]
+            if s.ndim == 1:
+                return [css(rgba) for rgba in rgbas]
+            else:
+                return pd.DataFrame(
+                    [[css(rgba) for rgba in row] for row in rgbas],
+                    index=s.index, columns=s.columns
+                )
 
     def set_properties(self, subset=None, **kwargs):
         """

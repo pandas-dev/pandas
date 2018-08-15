@@ -1542,14 +1542,13 @@ class TestConcatenate(ConcatenateBase):
                     return DataFrame(np.random.randn(index, cols),
                                      index=["I%s" % i for i in range(index)],
                                      columns=["C%s" % i for i in range(cols)])
-                return Panel(dict(("Item%s" % x, df())
-                                  for x in ['A', 'B', 'C']))
+                return Panel({"Item%s" % x: df() for x in ['A', 'B', 'C']})
 
             panel1 = make_panel()
             panel2 = make_panel()
 
-            panel2 = panel2.rename_axis(dict((x, "%s_1" % x)
-                                             for x in panel2.major_axis),
+            panel2 = panel2.rename_axis({x: "%s_1" % x
+                                         for x in panel2.major_axis},
                                         axis=1)
 
             panel3 = panel2.rename_axis(lambda x: '%s_1' % x, axis=1)
@@ -2325,7 +2324,7 @@ bar2,12,13,14,15
                                  '2011-01-01 01:00:00+01:00',
                                  '2011-01-01 02:00:00+01:00'],
                                 freq='H'
-                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+                                ).tz_convert('UTC').tz_convert('Europe/Paris')
 
         expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
                                 index=exp_idx, columns=['a', 'b'])
@@ -2343,7 +2342,7 @@ bar2,12,13,14,15
                                  '2010-12-31 23:00:00+00:00',
                                  '2011-01-01 00:00:00+00:00',
                                  '2011-01-01 01:00:00+00:00']
-                                ).tz_localize('UTC')
+                                )
 
         expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
                                  [1, np.nan], [2, np.nan], [3, np.nan]],

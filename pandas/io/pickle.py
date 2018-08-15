@@ -5,7 +5,7 @@ import numpy as np
 from numpy.lib.format import read_array, write_array
 from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
 from pandas.core.dtypes.common import is_datetime64_dtype, _NS_DTYPE
-from pandas.io.common import _get_handle, _infer_compression, _stringify_path
+from pandas.io.common import _get_handle, _stringify_path
 
 
 def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
@@ -67,9 +67,8 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    inferred_compression = _infer_compression(path, compression)
     f, fh = _get_handle(path, 'wb',
-                        compression=inferred_compression,
+                        compression=compression,
                         is_text=False)
     if protocol < 0:
         protocol = pkl.HIGHEST_PROTOCOL
@@ -138,12 +137,11 @@ def read_pickle(path, compression='infer'):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    inferred_compression = _infer_compression(path, compression)
 
     def read_wrapper(func):
         # wrapper file handle open/close operation
         f, fh = _get_handle(path, 'rb',
-                            compression=inferred_compression,
+                            compression=compression,
                             is_text=False)
         try:
             return func(f)

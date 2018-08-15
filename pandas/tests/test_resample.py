@@ -11,27 +11,31 @@ import pytest
 import dateutil
 import numpy as np
 
-import pandas as pd
-import pandas.tseries.offsets as offsets
+from pandas._libs.tslibs.period import IncompatibleFrequency
+from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
+
 import pandas.util.testing as tm
+from pandas.util.testing import (assert_series_equal, assert_almost_equal,
+                                 assert_frame_equal, assert_index_equal)
+
+import pandas as pd
+
 from pandas import (Series, DataFrame, Panel, Index, isna,
-                    notna, Timestamp)
+                    notna, Timestamp, Timedelta)
 
 from pandas.compat import range, lrange, zip, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
+import pandas.tseries.offsets as offsets
+from pandas.tseries.frequencies import to_offset
+from pandas.tseries.offsets import Minute, BDay
+
 from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
-from pandas.tseries.offsets import Minute, BDay
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
 from pandas.core.resample import DatetimeIndex, TimeGrouper
 from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
-from pandas.util.testing import (assert_series_equal, assert_almost_equal,
-                                 assert_frame_equal, assert_index_equal)
-from pandas._libs.tslibs.period import IncompatibleFrequency
-from pandas._libs.tslibs.ccalendar import DAYS, MONTHS
 
 bday = BDay()
 
@@ -1698,12 +1702,14 @@ class TestDatetimeIndex(Base):
         result = df.resample('M').mean()
         expected = df.resample(
             'M', kind='period').mean().to_timestamp(how='end')
+        expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('M', closed='left').mean()
         exp = df.tshift(1, freq='D').resample('M', kind='period').mean()
         exp = exp.to_timestamp(how='end')
 
+        exp.index = exp.index + Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, exp)
 
         rng = date_range('1/1/2012', '4/1/2012', freq='100min')
@@ -1712,12 +1718,14 @@ class TestDatetimeIndex(Base):
         result = df.resample('Q').mean()
         expected = df.resample(
             'Q', kind='period').mean().to_timestamp(how='end')
+        expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('Q', closed='left').mean()
         expected = df.tshift(1, freq='D').resample('Q', kind='period',
                                                    closed='left').mean()
         expected = expected.to_timestamp(how='end')
+        expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
 
         ts = _simple_ts('2012-04-29 23:00', '2012-04-30 5:00', freq='h')
@@ -2469,7 +2477,7 @@ class TestPeriodIndex(Base):
         ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
 
         result = ts.resample('A-DEC', kind='timestamp').mean()
-        expected = ts.to_timestamp(how='end').resample('A-DEC').mean()
+        expected = ts.to_timestamp(how='start').resample('A-DEC').mean()
         assert_series_equal(result, expected)
 
     def test_resample_to_quarterly(self):
@@ -2677,8 +2685,8 @@ class TestPeriodIndex(Base):
                                  '2016-03-14 13:00:00-05:00',
                                  '2016-03-15 01:00:00-05:00',
                                  '2016-03-15 13:00:00-05:00']
-        index = pd.DatetimeIndex(expected_index_values,
-                                 tz='UTC').tz_convert('America/Chicago')
+        index = pd.to_datetime(expected_index_values, utc=True).tz_convert(
+            'America/Chicago')
         expected = pd.DataFrame([1.0, 1.0, 1.0, 1.0, 1.0,
                                  1.0, 1.0, 1.0, 1.0, 1.0,
                                  1.0, 1.0, 2.0], index=index)
@@ -2877,6 +2885,16 @@ class TestTimedeltaIndex(Base):
                              index=timedelta_range('0 day',
                                                    periods=4,
                                                    freq='1T'))
+        assert_frame_equal(result, expected)
+
+    def test_resample_with_nat(self):
+        # GH 13223
+        index = pd.to_timedelta(['0s', pd.NaT, '2s'])
+        result = DataFrame({'value': [2, 3, 5]}, index).resample('1s').mean()
+        expected = DataFrame({'value': [2.5, np.nan, 5.0]},
+                             index=timedelta_range('0 day',
+                                                   periods=3,
+                                                   freq='1S'))
         assert_frame_equal(result, expected)
 
 

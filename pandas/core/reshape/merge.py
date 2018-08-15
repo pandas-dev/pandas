@@ -11,7 +11,7 @@ from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
-                    Index, MultiIndex, Timedelta)
+                    Index, MultiIndex, Timedelta, Series)
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
@@ -31,9 +31,9 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_datetimelike,
-    _ensure_int64,
-    _ensure_float64,
-    _ensure_object,
+    ensure_int64,
+    ensure_float64,
+    ensure_object,
     _get_dtype)
 from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.internals import (items_overlap_with_suffix,
@@ -493,14 +493,16 @@ class _MergeOperation(object):
                  left_index=False, right_index=False, sort=True,
                  suffixes=('_x', '_y'), copy=True, indicator=False,
                  validate=None):
+        left = validate_operand(left)
+        right = validate_operand(right)
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
         self.axis = axis
 
-        self.on = com._maybe_make_list(on)
-        self.left_on = com._maybe_make_list(left_on)
-        self.right_on = com._maybe_make_list(right_on)
+        self.on = com.maybe_make_list(on)
+        self.left_on = com.maybe_make_list(left_on)
+        self.right_on = com.maybe_make_list(right_on)
 
         self.copy = copy
         self.suffixes = suffixes
@@ -518,13 +520,6 @@ class _MergeOperation(object):
         else:
             raise ValueError(
                 'indicator option can only accept boolean or string arguments')
-
-        if not isinstance(left, DataFrame):
-            raise ValueError('can not merge DataFrame with instance of '
-                             'type {left}'.format(left=type(left)))
-        if not isinstance(right, DataFrame):
-            raise ValueError('can not merge DataFrame with instance of '
-                             'type {right}'.format(right=type(right)))
 
         if not is_bool(left_index):
             raise ValueError(
@@ -1212,9 +1207,9 @@ def _asof_by_function(direction, on_type, by_type):
 
 
 _type_casters = {
-    'int64_t': _ensure_int64,
-    'double': _ensure_float64,
-    'object': _ensure_object,
+    'int64_t': ensure_int64,
+    'double': ensure_float64,
+    'object': ensure_object,
 }
 
 _cython_types = {
@@ -1490,8 +1485,8 @@ def _get_single_indexer(join_key, index, sort=False):
     left_key, right_key, count = _factorize_keys(join_key, index, sort=sort)
 
     left_indexer, right_indexer = libjoin.left_outer_join(
-        _ensure_int64(left_key),
-        _ensure_int64(right_key),
+        ensure_int64(left_key),
+        ensure_int64(right_key),
         count, sort=sort)
 
     return left_indexer, right_indexer
@@ -1553,16 +1548,16 @@ def _factorize_keys(lk, rk, sort=True):
             # Same categories in different orders -> recode
             rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
 
-        lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk)
+        lk = ensure_int64(lk.codes)
+        rk = ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
-        lk = _ensure_int64(com._values_from_object(lk))
-        rk = _ensure_int64(com._values_from_object(rk))
+        lk = ensure_int64(com.values_from_object(lk))
+        rk = ensure_int64(com.values_from_object(rk))
     else:
         klass = libhashtable.Factorizer
-        lk = _ensure_object(lk)
-        rk = _ensure_object(rk)
+        lk = ensure_object(lk)
+        rk = ensure_object(rk)
 
     rizer = klass(max(len(lk), len(rk)))
 
@@ -1600,7 +1595,7 @@ def _sort_labels(uniques, left, right):
     labels = np.concatenate([left, right])
 
     _, new_labels = sorting.safe_sort(uniques, labels, na_sentinel=-1)
-    new_labels = _ensure_int64(new_labels)
+    new_labels = ensure_int64(new_labels)
     new_left, new_right = new_labels[:llength], new_labels[llength:]
 
     return new_left, new_right
@@ -1645,3 +1640,16 @@ def _should_fill(lname, rname):
 
 def _any(x):
     return x is not None and com._any_not_none(*x)
+
+
+def validate_operand(obj):
+    if isinstance(obj, DataFrame):
+        return obj
+    elif isinstance(obj, Series):
+        if obj.name is None:
+            raise ValueError('Cannot merge a Series without a name')
+        else:
+            return obj.to_frame()
+    else:
+        raise TypeError('Can only merge Series or DataFrame objects, '
+                        'a {obj} was passed'.format(obj=type(obj)))

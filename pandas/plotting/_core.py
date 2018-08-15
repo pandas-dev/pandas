@@ -9,10 +9,15 @@ from distutils.version import LooseVersion
 
 import numpy as np
 
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender
+from pandas.compat import range, lrange, map, zip, string_types
+import pandas.compat as compat
+
 import pandas.core.common as com
 from pandas.core.base import PandasObject
 from pandas.core.config import get_option
+from pandas.core.generic import _shared_docs, _shared_doc_kwargs
+
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -20,16 +25,10 @@ from pandas.core.dtypes.common import (
     is_number,
     is_hashable,
     is_iterator)
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
 
-from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
-
-from pandas.core.indexes.period import PeriodIndex
-from pandas.compat import range, lrange, map, zip, string_types
-import pandas.compat as compat
 from pandas.io.formats.printing import pprint_thing
-from pandas.util._decorators import Appender
 
 from pandas.plotting._compat import (_mpl_ge_1_3_1,
                                      _mpl_ge_1_5_0,
@@ -170,7 +169,8 @@ class MPLPlot(object):
         for kw, err in zip(['xerr', 'yerr'], [xerr, yerr]):
             self.errors[kw] = self._parse_errorbars(kw, err)
 
-        if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, Index)):
+        if not isinstance(secondary_y, (bool, tuple, list,
+                                        np.ndarray, ABCIndexClass)):
             secondary_y = [secondary_y]
         self.secondary_y = secondary_y
 
@@ -233,7 +233,7 @@ class MPLPlot(object):
 
         # TODO: unused?
         # if self.sort_columns:
-        #     columns = com._try_sort(data.columns)
+        #     columns = com.try_sort(data.columns)
         # else:
         #     columns = data.columns
 
@@ -484,7 +484,7 @@ class MPLPlot(object):
 
     @property
     def legend_title(self):
-        if not isinstance(self.data.columns, MultiIndex):
+        if not isinstance(self.data.columns, ABCMultiIndex):
             name = self.data.columns.name
             if name is not None:
                 name = pprint_thing(name)
@@ -566,7 +566,7 @@ class MPLPlot(object):
                                               'datetime64', 'time')
 
         if self.use_index:
-            if convert_period and isinstance(index, PeriodIndex):
+            if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
                 x = self.data.index.to_timestamp()._mpl_repr()
             elif index.is_numeric():
@@ -596,7 +596,7 @@ class MPLPlot(object):
             y = np.ma.array(y)
             y = np.ma.masked_where(mask, y)
 
-        if isinstance(x, Index):
+        if isinstance(x, ABCIndexClass):
             x = x._mpl_repr()
 
         if is_errorbar:
@@ -615,7 +615,7 @@ class MPLPlot(object):
             return ax.plot(*args, **kwds)
 
     def _get_index_name(self):
-        if isinstance(self.data.index, MultiIndex):
+        if isinstance(self.data.index, ABCMultiIndex):
             name = self.data.index.names
             if com._any_not_none(*name):
                 name = ','.join(pprint_thing(x) for x in name)
@@ -653,7 +653,8 @@ class MPLPlot(object):
         if isinstance(self.secondary_y, bool):
             return self.secondary_y
 
-        if isinstance(self.secondary_y, (tuple, list, np.ndarray, Index)):
+        if isinstance(self.secondary_y, (tuple, list,
+                                         np.ndarray, ABCIndexClass)):
             return self.data.columns[i] in self.secondary_y
 
     def _apply_style_colors(self, colors, kwds, col_num, label):
@@ -704,14 +705,12 @@ class MPLPlot(object):
         if err is None:
             return None
 
-        from pandas import DataFrame, Series
-
         def match_labels(data, e):
             e = e.reindex(data.index)
             return e
 
         # key-matched DataFrame
-        if isinstance(err, DataFrame):
+        if isinstance(err, ABCDataFrame):
 
             err = match_labels(self.data, err)
         # key-matched dict
@@ -719,7 +718,7 @@ class MPLPlot(object):
             pass
 
         # Series of error values
-        elif isinstance(err, Series):
+        elif isinstance(err, ABCSeries):
             # broadcast error series across data
             err = match_labels(self.data, err)
             err = np.atleast_2d(err)
@@ -765,14 +764,13 @@ class MPLPlot(object):
         return err
 
     def _get_errorbars(self, label=None, index=None, xerr=True, yerr=True):
-        from pandas import DataFrame
         errors = {}
 
         for kw, flag in zip(['xerr', 'yerr'], [xerr, yerr]):
             if flag:
                 err = self.errors[kw]
                 # user provided label-matched dataframe of errors
-                if isinstance(err, (DataFrame, dict)):
+                if isinstance(err, (ABCDataFrame, dict)):
                     if label is not None and label in err.keys():
                         err = err[label]
                     else:
@@ -2196,9 +2194,8 @@ def boxplot(data, column=None, by=None, ax=None, fontsize=None,
     if return_type not in BoxPlot._valid_return_types:
         raise ValueError("return_type must be {'axes', 'dict', 'both'}")
 
-    from pandas import Series, DataFrame
-    if isinstance(data, Series):
-        data = DataFrame({'x': data})
+    if isinstance(data, ABCSeries):
+        data = data.to_frame('x')
         column = 'x'
 
     def _get_colors():
@@ -2420,7 +2417,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         return axes
 
     if column is not None:
-        if not isinstance(column, (list, np.ndarray, Index)):
+        if not isinstance(column, (list, np.ndarray, ABCIndexClass)):
             column = [column]
         data = data[column]
     data = data._get_numeric_data()
@@ -2431,7 +2428,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                           layout=layout)
     _axes = _flatten(axes)
 
-    for i, col in enumerate(com._try_sort(data.columns)):
+    for i, col in enumerate(com.try_sort(data.columns)):
         ax = _axes[i]
         ax.hist(data[col].dropna().values, bins=bins, **kwds)
         ax.set_title(col)
@@ -2658,7 +2655,6 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
                   figsize=None, sharex=True, sharey=True, layout=None,
                   rot=0, ax=None, **kwargs):
-    from pandas import DataFrame
 
     if figsize == 'default':
         # allowed to specify mpl default with 'default'
@@ -2679,7 +2675,7 @@ def _grouped_plot(plotf, data, column=None, by=None, numeric_only=True,
 
     for i, (key, group) in enumerate(grouped):
         ax = _axes[i]
-        if numeric_only and isinstance(group, DataFrame):
+        if numeric_only and isinstance(group, ABCDataFrame):
             group = group._get_numeric_data()
         plotf(group, ax, **kwargs)
         ax.set_title(pprint_thing(key))
@@ -2731,7 +2727,7 @@ def _grouped_plot_by_column(plotf, data, columns=None, by=None,
 class BasePlotMethods(PandasObject):
 
     def __init__(self, data):
-        self._data = data
+        self._parent = data  # can be Series or DataFrame
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
@@ -2759,7 +2755,7 @@ class SeriesPlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  label=None, secondary_y=False, **kwds):
-        return plot_series(self._data, kind=kind, ax=ax, figsize=figsize,
+        return plot_series(self._parent, kind=kind, ax=ax, figsize=figsize,
                            use_index=use_index, title=title, grid=grid,
                            legend=legend, style=style, logx=logx, logy=logy,
                            loglog=loglog, xticks=xticks, yticks=yticks,
@@ -2958,7 +2954,7 @@ class FramePlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  secondary_y=False, sort_columns=False, **kwds):
-        return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
+        return plot_frame(self._parent, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
                           title=title, grid=grid, legend=legend, style=style,
@@ -3341,19 +3337,74 @@ class FramePlotMethods(BasePlotMethods):
 
     def area(self, x=None, y=None, **kwds):
         """
-        Area plot
+        Draw a stacked area plot.
+
+        An area plot displays quantitative data visually.
+        This function wraps the matplotlib area function.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
+        x : label or position, optional
+            Coordinates for the X axis. By default uses the index.
+        y : label or position, optional
+            Column to plot. By default uses all columns.
+        stacked : bool, default True
+            Area plots are stacked by default. Set to False to create a
+            unstacked plot.
+        **kwds : optional
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray
+            Area plot, or array of area plots if subplots is True
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of DataFrame using matplotlib / pylab.
+
+        Examples
+        --------
+        Draw an area plot based on basic business metrics:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3, 9, 10, 6],
+            ...     'signups': [5, 5, 6, 12, 14, 13],
+            ...     'visits': [20, 42, 28, 62, 81, 50],
+            ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
+            ...                        freq='M'))
+            >>> ax = df.plot.area()
+
+        Area plots are stacked by default. To produce an unstacked plot,
+        pass ``stacked=False``:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.area(stacked=False)
+
+        Draw an area plot for a single column:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.area(y='sales')
+
+        Draw with a different `x`:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3],
+            ...     'visits': [20, 42, 28],
+            ...     'day': [1, 2, 3],
+            ... })
+            >>> ax = df.plot.area(x='day')
         """
         return self(kind='area', x=x, y=y, **kwds)
 
