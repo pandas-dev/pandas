@@ -1949,6 +1949,9 @@ class Index(IndexOpsMixin, PandasObject):
     def __contains__(self, key):
         hash(key)
         try:
+            if type(key) == float and self.dtype == int:
+                if key != int(key):
+                    return False
             return key in self._engine
         except (OverflowError, TypeError, ValueError):
             return False
