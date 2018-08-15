@@ -21,7 +21,7 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import long, PY3, text_type
+from pandas.compat import long, PY3, text_type, PY2
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import Timestamp, Period, Timedelta, NaT
 
@@ -124,15 +124,19 @@ class TestTimestampProperties(object):
         # Work around https://github.com/pandas-dev/pandas/issues/22342
         # different normalizations
 
-        result_day = unicodedata.normalize(
-            "NFD", data.day_name(time_locale)
-        )
-        result_month = unicodedata.normalize(
-            "NFD", data.month_name(time_locale)
-        )
+        if not (PY2 and time_locale):
+            # some locales may have non-ascii characters
+            # not worth testing at this point
 
-        assert result_day == expected_day
-        assert result_month == expected_month
+            result_day = unicodedata.normalize(
+                "NFD", data.day_name(time_locale)
+            )
+            result_month = unicodedata.normalize(
+                "NFD", data.month_name(time_locale)
+            )
+
+            assert result_day == expected_day
+            assert result_month == expected_month
 
         # Test NaT
         nan_ts = Timestamp(NaT)

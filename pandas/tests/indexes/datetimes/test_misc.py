@@ -293,6 +293,10 @@ class TestDatetime64(object):
         tm.assert_index_equal(result, expected)
 
         for date, expected in zip(dti, expected_months):
+            if compat.PY2 and time_locale:
+                # some locales may have non-ascii characters
+                # not worth testing at this point
+                break
             result = unicodedata.normalize(
                 "NFD", compat.text_type(date.month_name(locale=time_locale))
             )

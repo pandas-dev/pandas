@@ -318,6 +318,10 @@ class TestSeriesDatetimeValues(TestData):
         tm.assert_series_equal(result, expected)
 
         for s_date, expected in zip(s, expected_months):
+            if compat.PY2 and time_locale:
+                # some locales may have non-ascii characters
+                # not worth testing at this point
+                break
             result = unicodedata.normalize(
                 "NFD", compat.text_type(s_date.month_name(locale=time_locale))
             )
