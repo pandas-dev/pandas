@@ -771,6 +771,17 @@ class Base(object):
 
             assert_series_equal(result, expected, check_dtype=False)
 
+    def test_resampler_is_iterable(self):
+        # GH 15314
+        series = self.create_series()
+        freq = 'H'
+        tg = TimeGrouper(freq, convention='start')
+        grouped = series.groupby(tg)
+        resampled = series.resample(freq)
+        for (rk, rv), (gk, gv) in zip(resampled, grouped):
+            assert rk == gk
+            assert_series_equal(rv, gv)
+
 
 class TestDatetimeIndex(Base):
     _index_factory = lambda x: date_range

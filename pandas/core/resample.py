@@ -97,6 +97,23 @@ class Resampler(_GroupBy):
 
         return object.__getattribute__(self, attr)
 
+    def __iter__(self):
+        """
+        Resampler iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+
+        See Also
+        --------
+        GroupBy.__iter__
+
+        """
+        self._set_binner()
+        return super(Resampler, self).__iter__()
+
     @property
     def obj(self):
         return self.groupby.obj
