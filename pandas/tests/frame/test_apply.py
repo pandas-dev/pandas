@@ -121,13 +121,10 @@ class TestDataFrameApply(TestData):
         assert_series_equal(rs, xp)
 
     @pytest.mark.parametrize('arg', ['sum', 'mean', 'min', 'max', 'std'])
-    def test_with_string_args(self, arg):
-        result = self.frame.apply(arg)
-        expected = getattr(self.frame, arg)()
-        tm.assert_series_equal(result, expected)
-
-        result = self.frame.apply(arg, axis=1)
-        expected = getattr(self.frame, arg)(axis=1)
+    @pytest.mark.parametrize('kwds', [{}, {'axis': 1}, {'numeric_only': True}])
+    def test_with_string_args(self, arg, kwds):
+        result = self.frame.apply(arg, **kwds)
+        expected = getattr(self.frame, arg)(**kwds)
         tm.assert_series_equal(result, expected)
 
     def test_apply_broadcast_deprecated(self):
