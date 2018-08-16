@@ -865,9 +865,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     def test_td64arr_add_timedeltalike(self, delta, box):
         # only test adding/sub offsets as + is now numeric
-        if box is pd.DataFrame and isinstance(delta, pd.DateOffset):
-            pytest.xfail(reason="Returns object dtype instead of m8[ns]")
-
         rng = timedelta_range('1 days', '10 days')
         expected = timedelta_range('1 days 02:00:00', '10 days 02:00:00',
                                    freq='D')
@@ -879,9 +876,6 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     def test_td64arr_sub_timedeltalike(self, delta, box):
         # only test adding/sub offsets as - is now numeric
-        if box is pd.DataFrame and isinstance(delta, pd.DateOffset):
-            pytest.xfail(reason="Returns object dtype instead of m8[ns]")
-
         rng = timedelta_range('1 days', '10 days')
         expected = timedelta_range('0 days 22:00:00', '9 days 22:00:00')
 
@@ -1132,9 +1126,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         tm.assert_equal(result, idx)
 
     def test_td64arr_mul_tdlike_scalar_raises(self, delta, box):
-        if box is pd.DataFrame and not isinstance(delta, pd.DateOffset):
-            pytest.xfail(reason="returns m8[ns] instead of raising")
-
         rng = timedelta_range('1 days', '10 days', name='foo')
         rng = tm.box_expected(rng, box)
         with pytest.raises(TypeError):
