@@ -1494,3 +1494,9 @@ def test_to_sparse():
     result = pd.Series(arr).to_sparse()
     assert len(result) == 4
     tm.assert_sp_array_equal(result.values, arr)
+
+
+def test_constructor_mismatched_raises():
+    msg = "Length of passed values is 2, index implies 3"
+    with tm.assert_raises_regex(ValueError, msg):
+        SparseSeries([1, 2], index=[1, 2, 3])

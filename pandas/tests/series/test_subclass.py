@@ -83,28 +83,3 @@ class TestSparseSeriesSubclassing(object):
         s2 = tm.SubclassedSparseSeries([1.0, 2.0, 3.0])
         exp = tm.SubclassedSparseSeries([5., 7., 9.])
         tm.assert_sp_series_equal(s1 + s2, exp)
-
-    @pytest.mark.xfail(reason="XXX: SS used to reindex. Now we match Series.")
-    def test_subclass_sparse_to_frame(self):
-        s = tm.SubclassedSparseSeries([1, 2], index=list('abcd'), name='xxx')
-        res = s.to_frame()
-
-        exp_arr = pd.SparseArray([1, 2], dtype=np.int64, kind='block',
-                                 fill_value=0)
-        exp = tm.SubclassedSparseDataFrame({'xxx': exp_arr},
-                                           index=list('abcd'),
-                                           default_fill_value=0)
-        tm.assert_sp_frame_equal(res, exp)
-
-        # create from int dict
-        res = tm.SubclassedSparseDataFrame({'xxx': [1, 2]},
-                                           index=list('abcd'),
-                                           default_fill_value=0)
-        tm.assert_sp_frame_equal(res, exp)
-
-        s = tm.SubclassedSparseSeries([1.1, 2.1], index=list('abcd'),
-                                      name='xxx')
-        res = s.to_frame()
-        exp = tm.SubclassedSparseDataFrame({'xxx': [1.1, 2.1]},
-                                           index=list('abcd'))
-        tm.assert_sp_frame_equal(res, exp)
