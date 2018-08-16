@@ -369,7 +369,7 @@ Updating a *pandas* docstring
 -----------------------------
 
 When improving a single function or method's docstring, it is not necessarily
-needed to build to full documentation (see next section).
+needed to build the full documentation (see next section).
 However, there is a script that checks a docstring (for example for the ``DataFrame.mean`` method)::
 
     python scripts/validate_docstrings.py pandas.DataFrame.mean
