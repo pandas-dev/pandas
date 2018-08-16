@@ -195,14 +195,10 @@ class TestSparseArray(object):
         tm.assert_raises_regex(IndexError, errmsg, lambda: self.arr[-11])
         assert self.arr[-1] == self.arr[len(self.arr) - 1]
 
-    @pytest.mark.xfail(
-        reason="https://github.com/pandas-dev/pandas/issues/22215",
-        strict=True)
-    def test_take_scalar(self):
-        assert np.isnan(self.arr.take(0))
-        assert np.isscalar(self.arr.take(2))
-        assert self.arr.take(2) == np.take(self.arr_data, 2)
-        assert self.arr.take(6) == np.take(self.arr_data, 6)
+    def test_take_scalar_raises(self):
+        msg = "'indices' must be an array, not a scalar '2'."
+        with tm.assert_raises_regex(ValueError, msg):
+            self.arr.take(2)
 
     def test_take(self):
         exp = SparseArray(np.take(self.arr_data, [2, 3]))

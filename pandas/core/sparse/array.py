@@ -529,6 +529,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         pass
 
     def take(self, indices, allow_fill=False, fill_value=None):
+        if is_scalar(indices):
+            raise ValueError("'indices' must be an array, not a "
+                             "scalar '{}'.".format(indices))
         indices = np.asarray(indices, dtype=np.int32)
 
         if indices.size == 0:
