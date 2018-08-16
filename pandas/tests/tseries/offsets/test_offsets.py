@@ -17,7 +17,7 @@ from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
 import pandas._libs.tslibs.offsets as liboffsets
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
+from pandas._libs.tslibs.offsets import CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -29,7 +29,6 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
                                     LastWeekOfMonth, Tick)
-from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
@@ -40,22 +39,21 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
 
+
+class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
+    MON = 0
+    TUE = 1
+    WED = 2
+    THU = 3
+    FRI = 4
+    SAT = 5
+    SUN = 6
+
+
 ####
 # Misc function tests
 ####
-
-
-def test_format():
-    actual = format(datetime(2008, 1, 15))
-    assert actual == '20080115'
-
-
-def test_ole2datetime():
-    actual = ole2datetime(60000)
-    assert actual == datetime(2064, 4, 8)
-
-    with pytest.raises(ValueError):
-        ole2datetime(60)
 
 
 def test_to_m8():
@@ -3083,6 +3081,13 @@ def test_valid_month_attributes(kwd, month_classes):
     # check that we cannot create e.g. MonthEnd(weeks=3)
     with pytest.raises(TypeError):
         cls(**{kwd: 3})
+
+
+@pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
+def test_valid_relativedelta_kwargs(kwd):
+    # Check that all the arguments specified in liboffsets.relativedelta_kwds
+    # are in fact valid relativedelta keyword args
+    DateOffset(**{kwd: 1})
 
 
 @pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))

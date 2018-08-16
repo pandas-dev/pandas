@@ -3,24 +3,37 @@ from datetime import timedelta
 
 import numpy as np
 
-from pandas._libs import tslibs, lib
-from pandas._libs.tslibs import Timedelta, NaT
+from pandas._libs import tslibs
+from pandas._libs.tslibs import Timedelta, Timestamp, NaT, iNaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 
 from pandas import compat
 
 from pandas.core.dtypes.common import (
-    _TD_DTYPE, _ensure_int64, is_timedelta64_dtype)
+    _TD_DTYPE, ensure_int64, is_timedelta64_dtype, is_list_like)
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
+from pandas.core.algorithms import checked_add_with_arr
 
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.offsets import Tick
 from pandas.tseries.frequencies import to_offset
 
-from .datetimelike import DatetimeLikeArrayMixin
+from . import datetimelike as dtl
+
+
+def _to_m8(key):
+    """
+    Timedelta-like => dt64
+    """
+    if not isinstance(key, Timedelta):
+        # this also converts strings
+        key = Timedelta(key)
+
+    # return an type that can be compared
+    return np.int64(key.value).view(_TD_DTYPE)
 
 
 def _is_convertible_to_td(key):
@@ -42,7 +55,48 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
+def _td_array_cmp(cls, op):
+    """
+    Wrap comparison operations to convert timedelta-like to timedelta64
+    """
+    opname = '__{name}__'.format(name=op.__name__)
+    nat_result = True if opname == '__ne__' else False
+
+    def wrapper(self, other):
+        msg = "cannot compare a {cls} with type {typ}"
+        meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
+        if _is_convertible_to_td(other) or other is NaT:
+            try:
+                other = _to_m8(other)
+            except ValueError:
+                # failed to parse as timedelta
+                raise TypeError(msg.format(cls=type(self).__name__,
+                                           typ=type(other).__name__))
+            result = meth(self, other)
+            if isna(other):
+                result.fill(nat_result)
+
+        elif not is_list_like(other):
+            raise TypeError(msg.format(cls=type(self).__name__,
+                                       typ=type(other).__name__))
+        else:
+            other = type(self)(other).values
+            result = meth(self, other)
+            result = com.values_from_object(result)
+
+            o_mask = np.array(isna(other))
+            if o_mask.any():
+                result[o_mask] = nat_result
+
+        if self.hasnans:
+            result[self._isnan] = nat_result
+
+        return result
+
+    return compat.set_function_name(wrapper, opname, cls)
+
+
+class TimedeltaArrayMixin(dtl.DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')
@@ -65,7 +119,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                 # non-nano unit
                 values = values.astype(_TD_DTYPE)
             else:
-                values = _ensure_int64(values).view(_TD_DTYPE)
+                values = ensure_int64(values).view(_TD_DTYPE)
 
         result = object.__new__(cls)
         result._data = values
@@ -74,37 +128,30 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
 
     def __new__(cls, values, freq=None, start=None, end=None, periods=None,
                 closed=None):
-        if (freq is not None and not isinstance(freq, DateOffset) and
-                freq != 'infer'):
-            freq = to_offset(freq)
 
-        if periods is not None:
-            if lib.is_float(periods):
-                periods = int(periods)
-            elif not lib.is_integer(periods):
-                raise TypeError('`periods` must be a number, got {periods}'
-                                .format(periods=periods))
+        freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         if values is None:
+            # TODO: Remove this block and associated kwargs; GH#20535
             if freq is None and com._any_none(periods, start, end):
                 raise ValueError('Must provide freq argument if no data is '
                                  'supplied')
-            else:
-                return cls._generate(start, end, periods, freq,
-                                     closed=closed)
+            periods = dtl.validate_periods(periods)
+            return cls._generate_range(start, end, periods, freq,
+                                       closed=closed)
 
         result = cls._simple_new(values, freq=freq)
-        if freq == 'infer':
+        if freq_infer:
             inferred = result.inferred_freq
             if inferred:
-                result._freq = to_offset(inferred)
+                result.freq = to_offset(inferred)
 
         return result
 
     @classmethod
-    def _generate(cls, start, end, periods, freq, closed=None, **kwargs):
+    def _generate_range(cls, start, end, periods, freq, closed=None, **kwargs):
         # **kwargs are for compat with TimedeltaIndex, which includes `name`
-        if com._count_not_none(start, end, periods, freq) != 3:
+        if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError('Of the four parameters: start, end, periods, '
                              'and freq, exactly three must be specified')
 
@@ -114,23 +161,12 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         if end is not None:
             end = Timedelta(end)
 
-        left_closed = False
-        right_closed = False
-
         if start is None and end is None:
             if closed is not None:
                 raise ValueError("Closed has to be None if not both of start"
                                  "and end are defined")
 
-        if closed is None:
-            left_closed = True
-            right_closed = True
-        elif closed == "left":
-            left_closed = True
-        elif closed == "right":
-            right_closed = True
-        else:
-            raise ValueError("Closed has to be either 'left', 'right' or None")
+        left_closed, right_closed = dtl.validate_endpoints(closed)
 
         if freq is not None:
             index = _generate_regular_range(start, end, periods, freq)
@@ -149,6 +185,8 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
 
     # ----------------------------------------------------------------
     # Arithmetic Methods
+
+    _create_comparison_method = classmethod(_td_array_cmp)
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)
@@ -192,6 +230,36 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
                             .format(type(delta)))
 
         return type(self)(new_values, freq='infer')
+
+    def _add_datelike(self, other):
+        # adding a timedeltaindex to a datetimelike
+        from pandas.core.arrays import DatetimeArrayMixin
+        if isinstance(other, (DatetimeArrayMixin, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            # defer to implementation in DatetimeIndex
+            if not isinstance(other, DatetimeArrayMixin):
+                other = DatetimeArrayMixin(other)
+            return other + self
+        else:
+            assert other is not NaT
+            other = Timestamp(other)
+            i8 = self.asi8
+            result = checked_add_with_arr(i8, other.value,
+                                          arr_mask=self._isnan)
+            result = self._maybe_mask_results(result, fill_value=iNaT)
+            return DatetimeArrayMixin(result)
+
+    def _addsub_offset_array(self, other, op):
+        # Add or subtract Array-like of DateOffset objects
+        try:
+            # TimedeltaIndex can only operate with a subset of DateOffset
+            # subclasses.  Incompatible classes will raise AttributeError,
+            # which we re-raise as TypeError
+            return dtl.DatetimeLikeArrayMixin._addsub_offset_array(self, other,
+                                                                   op)
+        except AttributeError:
+            raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
 
     def _evaluate_with_timedelta_like(self, other, op):
         if isinstance(other, ABCSeries):
@@ -330,6 +398,10 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         if not hasnans:
             result = result.astype('int64')
         return result
+
+
+TimedeltaArrayMixin._add_comparison_ops()
+TimedeltaArrayMixin._add_datetimelike_methods()
 
 
 # ---------------------------------------------------------------------

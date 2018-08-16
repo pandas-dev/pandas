@@ -36,7 +36,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, _ensure_index
+from pandas.core.index import Index, ensure_index
 from pandas.core.config import get_option, set_option
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
@@ -426,7 +426,7 @@ class DataFrameFormatter(TableFormatter):
         self.kwds = kwds
 
         if columns is not None:
-            self.columns = _ensure_index(columns)
+            self.columns = ensure_index(columns)
             self.frame = self.frame[self.columns]
         else:
             self.columns = frame.columns
@@ -495,8 +495,6 @@ class DataFrameFormatter(TableFormatter):
                                 frame.iloc[:, -col_num:]), axis=1)
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows_adj == 0:
-                row_num = len(frame)
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
@@ -1569,7 +1567,7 @@ def get_level_lengths(levels, sentinel=''):
     if len(levels) == 0:
         return []
 
-    control = [True for x in levels[0]]
+    control = [True] * len(levels[0])
 
     result = []
     for level in levels:

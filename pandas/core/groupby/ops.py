@@ -18,12 +18,12 @@ from pandas.compat import zip, range, lzip
 from pandas.core.base import SelectionMixin
 from pandas.core.dtypes.missing import isna, _maybe_fill
 from pandas.core.index import (
-    Index, MultiIndex, _ensure_index)
+    Index, MultiIndex, ensure_index)
 from pandas.core.dtypes.common import (
-    _ensure_float64,
-    _ensure_platform_int,
-    _ensure_int64,
-    _ensure_object,
+    ensure_float64,
+    ensure_platform_int,
+    ensure_int64,
+    ensure_object,
     needs_i8_conversion,
     is_integer_dtype,
     is_complex_dtype,
@@ -175,7 +175,7 @@ class BaseGrouper(object):
         group_keys = self._get_group_keys()
 
         # oh boy
-        f_name = com._get_callable_name(f)
+        f_name = com.get_callable_name(f)
         if (f_name not in base.plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
@@ -209,7 +209,7 @@ class BaseGrouper(object):
             return self.groupings[0].indices
         else:
             label_list = [ping.labels for ping in self.groupings]
-            keys = [com._values_from_object(ping.group_index)
+            keys = [com.values_from_object(ping.group_index)
                     for ping in self.groupings]
             return get_indexer_dict(label_list, keys)
 
@@ -231,7 +231,7 @@ class BaseGrouper(object):
 
         """
         ids, _, ngroup = self.group_info
-        ids = _ensure_platform_int(ids)
+        ids = ensure_platform_int(ids)
         if ngroup:
             out = np.bincount(ids[ids != -1], minlength=ngroup)
         else:
@@ -260,7 +260,7 @@ class BaseGrouper(object):
         comp_ids, obs_group_ids = self._get_compressed_labels()
 
         ngroups = len(obs_group_ids)
-        comp_ids = _ensure_int64(comp_ids)
+        comp_ids = ensure_int64(comp_ids)
         return comp_ids, obs_group_ids, ngroups
 
     @cache_readonly
@@ -312,7 +312,7 @@ class BaseGrouper(object):
 
         name_list = []
         for ping, labels in zip(self.groupings, self.recons_labels):
-            labels = _ensure_platform_int(labels)
+            labels = ensure_platform_int(labels)
             levels = ping.result_index.take(labels)
 
             name_list.append(levels)
@@ -464,16 +464,16 @@ class BaseGrouper(object):
             values = values.view('int64')
             is_numeric = True
         elif is_bool_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif is_integer_dtype(values):
             # we use iNaT for the missing value on ints
             # so pre-convert to guard this condition
             if (values == iNaT).any():
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             else:
                 values = values.astype('int64', copy=False)
         elif is_numeric and not is_complex_dtype(values):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         else:
             values = values.astype(object)
 
@@ -482,7 +482,7 @@ class BaseGrouper(object):
                 kind, how, values, is_numeric)
         except NotImplementedError:
             if is_numeric:
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
                 func = self._get_cython_function(
                     kind, how, values, is_numeric)
             else:
@@ -528,7 +528,7 @@ class BaseGrouper(object):
                         result, (counts > 0).view(np.uint8))
                 except ValueError:
                     result = lib.row_bool_subset_object(
-                        _ensure_object(result),
+                        ensure_object(result),
                         (counts > 0).view(np.uint8))
             else:
                 result = result[counts > 0]
@@ -582,7 +582,6 @@ class BaseGrouper(object):
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
-                chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
                                comp_ids, is_datetimelike, **kwargs)
         else:
@@ -671,8 +670,8 @@ class BinGrouper(BaseGrouper):
 
     def __init__(self, bins, binlabels, filter_empty=False, mutated=False,
                  indexer=None):
-        self.bins = _ensure_int64(bins)
-        self.binlabels = _ensure_index(binlabels)
+        self.bins = ensure_int64(bins)
+        self.binlabels = ensure_index(binlabels)
         self._filter_empty_groups = filter_empty
         self.mutated = mutated
         self.indexer = indexer
@@ -737,7 +736,7 @@ class BinGrouper(BaseGrouper):
         obs_group_ids = np.arange(ngroups)
         rep = np.diff(np.r_[0, self.bins])
 
-        rep = _ensure_platform_int(rep)
+        rep = ensure_platform_int(rep)
         if ngroups == len(self.bins):
             comp_ids = np.repeat(np.arange(ngroups), rep)
         else:
@@ -808,7 +807,7 @@ class DataSplitter(object):
 
     def __init__(self, data, labels, ngroups, axis=0):
         self.data = data
-        self.labels = _ensure_int64(labels)
+        self.labels = ensure_int64(labels)
         self.ngroups = ngroups
 
         self.axis = axis

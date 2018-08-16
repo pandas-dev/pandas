@@ -205,7 +205,7 @@ def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     if isfinite:
         mask = _isfinite(values)
     else:
@@ -440,7 +440,7 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
 
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     dtype = values.dtype
     mask = isna(values)
     if is_any_int_dtype(values):
@@ -479,7 +479,9 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 @disallow('M8', 'm8')
 def nansem(values, axis=None, skipna=True, ddof=1):
-    var = nanvar(values, axis, skipna, ddof=ddof)
+    # This checks if non-numeric-like data is passed with numeric_only=False
+    # and raises a TypeError otherwise
+    nanvar(values, axis, skipna, ddof=ddof)
 
     mask = isna(values)
     if not is_float_dtype(values.dtype):
@@ -549,7 +551,7 @@ def nanskew(values, axis=None, skipna=True):
 
     """
 
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -607,7 +609,7 @@ def nankurt(values, axis=None, skipna=True):
     central moment.
 
     """
-    values = com._values_from_object(values)
+    values = com.values_from_object(values)
     mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
@@ -635,7 +637,6 @@ def nankurt(values, axis=None, skipna=True):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
         numer = count * (count + 1) * (count - 1) * m4
         denom = (count - 2) * (count - 3) * m2**2
-        result = numer / denom - adj
 
     # floating point error
     #

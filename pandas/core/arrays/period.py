@@ -8,7 +8,7 @@ from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
-    get_period_field_arr, period_asfreq_arr, _quarter_to_myear)
+    get_period_field_arr, period_asfreq_arr)
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -26,7 +26,7 @@ import pandas.core.common as com
 from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
-from .datetimelike import DatetimeLikeArrayMixin
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -40,10 +40,11 @@ def _field_accessor(name, alias, docstring=None):
     return property(f)
 
 
-def _period_array_cmp(opname, cls):
+def _period_array_cmp(cls, op):
     """
     Wrap comparison operations to convert Period-like to PeriodDtype
     """
+    opname = '__{name}__'.format(name=op.__name__)
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
@@ -166,7 +167,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             freq = Period._maybe_convert_freq(freq)
 
         field_count = len(fields)
-        if com._count_not_none(start, end) > 0:
+        if com.count_not_none(start, end) > 0:
             if field_count > 0:
                 raise ValueError('Can either instantiate from fields '
                                  'or endpoints, but not both')
@@ -267,6 +268,8 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
+
+    _create_comparison_method = classmethod(_period_array_cmp)
 
     def _sub_datelike(self, other):
         assert other is not NaT
@@ -381,25 +384,16 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
 
-    @classmethod
-    def _add_comparison_methods(cls):
-        """ add in comparison methods """
-        cls.__eq__ = _period_array_cmp('__eq__', cls)
-        cls.__ne__ = _period_array_cmp('__ne__', cls)
-        cls.__lt__ = _period_array_cmp('__lt__', cls)
-        cls.__gt__ = _period_array_cmp('__gt__', cls)
-        cls.__le__ = _period_array_cmp('__le__', cls)
-        cls.__ge__ = _period_array_cmp('__ge__', cls)
 
-
-PeriodArrayMixin._add_comparison_methods()
+PeriodArrayMixin._add_comparison_ops()
+PeriodArrayMixin._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------
 # Constructor Helpers
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
-    if com._count_not_none(start, end, periods) != 2:
+    if com.count_not_none(start, end, periods) != 2:
         raise ValueError('Of the three parameters: start, end, and periods, '
                          'exactly two must be specified')
 
@@ -466,7 +460,7 @@ def _range_from_fields(year=None, month=None, quarter=None, day=None,
 
         year, quarter = _make_field_arrays(year, quarter)
         for y, q in compat.zip(year, quarter):
-            y, m = _quarter_to_myear(y, q, freq)
+            y, m = libperiod.quarter_to_myear(y, q, freq)
             val = libperiod.period_ordinal(y, m, 1, 1, 1, 1, 0, 0, base)
             ordinals.append(val)
     else:

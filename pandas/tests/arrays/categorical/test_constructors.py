@@ -256,36 +256,40 @@ class TestCategoricalConstructors(object):
         cat = Categorical([0, 1, 2], categories=xrange(3))
         tm.assert_categorical_equal(cat, exp)
 
-    def test_constructor_with_datetimelike(self):
+    @pytest.mark.parametrize("dtl", [
+        date_range("1995-01-01 00:00:00", periods=5, freq="s"),
+        date_range("1995-01-01 00:00:00", periods=5,
+                   freq="s", tz="US/Eastern"),
+        timedelta_range("1 day", periods=5, freq="s")
+    ])
+    def test_constructor_with_datetimelike(self, dtl):
+        # see gh-12077
+        # constructor with a datetimelike and NaT
 
-        # 12077
-        # constructor wwth a datetimelike and NaT
+        s = Series(dtl)
+        c = Categorical(s)
 
-        for dtl in [date_range('1995-01-01 00:00:00', periods=5, freq='s'),
-                    date_range('1995-01-01 00:00:00', periods=5,
-                               freq='s', tz='US/Eastern'),
-                    timedelta_range('1 day', periods=5, freq='s')]:
+        expected = type(dtl)(s)
+        expected.freq = None
 
-            s = Series(dtl)
-            c = Categorical(s)
-            expected = type(dtl)(s)
-            expected.freq = None
-            tm.assert_index_equal(c.categories, expected)
-            tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype='int8'))
+        tm.assert_index_equal(c.categories, expected)
+        tm.assert_numpy_array_equal(c.codes, np.arange(5, dtype="int8"))
 
-            # with NaT
-            s2 = s.copy()
-            s2.iloc[-1] = NaT
-            c = Categorical(s2)
-            expected = type(dtl)(s2.dropna())
-            expected.freq = None
-            tm.assert_index_equal(c.categories, expected)
+        # with NaT
+        s2 = s.copy()
+        s2.iloc[-1] = NaT
+        c = Categorical(s2)
 
-            exp = np.array([0, 1, 2, 3, -1], dtype=np.int8)
-            tm.assert_numpy_array_equal(c.codes, exp)
+        expected = type(dtl)(s2.dropna())
+        expected.freq = None
 
-            result = repr(c)
-            assert 'NaT' in result
+        tm.assert_index_equal(c.categories, expected)
+
+        exp = np.array([0, 1, 2, 3, -1], dtype=np.int8)
+        tm.assert_numpy_array_equal(c.codes, exp)
+
+        result = repr(c)
+        assert "NaT" in result
 
     def test_constructor_from_index_series_datetimetz(self):
         idx = date_range('2015-01-01 10:00', freq='D', periods=3,
@@ -464,6 +468,26 @@ class TestCategoricalConstructors(object):
         with pytest.raises(ValueError):
             Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
 
+    def test_from_codes_with_nan_code(self):
+        # GH21767
+        codes = [1, 2, np.nan]
+        categories = ['a', 'b', 'c']
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, categories)
+
+    def test_from_codes_with_float(self):
+        # GH21767
+        codes = [1.0, 2.0, 0]  # integer, but in float dtype
+        categories = ['a', 'b', 'c']
+
+        with tm.assert_produces_warning(FutureWarning):
+            cat = Categorical.from_codes(codes, categories)
+        tm.assert_numpy_array_equal(cat.codes, np.array([1, 2, 0], dtype='i1'))
+
+        codes = [1.1, 2.0, 0]  # non-integer
+        with pytest.raises(ValueError):
+            Categorical.from_codes(codes, categories)
+
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
         cats = ['a', 'b']
@@ -507,7 +531,8 @@ class TestCategoricalConstructors(object):
         cat = Categorical([0, 1, 2], ordered=True)
         assert cat.ordered
 
-    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical")
+    @pytest.mark.xfail(reason="Imaginary values not supported in Categorical",
+                       strict=True)
     def test_constructor_imaginary(self):
         values = [1, 2, 3 + 1j]
         c1 = Categorical(values)

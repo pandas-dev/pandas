@@ -50,7 +50,7 @@ class TestFloatIndexers(object):
             def f():
                 s.iloc[3.0]
             tm.assert_raises_regex(TypeError,
-                                   'cannot do positional indexing',
+                                   'Cannot index by location index',
                                    f)
 
             def f():

@@ -22,9 +22,9 @@ class Registry(object):
     --------
     registry.register(MyExtensionDtype)
     """
-    dtypes = []
+    def __init__(self):
+        self.dtypes = []
 
-    @classmethod
     def register(self, dtype):
         """
         Parameters
@@ -50,7 +50,7 @@ class Registry(object):
             dtype_type = dtype
             if not isinstance(dtype, type):
                 dtype_type = type(dtype)
-            if issubclass(dtype_type, (PandasExtensionDtype, ExtensionDtype)):
+            if issubclass(dtype_type, ExtensionDtype):
                 return dtype
 
             return None
@@ -65,6 +65,9 @@ class Registry(object):
 
 
 registry = Registry()
+# TODO(Extension): remove the second registry once all internal extension
+# dtypes are real extension dtypes.
+_pandas_registry = Registry()
 
 
 class PandasExtensionDtype(_DtypeOpsMixin):
@@ -305,7 +308,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
                     # everything to a str first, which means we treat
                     # {'1', '2'} the same as {'1', 2}
                     # find a better solution
-                    cat_array = np.array([hash(x) for x in categories])
                     hashed = hash((tuple(categories), ordered))
                     return hashed
             cat_array = hash_array(np.asarray(categories), categorize=False)
@@ -690,14 +692,13 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(PandasExtensionDtype):
+class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
     name = 'interval'
-    type = IntervalDtypeType
     kind = None
     str = '|O08'
     base = np.dtype('O')
@@ -752,6 +753,17 @@ class IntervalDtype(PandasExtensionDtype):
             return u
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        from pandas.core.arrays import IntervalArray
+        return IntervalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         """
         attempt to construct this type from a string, raise a TypeError
@@ -764,6 +776,11 @@ class IntervalDtype(PandasExtensionDtype):
 
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
+
+    @property
+    def type(self):
+        from pandas import Interval
+        return Interval
 
     def __unicode__(self):
         if self.subtype is None:
@@ -808,7 +825,7 @@ class IntervalDtype(PandasExtensionDtype):
 
 
 # register the dtypes in search order
-registry.register(DatetimeTZDtype)
-registry.register(PeriodDtype)
 registry.register(IntervalDtype)
 registry.register(CategoricalDtype)
+_pandas_registry.register(DatetimeTZDtype)
+_pandas_registry.register(PeriodDtype)

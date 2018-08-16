@@ -18,6 +18,7 @@ from pandas._libs import lib, Timestamp
 from pandas.util._decorators import Substitution, Appender
 from pandas import compat
 
+import pandas.core.indexes.base as ibase
 import pandas.core.common as com
 from pandas.core.panel import Panel
 from pandas.compat import lzip, map
@@ -35,8 +36,8 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     is_integer_dtype,
     is_interval_dtype,
-    _ensure_platform_int,
-    _ensure_int64)
+    ensure_platform_int,
+    ensure_int64)
 from pandas.core.dtypes.missing import isna, notna
 import pandas.core.algorithms as algorithms
 from pandas.core.frame import DataFrame
@@ -45,6 +46,7 @@ from pandas.core.base import SpecificationError, DataError
 from pandas.core.index import Index, MultiIndex, CategoricalIndex
 from pandas.core.arrays.categorical import Categorical
 from pandas.core.internals import BlockManager, make_block
+from pandas.compat.numpy import _np_version_under1p13
 
 from pandas.plotting._core import boxplot_frame_groupby
 
@@ -133,7 +135,6 @@ class NDFrameGroupBy(GroupBy):
                 obj = self.obj[data.items[locs]]
                 s = groupby(obj, self.grouper)
                 result = s.aggregate(lambda x: alt(x, axis=self.axis))
-                newb = result._data.blocks[0]
 
             finally:
 
@@ -818,7 +819,7 @@ class SeriesGroupBy(GroupBy):
                     columns.append(f)
                 else:
                     # protect against callables without names
-                    columns.append(com._get_callable_name(f))
+                    columns.append(com.get_callable_name(f))
             arg = lzip(columns, arg)
 
         results = {}
@@ -1165,7 +1166,7 @@ class SeriesGroupBy(GroupBy):
                             verify_integrity=False)
 
             if is_integer_dtype(out):
-                out = _ensure_int64(out)
+                out = ensure_int64(out)
             return Series(out, index=mi, name=self._selection_name)
 
         # for compat. with libgroupby.value_counts need to ensure every
@@ -1196,7 +1197,7 @@ class SeriesGroupBy(GroupBy):
                         verify_integrity=False)
 
         if is_integer_dtype(out):
-            out = _ensure_int64(out)
+            out = ensure_int64(out)
         return Series(out, index=mi, name=self._selection_name)
 
     def count(self):
@@ -1205,8 +1206,9 @@ class SeriesGroupBy(GroupBy):
         val = self.obj.get_values()
 
         mask = (ids != -1) & ~isna(val)
-        ids = _ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or 0)
+        ids = ensure_platform_int(ids)
+        minlength = ngroups or (None if _np_version_under1p13 else 0)
+        out = np.bincount(ids[mask], minlength=minlength)
 
         return Series(out,
                       index=self.grouper.result_index,
@@ -1567,7 +1569,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             results = concat(results, axis=1)
 
         if not self.as_index:
-            results.index = com._default_index(len(results))
+            results.index = ibase.default_index(len(results))
         return results
 
     boxplot = boxplot_frame_groupby

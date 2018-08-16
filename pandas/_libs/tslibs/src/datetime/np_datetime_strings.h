@@ -19,8 +19,12 @@ This file implements string parsing and creation for NumPy datetime.
 
 */
 
-#ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
-#define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif  // NPY_NO_DEPRECATED_API
 
 /*
  * Parses (almost) standard ISO 8601 date strings. The differences are:
@@ -51,9 +55,9 @@ This file implements string parsing and creation for NumPy datetime.
  */
 int
 parse_iso_8601_datetime(char *str, int len,
-                    pandas_datetimestruct *out,
-                    int *out_local,
-                    int *out_tzoffset);
+                        npy_datetimestruct *out,
+                        int *out_local,
+                        int *out_tzoffset);
 
 /*
  * Provides a string length to use for converting datetime
@@ -63,7 +67,7 @@ int
 get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
 
 /*
- * Converts an pandas_datetimestruct to an (almost) ISO 8601
+ * Converts an npy_datetimestruct to an (almost) ISO 8601
  * NULL-terminated string using timezone Z (UTC).
  *
  * 'base' restricts the output to that unit. Set 'base' to
@@ -73,7 +77,7 @@ get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base);
  *  string was too short).
  */
 int
-make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
+make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
                        NPY_DATETIMEUNIT base);
 
-#endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_
+#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_STRINGS_H_

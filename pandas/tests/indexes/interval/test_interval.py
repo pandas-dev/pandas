@@ -50,7 +50,6 @@ class TestIntervalIndex(Base):
         ivs = [Interval(l, r, closed) for l, r in zip(range(10), range(1, 11))]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
-        tm.assert_numpy_array_equal(index.values, expected)
 
         # with nans
         index = self.create_index_with_nan(closed=closed)
@@ -71,7 +70,6 @@ class TestIntervalIndex(Base):
                for l, r in zip(expected_left, expected_right)]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
-        tm.assert_numpy_array_equal(index.values, expected)
 
     @pytest.mark.parametrize('breaks', [
         [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
@@ -136,7 +134,7 @@ class TestIntervalIndex(Base):
                                     check_same='same')
 
         # by-definition make a copy
-        result = IntervalIndex(index.values, copy=False)
+        result = IntervalIndex(index._ndarray_values, copy=False)
         tm.assert_numpy_array_equal(index.left.values, result.left.values,
                                     check_same='copy')
         tm.assert_numpy_array_equal(index.right.values, result.right.values,
@@ -949,7 +947,7 @@ class TestIntervalIndex(Base):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
-        expected = Index(com._asarray_tuplesafe(tuples))
+        expected = Index(com.asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
@@ -965,7 +963,7 @@ class TestIntervalIndex(Base):
         result = idx.to_tuples(na_tuple=na_tuple)
 
         # check the non-NA portion
-        expected_notna = Index(com._asarray_tuplesafe(tuples[:-1]))
+        expected_notna = Index(com.asarray_tuplesafe(tuples[:-1]))
         result_notna = result[:-1]
         tm.assert_index_equal(result_notna, expected_notna)
 
@@ -977,6 +975,26 @@ class TestIntervalIndex(Base):
             assert all(isna(x) for x in result_na)
         else:
             assert isna(result_na)
+
+    def test_nbytes(self):
+        # GH 19209
+        left = np.arange(0, 4, dtype='i8')
+        right = np.arange(1, 5, dtype='i8')
+
+        result = IntervalIndex.from_arrays(left, right).nbytes
+        expected = 64  # 4 * 8 * 2
+        assert result == expected
+
+    def test_itemsize(self):
+        # GH 19209
+        left = np.arange(0, 4, dtype='i8')
+        right = np.arange(1, 5, dtype='i8')
+        expected = 16  # 8 * 2
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = IntervalIndex.from_arrays(left, right).itemsize
+
+        assert result == expected
 
     @pytest.mark.parametrize('new_closed', [
         'left', 'right', 'both', 'neither'])

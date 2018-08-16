@@ -16,7 +16,7 @@ from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.index import (
     Index, MultiIndex, CategoricalIndex)
 from pandas.core.dtypes.common import (
-    _ensure_categorical,
+    ensure_categorical,
     is_hashable,
     is_list_like,
     is_timedelta64_dtype,
@@ -59,7 +59,7 @@ class Grouper(object):
     sort : boolean, default to False
         whether to sort the resulting labels
 
-    additional kwargs to control time-like groupers (when ``freq`` is passed)
+    additional kwargs to control time-like groupers (when `freq` is passed)
 
     closed : closed end of interval; 'left' or 'right'
     label : interval boundary to use for labeling; 'left' or 'right'
@@ -288,7 +288,7 @@ class Grouping(object):
                 self.grouper = self.obj[self.name]
 
             elif isinstance(self.grouper, (list, tuple)):
-                self.grouper = com._asarray_tuplesafe(self.grouper)
+                self.grouper = com.asarray_tuplesafe(self.grouper)
 
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
@@ -360,7 +360,7 @@ class Grouping(object):
         if isinstance(self.grouper, BaseGrouper):
             return self.grouper.indices
 
-        values = _ensure_categorical(self.grouper)
+        values = ensure_categorical(self.grouper)
         return values._reverse_indexer()
 
     @property
@@ -481,7 +481,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
         if key.key is None:
             return grouper, [], obj
         else:
-            return grouper, set([key.key]), obj
+            return grouper, {key.key}, obj
 
     # already have a BaseGrouper, just return it
     elif isinstance(key, BaseGrouper):
@@ -533,7 +533,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     if not any_callable and not all_in_columns_index and \
        not any_arraylike and not any_groupers and \
        match_axis_length and level is None:
-        keys = [com._asarray_tuplesafe(keys)]
+        keys = [com.asarray_tuplesafe(keys)]
 
     if isinstance(level, (tuple, list)):
         if key is None:

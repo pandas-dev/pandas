@@ -22,6 +22,10 @@ This file implements string parsing and creation for NumPy datetime.
 #define PY_SSIZE_T_CLEAN
 #define NO_IMPORT
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif  // NPY_NO_DEPRECATED_API
+
 #include <Python.h>
 
 #include <time.h>
@@ -63,7 +67,7 @@ This file implements string parsing and creation for NumPy datetime.
  * Returns 0 on success, -1 on failure.
  */
 int parse_iso_8601_datetime(char *str, int len,
-                            pandas_datetimestruct *out,
+                            npy_datetimestruct *out,
                             int *out_local, int *out_tzoffset) {
     int year_leap = 0;
     int i, numdigits;
@@ -86,7 +90,7 @@ int parse_iso_8601_datetime(char *str, int len,
     int hour_was_2_digits = 0;
 
     /* Initialize the output to all zeros */
-    memset(out, 0, sizeof(pandas_datetimestruct));
+    memset(out, 0, sizeof(npy_datetimestruct));
     out->month = 1;
     out->day = 1;
 
@@ -567,7 +571,7 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
 
 
 /*
- * Converts an pandas_datetimestruct to an (almost) ISO 8601
+ * Converts an npy_datetimestruct to an (almost) ISO 8601
  * NULL-terminated string using timezone Z (UTC). If the string fits in
  * the space exactly, it leaves out the NULL terminator and returns success.
  *
@@ -580,7 +584,7 @@ int get_datetime_iso_8601_strlen(int local, NPY_DATETIMEUNIT base) {
  *  Returns 0 on success, -1 on failure (for example if the output
  *  string was too short).
  */
-int make_iso_8601_datetime(pandas_datetimestruct *dts, char *outstr, int outlen,
+int make_iso_8601_datetime(npy_datetimestruct *dts, char *outstr, int outlen,
                            NPY_DATETIMEUNIT base) {
     char *substr = outstr, sublen = outlen;
     int tmplen;

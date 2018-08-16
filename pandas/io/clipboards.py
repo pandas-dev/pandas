@@ -9,7 +9,7 @@ from pandas import compat, get_option, option_context
 
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     r"""
-    Read text from clipboard and pass to read_table. See read_table for the
+    Read text from clipboard and pass to read_csv. See read_csv for the
     full argument list
 
     Parameters
@@ -31,7 +31,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
             'reading from clipboard only supports utf-8 encoding')
 
     from pandas.io.clipboard import clipboard_get
-    from pandas.io.parsers import read_table
+    from pandas.io.parsers import read_csv
     text = clipboard_get()
 
     # try to decode (if needed on PY3)
@@ -51,7 +51,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     # that this came from excel and set 'sep' accordingly
     lines = text[:10000].split('\n')[:-1][:10]
 
-    # Need to remove leading white space, since read_table
+    # Need to remove leading white space, since read_csv
     # accepts:
     #    a  b
     # 0  1  2
@@ -80,7 +80,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     if kwargs.get('engine') == 'python' and PY2:
         text = text.encode('utf-8')
 
-    return read_table(StringIO(text), sep=sep, **kwargs)
+    return read_csv(StringIO(text), sep=sep, **kwargs)
 
 
 def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover

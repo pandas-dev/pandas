@@ -9,7 +9,7 @@ from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_interval_dtype,
     is_scalar)
@@ -133,7 +133,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if name is None:
             name = self.name
         cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=self.ordered)
+                                     ordered=ordered)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
@@ -440,7 +440,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         know what you're doing
         """
         try:
-            k = com._values_from_object(key)
+            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]
@@ -489,7 +489,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             raise NotImplementedError("argument limit is not implemented for "
                                       "CategoricalIndex.reindex")
 
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if not is_categorical_dtype(target) and not target.is_unique:
             raise ValueError("cannot reindex with a non-unique indexer")
@@ -554,7 +554,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         from pandas.core.arrays.categorical import _recode_for_categories
 
         method = missing.clean_reindex_fill_method(method)
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
@@ -583,23 +583,23 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
             # Indexing on codes is more efficient if categories are the same:
             if target.categories is self.categories:
                 target = target.codes
                 indexer, missing = self._engine.get_indexer_non_unique(target)
-                return _ensure_platform_int(indexer), missing
+                return ensure_platform_int(indexer), missing
             target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -629,7 +629,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
 
         if self.categories._defer_to_indexing:
             return keyarr
@@ -644,7 +644,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.codes, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
