@@ -683,7 +683,6 @@ class TestSparseDataFrame(SharedWithSparse):
         tm.assert_sp_frame_equal(appended, expected[['A', 'B', 'C', 'D']],
                                  consolidate_block_indices=True)
 
-    @pytest.mark.xfail(reason="This is all broken, it densifies", strict=True)
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
                                                       dtype=np.int64),
@@ -695,10 +694,10 @@ class TestSparseDataFrame(SharedWithSparse):
         res = sparse.astype(np.float64)
         exp = pd.SparseDataFrame({'A': SparseArray([1., 2., 3., 4.],
                                                    fill_value=0.,
-                                                   kind='block'),
+                                                   kind='integer'),
                                   'B': SparseArray([4., 5., 6., 7.],
                                                    fill_value=0.,
-                                                   kind='block')},
+                                                   kind='integer')},
                                  default_fill_value=np.nan)
         tm.assert_sp_frame_equal(res, exp)
         assert res['A'].dtype == SparseDtype(np.float64)
@@ -706,10 +705,10 @@ class TestSparseDataFrame(SharedWithSparse):
 
         sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],
                                                       dtype=np.int64,
-                                                      kind='block'),
+                                                      kind='integer'),
                                      'B': SparseArray([0, 5, 0, 7],
                                                       dtype=np.int64,
-                                                      kind='block')},
+                                                      kind='integer')},
                                     default_fill_value=0)
         assert sparse['A'].dtype == SparseDtype(np.int64)
         assert sparse['B'].dtype == SparseDtype(np.int64)
@@ -1058,7 +1057,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
         self._check_all(_check)
 
-    @pytest.mark.xfail(reason="broken", strict=True)
+    # @pytest.mark.xfail(reason="broken", strict=True)
     def test_shift(self):
 
         def _check(frame, orig):
