@@ -123,20 +123,12 @@ class TestTimestampProperties(object):
         # Work around https://github.com/pandas-dev/pandas/issues/22342
         # different normalizations
 
-        if not (PY2 and time_locale):
-            expected_day = unicodedata.normalize(
-                "NFD", expected_day
-            )
-            expected_month = unicodedata.normalize(
-                "NFD", expected_month
-            )
+        if not PY2:
+            expected_day = unicodedata.normalize("NFD", expected_day)
+            expected_month = unicodedata.normalize("NFD", expected_month)
 
-            result_day = unicodedata.normalize(
-                "NFD", result_day,
-            )
-            result_month = unicodedata.normalize(
-                "NFD", result_month
-            )
+            result_day = unicodedata.normalize("NFD", result_day,)
+            result_month = unicodedata.normalize("NFD", result_month)
 
         assert result_day == expected_day
         assert result_month == expected_month
