@@ -8,6 +8,7 @@ from pandas._libs import index as libindex
 from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
+    is_timedelta64_dtype,
     is_int64_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 
@@ -595,6 +596,9 @@ class RangeIndex(Int64Index):
                 elif isinstance(other, (timedelta, np.timedelta64)):
                     # GH#19333 is_integer evaluated True on timedelta64,
                     # so we need to catch these explicitly
+                    return op(self._int64index, other)
+                elif is_timedelta64_dtype(other):
+                    # Must be an np.ndarray
                     return op(self._int64index, other)
 
                 other = self._validate_for_numeric_binop(other, op)

@@ -47,7 +47,59 @@ class TestNumericComparisons(object):
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Timedelta Scalar
 
-class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
+class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
+
+    # TODO: also check name retentention
+    @pytest.mark.parametrize('box_cls', [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize('left', [
+        pd.RangeIndex(10, 40, 10)] + [cls([10, 20, 30], dtype=dtype)
+                                      for dtype in ['i1', 'i2', 'i4', 'i8',
+                                                    'u1', 'u2', 'u4', 'u8',
+                                                    'f2', 'f4', 'f8']
+                                      for cls in [pd.Series, pd.Index]
+    ], ids=lambda x: type(x).__name__ + str(x.dtype))
+    def test_mul_td64arr(self, left, box_cls):
+        right = np.array([1, 2, 3], dtype='m8[s]')
+        right = box_cls(right)
+
+        expected = pd.TimedeltaIndex(['10s', '40s', '90s'])
+        if isinstance(left, pd.Series) or box_cls is pd.Series:
+            expected = pd.Series(expected)
+
+        result = left * right
+        tm.assert_equal(result, expected)
+
+        result = right * left
+        tm.assert_equal(result, expected)
+
+    # TODO: also check name retentention
+    @pytest.mark.parametrize('box_cls', [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize('left', [
+        pd.RangeIndex(10, 40, 10)] + [cls([10, 20, 30], dtype=dtype)
+                                      for dtype in ['i1', 'i2', 'i4', 'i8',
+                                                    'u1', 'u2', 'u4', 'u8',
+                                                    'f2', 'f4', 'f8']
+                                      for cls in [pd.Series, pd.Index]
+    ], ids=lambda x: type(x).__name__ + str(x.dtype))
+    def test_div_td64arr(self, left, box_cls):
+        right = np.array([10, 40, 90], dtype='m8[s]')
+        right = box_cls(right)
+
+        expected = pd.TimedeltaIndex(['1s', '2s', '3s'])
+        if isinstance(left, pd.Series) or box_cls is pd.Series:
+            expected = pd.Series(expected)
+
+        result = right / left
+        tm.assert_equal(result, expected)
+
+        result = right // left
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            left / right
+
+        with pytest.raises(TypeError):
+            left // right
 
     # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
     def test_ops_series(self):

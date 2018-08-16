@@ -122,6 +122,14 @@ def _make_arithmetic_op(op, cls):
         elif isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
+        elif isinstance(other, np.ndarray) and is_timedelta64_dtype(other):
+            # wrap in Series for op, this will in turn wrap in TimedeltaIndex,
+            # but will correctly raise TypeError instead of NullFrequencyError
+            # for add/sub ops
+            from pandas import Series
+            other = Series(other)
+            out = op(self, other)
+            return Index(out, name=self.name)
 
         other = self._validate_for_numeric_binop(other, op)
 
