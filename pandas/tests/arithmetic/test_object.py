@@ -76,6 +76,7 @@ class TestArithmetic(object):
     @pytest.mark.parametrize("op", [operator.add, ops.radd])
     @pytest.mark.parametrize("other", ["category", "Int64"])
     def test_add_extension_scalar(self, other, box, op):
+        # GH#22378
         # Check that scalars satisfying is_extension_array_dtype(obj)
         # do not incorrectly try to dispatch to an ExtensionArray operation
 

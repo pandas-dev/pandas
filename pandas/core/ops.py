@@ -1229,7 +1229,7 @@ def _arith_method_SERIES(cls, op, special):
 
         elif (is_extension_array_dtype(left) or
                 (is_extension_array_dtype(right) and not is_scalar(right))):
-            # disallow scalar to exclude e.g. "category", "Int64"
+            # GH#22378 disallow scalar to exclude e.g. "category", "Int64"
             return dispatch_to_extension_op(op, left, right)
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
