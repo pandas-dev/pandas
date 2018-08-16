@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas.api.types import CategoricalDtype
-
 #n = 50
 
 #data = np.random.rand(n, 3)
@@ -18,17 +17,19 @@ hp = [100, 104.4, 85, 180, 220, 100, 115, 500, 350, 410,
 ms = [180, 203, 170, 255, 280, 187, 195, 170, 145, 160,
       170, 180, 165, 280, 300, 270, 245, 290, 310, 240]
 
+df = pd.DataFrame()
+df['Horse power'] = hp
+df['Max speed'] = ms
+
 vehicle_type = ['Car', 'Car', 'Car', 'Car', 'Car', 'Car', 'Car',
                 'Truck', 'Truck', 'Truck', 'Truck', 'Truck', 'Truck',
                 'Motorcycle', 'Motorcycle', 'Motorcycle', 'Motorcycle',
                 'Motorcycle', 'Motorcycle', 'Motorcycle']
+categories=['Motorcycle', 'Car', 'Truck']
+#cat_type = CategoricalDtype(categories=categories, ordered=True)
+#df['Vehicle type'] = pd.Series(vehicle_type).astype(cat_type)
+df['Vehicle type'] = pd.Categorical(vehicle_type, categories=categories, ordered=True)
 
-cat_type= CategoricalDtype(categories=['Motorcycle', 'Car', 'Truck'],
-                           ordered=True)
-df = pd.DataFrame()
-df['Horse power'] = hp
-df['Max speed'] = ms
-df['Vehicle type'] = pd.Series(vehicle_type).astype(cat_type)
 ax = df.plot.scatter(x='Horse power', y='Max speed', s='Vehicle type')
 
 plt.show()
