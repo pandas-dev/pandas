@@ -45,13 +45,20 @@ if [ "$DOCTEST" ]; then
         RET=1
     fi
 
-    # # Series docstrings
-    # pytest --doctest-modules -v \
-    #     pandas/core/series.py -k"-agg -apply -map -nlargest -nonzero -nsmallest -reindex -replace -searchsorted -to_dict -to_excel"
+    # Series docstrings
+    pytest --doctest-modules -v pandas/core/series.py \
+        -k"-agg -map -nlargest -nonzero -nsmallest -reindex -searchsorted -to_dict"
 
-    # if [ $? -ne "0" ]; then
-    #     RET=1
-    # fi
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+
+    pytest --doctest-modules -v pandas/core/generic.py \
+        -k"-_set_axis_name -_xs -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -to_xarray -transform -transpose -values"
+
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
 
 else
     echo "NOT running doctests"
