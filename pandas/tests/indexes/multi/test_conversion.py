@@ -4,10 +4,8 @@
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import DataFrame, MultiIndex, date_range
-from pandas.compat import PY3, range
-from pandas.util.testing import assert_almost_equal
+from pandas.compat import range
 
 
 def test_tolist(idx):
@@ -93,46 +91,6 @@ def test_to_hierarchical():
     assert result.names == index.names
 
 
-@pytest.mark.skipif(PY3, reason="testing legacy pickles not support on py3")
-def test_legacy_pickle(datapath):
-
-    path = datapath('indexes', 'multi', 'data', 'multiindex_v1.pickle')
-    obj = pd.read_pickle(path)
-
-    obj2 = MultiIndex.from_tuples(obj.values)
-    assert obj.equals(obj2)
-
-    res = obj.get_indexer(obj)
-    exp = np.arange(len(obj), dtype=np.intp)
-    assert_almost_equal(res, exp)
-
-    res = obj.get_indexer(obj2[::-1])
-    exp = obj.get_indexer(obj[::-1])
-    exp2 = obj2.get_indexer(obj2[::-1])
-    assert_almost_equal(res, exp)
-    assert_almost_equal(exp, exp2)
-
-
-def test_legacy_v2_unpickle(datapath):
-
-    # 0.7.3 -> 0.8.0 format manage
-    path = datapath('indexes', 'multi', 'data', 'mindex_073.pickle')
-    obj = pd.read_pickle(path)
-
-    obj2 = MultiIndex.from_tuples(obj.values)
-    assert obj.equals(obj2)
-
-    res = obj.get_indexer(obj)
-    exp = np.arange(len(obj), dtype=np.intp)
-    assert_almost_equal(res, exp)
-
-    res = obj.get_indexer(obj2[::-1])
-    exp = obj.get_indexer(obj[::-1])
-    exp2 = obj2.get_indexer(obj2[::-1])
-    assert_almost_equal(res, exp)
-    assert_almost_equal(exp, exp2)
-
-
 def test_roundtrip_pickle_with_tz():
 
     # GH 8367
@@ -146,6 +104,7 @@ def test_roundtrip_pickle_with_tz():
 
 
 def test_pickle(indices):
+
     unpickled = tm.round_trip_pickle(indices)
     assert indices.equals(unpickled)
     original_name, indices.name = indices.name, 'foo'

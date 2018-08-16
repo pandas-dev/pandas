@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 cimport cython
 from cython cimport Py_ssize_t
 
 import time
-from cpython.datetime cimport (PyDateTime_IMPORT, PyDateTime_CheckExact,
+from cpython.datetime cimport (PyDateTime_IMPORT,
                                datetime, timedelta,
                                time as dt_time)
 PyDateTime_IMPORT
@@ -29,17 +28,6 @@ from np_datetime cimport (npy_datetimestruct,
 
 # ---------------------------------------------------------------------
 # Constants
-
-
-class WeekDay(object):
-    # TODO: Remove: This is not used outside of tests
-    MON = 0
-    TUE = 1
-    WED = 2
-    THU = 3
-    FRI = 4
-    SAT = 5
-    SUN = 6
 
 
 _offset_to_period_map = {
@@ -252,12 +240,10 @@ def _validate_business_time(t_input):
 # ---------------------------------------------------------------------
 # Constructor Helpers
 
-relativedelta_kwds = set([
-    'years', 'months', 'weeks', 'days',
-    'year', 'month', 'week', 'day', 'weekday',
-    'hour', 'minute', 'second', 'microsecond',
-    'nanosecond', 'nanoseconds',
-    'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds'])
+relativedelta_kwds = {'years', 'months', 'weeks', 'days', 'year', 'month',
+                      'day', 'weekday', 'hour', 'minute', 'second',
+                      'microsecond', 'nanosecond', 'nanoseconds', 'hours',
+                      'minutes', 'seconds', 'microseconds'}
 
 
 def _determine_offset(kwds):

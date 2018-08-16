@@ -133,7 +133,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if name is None:
             name = self.name
         cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=self.ordered)
+                                     ordered=ordered)
         return CategoricalIndex(cat, name=name)
 
     @classmethod
@@ -440,7 +440,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         know what you're doing
         """
         try:
-            k = com._values_from_object(key)
+            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]
@@ -629,7 +629,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
 
         if self.categories._defer_to_indexing:
             return keyarr

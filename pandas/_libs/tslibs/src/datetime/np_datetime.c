@@ -16,6 +16,10 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 #define NO_IMPORT
 
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif  // NPY_NO_DEPRECATED_API
+
 #include <Python.h>
 #include <datetime.h>
 
@@ -44,18 +48,6 @@ const int days_per_month_table[2][12] = {
 int is_leapyear(npy_int64 year) {
     return (year & 0x3) == 0 && /* year % 4 == 0 */
            ((year % 100) != 0 || (year % 400) == 0);
-}
-
-/*
- * Sakamoto's method, from wikipedia
- */
-int dayofweek(int y, int m, int d) {
-    int day;
-    static const int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-    y -= m < 3;
-    day = (y + y / 4 - y / 100 + y / 400 + t[m - 1] + d) % 7;
-    // convert to python day
-    return (day + 6) % 7;
 }
 
 /*
@@ -235,8 +227,7 @@ NPY_NO_EXPORT void add_seconds_to_datetimestruct(npy_datetimestruct *dts,
  * Fills in the year, month, day in 'dts' based on the days
  * offset from 1970.
  */
-static void set_datetimestruct_days(npy_int64 days,
-                                    npy_datetimestruct *dts) {
+static void set_datetimestruct_days(npy_int64 days, npy_datetimestruct *dts) {
     const int *month_lengths;
     int i;
 
@@ -318,7 +309,7 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
 
 /*
  *
- * Tests for and converts a Python datetime.datetime or datetime.date
+ * Converts a Python datetime.datetime or datetime.date
  * object into a NumPy npy_datetimestruct.  Uses tzinfo (if present)
  * to convert to UTC time.
  *
@@ -330,68 +321,23 @@ int cmp_npy_datetimestruct(const npy_datetimestruct *a,
  * Returns -1 on error, 0 on success, and 1 (with no error set)
  * if obj doesn't have the needed date or datetime attributes.
  */
-int convert_pydatetime_to_datetimestruct(PyObject *obj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out) {
+    // Assumes that obj is a valid datetime object
     PyObject *tmp;
-    int isleap;
+    PyObject *obj = (PyObject*)dtobj;
 
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(npy_datetimestruct));
     out->month = 1;
     out->day = 1;
 
-    /* Need at least year/month/day attributes */
-    if (!PyObject_HasAttrString(obj, "year") ||
-        !PyObject_HasAttrString(obj, "month") ||
-        !PyObject_HasAttrString(obj, "day")) {
-        return 1;
-    }
+    out->year = PyInt_AsLong(PyObject_GetAttrString(obj, "year"));
+    out->month = PyInt_AsLong(PyObject_GetAttrString(obj, "month"));
+    out->day = PyInt_AsLong(PyObject_GetAttrString(obj, "day"));
 
-    /* Get the year */
-    tmp = PyObject_GetAttrString(obj, "year");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->year = PyInt_AsLong(tmp);
-    if (out->year == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
-
-    /* Get the month */
-    tmp = PyObject_GetAttrString(obj, "month");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->month = PyInt_AsLong(tmp);
-    if (out->month == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
-
-    /* Get the day */
-    tmp = PyObject_GetAttrString(obj, "day");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->day = PyInt_AsLong(tmp);
-    if (out->day == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
-
-    /* Validate that the month and day are valid for the year */
-    if (out->month < 1 || out->month > 12) {
-        goto invalid_date;
-    }
-    isleap = is_leapyear(out->year);
-    if (out->day < 1 ||
-        out->day > days_per_month_table[isleap][out->month - 1]) {
-        goto invalid_date;
-    }
+    // TODO(anyone): If we can get PyDateTime_IMPORT to work, we could use
+    // PyDateTime_Check here, and less verbose attribute lookups.
 
     /* Check for time attributes (if not there, return success as a date) */
     if (!PyObject_HasAttrString(obj, "hour") ||
@@ -401,61 +347,13 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
         return 0;
     }
 
-    /* Get the hour */
-    tmp = PyObject_GetAttrString(obj, "hour");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->hour = PyInt_AsLong(tmp);
-    if (out->hour == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
+    out->hour = PyInt_AsLong(PyObject_GetAttrString(obj, "hour"));
+    out->min = PyInt_AsLong(PyObject_GetAttrString(obj, "minute"));
+    out->sec = PyInt_AsLong(PyObject_GetAttrString(obj, "second"));
+    out->us = PyInt_AsLong(PyObject_GetAttrString(obj, "microsecond"));
 
-    /* Get the minute */
-    tmp = PyObject_GetAttrString(obj, "minute");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->min = PyInt_AsLong(tmp);
-    if (out->min == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
-
-    /* Get the second */
-    tmp = PyObject_GetAttrString(obj, "second");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->sec = PyInt_AsLong(tmp);
-    if (out->sec == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
-
-    /* Get the microsecond */
-    tmp = PyObject_GetAttrString(obj, "microsecond");
-    if (tmp == NULL) {
-        return -1;
-    }
-    out->us = PyInt_AsLong(tmp);
-    if (out->us == -1 && PyErr_Occurred()) {
-        Py_DECREF(tmp);
-        return -1;
-    }
-    Py_DECREF(tmp);
-
-    if (out->hour < 0 || out->hour >= 24 || out->min < 0 || out->min >= 60 ||
-        out->sec < 0 || out->sec >= 60 || out->us < 0 || out->us >= 1000000) {
-        goto invalid_time;
-    }
-
-    /* Apply the time zone offset if it exists */
-    if (PyObject_HasAttrString(obj, "tzinfo")) {
+    /* Apply the time zone offset if datetime obj is tz-aware */
+    if (PyObject_HasAttrString((PyObject*)obj, "tzinfo")) {
         tmp = PyObject_GetAttrString(obj, "tzinfo");
         if (tmp == NULL) {
             return -1;
@@ -497,50 +395,15 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
     }
 
     return 0;
-
-invalid_date:
-    PyErr_Format(PyExc_ValueError,
-                 "Invalid date (%d,%d,%d) when converting to NumPy datetime",
-                 (int)out->year, (int)out->month, (int)out->day);
-    return -1;
-
-invalid_time:
-    PyErr_Format(PyExc_ValueError,
-                 "Invalid time (%d,%d,%d,%d) when converting "
-                 "to NumPy datetime",
-                 (int)out->hour, (int)out->min, (int)out->sec, (int)out->us);
-    return -1;
-}
-
-npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                            npy_datetimestruct *d) {
-    npy_datetime result = NPY_DATETIME_NAT;
-
-    convert_datetimestruct_to_datetime(fr, d, &result);
-    return result;
-}
-
-void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
-                                       npy_datetimestruct *result) {
-    convert_datetime_to_datetimestruct(fr, val, result);
-}
-
-void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
-                                         NPY_DATETIMEUNIT fr,
-                                         pandas_timedeltastruct *result) {
-    convert_timedelta_to_timedeltastruct(fr, val, result);
 }
 
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
  * on a metadata unit. The date is assumed to be valid.
- *
- * Returns 0 on success, -1 on failure.
  */
-int convert_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
-                                       const npy_datetimestruct *dts,
-                                       npy_datetime *out) {
+npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
+                                            const npy_datetimestruct *dts) {
     npy_datetime ret;
 
     if (base == NPY_FR_Y) {
@@ -632,17 +495,14 @@ int convert_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
                 return -1;
         }
     }
-
-    *out = ret;
-
-    return 0;
+    return ret;
 }
 
 /*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
-int convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
-                                       npy_datetime dt,
+void pandas_datetime_to_datetimestruct(npy_datetime dt,
+                                       NPY_DATETIMEUNIT base,
                                        npy_datetimestruct *out) {
     npy_int64 perday;
 
@@ -850,10 +710,7 @@ int convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
             PyErr_SetString(PyExc_RuntimeError,
                             "NumPy datetime metadata is corrupted with invalid "
                             "base unit");
-            return -1;
     }
-
-    return 0;
 }
 
 /*
@@ -862,8 +719,8 @@ int convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_timedelta_to_timedeltastruct(NPY_DATETIMEUNIT base,
-                                         npy_timedelta td,
+void pandas_timedelta_to_timedeltastruct(npy_timedelta td,
+                                         NPY_DATETIMEUNIT base,
                                          pandas_timedeltastruct *out) {
     npy_int64 frac;
     npy_int64 sfrac;
@@ -953,8 +810,5 @@ int convert_timedelta_to_timedeltastruct(NPY_DATETIMEUNIT base,
             PyErr_SetString(PyExc_RuntimeError,
                             "NumPy timedelta metadata is corrupted with "
                             "invalid base unit");
-            return -1;
     }
-
-    return 0;
 }

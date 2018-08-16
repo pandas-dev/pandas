@@ -3,7 +3,7 @@
 import pytest
 
 from datetime import datetime, timedelta
-
+from decimal import Decimal
 from collections import defaultdict
 
 import pandas.util.testing as tm
@@ -13,7 +13,8 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY35, PY36, PYPY, StringIO)
+                           text_type, zip, PY3, PY35, PY36, StringIO)
+import math
 import operator
 import numpy as np
 
@@ -491,8 +492,9 @@ class TestIndex(Base):
         with tm.assert_raises_regex(OverflowError, msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
-    @pytest.mark.xfail(reason="see gh-21311: Index "
-                              "doesn't enforce dtype argument")
+    @pytest.mark.xfail(reason="see GH#21311: Index "
+                              "doesn't enforce dtype argument",
+                       strict=True)
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with tm.assert_raises_regex(ValueError, msg):
@@ -864,12 +866,46 @@ class TestIndex(Base):
         expected = Index(['1a', '1b', '1c'])
         tm.assert_index_equal('1' + index, expected)
 
-    def test_sub(self):
+    def test_sub_fail(self):
         index = self.strIndex
         pytest.raises(TypeError, lambda: index - 'a')
         pytest.raises(TypeError, lambda: index - index)
         pytest.raises(TypeError, lambda: index - index.tolist())
         pytest.raises(TypeError, lambda: index.tolist() - index)
+
+    def test_sub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(0), Decimal(1)])
+
+        result = index - Decimal(1)
+        tm.assert_index_equal(result, expected)
+
+        result = index - pd.Index([Decimal(1), Decimal(1)])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index - 'foo'
+
+        with pytest.raises(TypeError):
+            index - np.array([2, 'foo'])
+
+    def test_rsub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(1), Decimal(0)])
+
+        result = Decimal(2) - index
+        tm.assert_index_equal(result, expected)
+
+        result = np.array([Decimal(2), Decimal(2)]) - index
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            'foo' - index
+
+        with pytest.raises(TypeError):
+            np.array([True, pd.Timestamp.now()]) - index
 
     def test_map_identity_mapping(self):
         # GH 12766
@@ -1421,7 +1457,8 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH 20915")
+    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915",
+                       strict=True)
     def test_slice_ints_with_floats_raises(self):
         # int slicing with floats
         # GH 4892, these are all TypeErrors
@@ -1627,9 +1664,13 @@ class TestIndex(Base):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
-        if PYPY and nulls_fixture is np.nan:  # np.nan is float('nan') on PyPy
+        # all nans are the same
+        if (isinstance(nulls_fixture, float) and
+                isinstance(nulls_fixture2, float) and
+                math.isnan(nulls_fixture) and
+                math.isnan(nulls_fixture2)):
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
-                [float('nan')]), np.array([False, True]))
+                [nulls_fixture2]), np.array([False, True]))
 
         elif nulls_fixture is nulls_fixture2:  # should preserve NA type
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(

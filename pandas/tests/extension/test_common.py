@@ -22,7 +22,16 @@ class DummyArray(ExtensionArray):
 
     @property
     def dtype(self):
-        return self.data.dtype
+        return DummyDtype()
+
+    def astype(self, dtype, copy=True):
+        # we don't support anything but a single dtype
+        if isinstance(dtype, DummyDtype):
+            if copy:
+                return type(self)(self.data)
+            return self
+
+        return np.array(self, dtype=dtype, copy=copy)
 
 
 class TestExtensionArrayDtype(object):
@@ -61,10 +70,10 @@ def test_astype_no_copy():
     arr = DummyArray(np.array([1, 2, 3], dtype=np.int64))
     result = arr.astype(arr.dtype, copy=False)
 
-    assert arr.data is result
+    assert arr is result
 
     result = arr.astype(arr.dtype)
-    assert arr.data is not result
+    assert arr is not result
 
 
 @pytest.mark.parametrize('dtype', [

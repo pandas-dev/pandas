@@ -9,7 +9,8 @@ from pandas._libs.tslibs import conversion
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
     DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
-    IntervalDtypeType, ExtensionDtype)
+    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype,
+    _pandas_registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
@@ -21,9 +22,9 @@ from pandas.core.dtypes.inference import (  # noqa:F401
     is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
 
 
-_POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
-                             for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
-                                       'int32', 'uint32', 'int64', 'uint64']])
+_POSSIBLY_CAST_DTYPES = {np.dtype(t).name
+                         for t in ['O', 'int8', 'uint8', 'int16', 'uint16',
+                                   'int32', 'uint32', 'int64', 'uint64']}
 
 _NS_DTYPE = conversion.NS_DTYPE
 _TD_DTYPE = conversion.TD_DTYPE
@@ -1709,12 +1710,9 @@ def is_extension_array_dtype(arr_or_dtype):
     Third-party libraries may implement arrays or types satisfying
     this interface as well.
     """
-    from pandas.core.arrays import ExtensionArray
-
-    if isinstance(arr_or_dtype, (ABCIndexClass, ABCSeries)):
-        arr_or_dtype = arr_or_dtype._values
-
-    return isinstance(arr_or_dtype, (ExtensionDtype, ExtensionArray))
+    dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+    return (isinstance(dtype, ExtensionDtype) or
+            registry.find(dtype) is not None)
 
 
 def is_complex_dtype(arr_or_dtype):
@@ -1804,6 +1802,9 @@ def _get_dtype(arr_or_dtype):
     TypeError : The passed in object is None.
     """
 
+    # TODO(extension)
+    # replace with pandas_dtype
+
     if arr_or_dtype is None:
         raise TypeError("Cannot deduce dtype from null object")
     if isinstance(arr_or_dtype, np.dtype):
@@ -1851,6 +1852,8 @@ def _get_dtype_type(arr_or_dtype):
                passed in array or dtype object.
     """
 
+    # TODO(extension)
+    # replace with pandas_dtype
     if isinstance(arr_or_dtype, np.dtype):
         return arr_or_dtype.type
     elif isinstance(arr_or_dtype, type):
@@ -1976,30 +1979,48 @@ def pandas_dtype(dtype):
     Returns
     -------
     np.dtype or a pandas dtype
+
+    Raises
+    ------
+    TypeError if not a dtype
+
     """
+    # short-circuit
+    if isinstance(dtype, np.ndarray):
+        return dtype.dtype
+    elif isinstance(dtype, np.dtype):
+        return dtype
 
     # registered extension types
-    result = registry.find(dtype)
+    result = _pandas_registry.find(dtype) or registry.find(dtype)
     if result is not None:
         return result
 
     # un-registered extension types
-    if isinstance(dtype, ExtensionDtype):
+    elif isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
         return dtype
 
+    # try a numpy dtype
+    # raise a consistent TypeError if failed
     try:
         npdtype = np.dtype(dtype)
-    except (TypeError, ValueError):
-        raise
+    except Exception:
+        # we don't want to force a repr of the non-string
+        if not isinstance(dtype, string_types):
+            raise TypeError("data type not understood")
+        raise TypeError("data type '{}' not understood".format(
+            dtype))
 
     # Any invalid dtype (such as pd.Timestamp) should raise an error.
     # np.dtype(invalid_type).kind = 0 for such objects. However, this will
     # also catch some valid dtypes such as object, np.object_ and 'object'
     # which we safeguard against by catching them earlier and returning
     # np.dtype(valid_dtype) before this condition is evaluated.
-    if dtype in [object, np.object_, 'object', 'O']:
+    if is_hashable(dtype) and dtype in [object, np.object_, 'object', 'O']:
+        # check hashability to avoid errors/DeprecationWarning when we get
+        # here and `dtype` is an array
         return npdtype
     elif npdtype.kind == 'O':
-        raise TypeError('dtype {dtype} not understood'.format(dtype=dtype))
+        raise TypeError("dtype '{}' not understood".format(dtype))
 
     return npdtype

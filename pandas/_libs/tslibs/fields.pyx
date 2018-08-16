@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
@@ -85,8 +84,7 @@ def build_field_sarray(ndarray[int64_t] dtindex):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def get_date_name_field(ndarray[int64_t] dtindex, object field,
-                        object locale=None):
+def get_date_name_field(int64_t[:] dtindex, object field, object locale=None):
     """
     Given a int64-based datetime index, return array of strings of date
     name based on requested field (e.g. weekday_name)
@@ -134,7 +132,7 @@ def get_date_name_field(ndarray[int64_t] dtindex, object field,
 
 
 @cython.wraparound(False)
-def get_start_end_field(ndarray[int64_t] dtindex, object field,
+def get_start_end_field(int64_t[:] dtindex, object field,
                         object freqstr=None, int month_kw=12):
     """
     Given an int64-based datetime index return array of indicators

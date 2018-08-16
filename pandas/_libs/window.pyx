@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 cimport cython
@@ -9,11 +9,12 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, double_t, int64_t, float64_t
+from numpy cimport ndarray, double_t, int64_t, float64_t, float32_t
 cnp.import_array()
 
 
-cdef extern from "../src/headers/cmath" namespace "std":
+cdef extern from "src/headers/cmath" namespace "std":
+    bint isnan(double) nogil
     int signbit(double) nogil
     double sqrt(double x) nogil
 
@@ -24,11 +25,11 @@ from skiplist cimport (skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef cnp.float32_t MINfloat32 = np.NINF
-cdef cnp.float64_t MINfloat64 = np.NINF
+cdef float32_t MINfloat32 = np.NINF
+cdef float64_t MINfloat64 = np.NINF
 
-cdef cnp.float32_t MAXfloat32 = np.inf
-cdef cnp.float64_t MAXfloat64 = np.inf
+cdef float32_t MAXfloat32 = np.inf
+cdef float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
@@ -653,16 +654,16 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
+    # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
+    if isnan(val):
+        return
 
-    # Not NaN
-    if val == val:
-        nobs[0] = nobs[0] + 1
-
-        # a part of Welford's method for the online variance-calculation
-        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-        delta = val - mean_x[0]
-        mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
+    nobs[0] = nobs[0] + 1
+    # a part of Welford's method for the online variance-calculation
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    delta = val - mean_x[0]
+    mean_x[0] = mean_x[0] + delta / nobs[0]
+    ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
@@ -1218,141 +1219,188 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     Moving min/max of 1d array of any numeric type along axis=0
     ignoring NaNs.
     """
-
     cdef:
-        numeric ai
-        bint is_variable, should_replace
-        int64_t N, i, removed, window_i
-        Py_ssize_t nobs = 0
-        deque Q[int64_t]
         ndarray[int64_t] starti, endi
-        ndarray[numeric, ndim=1] output
-    cdef:
-        int64_t* death
-        numeric* ring
-        numeric* minvalue
-        numeric* end
-        numeric* last
-
-    cdef:
-        cdef numeric r
+        int64_t N
+        bint is_variable
 
     starti, endi, N, win, minp, is_variable = get_window_indexer(
         input, win,
         minp, index, closed)
 
-    output = np.empty(N, dtype=input.dtype)
-
-    Q = deque[int64_t]()
-
     if is_variable:
-
-        with nogil:
-
-            # This is using a modified version of the C++ code in this
-            # SO post: http://bit.ly/2nOoHlY
-            # The original impl didn't deal with variable window sizes
-            # So the code was optimized for that
-
-            for i from starti[0] <= i < endi[0]:
-                ai = init_mm(input[i], &nobs, is_max)
-
-                if is_max:
-                    while not Q.empty() and ai >= input[Q.back()]:
-                        Q.pop_back()
-                else:
-                    while not Q.empty() and ai <= input[Q.back()]:
-                        Q.pop_back()
-                Q.push_back(i)
-
-            for i from endi[0] <= i < N:
-                output[i-1] = calc_mm(minp, nobs, input[Q.front()])
-
-                ai = init_mm(input[i], &nobs, is_max)
-
-                if is_max:
-                    while not Q.empty() and ai >= input[Q.back()]:
-                        Q.pop_back()
-                else:
-                    while not Q.empty() and ai <= input[Q.back()]:
-                        Q.pop_back()
-
-                while not Q.empty() and Q.front() <= i - (endi[i] - starti[i]):
-                    Q.pop_front()
-
-                Q.push_back(i)
-
-            output[N-1] = calc_mm(minp, nobs, input[Q.front()])
-
+        return _roll_min_max_variable(input, starti, endi, N, win, minp,
+                                      is_max)
     else:
-        # setup the rings of death!
-        ring = <numeric *>malloc(win * sizeof(numeric))
-        death = <int64_t *>malloc(win * sizeof(int64_t))
+        return _roll_min_max_fixed(input, starti, endi, N, win, minp, is_max)
 
-        end = ring + win
-        last = ring
-        minvalue = ring
-        ai = input[0]
-        minvalue[0] = init_mm(input[0], &nobs, is_max)
-        death[0] = win
-        nobs = 0
 
-        with nogil:
+cdef _roll_min_max_variable(ndarray[numeric] input,
+                            ndarray[int64_t] starti,
+                            ndarray[int64_t] endi,
+                            int64_t N,
+                            int64_t win,
+                            int64_t minp,
+                            bint is_max):
+    cdef:
+        numeric ai
+        int64_t i, close_offset, curr_win_size
+        Py_ssize_t nobs = 0
+        deque Q[int64_t]  # min/max always the front
+        deque W[int64_t]  # track the whole window for nobs compute
+        ndarray[double_t, ndim=1] output
 
-            for i in range(N):
-                ai = init_mm(input[i], &nobs, is_max)
+    output = np.empty(N, dtype=float)
+    Q = deque[int64_t]()
+    W = deque[int64_t]()
 
-                if i >= win:
-                    remove_mm(input[i - win], &nobs)
+    with nogil:
 
-                if death[minvalue - ring] == i:
-                    minvalue = minvalue + 1
-                    if minvalue >= end:
-                        minvalue = ring
+        # This is using a modified version of the C++ code in this
+        # SO post: http://bit.ly/2nOoHlY
+        # The original impl didn't deal with variable window sizes
+        # So the code was optimized for that
+
+        for i from starti[0] <= i < endi[0]:
+            ai = init_mm(input[i], &nobs, is_max)
+
+            # Discard previous entries if we find new min or max
+            if is_max:
+                while not Q.empty() and ((ai >= input[Q.back()]) or
+                                         (input[Q.back()] != input[Q.back()])):
+                    Q.pop_back()
+            else:
+                while not Q.empty() and ((ai <= input[Q.back()]) or
+                                         (input[Q.back()] != input[Q.back()])):
+                    Q.pop_back()
+            Q.push_back(i)
+            W.push_back(i)
+
+        # if right is open then the first window is empty
+        close_offset = 0 if endi[0] > starti[0] else 1
+
+        for i in range(endi[0], endi[N-1]):
+            if not Q.empty():
+                output[i-1+close_offset] = calc_mm(
+                    minp, nobs, input[Q.front()])
+            else:
+                output[i-1+close_offset] = NaN
+
+            ai = init_mm(input[i], &nobs, is_max)
+
+            # Discard previous entries if we find new min or max
+            if is_max:
+                while not Q.empty() and ((ai >= input[Q.back()]) or
+                                         (input[Q.back()] != input[Q.back()])):
+                    Q.pop_back()
+            else:
+                while not Q.empty() and ((ai <= input[Q.back()]) or
+                                         (input[Q.back()] != input[Q.back()])):
+                    Q.pop_back()
+
+            # Maintain window/nobs retention
+            curr_win_size = endi[i + close_offset] - starti[i + close_offset]
+            while not Q.empty() and Q.front() <= i - curr_win_size:
+                Q.pop_front()
+            while not W.empty() and W.front() <= i - curr_win_size:
+                remove_mm(input[W.front()], &nobs)
+                W.pop_front()
+
+            Q.push_back(i)
+            W.push_back(i)
+
+        output[N-1] = calc_mm(minp, nobs, input[Q.front()])
+
+    return output
+
+
+cdef _roll_min_max_fixed(ndarray[numeric] input,
+                         ndarray[int64_t] starti,
+                         ndarray[int64_t] endi,
+                         int64_t N,
+                         int64_t win,
+                         int64_t minp,
+                         bint is_max):
+    cdef:
+        numeric ai
+        bint should_replace
+        int64_t i, removed, window_i,
+        Py_ssize_t nobs = 0
+        int64_t* death
+        numeric* ring
+        numeric* minvalue
+        numeric* end
+        numeric* last
+        ndarray[double_t, ndim=1] output
+
+    output = np.empty(N, dtype=float)
+    # setup the rings of death!
+    ring = <numeric *>malloc(win * sizeof(numeric))
+    death = <int64_t *>malloc(win * sizeof(int64_t))
+
+    end = ring + win
+    last = ring
+    minvalue = ring
+    ai = input[0]
+    minvalue[0] = init_mm(input[0], &nobs, is_max)
+    death[0] = win
+    nobs = 0
+
+    with nogil:
+
+        for i in range(N):
+            ai = init_mm(input[i], &nobs, is_max)
+
+            if i >= win:
+                remove_mm(input[i - win], &nobs)
+
+            if death[minvalue - ring] == i:
+                minvalue = minvalue + 1
+                if minvalue >= end:
+                    minvalue = ring
+
+            if is_max:
+                should_replace = ai >= minvalue[0]
+            else:
+                should_replace = ai <= minvalue[0]
+            if should_replace:
+
+                minvalue[0] = ai
+                death[minvalue - ring] = i + win
+                last = minvalue
+
+            else:
 
                 if is_max:
-                    should_replace = ai >= minvalue[0]
+                    should_replace = last[0] <= ai
                 else:
-                    should_replace = ai <= minvalue[0]
-                if should_replace:
-
-                    minvalue[0] = ai
-                    death[minvalue - ring] = i + win
-                    last = minvalue
-
-                else:
-
+                    should_replace = last[0] >= ai
+                while should_replace:
+                    if last == ring:
+                        last = end
+                    last -= 1
                     if is_max:
                         should_replace = last[0] <= ai
                     else:
                         should_replace = last[0] >= ai
-                    while should_replace:
-                        if last == ring:
-                            last = end
-                        last -= 1
-                        if is_max:
-                            should_replace = last[0] <= ai
-                        else:
-                            should_replace = last[0] >= ai
 
-                    last += 1
-                    if last == end:
-                        last = ring
-                    last[0] = ai
-                    death[last - ring] = i + win
+                last += 1
+                if last == end:
+                    last = ring
+                last[0] = ai
+                death[last - ring] = i + win
 
-                output[i] = calc_mm(minp, nobs, minvalue[0])
+            output[i] = calc_mm(minp, nobs, minvalue[0])
 
-            for i in range(minp - 1):
-                if numeric in cython.floating:
-                    output[i] = NaN
-                else:
-                    output[i] = 0
+        for i in range(minp - 1):
+            if numeric in cython.floating:
+                output[i] = NaN
+            else:
+                output[i] = 0
 
-            free(ring)
-            free(death)
+        free(ring)
+        free(death)
 
-    # print("output: {0}".format(output))
     return output
 
 
@@ -1480,6 +1528,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                         output[i] = <double> (vlow + vhigh) / 2
             else:
                 output[i] = NaN
+
+    skiplist_destroy(skiplist)
 
     return output
 

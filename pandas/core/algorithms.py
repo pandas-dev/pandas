@@ -95,7 +95,7 @@ def _ensure_data(values, dtype=None):
                 values = ensure_float64(values)
             return values, 'float64', 'float64'
 
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         # if we are trying to coerce to a dtype
         # and it is incompat this will fall thru to here
         return ensure_object(values), 'object', 'object'
@@ -134,7 +134,7 @@ def _ensure_data(values, dtype=None):
         return values, dtype, 'int64'
 
     # we have failed, return object
-    values = np.asarray(values)
+    values = np.asarray(values, dtype=np.object)
     return ensure_object(values), 'object', 'object'
 
 
@@ -262,7 +262,7 @@ def match(to_match, values, na_sentinel=-1):
     -------
     match : ndarray of integers
     """
-    values = com._asarray_tuplesafe(values)
+    values = com.asarray_tuplesafe(values)
     htable, _, values, dtype, ndtype = _get_hashtable_algo(values)
     to_match, _, _ = _ensure_data(to_match, dtype)
     table = htable(min(len(to_match), 1000000))
@@ -412,7 +412,7 @@ def isin(comps, values):
         # handle categoricals
         return comps._values.isin(values)
 
-    comps = com._values_from_object(comps)
+    comps = com.values_from_object(comps)
 
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
@@ -429,7 +429,7 @@ def isin(comps, values):
             values = values.astype('int64', copy=False)
             comps = comps.astype('int64', copy=False)
             f = lambda x, y: htable.ismember_int64(x, y)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             values = values.astype(object)
             comps = comps.astype(object)
 
@@ -437,8 +437,7 @@ def isin(comps, values):
         try:
             values = values.astype('float64', copy=False)
             comps = comps.astype('float64', copy=False)
-            checknull = isna(values).any()
-            f = lambda x, y: htable.ismember_float64(x, y, checknull)
+            f = lambda x, y: htable.ismember_float64(x, y)
         except (TypeError, ValueError):
             values = values.astype(object)
             comps = comps.astype(object)

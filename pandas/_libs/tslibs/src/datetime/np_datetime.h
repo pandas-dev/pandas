@@ -14,10 +14,15 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
-#ifndef PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
-#define PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#ifndef PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
+#define PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_
+
+#ifndef NPY_NO_DEPRECATED_API
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#endif  // NPY_NO_DEPRECATED_API
 
 #include <numpy/ndarraytypes.h>
+#include <datetime.h>
 
 typedef struct {
         npy_int64 days;
@@ -30,11 +35,11 @@ extern const npy_datetimestruct _NS_MAX_DTS;
 // stuff pandas needs
 // ----------------------------------------------------------------------------
 
-int convert_pydatetime_to_datetimestruct(PyObject *obj,
+int convert_pydatetime_to_datetimestruct(PyDateTime_Date *dtobj,
                                          npy_datetimestruct *out);
 
-npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                            npy_datetimestruct *d);
+npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
+                                            const npy_datetimestruct *dts);
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
                                        npy_datetimestruct *result);
@@ -42,8 +47,6 @@ void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          NPY_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result);
-
-int dayofweek(int y, int m, int d);
 
 extern const int days_per_month_table[2][12];
 
@@ -74,9 +77,4 @@ void
 add_minutes_to_datetimestruct(npy_datetimestruct *dts, int minutes);
 
 
-int
-convert_datetime_to_datetimestruct(NPY_DATETIMEUNIT base,
-                                   npy_datetime dt,
-                                   npy_datetimestruct *out);
-
-#endif  // PANDAS__LIBS_SRC_DATETIME_NP_DATETIME_H_
+#endif  // PANDAS__LIBS_TSLIBS_SRC_DATETIME_NP_DATETIME_H_

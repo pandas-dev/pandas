@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport (Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE,
                       PyUnicode_Check, PyUnicode_AsASCIIString)
@@ -15,7 +14,7 @@ PyDateTime_IMPORT
 
 from numpy cimport int64_t
 
-cdef extern from "../src/datetime/np_datetime.h":
+cdef extern from "src/datetime/np_datetime.h":
     int cmp_npy_datetimestruct(npy_datetimestruct *a,
                                npy_datetimestruct *b)
 
@@ -33,7 +32,7 @@ cdef extern from "../src/datetime/np_datetime.h":
 
     npy_datetimestruct _NS_MIN_DTS, _NS_MAX_DTS
 
-cdef extern from "../src/datetime/np_datetime_strings.h":
+cdef extern from "src/datetime/np_datetime_strings.h":
     int parse_iso_8601_datetime(char *str, int len,
                                 npy_datetimestruct *out,
                                 int *out_local, int *out_tzoffset)
@@ -147,6 +146,9 @@ cdef inline void td64_to_tdstruct(int64_t td64,
 
 cdef inline int64_t pydatetime_to_dt64(datetime val,
                                        npy_datetimestruct *dts):
+    """
+    Note we are assuming that the datetime object is timezone-naive.
+    """
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)
@@ -158,8 +160,7 @@ cdef inline int64_t pydatetime_to_dt64(datetime val,
     return dtstruct_to_dt64(dts)
 
 
-cdef inline int64_t pydate_to_dt64(date val,
-                                   npy_datetimestruct *dts):
+cdef inline int64_t pydate_to_dt64(date val, npy_datetimestruct *dts):
     dts.year = PyDateTime_GET_YEAR(val)
     dts.month = PyDateTime_GET_MONTH(val)
     dts.day = PyDateTime_GET_DAY(val)

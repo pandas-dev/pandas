@@ -11,7 +11,7 @@ from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
-                    Index, MultiIndex, Timedelta)
+                    Index, MultiIndex, Timedelta, Series)
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
@@ -493,14 +493,16 @@ class _MergeOperation(object):
                  left_index=False, right_index=False, sort=True,
                  suffixes=('_x', '_y'), copy=True, indicator=False,
                  validate=None):
+        left = validate_operand(left)
+        right = validate_operand(right)
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
         self.axis = axis
 
-        self.on = com._maybe_make_list(on)
-        self.left_on = com._maybe_make_list(left_on)
-        self.right_on = com._maybe_make_list(right_on)
+        self.on = com.maybe_make_list(on)
+        self.left_on = com.maybe_make_list(left_on)
+        self.right_on = com.maybe_make_list(right_on)
 
         self.copy = copy
         self.suffixes = suffixes
@@ -518,13 +520,6 @@ class _MergeOperation(object):
         else:
             raise ValueError(
                 'indicator option can only accept boolean or string arguments')
-
-        if not isinstance(left, DataFrame):
-            raise ValueError('can not merge DataFrame with instance of '
-                             'type {left}'.format(left=type(left)))
-        if not isinstance(right, DataFrame):
-            raise ValueError('can not merge DataFrame with instance of '
-                             'type {right}'.format(right=type(right)))
 
         if not is_bool(left_index):
             raise ValueError(
@@ -1557,8 +1552,8 @@ def _factorize_keys(lk, rk, sort=True):
         rk = ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
-        lk = ensure_int64(com._values_from_object(lk))
-        rk = ensure_int64(com._values_from_object(rk))
+        lk = ensure_int64(com.values_from_object(lk))
+        rk = ensure_int64(com.values_from_object(rk))
     else:
         klass = libhashtable.Factorizer
         lk = ensure_object(lk)
@@ -1645,3 +1640,16 @@ def _should_fill(lname, rname):
 
 def _any(x):
     return x is not None and com._any_not_none(*x)
+
+
+def validate_operand(obj):
+    if isinstance(obj, DataFrame):
+        return obj
+    elif isinstance(obj, Series):
+        if obj.name is None:
+            raise ValueError('Cannot merge a Series without a name')
+        else:
+            return obj.to_frame()
+    else:
+        raise TypeError('Can only merge Series or DataFrame objects, '
+                        'a {obj} was passed'.format(obj=type(obj)))

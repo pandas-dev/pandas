@@ -175,7 +175,7 @@ class BaseGrouper(object):
         group_keys = self._get_group_keys()
 
         # oh boy
-        f_name = com._get_callable_name(f)
+        f_name = com.get_callable_name(f)
         if (f_name not in base.plotting_methods and
                 hasattr(splitter, 'fast_apply') and axis == 0):
             try:
@@ -209,7 +209,7 @@ class BaseGrouper(object):
             return self.groupings[0].indices
         else:
             label_list = [ping.labels for ping in self.groupings]
-            keys = [com._values_from_object(ping.group_index)
+            keys = [com.values_from_object(ping.group_index)
                     for ping in self.groupings]
             return get_indexer_dict(label_list, keys)
 
@@ -582,7 +582,6 @@ class BaseGrouper(object):
         elif values.ndim > 2:
             for i, chunk in enumerate(values.transpose(2, 0, 1)):
 
-                chunk = chunk.squeeze()
                 transform_func(result[:, :, i], values,
                                comp_ids, is_datetimelike, **kwargs)
         else:
