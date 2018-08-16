@@ -737,6 +737,7 @@ Sparse
 ^^^^^^
 
 - Updating a boolean, datetime, or timedelta column to be Sparse now works (:issue:`22367`)
+- Bug in :meth:`Series.to_sparse` with Series already holding sparse data not constructing properly (:issue:`22389`)
 
 
 Build Changes

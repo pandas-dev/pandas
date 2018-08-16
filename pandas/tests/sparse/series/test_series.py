@@ -1499,3 +1499,11 @@ def test_constructor_dict_datetime64_index(datetime_type):
     expected = SparseSeries(values, map(pd.Timestamp, dates))
 
     tm.assert_sp_series_equal(result, expected)
+
+
+def test_to_sparse():
+    # https://github.com/pandas-dev/pandas/issues/22389
+    arr = pd.SparseArray([1, 2, None, 3])
+    result = pd.Series(arr).to_sparse()
+    assert len(result) == 4
+    tm.assert_sp_array_equal(result.values, arr)
