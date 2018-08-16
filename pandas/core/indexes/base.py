@@ -1948,11 +1948,11 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
-        try:
-            if is_float(key) and is_integer_dtype(self.dtype):
+        if is_float(key) and is_integer_dtype(self.dtype):
                 if key != int(key):
                     return False
-            return key in self._engine
+        try:
+          return key in self._engine
         except (OverflowError, TypeError, ValueError):
             return False
 
