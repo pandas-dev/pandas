@@ -1244,6 +1244,25 @@ def _arith_method_SERIES(cls, op, special):
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
+        elif is_timedelta64_dtype(right) and not is_scalar(right):
+            # i.e. exclude np.timedelta64 object
+            # Unfortunately we need to special-case right-hand timedelta64
+            # dtypes because numpy casts integer dtypes to timedelta64 when
+            # operating with timedelta64
+            if isinstance(right, np.ndarray):
+                # upcast to TimedeltaIndex before dispatching
+                right = pd.TimedeltaIndex(right)
+                right.freq = None
+                # TODO: Should we be treating zero-dim ndarray as scalar?
+
+            # Note: we cannot use dispatch_to_index_op because
+            # that may incorrectly raise TypeError when we
+            # should get NullFrequencyError
+            result = op(pd.Index(left), right)
+            return construct_result(left, result,
+                                    index=left.index, name=res_name,
+                                    dtype=result.dtype)
+
         elif type(right) is datetime.timedelta:
             # cast up to Timedelta to rely on Timedelta implementation;
             # otherwise operation against numeric-dtype raises TypeError
