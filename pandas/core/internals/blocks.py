@@ -2062,22 +2062,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             placement=self.mgr_locs)
 
     def shift(self, periods, axis=0, mgr=None):
-        # type: (int, int, Optional[BlockPlacement]) -> List[ExtensionBlock]
-        indexer = np.roll(np.arange(len(self)), periods)
-
-        if periods > 0:
-            indexer[:periods] = -1
-        else:
-            indexer[periods:] = -1
-
-        new_values = self.values.take(indexer, allow_fill=True)
-        return [self.make_block_same_class(new_values,
+        # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
+        return [self.make_block_same_class(self.values.shift(periods=periods),
                                            placement=self.mgr_locs,
                                            ndim=self.ndim)]
-
-    @property
-    def _ftype(self):
-        return getattr(self.values, '_pandas_ftype', Block._ftype)
 
 
 class NumericBlock(Block):
@@ -2701,10 +2689,6 @@ class CategoricalBlock(ExtensionBlock):
             result = _block_shape(result, ndim=self.ndim)
 
         return result
-
-    def shift(self, periods, axis=0, mgr=None):
-        return self.make_block_same_class(values=self.values.shift(periods),
-                                          placement=self.mgr_locs)
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime

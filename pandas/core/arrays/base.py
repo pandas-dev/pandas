@@ -400,6 +400,33 @@ class ExtensionArray(object):
 
         return self[~self.isna()]
 
+    def shift(self, periods=1):
+        # type: (int) -> ExtensionArray
+        """
+        Shift values by desired number.
+
+        Newly introduced missing values are filled with
+        ``self.dtype.na_value``.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            The number of periods to shift. Negative values are allowed
+            for shifting backwards.
+
+        Returns
+        -------
+        shifted : ExtensionArray
+        """
+        indexer = np.roll(np.arange(len(self)), periods)
+
+        if periods > 0:
+            indexer[:periods] = -1
+        else:
+            indexer[periods:] = -1
+
+        return self.take(indexer, allow_fill=True)
+
     def unique(self):
         """Compute the ExtensionArray of unique values.
 

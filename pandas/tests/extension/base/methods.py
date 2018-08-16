@@ -157,9 +157,9 @@ class BaseMethodsTests(BaseExtensionTests):
                 expected,
                 pd.Series([1] * 5, name='B').shift(periods)
             ], axis=1)
-            compare = tm.assert_frame_equal
+            compare = self.assert_frame_equal
         else:
             result = data.shift(periods)
-            compare = tm.assert_series_equal
+            compare = self.assert_series_equal
 
         compare(result, expected)
