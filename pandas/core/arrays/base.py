@@ -418,14 +418,17 @@ class ExtensionArray(object):
         -------
         shifted : ExtensionArray
         """
-        indexer = np.roll(np.arange(len(self)), periods)
-
+        if periods == 0:
+            return self.copy()
+        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
+                                    dtype=self.dtype)
         if periods > 0:
-            indexer[:periods] = -1
+            a = empty
+            b = self[:-periods]
         else:
-            indexer[periods:] = -1
-
-        return self.take(indexer, allow_fill=True)
+            a = self[abs(periods):]
+            b = empty
+        return self._concat_same_type([a, b])
 
     def unique(self):
         """Compute the ExtensionArray of unique values.
