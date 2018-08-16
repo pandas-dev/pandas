@@ -7237,7 +7237,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        DataFrame (sorted)
+        DataFrame
             A DataFrame containing the modes
             If ``axis=0``, there will be one column per column in the original
             DataFrame, with as many rows as there are modes.
@@ -7249,24 +7249,50 @@ class DataFrame(NDFrame):
         Series.mode : Return the highest frequency value in a Series.
         Series.value_counts : Return the counts of values in a Series.
 
+        Notes
+        -----
+        If there is only one occurrence of each value (no repeated values),
+        no mode will be returned.
+
         Examples
         --------
 
-        ``mode`` returns a DataFrame with multiple rows if there is more than
-        one mode. Missing entries are imputed with NaN.
-
-        >>> df = pd.DataFrame({'name': ['Alice', 'Bob', 'Alice', 'Bob'],
-        ...                    'age': [21, 45, 33, 21]})
+        >>> df = pd.DataFrame([('bird', 2, 2),
+        ...                    ('mammal', 4, 0),
+        ...                    ('insect', 8, 0),
+        ...                    ('bird', 2, 2)],
+        ...                   index=('penguin', 'horse', 'spider', 'ostrich'),
+        ...                   columns=('species', 'legs', 'wings'))
         >>> df
-            name  age
-        0  Alice   21
-        1    Bob   45
-        2  Alice   33
-        3    Bob   21
+                species  legs  wings
+        penguin    bird     2      2
+        horse    mammal     4      0
+        spider   insect     8      0
+        ostrich    bird     2      2
+
+        ``mode`` returns a DataFrame with multiple rows if there is more than
+        one mode (like for wings). Missing entries are imputed with NaN:
+
         >>> df.mode()
-            name   age
-        0  Alice  21.0
-        1    Bob   NaN
+          species  legs  wings
+        0    bird   2.0      0
+        1     NaN   NaN      2
+
+        The mode of only numeric columns can be computed:
+
+        >>> df.mode(numeric_only=True)
+           legs  wings
+        0   2.0      0
+        1   NaN      2
+
+        To compute the mode over columns and not rows, use the axis parameter:
+
+        >>> df.mode(axis='columns')
+                   0
+        penguin  2.0
+        horse    NaN
+        spider   NaN
+        ostrich  2.0
         """
         data = self if not numeric_only else self._get_numeric_data()
 
