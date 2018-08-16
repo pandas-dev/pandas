@@ -335,6 +335,7 @@ This has some notable changes
 - ``SparseArray.astype(np.dtype)`` will create a dense NumPy array. To keep astype to a SparseArray with a different subdtype, use ``.astype(sparse_dtype)`` or a string like ``.astype('Sparse[float32]')``.
 - Setting ``SparseArray.fill_value`` to a fill value with a different dtype is now allowed.
 - Bug in ``SparseArray.nbytes`` under-reporting its memory usage by not including the size of its sparse index.
+- The result of concatenating a SparseSeries and a dense Series is a Series with sparse dtype.
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 

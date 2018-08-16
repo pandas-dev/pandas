@@ -1564,7 +1564,7 @@ def assert_sp_array_equal(left, right, check_dtype=True, check_kind=True,
         left_index = left.sp_index
         right_index = right.sp_index
 
-    if consolidate_block_indices:
+    if consolidate_block_indices and left.kind == 'block':
         # we'll probably remove this hack...
         left_index = left_index.to_int_index().to_block_index()
         right_index = right_index.to_int_index().to_block_index()

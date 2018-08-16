@@ -38,8 +38,7 @@ class TestSparseSeriesConcat(object):
 
     @pytest.mark.parametrize('kind', [
         'integer',
-        pytest.param('block',
-                     marks=pytest.mark.xfail(reason='Broken', strict="TODO")),
+        'block',
     ])
     def test_concat(self, kind):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -51,7 +50,7 @@ class TestSparseSeriesConcat(object):
         res = pd.concat([sparse1, sparse2])
         exp = pd.concat([pd.Series(val1), pd.Series(val2)])
         exp = pd.SparseSeries(exp, kind=kind)
-        tm.assert_sp_series_equal(res, exp)
+        tm.assert_sp_series_equal(res, exp, consolidate_block_indices=True)
 
         sparse1 = pd.SparseSeries(val1, fill_value=0, name='x', kind=kind)
         sparse2 = pd.SparseSeries(val2, fill_value=0, name='y', kind=kind)
@@ -59,7 +58,7 @@ class TestSparseSeriesConcat(object):
         res = pd.concat([sparse1, sparse2])
         exp = pd.concat([pd.Series(val1), pd.Series(val2)])
         exp = pd.SparseSeries(exp, fill_value=0, kind=kind)
-        tm.assert_sp_series_equal(res, exp)
+        tm.assert_sp_series_equal(res, exp, consolidate_block_indices=True)
 
     def test_concat_axis1(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -127,10 +126,8 @@ class TestSparseSeriesConcat(object):
         tm.assert_sp_series_equal(res, exp, consolidate_block_indices=True)
 
     @pytest.mark.parametrize('kind', [
-        pytest.param('integer',
-                     marks=pytest.mark.xfail(reason="Return Series[Sparse]")),
-        pytest.param('block',
-                     marks=pytest.mark.xfail(reason='Broken', strict="TODO")),
+        'integer',
+        'block',
     ])
     def test_concat_sparse_dense(self, kind):
         # use first input's fill_value
@@ -147,27 +144,43 @@ class TestSparseSeriesConcat(object):
 
         res = pd.concat([dense, sparse, dense])
         exp = pd.concat([dense, pd.Series(val1), dense])
-        exp = pd.SparseSeries(exp, kind=kind)
-        tm.assert_sp_series_equal(res, exp)
+        # XXX: changed from SparseSeries to Series[sparse]
+        exp = pd.Series(
+            pd.SparseArray(exp, kind=kind),
+            index=exp.index,
+            name=exp.name,
+        )
+        tm.assert_series_equal(res, exp)
 
         sparse = pd.SparseSeries(val1, name='x', kind=kind, fill_value=0)
         dense = pd.Series(val2, name='y')
 
         res = pd.concat([sparse, dense])
+        # XXX: changed from SparseSeries to Series[sparse]
         exp = pd.concat([pd.Series(val1), dense])
-        exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
-        tm.assert_sp_series_equal(res, exp)
+        exp = pd.Series(
+            pd.SparseArray(exp, kind=kind, fill_value=0),
+            index=exp.index,
+            name=exp.name,
+        )
+        tm.assert_series_equal(res, exp)
 
         res = pd.concat([dense, sparse, dense])
         exp = pd.concat([dense, pd.Series(val1), dense])
-        exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
-        tm.assert_sp_series_equal(res, exp)
+        # XXX: changed from SparseSeries to Series[sparse]
+        exp = pd.Series(
+            pd.SparseArray(exp, kind=kind, fill_value=0),
+            index = exp.index,
+            name = exp.name,
+        )
+        tm.assert_series_equal(res, exp)
 
     @pytest.mark.xfail(reason="Correct result is unclear.", strict=True)
     def test_concat_mixed_dtypes(self):
         # Concatenating sparse, regular, and categorical.
         # Who should "win" in the dtype determination?
         # This test assumes that sparse wins.
+        # At the moment, we're just object.
         df1 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
         df2 = pd.DataFrame({"A": [1, 2, 3]})
         df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
@@ -273,19 +286,19 @@ class TestSparseDataFrameConcat(object):
 
     def test_concat_different_columns(self):
         # fill_value = np.nan
-        sparse = self.dense1.to_sparse()
-        sparse3 = self.dense3.to_sparse()
+        # sparse = self.dense1.to_sparse()
+        # sparse3 = self.dense3.to_sparse()
 
-        res = pd.concat([sparse, sparse3], sort=True)
-        exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
-        tm.assert_sp_frame_equal(res, exp, check_kind=False)
-
-        res = pd.concat([sparse3, sparse], sort=True)
-        exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
-        exp._default_fill_value = np.nan
-        tm.assert_sp_frame_equal(res, exp, check_kind=False)
-
-        # fill_value = 0
+        # res = pd.concat([sparse, sparse3], sort=True)
+        # exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
+        # tm.assert_sp_frame_equal(res, exp, check_kind=False)
+        #
+        # res = pd.concat([sparse3, sparse], sort=True)
+        # exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
+        # exp._default_fill_value = np.nan
+        # tm.assert_sp_frame_equal(res, exp, check_kind=False)
+        #
+        # # fill_value = 0
         sparse = self.dense1.to_sparse(fill_value=0)
         sparse3 = self.dense3.to_sparse(fill_value=0)
 
@@ -293,34 +306,34 @@ class TestSparseDataFrameConcat(object):
         # exp doesn't handle C (all NaN) correctly.
         # We correctly don't have any sparse values since the
         # values are all NaN, and the fill_value is 0.
-        raise pytest.xfail("Test is buggy.")
-        # res = pd.concat([sparse, sparse3], sort=True)
-        # exp = (pd.concat([self.dense1, self.dense3], sort=True)
-        #          .to_sparse(fill_value=0))
-        # exp._default_fill_value = np.nan
+        # raise pytest.xfail("Test is buggy.")
+        res = pd.concat([sparse, sparse3], sort=True)
+        exp = (pd.concat([self.dense1, self.dense3], sort=True)
+                 .to_sparse(fill_value=0))
+        exp._default_fill_value = np.nan
 
-        # tm.assert_sp_frame_equal(res, exp, check_kind=False,
-        #                          consolidate_block_indices=True)
+        tm.assert_sp_frame_equal(res, exp, check_kind=False,
+                                 consolidate_block_indices=True)
 
-        # res = pd.concat([sparse3, sparse], sort=True)
-        # exp = (pd.concat([self.dense3, self.dense1], sort=True)
-        #          .to_sparse(fill_value=0))
-        # exp._default_fill_value = np.nan
-        # tm.assert_sp_frame_equal(res, exp, check_kind=False)
-        #
-        # # different fill values
-        # sparse = self.dense1.to_sparse()
-        # sparse3 = self.dense3.to_sparse(fill_value=0)
-        # # each columns keeps its fill_value, thus compare in dense
-        # res = pd.concat([sparse, sparse3], sort=True)
-        # exp = pd.concat([self.dense1, self.dense3], sort=True)
-        # assert isinstance(res, pd.SparseDataFrame)
-        # tm.assert_frame_equal(res.to_dense(), exp)
-        #
-        # res = pd.concat([sparse3, sparse], sort=True)
-        # exp = pd.concat([self.dense3, self.dense1], sort=True)
-        # assert isinstance(res, pd.SparseDataFrame)
-        # tm.assert_frame_equal(res.to_dense(), exp)
+        res = pd.concat([sparse3, sparse], sort=True)
+        exp = (pd.concat([self.dense3, self.dense1], sort=True)
+                 .to_sparse(fill_value=0))
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(res, exp, check_kind=False)
+
+        # different fill values
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse(fill_value=0)
+        # each columns keeps its fill_value, thus compare in dense
+        res = pd.concat([sparse, sparse3], sort=True)
+        exp = pd.concat([self.dense1, self.dense3], sort=True)
+        assert isinstance(res, pd.SparseDataFrame)
+        tm.assert_frame_equal(res.to_dense(), exp)
+
+        res = pd.concat([sparse3, sparse], sort=True)
+        exp = pd.concat([self.dense3, self.dense1], sort=True)
+        assert isinstance(res, pd.SparseDataFrame)
+        tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_series(self):
         # fill_value = np.nan
