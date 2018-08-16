@@ -5,13 +5,34 @@ from cython cimport Py_ssize_t
 cimport numpy as cnp
 from numpy cimport ndarray
 
+cdef extern from "numpy/ndarraytypes.h":
+    void PyArray_CLEARFLAGS(ndarray arr, int flags) nogil
+
+
+cdef extern from "numpy/arrayobject.h":
+    enum:
+        NPY_ARRAY_C_CONTIGUOUS
+        NPY_ARRAY_F_CONTIGUOUS
+
+
+cdef extern from *:
+    """
+    // returns ASCII or UTF8 (py3) view on python str
+    // python object owns memory, should not be freed
+    static const char* get_c_string(PyObject* obj) {
+    #if PY_VERSION_HEX >= 0x03000000
+        return PyUnicode_AsUTF8(obj);
+    #else
+        return PyString_AsString(obj);
+    #endif
+    }
+    """
+    const char *get_c_string(object) except NULL
+
 
 cdef extern from "src/numpy_helper.h":
-    void set_array_not_contiguous(ndarray ao)
-
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     object get_value_1d(ndarray, Py_ssize_t)
-    const char *get_c_string(object) except NULL
 
 
 cdef extern from "src/headers/stdint.h":
@@ -42,6 +63,13 @@ ctypedef fused numeric:
 
     cnp.float32_t
     cnp.float64_t
+
+
+cdef inline void set_array_not_contiguous(ndarray ao) nogil:
+    # Numpy>=1.8-compliant equivalent to:
+    # ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
+    PyArray_CLEARFLAGS(ao,
+                       (NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS))
 
 
 cdef inline Py_ssize_t validate_indexer(ndarray arr, object loc) except -1:
