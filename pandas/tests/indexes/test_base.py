@@ -1245,6 +1245,19 @@ class TestIndex(Base):
         e1 = np.array([1, 3, -1], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
+    def test_get_indexer_with_NA_values(self):
+        # GH 22332
+        # check pairwise, that no pair of na values
+        # is mangled
+        na_values = [None, np.nan, pd.NaT]
+        for f in na_values:
+            for s in na_values:
+                if f is not s:  # otherwise not unique
+                    arr = np.array([f, s], dtype=np.object)
+                    result = pd.Index(arr, dtype=np.object).get_indexer([f, s, 'Unknown'])
+                    expected = np.array([0, 1, -1], dtype=np.int64)
+                    tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("expected,method", [
         (np.array([-1, 0, 0, 1, 1], dtype=np.intp), 'pad'),
