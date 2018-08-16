@@ -4644,9 +4644,7 @@ columns in the output file. Thus, this code:
 
 .. ipython:: python
 
-    import pandas
-
-    df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', engine='pyarrow')
 
 creates a parquet file with *three* columns if you use ``pyarrow`` for serialization:
@@ -4662,9 +4660,6 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 
 .. ipython:: python
 
-    import pandas
-
-    df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
     df.to_parquet('test.parquet', index=False)
 
 This creates a parquet file with just the two expected columns, ``a`` and ``b``.

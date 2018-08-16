@@ -389,7 +389,6 @@ class TestBasic(Base):
         df = pd.DataFrame({'a': [1, 2, 3], 'b': ['q', 'r', 's']},
                           index=['zyx', 'wvu', 'tsr'])
 
-        expected = df.reset_index(drop=True)
         check_round_trip(df, engine, write_kwargs=write_kwargs,
                          expected=expected)
 
