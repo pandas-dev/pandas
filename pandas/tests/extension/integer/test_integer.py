@@ -567,14 +567,6 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         expected = pd.Series(np.asarray(mixed))
         tm.assert_series_equal(result, expected)
 
-    def test_astype_nansafe(self):
-        # https://github.com/pandas-dev/pandas/pull/22343
-        arr = IntegerArray([np.nan, 1, 2], dtype="Int8")
-
-        with tm.assert_raises_regex(
-                ValueError, 'cannot convert float NaN to integer'):
-            arr.astype('uint32')
-
     @pytest.mark.parametrize('dtype', [Int8Dtype(), 'Int8'])
     def test_astype_specific_casting(self, dtype):
         s = pd.Series([1, 2, 3], dtype='Int64')
@@ -703,6 +695,15 @@ def test_cross_type_arithmetic():
     result = df.A + df.B
     expected = pd.Series([2, np.nan, np.nan], dtype='Int64')
     tm.assert_series_equal(result, expected)
+
+
+def test_astype_nansafe():
+    # https://github.com/pandas-dev/pandas/pull/22343
+    arr = IntegerArray([np.nan, 1, 2], dtype="Int8")
+
+    with tm.assert_raises_regex(
+            ValueError, 'cannot convert float NaN to integer'):
+        arr.astype('uint32')
 
 
 # TODO(jreback) - these need testing / are broken
