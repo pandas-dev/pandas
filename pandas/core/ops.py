@@ -1489,7 +1489,7 @@ def _bool_method_SERIES(cls, op, special):
         Assume that left or right is a Series backed by an ExtensionArray,
         apply the operator defined by op.
         """
-        from pandas import Series
+
         # The op calls will raise TypeError if the op is not defined
         # on the ExtensionArray
         # TODO(jreback)
@@ -1565,7 +1565,7 @@ def _bool_method_SERIES(cls, op, special):
         if isinstance(other, ABCDataFrame):
             # Defer to DataFrame implementation; fail early
             return NotImplemented
-    
+
         elif (is_extension_array_dtype(self)
               or is_extension_array_dtype(other)):
             # TODO: should this include `not is_scalar(right)`?

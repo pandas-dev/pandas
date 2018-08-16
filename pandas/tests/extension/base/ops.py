@@ -64,19 +64,19 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         op_name = all_arithmetic_operators
         df = pd.DataFrame({'A': data})
         self.check_opname(df, op_name, data[0], exc=TypeError)
- 
+
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         s = pd.Series(data)
         self.check_opname(s, op_name, pd.Series([s.iloc[0]] * len(s)),
                           exc=TypeError)
- 
+
     def test_divmod(self, data):
         s = pd.Series(data)
         self._check_divmod_op(s, divmod, 1, exc=TypeError)
         self._check_divmod_op(1, ops.rdivmod, s, exc=TypeError)
- 
+
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
         op_name = all_arithmetic_operators

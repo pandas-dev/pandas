@@ -7,22 +7,17 @@ import operator
 
 from pandas import Series
 
-from pandas._libs.lib import infer_dtype
+# from pandas._libs.lib import infer_dtype
 from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range
 from pandas.compat import set_function_name
 
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
-    is_integer, is_scalar, is_float,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_list_like)
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin, ExtensionScalarOpsMixin
+    is_integer, is_scalar, is_object_dtype, is_list_like)
+from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import registry
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 
 from pandas.io.formats.printing import (
     format_object_summary, format_object_attrs, default_pprint)
@@ -343,6 +338,7 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
         return self._data
 
     def fillna(self, value=None, method=None, limit=None):
+        # TODO: method/limit
         res = self._data.copy()
         res[self._mask] = [value] * self._mask.sum()
         return type(self)(res,
@@ -364,69 +360,11 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
     def argsort(self):
         raise NotImplementedError
 
-#     def value_counts(self, dropna=True):
-#         """
-#         Returns a Series containing counts of each category.
-# 
-#         Every category will have an entry, even those with a count of 0.
-# 
-#         Parameters
-#         ----------
-#         dropna : boolean, default True
-#             Don't include counts of NaN.
-# 
-#         Returns
-#         -------
-#         counts : Series
-# 
-#         See Also
-#         --------
-#         Series.value_counts
-# 
-#         """
-# 
-#         from pandas import Index, Series
-# 
-#         # compute counts on the data with no nans
-#         data = self._data[~self._mask]
-#         value_counts = Index(data).value_counts()
-#         array = value_counts.values
-# 
-#         # TODO(extension)
-#         # if we have allow Index to hold an ExtensionArray
-#         # this is easier
-#         index = value_counts.index.astype(object)
-# 
-#         # if we want nans, count the mask
-#         if not dropna:
-# 
-#             # TODO(extension)
-#             # appending to an Index *always* infers
-#             # w/o passing the dtype
-#             array = np.append(array, [self._mask.sum()])
-#             index = Index(np.concatenate(
-#                 [index.values,
-#                  np.array([np.nan], dtype=object)]), dtype=object)
-# 
-#         return Series(array, index=index)
+    def value_counts(self, dropna=True):
+        raise NotImplementedError
 
-#     def _values_for_argsort(self):
-#         # type: () -> ndarray
-#         """Return values for sorting.
-# 
-#         Returns
-#         -------
-#         ndarray
-#             The transformed values should maintain the ordering between values
-#             within the array.
-# 
-#         See Also
-#         --------
-#         ExtensionArray.argsort
-#         """
-#         data = self._data.copy()
-#         data[self._mask] = data.min() - 1
-#         return data
+    def _values_for_argsort(self):
+        raise NotImplementedError
 
     @classmethod
     def _create_comparison_method(cls, op):
@@ -465,16 +403,13 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
     def _create_arithmetic_method(cls, op):
         def arithmetic_method(self, other):
 
-            op_name = op.__name__
             mask = None
-            #print(other)
             if isinstance(other, SetArray):
                 other, mask = other._data, other._mask
             elif isinstance(other, set) or (is_scalar(other) and isna(other)):
                 other = np.array([other] * len(self))
             elif is_list_like(other):
                 other = np.asarray(other)
-                #print(other)
                 # cannot use isnan due to numpy/numpy#9009
                 mask = np.array([x is np.nan for x in other])
                 if other.ndim > 0 and len(self) != len(other):
@@ -482,15 +417,14 @@ class SetArray(ExtensionArray, ExtensionOpsMixin):
 
             mask = self._mask | mask if mask is not None else self._mask
             result = np.full_like(self._data, fill_value=np.nan, dtype='O')
-            #print(result[~mask], self._data[~mask], other[~mask])
-            #print(type(result), type(self._data), type(other))
 
             with np.errstate(all='ignore'):
                 result[~mask] = op(self._data[~mask], other[~mask])
 
             return type(self)(result, mask=mask, copy=False)
-        
+
         name = '__{name}__'.format(name=op.__name__)
+
         def raiser(self, other):
             raise NotImplementedError
         if name != '__sub__':

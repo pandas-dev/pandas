@@ -1,23 +1,21 @@
 import numpy as np
-import pandas as pd
 import pandas.util.testing as tm
 import pytest
 
 from pandas.tests.extension import base
-from pandas.api.types import (
-    is_integer, is_scalar, is_float, is_float_dtype)
-from pandas.core.dtypes.generic import ABCIndexClass
 
-from pandas.core.arrays.set import (SetDtype,
-                                    to_set_array, SetArray)
+from pandas.core.arrays.set import SetDtype, SetArray
+
 
 def make_string_sets():
     s = tm.makeStringSeries()
     return s.index.map(set).values
 
+
 def make_int_sets():
     s = tm.makeFloatSeries().astype(str).str.replace(r'\D', '')
     return s.map(lambda x: set(map(int, x))).values
+
 
 def make_data():
     return (list(make_string_sets()) +
@@ -125,8 +123,8 @@ class TestMissing(base.BaseMissingTests):
 
 # # most methods (value_counts, unique, factorize) will not be for SetArray
 # # rest still buggy
-# class TestMethods(base.BaseMethodsTests):
-#     pass
+class TestMethods(base.BaseMethodsTests):
+    pass
 
 
 class TestCasting(base.BaseCastingTests):
@@ -143,11 +141,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def test_divmod(self, data):
         pytest.skip('Not relevant')
-    
+
     def test_error(self, data, all_arithmetic_operators):
         pytest.skip('TODO')
- 
- 
+
+
 class TestComparisonOps(base.BaseComparisonOpsTests):
 
     def _compare_other(self, s, data, op_name, other):
@@ -159,4 +157,3 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
 # # GroupBy won't be implemented for SetArray
 # class TestGroupby(base.BaseGroupbyTests):
 #     pass
-
