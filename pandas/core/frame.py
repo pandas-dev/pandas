@@ -1898,8 +1898,8 @@ class DataFrame(NDFrame):
             Name of the compression to use. Use ``None`` for no compression.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
-            If ``False``, they will not be written to the file. If ``None``, the
-            behavior depends on the chosen engine.
+            If ``False``, they will not be written to the file. If ``None``,
+            the behavior depends on the chosen engine.
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.

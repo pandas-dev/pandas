@@ -4636,10 +4636,10 @@ Read only certain columns of a parquet file.
    os.remove('example_fp.parquet')
 
 
-Omitting Indexes
+Handling Indexes
 ''''''''''''''''
 
-Dumping a ``DataFrame`` to parquet includes the implicit index as one or more
+Dumping a ``DataFrame`` to parquet may include the implicit index as one or more
 columns in the output file. Thus, this code:
 
 .. ipython:: python
@@ -4647,9 +4647,12 @@ columns in the output file. Thus, this code:
     import pandas
 
     df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
-    df.to_parquet('test.parquet')
+    df.to_parquet('test.parquet', engine='pyarrow')
 
-creates a parquet file with *three* columns: ``a``, ``b``, and ``__index_level_0__``.
+creates a parquet file with *three* columns if you use ``pyarrow`` for serialization:
+``a``, ``b``, and ``__index_level_0__``. If you're using ``fastparquet``, the
+index `may or may not <https://fastparquet.readthedocs.io/en/latest/api.html#fastparquet.write>`_
+be written to the file.
 
 This unexpected extra column causes some databases like Amazon Redshift to reject
 the file, because that column doesn't exist in the target table.
@@ -4667,6 +4670,9 @@ If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
 This creates a parquet file with just the two expected columns, ``a`` and ``b``.
 If your ``DataFrame`` has a custom index, you won't get it back when you load
 this file into a ``DataFrame``.
+
+Passing ``index=True`` will *always* write the index, even if that's not the
+underlying engine's default behavior.
 
 
 .. _io.sql:
