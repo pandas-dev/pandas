@@ -971,63 +971,28 @@ class TestSparseSeries(SharedWithSparse):
     @pytest.mark.parametrize("fill_value", [
         0,
         1,
-        pytest.param(np.nan, marks=[pytest.mark.xfail(reason="TODO",
-                                                      strict=True)]),
+        np.nan
     ])
-    def test_shift_dtype_fill_value(self, fill_value):
+    @pytest.mark.parametrize("periods", [0, 1, 2, 3, -1, -2, -3, -4])
+    def test_shift_dtype_fill_value(self, fill_value, periods):
         # GH 12908
         orig = pd.Series([1, 0, 0, 4], dtype=np.dtype('int64'))
 
-        # XXX: SparseSeries.shift doesn't need to astype
         sparse = orig.to_sparse(fill_value=fill_value)
 
-        tm.assert_sp_series_equal(
-            sparse.shift(0),
-            orig.shift(0).to_sparse(fill_value=fill_value)
-        )
-        tm.assert_sp_series_equal(
-            sparse.shift(1),
-            orig.shift(1).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
-        tm.assert_sp_series_equal(
-            sparse.shift(2),
-            orig.shift(2).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
-        tm.assert_sp_series_equal(
-            sparse.shift(3),
-            orig.shift(3).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
+        result = sparse.shift(periods)
+        expected = orig.shift(periods).to_sparse(fill_value=fill_value)
 
-        tm.assert_sp_series_equal(
-            sparse.shift(-1),
-            orig.shift(-1).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
-        tm.assert_sp_series_equal(
-            sparse.shift(-2),
-            orig.shift(-2).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
-        tm.assert_sp_series_equal(
-            sparse.shift(-3),
-            orig.shift(-3).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
-        tm.assert_sp_series_equal(
-            sparse.shift(-4),
-            orig.shift(-4).to_sparse(fill_value=fill_value),
-            check_kind=False,
-            consolidate_block_indices=True,
-        )
+        if pd.isna(fill_value):
+            # Work around pandas casting dense int to float
+            expected.values._sparse_values = expected.sp_values.astype(
+                int, copy=False
+            )
+            expected.values._dtype = SparseDtype(int)
+
+        tm.assert_sp_series_equal(result, expected,
+                                  check_kind=False,
+                                  consolidate_block_indices=True)
 
     def test_combine_first(self):
         s = self.bseries
@@ -1218,7 +1183,7 @@ class TestSparseSeriesScipyInteraction(object):
         assert il == il_result
         assert jl == jl_result
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
+    # @pytest.mark.xfail(reason="TODO", strict=True)
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
         val2 = np.array([3, np.nan, 4, 0, 0])
@@ -1238,7 +1203,8 @@ class TestSparseSeriesScipyInteraction(object):
             res = pd.concat([sparse1, sparse2])
             exp = pd.concat([pd.Series(val1), pd.Series(val2)])
             exp = pd.SparseSeries(exp, fill_value=0, kind=kind)
-            tm.assert_sp_series_equal(res, exp)
+            tm.assert_sp_series_equal(res, exp,
+                                      consolidate_block_indices=True)
 
     def test_concat_axis1(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
