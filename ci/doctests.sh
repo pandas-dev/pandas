@@ -12,11 +12,11 @@ if [ "$DOCTEST" ]; then
 
     echo "Running doctests"
 
-    pytest --doctest-modules --ignore=pandas/tests -v  pandas/core/frame.py
+    # pytest --doctest-modules --ignore=pandas/tests -v  pandas/core/frame.py
 
-    if [ $? -ne "0" ]; then
-        RET=1
-    fi
+    # if [ $? -ne "0" ]; then
+    #     RET=1
+    # fi
 
 
     # # top-level reshaping functions
@@ -37,13 +37,13 @@ if [ "$DOCTEST" ]; then
     #     RET=1
     # fi
 
-    # # DataFrame docstrings
-    # pytest --doctest-modules -v \
-    #     pandas/core/frame.py -k"-agg -apply -applymap -assign -eval -isin -itertuples -join -merge -nlargest -nsmallest -nunique -pivot -pivot_table -quantile -query -reindex -reindex_axis -replace -round -select_dtypes -set_index -stack -to_dict -to_excel -to_stata"
+    # DataFrame docstrings
+    pytest --doctest-modules -v pandas/core/frame.py \
+        -k"-assign -axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_records -to_stata -transform"
 
-    # if [ $? -ne "0" ]; then
-    #     RET=1
-    # fi
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
 
     # # Series docstrings
     # pytest --doctest-modules -v \
