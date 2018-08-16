@@ -264,6 +264,8 @@ class TestToPeriod(object):
         dateutil.tz.tzutc()])
     def test_to_period_tz(self, tz):
         ts = date_range('1/1/2000', '4/1/2000', tz=tz)
+        if tz == tzlocal():
+            raise ValueError(ts)
         result = ts.to_period()[0]
         expected = ts[0].to_period()
         assert result == expected
