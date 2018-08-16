@@ -94,12 +94,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         Timedelta(days=1).to_pytimedelta()],
         ids=lambda x: type(x).__name__)
     def test_numeric_arr_rdiv_tdscalar(self, scalar_td, index, box):
-
-        if box is Series and type(scalar_td) is timedelta:
-            raise pytest.xfail(reason="TODO: Figure out why this case fails")
-        if box is pd.DataFrame and isinstance(scalar_td, timedelta):
-            raise pytest.xfail(reason="TODO: Figure out why this case fails")
-
         expected = TimedeltaIndex(['1 Day', '12 Hours'])
 
         index = tm.box_expected(index, box)
