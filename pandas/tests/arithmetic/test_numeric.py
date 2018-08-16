@@ -71,11 +71,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         ids=lambda x: type(x).__name__)
     def test_numeric_arr_mul_tdscalar(self, scalar_td, index, box):
         # GH#19333
-
-        if (box in [Series, pd.DataFrame] and
-                type(scalar_td) is timedelta and index.dtype == 'f8'):
-            raise pytest.xfail(reason="Cannot multiply timedelta by float")
-
         expected = pd.timedelta_range('1 days', '10 days')
 
         index = tm.box_expected(index, box)

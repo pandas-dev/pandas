@@ -1244,6 +1244,12 @@ def _arith_method_SERIES(cls, op, special):
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
 
+        elif type(right) is datetime.timedelta:
+            # cast up to Timedelta to rely on Timedelta implementation;
+            # otherwise operation against numeric-dtype raises TypeError
+            right = pd.Timedelta(right)
+            return op(left, right)
+
         lvalues = left.values
         rvalues = right
         if isinstance(rvalues, ABCSeries):
