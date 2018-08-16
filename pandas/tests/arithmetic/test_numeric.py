@@ -56,8 +56,8 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
                                       for dtype in ['i1', 'i2', 'i4', 'i8',
                                                     'u1', 'u2', 'u4', 'u8',
                                                     'f2', 'f4', 'f8']
-                                      for cls in [pd.Series, pd.Index]
-    ], ids=lambda x: type(x).__name__ + str(x.dtype))
+                                      for cls in [pd.Series, pd.Index]],
+        ids=lambda x: type(x).__name__ + str(x.dtype))
     def test_mul_td64arr(self, left, box_cls):
         right = np.array([1, 2, 3], dtype='m8[s]')
         right = box_cls(right)
@@ -79,8 +79,8 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
                                       for dtype in ['i1', 'i2', 'i4', 'i8',
                                                     'u1', 'u2', 'u4', 'u8',
                                                     'f2', 'f4', 'f8']
-                                      for cls in [pd.Series, pd.Index]
-    ], ids=lambda x: type(x).__name__ + str(x.dtype))
+                                      for cls in [pd.Series, pd.Index]],
+        ids=lambda x: type(x).__name__ + str(x.dtype))
     def test_div_td64arr(self, left, box_cls):
         right = np.array([10, 40, 90], dtype='m8[s]')
         right = box_cls(right)
