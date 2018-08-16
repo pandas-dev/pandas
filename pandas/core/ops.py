@@ -590,9 +590,9 @@ Parameters
 ----------
 other : scalar, sequence, Series, or DataFrame
     Any single or multiple element data structure, or list-like object.
-axis : int or str, optional
-    Axis to target. Can be either the axis name ('index', 'rows',
-    'columns') or number (0, 1).
+axis :  {{0 or 'index', 1 or 'columns'}}, default 'columns'
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns').
 level : int or object
     Broadcast across a level, matching Index values on the passed
     MultiIndex level.
@@ -621,81 +621,77 @@ Mismatched indices will be unioned together.
 
 Examples
 --------
->>> df = pd.DataFrame({{'company': ['A', 'B', 'C'],
-...                    'cost': [250, 150, 100],
-...                    'revenue': [100, 250, 300]}})
+>>> df = pd.DataFrame({{'cost': [250, 150, 100],
+...                    'revenue': [100, 250, 300]}},
+...                    index = ['A', 'B', 'C'])
 >>> df
-  company  cost  revenue
-0       A   250      100
-1       B   150      250
-2       C   100      300
+   cost  revenue
+A   250      100
+B   150      250
+C   100      300
 
-Compare to a scalar and operator version which return equivalent
+Compare to a scalar and operator version which return the same
 results.
 
 >>> df == 100
-   company   cost  revenue
-0    False  False     True
-1    False  False    False
-2    False   True    False
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
 >>> df.eq(100)
-   company   cost  revenue
-0    False  False     True
-1    False  False    False
-2    False   True    False
+    cost  revenue
+A  False     True
+B  False    False
+C   True    False
 
 Compare to a list and Series by axis and operator version.
 
 >>> df != [100, 250, 300]
-   company  cost  revenue
-0     True  True    False
-1     True  True    False
-2     True  True    False
+   cost  revenue
+A  True    False
+B  True    False
+C  True    False
 >>> df.ne([100, 250, 300], axis='index')
-   company  cost  revenue
-0     True  True    False
-1     True  True    False
-2     True  True    False
+  cost  revenue
+A  True    False
+B  True    False
+C  True    False
 >>> df != pd.Series([100, 250, 300])
-   company  cost  revenue     0     1     2
-0     True  True     True  True  True  True
-1     True  True     True  True  True  True
-2     True  True     True  True  True  True
+   cost  revenue     0     1     2
+A  True     True  True  True  True
+B  True     True  True  True  True
+C  True     True  True  True  True
 >>> df.ne(pd.Series([100, 250, 300]), axis='columns')
-   company  cost  revenue     0     1     2
-0     True  True     True  True  True  True
-1     True  True     True  True  True  True
-2     True  True     True  True  True  True
+   cost  revenue     0     1     2
+A  True     True  True  True  True
+B  True     True  True  True  True
+C  True     True  True  True  True
 
-Compare to a DataFrame of different shape by axis and operator version.
+Compare to a DataFrame of different shape by axis where both 'index' and
+'columns' return same results.
 
->>> other = pd.DataFrame({{'company': ['A', 'B', 'C', 'D'],
-...                       'revenue': [300, 250, 100, 150]}})
+>>> other = pd.DataFrame({{'revenue': [300, 250, 100, 150]}},
+...                       index = ['A', 'B', 'C', 'D'])
 >>> other
-  company  revenue
-0       A      300
-1       B      250
-2       C      100
-3       D      150
->>> df.reindex(['company', 'revenue'], axis='columns') > other.iloc[:-1]
-   company  revenue
-0    False    False
-1    False    False
-2    False     True
->>> df.gt(other, axis=0)
-   company   cost  revenue
-0    False  False    False
-1    False  False    False
-2    False  False     True
-3    False  False    False
->>> df.gt(other, axis=1)
-   company   cost  revenue
-0    False  False    False
-1    False  False    False
-2    False  False     True
-3    False  False    False
+   revenue
+A      300
+B      250
+C      100
+D      150
+>>> df.gt(other, axis='index')
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
+>>> df.gt(other, axis='columns')
+    cost  revenue
+A  False    False
+B  False    False
+C  False     True
+D  False    False
 
-Compare to a MultiIndex by level and operator version.
+Compare to a MultiIndex by level.
 
 >>> df_multindex = pd.DataFrame({{'cost': [250, 150, 100, 150, 300, 220],
 ...                              'revenue': [100, 250, 300, 200, 175, 225]}},
@@ -710,13 +706,7 @@ Q2 A   150      200
    B   300      175
    C   220      225
 
->>> df.set_index('company') <= df_multindex.loc['Q1']
-         cost  revenue
-company
-A        True     True
-B        True     True
-C        True     True
->>> df.set_index('company').le(df_multindex, level=1)
+>>> df.le(df_multindex, level=1)
        cost  revenue
 Q1 A   True     True
    B   True     True
