@@ -598,7 +598,7 @@ class RangeIndex(Int64Index):
                     # so we need to catch these explicitly
                     return op(self._int64index, other)
                 elif is_timedelta64_dtype(other):
-                    # Must be an np.ndarray
+                    # Must be an np.ndarray; GH#22390
                     return op(self._int64index, other)
 
                 other = self._validate_for_numeric_binop(other, op)
