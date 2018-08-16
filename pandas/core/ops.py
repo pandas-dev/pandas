@@ -1228,8 +1228,8 @@ def _arith_method_SERIES(cls, op, special):
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
         elif (is_extension_array_dtype(left) or
-                is_extension_array_dtype(right)):
-            # TODO: should this include `not is_scalar(right)`?
+                (is_extension_array_dtype(right) and not is_scalar(right))):
+            # disallow scalar to exclude e.g. "category", "Int64"
             return dispatch_to_extension_op(op, left, right)
 
         elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
