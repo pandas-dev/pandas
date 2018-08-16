@@ -466,6 +466,41 @@ class TestDataFrameAnalytics():
         expected = pd.Series(data=corrs, index=['a', 'b'])
         tm.assert_series_equal(result, expected)
 
+    def test_corrwith_dup_cols(self):
+        # GH 21925
+        df1 = pd.DataFrame(np.vstack([np.arange(10)] * 3).T)
+        df2 = df1.copy()
+        df2 = pd.concat((df2, df2[0]), axis=1)
+
+        result = df1.corrwith(df2).values
+        expected = np.ones(4)
+        tm.assert_almost_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_spearman(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        result = df.corrwith(df**2, method="spearman")
+        expected = Series(np.ones(len(result)))
+        tm.assert_series_equal(result, expected)
+
+    @td.skip_if_no_scipy
+    def test_corrwith_kendall(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.random(size=(100, 3)))
+        result = df.corrwith(df**2, method="kendall")
+        expected = Series(np.ones(len(result)))
+        tm.assert_series_equal(result, expected)
+
+    def test_corrwith_invalid_method(self):
+        # GH 21925
+        df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        s = pd.Series(np.random.randn(10))
+        msg = ("method must be either 'pearson', 'spearman', "
+               "or 'kendall'")
+        with tm.assert_raises_regex(ValueError, msg):
+            df.corrwith(s, method="____")
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
