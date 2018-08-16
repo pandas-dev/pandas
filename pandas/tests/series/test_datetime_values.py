@@ -319,6 +319,7 @@ class TestSeriesDatetimeValues(TestData):
         tm.assert_series_equal(result, expected)
 
         for s_date, expected in zip(s, expected_months):
+            result = s_date.month_name(locale=time_locale)
             expected = expected.capitalize()
 
             if not compat.PY2:
