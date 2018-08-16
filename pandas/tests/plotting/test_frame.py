@@ -1242,6 +1242,40 @@ class TestDataFramePlots(TestPlotBase):
                                     np.array([1, 1, 1, 1], dtype=np.float64))
 
     @pytest.mark.slow
+    def test_plot_scatter_with_s(self):
+        data = np.array([[3.1, 4.2, 1.9],
+                        [1.9, 2.8, 3.1],
+                        [5.4, 4.32, 2.0],
+                        [0.4, 3.4, 0.46],
+                        [4.4, 4.9, 0.8],
+                        [2.7, 6.2, 1.49]])
+        df = DataFrame(data,
+                       columns=['x', 'y', 'z'])
+        ax = df.plot.scatter(x='x', y='y', s='z', size_factor=4)
+        bubbles = ax.collections[0]
+        bubble_sizes = bubbles.get_sizes()
+        max_data = df['z'].max()
+        expected_sizes = 200 * 4 * df['z'].values / max_data
+        tm.assert_numpy_array_equal(bubble_sizes, expected_sizes)
+
+    @pytest.mark.slow
+    def test_plot_scatter_with_categorical_s(self):
+        data = np.array([[3.1, 4.2],
+                        [1.9, 2.8],
+                        [5.4, 4.32],
+                        [0.4, 3.4],
+                        [4.4, 4.9],
+                        [2.7, 6.2]])
+        df = DataFrame(data, columns=['x', 'y'])
+        df['z'] = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'], ordered=True)
+        ax = df.plot.scatter(x='x', y='y', s='z', size_factor=4)
+        bubbles = ax.collections[0]
+        bubble_sizes = bubbles.get_sizes()
+        max_data = df['z'].cat.codes.max() + 1
+        expected_sizes = 200 * 4 * (df['z'].cat.codes.values + 1) / max_data
+        tm.assert_numpy_array_equal(bubble_sizes, expected_sizes)
+
+    @pytest.mark.slow
     def test_plot_bar(self):
         df = DataFrame(randn(6, 4),
                        index=list(string.ascii_letters[:6]),

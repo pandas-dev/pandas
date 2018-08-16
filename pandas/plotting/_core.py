@@ -24,9 +24,18 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_number,
     is_hashable,
+    is_numeric_dtype,
+    is_categorical_dtype,
     is_iterator)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
+    is_iterator,
+    is_numeric_dtype,
+    is_categorical_dtype)
+from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
+
+from pandas.core.generic import _shared_docs, _shared_doc_kwargs
+from pandas.core.index import Index, MultiIndex
 
 from pandas.io.formats.printing import pprint_thing
 
@@ -861,11 +870,30 @@ class PlanePlot(MPLPlot):
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
-    def __init__(self, data, x, y, s=None, c=None, **kwargs):
+    def __init__(self, data, x, y, s=None, c=None, size_factor=1, **kwargs):
         if s is None:
-            # hide the matplotlib default for size, in case we want to change
-            # the handling of this argument later
+            # Set default size if no argument is given.
             s = 20
+        elif is_hashable(s) and s in data.columns:
+            # Handle the case where s is a label of a column of the df.
+            # The data is normalized to 200 * size_factor.
+            size_data = data[s]
+            if is_categorical_dtype(size_data):
+                if size_data.cat.ordered:
+                    size_data = size_data.cat.codes + 1
+                else:
+                    raise TypeError(
+                        "'s' must be numeric or ordered categorical dtype")
+            if is_numeric_dtype(size_data):
+                self.size_title = s
+                self.s_data_max = size_data.max()
+                self.size_factor = size_factor
+                self.bubble_points = 200
+                s = self.bubble_points * size_factor * size_data / \
+                    self.s_data_max
+            else:
+                raise TypeError("'s' must be numeric or "
+                                "ordered categorical dtype")
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -874,7 +902,6 @@ class ScatterPlot(PlanePlot):
     def _make_plot(self):
         x, y, c, data = self.x, self.y, self.c, self.data
         ax = self.axes[0]
-
         c_is_column = is_hashable(c) and c in self.data.columns
 
         # plot a colorbar only if a colormap is provided or necessary
@@ -918,6 +945,66 @@ class ScatterPlot(PlanePlot):
             err_kwds['ecolor'] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values,
                         linestyle='none', **err_kwds)
+
+    def _sci_notation(self, num):
+        """
+        Returns mantissa and exponent of the number passed in argument.
+        Example:
+        >>> _sci_notation(89278.8924)
+        (8.9, 4.0)
+        """
+        scientific_notation = '{:e}'.format(num)
+        regexp = re.compile(r'^([+-]?\d\.\d).*e([+-]\d*)$')
+        mantis, expnt = regexp.search(scientific_notation).groups()
+        return float(mantis), float(expnt)
+
+    def _legend_bubbles(self, s_data_max, size_factor, bubble_points):
+        """
+        Computes and returns appropriate bubble sizes and labels for the
+        legend of a  bubble plot. Creates 4 bubbles with round values for the
+        labels, the largest of which is close to the maximum of the data.
+        """
+        coef, expnt = self._sci_notation(s_data_max)
+        labels_catalog = {
+            (9, 10): [10, 5, 2.5, 1],
+            (7, 9): [8, 4, 2, 0.5],
+            (5.5, 7): [6, 3, 1.5, 0.5],
+            (4.5, 5.5): [5, 2, 1, 0.2],
+            (3.5, 4.5): [4, 2, 1, 0.2],
+            (2.5, 3.5): [3, 1, 0.5, 0.2],
+            (1.5, 2.5): [2, 1, 0.5, 0.2],
+            (0, 1.5): [1, 0.5, 0.25, 0.1]
+        }
+        for lower_bound, upper_bound in labels_catalog:
+            if (coef >= lower_bound) and (coef < upper_bound):
+                labels = 10**expnt * np.array(labels_catalog[lower_bound,
+                                                             upper_bound])
+                sizes = list(bubble_points * size_factor * labels / s_data_max)
+                labels = ['{:g}'.format(l) for l in labels]
+                return (sizes, labels)
+
+    def _make_legend(self):
+        if hasattr(self, "size_title"):
+            ax = self.axes[0]
+            import matplotlib.legend as legend
+            from matplotlib.collections import CircleCollection
+            sizes, labels = self._legend_bubbles(self.s_data_max,
+                                                 self.size_factor,
+                                                 self.bubble_points)
+            color = self.plt.rcParams['axes.facecolor'],
+            edgecolor = self.plt.rcParams['axes.edgecolor']
+            bubbles = []
+            for size in sizes:
+                bubbles.append(CircleCollection(sizes=[size],
+                                                color=color,
+                                                edgecolor=edgecolor))
+            bubble_legend = legend.Legend(ax,
+                                          handles=bubbles,
+                                          labels=labels,
+                                          loc='lower right')
+            bubble_legend.set_title(self.size_title)
+            ax.add_artist(bubble_legend)
+        super()._make_legend()
 
 
 class HexBinPlot(PlanePlot):
@@ -3471,7 +3558,7 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='pie', y=y, **kwds)
 
-    def scatter(self, x, y, s=None, c=None, **kwds):
+    def scatter(self, x, y, s=None, c=None, size_factor=1, **kwds):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -3490,8 +3577,10 @@ class FramePlotMethods(BasePlotMethods):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : scalar or array_like, optional
+        s : int, str, scalar or array_like, optional
             The size of each point. Possible values are:
+
+            - The column name to be used as bubble size for each point.
 
             - A single scalar so all points have the same size.
 
@@ -3512,6 +3601,9 @@ class FramePlotMethods(BasePlotMethods):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
+
+        size_factor : scalar, optional
+            A multiplication factor to change the size of bubbles
 
         **kwds
             Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
@@ -3550,7 +3642,8 @@ class FramePlotMethods(BasePlotMethods):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
+        return self(kind='scatter', x=x, y=y, c=c, s=s,
+                    size_factor=size_factor, **kwds)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
