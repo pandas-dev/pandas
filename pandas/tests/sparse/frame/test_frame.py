@@ -1057,7 +1057,6 @@ class TestSparseDataFrame(SharedWithSparse):
 
         self._check_all(_check)
 
-    # @pytest.mark.xfail(reason="broken", strict=True)
     def test_shift(self):
 
         def _check(frame, orig):
@@ -1067,11 +1066,11 @@ class TestSparseDataFrame(SharedWithSparse):
 
             shifted = frame.shift(1)
             exp = orig.shift(1)
-            tm.assert_frame_equal(shifted, exp)
+            tm.assert_frame_equal(shifted.to_dense(), exp)
 
             shifted = frame.shift(-2)
             exp = orig.shift(-2)
-            tm.assert_frame_equal(shifted, exp)
+            tm.assert_frame_equal(shifted.to_dense(), exp)
 
             shifted = frame.shift(2, freq='B')
             exp = orig.shift(2, freq='B')

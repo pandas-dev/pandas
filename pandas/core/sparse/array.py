@@ -270,15 +270,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         self.fill_value = fill_value
 
     @classmethod
-    def _simple_new(cls, sparse_array, sparse_index, fill_value=None):
-        # type: (SparseArray, SparseIndex, Any) -> 'SparseArray'
+    def _simple_new(cls, sparse_array, sparse_index, fill_value, dtype):
+        # type: (np.ndarray, SparseIndex, Any, SparseDtype) -> 'SparseArray'
         new = cls([])
         new._sparse_index = sparse_index
         new._sparse_values = sparse_array
-        new._dtype = sparse_array.dtype
-
-        if fill_value is None:
-            fill_value = sparse_array.fill_value
+        new._dtype = dtype
         new.fill_value = fill_value
         return new
 
@@ -751,8 +748,39 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     def shift(self, periods=1):
         if not self._null_fill_value:
-            return super(SparseArray, self).shift(periods=periods)
+            # Can't use ExtensionArray.shift, since it potentially
+            # gets the fill value wrong. Concat just chooses the first.
+            if periods == 0:
+                return self.copy()
 
+            empty = self._simple_new(
+                np.full(abs(periods), self.dtype.na_value),
+                IntIndex(abs(periods), np.arange(abs(periods))),
+                self.fill_value,
+                self.dtype
+            )
+
+            if periods > 0:
+                a = empty
+                b = self[:-periods]
+            else:
+                a = self[abs(periods):]
+                b = empty
+
+            return self._concat_same_type([a, b])
+
+        int_index = self.sp_index.to_int_index()
+        new_indices = int_index.indices + periods
+        start, end = new_indices.searchsorted([0, int_index.length])
+
+        new_indices = new_indices[start:end]
+        new_sp_index = _make_index(len(self), new_indices, self.sp_index)
+
+        arr = self._simple_new(self.sp_values[start:end].copy(),
+                               new_sp_index,
+                               fill_value=na_value_for_dtype(self.dtype),
+                               dtype=self.dtype)
+        return arr
 
     def get_values(self, fill=None):
         """ return a dense representation """
