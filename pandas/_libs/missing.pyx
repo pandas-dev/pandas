@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport PyFloat_Check, PyComplex_Check
 

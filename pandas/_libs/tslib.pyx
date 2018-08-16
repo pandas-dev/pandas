@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 from cython cimport Py_ssize_t
 
 from cpython cimport PyFloat_Check, PyUnicode_Check

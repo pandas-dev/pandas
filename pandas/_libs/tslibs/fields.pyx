@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 """
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays

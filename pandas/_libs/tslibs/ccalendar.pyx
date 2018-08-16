@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 # cython: boundscheck=False
 """
 Cython implementations of functions resembling the stdlib calendar module

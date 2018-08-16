@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 from distutils.version import LooseVersion
 
 from cython cimport Py_ssize_t

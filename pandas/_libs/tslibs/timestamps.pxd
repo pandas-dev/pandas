@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from numpy cimport int64_t
 from np_datetime cimport npy_datetimestruct
