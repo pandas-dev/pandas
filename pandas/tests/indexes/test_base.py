@@ -2487,7 +2487,7 @@ class TestMixedIntIndex(Base):
         # GH#22085
         index = pd.Index([0, 1, 2, 3])
 
-        assert not 1.1 in index
+        assert 1.1 not in index
         assert 1.0 in index
         assert 1 in index
 
