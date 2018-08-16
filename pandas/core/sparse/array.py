@@ -749,6 +749,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return type(self)(sp_values, sparse_index=self.sp_index,
                           fill_value=fill_value)
 
+    def shift(self, periods=1):
+        if not self._null_fill_value:
+            return super(SparseArray, self).shift(periods=periods)
+
+
     def get_values(self, fill=None):
         """ return a dense representation """
         # TODO: deprecate for to_dense?
