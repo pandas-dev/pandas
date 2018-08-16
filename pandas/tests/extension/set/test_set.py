@@ -140,12 +140,12 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
         self._check_op(s, op, other,
                        None if op_name == '__sub__' else NotImplementedError)
+
+    def test_divmod(self, data):
+        pytest.skip('Not relevant')
     
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        # series & scalar
-        op_name = all_arithmetic_operators
-        s = pd.Series(data)
-        self.check_opname(s, op_name, s.iloc[0], exc=TypeError)
+    def test_error(self, data, all_arithmetic_operators):
+        pytest.skip('TODO')
  
  
 class TestComparisonOps(base.BaseComparisonOpsTests):
