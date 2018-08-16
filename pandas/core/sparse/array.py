@@ -207,6 +207,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subdtype
 
+        if is_scalar(data):
+            if sparse_index is None:
+                data = [data]
+            else:
+                data = [data] * sparse_index.length
+
         # TODO: index feels strange... can we deprecate it?
         if index is not None:
             if data is None:

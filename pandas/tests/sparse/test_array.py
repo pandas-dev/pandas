@@ -77,13 +77,13 @@ class TestSparseArray(object):
         it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
         assert np.fromiter(it, dtype=np.bool).all()
 
-    @pytest.mark.xfail(reason="strange test", strict=True)
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
-        # XXX: specifying sparse_index shouldn't change the inferred fill_value
+        # XXX: Behavior change: specifying SparseIndex no longer changes the
+        # fill_value
         expected = SparseArray([0, 1, 2, 0], kind='integer')
         tm.assert_sp_array_equal(arr, expected)
-        assert arr.dtype == SparseDtype(np.float64)
+        assert arr.dtype == SparseDtype(np.int64)
         assert arr.fill_value == 0
 
         arr = SparseArray(data=[1, 2, 3],
@@ -109,6 +109,7 @@ class TestSparseArray(object):
         assert arr.dtype == SparseDtype(np.int64)
         assert arr.fill_value == 0
 
+    def test_constructor_spindex_dtype_scalar(self):
         # scalar input
         arr = SparseArray(data=1, sparse_index=IntIndex(1, [0]), dtype=None)
         exp = SparseArray([1], dtype=None)
