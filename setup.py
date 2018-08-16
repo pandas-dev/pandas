@@ -226,15 +226,14 @@ class CleanCommand(Command):
         self._clean_trees = []
 
         base = pjoin('pandas', '_libs', 'src')
-        dt = pjoin(base, 'datetime')
-        src = base
+        tsbase = pjoin('pandas', '_libs', 'tslibs', 'src')
+        dt = pjoin(tsbase, 'datetime')
         util = pjoin('pandas', 'util')
         parser = pjoin(base, 'parser')
         ujson_python = pjoin(base, 'ujson', 'python')
         ujson_lib = pjoin(base, 'ujson', 'lib')
         self._clean_exclude = [pjoin(dt, 'np_datetime.c'),
                                pjoin(dt, 'np_datetime_strings.c'),
-                               pjoin(src, 'period_helper.c'),
                                pjoin(parser, 'tokenizer.c'),
                                pjoin(parser, 'io.c'),
                                pjoin(ujson_python, 'ujson.c'),
@@ -438,9 +437,12 @@ else:
 
 
 # enable coverage by building cython files by setting the environment variable
-# "PANDAS_CYTHON_COVERAGE" (with a Truthy value)
+# "PANDAS_CYTHON_COVERAGE" (with a Truthy value) or by running build_ext
+# with `--with-cython-coverage`enabled
 linetrace = os.environ.get('PANDAS_CYTHON_COVERAGE', False)
-CYTHON_TRACE = str(int(bool(linetrace)))
+if '--with-cython-coverage' in sys.argv:
+    linetrace = True
+    sys.argv.remove('--with-cython-coverage')
 
 # Note: if not using `cythonize`, coverage can be enabled by
 # pinning `ext.cython_directives = directives` to each ext in extensions.
@@ -481,30 +483,24 @@ def maybe_cythonize(extensions, *args, **kwargs):
         return extensions
 
 
-lib_depends = ['inference']
-
-
 def srcpath(name=None, suffix='.pyx', subdir='src'):
     return pjoin('pandas', subdir, name + suffix)
 
 
-if suffix == '.pyx':
-    lib_depends = [srcpath(f, suffix='.pyx', subdir='_libs/src')
-                   for f in lib_depends]
-else:
-    lib_depends = []
-
 common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
+ts_include = ['pandas/_libs/tslibs/src']
 
 
-lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
-                             'pandas/_libs/src/parse_helper.h',
-                             'pandas/_libs/src/compat_helper.h']
+lib_depends = ['pandas/_libs/src/numpy_helper.h',
+               'pandas/_libs/src/parse_helper.h',
+               'pandas/_libs/src/compat_helper.h']
 
-np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
-                       'pandas/_libs/src/datetime/np_datetime_strings.h']
-np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
-                       'pandas/_libs/src/datetime/np_datetime_strings.c']
+np_datetime_headers = [
+    'pandas/_libs/tslibs/src/datetime/np_datetime.h',
+    'pandas/_libs/tslibs/src/datetime/np_datetime_strings.h']
+np_datetime_sources = [
+    'pandas/_libs/tslibs/src/datetime/np_datetime.c',
+    'pandas/_libs/tslibs/src/datetime/np_datetime_strings.c']
 
 tseries_depends = np_datetime_headers
 
@@ -517,13 +513,16 @@ ext_data = {
         'pyxfile': '_libs/groupby',
         'depends': _pxi_dep['groupby']},
     '_libs.hashing': {
-        'pyxfile': '_libs/hashing'},
+        'pyxfile': '_libs/hashing',
+        'include': [],
+        'depends': []},
     '_libs.hashtable': {
         'pyxfile': '_libs/hashtable',
         'depends': (['pandas/_libs/src/klib/khash_python.h'] +
                     _pxi_dep['hashtable'])},
     '_libs.index': {
         'pyxfile': '_libs/index',
+        'include': common_include + ts_include,
         'depends': _pxi_dep['index'],
         'sources': np_datetime_sources},
     '_libs.indexing': {
@@ -538,9 +537,11 @@ ext_data = {
         'depends': _pxi_dep['join']},
     '_libs.lib': {
         'pyxfile': '_libs/lib',
+        'include': common_include + ts_include,
         'depends': lib_depends + tseries_depends},
     '_libs.missing': {
         'pyxfile': '_libs/missing',
+        'include': common_include + ts_include,
         'depends': tseries_depends},
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
@@ -567,54 +568,69 @@ ext_data = {
         'depends': _pxi_dep['sparse']},
     '_libs.tslib': {
         'pyxfile': '_libs/tslib',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
-        'pyxfile': '_libs/tslibs/ccalendar'},
+        'pyxfile': '_libs/tslibs/ccalendar',
+        'include': []},
     '_libs.tslibs.conversion': {
         'pyxfile': '_libs/tslibs/conversion',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.fields': {
         'pyxfile': '_libs/tslibs/fields',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.frequencies': {
-        'pyxfile': '_libs/tslibs/frequencies'},
+        'pyxfile': '_libs/tslibs/frequencies',
+        'include': []},
     '_libs.tslibs.nattype': {
-        'pyxfile': '_libs/tslibs/nattype'},
+        'pyxfile': '_libs/tslibs/nattype',
+        'include': []},
     '_libs.tslibs.np_datetime': {
         'pyxfile': '_libs/tslibs/np_datetime',
+        'include': ts_include,
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.parsing': {
-        'pyxfile': '_libs/tslibs/parsing'},
+        'pyxfile': '_libs/tslibs/parsing',
+        'include': []},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
+        'include': ts_include,
+        'depends': tseries_depends,
+        'sources': np_datetime_sources},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.strptime': {
         'pyxfile': '_libs/tslibs/strptime',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
+        'include': ts_include,
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timestamps': {
         'pyxfile': '_libs/tslibs/timestamps',
+        'include': ts_include,
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.timezones': {
-        'pyxfile': '_libs/tslibs/timezones'},
+        'pyxfile': '_libs/tslibs/timezones',
+        'include': []},
     '_libs.testing': {
         'pyxfile': '_libs/testing'},
     '_libs.window': {

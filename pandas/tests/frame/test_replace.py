@@ -547,14 +547,12 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(res, expec)
         assert res.a.dtype == np.object_
 
-    def test_replace_regex_metachar(self):
-        metachars = '[]', '()', r'\d', r'\w', r'\s'
-
-        for metachar in metachars:
-            df = DataFrame({'a': [metachar, 'else']})
-            result = df.replace({'a': {metachar: 'paren'}})
-            expected = DataFrame({'a': ['paren', 'else']})
-            assert_frame_equal(result, expected)
+    @pytest.mark.parametrize('metachar', ['[]', '()', r'\d', r'\w', r'\s'])
+    def test_replace_regex_metachar(self, metachar):
+        df = DataFrame({'a': [metachar, 'else']})
+        result = df.replace({'a': {metachar: 'paren'}})
+        expected = DataFrame({'a': ['paren', 'else']})
+        assert_frame_equal(result, expected)
 
     def test_replace(self):
         self.tsframe['A'][:5] = nan
@@ -604,6 +602,20 @@ class TestDataFrameReplace(TestData):
                            'c': ['h', 'e', 'l', 'o']})
 
         assert_frame_equal(res, expec)
+
+    def test_replace_with_empty_list(self):
+        # GH 21977
+        s = pd.Series([['a', 'b'], [], np.nan, [1]])
+        df = pd.DataFrame({'col': s})
+        expected = df
+        result = df.replace([], np.nan)
+        assert_frame_equal(result, expected)
+
+        # GH 19266
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+            df.replace({np.nan: []})
+        with tm.assert_raises_regex(ValueError, "cannot assign mismatch"):
+            df.replace({np.nan: ['dummy', 'alt']})
 
     def test_replace_series_dict(self):
         # from GH 3064
@@ -757,40 +769,37 @@ class TestDataFrameReplace(TestData):
         result = tsframe.fillna(method='bfill')
         assert_frame_equal(result, tsframe.fillna(method='bfill'))
 
-    def test_replace_dtypes(self):
-        # int
-        df = DataFrame({'ints': [1, 2, 3]})
-        result = df.replace(1, 0)
-        expected = DataFrame({'ints': [0, 2, 3]})
-        assert_frame_equal(result, expected)
-
-        df = DataFrame({'ints': [1, 2, 3]}, dtype=np.int32)
-        result = df.replace(1, 0)
-        expected = DataFrame({'ints': [0, 2, 3]}, dtype=np.int32)
-        assert_frame_equal(result, expected)
-
-        df = DataFrame({'ints': [1, 2, 3]}, dtype=np.int16)
-        result = df.replace(1, 0)
-        expected = DataFrame({'ints': [0, 2, 3]}, dtype=np.int16)
-        assert_frame_equal(result, expected)
-
-        # bools
-        df = DataFrame({'bools': [True, False, True]})
-        result = df.replace(False, True)
-        assert result.values.all()
-
-        # complex blocks
-        df = DataFrame({'complex': [1j, 2j, 3j]})
-        result = df.replace(1j, 0j)
-        expected = DataFrame({'complex': [0j, 2j, 3j]})
-        assert_frame_equal(result, expected)
-
-        # datetime blocks
-        prev = datetime.today()
-        now = datetime.today()
-        df = DataFrame({'datetime64': Index([prev, now, prev])})
-        result = df.replace(prev, now)
-        expected = DataFrame({'datetime64': Index([now] * 3)})
+    @pytest.mark.parametrize('frame, to_replace, value, expected', [
+        (DataFrame({'ints': [1, 2, 3]}), 1, 0,
+         DataFrame({'ints': [0, 2, 3]})),
+        (DataFrame({'ints': [1, 2, 3]}, dtype=np.int32), 1, 0,
+         DataFrame({'ints': [0, 2, 3]}, dtype=np.int32)),
+        (DataFrame({'ints': [1, 2, 3]}, dtype=np.int16), 1, 0,
+         DataFrame({'ints': [0, 2, 3]}, dtype=np.int16)),
+        (DataFrame({'bools': [True, False, True]}), False, True,
+         DataFrame({'bools': [True, True, True]})),
+        (DataFrame({'complex': [1j, 2j, 3j]}), 1j, 0,
+         DataFrame({'complex': [0j, 2j, 3j]})),
+        (DataFrame({'datetime64': Index([datetime(2018, 5, 28),
+                                         datetime(2018, 7, 28),
+                                         datetime(2018, 5, 28)])}),
+         datetime(2018, 5, 28), datetime(2018, 7, 28),
+         DataFrame({'datetime64': Index([datetime(2018, 7, 28)] * 3)})),
+        # GH 20380
+        (DataFrame({'dt': [datetime(3017, 12, 20)], 'str': ['foo']}),
+         'foo', 'bar',
+         DataFrame({'dt': [datetime(3017, 12, 20)], 'str': ['bar']})),
+        (DataFrame({'A': date_range('20130101', periods=3, tz='US/Eastern'),
+                    'B': [0, np.nan, 2]}),
+         Timestamp('20130102', tz='US/Eastern'),
+         Timestamp('20130104', tz='US/Eastern'),
+         DataFrame({'A': [Timestamp('20130101', tz='US/Eastern'),
+                          Timestamp('20130104', tz='US/Eastern'),
+                          Timestamp('20130103', tz='US/Eastern')],
+                    'B': [0, np.nan, 2]}))
+    ])
+    def test_replace_dtypes(self, frame, to_replace, value, expected):
+        result = getattr(frame, 'replace')(to_replace, value)
         assert_frame_equal(result, expected)
 
     def test_replace_input_formats_listlike(self):

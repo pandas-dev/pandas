@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -7,10 +6,12 @@ from cython cimport Py_ssize_t
 from libc.stdlib cimport malloc, free
 
 import numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray,
                     double_t,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t)
+cnp.import_array()
 
 
 from util cimport numeric, get_nat
@@ -118,7 +119,7 @@ def group_median_float64(ndarray[float64_t, ndim=2] out,
     counts[:] = _counts[1:]
 
     data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> data.data
+    ptr = <float64_t*> cnp.PyArray_DATA(data)
 
     take_2d_axis1_float64_float64(values.T, indexer, out=data)
 

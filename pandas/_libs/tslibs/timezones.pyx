@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
-cimport cython
 from cython cimport Py_ssize_t
 
 # dateutil compat
@@ -19,7 +17,7 @@ UTC = pytz.utc
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t
+from numpy cimport int64_t
 cnp.import_array()
 
 # ----------------------------------------------------------------------
@@ -188,10 +186,10 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cpdef ndarray[int64_t, ndim=1] unbox_utcoffsets(object transinfo):
+cpdef int64_t[:] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
-        ndarray[int64_t] arr
+        int64_t[:] arr
 
     sz = len(transinfo)
     arr = np.empty(sz, dtype='i8')

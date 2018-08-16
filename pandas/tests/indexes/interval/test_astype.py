@@ -95,7 +95,7 @@ class TestIntSubtype(Base):
                                              closed=index.closed)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.xfail(reason='GH 15832')
+    @pytest.mark.xfail(reason='GH#15832', strict=True)
     def test_subtype_integer_errors(self):
         # int64 -> uint64 fails with negative values
         index = interval_range(-10, 10)
@@ -133,7 +133,7 @@ class TestFloatSubtype(Base):
         with tm.assert_raises_regex(ValueError, msg):
             index.insert(0, np.nan).astype(dtype)
 
-    @pytest.mark.xfail(reason='GH 15832')
+    @pytest.mark.xfail(reason='GH#15832', strict=True)
     def test_subtype_integer_errors(self):
         # float64 -> uint64 fails with negative values
         index = interval_range(-10.0, 10.0)

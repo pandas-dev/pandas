@@ -668,16 +668,15 @@ class TestIndexOps(Ops):
 
         s = klass(df['dt'].copy())
         s.name = None
-
-        idx = pd.to_datetime(['2010-01-01 00:00:00Z',
-                              '2008-09-09 00:00:00Z',
-                              '2009-01-01 00:00:00Z'])
+        idx = pd.to_datetime(['2010-01-01 00:00:00',
+                              '2008-09-09 00:00:00',
+                              '2009-01-01 00:00:00'])
         expected_s = Series([3, 2, 1], index=idx)
         tm.assert_series_equal(s.value_counts(), expected_s)
 
-        expected = np_array_datetime64_compat(['2010-01-01 00:00:00Z',
-                                               '2009-01-01 00:00:00Z',
-                                               '2008-09-09 00:00:00Z'],
+        expected = np_array_datetime64_compat(['2010-01-01 00:00:00',
+                                               '2009-01-01 00:00:00',
+                                               '2008-09-09 00:00:00'],
                                               dtype='datetime64[ns]')
         if isinstance(s, Index):
             tm.assert_index_equal(s.unique(), DatetimeIndex(expected))
@@ -1236,7 +1235,8 @@ def test_values_consistent(array, expected_type, dtype):
     pytest.param(
         pd.PeriodIndex(['2017', '2018'], freq='D'),
         np.array([17167, 17532]),
-        marks=pytest.mark.xfail(reason="PeriodArray Not implemented")
+        marks=pytest.mark.xfail(reason="PeriodArray Not implemented",
+                                strict=True)
     ),
 ])
 def test_ndarray_values(array, expected):
