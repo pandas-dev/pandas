@@ -2645,6 +2645,8 @@ class Index(IndexOpsMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
         return Index(np.array(self) + other)
 
     def __radd__(self, other):

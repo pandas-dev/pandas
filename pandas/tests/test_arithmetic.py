@@ -923,11 +923,7 @@ class TestTimedeltaArraylikeAddSubOps(object):
 
     @pytest.mark.parametrize('box', [
         pd.Index,
-        pytest.param(Series,
-                     marks=pytest.mark.xfail(reason="Index fails to return "
-                                                    "NotImplemented on "
-                                                    "reverse op",
-                                             strict=True)),
+        Series,
         pytest.param(pd.DataFrame,
                      marks=pytest.mark.xfail(reason="Tries to broadcast "
                                                     "incorrectly",

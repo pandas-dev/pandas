@@ -576,7 +576,7 @@ Datetimelike
 - Bug in :class:`DataFrame` with mixed dtypes including ``datetime64[ns]`` incorrectly raising ``TypeError`` on equality comparisons (:issue:`13128`,:issue:`22163`)
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`,:issue:`22163`)
 - Bug in :class:`DataFrame` with ``timedelta64[ns]`` dtype division by ``Timedelta``-like scalar incorrectly returning ``timedelta64[ns]`` dtype instead of ``float64`` dtype (:issue:`20088`,:issue:`22163`)
--
+- Bug in adding a :class:`Index` with object dtype to a :class:`Series` with ``timedelta64[ns]`` dtype incorrectly raising (:issue:`?????`)
 
 Timedelta
 ^^^^^^^^^
