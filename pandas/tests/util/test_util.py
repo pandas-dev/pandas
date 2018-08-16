@@ -455,6 +455,7 @@ class TestLocaleUtils(object):
 
     def test_get_locales(self):
         # all systems should have at least a single locale
+        # GH9744
         assert len(tm.get_locales()) > 0
 
     def test_get_locales_prefix(self):

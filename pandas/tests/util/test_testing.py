@@ -848,18 +848,6 @@ class TestRNGContext(object):
             assert np.random.randn() == expected0
 
 
-class TestLocale(object):
-
-    def test_locale(self):
-        if sys.platform == 'win32':
-            pytest.skip(
-                "skipping on win platforms as locale not available")
-
-        # GH9744
-        locales = tm.get_locales()
-        assert len(locales) >= 1
-
-
 def test_datapath_missing(datapath, request):
     if not request.config.getoption("--strict-data-files"):
         pytest.skip("Need to set '--strict-data-files'")
