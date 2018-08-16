@@ -2,7 +2,6 @@
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
-from datetime import timedelta
 from decimal import Decimal
 import operator
 from collections import Iterable
