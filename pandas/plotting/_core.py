@@ -29,9 +29,6 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
-    is_iterator,
-    is_numeric_dtype,
-    is_categorical_dtype)
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 
 from pandas.core.generic import _shared_docs, _shared_doc_kwargs
