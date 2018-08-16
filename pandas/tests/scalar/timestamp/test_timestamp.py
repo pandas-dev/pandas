@@ -21,7 +21,7 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import long, PY3, text_type, PY2
+from pandas.compat import long, PY3, PY2
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import Timestamp, Period, Timedelta, NaT
 
@@ -114,29 +114,32 @@ class TestTimestampProperties(object):
             expected_month = 'August'
         else:
             with tm.set_locale(time_locale, locale.LC_TIME):
-                expected_day = unicodedata.normalize(
-                    "NFD", text_type(calendar.day_name[0].capitalize())
-                )
-                expected_month = unicodedata.normalize(
-                    "NFD", calendar.month_name[8].capitalize()
-                )
+                expected_day = calendar.day_name[0].capitalize()
+                expected_month = calendar.month_name[8].capitalize()
+
+        result_day = data.day_name(time_locale)
+        result_month = data.month_name(time_locale)
 
         # Work around https://github.com/pandas-dev/pandas/issues/22342
         # different normalizations
 
         if not (PY2 and time_locale):
-            # some locales may have non-ascii characters
-            # not worth testing at this point
+            expected_day = unicodedata.normalize(
+                "NFD", expected_day
+            )
+            expected_month = unicodedata.normalize(
+                "NFD", expected_month
+            )
 
             result_day = unicodedata.normalize(
-                "NFD", text_type(data.day_name(time_locale))
+                "NFD", result_day,
             )
             result_month = unicodedata.normalize(
-                "NFD", text_type(data.month_name(time_locale))
+                "NFD", result_month
             )
 
-            assert result_day == expected_day
-            assert result_month == expected_month
+        assert result_day == expected_day
+        assert result_month == expected_month
 
         # Test NaT
         nan_ts = Timestamp(NaT)
