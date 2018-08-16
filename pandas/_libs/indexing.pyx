@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 cdef class _NDFrameIndexerBase:
     """
     A base class for _NDFrameIndexer for fast instantiation and attribute

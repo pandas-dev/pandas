@@ -1149,7 +1149,7 @@ def infer_dtype(object value, bint skipna=False):
 
     # try to use a valid value
     for i in range(n):
-        val = util.get_value_1d(values, i)
+        val = values[i]
 
         # do not use is_nul_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
@@ -1236,7 +1236,7 @@ def infer_dtype(object value, bint skipna=False):
             return 'interval'
 
     for i in range(n):
-        val = util.get_value_1d(values, i)
+        val = values[i]
         if (util.is_integer_object(val) and
                 not util.is_timedelta64_object(val) and
                 not util.is_datetime64_object(val)):
@@ -2253,7 +2253,7 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     keys = getattr(keys, 'values', keys)
 
     for i in range(n):
-        val = util.get_value_1d(keys, i)
+        val = keys[i]
         if val in mapping:
             output[i] = mapping[val]
         else:

@@ -752,11 +752,6 @@ class MultiIndex(Index):
     def inferred_type(self):
         return 'mixed'
 
-    @staticmethod
-    def _from_elements(values, labels=None, levels=None, names=None,
-                       sortorder=None):
-        return MultiIndex(levels, labels, names, sortorder=sortorder)
-
     def _get_level_number(self, level):
         count = self.names.count(level)
         if (count > 1) and not is_integer(level):

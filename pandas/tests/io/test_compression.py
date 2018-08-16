@@ -1,10 +1,19 @@
 import os
+import warnings
 
 import pytest
 
 import pandas as pd
 import pandas.io.common as icom
 import pandas.util.testing as tm
+
+
+def catch_to_csv_depr():
+    # Catching warnings because Series.to_csv has
+    # been deprecated. Remove this context when
+    # Series.to_csv has been aligned.
+
+    return warnings.catch_warnings(record=True)
 
 
 @pytest.mark.parametrize('obj', [
@@ -15,11 +24,12 @@ import pandas.util.testing as tm
 @pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
 def test_compression_size(obj, method, compression_only):
     with tm.ensure_clean() as path:
-        getattr(obj, method)(path, compression=compression_only)
-        compressed_size = os.path.getsize(path)
-        getattr(obj, method)(path, compression=None)
-        uncompressed_size = os.path.getsize(path)
-        assert uncompressed_size > compressed_size
+        with catch_to_csv_depr():
+            getattr(obj, method)(path, compression=compression_only)
+            compressed_size = os.path.getsize(path)
+            getattr(obj, method)(path, compression=None)
+            uncompressed_size = os.path.getsize(path)
+            assert uncompressed_size > compressed_size
 
 
 @pytest.mark.parametrize('obj', [
@@ -31,16 +41,18 @@ def test_compression_size(obj, method, compression_only):
 def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as path:
         f, handles = icom._get_handle(path, 'w', compression=compression_only)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
-        assert f.closed
-        compressed_size = os.path.getsize(path)
+        with catch_to_csv_depr():
+            with f:
+                getattr(obj, method)(f)
+                assert not f.closed
+            assert f.closed
+            compressed_size = os.path.getsize(path)
     with tm.ensure_clean() as path:
         f, handles = icom._get_handle(path, 'w', compression=None)
-        with f:
-            getattr(obj, method)(f)
-            assert not f.closed
+        with catch_to_csv_depr():
+            with f:
+                getattr(obj, method)(f)
+                assert not f.closed
         assert f.closed
         uncompressed_size = os.path.getsize(path)
         assert uncompressed_size > compressed_size
