@@ -2074,6 +2074,21 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
+
+    def shift(self, periods, axis=0, mgr=None):
+        # type: (int, int, Optional[BlockPlacement]) -> List[ExtensionBlock]
+        indexer = np.roll(np.arange(len(self)), periods)
+
+        if periods > 0:
+            indexer[:periods] = -1
+        else:
+            indexer[periods:] = -1
+
+        new_values = self.values.take(indexer, allow_fill=True)
+        return [self.make_block_same_class(new_values,
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
+
     @property
     def _ftype(self):
         return getattr(self.values, '_pandas_ftype', Block._ftype)

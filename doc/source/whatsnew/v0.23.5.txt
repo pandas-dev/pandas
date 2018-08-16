@@ -26,6 +26,11 @@ Fixed Regressions
 -
 -
 
+
+Development
+~~~~~~~~~~~
+- The minimum required pytest version has been increased to 3.6 (:issue:`22319`)
+
 .. _whatsnew_0235.bug_fixes:
 
 Bug Fixes
