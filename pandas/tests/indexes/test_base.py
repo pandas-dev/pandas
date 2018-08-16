@@ -2483,6 +2483,14 @@ class TestMixedIntIndex(Base):
         # TODO: implement _assert_tzawareness_compat for the reverse
         # comparison with the Series on the left-hand side
 
+    def test_contains_with_float_val(self):
+        # GH#22085
+        index = pd.Index([0, 1, 2, 3])
+
+        assert not 1.1 in index
+        assert 1.0 in index
+        assert 1 in index
+
 
 class TestIndexUtils(object):
 
