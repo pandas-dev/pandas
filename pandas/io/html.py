@@ -104,7 +104,11 @@ def _get_skiprows(skip_rows):
         A proper iterator to use to skip rows of a DataFrame.
     """
     if isinstance(skip_rows, slice):
-        return lrange(skip_rows.start or 0, skip_rows.stop, skip_rows.step or 1)
+        return lrange(
+            skip_rows.start or 0,
+            skip_rows.stop,
+            skip_rows.step or 1
+        )
     elif isinstance(skip_rows, numbers.Integral) or is_list_like(skip_rows):
         return skip_rows
     elif skip_rows is None:
