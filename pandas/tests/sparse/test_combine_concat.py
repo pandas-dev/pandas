@@ -286,27 +286,26 @@ class TestSparseDataFrameConcat(object):
 
     def test_concat_different_columns(self):
         # fill_value = np.nan
-        # sparse = self.dense1.to_sparse()
-        # sparse3 = self.dense3.to_sparse()
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse()
 
-        # res = pd.concat([sparse, sparse3], sort=True)
-        # exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
-        # tm.assert_sp_frame_equal(res, exp, check_kind=False)
-        #
-        # res = pd.concat([sparse3, sparse], sort=True)
-        # exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
-        # exp._default_fill_value = np.nan
-        # tm.assert_sp_frame_equal(res, exp, check_kind=False)
-        #
-        # # fill_value = 0
+        res = pd.concat([sparse, sparse3], sort=True)
+        exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
+        tm.assert_sp_frame_equal(res, exp, check_kind=False)
+
+        res = pd.concat([sparse3, sparse], sort=True)
+        exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
+        exp._default_fill_value = np.nan
+        tm.assert_sp_frame_equal(res, exp, check_kind=False)
+
+    @pytest.mark.xfail(reason="concat sparse and dense", strict=True)
+    def test_concat_different_columns_buggy(self):
+        # I'm confused here. We're getting different fill values
+        # and so different sparse values for C (all NaN and not present).
+        # fill_value = 0
         sparse = self.dense1.to_sparse(fill_value=0)
         sparse3 = self.dense3.to_sparse(fill_value=0)
 
-        # this test is buggy. from here on out
-        # exp doesn't handle C (all NaN) correctly.
-        # We correctly don't have any sparse values since the
-        # values are all NaN, and the fill_value is 0.
-        # raise pytest.xfail("Test is buggy.")
         res = pd.concat([sparse, sparse3], sort=True)
         exp = (pd.concat([self.dense1, self.dense3], sort=True)
                  .to_sparse(fill_value=0))

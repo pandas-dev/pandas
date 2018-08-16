@@ -2080,7 +2080,6 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
     concat_plan = combine_concat_plans(concat_plans, concat_axis)
     blocks = []
 
-    import pdb; pdb.set_trace()
     for placement, join_units in concat_plan:
 
         if len(join_units) == 1 and not join_units[0].indexers:
