@@ -7,7 +7,7 @@ from uuid import uuid4
 from collections import OrderedDict
 
 import pytest
-from pandas.compat import intern
+from pandas.compat import intern, PY3
 import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util._decorators import deprecate_kwarg, make_signature
@@ -374,10 +374,7 @@ class TestMove(object):
         # materialize as bytearray to show that it is mutable
         assert bytearray(as_stolen_buf) == b'test'
 
-    @pytest.mark.skipif(
-        sys.version_info[0] > 2,
-        reason='bytes objects cannot be interned in py3',
-    )
+    @pytest.mark.skipif(PY3, reason='bytes objects cannot be interned in py3')
     def test_interned(self):
         salt = uuid4().hex
 
@@ -436,6 +433,26 @@ class TestLocaleUtils(object):
         del cls.locales
         del cls.current_locale
 
+    def test_can_set_locale_valid_set(self):
+        # Setting the default locale should return True
+        assert tm.can_set_locale('') is True
+
+    def test_can_set_locale_invalid_set(self):
+        # Setting an invalid locale should return False
+        assert tm.can_set_locale('non-existent_locale') is False
+
+    def test_can_set_locale_invalid_get(self, monkeypatch):
+        # In some cases, an invalid locale can be set,
+        # but a subsequent getlocale() raises a ValueError
+        # See GH 22129
+
+        def mockgetlocale():
+            raise ValueError()
+
+        with monkeypatch.context() as m:
+            m.setattr(locale, 'getlocale', mockgetlocale)
+            assert tm.can_set_locale('') is False
+
     def test_get_locales(self):
         # all systems should have at least a single locale
         assert len(tm.get_locales()) > 0
@@ -469,7 +486,7 @@ class TestLocaleUtils(object):
         enc = codecs.lookup(enc).name
         new_locale = lang, enc
 
-        if not tm._can_set_locale(new_locale):
+        if not tm.can_set_locale(new_locale):
             with pytest.raises(locale.Error):
                 with tm.set_locale(new_locale):
                     pass

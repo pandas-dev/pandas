@@ -5,8 +5,9 @@ blosc
 bottleneck
 fastparquet
 feather-format
+gcsfs
 html5lib
-ipython
+ipython>=5.6.0
 ipykernel
 jinja2
 lxml
@@ -23,6 +24,7 @@ s3fs
 scipy
 seaborn
 sqlalchemy
+statsmodels
 xarray
 xlrd
 xlsxwriter

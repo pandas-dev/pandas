@@ -4,8 +4,6 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from missing cimport is_null_datetimelike
-
 
 #----------------------------------------------------------------------
 # VectorData
@@ -31,7 +29,7 @@ dtypes = [('Float64', 'float64', 'float64_t'),
 
 ctypedef struct {{name}}VectorData:
     {{arg}} *data
-    size_t n, m
+    Py_ssize_t n, m
 
 {{endif}}
 
@@ -122,7 +120,7 @@ cdef class {{name}}Vector:
 
         append_data_{{dtype}}(self.data, x)
 
-    cdef extend(self, {{arg}}[:] x):
+    cdef extend(self, const {{arg}}[:] x):
         for i in range(len(x)):
             self.append(x[i])
 
@@ -149,7 +147,7 @@ cdef class StringVector:
     cdef resize(self):
         cdef:
             char **orig_data
-            size_t i, m
+            Py_ssize_t i, m
 
         m = self.data.m
         self.data.m = max(self.data.m * 4, _INIT_VEC_CAP)
@@ -174,7 +172,7 @@ cdef class StringVector:
     def to_array(self):
         cdef:
             ndarray ao
-            size_t n
+            Py_ssize_t n
             object val
 
         ao = np.empty(self.data.n, dtype=np.object)
@@ -200,7 +198,7 @@ cdef class ObjectVector:
 
     cdef:
         PyObject **data
-        size_t n, m
+        Py_ssize_t n, m
         ndarray ao
         bint external_view_exists
 
@@ -250,61 +248,15 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, null_condition, float_group
-dtypes = [('Float64', 'float64', 'val != val', True),
-          ('UInt64', 'uint64', 'False', False),
-          ('Int64', 'int64', 'val == iNaT', False)]
+# name, dtype, float_group, default_na_value
+dtypes = [('Float64', 'float64', True, 'nan'),
+          ('UInt64', 'uint64', False, 0),
+          ('Int64', 'int64', False, 'iNaT')]
 
-def get_dispatch(dtypes):
-  for (name, dtype, null_condition, float_group) in dtypes:
-    unique_template = """\
-        cdef:
-           Py_ssize_t i, n = len(values)
-           int ret = 0
-           {dtype}_t val
-           khiter_t k
-           bint seen_na = 0
-           {name}Vector uniques = {name}Vector()
-           {name}VectorData *ud
-
-        ud = uniques.data
-
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                IF {float_group}:
-                  if val == val:
-                      k = kh_get_{dtype}(self.table, val)
-                      if k == self.table.n_buckets:
-                          kh_put_{dtype}(self.table, val, &ret)
-                          if needs_resize(ud):
-                              with gil:
-                                  uniques.resize()
-                          append_data_{dtype}(ud, val)
-                  elif not seen_na:
-                      seen_na = 1
-                      if needs_resize(ud):
-                          with gil:
-                              uniques.resize()
-                      append_data_{dtype}(ud, NAN)
-                ELSE:
-                  k = kh_get_{dtype}(self.table, val)
-                  if k == self.table.n_buckets:
-                      kh_put_{dtype}(self.table, val, &ret)
-                      if needs_resize(ud):
-                          with gil:
-                              uniques.resize()
-                      append_data_{dtype}(ud, val)
-        return uniques.to_array()
-      """
-
-    unique_template = unique_template.format(name=name, dtype=dtype, null_condition=null_condition, float_group=float_group)
-
-    yield (name, dtype, null_condition, float_group, unique_template)
 }}
 
 
-{{for name, dtype, null_condition, float_group, unique_template in get_dispatch(dtypes)}}
+{{for name, dtype, float_group, default_na_value in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -329,7 +281,7 @@ cdef class {{name}}HashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof({{dtype}}_t) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, {{dtype}}_t val):
@@ -353,7 +305,7 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def map(self, {{dtype}}_t[:] keys, int64_t[:] values):
+    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -381,7 +333,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = i
 
     @cython.boundscheck(False)
-    def lookup(self, {{dtype}}_t[:] values):
+    def lookup(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -406,26 +358,38 @@ cdef class {{name}}HashTable(HashTable):
         return uniques.to_array(), labels
 
     @cython.boundscheck(False)
-    def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
+    def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True):
+                   object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            {{dtype}}_t val
+            {{dtype}}_t val, na_value2
             khiter_t k
             {{name}}VectorData *ud
+            bint use_na_value
 
         labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
+        use_na_value = na_value is not None
+
+        if use_na_value:
+            # We need this na_value2 because we want to allow users
+            # to *optionally* specify an NA sentinel *of the correct* type.
+            # We use None, to make it optional, which requires `object` type
+            # for the parameter. To please the compiler, we use na_value2,
+            # which is only used if it's *specified*.
+            na_value2 = <{{dtype}}_t>na_value
+        else:
+            na_value2 = {{default_na_value}}
 
         with nogil:
             for i in range(n):
                 val = values[i]
 
-                if check_null and {{null_condition}}:
+                if val != val or (use_na_value and val == na_value2):
                     labels[i] = na_sentinel
                     continue
 
@@ -451,7 +415,7 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels)
 
     @cython.boundscheck(False)
-    def get_labels_groupby(self, {{dtype}}_t[:] values):
+    def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -496,20 +460,46 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels), arr_uniques
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[{{dtype}}_t, ndim=1] values):
-        if values.flags.writeable:
-          # If the value is writeable (mutable) then use memview
-          return self.unique_memview(values)
+    def unique(self, const {{dtype}}_t[:] values):
+        cdef:
+           Py_ssize_t i, n = len(values)
+           int ret = 0
+           {{dtype}}_t val
+           khiter_t k
+           bint seen_na = 0
+           {{name}}Vector uniques = {{name}}Vector()
+           {{name}}VectorData *ud
 
-        # We cannot use the memoryview version on readonly-buffers due to
-        # a limitation of Cython's typed memoryviews. Instead we can use
-        # the slightly slower Cython ndarray type directly.
-        # see https://github.com/cython/cython/issues/1605
-{{unique_template}}
+        ud = uniques.data
 
-    @cython.boundscheck(False)
-    def unique_memview(self, {{dtype}}_t[:] values):
-{{unique_template}}
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                {{if float_group}}
+                if val == val:
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k == self.table.n_buckets:
+                        kh_put_{{dtype}}(self.table, val, &ret)
+                        if needs_resize(ud):
+                            with gil:
+                                uniques.resize()
+                        append_data_{{dtype}}(ud, val)
+                elif not seen_na:
+                    seen_na = 1
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, NAN)
+                {{else}}
+                k = kh_get_{{dtype}}(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_{{dtype}}(self.table, val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+                {{endif}}
+        return uniques.to_array()
 
 {{endfor}}
 
@@ -532,13 +522,13 @@ cdef class StringHashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof(char *) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
         cdef:
             khiter_t k
-            char *v
+            const char *v
         v = util.get_c_string(val)
 
         k = kh_get_str(self.table, v)
@@ -551,7 +541,7 @@ cdef class StringHashTable(HashTable):
         cdef:
             khiter_t k
             int ret = 0
-            char *v
+            const char *v
 
         v = util.get_c_string(val)
 
@@ -570,10 +560,10 @@ cdef class StringHashTable(HashTable):
             int64_t *resbuf = <int64_t*> labels.data
             khiter_t k
             kh_str_t *table = self.table
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
 
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
             v = util.get_c_string(val)
@@ -599,10 +589,10 @@ cdef class StringHashTable(HashTable):
             object val
             ObjectVector uniques
             khiter_t k
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
 
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         uindexer = np.empty(n, dtype=np.int64)
         for i in range(n):
             val = values[i]
@@ -637,7 +627,7 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            char *v
+            const char *v
             khiter_t k
             int64_t[:] locs = np.empty(n, dtype=np.int64)
 
@@ -670,12 +660,12 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t i, n = len(values)
             int ret = 0
             object val
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
             khiter_t k
 
         # these by-definition *must* be strings
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
@@ -695,7 +685,7 @@ cdef class StringHashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=1):
+                   object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -703,21 +693,24 @@ cdef class StringHashTable(HashTable):
             Py_ssize_t idx, count = count_prior
             int ret = 0
             object val
-            char *v
-            char **vecs
+            const char *v
+            const char **vecs
             khiter_t k
+            bint use_na_value
 
         # these by-definition *must* be strings
         labels = np.zeros(n, dtype=np.int64)
         uindexer = np.empty(n, dtype=np.int64)
+        use_na_value = na_value is not None
 
         # pre-filter out missing
         # and assign pointers
-        vecs = <char **> malloc(n * sizeof(char *))
+        vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
 
-            if PyUnicode_Check(val) or PyString_Check(val):
+            if ((PyUnicode_Check(val) or PyString_Check(val)) and
+                    not (use_na_value and val == na_value)):
                 v = util.get_c_string(val)
                 vecs[i] = v
             else:
@@ -776,7 +769,7 @@ cdef class PyObjectHashTable(HashTable):
     def sizeof(self, deep=False):
         """ return the size of my table in bytes """
         return self.table.n_buckets * (sizeof(PyObject *) + # keys
-                                       sizeof(size_t) + # vals
+                                       sizeof(Py_ssize_t) + # vals
                                        sizeof(uint32_t)) # flags
 
     cpdef get_item(self, object val):
@@ -855,7 +848,12 @@ cdef class PyObjectHashTable(HashTable):
         for i in range(n):
             val = values[i]
             hash(val)
-            if not _checknan(val):
+
+            # `val is None` below is exception to prevent mangling of None and
+            # other NA values; note however that other NA values (ex: pd.NaT
+            # and np.nan) will still get mangled, so many not be a permanent
+            # solution; see GH 20866
+            if not checknull(val) or val is None:
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
                     kh_put_pymap(self.table, <PyObject*>val, &ret)
@@ -868,7 +866,7 @@ cdef class PyObjectHashTable(HashTable):
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=True):
+                   object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -876,14 +874,17 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
+            bint use_na_value
 
         labels = np.empty(n, dtype=np.int64)
+        use_na_value = na_value is not None
 
         for i in range(n):
             val = values[i]
             hash(val)
 
-            if check_null and val != val or val is None:
+            if ((val != val or val is None) or
+                    (use_na_value and val == na_value)):
                 labels[i] = na_sentinel
                 continue
 

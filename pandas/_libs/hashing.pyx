@@ -3,22 +3,21 @@
 # at https://github.com/veorq/SipHash
 
 import cython
-cimport numpy as cnp
-import numpy as np
-from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
-
-from util cimport _checknull
-from cpython cimport (PyString_Check,
-                      PyBytes_Check,
-                      PyUnicode_Check)
+from cpython cimport PyBytes_Check, PyUnicode_Check
 from libc.stdlib cimport malloc, free
+
+import numpy as np
+from numpy cimport uint8_t, uint32_t, uint64_t, import_array
+import_array()
+
+from util cimport is_nan
 
 DEF cROUNDS = 2
 DEF dROUNDS = 4
 
 
 @cython.boundscheck(False)
-def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
+def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     """
     Parameters
     ----------
@@ -38,7 +37,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     """
     cdef:
         Py_ssize_t i, l, n
-        ndarray[uint64_t] result
+        uint64_t[:] result
         bytes data, k
         uint8_t *kb
         uint64_t *lens
@@ -62,13 +61,11 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     cdef list datas = []
     for i in range(n):
         val = arr[i]
-        if PyString_Check(val):
-            data = <bytes>val.encode(encoding)
-        elif PyBytes_Check(val):
+        if PyBytes_Check(val):
             data = <bytes>val
         elif PyUnicode_Check(val):
             data = <bytes>val.encode(encoding)
-        elif _checknull(val):
+        elif val is None or is_nan(val):
             # null, stringify and encode
             data = <bytes>str(val).encode(encoding)
 
@@ -92,7 +89,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
 
     free(vecs)
     free(lens)
-    return result
+    return result.base  # .base to retrieve underlying np.ndarray
 
 
 cdef inline uint64_t _rotl(uint64_t x, uint64_t b) nogil:

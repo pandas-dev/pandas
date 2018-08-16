@@ -32,7 +32,8 @@ class TestFreqConversion(object):
         assert week2.asfreq('D', 'S') <= per2
 
     @pytest.mark.xfail(reason='GH#19643 period_helper asfreq functions fail '
-                              'to check for overflows')
+                              'to check for overflows',
+                       strict=True)
     def test_to_timestamp_out_of_bounds(self):
         # GH#19643, currently gives Timestamp('1754-08-30 22:43:41.128654848')
         per = Period('0001-01-01', freq='B')
@@ -325,13 +326,13 @@ class TestFreqConversion(object):
 
         assert ival_W.asfreq('W') == ival_W
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             ival_W.asfreq('WK')
 
     def test_conv_weekly_legacy(self):
         # frequency conversion tests: from Weekly Frequency
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             Period(freq='WK', year=2007, month=1, day=1)
 
@@ -738,7 +739,7 @@ class TestFreqConversion(object):
 
         assert initial.asfreq(freq="M", how="S") == Period('2013-01', 'M')
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             initial.asfreq(freq="MS", how="S")
 

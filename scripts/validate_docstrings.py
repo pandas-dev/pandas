@@ -94,7 +94,7 @@ def _output_header(title, width=80, char='#'):
         full_line=full_line, title_line=title_line)
 
 
-class Docstring:
+class Docstring(object):
     def __init__(self, method_name, method_obj):
         self.method_name = method_name
         self.method_obj = method_obj
@@ -182,7 +182,8 @@ class Docstring:
     @property
     def signature_parameters(self):
         if (inspect.isclass(self.method_obj)
-                and self.method_name.split('.')[-1] in {'dt', 'str', 'cat'}):
+                and self.method_name.split('.')[-1] in
+                self.method_obj._accessors):
             # accessor classes have a signature, but don't want to show this
             return tuple()
         try:

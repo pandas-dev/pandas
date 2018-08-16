@@ -12,13 +12,38 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
+`PyPI <https://pypi.org/project/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
+
+.. _install.dropping-27:
+
+Plan for dropping Python 2.7
+----------------------------
+
+The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
+In line with `NumPy's plans`_, all pandas releases through December 31, 2018
+will support Python 2.
+
+The final release before **December 31, 2018** will be the last release to
+support Python 2. The released package will continue to be available on
+PyPI and through conda.
+
+Starting **January 1, 2019**, all releases will be Python 3 only.
+
+If there are people interested in continued support for Python 2.7 past December
+31, 2018 (either backporting bug fixes or funding) please reach out to the
+maintainers on the issue tracker.
+
+For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
+
+.. _NumPy's plans: https://github.com/numpy/numpy/blob/master/doc/neps/nep-0014-dropping-python2.7-proposal.rst#plan-for-dropping-python-27-support
+.. _Python 3 statement: http://python3statement.org/
+.. _Porting to Python 3 guide: https://docs.python.org/3/howto/pyporting.html
 
 Python version support
 ----------------------
 
-Officially Python 2.7, 3.5, and 3.6.
+Officially Python 2.7, 3.5, 3.6, and 3.7.
 
 Installing pandas
 -----------------
@@ -128,7 +153,7 @@ Installing from PyPI
 ~~~~~~~~~~~~~~~~~~~~
 
 pandas can be installed via pip from
-`PyPI <http://pypi.python.org/pypi/pandas>`__.
+`PyPI <https://pypi.org/project/pandas>`__.
 
 ::
 
@@ -137,8 +162,8 @@ pandas can be installed via pip from
 Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installation instructions for 
-`ActivePython <https://www.activestate.com/activepython>`__ can be found 
+Installation instructions for
+`ActivePython <https://www.activestate.com/activepython>`__ can be found
 `here <https://www.activestate.com/activepython/downloads>`__. Versions
 2.7 and 3.5 include pandas.
 
@@ -174,7 +199,7 @@ Running the test suite
 ----------------------
 
 pandas is equipped with an exhaustive set of unit tests, covering about 97% of
-the codebase as of this writing. To run it on your machine to verify that
+the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <http://doc.pytest.org/en/latest/>`__ and run:
@@ -198,9 +223,9 @@ installed), make sure you have `pytest
 Dependencies
 ------------
 
-* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 3.3.0 or higher
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 24.2.0 or higher
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
-* `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
+* `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
 
 .. _install.recommended_dependencies:
@@ -212,7 +237,7 @@ Recommended Dependencies
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.4.6 or higher.
 
-* `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.0.0 or higher.
 
@@ -228,29 +253,30 @@ Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.24 or higher.
+  version. Version 0.28.2 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest/necessary>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
-  * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-  * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-  * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+    * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
+    * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
+    * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
 * `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
 * For Excel I/O:
 
-  * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
-    for writing .xlsx files (xlrd >= 0.9.0)
-  * `XlsxWriter <https://pypi.python.org/pypi/XlsxWriter>`__: Alternative Excel writer
+    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+    * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+      for writing .xlsx files (xlrd >= 0.9.0)
+    * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
-* `blosc <https://pypi.python.org/pypi/blosc>`__: for msgpack compression using ``blosc``
+* `blosc <https://pypi.org/project/blosc>`__: for msgpack compression using ``blosc``
+* `gcsfs <http://gcsfs.readthedocs.io/>`__: necessary for Google Cloud Storage access (gcsfs >= 0.1.0).
 * One of
   `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
   `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
@@ -262,7 +288,7 @@ Optional Dependencies
 * `pandas-gbq <https://pandas-gbq.readthedocs.io/en/latest/install.html#dependencies>`__: for Google BigQuery I/O.
 
 
-* `Backports.lzma <https://pypi.python.org/pypi/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
+* `Backports.lzma <https://pypi.org/project/backports.lzma/>`__: Only for Python 2, for writing to and/or reading from an xz compressed DataFrame in CSV; Python 3 support is built into the standard library.
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
 

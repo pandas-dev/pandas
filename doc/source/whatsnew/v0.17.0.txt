@@ -308,7 +308,7 @@ See the :ref:`documentation <io.excel>` for more details.
    os.remove('test.xlsx')
 
 Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``,
-if the serialized data had index names.  For version 0.17.0 the ouptput format of ``to_excel``
+if the serialized data had index names.  For version 0.17.0 the output format of ``to_excel``
 has been changed to make this keyword unnecessary - the change is shown below.
 
 **Old**
@@ -1042,8 +1042,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in incorrection computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
-- Bug in  ``.isin`` on older numpies (:issue: `11232`)
+- Bug in incorrect computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
+- Bug in  ``.isin`` on older numpies (:issue:`11232`)
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.to_latex()`` the ``column_format`` argument could not be passed (:issue:`9402`)
 - Bug in ``DatetimeIndex`` when localizing with ``NaT`` (:issue:`10477`)
@@ -1069,7 +1069,7 @@ Bug Fixes
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
 - Bug in ``stack`` when index or columns are not unique. (:issue:`10417`)
-- Bug in setting a ``Panel`` when an axis has a multi-index (:issue:`10360`)
+- Bug in setting a ``Panel`` when an axis has a MultiIndex (:issue:`10360`)
 - Bug in ``USFederalHolidayCalendar`` where ``USMemorialDay`` and ``USMartinLutherKingJr`` were incorrect (:issue:`10278` and :issue:`9760` )
 - Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
 - Bug in ``.sample()`` where weights passed as ``Series`` were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
@@ -1094,7 +1094,7 @@ Bug Fixes
 
 
 - Bug in ``to_datetime`` and ``to_timedelta`` causing ``Index`` name to be lost (:issue:`10875`)
-- Bug in ``len(DataFrame.groupby)`` causing ``IndexError`` when there's a column containing only NaNs (:issue: `11016`)
+- Bug in ``len(DataFrame.groupby)`` causing ``IndexError`` when there's a column containing only NaNs (:issue:`11016`)
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
