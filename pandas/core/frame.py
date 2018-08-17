@@ -1103,7 +1103,7 @@ class DataFrame(NDFrame):
 
     def to_gbq(self, destination_table, project_id, chunksize=None,
                verbose=None, reauth=False, if_exists='fail', private_key=None,
-               auth_local_webserver=False, table_schema=None):
+               auth_local_webserver=False, table_schema=None, progress_bar=True):
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1184,7 +1184,7 @@ class DataFrame(NDFrame):
             self, destination_table, project_id, chunksize=chunksize,
             verbose=verbose, reauth=reauth, if_exists=if_exists,
             private_key=private_key, auth_local_webserver=auth_local_webserver,
-            table_schema=table_schema)
+            table_schema=table_schema, progress_bar=progress_bar)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
