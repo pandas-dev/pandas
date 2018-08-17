@@ -993,7 +993,7 @@ class ScatterPlot(PlanePlot):
                 if (coef >= lower_bound) and (coef < upper_bound):
                     labels = 10**expnt * np.array(labels_catalog[lower_bound,
                                                                  upper_bound])
-                    sizes = list(self.bubble_points * self.size_factor * \
+                    sizes = list(self.bubble_points * self.size_factor *
                                  labels / self.s_data_max)
                     labels = ['{:g}'.format(l) for l in labels]
                     return (sizes, labels)
