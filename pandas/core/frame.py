@@ -4369,6 +4369,9 @@ class DataFrame(NDFrame):
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
 
+        if self.empty:
+            return Series()
+
         def f(vals):
             labels, shape = algorithms.factorize(
                 vals, size_hint=min(len(self), _SIZE_HINT_LIMIT))

@@ -263,6 +263,13 @@ def test_drop_duplicates_tuple():
     tm.assert_frame_equal(result, expected)
 
 
+def test_drop_duplicates_empty():
+    # GH 20516
+    df = DataFrame()
+    result = df.drop_duplicates()
+    tm.assert_frame_equal(result, df)
+
+
 def test_drop_duplicates_NA():
     # none
     df = DataFrame({'A': [None, None, 'foo', 'bar',
