@@ -549,7 +549,7 @@ class TestStringMethods(object):
         assert res.loc[2] == "foo"
 
         # category
-        values = Series(["a","b","c","a", np.nan], dtype="category")
+        values = Series(["a", "b", "c", "a", np.nan], dtype="category")
         result = values.str.contains('a', na=True)
         expected = Series([True, False, False, True, True], dtype=np.object_)
         assert isinstance(result, Series)
