@@ -875,17 +875,28 @@ class ScatterPlot(PlanePlot):
             # Handle the case where s is a label of a column of the df.
             # The data is normalized to 200 * size_factor.
             size_data = data[s]
+            self.bubble_points = 200
             if is_categorical_dtype(size_data):
                 if size_data.cat.ordered:
-                    size_data = size_data.cat.codes + 1
+                    self.size_title = s
+                    self.bubble_dtype = 'categorical'
+                    size_data_codes = size_data.cat.codes + 1
+                    self.labels = list(size_data.cat.categories)
+                    n_categories = len(self.labels)
+                    self.legend_bubbles_sizes = \
+                        (np.array(range(n_categories)) + 1)**2 * \
+                        self.bubble_points * size_factor / \
+                        size_data_codes.max()**2
+                    s = self.bubble_points * size_factor * \
+                        size_data_codes**2 / size_data_codes.max()**2
                 else:
                     raise TypeError(
                         "'s' must be numeric or ordered categorical dtype")
-            if is_numeric_dtype(size_data):
+            elif is_numeric_dtype(size_data):
+                self.bubble_dtype = 'numeric'
                 self.size_title = s
                 self.s_data_max = size_data.max()
                 self.size_factor = size_factor
-                self.bubble_points = 200
                 s = self.bubble_points * size_factor * size_data / \
                     self.s_data_max
             else:
@@ -955,39 +966,47 @@ class ScatterPlot(PlanePlot):
         mantis, expnt = regexp.search(scientific_notation).groups()
         return float(mantis), float(expnt)
 
-    def _legend_bubbles(self, s_data_max, size_factor, bubble_points):
+    def _legend_bubbles(self):
         """
         Computes and returns appropriate bubble sizes and labels for the
-        legend of a  bubble plot. Creates 4 bubbles with round values for the
-        labels, the largest of which is close to the maximum of the data.
+        legend of a  bubble plot.
+
+        If bubble size represents numerical data, creates 4 bubbles with
+        round values for the labels, the largest of which is close to the
+        maximum of the data.
+
+        If bubble size represents ordered categorical data, creates one bubble
+        per category in the data. Sizes are determined by category codes.
         """
-        coef, expnt = self._sci_notation(s_data_max)
-        labels_catalog = {
-            (9, 10): [10, 5, 2.5, 1],
-            (7, 9): [8, 4, 2, 0.5],
-            (5.5, 7): [6, 3, 1.5, 0.5],
-            (4.5, 5.5): [5, 2, 1, 0.2],
-            (3.5, 4.5): [4, 2, 1, 0.2],
-            (2.5, 3.5): [3, 1, 0.5, 0.2],
-            (1.5, 2.5): [2, 1, 0.5, 0.2],
-            (0, 1.5): [1, 0.5, 0.25, 0.1]
-        }
-        for lower_bound, upper_bound in labels_catalog:
-            if (coef >= lower_bound) and (coef < upper_bound):
-                labels = 10**expnt * np.array(labels_catalog[lower_bound,
-                                                             upper_bound])
-                sizes = list(bubble_points * size_factor * labels / s_data_max)
-                labels = ['{:g}'.format(l) for l in labels]
-                return (sizes, labels)
+        if self.bubble_dtype == 'categorical':
+            return self.legend_bubbles_sizes, self.labels
+        if self.bubble_dtype == 'numeric':
+            coef, expnt = self._sci_notation(self.s_data_max)
+            labels_catalog = {
+                (9, 10): [10, 5, 2.5, 1],
+                (7, 9): [8, 4, 2, 0.5],
+                (5.5, 7): [6, 3, 1.5, 0.5],
+                (4.5, 5.5): [5, 2, 1, 0.2],
+                (3.5, 4.5): [4, 2, 1, 0.2],
+                (2.5, 3.5): [3, 1, 0.5, 0.2],
+                (1.5, 2.5): [2, 1, 0.5, 0.2],
+                (0, 1.5): [1, 0.5, 0.25, 0.1]
+            }
+            for lower_bound, upper_bound in labels_catalog:
+                if (coef >= lower_bound) and (coef < upper_bound):
+                    labels = 10**expnt * np.array(labels_catalog[lower_bound,
+                                                                 upper_bound])
+                    sizes = list(self.bubble_points * self.size_factor * \
+                                 labels / self.s_data_max)
+                    labels = ['{:g}'.format(l) for l in labels]
+                    return (sizes, labels)
 
     def _make_legend(self):
         if hasattr(self, "size_title"):
             ax = self.axes[0]
             import matplotlib.legend as legend
             from matplotlib.collections import CircleCollection
-            sizes, labels = self._legend_bubbles(self.s_data_max,
-                                                 self.size_factor,
-                                                 self.bubble_points)
+            sizes, labels = self._legend_bubbles()
             color = self.plt.rcParams['axes.facecolor'],
             edgecolor = self.plt.rcParams['axes.edgecolor']
             bubbles = []
@@ -998,7 +1017,7 @@ class ScatterPlot(PlanePlot):
             bubble_legend = legend.Legend(ax,
                                           handles=bubbles,
                                           labels=labels,
-                                          loc='lower right')
+                                          loc='best')
             bubble_legend.set_title(self.size_title)
             ax.add_artist(bubble_legend)
         super()._make_legend()
