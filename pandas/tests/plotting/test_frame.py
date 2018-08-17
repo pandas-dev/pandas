@@ -1271,8 +1271,8 @@ class TestDataFramePlots(TestPlotBase):
         ax = df.plot.scatter(x='x', y='y', s='z', size_factor=4)
         bubbles = ax.collections[0]
         bubble_sizes = bubbles.get_sizes()
-        max_data = df['z'].cat.codes.max() + 1
-        expected_sizes = 200 * 4 * (df['z'].cat.codes.values + 1)**2 / \
+        max_data = df['z'].cat.codes.max() + 1.0
+        expected_sizes = 200.0 * 4 * (df['z'].cat.codes.values + 1)**2 / \
             max_data**2
         tm.assert_numpy_array_equal(bubble_sizes, expected_sizes)
 
