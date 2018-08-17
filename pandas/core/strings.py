@@ -1855,7 +1855,12 @@ class StringMethods(NoNewAttributesMixin):
         # before the transformation...
         if use_codes and self._is_categorical:
             result = take_1d(result, self._orig.cat.codes)
-            result[isna(result)] = na
+            missing = isna(result)
+
+            if missing.any():
+                result_type = np.result_type(result, na)
+                result = result.astype(result_type, copy=False)
+                result[isna(result)] = na
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
             return result
