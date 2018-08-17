@@ -826,6 +826,15 @@ class ExcelWriter(object):
     -----
     For compatibility with CSV writers, ExcelWriter serializes lists
     and dicts to strings before writing.
+
+    Examples
+    --------
+    In order to write separate DataFrames to separate sheets
+    in a single Excel file, one can pass an ExcelWriter.
+
+    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    ...     df1.to_excel(writer, sheet_name='Sheet1')
+    ...     df2.to_excel(writer, sheet_name='Sheet2')
     """
     # Defining an ExcelWriter implementation (see abstract methods for more...)
 
