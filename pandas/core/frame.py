@@ -7218,14 +7218,12 @@ class DataFrame(NDFrame):
         The mode of a set of values is the value that appears most often.
         It can be multiple values.
 
-        Adds a row for each mode per label, filling gaps with NaN.
-
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to iterate over while searching for the mode.
-            To find the mode for each column, use ``axis=0``.
-            To find the mode for each row, use ``axis=1``.
+            To find the mode for each column, use ``axis='index'``.
+            To find the mode for each row, use ``axis='columns'``.
         numeric_only : bool, default False
             If True, only apply to numeric columns.
         dropna : bool, default True
@@ -7236,11 +7234,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-            A DataFrame containing the modes
-            If ``axis=0``, there will be one column per column in the original
-            DataFrame, with as many rows as there are modes.
-            If ``axis=1``, there will be one row per row in the original
-            DataFrame, with as many columns as there are modes.
+            The modes of each column or row.
 
         See Also
         --------
@@ -7249,48 +7243,58 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        If there is only one occurrence of each value (no repeated values),
-        no mode will be returned.
+        Every column or row of the resulting DataFrame contains all its modes.
+        And possibly NaN values at the end (if other columns or rows have a
+        higher number of modes).
 
         Examples
         --------
 
         >>> df = pd.DataFrame([('bird', 2, 2),
-        ...                    ('mammal', 4, 0),
-        ...                    ('insect', 8, 0),
-        ...                    ('bird', 2, 2)],
-        ...                   index=('penguin', 'horse', 'spider', 'ostrich'),
+        ...                    ('mammal', 4, np.nan),
+        ...                    ('arthropod', 8, 0),
+        ...                    ('bird', 2, np.nan)],
+        ...                   index=('falcon', 'horse', 'spider', 'ostrich'),
         ...                   columns=('species', 'legs', 'wings'))
         >>> df
-                species  legs  wings
-        penguin    bird     2      2
-        horse    mammal     4      0
-        spider   insect     8      0
-        ostrich    bird     2      2
+                   species  legs  wings
+        falcon        bird     2    2.0
+        horse       mammal     4    NaN
+        spider   arthropod     8    0.0
+        ostrich       bird     2    NaN
 
-        ``mode`` returns a DataFrame with multiple rows if there is more than
-        one mode (like for wings). Missing entries are imputed with NaN:
+        By default, missing values are not considered, and the mode of winds
+        are both 0 and 2. The second row of species and legs contains NaN,
+        because they have only one mode, but the DataFrame has two rows.
 
         >>> df.mode()
           species  legs  wings
-        0    bird   2.0      0
-        1     NaN   NaN      2
+        0    bird   2.0    0.0
+        1     NaN   NaN    2.0
 
-        The mode of only numeric columns can be computed:
+        Setting ``dropna=False`` NaN values are considered and they can be the
+        mode (like for wings).
+
+        >>> df.mode(dropna=False)
+          species  legs  wings
+        0    bird     2    NaN
+
+        Setting ``numeric_only=True``, only the mode of numeric columns is
+        computed, and columns of other types are ignored.
 
         >>> df.mode(numeric_only=True)
            legs  wings
-        0   2.0      0
-        1   NaN      2
+        0   2.0    0.0
+        1   NaN    2.0
 
         To compute the mode over columns and not rows, use the axis parameter:
 
-        >>> df.mode(axis='columns')
-                   0
-        penguin  2.0
-        horse    NaN
-        spider   NaN
-        ostrich  2.0
+        >>> df.mode(axis='columns', numeric_only=True)
+                   0    1
+        falcon   2.0  NaN
+        horse    4.0  NaN
+        spider   0.0  8.0
+        ostrich  2.0  NaN
         """
         data = self if not numeric_only else self._get_numeric_data()
 
