@@ -29,10 +29,6 @@ from pandas.core.dtypes.common import (
     is_iterator)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
-
-from pandas.core.generic import _shared_docs, _shared_doc_kwargs
-from pandas.core.index import Index, MultiIndex
 
 from pandas.io.formats.printing import pprint_thing
 
