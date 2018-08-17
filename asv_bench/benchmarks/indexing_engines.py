@@ -1,6 +1,5 @@
 import numpy as np
 
-import pandas.util.testing as tm
 from pandas._libs.index import (Int64Engine, Int32Engine,
                                 Int16Engine, Int8Engine,
                                 UInt64Engine, UInt32Engine,
@@ -32,10 +31,9 @@ class NumericEngineIndexing(object):
         }[index_type]
 
         self.data = engine(lambda: array_, len(array_))
-        self.int_scalar = 2
 
     def time_get_loc(self, engine, index_type):
-        self.data.get_loc(self.int_scalar)
+        self.data.get_loc(2)
 
 
 class ObjectEngineIndexing(object):
@@ -57,7 +55,6 @@ class ObjectEngineIndexing(object):
         }[index_type]
 
         self.data = engine(lambda: array_, len(array_))
-        self.int_scalar = 'b'
 
     def time_get_loc(self, engine, index_type):
-        self.data.get_loc(self.int_scalar)
+        self.data.get_loc(2)

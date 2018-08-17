@@ -1122,23 +1122,29 @@ class TestCategoricalIndex(Base):
 
 class TestCategoricalIndexEngine(object):
 
-    @pytest.mark.parametrize('nbits', [8, 16, 32, 64])
-    def test_engine_type(self, nbits):
-        """Check that a CategoricalIndex has the correct engine type.
+    def setup_method(self):
+        self.n_categories = {np.int8: 1, np.int16: 129, np.int32: 32769}
+
+        self.engines = {np.int8: libindex.Int8Engine,
+                        np.int16: libindex.Int16Engine,
+                        np.int32: libindex.Int32Engine,
+                        np.int64: libindex.Int64Engine}
+
+    @pytest.mark.parametrize('dtype', [np.int8, np.int16, np.int32, np.int64])
+    def test_engine_type(self, dtype):
         """
-        if nbits < 64:
-            ncategories = int(2 ** (nbits / 2) / 2 + 1)  # 129 if nbits==16 etc
-            index = CategoricalIndex(range(ncategories))
+        Check that a CategoricalIndex has the correct engine type.
+        """
+        if dtype != np.int64:
+            n_categories = self.n_categories[dtype]
+            index = CategoricalIndex(np.arange(n_categories))
         else:
-            index = CategoricalIndex(['a', 'b', 'c'])
-            # having actual 2 ** (64 / 2) / 2 + 1 categories is too
+            # having actual (2 ** 32) + 1 distinct categories is too
             # memory-intensive, so we set codes.dtype manually
+            index = CategoricalIndex(['a', 'b', 'c'])
             index._values._codes = index._values._codes.astype('int64')
 
-        dtype = {8: np.int8, 16: np.int16,
-                 32: np.int32, 64: np.int64}[nbits]
-        engine = {8: libindex.Int8Engine, 16: libindex.Int16Engine,
-                  32: libindex.Int32Engine, 64: libindex.Int64Engine}[nbits]
+        engine = self.engines[dtype]
 
         assert isinstance(index._engine, engine)
-        assert issubclass(index.codes.dtype.type, dtype)
+        assert index.codes.dtype.type == dtype

@@ -54,7 +54,7 @@ def zero(request):
         'UInt64', 'UInt32', 'UInt16', 'UInt8',
         'Float64', 'Float32',
     ])
-def num_engine(request):
-    """Return the various numeric engines in pd._libs.index
+def numeric_indexing_engine(request):
+    """Return the various numeric indexing engines in pd._libs.index
     """
     return getattr(li, "{}Engine".format(request.param))
