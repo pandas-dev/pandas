@@ -7,11 +7,19 @@ from pandas import compat
 
 class SparseDtype(ExtensionDtype):
 
-    def __init__(self, dtype=np.float64):
+    def __init__(self, dtype=np.float64, fill_value=None):
+        from pandas.core.dtypes.missing import na_value_for_dtype
+
         if isinstance(dtype, type(self)):
-            self._dtype = dtype.subdtype
+            dtype = dtype.subdtype
         else:
-            self._dtype = np.dtype(dtype)
+            dtype = np.dtype(dtype)
+
+        if fill_value is None:
+            fill_value = na_value_for_dtype(dtype)
+
+        self._dtype = dtype
+        self._fill_value = fill_value
 
     def __hash__(self):
         # XXX: this needs to be part of the interface.
@@ -20,9 +28,19 @@ class SparseDtype(ExtensionDtype):
     def __eq__(self, other):
         # TODO: test
         if isinstance(other, type(self)):
-            return self.subdtype == other.subdtype
+            return (self.subdtype == other.subdtype and
+                    self._is_na_fill_value is other._is_na_fill_value)
         else:
             return super(SparseDtype, self).__eq__(other)
+
+    @property
+    def fill_value(self):
+        return self._fill_value
+
+    @property
+    def _is_na_fill_value(self):
+        from pandas.core.dtypes.missing import isna
+        return isna(self.fill_value)
 
     @property
     def _is_numeric(self):
@@ -46,7 +64,7 @@ class SparseDtype(ExtensionDtype):
         return 'Sparse[{}]'.format(self.subdtype.name)
 
     def __repr__(self):
-        return self.name
+        return 'Sparse[{},{}]'.format(self.subdtype.name, self.fill_value)
 
     @classmethod
     def construct_array_type(cls):
