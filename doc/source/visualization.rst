@@ -581,38 +581,56 @@ each point:
    @savefig scatter_plot_colored.png
    df.plot.scatter(x='a', y='b', c='c', s=50);
 
-The keyword ``s`` may be given as the name of a column to define the size of each point, making the plot a bubble plot:
+The keyword ``s`` may be given as the name of a column to define the size of
+each point, making the plot a bubble plot:
 
 .. ipython:: python
 
    @savefig scatter_plot_bubble_without_size_factor.png
    df.plot.scatter(x='a', y='b', s='c');
 
-By default, the largest bubble (corresponding to the largest value of the column represented by bubble sizes) has size 200. The keyword ``size_factor`` may be given to specify a multiplication factor to bubble sizes displayed on the graph:
+By default, the largest bubble (corresponding to the largest value of the column
+represented by bubble sizes) has size 200. The keyword ``size_factor`` may be
+given to specify a multiplication factor to bubble sizes displayed on the graph:
 
 .. ipython:: python
 
    @savefig scatter_plot_bubble_with_size_factor.png
    df.plot.scatter(x='a', y='b', s='c', size_factor=0.2);
 
+The keyword ''s'' can also be of ordered categorical data type.
+
+.. ipython:: python
+
+   surf_area = np.concatenate([40.0 + 80.0 * np.random.rand(30),
+                               80.0 + 160.0 * np.random.rand(20),
+                               100.0 + 200.0 * np.random.rand(10)])
+
+   types = np.array(30*['Flat'] + 20*['House'] + 10*['Castle'])
+
+   prices = 0.01 * surf_area * (np.random.rand(60) + 1.5) / 2
+   prices *= np.array([1]*30 + [1.4]*20 + [2]*10)
+
+   property_types = pd.Categorical(types, categories=['Flat', 'House', 'Castle'], ordered=True)
+
+   df = pd.DataFrame({
+      'Surface area (sqm)': surf_area,
+      'Price (M€)': prices,
+      'Property type': property_types
+   })
+
+   @savefig scatter_plot_bubble_categorical.png
+   df.plot.scatter(x='Surface area (sqm)', y='Price (M€)',
+                   s='Property type', alpha=.5);
+
+You can pass other keywords supported by matplotlib
+:meth:`scatter <matplotlib.axes.Axes.scatter>`.
+
 .. ipython:: python
    :suppress:
 
    plt.close('all')
 
-You can pass other keywords supported by matplotlib 
-:meth:`scatter <matplotlib.axes.Axes.scatter>`. The example  below shows a 
-bubble chart using a column of the ``DataFrame`` as the bubble size.
-
-.. ipython:: python
-
-   @savefig scatter_plot_bubble.png
-   df.plot.scatter(x='a', y='b', s=df['c']*200);
-
-.. ipython:: python
-   :suppress:
-
-   plt.close('all')
 
 See the :meth:`scatter <matplotlib.axes.Axes.scatter>` method and the
 `matplotlib scatter documentation <http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.scatter>`__ for more.
