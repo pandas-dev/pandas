@@ -116,4 +116,4 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         dataframe, destination_table, project_id, chunksize=chunksize,
         verbose=verbose, reauth=reauth, if_exists=if_exists,
         private_key=private_key, auth_local_webserver=auth_local_webserver,
-        table_schema=table_schema)
+        table_schema=table_schema, progress_bar=progress_bar)
