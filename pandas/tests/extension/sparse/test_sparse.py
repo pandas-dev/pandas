@@ -118,10 +118,6 @@ class TestReshaping(base.BaseReshapingTests):
 
 class TestGetitem(base.BaseGetitemTests):
 
-    @pytest.mark.skip(reason="Need to think about it.")
-    def test_take_non_na_fill_value(self, data_missing):
-        pass
-
     def test_get(self, data):
         s = pd.Series(data, index=[2 * i for i in range(len(data))])
         assert np.isnan(s.get(4)) and np.isnan(s.iloc[2])
@@ -147,6 +143,28 @@ class TestMissing(base.BaseMissingTests):
     def test_fillna_series(self):
         # this one looks doable.
         pass
+
+    def test_fillna_frame(self, data_missing):
+        # Have to override to specify that fill_value will change.
+        fill_value = data_missing[1]
+
+        result = pd.DataFrame({
+            "A": data_missing,
+            "B": [1, 2]
+        }).fillna(fill_value)
+
+        if pd.isna(data_missing.fill_value):
+            dtype = SparseDtype(data_missing.dtype, fill_value)
+        else:
+            dtype = data_missing.dtype
+
+        expected = pd.DataFrame({
+            "A": data_missing._from_sequence([fill_value, fill_value],
+                                             dtype=dtype),
+            "B": [1, 2],
+        })
+
+        self.assert_frame_equal(result, expected)
 
 
 class TestMethods(base.BaseMethodsTests):
