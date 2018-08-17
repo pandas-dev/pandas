@@ -676,6 +676,7 @@ DataFrame.gt : Compare DataFrames for strictly greater than
 Notes
 --------
 Mismatched indices will be unioned together.
+`NaN` values are considered different (i.e. `NaN` != `NaN`).
 
 Examples
 --------
@@ -725,8 +726,7 @@ A  True     True  True  True  True
 B  True     True  True  True  True
 C  True     True  True  True  True
 
-Compare to a DataFrame of different shape by axis where both 'index' and
-'columns' return same results.
+Compare to a DataFrame of different shape.
 
 >>> other = pd.DataFrame({{'revenue': [300, 250, 100, 150]}},
 ...                       index = ['A', 'B', 'C', 'D'])
@@ -736,13 +736,7 @@ A      300
 B      250
 C      100
 D      150
->>> df.gt(other, axis='index')
-    cost  revenue
-A  False    False
-B  False    False
-C  False     True
-D  False    False
->>> df.gt(other, axis='columns')
+>>> df.gt(other)
     cost  revenue
 A  False    False
 B  False    False
