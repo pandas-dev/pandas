@@ -1103,7 +1103,8 @@ class DataFrame(NDFrame):
 
     def to_gbq(self, destination_table, project_id, chunksize=None,
                verbose=None, reauth=False, if_exists='fail', private_key=None,
-               auth_local_webserver=False, table_schema=None, progress_bar=True):
+               auth_local_webserver=False, table_schema=None,
+               progress_bar=True):
         """
         Write a DataFrame to a Google BigQuery table.
 
