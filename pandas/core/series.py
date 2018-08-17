@@ -855,20 +855,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self._get_values(key)
         elif key_type == 'boolean':
             return self._get_values(key)
-        else:
-            try:
-                # handle the dup indexing case (GH 4246)
-                if isinstance(key, (list, tuple)):
-                    return self.loc[key]
 
-                return self.reindex(key)
-            except Exception:
-                # [slice(0, 5, None)] will break if you convert to ndarray,
-                # e.g. as requested by np.median
-                # hack
-                if isinstance(key[0], slice):
-                    return self._get_values(key)
-                raise
+        try:
+            # handle the dup indexing case (GH 4246)
+            if isinstance(key, (list, tuple)):
+                return self.loc[key]
+
+            return self.reindex(key)
+        except Exception:
+            # [slice(0, 5, None)] will break if you convert to ndarray,
+            # e.g. as requested by np.median
+            # hack
+            if isinstance(key[0], slice):
+                return self._get_values(key)
+            raise
 
     def _get_values_tuple(self, key):
         # mpl hackaround
