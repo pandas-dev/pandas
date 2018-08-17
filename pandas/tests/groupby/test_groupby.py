@@ -552,6 +552,8 @@ def test_groupby_as_index_agg(df):
     result2 = grouped.agg(OrderedDict([['C', np.mean], ['D', np.sum]]))
     expected2 = grouped.mean()
     expected2['D'] = grouped.sum()['D']
+    expected2.columns = pd.MultiIndex.from_arrays([
+        expected2.columns, ['', 'mean', 'sum']])
     assert_frame_equal(result2, expected2)
 
     grouped = df.groupby('A', as_index=True)
@@ -561,6 +563,7 @@ def test_groupby_as_index_agg(df):
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         result3 = grouped['C'].agg({'Q': np.sum})
+
     assert_frame_equal(result3, expected3)
 
     # multi-key
@@ -574,10 +577,14 @@ def test_groupby_as_index_agg(df):
     result2 = grouped.agg(OrderedDict([['C', np.mean], ['D', np.sum]]))
     expected2 = grouped.mean()
     expected2['D'] = grouped.sum()['D']
+    expected2.columns = pd.MultiIndex.from_arrays([
+        expected2.columns, ['', '', 'mean', 'sum']])
     assert_frame_equal(result2, expected2)
 
     expected3 = grouped['C'].sum()
     expected3 = DataFrame(expected3).rename(columns={'C': 'Q'})
+    expected3.columns = pd.MultiIndex.from_arrays([
+        expected3.columns, ['', '', 'sum']])
     result3 = grouped['C'].agg({'Q': np.sum})
     assert_frame_equal(result3, expected3)
 
@@ -1340,6 +1347,7 @@ def test_multifunc_sum_bug():
 
     grouped = x.groupby('test')
     result = grouped.agg({'fl': 'sum', 2: 'size'})
+    result.columns = result.columns.droplevel(-1)
     assert result['fl'].dtype == np.float64
 
 
@@ -1691,5 +1699,27 @@ def test_groupby_agg_ohlc_non_first():
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("select_columns", [True, False])
+@pytest.mark.parametrize("agg_argument", [
+    {'B': 'sum', 'C': 'min'},  # Scalar result
+    {'B': 'sum', 'C': ['min']},  # Scalar and list
+    {'B': ['sum'], 'C': ['min']},  # Lists
+    {'B': {'sum': 'sum'}, 'C': {'min': 'min'}}  # deprecated call
+])
+def test_agg_dict_naming_consistency(select_columns, agg_argument):
+    df = pd.DataFrame([['foo', 1, 1], ['bar', 1, 1]], columns=['A', 'B', 'C'])
+    expected = pd.DataFrame([[1, 1], [1, 1]], index=pd.Index(
+        ['bar', 'foo'], name='A'), columns=pd.MultiIndex.from_tuples(
+            (('B', 'sum'), ('C', 'min'))))
+
+    with catch_warnings(record=True):
+        if select_columns:
+            result = df.groupby('A')[['B', 'C']].agg(agg_argument)
+        else:
+            result = df.groupby('A').agg(agg_argument)
 
     tm.assert_frame_equal(result, expected)

@@ -118,11 +118,11 @@ def test_agg_python_multiindex(mframe):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize('groupbyfunc', [
-    lambda x: x.weekday(),
-    [lambda x: x.month, lambda x: x.weekday()],
+@pytest.mark.parametrize('groupbyfunc,multiple', [
+    (lambda x: x.weekday(), False),
+    ([lambda x: x.month, lambda x: x.weekday()], True),
 ])
-def test_aggregate_str_func(tsframe, groupbyfunc):
+def test_aggregate_str_func(tsframe, groupbyfunc, multiple):
     grouped = tsframe.groupby(groupbyfunc)
 
     # single series
@@ -140,10 +140,19 @@ def test_aggregate_str_func(tsframe, groupbyfunc):
                                       ['B', 'std'],
                                       ['C', 'mean'],
                                       ['D', 'sem']]))
-    expected = DataFrame(OrderedDict([['A', grouped['A'].var()],
-                                      ['B', grouped['B'].std()],
-                                      ['C', grouped['C'].mean()],
-                                      ['D', grouped['D'].sem()]]))
+
+    columns = pd.MultiIndex.from_arrays([
+        list('ABCD'), ['var', 'std', 'mean', 'sem']])
+    expected = DataFrame(list(zip(grouped['A'].var(),
+                                  grouped['B'].std(),
+                                  grouped['C'].mean(),
+                                  grouped['D'].sem())), columns=columns)
+
+    if multiple:
+        mi = pd.MultiIndex.from_product([
+            range(1, len(groupbyfunc) + 1, 1), range(5)])
+        expected = expected.set_index(mi)
+
     tm.assert_frame_equal(result, expected)
 
 
@@ -226,13 +235,11 @@ def test_more_flexible_frame_multi_function(df):
 
     exmean = grouped.agg(OrderedDict([['C', np.mean], ['D', np.mean]]))
     exstd = grouped.agg(OrderedDict([['C', np.std], ['D', np.std]]))
-
-    expected = concat([exmean, exstd], keys=['mean', 'std'], axis=1)
-    expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
+    expected = concat([exmean, exstd], axis=1)
+    expected = expected.sort_index(axis=1)
 
     d = OrderedDict([['C', [np.mean, np.std]], ['D', [np.mean, np.std]]])
     result = grouped.aggregate(d)
-
     tm.assert_frame_equal(result, expected)
 
     # be careful
@@ -240,13 +247,12 @@ def test_more_flexible_frame_multi_function(df):
                                             ['D', [np.mean, np.std]]]))
     expected = grouped.aggregate(OrderedDict([['C', np.mean],
                                               ['D', [np.mean, np.std]]]))
+
     tm.assert_frame_equal(result, expected)
 
-    def foo(x):
-        return np.mean(x)
 
-    def bar(x):
-        return np.std(x, ddof=1)
+def test_more_flexible_frame_mult_function_warns(df):
+    grouped = df.groupby('A')
 
     # this uses column selection & renaming
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
@@ -254,6 +260,12 @@ def test_more_flexible_frame_multi_function(df):
                          ['D', OrderedDict([['foo', np.mean],
                                             ['bar', np.std]])]])
         result = grouped.aggregate(d)
+
+    def foo(x):
+        return np.mean(x)
+
+    def bar(x):
+        return np.std(x, ddof=1)
 
     d = OrderedDict([['C', [np.mean]], ['D', [foo, bar]]])
     expected = grouped.aggregate(d)
@@ -272,18 +284,18 @@ def test_multi_function_flexible_mix(df):
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         expected = grouped.aggregate(d)
 
-    # Test 1
-    d = OrderedDict([['C', OrderedDict([['foo', 'mean'], ['bar', 'std']])],
-                     ['D', 'sum']])
-    # this uses column selection & renaming
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        result = grouped.aggregate(d)
-    tm.assert_frame_equal(result, expected)
-
-    # Test 2
     d = OrderedDict([['C', OrderedDict([['foo', 'mean'], ['bar', 'std']])],
                      ['D', ['sum']]])
     # this uses column selection & renaming
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = grouped.aggregate(d)
+    tm.assert_frame_equal(result, expected)
+
+    d = OrderedDict([['C', OrderedDict([['foo', 'mean'], ['bar', 'std']])],
+                     ['D', 'sum']])
+
+    # this uses column selection & renaming
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        result = grouped.aggregate(d)
+
     tm.assert_frame_equal(result, expected)

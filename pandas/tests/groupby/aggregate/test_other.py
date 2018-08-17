@@ -99,18 +99,22 @@ def test_agg_dict_parameter_cast_result_dtypes():
     grouped = df.groupby('class')
     tm.assert_frame_equal(grouped.first(), exp)
     tm.assert_frame_equal(grouped.agg('first'), exp)
-    tm.assert_frame_equal(grouped.agg({'time': 'first'}), exp)
     tm.assert_series_equal(grouped.time.first(), exp['time'])
     tm.assert_series_equal(grouped.time.agg('first'), exp['time'])
+
+    exp.columns = pd.MultiIndex.from_tuples([('time', 'first')])
+    tm.assert_frame_equal(grouped.agg({'time': 'first'}), exp)
 
     # test for `last` function
     exp = df.loc[[0, 3, 4, 7]].set_index('class')
     grouped = df.groupby('class')
     tm.assert_frame_equal(grouped.last(), exp)
     tm.assert_frame_equal(grouped.agg('last'), exp)
-    tm.assert_frame_equal(grouped.agg({'time': 'last'}), exp)
     tm.assert_series_equal(grouped.time.last(), exp['time'])
     tm.assert_series_equal(grouped.time.agg('last'), exp['time'])
+
+    exp.columns = pd.MultiIndex.from_tuples([('time', 'last')])
+    tm.assert_frame_equal(grouped.agg({'time': 'last'}), exp)
 
     # count
     exp = pd.Series([2, 2, 2, 2],
@@ -192,7 +196,9 @@ def test_aggregate_api_consistency():
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({'C': 'mean', 'D': 'sum'})
-    expected = pd.concat([d_sum, c_mean], axis=1)
+    expected = pd.concat([c_mean, d_sum], axis=1)
+    expected.columns = MultiIndex.from_arrays([['C', 'D'],
+                                               ['mean', 'sum']])
     tm.assert_frame_equal(result, expected, check_like=True)
 
     result = grouped.agg({'C': ['mean', 'sum'],
@@ -201,13 +207,19 @@ def test_aggregate_api_consistency():
     expected.columns = MultiIndex.from_product([['C', 'D'],
                                                 ['mean', 'sum']])
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+def test_aggregate_api_raises():
+    df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                          'foo', 'bar', 'foo', 'foo'],
+                    'B': ['one', 'one', 'two', 'two',
+                          'two', 'two', 'one', 'two'],
+                    'C': np.random.randn(8) + 1.0,
+                    'D': np.arange(8)})
+
+    grouped = df.groupby(['A', 'B'])
+
+    with pytest.raises(KeyError):
         result = grouped[['D', 'C']].agg({'r': np.sum,
                                           'r2': np.mean})
-    expected = pd.concat([d_sum, c_sum, d_mean, c_mean], axis=1)
-    expected.columns = MultiIndex.from_product([['r', 'r2'],
-                                                ['D', 'C']])
-    tm.assert_frame_equal(result, expected, check_like=True)
 
 
 def test_agg_dict_renaming_deprecation():
@@ -222,12 +234,19 @@ def test_agg_dict_renaming_deprecation():
                              'C': {'bar': ['count', 'min']}})
         assert "using a dict with renaming" in str(w[0].message)
 
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
-
+    # TODO: Shouldn't the below fail as well?
     with tm.assert_produces_warning(FutureWarning) as w:
         df.groupby('A').B.agg({'foo': 'count'})
         assert "using a dict on a Series for aggregation" in str(w[0].message)
+
+
+def test_agg_dict_renaming_deprecation_raises():
+    df = pd.DataFrame({'A': [1, 1, 1, 2, 2],
+                       'B': range(5),
+                       'C': range(5)})
+
+    with pytest.raises(KeyError):
+        df.groupby('A')[['B', 'C']].agg({'ma': 'max'})
 
 
 def test_agg_compat():
@@ -267,11 +286,6 @@ def test_agg_nested_dicts():
 
     g = df.groupby(['A', 'B'])
 
-    msg = r'cannot perform renaming for r[1-2] with a nested dictionary'
-    with tm.assert_raises_regex(SpecificationError, msg):
-        g.aggregate({'r1': {'C': ['mean', 'sum']},
-                     'r2': {'D': ['mean', 'sum']}})
-
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = g.agg({'C': {'ra': ['mean', 'std']},
                         'D': {'rb': ['mean', 'std']}})
@@ -282,6 +296,23 @@ def test_agg_nested_dicts():
         [('ra', 'mean'), ('ra', 'std'),
          ('rb', 'mean'), ('rb', 'std')])
     tm.assert_frame_equal(result, expected, check_like=True)
+
+
+def test_agg_nested_dicts_raises():
+    # API change for disallowing these types of nested dicts
+    df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
+                          'foo', 'bar', 'foo', 'foo'],
+                    'B': ['one', 'one', 'two', 'two',
+                          'two', 'two', 'one', 'two'],
+                    'C': np.random.randn(8) + 1.0,
+                    'D': np.arange(8)})
+
+    g = df.groupby(['A', 'B'])
+
+    msg = r'cannot perform renaming for r[1-2] with a nested dictionary'
+    with tm.assert_raises_regex(SpecificationError, msg):
+        g.aggregate({'r1': {'C': ['mean', 'sum']},
+                     'r2': {'D': ['mean', 'sum']}})
 
     # same name as the original column
     # GH9052
