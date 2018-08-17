@@ -314,15 +314,13 @@ class DataFrame(NDFrame):
 
     Constructing DataFrame from numpy ndarray:
 
-    >>> df2 = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
-    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    ...                    columns=['a', 'b', 'c'])
     >>> df2
-        a   b   c   d   e
-    0   2   8   8   3   4
-    1   4   2   9   0   9
-    2   1   0   7   8   0
-    3   5   1   7   1   3
-    4   6   0   2   4   2
+       a  b  c
+    0  1  2  3
+    1  4  5  6
+    2  7  8  9
 
     See also
     --------
