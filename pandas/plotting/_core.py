@@ -866,7 +866,7 @@ class ScatterPlot(PlanePlot):
     def __init__(self, data, x, y, s=None, c=None, size_factor=1, **kwargs):
         if s is None:
             # Set default size if no argument is given.
-            s = 20
+            s = 20 * size_factor
         elif is_hashable(s) and s in data.columns:
             # Handle the case where s is a label of a column of the df.
             # The data is normalized to 200 * size_factor.
