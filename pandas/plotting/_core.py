@@ -1017,7 +1017,7 @@ class ScatterPlot(PlanePlot):
                                           loc='best')
             bubble_legend.set_title(self.size_title)
             ax.add_artist(bubble_legend)
-        super()._make_legend()
+        super(ScatterPlot, self)._make_legend()
 
 
 class HexBinPlot(PlanePlot):
