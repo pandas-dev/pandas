@@ -55,10 +55,12 @@ def tips_df(datapath):
 
 
 @pytest.mark.usefixtures("s3_resource")
+@td.skip_if_not_us_locale()
 class TestS3(object):
 
     def test_parse_public_s3_bucket(self, tips_df):
         pytest.importorskip('s3fs')
+
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
         for ext, comp in [('', None), ('.gz', 'gzip'), ('.bz2', 'bz2')]:
