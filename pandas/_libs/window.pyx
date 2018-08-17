@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 cimport cython

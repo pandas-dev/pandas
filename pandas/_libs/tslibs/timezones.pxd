@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 cdef bint is_utc(object tz)
 cdef bint is_tzlocal(object tz)

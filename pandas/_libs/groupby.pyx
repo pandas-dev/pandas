@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 cimport cython
 from cython cimport Py_ssize_t
