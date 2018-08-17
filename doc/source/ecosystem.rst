@@ -168,8 +168,8 @@ or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
 
 Most pandas classes, methods and data attributes can be autocompleted in
 Spyder's `Editor <https://docs.spyder-ide.org/editor.html>`__ and
-`IPython Console <https://docs.spyder-ide.org/ipythonconsole.html>__,
-and Spyder's `Help pane<https://docs.spyder-ide.org/help.html>__ can retrieve
+`IPython Console <https://docs.spyder-ide.org/ipythonconsole.html>`__,
+and Spyder's `Help pane<https://docs.spyder-ide.org/help.html>`__ can retrieve
 and render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
 
