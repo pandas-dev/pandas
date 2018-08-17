@@ -548,6 +548,13 @@ class TestStringMethods(object):
         res = values.str.contains('foo', na="foo")
         assert res.loc[2] == "foo"
 
+        # category
+        values = Series(["a","b","c","a", np.nan], dtype="category")
+        result = values.str.contains('a', na=True)
+        expected = Series([True, False, False, True, True], dtype=np.object_)
+        assert isinstance(result, Series)
+        tm.assert_series_equal(result, expected)
+
     def test_startswith(self):
         values = Series(['om', NA, 'foo_nom', 'nom', 'bar_foo', NA, 'foo'])
 
