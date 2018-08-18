@@ -365,6 +365,31 @@ This will identify methods documented in ``doc/source/api.rst`` that are not act
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
 
 
+Updating a *pandas* docstring
+-----------------------------
+
+When improving a single function or method's docstring, it is not necessarily
+needed to build the full documentation (see next section).
+However, there is a script that checks a docstring (for example for the ``DataFrame.mean`` method)::
+
+    python scripts/validate_docstrings.py pandas.DataFrame.mean
+
+This script will indicate some formatting errors if present, and will also
+run and test the examples included in the docstring.
+Check the :ref:`pandas docstring guide <docstring>` for a detailed guide
+on how to format the docstring.
+
+The examples in the docstring ('doctests') must be valid Python code,
+that in a deterministic way returns the presented output, and that can be
+copied and run by users. This can be checked with the script above, and is
+also tested on Travis. A failing doctest will be a blocker for merging a PR.
+Check the :ref:`examples <docstring.examples>` section in the docstring guide
+for some tips and tricks to get the doctests passing.
+
+When doing a PR with a docstring update, it is good to post the
+output of the validation script in a comment on github.
+
+
 How to build the *pandas* documentation
 ---------------------------------------
 

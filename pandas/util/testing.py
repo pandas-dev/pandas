@@ -591,7 +591,7 @@ def set_defaultencoding(encoding):
 
 
 def capture_stdout(f):
-    """
+    r"""
     Decorator to capture stdout in a buffer so that it can be checked
     (or suppressed) during testing.
 
@@ -609,7 +609,6 @@ def capture_stdout(f):
     --------
 
     >>> from pandas.util.testing import capture_stdout
-    >>>
     >>> import sys
     >>>
     >>> @capture_stdout
@@ -639,7 +638,7 @@ def capture_stdout(f):
 
 
 def capture_stderr(f):
-    """
+    r"""
     Decorator to capture stderr in a buffer so that it can be checked
     (or suppressed) during testing.
 
@@ -657,7 +656,6 @@ def capture_stderr(f):
     --------
 
     >>> from pandas.util.testing import capture_stderr
-    >>>
     >>> import sys
     >>>
     >>> @capture_stderr
@@ -2435,7 +2433,7 @@ with_connectivity_check = network
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
-    r"""
+    """
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable
@@ -2461,6 +2459,7 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "pear" does not match "'apple'"
 
     You can also use this in a with statement.
+
     >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
     ...     1 + {}
     >>> with assert_raises_regex(TypeError, 'banana'):

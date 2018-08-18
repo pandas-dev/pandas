@@ -1,5 +1,6 @@
 import locale
 import calendar
+import unicodedata
 
 import pytest
 
@@ -7,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
-                    date_range, Timestamp)
+                    date_range, Timestamp, compat)
 
 
 class TestTimeSeries(object):
@@ -284,10 +285,24 @@ class TestDatetime64(object):
         dti = DatetimeIndex(freq='M', start='2012', end='2013')
         result = dti.month_name(locale=time_locale)
         expected = Index([month.capitalize() for month in expected_months])
+
+        # work around different normalization schemes
+        # https://github.com/pandas-dev/pandas/issues/22342
+        if not compat.PY2:
+            result = result.str.normalize("NFD")
+            expected = expected.str.normalize("NFD")
+
         tm.assert_index_equal(result, expected)
+
         for date, expected in zip(dti, expected_months):
             result = date.month_name(locale=time_locale)
-            assert result == expected.capitalize()
+            expected = expected.capitalize()
+
+            if not compat.PY2:
+                result = unicodedata.normalize("NFD", result)
+                expected = unicodedata.normalize("NFD", result)
+
+            assert result == expected
         dti = dti.append(DatetimeIndex([pd.NaT]))
         assert np.isnan(dti.month_name(locale=time_locale)[-1])
 

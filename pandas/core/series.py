@@ -1939,8 +1939,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
             return np.nan
-        return nanops.nancorr(this.values, other.values, method=method,
-                              min_periods=min_periods)
+
+        if method in ['pearson', 'spearman', 'kendall']:
+            return nanops.nancorr(this.values, other.values, method=method,
+                                  min_periods=min_periods)
+
+        raise ValueError("method must be either 'pearson', "
+                         "'spearman', or 'kendall', '{method}' "
+                         "was supplied".format(method=method))
 
     def cov(self, other, min_periods=None):
         """
