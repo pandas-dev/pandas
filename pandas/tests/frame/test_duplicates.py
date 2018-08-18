@@ -265,9 +265,26 @@ def test_drop_duplicates_tuple():
 
 def test_drop_duplicates_empty():
     # GH 20516
-    df = DataFrame()
-    result = df.drop_duplicates()
-    tm.assert_frame_equal(result, df)
+    expected = DataFrame()
+    result = expected.drop_duplicates()
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame(columns=[])
+    result = expected.drop_duplicates()
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame(columns=['A', 'B', 'C'])
+    result = expected.drop_duplicates()
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame(index=[])
+    result = expected.drop_duplicates()
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame(index=['A', 'B', 'C'])
+    result = expected.drop_duplicates()
+    tm.assert_frame_equal(result, expected)
+
 
 
 def test_drop_duplicates_NA():

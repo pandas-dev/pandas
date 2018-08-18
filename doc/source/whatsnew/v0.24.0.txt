@@ -711,7 +711,7 @@ Reshaping
 - Bug in :func:`get_dummies` with Unicode attributes in Python 2 (:issue:`22084`)
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
 - Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the `to_replace` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
-- Bug in :meth:`DataFrame.drop_duplicates` for empty DataFrame throws error (:issue:`20516`)
+- Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises error (:issue:`20516`)
 
 Build Changes
 ^^^^^^^^^^^^^
