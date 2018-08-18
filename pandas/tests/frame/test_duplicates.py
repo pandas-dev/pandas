@@ -286,7 +286,6 @@ def test_drop_duplicates_empty():
     tm.assert_frame_equal(result, expected)
 
 
-
 def test_drop_duplicates_NA():
     # none
     df = DataFrame({'A': [None, None, 'foo', 'bar',
