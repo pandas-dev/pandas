@@ -490,25 +490,25 @@ class TestValidator(object):
         return base_path
 
     def test_good_class(self):
-        assert validate_one(self._import_path(  # noqa: F821
-            klass='GoodDocStrings')) == 0
+        assert len(validate_one(self._import_path(  # noqa: F821
+            klass='GoodDocStrings'))['errors']) == 0
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains'])
     def test_good_functions(self, func):
-        assert validate_one(self._import_path(   # noqa: F821
-            klass='GoodDocStrings', func=func)) == 0
+        assert len(validate_one(self._import_path(   # noqa: F821
+            klass='GoodDocStrings', func=func))['errors']) == 0
 
     def test_bad_class(self):
-        assert validate_one(self._import_path(  # noqa: F821
-            klass='BadGenericDocStrings')) > 0
+        assert len(validate_one(self._import_path(  # noqa: F821
+            klass='BadGenericDocStrings'))['errors']) > 0
 
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_generic_functions(self, func):
-        assert validate_one(self._import_path(  # noqa:F821
-            klass='BadGenericDocStrings', func=func)) > 0
+        assert len(validate_one(self._import_path(  # noqa:F821
+            klass='BadGenericDocStrings', func=func))['errors']) > 0
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # Summary tests
@@ -546,7 +546,6 @@ class TestValidator(object):
                      marks=pytest.mark.xfail)
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
-        validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
-        err = capsys.readouterr().err
+        res = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
         for msg in msgs:
-            assert msg in err
+            assert msg in ''.join(res['errors'])
