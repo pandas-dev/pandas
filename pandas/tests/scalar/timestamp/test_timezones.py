@@ -2,7 +2,7 @@
 """
 Tests for Timestamp timezone-related methods
 """
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 
 from distutils.version import LooseVersion
 import pytest
@@ -94,11 +94,10 @@ class TestTimestampTZOperations(object):
         with pytest.raises(AmbiguousTimeError):
             ts.tz_localize('US/Pacific', errors='coerce')
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
-    def test_tz_localize_roundtrip(self, stamp, tz):
+    def test_tz_localize_roundtrip(self, stamp, tz_aware_fixture):
+        tz = tz_aware_fixture
         ts = Timestamp(stamp)
         localized = ts.tz_localize(tz)
         assert localized == Timestamp(stamp, tz=tz)
@@ -162,11 +161,11 @@ class TestTimestampTZOperations(object):
     # ------------------------------------------------------------------
     # Timestamp.tz_convert
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
-    def test_tz_convert_roundtrip(self, stamp, tz):
+    def test_tz_convert_roundtrip(self, stamp, tz_aware_fixture):
+        tz = tz_aware_fixture
+
         ts = Timestamp(stamp, tz='UTC')
         converted = ts.tz_convert(tz)
 
@@ -289,5 +288,22 @@ class TestTimestampTZOperations(object):
 
         # spring forward, + "7" hours
         expected = Timestamp('3/11/2012 05:00', tz=tz)
+
+        assert result == expected
+
+    def test_timestamp_timetz_equivalent_with_datetime_tz(self,
+                                                          tz_naive_fixture):
+        # GH21358
+        if tz_naive_fixture is not None:
+            tz = dateutil.tz.gettz(tz_naive_fixture)
+        else:
+            tz = None
+
+        stamp = Timestamp('2018-06-04 10:20:30', tz=tz)
+        _datetime = datetime(2018, 6, 4, hour=10,
+                             minute=20, second=30, tzinfo=tz)
+
+        result = stamp.timetz()
+        expected = _datetime.timetz()
 
         assert result == expected

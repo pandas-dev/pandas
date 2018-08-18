@@ -5,7 +5,8 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.internals import (
-    BlockManager, SingleBlockManager, NonConsolidatableMixIn, Block)
+    BlockManager, SingleBlockManager)
+from pandas.core.internals.blocks import Block, NonConsolidatableMixIn
 
 import pytest
 

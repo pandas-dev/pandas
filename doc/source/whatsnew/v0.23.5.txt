@@ -1,0 +1,51 @@
+.. _whatsnew_0235:
+
+v0.23.5 (TBD 0, 2018)
+---------------------
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping-27` for more.
+
+.. contents:: What's new in v0.23.5
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0235.fixed_regressions:
+
+Fixed Regressions
+~~~~~~~~~~~~~~~~~
+
+- Constructing a DataFrame with an index argument that wasn't already an
+  instance of :class:`~pandas.core.Index` was broken in `4efb39f
+  <https://github.com/pandas-dev/pandas/commit/4efb39f01f5880122fa38d91e12d217ef70fad9e>`_ (:issue:`22227`).
+-
+-
+
+
+Development
+~~~~~~~~~~~
+- The minimum required pytest version has been increased to 3.6 (:issue:`22319`)
+
+.. _whatsnew_0235.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+**Groupby/Resample/Rolling**
+
+- Bug in :meth:`DataFrame.resample` when resampling ``NaT`` in ``TimeDeltaIndex`` (:issue:`13223`).
+-
+
+**Missing**
+
+-
+-
+
+**I/O**
+
+- Bug in :func:`read_csv` that caused it to raise ``OverflowError`` when trying to use 'inf' as ``na_value`` with integer index column (:issue:`17128`)

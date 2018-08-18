@@ -330,7 +330,7 @@ Timedeltas
    t[0].round('2h')
 
 
-In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available thru the ``.dt`` accessor of ``Series``.
+In addition, ``.round()``, ``.floor()`` and ``.ceil()`` will be available through the ``.dt`` accessor of ``Series``.
 
 .. ipython:: python
 
@@ -414,7 +414,7 @@ New Behavior:
    df.loc[ix, 'b'] = df.loc[ix, 'b']
    df.dtypes
 
-When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be downcasted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
+When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down-casted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
 
 Previous Behavior:
 
@@ -516,19 +516,19 @@ Other enhancements
 - ``Series`` gained an ``is_unique`` attribute (:issue:`11946`)
 - ``DataFrame.quantile`` and ``Series.quantile`` now accept ``interpolation`` keyword (:issue:`10174`).
 - Added ``DataFrame.style.format`` for more flexible formatting of cell values (:issue:`11692`)
-- ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
+- ``DataFrame.select_dtypes`` now allows the ``np.float16`` type code (:issue:`11990`)
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
 - Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`, :issue:`12572`). For further details see `here <https://pandas-gbq.readthedocs.io/en/latest/intro.html>`__
 - ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
 - Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)
-- The entire codebase has been ``PEP``-ified (:issue:`12096`)
+- The entire code base has been ``PEP``-ified (:issue:`12096`)
 
 .. _whatsnew_0180.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- the leading whitespaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)
+- the leading white spaces have been removed from the output of ``.to_string(index=False)`` method (:issue:`11833`)
 - the ``out`` parameter has been removed from the ``Series.round()`` method. (:issue:`11763`)
 - ``DataFrame.round()`` leaves non-numeric columns unchanged in its return, rather than raises. (:issue:`11885`)
 - ``DataFrame.head(0)`` and ``DataFrame.tail(0)`` return empty frames, rather than ``self``.  (:issue:`11937`)
@@ -1186,7 +1186,7 @@ Performance Improvements
 - Improved performance in construction of ``Categoricals`` with ``Series`` of datetimes containing ``NaT`` (:issue:`12077`)
 
 
-- Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with whitespace preceding the time zone (:issue:`9714`)
+- Improved performance of ISO 8601 date parsing for dates without separators (:issue:`11899`), leading zeros (:issue:`11871`) and with white space preceding the time zone (:issue:`9714`)
 
 
 
@@ -1257,7 +1257,7 @@ Bug Fixes
 - Bug in ``read_sql`` with ``pymysql`` connections failing to return chunked data (:issue:`11522`)
 - Bug in ``.to_csv`` ignoring formatting parameters ``decimal``, ``na_rep``, ``float_format`` for float indexes (:issue:`11553`)
 - Bug in ``Int64Index`` and ``Float64Index`` preventing the use of the modulo operator (:issue:`9244`)
-- Bug in ``MultiIndex.drop`` for not lexsorted multi-indexes (:issue:`12078`)
+- Bug in ``MultiIndex.drop`` for not lexsorted MultiIndexes (:issue:`12078`)
 
 - Bug in ``DataFrame`` when masking an empty ``DataFrame`` (:issue:`11859`)
 
@@ -1277,7 +1277,7 @@ Bug Fixes
 - Bug in ``Series`` constructor with read-only data (:issue:`11502`)
 - Removed ``pandas.util.testing.choice()``.  Should use ``np.random.choice()``, instead. (:issue:`12386`)
 - Bug in ``.loc`` setitem indexer preventing the use of a TZ-aware DatetimeIndex (:issue:`12050`)
-- Bug in ``.style`` indexes and multi-indexes not appearing (:issue:`11655`)
+- Bug in ``.style`` indexes and MultiIndexes not appearing (:issue:`11655`)
 - Bug in ``to_msgpack`` and ``from_msgpack`` which did not correctly serialize or deserialize ``NaT`` (:issue:`12307`).
 - Bug in ``.skew`` and ``.kurt`` due to roundoff error for highly similar values (:issue:`11974`)
 - Bug in ``Timestamp`` constructor where microsecond resolution was lost if HHMMSS were not separated with ':' (:issue:`10041`)

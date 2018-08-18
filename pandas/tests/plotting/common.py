@@ -74,11 +74,6 @@ class TestPlotBase(object):
         else:
             self.default_figsize = (8.0, 6.0)
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
-        # common test data
-        from pandas import read_csv
-        base = os.path.join(os.path.dirname(curpath()), os.pardir)
-        path = os.path.join(base, 'tests', 'data', 'iris.csv')
-        self.iris = read_csv(path)
 
         n = 100
         with tm.RNGContext(42):

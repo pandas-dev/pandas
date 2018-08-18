@@ -1,0 +1,45 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+  - r
+dependencies:
+  - beautifulsoup4
+  - bottleneck
+  - cython>=0.28.2
+  - fastparquet
+  - feather-format
+  - html5lib
+  - ipykernel
+  - ipython
+  - ipywidgets
+  - lxml
+  - matplotlib
+  - nbconvert
+  - nbformat
+  - nbsphinx
+  - notebook
+  - numexpr
+  - numpy=1.13*
+  - openpyxl
+  - pandoc
+  - pyqt
+  - pytables
+  - python-dateutil
+  - python-snappy
+  - python=3.6*
+  - pytz
+  - r
+  - rpy2
+  - scipy
+  - seaborn
+  - sphinx
+  - sqlalchemy
+  - statsmodels
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest
+  - pytest-xdist

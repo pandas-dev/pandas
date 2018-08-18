@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 # cython: boundscheck=False
 """
 Cython implementations of functions resembling the stdlib calendar module
@@ -8,9 +7,7 @@ Cython implementations of functions resembling the stdlib calendar module
 cimport cython
 from cython cimport Py_ssize_t
 
-cimport numpy as cnp
 from numpy cimport int64_t, int32_t
-cnp.import_array()
 
 from locale import LC_TIME
 from strptime import LocaleTime

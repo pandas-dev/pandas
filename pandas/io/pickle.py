@@ -5,7 +5,7 @@ import numpy as np
 from numpy.lib.format import read_array, write_array
 from pandas.compat import BytesIO, cPickle as pkl, pickle_compat as pc, PY3
 from pandas.core.dtypes.common import is_datetime64_dtype, _NS_DTYPE
-from pandas.io.common import _get_handle, _infer_compression, _stringify_path
+from pandas.io.common import _get_handle, _stringify_path
 
 
 def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
@@ -18,7 +18,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         Any python object.
     path : str
         File path where the pickled object will be stored.
-    compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file. By
         default, infers from the file extension in specified path.
 
@@ -67,14 +67,13 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    inferred_compression = _infer_compression(path, compression)
     f, fh = _get_handle(path, 'wb',
-                        compression=inferred_compression,
+                        compression=compression,
                         is_text=False)
     if protocol < 0:
         protocol = pkl.HIGHEST_PROTOCOL
     try:
-        pkl.dump(obj, f, protocol=protocol)
+        f.write(pkl.dumps(obj, protocol=protocol))
     finally:
         for _f in fh:
             _f.close()
@@ -93,7 +92,7 @@ def read_pickle(path, compression='infer'):
     ----------
     path : str
         File path where the pickled object will be loaded.
-    compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, xz or zip if path ends in '.gz', '.bz2', '.xz',
         or '.zip' respectively, and no decompression otherwise.
@@ -103,7 +102,7 @@ def read_pickle(path, compression='infer'):
 
     Returns
     -------
-    unpickled : type of object stored in file
+    unpickled : same type as object stored in file
 
     See Also
     --------
@@ -138,12 +137,11 @@ def read_pickle(path, compression='infer'):
     >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
-    inferred_compression = _infer_compression(path, compression)
 
     def read_wrapper(func):
         # wrapper file handle open/close operation
         f, fh = _get_handle(path, 'rb',
-                            compression=inferred_compression,
+                            compression=compression,
                             is_text=False)
         try:
             return func(f)

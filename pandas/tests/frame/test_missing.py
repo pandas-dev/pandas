@@ -8,6 +8,9 @@ from distutils.version import LooseVersion
 from numpy import nan, random
 import numpy as np
 
+import datetime
+import dateutil
+
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Timestamp,
                     date_range, Categorical)
@@ -24,7 +27,7 @@ try:
     import scipy
     _is_scipy_ge_0190 = (LooseVersion(scipy.__version__) >=
                          LooseVersion('0.19.0'))
-except:
+except ImportError:
     _is_scipy_ge_0190 = False
 
 
@@ -171,8 +174,12 @@ class TestDataFrameMissingData(TestData):
                         [np.nan, np.nan, np.nan, np.nan],
                         [7, np.nan, 8, 9]])
         cp = df.copy()
-        result = df.dropna(how='all', axis=[0, 1])
-        result2 = df.dropna(how='all', axis=(0, 1))
+
+        # GH20987
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.dropna(how='all', axis=[0, 1])
+        with tm.assert_produces_warning(FutureWarning):
+            result2 = df.dropna(how='all', axis=(0, 1))
         expected = df.dropna(how='all').dropna(how='all', axis=1)
 
         assert_frame_equal(result, expected)
@@ -180,8 +187,29 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(df, cp)
 
         inp = df.copy()
-        inp.dropna(how='all', axis=(0, 1), inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            inp.dropna(how='all', axis=(0, 1), inplace=True)
         assert_frame_equal(inp, expected)
+
+    def test_dropna_tz_aware_datetime(self):
+        # GH13407
+        df = DataFrame()
+        dt1 = datetime.datetime(2015, 1, 1,
+                                tzinfo=dateutil.tz.tzutc())
+        dt2 = datetime.datetime(2015, 2, 2,
+                                tzinfo=dateutil.tz.tzutc())
+        df['Time'] = [dt1]
+        result = df.dropna(axis=0)
+        expected = DataFrame({'Time': [dt1]})
+        assert_frame_equal(result, expected)
+
+        # Ex2
+        df = DataFrame({'Time': [dt1, None, np.nan, dt2]})
+        result = df.dropna(axis=0)
+        expected = DataFrame([dt1, dt2],
+                             columns=['Time'],
+                             index=[0, 3])
+        assert_frame_equal(result, expected)
 
     def test_fillna(self):
         tf = self.tsframe
@@ -271,6 +299,17 @@ class TestDataFrameMissingData(TestData):
         exp = pd.DataFrame({'A': [pd.Timestamp('2012-11-11 00:00:00+01:00'),
                                   pd.Timestamp('2012-11-11 00:00:00+01:00')]})
         assert_frame_equal(df.fillna(method='bfill'), exp)
+
+        # with timezone in another column
+        # GH 15522
+        df = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
+                                              tz='US/Eastern'),
+                           'B': [1, 2, np.nan, np.nan]})
+        result = df.fillna(method='pad')
+        expected = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
+                                                    tz='US/Eastern'),
+                                 'B': [1., 2., 2., 2.]})
+        assert_frame_equal(result, expected)
 
     def test_na_actions_categorical(self):
 

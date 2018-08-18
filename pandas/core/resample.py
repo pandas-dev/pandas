@@ -5,11 +5,13 @@ import copy
 from textwrap import dedent
 
 import pandas as pd
-from pandas.core.base import GroupByMixin
-
-from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
-                                 SeriesGroupBy, groupby, PanelGroupBy,
-                                 _pipe_template)
+from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.ops import BinGrouper
+from pandas.core.groupby.groupby import (
+    _GroupBy, GroupBy, groupby, _pipe_template
+)
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
@@ -23,8 +25,8 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
-from pandas._libs import lib, tslib
-from pandas._libs.tslib import Timestamp
+from pandas._libs import lib
+from pandas._libs.tslibs import Timestamp, NaT
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.util._decorators import Appender, Substitution
@@ -61,20 +63,6 @@ class Resampler(_GroupBy):
     _attributes = ['freq', 'axis', 'closed', 'label', 'convention',
                    'loffset', 'base', 'kind']
 
-    # API compat of allowed attributes
-    _deprecated_valids = _attributes + ['__doc__', '_cache', '_attributes',
-                                        'binner', 'grouper', 'groupby',
-                                        'sort', 'kind', 'squeeze', 'keys',
-                                        'group_keys', 'as_index', 'exclusions',
-                                        '_groupby']
-
-    # don't raise deprecation warning on attributes starting with these
-    # patterns - prevents warnings caused by IPython introspection
-    _deprecated_valid_patterns = ['_ipython', '_repr']
-
-    # API compat of disallowed attributes
-    _deprecated_invalids = ['iloc', 'loc', 'ix', 'iat', 'at']
-
     def __init__(self, obj, groupby=None, axis=0, kind=None, **kwargs):
         self.groupby = groupby
         self.keys = None
@@ -99,6 +87,16 @@ class Resampler(_GroupBy):
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
                                           attrs=', '.join(attrs))
 
+    def __getattr__(self, attr):
+        if attr in self._internal_names_set:
+            return object.__getattribute__(self, attr)
+        if attr in self._attributes:
+            return getattr(self.groupby, attr)
+        if attr in self.obj:
+            return self[attr]
+
+        return object.__getattribute__(self, attr)
+
     @property
     def obj(self):
         return self.groupby.obj
@@ -122,100 +120,6 @@ class Resampler(_GroupBy):
         return (self.groupby is not None and
                 (self.groupby.key is not None or
                  self.groupby.level is not None))
-
-    def _deprecated(self, op):
-        warnings.warn(("\n.resample() is now a deferred operation\n"
-                       "You called {op}(...) on this deferred object "
-                       "which materialized it into a {klass}\nby implicitly "
-                       "taking the mean.  Use .resample(...).mean() "
-                       "instead").format(op=op, klass=self._typ),
-                      FutureWarning, stacklevel=3)
-        return self.mean()
-
-    def _make_deprecated_binop(op):
-        # op is a string
-
-        def _evaluate_numeric_binop(self, other):
-            result = self._deprecated(op)
-            return getattr(result, op)(other)
-        return _evaluate_numeric_binop
-
-    def _make_deprecated_unary(op, name):
-        # op is a callable
-
-        def _evaluate_numeric_unary(self):
-            result = self._deprecated(name)
-            return op(result)
-        return _evaluate_numeric_unary
-
-    def __array__(self):
-        return self._deprecated('__array__').__array__()
-
-    __gt__ = _make_deprecated_binop('__gt__')
-    __ge__ = _make_deprecated_binop('__ge__')
-    __lt__ = _make_deprecated_binop('__lt__')
-    __le__ = _make_deprecated_binop('__le__')
-    __eq__ = _make_deprecated_binop('__eq__')
-    __ne__ = _make_deprecated_binop('__ne__')
-
-    __add__ = __radd__ = _make_deprecated_binop('__add__')
-    __sub__ = __rsub__ = _make_deprecated_binop('__sub__')
-    __mul__ = __rmul__ = _make_deprecated_binop('__mul__')
-    __floordiv__ = __rfloordiv__ = _make_deprecated_binop('__floordiv__')
-    __truediv__ = __rtruediv__ = _make_deprecated_binop('__truediv__')
-    if not compat.PY3:
-        __div__ = __rdiv__ = _make_deprecated_binop('__div__')
-    __neg__ = _make_deprecated_unary(lambda x: -x, '__neg__')
-    __pos__ = _make_deprecated_unary(lambda x: x, '__pos__')
-    __abs__ = _make_deprecated_unary(lambda x: np.abs(x), '__abs__')
-    __inv__ = _make_deprecated_unary(lambda x: -x, '__inv__')
-
-    def __getattr__(self, attr):
-        if attr in self._internal_names_set:
-            return object.__getattribute__(self, attr)
-        if attr in self._attributes:
-            return getattr(self.groupby, attr)
-        if attr in self.obj:
-            return self[attr]
-
-        if attr in self._deprecated_invalids:
-            raise ValueError(".resample() is now a deferred operation\n"
-                             "\tuse .resample(...).mean() instead of "
-                             ".resample(...)")
-
-        matches_pattern = any(attr.startswith(x) for x
-                              in self._deprecated_valid_patterns)
-        if not matches_pattern and attr not in self._deprecated_valids:
-            # avoid the warning, if it's just going to be an exception
-            # anyway.
-            if not hasattr(self.obj, attr):
-                raise AttributeError("'{}' has no attribute '{}'".format(
-                    type(self.obj).__name__, attr
-                ))
-            self = self._deprecated(attr)
-
-        return object.__getattribute__(self, attr)
-
-    def __setattr__(self, attr, value):
-        if attr not in self._deprecated_valids:
-            raise ValueError("cannot set values on {0}".format(
-                self.__class__.__name__))
-        object.__setattr__(self, attr, value)
-
-    def __getitem__(self, key):
-        try:
-            return super(Resampler, self).__getitem__(key)
-        except (KeyError, AbstractMethodError):
-
-            # compat for deprecated
-            if isinstance(self.obj, ABCSeries):
-                return self._deprecated('__getitem__')[key]
-
-            raise
-
-    def __setitem__(self, attr, value):
-        raise ValueError("cannot set items on {0}".format(
-            self.__class__.__name__))
 
     def _convert_obj(self, obj):
         """
@@ -281,18 +185,12 @@ one pass, you can do
     def pipe(self, func, *args, **kwargs):
         return super(Resampler, self).pipe(func, *args, **kwargs)
 
-    def plot(self, *args, **kwargs):
-        # for compat with prior versions, we want to
-        # have the warnings shown here and just have this work
-        return self._deprecated('plot').plot(*args, **kwargs)
-
     _agg_doc = dedent("""
 
     Examples
     --------
-    >>> s = Series([1,2,3,4,5],
-                    index=pd.date_range('20130101',
-                                        periods=5,freq='s'))
+    >>> s = pd.Series([1,2,3,4,5],
+                      index=pd.date_range('20130101', periods=5,freq='s'))
     2013-01-01 00:00:00    1
     2013-01-01 00:00:01    2
     2013-01-01 00:00:02    3
@@ -527,7 +425,7 @@ one pass, you can do
         appear (e.g., when the resampling frequency is higher than the original
         frequency). The backward fill will replace NaN values that appeared in
         the resampled data with the next value in the original sequence.
-        Missing values that existed in the orginal data will not be modified.
+        Missing values that existed in the original data will not be modified.
 
         Parameters
         ----------
@@ -631,7 +529,7 @@ one pass, you can do
         appear (e.g., when the resampling frequency is higher than the original
         frequency).
 
-        Missing values that existed in the orginal data will
+        Missing values that existed in the original data will
         not be modified.
 
         Parameters
@@ -658,6 +556,7 @@ one pass, you can do
         pad : Forward fill NaN values in the resampled data.
         nearest : Fill NaN values in the resampled data
             with nearest neighbor starting from center.
+        interpolate : Fill NaN values using interpolation.
         pandas.Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'bfill' and 'ffill'.
         pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
@@ -849,9 +748,6 @@ one pass, you can do
         if not len(self.ax) and isinstance(self._selected_obj, ABCDataFrame):
             result = pd.Series([], index=result.index, dtype='int64')
         return result
-
-
-Resampler._deprecated_valids += dir(Resampler)
 
 
 # downsample methods
@@ -1071,6 +967,7 @@ class DatetimeIndexResampler(Resampler):
             result = obj.reindex(res_index, method=method,
                                  limit=limit, fill_value=fill_value)
 
+        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
@@ -1302,7 +1199,7 @@ class TimeGrouper(Grouper):
 
         freq = to_offset(freq)
 
-        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
         rule = freq.rule_code
         if (rule in end_types or
                 ('-' in rule and rule[:rule.find('-')] in end_types)):
@@ -1448,8 +1345,8 @@ class TimeGrouper(Grouper):
                 labels = labels[:-1]
 
         if ax.hasnans:
-            binner = binner.insert(0, tslib.NaT)
-            labels = labels.insert(0, tslib.NaT)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
 
         # if we end up with more labels than bins
         # adjust the labels
@@ -1486,8 +1383,7 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        start = ax[0]
-        end = ax[-1]
+        start, end = ax.min(), ax.max()
         labels = binner = TimedeltaIndex(start=start,
                                          end=end,
                                          freq=self.freq,
@@ -1564,8 +1460,8 @@ class TimeGrouper(Grouper):
             # shift bins by the number of NaT
             bins += nat_count
             bins = np.insert(bins, 0, nat_count)
-            binner = binner.insert(0, tslib.NaT)
-            labels = labels.insert(0, tslib.NaT)
+            binner = binner.insert(0, NaT)
+            labels = labels.insert(0, NaT)
 
         return binner, bins, labels
 

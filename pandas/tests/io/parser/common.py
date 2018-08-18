@@ -54,20 +54,21 @@ bar2,12,13,14,15
         # and C engine will raise UnicodeDecodeError instead of
         # c engine raising ParserError and swallowing exception
         # that caused read to fail.
-        handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")
         utf8 = codecs.lookup('utf-8')
-        # stream must be binary UTF8
-        stream = codecs.StreamRecoder(
-            handle, utf8.encode, utf8.decode, codec.streamreader,
-            codec.streamwriter)
+
         if compat.PY3:
             msg = "'utf-8' codec can't decode byte"
         else:
             msg = "'utf8' codec can't decode byte"
-        with tm.assert_raises_regex(UnicodeDecodeError, msg):
-            self.read_csv(stream)
-        stream.close()
+
+        # stream must be binary UTF8
+        with open(self.csv_shiftjs, "rb") as handle, codecs.StreamRecoder(
+                handle, utf8.encode, utf8.decode, codec.streamreader,
+                codec.streamwriter) as stream:
+
+            with tm.assert_raises_regex(UnicodeDecodeError, msg):
+                self.read_csv(stream)
 
     def test_read_csv(self):
         if not compat.PY3:
@@ -76,7 +77,7 @@ bar2,12,13,14,15
             else:
                 prefix = u("file://")
 
-            fname = prefix + compat.text_type(self.csv1)
+            fname = prefix + compat.text_type(os.path.abspath(self.csv1))
             self.read_csv(fname, index_col=0, parse_dates=True)
 
     def test_1000_sep(self):
@@ -235,6 +236,21 @@ c,4,5
                               'B': [1, 3, 4],
                               'C': [2, 4, 5]})
         out = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(out, expected)
+
+    def test_read_csv_low_memory_no_rows_with_index(self):
+        if self.engine == "c" and not self.low_memory:
+            pytest.skip("This is a low-memory specific test")
+
+        # see gh-21141
+        data = """A,B,C
+1,1,1,2
+2,2,3,4
+3,3,4,5
+"""
+        out = self.read_csv(StringIO(data), low_memory=True,
+                            index_col=0, nrows=0)
+        expected = DataFrame(columns=["A", "B", "C"])
         tm.assert_frame_equal(out, expected)
 
     def test_read_csv_dataframe(self):
@@ -635,21 +651,19 @@ bar"""
         tm.assert_frame_equal(df, expected)
 
     @tm.network
-    def test_url(self):
+    def test_url(self, datapath):
         # HTTP(S)
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/tests/io/parser/data/salaries.csv')
         url_table = self.read_table(url)
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
+        localtable = datapath('io', 'parser', 'data', 'salaries.csv')
         local_table = self.read_table(localtable)
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
     @pytest.mark.slow
-    def test_file(self):
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
+    def test_file(self, datapath):
+        localtable = datapath('io', 'parser', 'data', 'salaries.csv')
         local_table = self.read_table(localtable)
 
         try:
@@ -739,8 +753,8 @@ A,B,C
 
                     tm.assert_frame_equal(result, expected)
 
-    def test_utf16_example(self):
-        path = tm.get_data_path('utf16_ex.txt')
+    def test_utf16_example(self, datapath):
+        path = datapath('io', 'parser', 'data', 'utf16_ex.txt')
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
@@ -751,8 +765,8 @@ A,B,C
             result = self.read_table(buf, encoding='utf-16')
             assert len(result) == 50
 
-    def test_unicode_encoding(self):
-        pth = tm.get_data_path('unicode_series.csv')
+    def test_unicode_encoding(self, datapath):
+        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
 
         result = self.read_csv(pth, header=None, encoding='latin-1')
         result = result.set_index(0)
@@ -1275,10 +1289,8 @@ eight,1,2,3"""
         else:  # Python engine
             assert output == 'Filled 1 NA values in column a\n'
 
+    @pytest.mark.skipif(PY3, reason="won't work in Python 3")
     def test_iteration_open_handle(self):
-        if PY3:
-            pytest.skip(
-                "won't work in Python 3 {0}".format(sys.version_info))
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
@@ -1499,10 +1511,9 @@ j,-inF"""
             result = self.read_csv(path)
             tm.assert_frame_equal(result, expected)
 
-    def test_sub_character(self):
+    def test_sub_character(self, datapath):
         # see gh-16893
-        dirpath = tm.get_data_path()
-        filename = os.path.join(dirpath, "sub_char.csv")
+        filename = datapath('io', 'parser', 'data', 'sub_char.csv')
 
         expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
         result = self.read_csv(filename)
@@ -1532,7 +1543,7 @@ j,-inF"""
                     assert not m.closed
                 m.close()
 
-    def test_invalid_file_buffer(self):
+    def test_invalid_file_buffer(self, mock):
         # see gh-15337
 
         class InvalidBuffer(object):
@@ -1563,11 +1574,8 @@ j,-inF"""
 
         tm.assert_frame_equal(result, expected)
 
-        if PY3:
-            from unittest import mock
-
-            with tm.assert_raises_regex(ValueError, msg):
-                self.read_csv(mock.Mock())
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(mock.Mock())
 
     @tm.capture_stderr
     def test_skip_bad_lines(self):

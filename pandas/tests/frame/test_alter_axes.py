@@ -130,19 +130,27 @@ class TestDataFrameAlterAxes(TestData):
         result = df.set_index(df.C)
         assert result.index.name == 'C'
 
-    @pytest.mark.parametrize('level', ['a', pd.Series(range(3), name='a')])
+    @pytest.mark.parametrize(
+        'level', ['a', pd.Series(range(0, 8, 2), name='a')])
     def test_set_index_duplicate_names(self, level):
-        # GH18872
+        # GH18872 - GH19029
         df = pd.DataFrame(np.arange(8).reshape(4, 2), columns=['a', 'b'])
 
         # Pass an existing level name:
         df.index.name = 'a'
-        pytest.raises(ValueError, df.set_index, level, append=True)
-        pytest.raises(ValueError, df.set_index, [level], append=True)
+        expected = pd.MultiIndex.from_tuples([(0, 0), (1, 2), (2, 4), (3, 6)],
+                                             names=['a', 'a'])
+        result = df.set_index(level, append=True)
+        tm.assert_index_equal(result.index, expected)
+        result = df.set_index([level], append=True)
+        tm.assert_index_equal(result.index, expected)
 
-        # Pass twice the same level name:
-        df.index.name = 'c'
-        pytest.raises(ValueError, df.set_index, [level, level])
+        # Pass twice the same level name (only works with passing actual data)
+        if isinstance(level, pd.Series):
+            result = df.set_index([level, level])
+            expected = pd.MultiIndex.from_tuples(
+                [(0, 0), (2, 2), (4, 4), (6, 6)], names=['a', 'a'])
+            tm.assert_index_equal(result.index, expected)
 
     def test_set_index_nonuniq(self):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
@@ -249,8 +257,8 @@ class TestDataFrameAlterAxes(TestData):
         # convert to utc
         df['C'] = i.to_series().reset_index(drop=True)
         result = df['C']
-        comp = pd.DatetimeIndex(expected.values).copy()
-        comp.tz = None
+        comp = pd.DatetimeIndex(expected.values)
+        comp = comp.tz_localize(None)
         tm.assert_numpy_array_equal(result.values, comp.values)
 
         # list of datetimes with a tz
@@ -269,25 +277,26 @@ class TestDataFrameAlterAxes(TestData):
         df.pop('ts')
         assert_frame_equal(df, expected)
 
+    def test_reset_index_tz(self, tz_aware_fixture):
         # GH 3950
         # reset_index with single level
-        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern']:
-            idx = pd.date_range('1/1/2011', periods=5,
-                                freq='D', tz=tz, name='idx')
-            df = pd.DataFrame(
-                {'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
+        tz = tz_aware_fixture
+        idx = pd.date_range('1/1/2011', periods=5,
+                            freq='D', tz=tz, name='idx')
+        df = pd.DataFrame(
+            {'a': range(5), 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
 
-            expected = pd.DataFrame({'idx': [datetime(2011, 1, 1),
-                                             datetime(2011, 1, 2),
-                                             datetime(2011, 1, 3),
-                                             datetime(2011, 1, 4),
-                                             datetime(2011, 1, 5)],
-                                     'a': range(5),
-                                     'b': ['A', 'B', 'C', 'D', 'E']},
-                                    columns=['idx', 'a', 'b'])
-            expected['idx'] = expected['idx'].apply(
-                lambda d: pd.Timestamp(d, tz=tz))
-            assert_frame_equal(df.reset_index(), expected)
+        expected = pd.DataFrame({'idx': [datetime(2011, 1, 1),
+                                         datetime(2011, 1, 2),
+                                         datetime(2011, 1, 3),
+                                         datetime(2011, 1, 4),
+                                         datetime(2011, 1, 5)],
+                                 'a': range(5),
+                                 'b': ['A', 'B', 'C', 'D', 'E']},
+                                columns=['idx', 'a', 'b'])
+        expected['idx'] = expected['idx'].apply(
+            lambda d: pd.Timestamp(d, tz=tz))
+        assert_frame_equal(df.reset_index(), expected)
 
     def test_set_index_timezone(self):
         # GH 12358
@@ -578,6 +587,17 @@ class TestDataFrameAlterAxes(TestData):
                              columns=['2001-01-01'])
         assert_frame_equal(df, expected)
 
+    def test_rename_bug2(self):
+        # GH 19497
+        # rename was changing Index to MultiIndex if Index contained tuples
+
+        df = DataFrame(data=np.arange(3), index=[(0, 0), (1, 1), (2, 2)],
+                       columns=["a"])
+        df = df.rename({(1, 1): (5, 4)}, axis="index")
+        expected = DataFrame(data=np.arange(3), index=[(0, 0), (5, 4), (2, 2)],
+                             columns=["a"])
+        assert_frame_equal(df, expected)
+
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            labels=[[0, 0, 0, 0, 0, 0],
@@ -603,6 +623,19 @@ class TestDataFrameAlterAxes(TestData):
                            names=['L1', 'L2', 'L0'])
         expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
                              index=e_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.reorder_levels([0, 0, 0])
+        e_idx = MultiIndex(levels=[['bar'], ['bar'], ['bar']],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 0, 0, 0, 0, 0],
+                                   [0, 0, 0, 0, 0, 0]],
+                           names=['L0', 'L0', 'L0'])
+        expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
+                             index=e_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.reorder_levels(['L0', 'L0', 'L0'])
         assert_frame_equal(result, expected)
 
     def test_reset_index(self):
@@ -1022,6 +1055,28 @@ class TestDataFrameAlterAxes(TestData):
         assert parameters == {"self", "labels", "index", "columns", "axis",
                               "limit", "copy", "level", "method",
                               "fill_value", "tolerance"}
+
+    def test_droplevel(self):
+        # GH20342
+        df = pd.DataFrame([
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12]
+        ])
+        df = df.set_index([0, 1]).rename_axis(['a', 'b'])
+        df.columns = pd.MultiIndex.from_tuples([('c', 'e'), ('d', 'f')],
+                                               names=['level_1', 'level_2'])
+
+        # test that dropping of a level in index works
+        expected = df.reset_index('a', drop=True)
+        result = df.droplevel('a', axis='index')
+        assert_frame_equal(result, expected)
+
+        # test that dropping of a level in columns works
+        expected = df.copy()
+        expected.columns = pd.Index(['c', 'd'], name='level_1')
+        result = df.droplevel('level_2', axis='columns')
+        assert_frame_equal(result, expected)
 
 
 class TestIntervalIndex(object):

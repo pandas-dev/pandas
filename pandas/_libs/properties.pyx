@@ -37,6 +37,9 @@ cdef class CachedProperty(object):
             PyDict_SetItem(cache, self.name, val)
         return val
 
+    def __set__(self, obj, value):
+        raise AttributeError("Can't set attribute")
+
 
 cache_readonly = CachedProperty
 

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 import pandas as pd
+from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import lrange
@@ -60,6 +61,7 @@ class TestPeriodIndex(object):
 
         exp_index = date_range('1/1/2001', end='12/31/2009', freq='A-DEC')
         result = series.to_timestamp(how='end')
+        exp_index = exp_index + Timedelta(1, 'D') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == 'foo'
 
@@ -74,16 +76,19 @@ class TestPeriodIndex(object):
         delta = timedelta(hours=23)
         result = series.to_timestamp('H', 'end')
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 'h') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
         result = series.to_timestamp('T', 'end')
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 'm') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         result = series.to_timestamp('S', 'end')
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
+        exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
 
         index = PeriodIndex(freq='H', start='1/1/2001', end='1/2/2001')
@@ -92,6 +97,7 @@ class TestPeriodIndex(object):
         exp_index = date_range('1/1/2001 00:59:59', end='1/2/2001 00:59:59',
                                freq='H')
         result = series.to_timestamp(how='end')
+        exp_index = exp_index + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result.index, exp_index)
         assert result.name == 'foo'
 
@@ -167,7 +173,7 @@ class TestPeriodIndex(object):
         prng = rng.to_period()
         assert prng.freq == 'M'
 
-        msg = pd._libs.tslibs.frequencies._INVALID_FREQ_ERROR
+        msg = pd._libs.tslibs.frequencies.INVALID_FREQ_ERR_MSG
         with tm.assert_raises_regex(ValueError, msg):
             date_range('01-Jan-2012', periods=8, freq='EOM')
 
@@ -284,6 +290,7 @@ class TestPeriodIndexConversion(object):
         result = idx.to_timestamp(how='E')
         expected = DatetimeIndex(['2011-02-28', 'NaT', '2011-03-31'],
                                  name='idx')
+        expected = expected + Timedelta(1, 'D') - Timedelta(1, 'ns')
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_combined(self):
@@ -298,11 +305,13 @@ class TestPeriodIndexConversion(object):
         expected = DatetimeIndex(['2011-01-02 00:59:59',
                                   '2011-01-03 01:59:59'],
                                  name='idx')
+        expected = expected + Timedelta(1, 's') - Timedelta(1, 'ns')
         tm.assert_index_equal(result, expected)
 
         result = idx.to_timestamp(how='E', freq='H')
         expected = DatetimeIndex(['2011-01-02 00:00', '2011-01-03 01:00'],
                                  name='idx')
+        expected = expected + Timedelta(1, 'h') - Timedelta(1, 'ns')
         tm.assert_index_equal(result, expected)
 
     def test_period_astype_to_timestamp(self):
@@ -312,6 +321,7 @@ class TestPeriodIndexConversion(object):
         tm.assert_index_equal(pi.astype('datetime64[ns]'), exp)
 
         exp = pd.DatetimeIndex(['2011-01-31', '2011-02-28', '2011-03-31'])
+        exp = exp + Timedelta(1, 'D') - Timedelta(1, 'ns')
         tm.assert_index_equal(pi.astype('datetime64[ns]', how='end'), exp)
 
         exp = pd.DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01'],
@@ -321,6 +331,7 @@ class TestPeriodIndexConversion(object):
 
         exp = pd.DatetimeIndex(['2011-01-31', '2011-02-28', '2011-03-31'],
                                tz='US/Eastern')
+        exp = exp + Timedelta(1, 'D') - Timedelta(1, 'ns')
         res = pi.astype('datetime64[ns, US/Eastern]', how='end')
         tm.assert_index_equal(res, exp)
 
