@@ -73,6 +73,22 @@ class TestObjectComparisons(object):
 
 class TestArithmetic(object):
 
+    @pytest.mark.parametrize("op", [operator.add, ops.radd])
+    @pytest.mark.parametrize("other", ["category", "Int64"])
+    def test_add_extension_scalar(self, other, box, op):
+        # GH#22378
+        # Check that scalars satisfying is_extension_array_dtype(obj)
+        # do not incorrectly try to dispatch to an ExtensionArray operation
+
+        arr = pd.Series(['a', 'b', 'c'])
+        expected = pd.Series([op(x, other) for x in arr])
+
+        arr = tm.box_expected(arr, box)
+        expected = tm.box_expected(expected, box)
+
+        result = op(arr, other)
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
