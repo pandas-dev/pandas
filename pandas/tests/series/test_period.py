@@ -1,9 +1,10 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
-from pandas import Series, period_range, DataFrame
+from pandas import Series, period_range, DataFrame, Period
 
 
 def _permute(obj):
@@ -72,22 +73,23 @@ class TestSeriesPeriod(object):
     # ---------------------------------------------------------------------
     # NaT support
 
-    """
-    # ToDo: Enable when support period dtype
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
+                       strict=True)
     def test_NaT_scalar(self):
-        series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
+        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype='period[D]')
 
         val = series[3]
-        assert isna(val)
+        assert pd.isna(val)
 
         series[2] = val
-        assert isna(series[2])
+        assert pd.isna(series[2])
 
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
+                       strict=True)
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
-        expected = Series([NaT])
+        expected = Series([pd.NaT])
         tm.assert_series_equal(result, expected)
-    """
 
     def test_set_none_nan(self):
         # currently Period is stored as object dtype, not as NaT
@@ -117,7 +119,7 @@ class TestSeriesPeriod(object):
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
 
-    def test_align_series(self):
+    def test_add_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -129,12 +131,15 @@ class TestSeriesPeriod(object):
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        # it works!
-        for kind in ['inner', 'outer', 'left', 'right']:
-            ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")
+
+    def test_align_series(self, join_type):
+        rng = period_range('1/1/2000', '1/1/2010', freq='A')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts.align(ts[::2], join=join_type)
 
     def test_truncate(self):
         # GH 17717
@@ -164,3 +169,23 @@ class TestSeriesPeriod(object):
             pd.Period('2017-09-02')
         ])
         tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
+
+    @pytest.mark.parametrize('input_vals', [
+        [Period('2016-01', freq='M'), Period('2016-02', freq='M')],
+        [Period('2016-01-01', freq='D'), Period('2016-01-02', freq='D')],
+        [Period('2016-01-01 00:00:00', freq='H'),
+         Period('2016-01-01 01:00:00', freq='H')],
+        [Period('2016-01-01 00:00:00', freq='M'),
+         Period('2016-01-01 00:01:00', freq='M')],
+        [Period('2016-01-01 00:00:00', freq='S'),
+         Period('2016-01-01 00:00:01', freq='S')]
+    ])
+    def test_end_time_timevalues(self, input_vals):
+        # GH 17157
+        # Check that the time part of the Period is adjusted by end_time
+        # when using the dt accessor on a Series
+
+        s = Series(input_vals)
+        result = s.dt.end_time
+        expected = s.apply(lambda x: x.end_time)
+        tm.assert_series_equal(result, expected)

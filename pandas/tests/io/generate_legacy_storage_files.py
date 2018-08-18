@@ -1,4 +1,4 @@
-#!/usr/env/bin python
+#!/usr/bin/env python
 
 """
 self-contained to write legacy storage (pickle/msgpack) files
@@ -303,7 +303,7 @@ def write_legacy_pickles(output_dir):
     # make sure we are < 0.13 compat (in py3)
     try:
         from pandas.compat import zip, cPickle as pickle  # noqa
-    except:
+    except ImportError:
         import pickle
 
     version = pandas.__version__

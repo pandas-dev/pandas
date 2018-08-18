@@ -2,10 +2,7 @@ import os
 from importlib import import_module
 
 import numpy as np
-try:
-    from pandas import Panel
-except ImportError:
-    from pandas import WidePanel as Panel  # noqa
+from pandas import Panel
 
 # Compatibility import for lib
 for imp in ['pandas._libs.lib', 'pandas.lib']:

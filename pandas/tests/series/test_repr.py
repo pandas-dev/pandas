@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, date_range, option_context,
                     Categorical, period_range, timedelta_range)
 from pandas.core.index import MultiIndex
+from pandas.core.base import StringMixin
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -201,6 +202,35 @@ class TestSeriesRepr(TestData):
 
 
 class TestCategoricalRepr(object):
+
+    def test_categorical_repr_unicode(self):
+        # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
+        # and we are working in PY2, then rendering a Categorical could raise
+        # UnicodeDecodeError by trying to decode when it shouldn't
+
+        class County(StringMixin):
+            name = u'San Sebastián'
+            state = u'PR'
+
+            def __unicode__(self):
+                return self.name + u', ' + self.state
+
+        cat = pd.Categorical([County() for n in range(61)])
+        idx = pd.Index(cat)
+        ser = idx.to_series()
+
+        if compat.PY3:
+            # no reloading of sys, just check that the default (utf8) works
+            # as expected
+            repr(ser)
+            str(ser)
+
+        else:
+            # set sys.defaultencoding to ascii, then change it back after
+            # the test
+            with tm.set_defaultencoding('ascii'):
+                repr(ser)
+                str(ser)
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))

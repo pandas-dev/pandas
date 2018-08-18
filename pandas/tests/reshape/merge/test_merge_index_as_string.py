@@ -157,9 +157,7 @@ def test_merge_indexes_and_columns_lefton_righton(
 
 @pytest.mark.parametrize('left_index',
                          ['inner', ['inner', 'outer']])
-@pytest.mark.parametrize('how',
-                         ['inner', 'left', 'right', 'outer'])
-def test_join_indexes_and_columns_on(df1, df2, left_index, how):
+def test_join_indexes_and_columns_on(df1, df2, left_index, join_type):
 
     # Construct left_df
     left_df = df1.set_index(left_index)
@@ -169,12 +167,12 @@ def test_join_indexes_and_columns_on(df1, df2, left_index, how):
 
     # Result
     expected = (left_df.reset_index()
-                .join(right_df, on=['outer', 'inner'], how=how,
+                .join(right_df, on=['outer', 'inner'], how=join_type,
                       lsuffix='_x', rsuffix='_y')
                 .set_index(left_index))
 
     # Perform join
-    result = left_df.join(right_df, on=['outer', 'inner'], how=how,
+    result = left_df.join(right_df, on=['outer', 'inner'], how=join_type,
                           lsuffix='_x', rsuffix='_y')
 
     assert_frame_equal(result, expected, check_like=True)

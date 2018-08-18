@@ -5,10 +5,18 @@ and latex files. This module also applies to display formatting.
 """
 
 from __future__ import print_function
-from distutils.version import LooseVersion
 # pylint: disable=W0141
 
-from textwrap import dedent
+from functools import partial
+
+import numpy as np
+
+from pandas._libs import lib
+from pandas._libs.tslibs import NaT, iNaT, Timestamp, Timedelta
+from pandas._libs.tslib import format_array_from_datetime
+
+from pandas import compat
+from pandas.compat import StringIO, lzip, map, zip, u
 
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
@@ -25,94 +33,83 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_list_like)
-from pandas.core.dtypes.generic import ABCSparseArray
+from pandas.core.dtypes.generic import ABCSparseArray, ABCMultiIndex
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas import compat
-from pandas.compat import (StringIO, lzip, range, map, zip, u,
-                           OrderedDict, unichr)
-from pandas.io.formats.terminal import get_terminal_size
+from pandas.core.index import Index, ensure_index
 from pandas.core.config import get_option, set_option
-from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
-                              _stringify_path)
-from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas.io.formats.common import get_level_lengths
-from pandas._libs import lib, writers as libwriters
-from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
-                                format_array_from_datetime)
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-import pandas as pd
-import numpy as np
 
-import csv
-from functools import partial
+from pandas.io.formats.terminal import get_terminal_size
+from pandas.io.common import _expand_user, _stringify_path
+from pandas.io.formats.printing import adjoin, justify, pprint_thing
+
 
 common_docstring = """
-    Parameters
-    ----------
-    buf : StringIO-like, optional
-        buffer to write to
-    columns : sequence, optional
-        the subset of columns to write; default None writes all columns
-    col_space : int, optional
-        the minimum width of each column
-    header : bool, optional
-        %(header)s
-    index : bool, optional
-        whether to print index (row) labels, default True
-    na_rep : string, optional
-        string representation of NAN to use, default 'NaN'
-    formatters : list or dict of one-parameter functions, optional
-        formatter functions to apply to columns' elements by position or name,
-        default None. The result of each function must be a unicode string.
-        List must be of length equal to the number of columns.
-    float_format : one-parameter function, optional
-        formatter function to apply to columns' elements if they are floats,
-        default None. The result of this function must be a unicode string.
-    sparsify : bool, optional
-        Set to False for a DataFrame with a hierarchical index to print every
-        multiindex key at each row, default True
-    index_names : bool, optional
-        Prints the names of the indexes, default True
-    line_width : int, optional
-        Width to wrap a line in characters, default no wrap
-    table_id : str, optional
-        id for the <table> element create by to_html
+        Parameters
+        ----------
+        buf : StringIO-like, optional
+            Buffer to write to.
+        columns : sequence, optional, default None
+            The subset of columns to write. Writes all columns by default.
+        col_space : int, optional
+            The minimum width of each column.
+        header : bool, optional
+            %(header)s.
+        index : bool, optional, default True
+            Whether to print index (row) labels.
+        na_rep : str, optional, default 'NaN'
+            String representation of NAN to use.
+        formatters : list or dict of one-param. functions, optional
+            Formatter functions to apply to columns' elements by position or
+            name.
+            The result of each function must be a unicode string.
+            List must be of length equal to the number of columns.
+        float_format : one-parameter function, optional, default None
+            Formatter function to apply to columns' elements if they are
+            floats. The result of this function must be a unicode string.
+        sparsify : bool, optional, default True
+            Set to False for a DataFrame with a hierarchical index to print
+            every multiindex key at each row.
+        index_names : bool, optional, default True
+            Prints the names of the indexes.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from
+            the print configuration (controlled by set_option), 'right' out
+            of the box. Valid values are
 
-        .. versionadded:: 0.23.0"""
+            * left
+            * right
+            * center
+            * justify
+            * justify-all
+            * start
+            * end
+            * inherit
+            * match-parent
+            * initial
+            * unset.
+        max_rows : int, optional
+            Maximum number of rows to display in the console.
+        max_cols : int, optional
+            Maximum number of columns to display in the console.
+        show_dimensions : bool, default False
+            Display DataFrame dimensions (number of rows by number of columns).
+    """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "justify-all", "start", "end", "inherit",
                              "match-parent", "initial", "unset")
 
-justify_docstring = """
-    justify : str, default None
-        How to justify the column labels. If None uses the option from
-        the print configuration (controlled by set_option), 'right' out
-        of the box. Valid values are
-
-        * left
-        * right
-        * center
-        * justify
-        * justify-all
-        * start
-        * end
-        * inherit
-        * match-parent
-        * initial
-        * unset
-"""
-
 return_docstring = """
+        Returns
+        -------
+        str (or unicode, depending on data and options)
+            String representation of the dataframe.
+    """
 
-    Returns
-    -------
-    formatted : string (or unicode, depending on data and options)"""
-
-docstring_to_string = common_docstring + justify_docstring + return_docstring
+docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
@@ -249,7 +246,7 @@ class SeriesFormatter(object):
 
     def _get_formatted_index(self):
         index = self.tr_series.index
-        is_multi = isinstance(index, MultiIndex)
+        is_multi = isinstance(index, ABCMultiIndex)
 
         if is_multi:
             have_header = any(name for name in index.names)
@@ -354,6 +351,7 @@ def _get_adjustment():
 
 
 class TableFormatter(object):
+
     is_truncated = False
     show_dimensions = None
 
@@ -385,7 +383,7 @@ class DataFrameFormatter(TableFormatter):
     """
 
     __doc__ = __doc__ if __doc__ else ''
-    __doc__ += common_docstring + justify_docstring + return_docstring
+    __doc__ += common_docstring + return_docstring
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,
@@ -428,7 +426,7 @@ class DataFrameFormatter(TableFormatter):
         self.kwds = kwds
 
         if columns is not None:
-            self.columns = _ensure_index(columns)
+            self.columns = ensure_index(columns)
             self.frame = self.frame[self.columns]
         else:
             self.columns = frame.columns
@@ -497,8 +495,6 @@ class DataFrameFormatter(TableFormatter):
                                 frame.iloc[:, -col_num:]), axis=1)
             self.tr_col_num = col_num
         if truncate_v:
-            if max_rows_adj == 0:
-                row_num = len(frame)
             if max_rows_adj == 1:
                 row_num = max_rows
                 frame = frame.iloc[:max_rows, :]
@@ -518,7 +514,6 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a list of columns (as lists of strings).
         """
         frame = self.tr_frame
-
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)
@@ -629,7 +624,8 @@ class DataFrameFormatter(TableFormatter):
                 max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
-                adj_dif = dif
+                # '+ 1' to avoid too wide repr (GH PR #17023)
+                adj_dif = dif + 1
                 col_lens = Series([Series(ele).apply(len).max()
                                    for ele in strcols])
                 n_cols = len(col_lens)
@@ -639,10 +635,14 @@ class DataFrameFormatter(TableFormatter):
                     mid = int(round(n_cols / 2.))
                     mid_ix = col_lens.index[mid]
                     col_len = col_lens[mid_ix]
-                    adj_dif -= (col_len + 1)  # adjoin adds one
+                    # adjoin adds one
+                    adj_dif -= (col_len + 1)
                     col_lens = col_lens.drop(mid_ix)
                     n_cols = len(col_lens)
-                max_cols_adj = n_cols - self.index  # subtract index column
+                # subtract index column
+                max_cols_adj = n_cols - self.index
+                # GH-21180. Ensure that we print at least two.
+                max_cols_adj = max(max_cols_adj, 2)
                 self.max_cols_adj = max_cols_adj
 
                 # Call again _chk_truncate to cut frame appropriately
@@ -698,6 +698,7 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
+        from pandas.io.formats.latex import LatexFormatter
         latex_renderer = LatexFormatter(self, column_format=column_format,
                                         longtable=longtable,
                                         multicolumn=multicolumn,
@@ -742,6 +743,7 @@ class DataFrameFormatter(TableFormatter):
 
             .. versionadded:: 0.19.0
          """
+        from pandas.io.formats.html import HTMLFormatter
         html_renderer = HTMLFormatter(self, classes=classes,
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols,
@@ -762,7 +764,7 @@ class DataFrameFormatter(TableFormatter):
 
         columns = frame.columns
 
-        if isinstance(columns, MultiIndex):
+        if isinstance(columns, ABCMultiIndex):
             fmt_columns = columns.format(sparsify=False, adjoin=False)
             fmt_columns = lzip(*fmt_columns)
             dtypes = self.frame.dtypes._values
@@ -779,7 +781,7 @@ class DataFrameFormatter(TableFormatter):
 
             str_columns = list(zip(*[[space_format(x, y) for y in x]
                                      for x in fmt_columns]))
-            if self.sparsify:
+            if self.sparsify and len(str_columns):
                 str_columns = _sparsify(str_columns)
 
             str_columns = [list(x) for x in zip(*str_columns)]
@@ -818,7 +820,7 @@ class DataFrameFormatter(TableFormatter):
 
         fmt = self._get_formatter('__index__')
 
-        if isinstance(index, MultiIndex):
+        if isinstance(index, ABCMultiIndex):
             fmt_index = index.format(sparsify=self.sparsify, adjoin=False,
                                      names=show_index_names, formatter=fmt)
         else:
@@ -844,970 +846,12 @@ class DataFrameFormatter(TableFormatter):
     def _get_column_name_list(self):
         names = []
         columns = self.frame.columns
-        if isinstance(columns, MultiIndex):
+        if isinstance(columns, ABCMultiIndex):
             names.extend('' if name is None else name
                          for name in columns.names)
         else:
             names.append('' if columns.name is None else columns.name)
         return names
-
-
-class LatexFormatter(TableFormatter):
-    """ Used to render a DataFrame to a LaTeX tabular/longtable environment
-    output.
-
-    Parameters
-    ----------
-    formatter : `DataFrameFormatter`
-    column_format : str, default None
-        The columns format as specified in `LaTeX table format
-        <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3 columns
-    longtable : boolean, default False
-        Use a longtable environment instead of tabular.
-
-    See also
-    --------
-    HTMLFormatter
-    """
-
-    def __init__(self, formatter, column_format=None, longtable=False,
-                 multicolumn=False, multicolumn_format=None, multirow=False):
-        self.fmt = formatter
-        self.frame = self.fmt.frame
-        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
-        self.column_format = column_format
-        self.longtable = longtable
-        self.multicolumn = multicolumn
-        self.multicolumn_format = multicolumn_format
-        self.multirow = multirow
-
-    def write_result(self, buf):
-        """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
-        """
-
-        # string representation of the columns
-        if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
-            info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
-                         .format(name=type(self.frame).__name__,
-                                 col=self.frame.columns,
-                                 idx=self.frame.index))
-            strcols = [[info_line]]
-        else:
-            strcols = self.fmt._to_str_columns()
-
-        def get_col_type(dtype):
-            if issubclass(dtype.type, np.number):
-                return 'r'
-            else:
-                return 'l'
-
-        # reestablish the MultiIndex that has been joined by _to_str_column
-        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
-            clevels = self.frame.columns.nlevels
-            strcols.pop(0)
-            name = any(self.frame.index.names)
-            cname = any(self.frame.columns.names)
-            lastcol = self.frame.index.nlevels - 1
-            previous_lev3 = None
-            for i, lev in enumerate(self.frame.index.levels):
-                lev2 = lev.format()
-                blank = ' ' * len(lev2[0])
-                # display column names in last index-column
-                if cname and i == lastcol:
-                    lev3 = [x if x else '{}' for x in self.frame.columns.names]
-                else:
-                    lev3 = [blank] * clevels
-                if name:
-                    lev3.append(lev.name)
-                current_idx_val = None
-                for level_idx in self.frame.index.labels[i]:
-                    if ((previous_lev3 is None or
-                        previous_lev3[len(lev3)].isspace()) and
-                            lev2[level_idx] == current_idx_val):
-                        # same index as above row and left index was the same
-                        lev3.append(blank)
-                    else:
-                        # different value than above or left index different
-                        lev3.append(lev2[level_idx])
-                        current_idx_val = lev2[level_idx]
-                strcols.insert(i, lev3)
-                previous_lev3 = lev3
-
-        column_format = self.column_format
-        if column_format is None:
-            dtypes = self.frame.dtypes._values
-            column_format = ''.join(map(get_col_type, dtypes))
-            if self.fmt.index:
-                index_format = 'l' * self.frame.index.nlevels
-                column_format = index_format + column_format
-        elif not isinstance(column_format,
-                            compat.string_types):  # pragma: no cover
-            raise AssertionError('column_format must be str or unicode, '
-                                 'not {typ}'.format(typ=type(column_format)))
-
-        if not self.longtable:
-            buf.write('\\begin{{tabular}}{{{fmt}}}\n'
-                      .format(fmt=column_format))
-            buf.write('\\toprule\n')
-        else:
-            buf.write('\\begin{{longtable}}{{{fmt}}}\n'
-                      .format(fmt=column_format))
-            buf.write('\\toprule\n')
-
-        ilevels = self.frame.index.nlevels
-        clevels = self.frame.columns.nlevels
-        nlevels = clevels
-        if any(self.frame.index.names):
-            nlevels += 1
-        strrows = list(zip(*strcols))
-        self.clinebuf = []
-
-        for i, row in enumerate(strrows):
-            if i == nlevels and self.fmt.header:
-                buf.write('\\midrule\n')  # End of header
-                if self.longtable:
-                    buf.write('\\endhead\n')
-                    buf.write('\\midrule\n')
-                    buf.write('\\multicolumn{{{n}}}{{r}}{{{{Continued on next '
-                              'page}}}} \\\\\n'.format(n=len(row)))
-                    buf.write('\\midrule\n')
-                    buf.write('\\endfoot\n\n')
-                    buf.write('\\bottomrule\n')
-                    buf.write('\\endlastfoot\n')
-            if self.fmt.kwds.get('escape', True):
-                # escape backslashes first
-                crow = [(x.replace('\\', '\\textbackslash').replace('_', '\\_')
-                         .replace('%', '\\%').replace('$', '\\$')
-                         .replace('#', '\\#').replace('{', '\\{')
-                         .replace('}', '\\}').replace('~', '\\textasciitilde')
-                         .replace('^', '\\textasciicircum').replace('&', '\\&')
-                         if (x and x != '{}') else '{}') for x in row]
-            else:
-                crow = [x if x else '{}' for x in row]
-            if self.bold_rows and self.fmt.index:
-                # bold row labels
-                crow = ['\\textbf{{{x}}}'.format(x=x)
-                        if j < ilevels and x.strip() not in ['', '{}'] else x
-                        for j, x in enumerate(crow)]
-            if i < clevels and self.fmt.header and self.multicolumn:
-                # sum up columns to multicolumns
-                crow = self._format_multicolumn(crow, ilevels)
-            if (i >= nlevels and self.fmt.index and self.multirow and
-                    ilevels > 1):
-                # sum up rows to multirows
-                crow = self._format_multirow(crow, ilevels, i, strrows)
-            buf.write(' & '.join(crow))
-            buf.write(' \\\\\n')
-            if self.multirow and i < len(strrows) - 1:
-                self._print_cline(buf, i, len(strcols))
-
-        if not self.longtable:
-            buf.write('\\bottomrule\n')
-            buf.write('\\end{tabular}\n')
-        else:
-            buf.write('\\end{longtable}\n')
-
-    def _format_multicolumn(self, row, ilevels):
-        r"""
-        Combine columns belonging to a group to a single multicolumn entry
-        according to self.multicolumn_format
-
-        e.g.:
-        a &  &  & b & c &
-        will become
-        \multicolumn{3}{l}{a} & b & \multicolumn{2}{l}{c}
-        """
-        row2 = list(row[:ilevels])
-        ncol = 1
-        coltext = ''
-
-        def append_col():
-            # write multicolumn if needed
-            if ncol > 1:
-                row2.append('\\multicolumn{{{ncol:d}}}{{{fmt:s}}}{{{txt:s}}}'
-                            .format(ncol=ncol, fmt=self.multicolumn_format,
-                                    txt=coltext.strip()))
-            # don't modify where not needed
-            else:
-                row2.append(coltext)
-        for c in row[ilevels:]:
-            # if next col has text, write the previous
-            if c.strip():
-                if coltext:
-                    append_col()
-                coltext = c
-                ncol = 1
-            # if not, add it to the previous multicolumn
-            else:
-                ncol += 1
-        # write last column name
-        if coltext:
-            append_col()
-        return row2
-
-    def _format_multirow(self, row, ilevels, i, rows):
-        r"""
-        Check following rows, whether row should be a multirow
-
-        e.g.:     becomes:
-        a & 0 &   \multirow{2}{*}{a} & 0 &
-          & 1 &     & 1 &
-        b & 0 &   \cline{1-2}
-                  b & 0 &
-        """
-        for j in range(ilevels):
-            if row[j].strip():
-                nrow = 1
-                for r in rows[i + 1:]:
-                    if not r[j].strip():
-                        nrow += 1
-                    else:
-                        break
-                if nrow > 1:
-                    # overwrite non-multirow entry
-                    row[j] = '\\multirow{{{nrow:d}}}{{*}}{{{row:s}}}'.format(
-                        nrow=nrow, row=row[j].strip())
-                    # save when to end the current block with \cline
-                    self.clinebuf.append([i + nrow - 1, j + 1])
-        return row
-
-    def _print_cline(self, buf, i, icol):
-        """
-        Print clines after multirow-blocks are finished
-        """
-        for cl in self.clinebuf:
-            if cl[0] == i:
-                buf.write('\\cline{{{cl:d}-{icol:d}}}\n'
-                          .format(cl=cl[1], icol=icol))
-        # remove entries that have been written to buffer
-        self.clinebuf = [x for x in self.clinebuf if x[0] != i]
-
-
-class HTMLFormatter(TableFormatter):
-
-    indent_delta = 2
-
-    def __init__(self, formatter, classes=None, max_rows=None, max_cols=None,
-                 notebook=False, border=None, table_id=None):
-        self.fmt = formatter
-        self.classes = classes
-
-        self.frame = self.fmt.frame
-        self.columns = self.fmt.tr_frame.columns
-        self.elements = []
-        self.bold_rows = self.fmt.kwds.get('bold_rows', False)
-        self.escape = self.fmt.kwds.get('escape', True)
-
-        self.max_rows = max_rows or len(self.fmt.frame)
-        self.max_cols = max_cols or len(self.fmt.columns)
-        self.show_dimensions = self.fmt.show_dimensions
-        self.is_truncated = (self.max_rows < len(self.fmt.frame) or
-                             self.max_cols < len(self.fmt.columns))
-        self.notebook = notebook
-        if border is None:
-            border = get_option('display.html.border')
-        self.border = border
-        self.table_id = table_id
-
-    def write(self, s, indent=0):
-        rs = pprint_thing(s)
-        self.elements.append(' ' * indent + rs)
-
-    def write_th(self, s, indent=0, tags=None):
-        if self.fmt.col_space is not None and self.fmt.col_space > 0:
-            tags = (tags or "")
-            tags += ('style="min-width: {colspace};"'
-                     .format(colspace=self.fmt.col_space))
-
-        return self._write_cell(s, kind='th', indent=indent, tags=tags)
-
-    def write_td(self, s, indent=0, tags=None):
-        return self._write_cell(s, kind='td', indent=indent, tags=tags)
-
-    def _write_cell(self, s, kind='td', indent=0, tags=None):
-        if tags is not None:
-            start_tag = '<{kind} {tags}>'.format(kind=kind, tags=tags)
-        else:
-            start_tag = '<{kind}>'.format(kind=kind)
-
-        if self.escape:
-            # escape & first to prevent double escaping of &
-            esc = OrderedDict([('&', r'&amp;'), ('<', r'&lt;'),
-                               ('>', r'&gt;')])
-        else:
-            esc = {}
-        rs = pprint_thing(s, escape_chars=esc).strip()
-        self.write(u'{start}{rs}</{kind}>'
-                   .format(start=start_tag, rs=rs, kind=kind), indent)
-
-    def write_tr(self, line, indent=0, indent_delta=4, header=False,
-                 align=None, tags=None, nindex_levels=0):
-        if tags is None:
-            tags = {}
-
-        if align is None:
-            self.write('<tr>', indent)
-        else:
-            self.write('<tr style="text-align: {align};">'
-                       .format(align=align), indent)
-        indent += indent_delta
-
-        for i, s in enumerate(line):
-            val_tag = tags.get(i, None)
-            if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent, tags=val_tag)
-            else:
-                self.write_td(s, indent, tags=val_tag)
-
-        indent -= indent_delta
-        self.write('</tr>', indent)
-
-    def write_style(self):
-        # We use the "scoped" attribute here so that the desired
-        # style properties for the data frame are not then applied
-        # throughout the entire notebook.
-        template_first = """\
-            <style scoped>"""
-        template_last = """\
-            </style>"""
-        template_select = """\
-                .dataframe %s {
-                    %s: %s;
-                }"""
-        element_props = [('tbody tr th:only-of-type',
-                          'vertical-align',
-                          'middle'),
-                         ('tbody tr th',
-                          'vertical-align',
-                          'top')]
-        if isinstance(self.columns, MultiIndex):
-            element_props.append(('thead tr th',
-                                  'text-align',
-                                  'left'))
-            if all((self.fmt.has_index_names,
-                    self.fmt.index,
-                    self.fmt.show_index_names)):
-                element_props.append(('thead tr:last-of-type th',
-                                      'text-align',
-                                      'right'))
-        else:
-            element_props.append(('thead th',
-                                  'text-align',
-                                  'right'))
-        template_mid = '\n\n'.join(map(lambda t: template_select % t,
-                                       element_props))
-        template = dedent('\n'.join((template_first,
-                                     template_mid,
-                                     template_last)))
-        if self.notebook:
-            self.write(template)
-
-    def write_result(self, buf):
-        indent = 0
-        id_section = ""
-        frame = self.frame
-
-        _classes = ['dataframe']  # Default class.
-        use_mathjax = get_option("display.html.use_mathjax")
-        if not use_mathjax:
-            _classes.append('tex2jax_ignore')
-        if self.classes is not None:
-            if isinstance(self.classes, str):
-                self.classes = self.classes.split()
-            if not isinstance(self.classes, (list, tuple)):
-                raise AssertionError('classes must be list or tuple, not {typ}'
-                                     .format(typ=type(self.classes)))
-            _classes.extend(self.classes)
-
-        if self.notebook:
-            div_style = ''
-            try:
-                import IPython
-                if IPython.__version__ < LooseVersion('3.0.0'):
-                    div_style = ' style="max-width:1500px;overflow:auto;"'
-            except (ImportError, AttributeError):
-                pass
-
-            self.write('<div{style}>'.format(style=div_style))
-
-        self.write_style()
-
-        if self.table_id is not None:
-            id_section = ' id="{table_id}"'.format(table_id=self.table_id)
-        self.write('<table border="{border}" class="{cls}"{id_section}>'
-                   .format(border=self.border, cls=' '.join(_classes),
-                           id_section=id_section), indent)
-
-        indent += self.indent_delta
-        indent = self._write_header(indent)
-        indent = self._write_body(indent)
-
-        self.write('</table>', indent)
-        if self.should_show_dimensions:
-            by = chr(215) if compat.PY3 else unichr(215)  # ×
-            self.write(u('<p>{rows} rows {by} {cols} columns</p>')
-                       .format(rows=len(frame),
-                               by=by,
-                               cols=len(frame.columns)))
-
-        if self.notebook:
-            self.write('</div>')
-
-        _put_lines(buf, self.elements)
-
-    def _write_header(self, indent):
-        truncate_h = self.fmt.truncate_h
-        row_levels = self.frame.index.nlevels
-        if not self.fmt.header:
-            # write nothing
-            return indent
-
-        def _column_header():
-            if self.fmt.index:
-                row = [''] * (self.frame.index.nlevels - 1)
-            else:
-                row = []
-
-            if isinstance(self.columns, MultiIndex):
-                if self.fmt.has_column_names and self.fmt.index:
-                    row.append(single_column_table(self.columns.names))
-                else:
-                    row.append('')
-                style = "text-align: {just};".format(just=self.fmt.justify)
-                row.extend([single_column_table(c, self.fmt.justify, style)
-                            for c in self.columns])
-            else:
-                if self.fmt.index:
-                    row.append(self.columns.name or '')
-                row.extend(self.columns)
-            return row
-
-        self.write('<thead>', indent)
-        row = []
-
-        indent += self.indent_delta
-
-        if isinstance(self.columns, MultiIndex):
-            template = 'colspan="{span:d}" halign="left"'
-
-            if self.fmt.sparsify:
-                # GH3547
-                sentinel = com.sentinel_factory()
-            else:
-                sentinel = None
-            levels = self.columns.format(sparsify=sentinel, adjoin=False,
-                                         names=False)
-            level_lengths = get_level_lengths(levels, sentinel)
-            inner_lvl = len(level_lengths) - 1
-            for lnum, (records, values) in enumerate(zip(level_lengths,
-                                                         levels)):
-                if truncate_h:
-                    # modify the header lines
-                    ins_col = self.fmt.tr_col_num
-                    if self.fmt.sparsify:
-                        recs_new = {}
-                        # Increment tags after ... col.
-                        for tag, span in list(records.items()):
-                            if tag >= ins_col:
-                                recs_new[tag + 1] = span
-                            elif tag + span > ins_col:
-                                recs_new[tag] = span + 1
-                                if lnum == inner_lvl:
-                                    values = (values[:ins_col] + (u('...'),) +
-                                              values[ins_col:])
-                                else:
-                                    # sparse col headers do not receive a ...
-                                    values = (values[:ins_col] +
-                                              (values[ins_col - 1], ) +
-                                              values[ins_col:])
-                            else:
-                                recs_new[tag] = span
-                            # if ins_col lies between tags, all col headers
-                            # get ...
-                            if tag + span == ins_col:
-                                recs_new[ins_col] = 1
-                                values = (values[:ins_col] + (u('...'),) +
-                                          values[ins_col:])
-                        records = recs_new
-                        inner_lvl = len(level_lengths) - 1
-                        if lnum == inner_lvl:
-                            records[ins_col] = 1
-                    else:
-                        recs_new = {}
-                        for tag, span in list(records.items()):
-                            if tag >= ins_col:
-                                recs_new[tag + 1] = span
-                            else:
-                                recs_new[tag] = span
-                        recs_new[ins_col] = 1
-                        records = recs_new
-                        values = (values[:ins_col] + [u('...')] +
-                                  values[ins_col:])
-
-                name = self.columns.names[lnum]
-                row = [''] * (row_levels - 1) + ['' if name is None else
-                                                 pprint_thing(name)]
-
-                if row == [""] and self.fmt.index is False:
-                    row = []
-
-                tags = {}
-                j = len(row)
-                for i, v in enumerate(values):
-                    if i in records:
-                        if records[i] > 1:
-                            tags[j] = template.format(span=records[i])
-                    else:
-                        continue
-                    j += 1
-                    row.append(v)
-                self.write_tr(row, indent, self.indent_delta, tags=tags,
-                              header=True)
-        else:
-            col_row = _column_header()
-            align = self.fmt.justify
-
-            if truncate_h:
-                ins_col = row_levels + self.fmt.tr_col_num
-                col_row.insert(ins_col, '...')
-
-            self.write_tr(col_row, indent, self.indent_delta, header=True,
-                          align=align)
-
-        if all((self.fmt.has_index_names,
-                self.fmt.index,
-                self.fmt.show_index_names)):
-            row = ([x if x is not None else ''
-                    for x in self.frame.index.names] +
-                   [''] * min(len(self.columns), self.max_cols))
-            if truncate_h:
-                ins_col = row_levels + self.fmt.tr_col_num
-                row.insert(ins_col, '')
-            self.write_tr(row, indent, self.indent_delta, header=True)
-
-        indent -= self.indent_delta
-        self.write('</thead>', indent)
-
-        return indent
-
-    def _write_body(self, indent):
-        self.write('<tbody>', indent)
-        indent += self.indent_delta
-
-        fmt_values = {}
-        for i in range(min(len(self.columns), self.max_cols)):
-            fmt_values[i] = self.fmt._format_col(i)
-
-        # write values
-        if self.fmt.index:
-            if isinstance(self.frame.index, MultiIndex):
-                self._write_hierarchical_rows(fmt_values, indent)
-            else:
-                self._write_regular_rows(fmt_values, indent)
-        else:
-            for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
-                self.write_tr(row, indent, self.indent_delta, tags=None)
-
-        indent -= self.indent_delta
-        self.write('</tbody>', indent)
-        indent -= self.indent_delta
-
-        return indent
-
-    def _write_regular_rows(self, fmt_values, indent):
-        truncate_h = self.fmt.truncate_h
-        truncate_v = self.fmt.truncate_v
-
-        ncols = len(self.fmt.tr_frame.columns)
-        nrows = len(self.fmt.tr_frame)
-        fmt = self.fmt._get_formatter('__index__')
-        if fmt is not None:
-            index_values = self.fmt.tr_frame.index.map(fmt)
-        else:
-            index_values = self.fmt.tr_frame.index.format()
-
-        row = []
-        for i in range(nrows):
-
-            if truncate_v and i == (self.fmt.tr_row_num):
-                str_sep_row = ['...' for ele in row]
-                self.write_tr(str_sep_row, indent, self.indent_delta,
-                              tags=None, nindex_levels=1)
-
-            row = []
-            row.append(index_values[i])
-            row.extend(fmt_values[j][i] for j in range(ncols))
-
-            if truncate_h:
-                dot_col_ix = self.fmt.tr_col_num + 1
-                row.insert(dot_col_ix, '...')
-            self.write_tr(row, indent, self.indent_delta, tags=None,
-                          nindex_levels=1)
-
-    def _write_hierarchical_rows(self, fmt_values, indent):
-        template = 'rowspan="{span}" valign="top"'
-
-        truncate_h = self.fmt.truncate_h
-        truncate_v = self.fmt.truncate_v
-        frame = self.fmt.tr_frame
-        ncols = len(frame.columns)
-        nrows = len(frame)
-        row_levels = self.frame.index.nlevels
-
-        idx_values = frame.index.format(sparsify=False, adjoin=False,
-                                        names=False)
-        idx_values = lzip(*idx_values)
-
-        if self.fmt.sparsify:
-            # GH3547
-            sentinel = com.sentinel_factory()
-            levels = frame.index.format(sparsify=sentinel, adjoin=False,
-                                        names=False)
-
-            level_lengths = get_level_lengths(levels, sentinel)
-            inner_lvl = len(level_lengths) - 1
-            if truncate_v:
-                # Insert ... row and adjust idx_values and
-                # level_lengths to take this into account.
-                ins_row = self.fmt.tr_row_num
-                inserted = False
-                for lnum, records in enumerate(level_lengths):
-                    rec_new = {}
-                    for tag, span in list(records.items()):
-                        if tag >= ins_row:
-                            rec_new[tag + 1] = span
-                        elif tag + span > ins_row:
-                            rec_new[tag] = span + 1
-
-                            # GH 14882 - Make sure insertion done once
-                            if not inserted:
-                                dot_row = list(idx_values[ins_row - 1])
-                                dot_row[-1] = u('...')
-                                idx_values.insert(ins_row, tuple(dot_row))
-                                inserted = True
-                            else:
-                                dot_row = list(idx_values[ins_row])
-                                dot_row[inner_lvl - lnum] = u('...')
-                                idx_values[ins_row] = tuple(dot_row)
-                        else:
-                            rec_new[tag] = span
-                        # If ins_row lies between tags, all cols idx cols
-                        # receive ...
-                        if tag + span == ins_row:
-                            rec_new[ins_row] = 1
-                            if lnum == 0:
-                                idx_values.insert(ins_row, tuple(
-                                    [u('...')] * len(level_lengths)))
-
-                            # GH 14882 - Place ... in correct level
-                            elif inserted:
-                                dot_row = list(idx_values[ins_row])
-                                dot_row[inner_lvl - lnum] = u('...')
-                                idx_values[ins_row] = tuple(dot_row)
-                    level_lengths[lnum] = rec_new
-
-                level_lengths[inner_lvl][ins_row] = 1
-                for ix_col in range(len(fmt_values)):
-                    fmt_values[ix_col].insert(ins_row, '...')
-                nrows += 1
-
-            for i in range(nrows):
-                row = []
-                tags = {}
-
-                sparse_offset = 0
-                j = 0
-                for records, v in zip(level_lengths, idx_values[i]):
-                    if i in records:
-                        if records[i] > 1:
-                            tags[j] = template.format(span=records[i])
-                    else:
-                        sparse_offset += 1
-                        continue
-
-                    j += 1
-                    row.append(v)
-
-                row.extend(fmt_values[j][i] for j in range(ncols))
-                if truncate_h:
-                    row.insert(row_levels - sparse_offset +
-                               self.fmt.tr_col_num, '...')
-                self.write_tr(row, indent, self.indent_delta, tags=tags,
-                              nindex_levels=len(levels) - sparse_offset)
-        else:
-            for i in range(len(frame)):
-                idx_values = list(zip(*frame.index.format(
-                    sparsify=False, adjoin=False, names=False)))
-                row = []
-                row.extend(idx_values[i])
-                row.extend(fmt_values[j][i] for j in range(ncols))
-                if truncate_h:
-                    row.insert(row_levels + self.fmt.tr_col_num, '...')
-                self.write_tr(row, indent, self.indent_delta, tags=None,
-                              nindex_levels=frame.index.nlevels)
-
-
-class CSVFormatter(object):
-
-    def __init__(self, obj, path_or_buf=None, sep=",", na_rep='',
-                 float_format=None, cols=None, header=True, index=True,
-                 index_label=None, mode='w', nanRep=None, encoding=None,
-                 compression=None, quoting=None, line_terminator='\n',
-                 chunksize=None, tupleize_cols=False, quotechar='"',
-                 date_format=None, doublequote=True, escapechar=None,
-                 decimal='.'):
-
-        self.obj = obj
-
-        if path_or_buf is None:
-            path_or_buf = StringIO()
-
-        self.path_or_buf = _expand_user(_stringify_path(path_or_buf))
-        self.sep = sep
-        self.na_rep = na_rep
-        self.float_format = float_format
-        self.decimal = decimal
-
-        self.header = header
-        self.index = index
-        self.index_label = index_label
-        self.mode = mode
-        self.encoding = encoding
-        self.compression = compression
-
-        if quoting is None:
-            quoting = csv.QUOTE_MINIMAL
-        self.quoting = quoting
-
-        if quoting == csv.QUOTE_NONE:
-            # prevents crash in _csv
-            quotechar = None
-        self.quotechar = quotechar
-
-        self.doublequote = doublequote
-        self.escapechar = escapechar
-
-        self.line_terminator = line_terminator
-
-        self.date_format = date_format
-
-        self.tupleize_cols = tupleize_cols
-        self.has_mi_columns = (isinstance(obj.columns, MultiIndex) and
-                               not self.tupleize_cols)
-
-        # validate mi options
-        if self.has_mi_columns:
-            if cols is not None:
-                raise TypeError("cannot specify cols with a MultiIndex on the "
-                                "columns")
-
-        if cols is not None:
-            if isinstance(cols, Index):
-                cols = cols.to_native_types(na_rep=na_rep,
-                                            float_format=float_format,
-                                            date_format=date_format,
-                                            quoting=self.quoting)
-            else:
-                cols = list(cols)
-            self.obj = self.obj.loc[:, cols]
-
-        # update columns to include possible multiplicity of dupes
-        # and make sure sure cols is just a list of labels
-        cols = self.obj.columns
-        if isinstance(cols, Index):
-            cols = cols.to_native_types(na_rep=na_rep,
-                                        float_format=float_format,
-                                        date_format=date_format,
-                                        quoting=self.quoting)
-        else:
-            cols = list(cols)
-
-        # save it
-        self.cols = cols
-
-        # preallocate data 2d list
-        self.blocks = self.obj._data.blocks
-        ncols = sum(b.shape[0] for b in self.blocks)
-        self.data = [None] * ncols
-
-        if chunksize is None:
-            chunksize = (100000 // (len(self.cols) or 1)) or 1
-        self.chunksize = int(chunksize)
-
-        self.data_index = obj.index
-        if (isinstance(self.data_index, (DatetimeIndex, PeriodIndex)) and
-                date_format is not None):
-            self.data_index = Index([x.strftime(date_format) if notna(x) else
-                                     '' for x in self.data_index])
-
-        self.nlevels = getattr(self.data_index, 'nlevels', 1)
-        if not index:
-            self.nlevels = 0
-
-    def save(self):
-        # create the writer & save
-        if self.encoding is None:
-            if compat.PY2:
-                encoding = 'ascii'
-            else:
-                encoding = 'utf-8'
-        else:
-            encoding = self.encoding
-
-        if hasattr(self.path_or_buf, 'write'):
-            f = self.path_or_buf
-            close = False
-        else:
-            f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=encoding,
-                                     compression=self.compression)
-            close = True
-
-        try:
-            writer_kwargs = dict(lineterminator=self.line_terminator,
-                                 delimiter=self.sep, quoting=self.quoting,
-                                 doublequote=self.doublequote,
-                                 escapechar=self.escapechar,
-                                 quotechar=self.quotechar)
-            if encoding == 'ascii':
-                self.writer = csv.writer(f, **writer_kwargs)
-            else:
-                writer_kwargs['encoding'] = encoding
-                self.writer = UnicodeWriter(f, **writer_kwargs)
-
-            self._save()
-
-        finally:
-            if close:
-                f.close()
-
-    def _save_header(self):
-
-        writer = self.writer
-        obj = self.obj
-        index_label = self.index_label
-        cols = self.cols
-        has_mi_columns = self.has_mi_columns
-        header = self.header
-        encoded_labels = []
-
-        has_aliases = isinstance(header, (tuple, list, np.ndarray, Index))
-        if not (has_aliases or self.header):
-            return
-        if has_aliases:
-            if len(header) != len(cols):
-                raise ValueError(('Writing {ncols} cols but got {nalias} '
-                                 'aliases'.format(ncols=len(cols),
-                                                  nalias=len(header))))
-            else:
-                write_cols = header
-        else:
-            write_cols = cols
-
-        if self.index:
-            # should write something for index label
-            if index_label is not False:
-                if index_label is None:
-                    if isinstance(obj.index, MultiIndex):
-                        index_label = []
-                        for i, name in enumerate(obj.index.names):
-                            if name is None:
-                                name = ''
-                            index_label.append(name)
-                    else:
-                        index_label = obj.index.name
-                        if index_label is None:
-                            index_label = ['']
-                        else:
-                            index_label = [index_label]
-                elif not isinstance(index_label,
-                                    (list, tuple, np.ndarray, Index)):
-                    # given a string for a DF with Index
-                    index_label = [index_label]
-
-                encoded_labels = list(index_label)
-            else:
-                encoded_labels = []
-
-        if not has_mi_columns or has_aliases:
-            encoded_labels += list(write_cols)
-            writer.writerow(encoded_labels)
-        else:
-            # write out the mi
-            columns = obj.columns
-
-            # write out the names for each level, then ALL of the values for
-            # each level
-            for i in range(columns.nlevels):
-
-                # we need at least 1 index column to write our col names
-                col_line = []
-                if self.index:
-
-                    # name is the first column
-                    col_line.append(columns.names[i])
-
-                    if isinstance(index_label, list) and len(index_label) > 1:
-                        col_line.extend([''] * (len(index_label) - 1))
-
-                col_line.extend(columns._get_level_values(i))
-
-                writer.writerow(col_line)
-
-            # Write out the index line if it's not empty.
-            # Otherwise, we will print out an extraneous
-            # blank line between the mi and the data rows.
-            if encoded_labels and set(encoded_labels) != set(['']):
-                encoded_labels.extend([''] * len(columns))
-                writer.writerow(encoded_labels)
-
-    def _save(self):
-
-        self._save_header()
-
-        nrows = len(self.data_index)
-
-        # write in chunksize bites
-        chunksize = self.chunksize
-        chunks = int(nrows / chunksize) + 1
-
-        for i in range(chunks):
-            start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, nrows)
-            if start_i >= end_i:
-                break
-
-            self._save_chunk(start_i, end_i)
-
-    def _save_chunk(self, start_i, end_i):
-
-        data_index = self.data_index
-
-        # create the data for a chunk
-        slicer = slice(start_i, end_i)
-        for i in range(len(self.blocks)):
-            b = self.blocks[i]
-            d = b.to_native_types(slicer=slicer, na_rep=self.na_rep,
-                                  float_format=self.float_format,
-                                  decimal=self.decimal,
-                                  date_format=self.date_format,
-                                  quoting=self.quoting)
-
-            for col_loc, col in zip(b.mgr_locs, d):
-                # self.data is a preallocated list
-                self.data[col_loc] = col
-
-        ix = data_index.to_native_types(slicer=slicer, na_rep=self.na_rep,
-                                        float_format=self.float_format,
-                                        decimal=self.decimal,
-                                        date_format=self.date_format,
-                                        quoting=self.quoting)
-
-        libwriters.write_csv_rows(self.data, ix, self.nlevels,
-                                  self.cols, self.writer)
-
 
 # ----------------------------------------------------------------------
 # Array formatters
@@ -1889,7 +933,7 @@ class GenericArrayFormatter(object):
             if self.na_rep is not None and is_scalar(x) and isna(x):
                 if x is None:
                     return 'None'
-                elif x is pd.NaT:
+                elif x is NaT:
                     return 'NaT'
                 return self.na_rep
             elif isinstance(x, PandasObject):
@@ -2366,29 +1410,8 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     return [x + "0" if x.endswith('.') and x != na_rep else x for x in trimmed]
 
 
-def single_column_table(column, align=None, style=None):
-    table = '<table'
-    if align is not None:
-        table += (' align="{align}"'.format(align=align))
-    if style is not None:
-        table += (' style="{style}"'.format(style=style))
-    table += '><tbody>'
-    for i in column:
-        table += ('<tr><td>{i!s}</td></tr>'.format(i=i))
-    table += '</tbody></table>'
-    return table
-
-
-def single_row_table(row):  # pragma: no cover
-    table = '<table><tbody><tr>'
-    for i in row:
-        table += ('<td>{i!s}</td>'.format(i=i))
-    table += '</tr></tbody></table>'
-    return table
-
-
 def _has_names(index):
-    if isinstance(index, MultiIndex):
+    if isinstance(index, ABCMultiIndex):
         return com._any_not_none(*index.names)
     else:
         return index.name is not None
@@ -2506,12 +1529,6 @@ def set_eng_float_format(accuracy=3, use_eng_prefix=False):
     set_option("display.column_space", max(12, accuracy + 9))
 
 
-def _put_lines(buf, lines):
-    if any(isinstance(x, compat.text_type) for x in lines):
-        lines = [compat.text_type(x) for x in lines]
-    buf.write('\n'.join(lines))
-
-
 def _binify(cols, line_width):
     adjoin_width = 1
     bins = []
@@ -2530,3 +1547,59 @@ def _binify(cols, line_width):
 
     bins.append(len(cols))
     return bins
+
+
+def get_level_lengths(levels, sentinel=''):
+    """For each index in each level the function returns lengths of indexes.
+
+    Parameters
+    ----------
+    levels : list of lists
+        List of values on for level.
+    sentinel : string, optional
+        Value which states that no new index starts on there.
+
+    Returns
+    ----------
+    Returns list of maps. For each level returns map of indexes (key is index
+    in row and value is length of index).
+    """
+    if len(levels) == 0:
+        return []
+
+    control = [True] * len(levels[0])
+
+    result = []
+    for level in levels:
+        last_index = 0
+
+        lengths = {}
+        for i, key in enumerate(level):
+            if control[i] and key == sentinel:
+                pass
+            else:
+                control[i] = False
+                lengths[last_index] = i - last_index
+                last_index = i
+
+        lengths[last_index] = len(level) - last_index
+
+        result.append(lengths)
+
+    return result
+
+
+def buffer_put_lines(buf, lines):
+    """
+    Appends lines to a buffer.
+
+    Parameters
+    ----------
+    buf
+        The buffer to write to
+    lines
+        The lines to append.
+    """
+    if any(isinstance(x, compat.text_type) for x in lines):
+        lines = [compat.text_type(x) for x in lines]
+    buf.write('\n'.join(lines))

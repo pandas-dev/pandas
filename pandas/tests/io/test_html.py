@@ -1,20 +1,10 @@
 from __future__ import print_function
 
-import glob
 import os
 import re
 import threading
-import warnings
 
-
-# imports needed for Python 3.x but will fail under Python 2.x
-try:
-    from importlib import import_module, reload
-except ImportError:
-    import_module = __import__
-
-
-from distutils.version import LooseVersion
+from functools import partial
 
 import pytest
 
@@ -23,49 +13,29 @@ from numpy.random import rand
 
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
-from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
-                           is_platform_windows, PY3)
-from pandas.io.common import URLError, urlopen, file_path_to_url
+from pandas.compat import (map, zip, StringIO, BytesIO,
+                           is_platform_windows, PY3, reload)
+from pandas.errors import ParserError
+from pandas.io.common import URLError, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
-from pandas._libs.parsers import ParserError
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import makeCustomDataframe as mkdf, network
 
-
-def _have_module(module_name):
-    try:
-        import_module(module_name)
-        return True
-    except ImportError:
-        return False
+HERE = os.path.dirname(__file__)
 
 
-def _skip_if_no(module_name):
-    if not _have_module(module_name):
-        pytest.skip("{0!r} not found".format(module_name))
-
-
-def _skip_if_none_of(module_names):
-    if isinstance(module_names, string_types):
-        _skip_if_no(module_names)
-        if module_names == 'bs4':
-            import bs4
-            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-                pytest.skip("Bad version of bs4: 4.2.0")
-    else:
-        not_found = [module_name for module_name in module_names if not
-                     _have_module(module_name)]
-        if set(not_found) & set(module_names):
-            pytest.skip("{0!r} not found".format(not_found))
-        if 'bs4' in module_names:
-            import bs4
-            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-                pytest.skip("Bad version of bs4: 4.2.0")
-
-
-DATA_PATH = tm.get_data_path()
+@pytest.fixture(params=[
+    'chinese_utf-16.html',
+    'chinese_utf-32.html',
+    'chinese_utf-8.html',
+    'letz_latin1.html',
+])
+def html_encoding_file(request, datapath):
+    """Parametrized fixture for HTML encoding test filenames."""
+    return datapath('io', 'data', 'html_encoding', request.param)
 
 
 def assert_framelist_equal(list1, list2, *args, **kwargs):
@@ -82,33 +52,48 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         assert not frame_i.empty, 'frames are both empty'
 
 
-def test_bs4_version_fails():
-    _skip_if_none_of(('bs4', 'html5lib'))
+@td.skip_if_no('bs4')
+def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
-    if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-        tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
-                                                                 "spam.html"),
-                         flavor='bs4')
+    monkeypatch.setattr(bs4, '__version__', '4.2')
+    with tm.assert_raises_regex(ValueError, "minimum version"):
+        read_html(datapath("io", "data", "spam.html"), flavor='bs4')
 
 
-class ReadHtmlMixin(object):
+def test_invalid_flavor():
+    url = 'google.com'
+    with pytest.raises(ValueError):
+        read_html(url, 'google', flavor='not a* valid**++ flaver')
 
-    def read_html(self, *args, **kwargs):
-        kwargs.setdefault('flavor', self.flavor)
-        return read_html(*args, **kwargs)
+
+@td.skip_if_no('bs4')
+@td.skip_if_no('lxml')
+def test_same_ordering(datapath):
+    filename = datapath('io', 'data', 'valid_markup.html')
+    dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
+    dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
+    assert_framelist_equal(dfs_lxml, dfs_bs4)
 
 
-class TestReadHtml(ReadHtmlMixin):
-    flavor = 'bs4'
-    spam_data = os.path.join(DATA_PATH, 'spam.html')
-    spam_data_kwargs = {}
-    if PY3:
-        spam_data_kwargs['encoding'] = 'UTF-8'
-    banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+@pytest.mark.parametrize("flavor", [
+    pytest.param('bs4', marks=pytest.mark.skipif(
+        not td.safe_import('lxml'), reason='No bs4')),
+    pytest.param('lxml', marks=pytest.mark.skipif(
+        not td.safe_import('lxml'), reason='No lxml'))], scope="class")
+class TestReadHtml(object):
 
-    @classmethod
-    def setup_class(cls):
-        _skip_if_none_of(('bs4', 'html5lib'))
+    @pytest.fixture(autouse=True)
+    def set_files(self, datapath):
+        self.spam_data = datapath('io', 'data', 'spam.html')
+        self.spam_data_kwargs = {}
+        if PY3:
+            self.spam_data_kwargs['encoding'] = 'UTF-8'
+        self.banklist_data = datapath("io", "data", "banklist.html")
+
+    @pytest.fixture(autouse=True, scope="function")
+    def set_defaults(self, flavor, request):
+        self.read_html = partial(read_html, flavor=flavor)
+        yield
 
     def test_to_html_compat(self):
         df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
@@ -128,7 +113,7 @@ class TestReadHtml(ReadHtmlMixin):
 
     @network
     def test_spam_url(self):
-        url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
+        url = ('http://ndb.nal.usda.gov/ndb/foods/show/300772?fg=&man=&'
                'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
         df1 = self.read_html(url, '.*Water.*')
         df2 = self.read_html(url, 'Unit')
@@ -144,17 +129,7 @@ class TestReadHtml(ReadHtmlMixin):
 
         assert_framelist_equal(df1, df2)
 
-    def test_spam_no_types(self):
-
-        # infer_types removed in #10892
-        df1 = self.read_html(self.spam_data, '.*Water.*')
-        df2 = self.read_html(self.spam_data, 'Unit')
-        assert_framelist_equal(df1, df2)
-
-        assert df1[0].iloc[0, 0] == 'Proximates'
-        assert df1[0].columns[0] == 'Nutrient'
-
-    def test_spam_with_types(self):
+    def test_spam(self):
         df1 = self.read_html(self.spam_data, '.*Water.*')
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
@@ -173,7 +148,7 @@ class TestReadHtml(ReadHtmlMixin):
             assert isinstance(df, DataFrame)
 
     def test_spam_header(self):
-        df = self.read_html(self.spam_data, '.*Water.*', header=1)[0]
+        df = self.read_html(self.spam_data, '.*Water.*', header=2)[0]
         assert df.columns[0] == 'Proximates'
         assert not df.empty
 
@@ -195,8 +170,8 @@ class TestReadHtml(ReadHtmlMixin):
         assert_framelist_equal(df1, df2)
 
     def test_skiprows_set(self):
-        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows=set([1, 2]))
-        df2 = self.read_html(self.spam_data, 'Unit', skiprows=set([2, 1]))
+        df1 = self.read_html(self.spam_data, '.*Water.*', skiprows={1, 2})
+        df2 = self.read_html(self.spam_data, 'Unit', skiprows={2, 1})
 
         assert_framelist_equal(df1, df2)
 
@@ -300,7 +275,8 @@ class TestReadHtml(ReadHtmlMixin):
     @pytest.mark.slow
     def test_file_url(self):
         url = self.banklist_data
-        dfs = self.read_html(file_path_to_url(url), 'First',
+        dfs = self.read_html(file_path_to_url(os.path.abspath(url)),
+                             'First',
                              attrs={'id': 'table'})
         assert isinstance(dfs, list)
         for df in dfs:
@@ -354,7 +330,7 @@ class TestReadHtml(ReadHtmlMixin):
     @pytest.mark.slow
     def test_regex_idempotency(self):
         url = self.banklist_data
-        dfs = self.read_html(file_path_to_url(url),
+        dfs = self.read_html(file_path_to_url(os.path.abspath(url)),
                              match=re.compile(re.compile('Florida')),
                              attrs={'id': 'table'})
         assert isinstance(dfs, list)
@@ -380,9 +356,9 @@ class TestReadHtml(ReadHtmlMixin):
         assert sorted(zz) == sorted(['Repo', 'What'])
 
     @pytest.mark.slow
-    def test_thousands_macau_stats(self):
+    def test_thousands_macau_stats(self, datapath):
         all_non_nan_table_index = -2
-        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        macau_data = datapath("io", "data", "macau.html")
         dfs = self.read_html(macau_data, index_col=0,
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
@@ -390,9 +366,9 @@ class TestReadHtml(ReadHtmlMixin):
         assert not any(s.isna().any() for _, s in df.iteritems())
 
     @pytest.mark.slow
-    def test_thousands_macau_index_col(self):
+    def test_thousands_macau_index_col(self, datapath):
         all_non_nan_table_index = -2
-        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        macau_data = datapath('io', 'data', 'macau.html')
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
@@ -402,7 +378,33 @@ class TestReadHtml(ReadHtmlMixin):
         """
         Make sure that read_html ignores empty tables.
         """
-        data1 = '''<table>
+        result = self.read_html('''
+            <table>
+                <thead>
+                    <tr>
+                        <th>A</th>
+                        <th>B</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>2</td>
+                    </tr>
+                </tbody>
+            </table>
+            <table>
+                <tbody>
+                </tbody>
+            </table>
+        ''')
+
+        assert len(result) == 1
+
+    def test_multiple_tbody(self):
+        # GH-20690
+        # Read all tbody tags within a single table.
+        result = self.read_html('''<table>
             <thead>
                 <tr>
                     <th>A</th>
@@ -415,23 +417,24 @@ class TestReadHtml(ReadHtmlMixin):
                     <td>2</td>
                 </tr>
             </tbody>
-        </table>'''
-        data2 = data1 + '''<table>
             <tbody>
+                <tr>
+                    <td>3</td>
+                    <td>4</td>
+                </tr>
             </tbody>
-        </table>'''
-        res1 = self.read_html(StringIO(data1))
-        res2 = self.read_html(StringIO(data2))
-        assert_framelist_equal(res1, res2)
+        </table>''')[0]
+
+        expected = DataFrame(data=[[1, 2], [3, 4]], columns=['A', 'B'])
+
+        tm.assert_frame_equal(result, expected)
 
     def test_header_and_one_column(self):
         """
         Don't fail with bs4 when there is a header and only one column
         as described in issue #9178
         """
-        data = StringIO('''<html>
-            <body>
-             <table>
+        result = self.read_html('''<table>
                 <thead>
                     <tr>
                         <th>Header</th>
@@ -442,11 +445,36 @@ class TestReadHtml(ReadHtmlMixin):
                         <td>first</td>
                     </tr>
                 </tbody>
-            </table>
-            </body>
-        </html>''')
+            </table>''')[0]
+
         expected = DataFrame(data={'Header': 'first'}, index=[0])
-        result = self.read_html(data)[0]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_thead_without_tr(self):
+        """
+        Ensure parser adds <tr> within <thead> on malformed HTML.
+        """
+        result = self.read_html('''<table>
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>Municipality</th>
+                    <th>Year</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Ukraine</td>
+                    <th>Odessa</th>
+                    <td>1944</td>
+                </tr>
+            </tbody>
+        </table>''')[0]
+
+        expected = DataFrame(data=[['Ukraine', 'Odessa', 1944]],
+                             columns=['Country', 'Municipality', 'Year'])
+
         tm.assert_frame_equal(result, expected)
 
     def test_tfoot_read(self):
@@ -472,66 +500,54 @@ class TestReadHtml(ReadHtmlMixin):
             </tfoot>
         </table>'''
 
+        expected1 = DataFrame(data=[['bodyA', 'bodyB']], columns=['A', 'B'])
+
+        expected2 = DataFrame(data=[['bodyA', 'bodyB'], ['footA', 'footB']],
+                              columns=['A', 'B'])
+
         data1 = data_template.format(footer="")
         data2 = data_template.format(
             footer="<tr><td>footA</td><th>footB</th></tr>")
 
-        d1 = {'A': ['bodyA'], 'B': ['bodyB']}
-        d2 = {'A': ['bodyA', 'footA'], 'B': ['bodyB', 'footB']}
+        result1 = self.read_html(data1)[0]
+        result2 = self.read_html(data2)[0]
 
-        tm.assert_frame_equal(self.read_html(data1)[0], DataFrame(d1))
-        tm.assert_frame_equal(self.read_html(data2)[0], DataFrame(d2))
+        tm.assert_frame_equal(result1, expected1)
+        tm.assert_frame_equal(result2, expected2)
 
-    def test_countries_municipalities(self):
-        # GH5048
-        data1 = StringIO('''<table>
-            <thead>
+    def test_parse_header_of_non_string_column(self):
+        # GH5048: if header is specified explicitly, an int column should be
+        # parsed as int while its header is parsed as str
+        result = self.read_html('''
+            <table>
                 <tr>
-                    <th>Country</th>
-                    <th>Municipality</th>
-                    <th>Year</th>
+                    <td>S</td>
+                    <td>I</td>
                 </tr>
-            </thead>
-            <tbody>
                 <tr>
-                    <td>Ukraine</td>
-                    <th>Odessa</th>
+                    <td>text</td>
                     <td>1944</td>
                 </tr>
-            </tbody>
-        </table>''')
-        data2 = StringIO('''
-        <table>
-            <tbody>
-                <tr>
-                    <th>Country</th>
-                    <th>Municipality</th>
-                    <th>Year</th>
-                </tr>
-                <tr>
-                    <td>Ukraine</td>
-                    <th>Odessa</th>
-                    <td>1944</td>
-                </tr>
-            </tbody>
-        </table>''')
-        res1 = self.read_html(data1)
-        res2 = self.read_html(data2, header=0)
-        assert_framelist_equal(res1, res2)
+            </table>
+        ''', header=0)[0]
 
-    def test_nyse_wsj_commas_table(self):
-        data = os.path.join(DATA_PATH, 'nyse_wsj.html')
+        expected = DataFrame([['text', 1944]], columns=('S', 'I'))
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_nyse_wsj_commas_table(self, datapath):
+        data = datapath('io', 'data', 'nyse_wsj.html')
         df = self.read_html(data, index_col=0, header=0,
                             attrs={'class': 'mdcTable'})[0]
 
-        columns = Index(['Issue(Roll over for charts and headlines)',
-                         'Volume', 'Price', 'Chg', '% Chg'])
+        expected = Index(['Issue(Roll over for charts and headlines)',
+                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
         assert df.shape[0] == nrows
-        tm.assert_index_equal(df.columns, columns)
+        tm.assert_index_equal(df.columns, expected)
 
     @pytest.mark.slow
-    def test_banklist_header(self):
+    def test_banklist_header(self, datapath):
         from pandas.io.html import _remove_whitespace
 
         def try_remove_ws(x):
@@ -542,7 +558,7 @@ class TestReadHtml(ReadHtmlMixin):
 
         df = self.read_html(self.banklist_data, 'Metcalf',
                             attrs={'id': 'table'})[0]
-        ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
+        ground_truth = read_csv(datapath('io', 'data', 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
         assert df.shape == ground_truth.shape
@@ -580,8 +596,8 @@ class TestReadHtml(ReadHtmlMixin):
                             attrs={'id': 'table'})[0]
         assert gc in df.to_string()
 
-    def test_different_number_of_rows(self):
-        expected = """<table border="1" class="dataframe">
+    def test_different_number_of_cols(self):
+        expected = self.read_html("""<table>
                         <thead>
                             <tr style="text-align: right;">
                             <th></th>
@@ -610,8 +626,9 @@ class TestReadHtml(ReadHtmlMixin):
                             <td> 0.222</td>
                             </tr>
                         </tbody>
-                    </table>"""
-        out = """<table border="1" class="dataframe">
+                    </table>""", index_col=0)[0]
+
+        result = self.read_html("""<table>
                     <thead>
                         <tr style="text-align: right;">
                         <th></th>
@@ -637,10 +654,151 @@ class TestReadHtml(ReadHtmlMixin):
                         <td> 0.222</td>
                         </tr>
                     </tbody>
-                 </table>"""
-        expected = self.read_html(expected, index_col=0)[0]
-        res = self.read_html(out, index_col=0)[0]
-        tm.assert_frame_equal(expected, res)
+                 </table>""", index_col=0)[0]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_colspan_rowspan_1(self):
+        # GH17054
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th colspan="1">B</th>
+                    <th rowspan="1">C</th>
+                </tr>
+                <tr>
+                    <td>a</td>
+                    <td>b</td>
+                    <td>c</td>
+                </tr>
+            </table>
+        """)[0]
+
+        expected = DataFrame([['a', 'b', 'c']], columns=['A', 'B', 'C'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_colspan_rowspan_copy_values(self):
+        # GH17054
+
+        # In ASCII, with lowercase letters being copies:
+        #
+        # X x Y Z W
+        # A B b z C
+
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <td colspan="2">X</td>
+                    <td>Y</td>
+                    <td rowspan="2">Z</td>
+                    <td>W</td>
+                </tr>
+                <tr>
+                    <td>A</td>
+                    <td colspan="2">B</td>
+                    <td>C</td>
+                </tr>
+            </table>
+        """, header=0)[0]
+
+        expected = DataFrame(data=[['A', 'B', 'B', 'Z', 'C']],
+                             columns=['X', 'X.1', 'Y', 'Z', 'W'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_colspan_rowspan_both_not_1(self):
+        # GH17054
+
+        # In ASCII, with lowercase letters being copies:
+        #
+        # A B b b C
+        # a b b b D
+
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <td rowspan="2">A</td>
+                    <td rowspan="2" colspan="3">B</td>
+                    <td>C</td>
+                </tr>
+                <tr>
+                    <td>D</td>
+                </tr>
+            </table>
+        """, header=0)[0]
+
+        expected = DataFrame(data=[['A', 'B', 'B', 'B', 'D']],
+                             columns=['A', 'B', 'B.1', 'B.2', 'C'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_rowspan_at_end_of_row(self):
+        # GH17054
+
+        # In ASCII, with lowercase letters being copies:
+        #
+        # A B
+        # C b
+
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <td>A</td>
+                    <td rowspan="2">B</td>
+                </tr>
+                <tr>
+                    <td>C</td>
+                </tr>
+            </table>
+        """, header=0)[0]
+
+        expected = DataFrame(data=[['C', 'B']], columns=['A', 'B'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_rowspan_only_rows(self):
+        # GH17054
+
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <td rowspan="3">A</td>
+                    <td rowspan="3">B</td>
+                </tr>
+            </table>
+        """, header=0)[0]
+
+        expected = DataFrame(data=[['A', 'B'], ['A', 'B']],
+                             columns=['A', 'B'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_header_inferred_from_rows_with_only_th(self):
+        # GH17054
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <th>a</th>
+                    <th>b</th>
+                </tr>
+                <tr>
+                    <td>1</td>
+                    <td>2</td>
+                </tr>
+            </table>
+        """)[0]
+
+        columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
+                             labels=[[0, 1], [0, 1]])
+        expected = DataFrame(data=[[1, 2]], columns=columns)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
@@ -659,58 +817,44 @@ class TestReadHtml(ReadHtmlMixin):
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
 
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+    def test_computer_sales_page(self, datapath):
+        data = datapath('io', 'data', 'computer_sales_page.html')
         with tm.assert_raises_regex(ParserError,
                                     r"Passed header=\[0,1\] are "
                                     r"too many rows for this "
                                     r"multi_index of columns"):
             self.read_html(data, header=[0, 1])
 
-    def test_wikipedia_states_table(self):
-        data = os.path.join(DATA_PATH, 'wikipedia_states.html')
+        data = datapath('io', 'data', 'computer_sales_page.html')
+        assert self.read_html(data, header=[1, 2])
+
+    def test_wikipedia_states_table(self, datapath):
+        data = datapath('io', 'data', 'wikipedia_states.html')
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
         assert result['sq mi'].dtype == np.dtype('float64')
 
-    @pytest.mark.parametrize("displayed_only,exp0,exp1", [
-        (True, DataFrame(["foo"]), None),
-        (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"]))])
-    def test_displayed_only(self, displayed_only, exp0, exp1):
-        # GH 20027
-        data = StringIO("""<html>
-          <body>
-            <table>
-              <tr>
-                <td>
-                  foo
-                  <span style="display:none;text-align:center">bar</span>
-                  <span style="display:none">baz</span>
-                  <span style="display: none">qux</span>
-                </td>
-              </tr>
-            </table>
-            <table style="display: none">
-              <tr>
-                <td>foo</td>
-              </tr>
-            </table>
-          </body>
-        </html>""")
-
-        dfs = self.read_html(data, displayed_only=displayed_only)
-        tm.assert_frame_equal(dfs[0], exp0)
-
-        if exp1 is not None:
-            tm.assert_frame_equal(dfs[1], exp1)
-        else:
-            assert len(dfs) == 1  # Should not parse hidden table
+    def test_parser_error_on_empty_header_row(self):
+        with tm.assert_raises_regex(ParserError,
+                                    r"Passed header=\[0,1\] are "
+                                    r"too many rows for this "
+                                    r"multi_index of columns"):
+            self.read_html("""
+                <table>
+                    <thead>
+                        <tr><th></th><th></tr>
+                        <tr><th>A</th><th>B</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>a</td><td>b</td></tr>
+                    </tbody>
+                </table>
+            """, header=[0, 1])
 
     def test_decimal_rows(self):
-
         # GH 12907
-        data = StringIO('''<html>
+        result = self.read_html('''<html>
             <body>
              <table>
                 <thead>
@@ -725,9 +869,10 @@ class TestReadHtml(ReadHtmlMixin):
                 </tbody>
             </table>
             </body>
-        </html>''')
+        </html>''', decimal='#')[0]
+
         expected = DataFrame(data={'Header': 1100.101}, index=[0])
-        result = self.read_html(data, decimal='#')[0]
+
         assert result['Header'].dtype == np.dtype('float64')
         tm.assert_frame_equal(result, expected)
 
@@ -735,53 +880,61 @@ class TestReadHtml(ReadHtmlMixin):
         # GH 6114
         for arg in [True, False]:
             with pytest.raises(TypeError):
-                read_html(self.spam_data, header=arg)
+                self.read_html(self.spam_data, header=arg)
 
     def test_converters(self):
         # GH 13461
-        html_data = """<table>
-                        <thead>
-                            <th>a</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                            <td> 0.763</td>
-                            </tr>
-                            <tr>
-                            <td> 0.244</td>
-                            </tr>
-                        </tbody>
-                    </table>"""
+        result = self.read_html(
+            """<table>
+                 <thead>
+                   <tr>
+                     <th>a</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td> 0.763</td>
+                   </tr>
+                   <tr>
+                     <td> 0.244</td>
+                   </tr>
+                 </tbody>
+               </table>""",
+            converters={'a': str}
+        )[0]
 
-        expected_df = DataFrame({'a': ['0.763', '0.244']})
-        html_df = read_html(html_data, converters={'a': str})[0]
-        tm.assert_frame_equal(expected_df, html_df)
+        expected = DataFrame({'a': ['0.763', '0.244']})
+
+        tm.assert_frame_equal(result, expected)
 
     def test_na_values(self):
         # GH 13461
-        html_data = """<table>
-                        <thead>
-                            <th>a</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                            <td> 0.763</td>
-                            </tr>
-                            <tr>
-                            <td> 0.244</td>
-                            </tr>
-                        </tbody>
-                    </table>"""
+        result = self.read_html(
+            """<table>
+                 <thead>
+                   <tr>
+                     <th>a</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td> 0.763</td>
+                   </tr>
+                   <tr>
+                     <td> 0.244</td>
+                   </tr>
+                 </tbody>
+               </table>""",
+            na_values=[0.244])[0]
 
-        expected_df = DataFrame({'a': [0.763, np.nan]})
-        html_df = read_html(html_data, na_values=[0.244])[0]
-        tm.assert_frame_equal(expected_df, html_df)
+        expected = DataFrame({'a': [0.763, np.nan]})
+
+        tm.assert_frame_equal(result, expected)
 
     def test_keep_default_na(self):
         html_data = """<table>
                         <thead>
+                            <tr>
                             <th>a</th>
                             </tr>
                         </thead>
@@ -796,12 +949,55 @@ class TestReadHtml(ReadHtmlMixin):
                     </table>"""
 
         expected_df = DataFrame({'a': ['N/A', 'NA']})
-        html_df = read_html(html_data, keep_default_na=False)[0]
+        html_df = self.read_html(html_data, keep_default_na=False)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
         expected_df = DataFrame({'a': [np.nan, np.nan]})
-        html_df = read_html(html_data, keep_default_na=True)[0]
+        html_df = self.read_html(html_data, keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
+
+    def test_preserve_empty_rows(self):
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <td>a</td>
+                    <td>b</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
+        """)[0]
+
+        expected = DataFrame(data=[['a', 'b'], [np.nan, np.nan]],
+                             columns=['A', 'B'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_ignore_empty_rows_when_inferring_header(self):
+        result = self.read_html("""
+            <table>
+                <thead>
+                    <tr><th></th><th></tr>
+                    <tr><th>A</th><th>B</th></tr>
+                    <tr><th>a</th><th>b</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>2</td></tr>
+                </tbody>
+            </table>
+        """)[0]
+
+        columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
+                             labels=[[0, 1], [0, 1]])
+        expected = DataFrame(data=[[1, 2]], columns=columns)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_multiple_header_rows(self):
         # Issue #13434
@@ -812,93 +1008,18 @@ class TestReadHtml(ReadHtmlMixin):
                                ["Name", "Unnamed: 1_level_1",
                                 "Unnamed: 2_level_1"]]
         html = expected_df.to_html(index=False)
-        html_df = read_html(html, )[0]
+        html_df = self.read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
-
-def _lang_enc(filename):
-    return os.path.splitext(os.path.basename(filename))[0].split('_')
-
-
-class TestReadHtmlEncoding(object):
-    files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
-    flavor = 'bs4'
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_none_of((cls.flavor, 'html5lib'))
-
-    def read_html(self, *args, **kwargs):
-        kwargs['flavor'] = self.flavor
-        return read_html(*args, **kwargs)
-
-    def read_filename(self, f, encoding):
-        return self.read_html(f, encoding=encoding, index_col=0)
-
-    def read_file_like(self, f, encoding):
-        with open(f, 'rb') as fobj:
-            return self.read_html(BytesIO(fobj.read()), encoding=encoding,
-                                  index_col=0)
-
-    def read_string(self, f, encoding):
-        with open(f, 'rb') as fobj:
-            return self.read_html(fobj.read(), encoding=encoding, index_col=0)
-
-    def test_encode(self):
-        assert self.files, 'no files read from the data folder'
-        for f in self.files:
-            _, encoding = _lang_enc(f)
-            try:
-                from_string = self.read_string(f, encoding).pop()
-                from_file_like = self.read_file_like(f, encoding).pop()
-                from_filename = self.read_filename(f, encoding).pop()
-                tm.assert_frame_equal(from_string, from_file_like)
-                tm.assert_frame_equal(from_string, from_filename)
-            except Exception:
-                # seems utf-16/32 fail on windows
-                if is_platform_windows():
-                    if '16' in encoding or '32' in encoding:
-                        continue
-                    raise
-
-
-class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
-    flavor = 'lxml'
-
-    @classmethod
-    def setup_class(cls):
-        super(TestReadHtmlEncodingLxml, cls).setup_class()
-        _skip_if_no(cls.flavor)
-
-
-class TestReadHtmlLxml(ReadHtmlMixin):
-    flavor = 'lxml'
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_no('lxml')
-
-    def test_data_fail(self):
-        from lxml.etree import XMLSyntaxError
-        spam_data = os.path.join(DATA_PATH, 'spam.html')
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-
-        with pytest.raises(XMLSyntaxError):
-            self.read_html(spam_data)
-
-        with pytest.raises(XMLSyntaxError):
-            self.read_html(banklist_data)
-
-    def test_works_on_valid_markup(self):
-        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    def test_works_on_valid_markup(self, datapath):
+        filename = datapath('io', 'data', 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
         assert isinstance(dfs, list)
         assert isinstance(dfs[0], DataFrame)
 
     @pytest.mark.slow
-    def test_fallback_success(self):
-        _skip_if_none_of(('bs4', 'html5lib'))
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+    def test_fallback_success(self, datapath):
+        banklist_data = datapath('io', 'data', 'banklist.html')
         self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
 
     def test_to_html_timestamp(self):
@@ -907,27 +1028,6 @@ class TestReadHtmlLxml(ReadHtmlMixin):
 
         result = df.to_html()
         assert '2000-01-01' in result
-
-    def test_parse_dates_list(self):
-        df = DataFrame({'date': date_range('1/1/2001', periods=10)})
-        expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = self.read_html(expected, parse_dates=['date'], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-
-    def test_parse_dates_combine(self):
-        raw_dates = Series(date_range('1/1/2001', periods=10))
-        df = DataFrame({'date': raw_dates.map(lambda x: str(x.date())),
-                        'time': raw_dates.map(lambda x: str(x.time()))})
-        res = self.read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
-                             index_col=1)
-        newdf = DataFrame({'datetime': raw_dates})
-        tm.assert_frame_equal(newdf, res[0])
-
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        self.read_html(data, header=[0, 1])
 
     @pytest.mark.parametrize("displayed_only,exp0,exp1", [
         (True, DataFrame(["foo"]), None),
@@ -962,134 +1062,100 @@ class TestReadHtmlLxml(ReadHtmlMixin):
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    def test_encode(self, html_encoding_file):
+        _, encoding = os.path.splitext(
+            os.path.basename(html_encoding_file)
+        )[0].split('_')
 
-def test_invalid_flavor():
-    url = 'google.com'
-    with pytest.raises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
-
-
-def get_elements_from_file(url, element='table'):
-    _skip_if_none_of(('bs4', 'html5lib'))
-    url = file_path_to_url(url)
-    from bs4 import BeautifulSoup
-    with urlopen(url) as f:
-        soup = BeautifulSoup(f, features='html5lib')
-    return soup.find_all(element)
-
-
-@pytest.mark.slow
-def test_bs4_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore')
-        assert get_elements_from_file(filepath, 'table')
-
-
-def get_lxml_elements(url, element):
-    _skip_if_no('lxml')
-    from lxml.html import parse
-    doc = parse(url)
-    return doc.xpath('.//{0}'.format(element))
-
-
-@pytest.mark.slow
-def test_lxml_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    assert get_lxml_elements(filepath, 'table')
-
-
-@pytest.mark.slow
-def test_lxml_finds_tbody():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    assert get_lxml_elements(filepath, 'tbody')
-
-
-def test_same_ordering():
-    _skip_if_none_of(['bs4', 'lxml', 'html5lib'])
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
-    dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
-    dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
-    assert_framelist_equal(dfs_lxml, dfs_bs4)
-
-
-class ErrorThread(threading.Thread):
-    def run(self):
         try:
-            super(ErrorThread, self).run()
-        except Exception as e:
-            self.err = e
-        else:
-            self.err = None
+            with open(html_encoding_file, 'rb') as fobj:
+                from_string = self.read_html(fobj.read(), encoding=encoding,
+                                             index_col=0).pop()
 
+            with open(html_encoding_file, 'rb') as fobj:
+                from_file_like = self.read_html(BytesIO(fobj.read()),
+                                                encoding=encoding,
+                                                index_col=0).pop()
 
-@pytest.mark.slow
-def test_importcheck_thread_safety():
-    # see gh-16928
+            from_filename = self.read_html(html_encoding_file,
+                                           encoding=encoding,
+                                           index_col=0).pop()
+            tm.assert_frame_equal(from_string, from_file_like)
+            tm.assert_frame_equal(from_string, from_filename)
+        except Exception:
+            # seems utf-16/32 fail on windows
+            if is_platform_windows():
+                if '16' in encoding or '32' in encoding:
+                    pytest.skip()
+                raise
 
-    # force import check by reinitalising global vars in html.py
-    pytest.importorskip('lxml')
-    reload(pandas.io.html)
+    def test_parse_failure_unseekable(self):
+        # Issue #17975
 
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
-    helper_thread1 = ErrorThread(target=read_html, args=(filename,))
-    helper_thread2 = ErrorThread(target=read_html, args=(filename,))
+        if self.read_html.keywords.get('flavor') == 'lxml':
+            pytest.skip("Not applicable for lxml")
 
-    helper_thread1.start()
-    helper_thread2.start()
+        class UnseekableStringIO(StringIO):
+            def seekable(self):
+                return False
 
-    while helper_thread1.is_alive() or helper_thread2.is_alive():
-        pass
-    assert None is helper_thread1.err is helper_thread2.err
+        bad = UnseekableStringIO('''
+            <table><tr><td>spam<foobr />eggs</td></tr></table>''')
 
+        assert self.read_html(bad)
 
-def test_parse_failure_unseekable():
-    # Issue #17975
-    _skip_if_no('lxml')
-    _skip_if_no('bs4')
+        with pytest.raises(ValueError,
+                           match='passed a non-rewindable file object'):
+            self.read_html(bad)
 
-    class UnseekableStringIO(StringIO):
-        def seekable(self):
-            return False
+    def test_parse_failure_rewinds(self):
+        # Issue #17975
 
-    good = UnseekableStringIO('''
-        <table><tr><td>spam<br />eggs</td></tr></table>''')
-    bad = UnseekableStringIO('''
-        <table><tr><td>spam<foobr />eggs</td></tr></table>''')
+        class MockFile(object):
+            def __init__(self, data):
+                self.data = data
+                self.at_end = False
 
-    assert read_html(good)
-    assert read_html(bad, flavor='bs4')
+            def read(self, size=None):
+                data = '' if self.at_end else self.data
+                self.at_end = True
+                return data
 
-    bad.seek(0)
+            def seek(self, offset):
+                self.at_end = False
 
-    with pytest.raises(ValueError,
-                       match='passed a non-rewindable file object'):
-        read_html(bad)
+            def seekable(self):
+                return True
 
+        good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
+        bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
 
-def test_parse_failure_rewinds():
-    # Issue #17975
-    _skip_if_no('lxml')
-    _skip_if_no('bs4')
+        assert self.read_html(good)
+        assert self.read_html(bad)
 
-    class MockFile(object):
-        def __init__(self, data):
-            self.data = data
-            self.at_end = False
+    @pytest.mark.slow
+    def test_importcheck_thread_safety(self, datapath):
+        # see gh-16928
 
-        def read(self, size=None):
-            data = '' if self.at_end else self.data
-            self.at_end = True
-            return data
+        class ErrorThread(threading.Thread):
+            def run(self):
+                try:
+                    super(ErrorThread, self).run()
+                except Exception as e:
+                    self.err = e
+                else:
+                    self.err = None
 
-        def seek(self, offset):
-            self.at_end = False
+        # force import check by reinitalising global vars in html.py
+        reload(pandas.io.html)
 
-        def seekable(self):
-            return True
+        filename = datapath('io', 'data', 'valid_markup.html')
+        helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
+        helper_thread2 = ErrorThread(target=self.read_html, args=(filename,))
 
-    good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
-    bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
+        helper_thread1.start()
+        helper_thread2.start()
 
-    assert read_html(good)
-    assert read_html(bad)
+        while helper_thread1.is_alive() or helper_thread2.is_alive():
+            pass
+        assert None is helper_thread1.err is helper_thread2.err

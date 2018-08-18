@@ -61,6 +61,7 @@ dist
 .coverage
 coverage.xml
 coverage_html_report
+*.pytest_cache
 
 # OS generated files #
 ######################
@@ -90,7 +91,6 @@ scikits
 
 # Unit / Performance Testing #
 ##############################
-.pytest_cache/
 asv_bench/env/
 asv_bench/html/
 asv_bench/results/
@@ -109,3 +109,4 @@ doc/tmp.sv
 doc/source/styled.xlsx
 doc/source/templates/
 env/
+doc/source/savefig/

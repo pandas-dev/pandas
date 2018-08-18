@@ -1,6 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
+import pydoc
 
 import pytest
 
@@ -384,7 +385,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        Series.index  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(Series.index)
 
     def test_numpy_unique(self):
         # it works!
@@ -422,19 +424,23 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         # compress
         # GH 6658
         s = Series([0, 1., -1], index=list('abc'))
-        result = np.compress(s > 0, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s > 0, s)
         tm.assert_series_equal(result, Series([1.], index=['b']))
 
-        result = np.compress(s < -1, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s < -1, s)
         # result empty Index(dtype=object) as the same as original
         exp = Series([], dtype='float64', index=Index([], dtype='object'))
         tm.assert_series_equal(result, exp)
 
         s = Series([0, 1., -1], index=[.1, .2, .3])
-        result = np.compress(s > 0, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s > 0, s)
         tm.assert_series_equal(result, Series([1.], index=[.2]))
 
-        result = np.compress(s < -1, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s < -1, s)
         # result empty Float64Index as the same as original
         exp = Series([], dtype='float64', index=Index([], dtype='float64'))
         tm.assert_series_equal(result, exp)

@@ -8,15 +8,6 @@ fi
 cd "$TRAVIS_BUILD_DIR"
 echo "inside $0"
 
-git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "rst|txt|doc"
-
-if [ "$?" != "0" ]; then
-    echo "Skipping doc build, none were modified"
-    # nope, skip docs build
-    exit 0
-fi
-
-
 if [ "$DOC" ]; then
 
     echo "Will build docs"
@@ -24,6 +15,7 @@ if [ "$DOC" ]; then
     source activate pandas
 
     mv "$TRAVIS_BUILD_DIR"/doc /tmp
+    mv "$TRAVIS_BUILD_DIR/LICENSE" /tmp  # included in the docs.
     cd /tmp/doc
 
     echo ###############################
@@ -59,15 +51,6 @@ if [ "$DOC" ]; then
     git remote -v
 
     git push origin gh-pages -f
-
-    echo "Running doctests"
-    cd "$TRAVIS_BUILD_DIR"
-    pytest --doctest-modules \
-           pandas/core/reshape/concat.py \
-           pandas/core/reshape/pivot.py \
-           pandas/core/reshape/reshape.py \
-           pandas/core/reshape/tile.py
-
 fi
 
 exit 0

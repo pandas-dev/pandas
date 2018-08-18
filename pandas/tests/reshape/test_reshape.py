@@ -302,6 +302,24 @@ class TestGetDummies(object):
         expected.sort_index(axis=1)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('get_dummies_kwargs,expected', [
+        ({'data': pd.DataFrame(({u'ä': ['a']}))},
+         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'ä']})},
+         pd.DataFrame({u'x_ä': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix':u'ä'},
+         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix_sep':u'ä'},
+         pd.DataFrame({u'xäa': [1]}, dtype=np.uint8))])
+    def test_dataframe_dummies_unicode(self, get_dummies_kwargs, expected):
+        # GH22084 pd.get_dummies incorrectly encodes unicode characters
+        # in dataframe column names
+        result = get_dummies(**get_dummies_kwargs)
+        assert_frame_equal(result, expected)
+
     def test_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
@@ -464,6 +482,21 @@ class TestGetDummies(object):
         df2 = df.reindex(columns=['GDP'])
 
         tm.assert_frame_equal(df[['GDP']], df2)
+
+    def test_get_dummies_duplicate_columns(self, df):
+        # GH20839
+        df.columns = ["A", "A", "A"]
+        result = get_dummies(df).sort_index(axis=1)
+
+        expected = DataFrame([[1, 1, 0, 1, 0],
+                              [2, 0, 1, 1, 0],
+                              [3, 1, 0, 0, 1]],
+                             columns=['A', 'A_a', 'A_b', 'A_b', 'A_c'],
+                             dtype=np.uint8).sort_index(axis=1)
+
+        expected = expected.astype({"A": np.int64})
+
+        tm.assert_frame_equal(result, expected)
 
 
 class TestCategoricalReshape(object):

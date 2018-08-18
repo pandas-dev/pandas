@@ -22,7 +22,7 @@ from .test_numeric import Numeric
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
@@ -43,6 +43,11 @@ class TestRangeIndex(Numeric):
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_binops(self):
         ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
@@ -801,7 +806,7 @@ class TestRangeIndex(Numeric):
         result = a - fidx
         tm.assert_index_equal(result, expected)
 
-    def test_duplicates(self):
+    def test_has_duplicates(self):
         for ind in self.indices:
             if not len(ind):
                 continue

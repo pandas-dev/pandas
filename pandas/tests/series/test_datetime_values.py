@@ -3,9 +3,10 @@
 
 import locale
 import calendar
+import unicodedata
 import pytest
 
-from datetime import datetime, date
+from datetime import datetime, time, date
 
 import numpy as np
 import pandas as pd
@@ -13,8 +14,10 @@ import pandas as pd
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
-                    PeriodIndex, DatetimeIndex, TimedeltaIndex)
+                    PeriodIndex, DatetimeIndex, TimedeltaIndex,
+                    compat)
 import pandas.core.common as com
+from pandas._libs.tslibs.timezones import maybe_get_tz
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -255,11 +258,8 @@ class TestSeriesDatetimeValues(TestData):
 
         # trying to set a copy
         with pd.option_context('chained_assignment', 'raise'):
-
-            def f():
+            with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
-
-            pytest.raises(com.SettingWithCopyError, f)
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
@@ -309,10 +309,24 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
+
+        # work around https://github.com/pandas-dev/pandas/issues/22342
+        if not compat.PY2:
+            result = result.str.normalize("NFD")
+            expected = expected.str.normalize("NFD")
+
         tm.assert_series_equal(result, expected)
+
         for s_date, expected in zip(s, expected_months):
             result = s_date.month_name(locale=time_locale)
-            assert result == expected.capitalize()
+            expected = expected.capitalize()
+
+            if not compat.PY2:
+                result = unicodedata.normalize("NFD", result)
+                expected = unicodedata.normalize("NFD", expected)
+
+            assert result == expected
+
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.month_name(locale=time_locale).iloc[-1])
 
@@ -355,16 +369,16 @@ class TestSeriesDatetimeValues(TestData):
         datetime_index = date_range('20150301', periods=5)
         result = datetime_index.strftime("%Y/%m/%d")
 
-        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
-                             '2015/03/04', '2015/03/05'], dtype=np.object_)
+        expected = Index(['2015/03/01', '2015/03/02', '2015/03/03',
+                          '2015/03/04', '2015/03/05'], dtype=np.object_)
         # dtype may be S10 or U10 depending on python version
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+        tm.assert_index_equal(result, expected)
 
         period_index = period_range('20150301', periods=5)
         result = period_index.strftime("%Y/%m/%d")
-        expected = np.array(['2015/03/01', '2015/03/02', '2015/03/03',
-                             '2015/03/04', '2015/03/05'], dtype='=U10')
-        tm.assert_numpy_array_equal(result, expected)
+        expected = Index(['2015/03/01', '2015/03/02', '2015/03/03',
+                          '2015/03/04', '2015/03/05'], dtype='=U10')
+        tm.assert_index_equal(result, expected)
 
         s = Series([datetime(2013, 1, 1, 2, 32, 59), datetime(2013, 1, 2, 14,
                                                               32, 1)])
@@ -420,12 +434,14 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(date_range('2000-01-01', periods=3))
         assert isinstance(s.dt, DatetimeProperties)
 
-        for s in [Series(np.arange(5)), Series(list('abcde')),
-                  Series(np.random.randn(5))]:
-            with tm.assert_raises_regex(AttributeError,
-                                        "only use .dt accessor"):
-                s.dt
-            assert not hasattr(s, 'dt')
+    @pytest.mark.parametrize('ser', [Series(np.arange(5)),
+                                     Series(list('abcde')),
+                                     Series(np.random.randn(5))])
+    def test_dt_accessor_invalid(self, ser):
+        # GH#9322 check that series with incorrect dtypes don't have attr
+        with tm.assert_raises_regex(AttributeError, "only use .dt accessor"):
+            ser.dt
+        assert not hasattr(ser, 'dt')
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))
@@ -459,4 +475,16 @@ class TestSeriesDatetimeValues(TestData):
         result = series - offset
         expected = pd.Series(pd.to_datetime([
             '2011-12-26', '2011-12-27', '2011-12-28']))
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_timetz_accessor(self, tz_naive_fixture):
+        # GH21358
+        tz = maybe_get_tz(tz_naive_fixture)
+
+        dtindex = pd.DatetimeIndex(['2014-04-04 23:56', '2014-07-18 21:24',
+                                    '2015-11-22 22:14'], tz=tz)
+        s = Series(dtindex)
+        expected = Series([time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz),
+                           time(22, 14, tzinfo=tz)])
+        result = s.dt.timetz
         tm.assert_series_equal(result, expected)
