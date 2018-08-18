@@ -831,6 +831,19 @@ class ExcelWriter(object):
 
     Examples
     --------
+    Using ExcelWriter, some settings can be added.
+
+    Default usage.
+
+    >>> with ExcelWriter('path_to_file.xlsx') as writer:
+    ...     df.to_excel(writer)
+
+    If you want to set engine that can manipulate Excel,
+    pass keyword argument named engine. Actually
+    engine is automatically chosen by file extension.
+
+    >>> with ExcelWriter('path_to_file.xlsx', engine='openpyxl') as writer:
+    ...     df.to_excel(writer)
 
     In order to write separate DataFrames to separate sheets
     in a single Excel file, one can pass an ExcelWriter.
@@ -838,6 +851,21 @@ class ExcelWriter(object):
     >>> with ExcelWriter('path_to_file.xlsx') as writer:
     ...     df1.to_excel(writer, sheet_name='Sheet1')
     ...     df2.to_excel(writer, sheet_name='Sheet2')
+
+    You can set date format or datetime format
+
+    >>> with ExcelWriter('path_to_file.xlsx',
+                          date_format='YYYY-MM-DD',
+                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...     df.to_excel(writer)
+
+    It also supports append mode.
+
+    >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
+    ...     df.to_excel(writer)
+
+    .. versionadded:: 0.24.0
+
 
     Attributes
     ----------
