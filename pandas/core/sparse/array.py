@@ -763,13 +763,28 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return cls(data, sparse_index=sp_index, fill_value=fill_value)
 
     def astype(self, dtype=None, copy=True):
-        # I don't know what to do here...
-        # We have a few things to potentially change
-        # 1. SparseArray -> another dtype (dense, extension, etc.)
-        # 2. self.sp_values.dtype
-        # 3. the fill value
-        # 2 & 3 can be done by passing a `SparseDtype()`, but changing
-        # the fill_value changes the *values*.
+        """
+        Change the dtype of a SparseArray.
+
+        Parameters
+        ----------
+        dtype : np.dtype or ExtensionDtype
+            For SparseDtype, this can change two things
+
+            1. The dtype of ``self.sp_values`` will be set to
+               ``dtype.subdtype``
+            2. The ``fill_value`` will be set to ``dtype.fill_value``.
+
+            For other dtypes, this will convert to a dense array
+            with `dtype` type.
+
+        copy : bool, default True
+            Whether to ensure a copy is made, even if not necessary.
+
+        Returns
+        -------
+        array : ExtensionArray or ndarray.
+        """
         dtype = pandas_dtype(dtype)
 
         if isinstance(dtype, SparseDtype):
@@ -780,7 +795,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             if sp_values is self.sp_values and copy:
                 sp_values = sp_values.copy()
 
-            return self._simple_new(sp_values.copy(),
+
+            return self._simple_new(sp_values,
                                     self.sp_index,
                                     dtype)
         else:

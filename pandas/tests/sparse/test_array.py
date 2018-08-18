@@ -400,30 +400,39 @@ class TestSparseArray(object):
             tm.assert_numpy_array_equal(dense, data)
 
     def test_astype(self):
-        res = self.arr.astype('Sparse[f8]')
-        res.sp_values[:3] = 27
-        assert not (self.arr.sp_values[:3] == 27).any()
+        # float -> float
+        arr = SparseArray([None, None, 0, 2])
+        result = arr.astype("Sparse[float32]")
+        expected = SparseArray([None, None, 0, 2], dtype=np.dtype('float32'))
+        tm.assert_sp_array_equal(result, expected)
 
-        result = self.arr.astype('Sparse[i8]')
-        assert result.dtype == SparseDtype("int8", np.nan)
+        # float -> float, different fill
+        # This is strange, since some "fill_na" values are in the spares values.
+        # That probably complicates everything else.
+        dtype = SparseDtype("float64", fill_value=0)
+        result = arr.astype(dtype)
+        expected = SparseArray._simple_new(np.array([0., 2.], dtype=dtype.subdtype),
+                                           IntIndex(4, [2, 3]),
+                                           dtype)
+        tm.assert_sp_array_equal(result, expected)
 
-        msg = ("unable to coerce current fill_value nan "
-               "to Sparse\\[int64\\] dtype")
-
-        arr = SparseArray([0, np.nan, 0, 1])
-        with tm.assert_raises_regex(ValueError, msg):
-            arr.astype('Sparse[i8]')
+        dtype = SparseDtype("int64", 0)
+        result = arr.astype(dtype)
+        expected = SparseArray._simple_new(np.array([0, 2], dtype=np.int64),
+                                           IntIndex(4, [2, 3]),
+                                           dtype)
+        tm.assert_sp_array_equal(result, expected)
 
         arr = SparseArray([0, np.nan, 0, 1], fill_value=0)
-        msg = 'Cannot convert non-finite values \\(NA or inf\\) to integer'
-        with tm.assert_raises_regex(ValueError, msg):
-            raise pytest.xfail("https://github.com/pandas-dev/"
-                               "pandas/issues/22216")
-            # arr.astype('i8')
+        with tm.assert_raises_regex(ValueError, 'NA'):
+            arr.astype('Sparse[i8]')
 
+    @pytest.mark.xfail(reason="Different semantics", strict=True)
     def test_astype_all(self, any_real_dtype):
+        # This is why I worry about putting in on the type
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
+        # Expected here is `[nan, 2, 3]` since the fill value changes.
         typ = np.dtype(any_real_dtype).type
 
         res = arr.astype(SparseDtype(typ))
