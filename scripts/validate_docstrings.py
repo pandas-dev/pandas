@@ -92,8 +92,8 @@ class Docstring(object):
     def __init__(self, name):
         self.name = name
         obj = self._load_obj(name)
-        obj = self._to_original_callable(obj)
         self.obj = obj
+        self.code_obj = self._to_original_callable(obj)
         self.raw_doc = obj.__doc__ or ''
         self.clean_doc = pydoc.getdoc(obj)
         self.doc = NumpyDocString(self.clean_doc)
@@ -102,10 +102,28 @@ class Docstring(object):
         return len(self.raw_doc)
 
     @staticmethod
-    def _load_obj(obj_name):
-        for maxsplit in range(1, obj_name.count('.') + 1):
+    def _load_obj(name):
+        """
+        Import Python object from its name as string.
+
+        Parameters
+        ----------
+        name : str
+            Object name to import (e.g. pandas.Series.str.upper)
+
+        Returns
+        -------
+        object
+            Python object that can be a class, method, function...
+
+        Examples
+        --------
+        >>> Docstring._load_obj('pandas.Series')
+        <class 'pandas.core.series.Series'>
+        """
+        for maxsplit in range(1, name.count('.') + 1):
             # TODO when py3 only replace by: module, *func_parts = ...
-            func_name_split = obj_name.rsplit('.', maxsplit)
+            func_name_split = name.rsplit('.', maxsplit)
             module = func_name_split[0]
             func_parts = func_name_split[1:]
             try:
@@ -117,7 +135,7 @@ class Docstring(object):
 
         if 'module' not in locals():
             raise ImportError('No module can be imported '
-                              'from "{}"'.format(obj_name))
+                              'from "{}"'.format(name))
 
         for part in func_parts:
             obj = getattr(obj, part)
@@ -125,6 +143,13 @@ class Docstring(object):
 
     @staticmethod
     def _to_original_callable(obj):
+        """
+        Find the Python object that contains the source code ot the object.
+
+        This is useful to find the place in the source code (file and line
+        number) where a docstring is defined. It does not currently work for
+        all cases, but it should help find some (properties...).
+        """
         while True:
             if inspect.isfunction(obj) or inspect.isclass(obj):
                 f = inspect.getfile(obj)
@@ -152,16 +177,20 @@ class Docstring(object):
 
     @property
     def source_file_name(self):
-        fname = inspect.getsourcefile(self.obj)
-        if fname:
-            fname = os.path.relpath(fname, BASE_PATH)
-            return fname
+        try:
+            fname = inspect.getsourcefile(self.code_obj)
+        except TypeError:
+            pass
+        else:
+            if fname:
+                fname = os.path.relpath(fname, BASE_PATH)
+                return fname
 
     @property
     def source_file_def_line(self):
         try:
-            return inspect.getsourcelines(self.obj)[-1]
-        except OSError:
+            return inspect.getsourcelines(self.code_obj)[-1]
+        except (OSError, TypeError):
             pass
 
     @property
@@ -294,7 +323,10 @@ class Docstring(object):
 
     @property
     def method_source(self):
-        return inspect.getsource(self.obj)
+        try:
+            return inspect.getsource(self.obj)
+        except TypeError:
+            return ''
 
     @property
     def first_line_ends_in_dot(self):
