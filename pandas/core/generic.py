@@ -5251,7 +5251,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['interpolate'] = """
         Please note that only ``method='linear'`` is supported for
-        DataFrames/Series with a MultiIndex.
+        DataFrame/Series with a MultiIndex.
 
         Parameters
         ----------
@@ -5263,15 +5263,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
-            * 'time': Works on daily and higher resolution
-              data to interpolate given length of interval.
+            * 'time': Works on daily and higher resolution data to interpolate
+              given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
               'barycentric', 'polynomial': Passed to
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
               require that you also specify an `order` (int),
-              e.g. df.interpolate(method='polynomial', order=4).
+              e.g. ``df.interpolate(method='polynomial', order=4)``.
               These use the numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
               Wrappers around the SciPy interpolation methods of similar
@@ -5298,7 +5298,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
             If limit is specified, consecutive NaNs will be filled in this
             direction.
-        limit_area : {`None`, 'inside', 'outside'}
+        limit_area : {`None`, 'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
@@ -5322,18 +5322,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        replace : replace a value
-        fillna : fill missing values
-        scipy.interpolate.Akima1DInterpolator : piecewise cubic polynomials
-            (Akima interpolator)
-        scipy.interpolate.BPoly.from_derivatives : piecewise polynomial in the
-            Bernstein basis
-        scipy.interpolate.interp1d : interpolate a 1-D function
-        scipy.interpolate.KroghInterpolator : interpolate polynomial (Krogh
-            interpolator)
+        Series.fillna : Fill missing values using different methods.
+        DataFrame.fillna : Fill missing values using different methods.
+        scipy.interpolate.Akima1DInterpolator : Piecewise cubic polynomials
+            (Akima interpolator).
+        scipy.interpolate.BPoly.from_derivatives : Piecewise polynomial in the
+            Bernstein basis.
+        scipy.interpolate.interp1d : Interpolate a 1-D function.
+        scipy.interpolate.KroghInterpolator : Interpolate polynomial (Krogh
+            interpolator).
         scipy.interpolate.PchipInterpolator : PCHIP 1-d monotonic cubic
-            interpolation
-        scipy.interpolate.CubicSpline : cubic spline data interpolator
+            interpolation.
+        scipy.interpolate.CubicSpline : Cubic spline data interpolator.
 
         Notes
         -----
@@ -5348,11 +5348,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-
         Filling in `NaN` in a :class:`~pandas.Series` via linear
         interpolation.
 
         >>> s = pd.Series([0, 1, np.nan, 3])
+        >>> s
+        0    0.0
+        1    1.0
+        2    NaN
+        3    3.0
+        dtype: float64
         >>> s.interpolate()
         0    0.0
         1    1.0
@@ -5404,22 +5409,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Filling in `NaN` in a :class:`~pandas.DataFrame` via linear
         interpolation.
 
-        >>> df = pd.DataFrame({'a': range(0,4),
-        ...                    'b': range(1,5),
-        ...                    'c': range(-1, -5, -1),
-        ...                    'd': [x**2 for x in range(1,5)]})
-        >>> df
-           a  b  c   d
-        0  0  1 -1   1
-        1  1  2 -2   4
-        2  2  3 -3   9
-        3  3  4 -4  16
-        >>> df.loc[1,'a'] = np.nan
-        >>> df.loc[3,'a'] = np.nan
-        >>> df.loc[0,'b'] = np.nan
-        >>> df.loc[1,'c'] = np.nan
-        >>> df.loc[2,'c'] = np.nan
-        >>> df.loc[1,'d'] = np.nan
+        >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
+        ...                    (np.nan, 2.0, np.nan, np.nan),
+        ...                    (2.0, 3.0, np.nan, 9.0),
+        ...                    (np.nan, 4.0, -4.0, 16.0)],
+        ...                   columns=list('abcd'))
         >>> df
              a    b    c     d
         0  0.0  NaN -1.0   1.0
