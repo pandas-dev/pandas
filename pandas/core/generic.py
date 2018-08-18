@@ -6085,11 +6085,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
-                  'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline', 'piecewise_polynomial', 'pad',
-                  'from_derivatives', 'pchip', 'akima'}
-            Interpolation technique to use.
+        method : str, default 'linear'
+            Interpolation technique to use. One of:
 
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
@@ -6152,8 +6149,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.fillna : Fill missing values using different methods.
-        DataFrame.fillna : Fill missing values using different methods.
+        fillna : Fill missing values using different methods.
         scipy.interpolate.Akima1DInterpolator : Piecewise cubic polynomials
             (Akima interpolator).
         scipy.interpolate.BPoly.from_derivatives : Piecewise polynomial in the
@@ -6236,8 +6232,13 @@ class NDFrame(PandasObject, SelectionMixin):
         3    8.000000
         dtype: float64
 
-        Filling in `NaN` in a :class:`~pandas.DataFrame` via linear
-        interpolation.
+        Fill the DataFrame forward (that is, going down) along each column
+        using linear interpolation.
+
+        Note how the last entry in column `a` is interpolated differently,
+        because there is no entry after it to use for interpolation.
+        Note how the first entry in column `b` remains `NaN`, because there
+        is no entry befofe it to use for interpolation.
 
         >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
         ...                    (np.nan, 2.0, np.nan, np.nan),
@@ -6250,19 +6251,14 @@ class NDFrame(PandasObject, SelectionMixin):
         1  NaN  2.0  NaN   NaN
         2  2.0  3.0  NaN   9.0
         3  NaN  4.0 -4.0  16.0
-
-        Fill the DataFrame forward (that is, going down) along each column.
-        Note how the last entry in column `a` is interpolated differently,
-        because there is no entry after it to use for interpolation.
-        Note how the first entry in column `b` remains `NaN`, because there
-        is no entry befofe it to use for interpolation.
-
         >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
              a    b    c     d
         0  0.0  NaN -1.0   1.0
         1  1.0  2.0 -2.0   5.0
         2  2.0  3.0 -3.0   9.0
         3  2.0  4.0 -4.0  16.0
+
+        Using polynomial interpolation.
 
         >>> df['d'].interpolate(method='polynomial', order=2)
         0     1.0
