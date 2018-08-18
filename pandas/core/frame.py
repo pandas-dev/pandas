@@ -7249,7 +7249,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         >>> df = pd.DataFrame([('bird', 2, 2),
         ...                    ('mammal', 4, np.nan),
         ...                    ('arthropod', 8, 0),
