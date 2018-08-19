@@ -465,7 +465,15 @@ def validate_one(func_name):
                 param_errs.append('Parameter "{}" description '
                                   'should start with a '
                                   'capital letter'.format(param))
-            if doc.parameter_desc(param)[-1] != '.':
+
+            if '.. versionadded::' in doc.parameter_desc(param):
+                index = doc.parameter_desc(param).index('.. versionadded::')
+                # Check for periods at the end of the description before the
+                # versionadded directive
+                period_check_index = index - 1
+            else:
+                period_check_index = -1
+            if doc.parameter_desc(param)[period_check_index] != '.':
                 param_errs.append('Parameter "{}" description '
                                   'should finish with "."'.format(param))
     if param_errs:
