@@ -193,6 +193,44 @@ class GoodDocStrings(object):
         """
         pass
 
+    def mode(self, axis=0, numeric_only=False, dropna=True):
+        """
+        Get the mode(s) of each element along the axis selected. Adds a row
+        for each mode per label, fills in gaps with nan.
+
+        Note that there could be multiple values returned for the selected
+        axis (when more than one item share the maximum frequency), which is
+        the reason why a dataframe is returned. If you want to impute missing
+        values with the mode in a dataframe ``df``, you can just do this:
+        ``df.fillna(df.mode().iloc[0])``
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            Describe axis.
+        numeric_only : boolean, default False
+            Describes numeric_only.
+        dropna : boolean, default True
+            This param tests that the versionadded directive doesn't break the
+            checks for the ending period.
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        modes : DataFrame (sorted)
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
+        >>> df.mode()
+           A
+        0  1
+        1  2
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -374,6 +412,18 @@ class BadParameters(object):
            Doesn't end with a dot
         """
 
+    def no_description_period_with_version_added(self, kind):
+        """
+        Forgets to add a period, and also includes a directive.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionadded:: 0.00.0
+        """
+
     def parameter_capitalization(self, kind):
         """
         Forgets to capitalize the description.
@@ -495,7 +545,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains'])
+        'contains', 'mode'])
     def test_good_functions(self, func):
         assert validate_one(self._import_path(   # noqa: F821
             klass='GoodDocStrings', func=func)) == 0
@@ -530,6 +580,8 @@ class TestValidator(object):
           'Unknown parameters {kind: str}',
           'Parameter "kind: str" has no type')),
         ('BadParameters', 'no_description_period',
+         ('Parameter "kind" description should finish with "."',)),
+        ('BadParameters', 'no_description_period_with_version_added',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),
