@@ -1284,12 +1284,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        names : label or list of labels
+        names : label or list of label
             Name(s) to set.
-        level : int, label or list of labels, optional
+        level : int, label or list of int or label, optional
             If the index is a MultiIndex, level(s) to set (None for all
             levels). Otherwise level must be None.
-        inplace : boolean, default False
+        inplace : bool, default False
             Modifies the object directly, instead of creating a new Index or
             MultiIndex.
 
