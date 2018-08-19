@@ -365,7 +365,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         assert stamp.minute == 39
         try:
             assert result.index.tz is pytz.utc
-        except AssertionError:  # hello Yaroslav
+        except AssertionError:
             arr = result.index.to_pydatetime()
             result = tools.to_datetime(arr, utc=True)[0]
             assert stamp.minute == result.minute
