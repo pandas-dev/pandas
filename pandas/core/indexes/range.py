@@ -46,10 +46,10 @@ class RangeIndex(Int64Index):
     dtype : numpy dtype or pandas type, default int64
         Only the default int64 is supported, argument accepted for homogeneity
         with other index types.
-    name : object, optional
-        Name to be stored in the index
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
+    name : object, optional
+        Name to be stored in the index
 
     See Also
     --------
