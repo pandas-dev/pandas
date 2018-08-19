@@ -360,7 +360,7 @@ def test_set_levels_labels_names_bad_input(idx):
     with tm.assert_raises_regex(ValueError, 'Length of names'):
         idx.set_names(names[0], level=[0, 1])
 
-    with tm.assert_raises_regex(TypeError, 'string'):
+    with tm.assert_raises_regex(TypeError, 'Names must be a'):
         idx.set_names(names, level=0)
 
 
