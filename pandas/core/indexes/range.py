@@ -50,6 +50,9 @@ class RangeIndex(Int64Index):
         Unused, accepted for homogeneity with other index types.
     name : object, optional
         Name to be stored in the index
+    fastpath : bool, default False
+        Do not validate arguments. If `fastpath` is `True`, `start` has to be
+        of type `int`.
 
     See Also
     --------
