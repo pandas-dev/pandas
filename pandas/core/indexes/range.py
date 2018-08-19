@@ -43,6 +43,9 @@ class RangeIndex(Int64Index):
         If int and "stop" is not given, interpreted as "stop" instead.
     stop : int (default: 0)
     step : int (default: 1)
+    dtype : numpy dtype or pandas type, default int64
+        Only the default int64 is supported, argument accepted for homogeneity
+        with other index types.
     name : object, optional
         Name to be stored in the index
     copy : bool, default False
