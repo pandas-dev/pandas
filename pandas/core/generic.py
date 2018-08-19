@@ -6096,7 +6096,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
               'barycentric', 'polynomial': Passed to
-              ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
+              `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
               require that you also specify an `order` (int),
               e.g. ``df.interpolate(method='polynomial', order=4)``.
               These use the numerical values of the index.
@@ -6104,7 +6104,7 @@ class NDFrame(PandasObject, SelectionMixin):
               Wrappers around the SciPy interpolation methods of similar
               names. See `Notes`.
             * 'from_derivatives': Refers to
-              ``scipy.interpolate.BPoly.from_derivatives`` which
+              `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
 
@@ -6129,7 +6129,7 @@ class NDFrame(PandasObject, SelectionMixin):
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
-            * None: No fill restriction.
+            * ``None``: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
@@ -6145,7 +6145,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Returns the same object type as the caller, interpolated at
-            some or all `NaN` values
+            some or all ``NaN`` values
 
         See Also
         --------
@@ -6174,7 +6174,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        Filling in `NaN` in a :class:`~pandas.Series` via linear
+        Filling in ``NaN`` in a :class:`~pandas.Series` via linear
         interpolation.
 
         >>> s = pd.Series([0, 1, np.nan, 3])
@@ -6191,8 +6191,8 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3.0
         dtype: float64
 
-        Filling in `NaN` in a Series by padding, but filling at most two
-        consecutive `NaN` at a time.
+        Filling in ``NaN`` in a Series by padding, but filling at most two
+        consecutive ``NaN`` at a time.
 
         >>> s = pd.Series([np.nan, "single_one", np.nan,
         ...                "fill_two_more", np.nan, np.nan, np.nan,
@@ -6220,9 +6220,9 @@ class NDFrame(PandasObject, SelectionMixin):
         8             4.71
         dtype: object
 
-        Filling in `NaN` in a Series via polynomial interpolation or splines:
-        Both `polynomial` and `spline` methods require that you also specify
-        an `order` (int).
+        Filling in ``NaN`` in a Series via polynomial interpolation or splines:
+        Both 'polynomial' and 'spline' methods require that you also specify
+        an ``order`` (int).
 
         >>> s = pd.Series([0, 2, np.nan, 8])
         >>> s.interpolate(method='polynomial', order=2)
@@ -6235,9 +6235,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Fill the DataFrame forward (that is, going down) along each column
         using linear interpolation.
 
-        Note how the last entry in column `a` is interpolated differently,
+        Note how the last entry in column 'a' is interpolated differently,
         because there is no entry after it to use for interpolation.
-        Note how the first entry in column `b` remains `NaN`, because there
+        Note how the first entry in column 'b' remains ``NaN``, because there
         is no entry befofe it to use for interpolation.
 
         >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
