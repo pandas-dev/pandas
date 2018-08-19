@@ -30,21 +30,21 @@ class RangeIndex(Int64Index):
     """
     Immutable Index implementing a monotonic integer range.
 
-    RangeIndex is a memory-saving special case of Int64Index limited to
-    representing monotonic ranges. Using RangeIndex may in some instances
-    improve computing speed.
+    RangeIndex is a memory-saving special case of :class:`~pandas.Int64Index`
+    limited to representing monotonic ranges. Using RangeIndex may in some
+    instances improve computing speed.
 
     This is the default index type used
-    by DataFrame and Series when no explicit index is provided by the user.
+    by `DataFrame` and `Series` when no explicit index is provided by the user.
 
     Parameters
     ----------
-    start : int (default: 0), or other RangeIndex instance.
-        If int and "stop" is not given, interpreted as "stop" instead.
-    stop : int (default: 0)
-    step : int (default: 1)
+    start : int or other RangeIndex instance, default 0
+        If of type `int` and `stop` is not given, interpreted as `stop` instead.
+    stop : int, default 0
+    step : int, default 1
     dtype : numpy dtype or pandas type, default int64
-        Only the default int64 is supported, argument accepted for homogeneity
+        Only the default `int64` is supported, argument accepted for homogeneity
         with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
