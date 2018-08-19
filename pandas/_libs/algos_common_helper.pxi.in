@@ -19,6 +19,49 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # 1-d template
 #----------------------------------------------------------------------
 
+ctypedef fused algos_t:
+    float64_t
+    float32_t
+    object
+    int32_t
+    int64_t
+    uint64_t
+    uint8_t
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef map_indices(ndarray[algos_t] index):
+    """
+    Produce a dict mapping the values of the input array to their respective
+    locations.
+
+    Example:
+        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
+
+    Better to do this with Cython because of the enormous speed boost.
+    """
+    cdef:
+        Py_ssize_t i, length
+        dict result = {}
+
+    length = len(index)
+
+    for i in range(length):
+        result[index[i]] = i
+
+    return result
+
+
+map_indices_float64 = map_indices["float64_t"]
+map_indices_float32 = map_indices["float32_t"]
+map_indices_object = map_indices["object"]
+map_indices_int32 = map_indices["int32_t"]
+map_indices_int64 = map_indices["int64_t"]
+map_indices_uint64 = map_indices["uint64_t"]
+map_indices_uint8 = map_indices["uint8_t"]
+
+
 {{py:
 
 # name, c_type, dtype, can_hold_na, nogil
@@ -41,29 +84,6 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype, can_hold_na, nogil_str, tab
       in get_dispatch(dtypes)}}
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
-    """
-    Produce a dict mapping the values of the input array to their respective
-    locations.
-
-    Example:
-        array(['hi', 'there']) --> {'hi' : 0 , 'there' : 1}
-
-    Better to do this with Cython because of the enormous speed boost.
-    """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
-
-    length = len(index)
-
-    for i in range(length):
-        result[index[i]] = i
-
-    return result
 
 
 @cython.boundscheck(False)
