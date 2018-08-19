@@ -273,8 +273,9 @@ def test_drop_duplicates_empty():
     result = expected.drop_duplicates()
     tm.assert_frame_equal(result, expected)
 
-    expected = DataFrame(columns=['A', 'B', 'C'])
-    result = expected.drop_duplicates()
+    df = DataFrame(columns=['A', 'B', 'C'])
+    result = df.drop_duplicates()
+    expected = DataFrame(columns=[])  # The column infos are not carrying over
     tm.assert_frame_equal(result, expected)
 
     expected = DataFrame(index=[])
