@@ -125,7 +125,20 @@ class RangeIndex(Int64Index):
 
     @classmethod
     def from_range(cls, data, name=None, dtype=None, **kwargs):
-        """ create RangeIndex from a range (py3), or xrange (py2) object """
+        """
+        Create RangeIndex from a range (py3), or xrange (py2) object.
+
+        Parameters
+        ----------
+        data : range (py3), or xrange (py2)
+        name : object
+             Name to be stored in the index
+        dtype : numpy dtype or pandas type, default int64
+            Only the default int64 is supported, argument accepted for homogeneity
+            with other index types.
+        **kwargs
+            These parameters will be passed to :class:`~pandas.RangeIndex`.
+        """
         if not isinstance(data, range):
             raise TypeError(
                 '{0}(...) must be called with object coercible to a '
