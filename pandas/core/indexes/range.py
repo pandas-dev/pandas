@@ -40,12 +40,13 @@ class RangeIndex(Int64Index):
     Parameters
     ----------
     start : int or other RangeIndex instance, default 0
-        If of type `int` and `stop` is not given, interpreted as `stop` instead.
+        If of type `int` and `stop` is not given, interpreted as `stop`
+        instead.
     stop : int, default 0
     step : int, default 1
     dtype : numpy dtype or pandas type, default int64
-        Only the default `int64` is supported, argument accepted for homogeneity
-        with other index types.
+        Only the default `int64` is supported, argument accepted for
+        homogeneity with other index types.
     copy : bool, default False
         Unused, accepted for homogeneity with other index types.
     name : object, optional
@@ -134,8 +135,8 @@ class RangeIndex(Int64Index):
         name : object
              Name to be stored in the index
         dtype : numpy dtype or pandas type, default int64
-            Only the default int64 is supported, argument accepted for homogeneity
-            with other index types.
+            Only the default int64 is supported, argument accepted for
+            homogeneity with other index types.
         **kwargs
             These parameters will be passed to :class:`~pandas.RangeIndex`.
         """
