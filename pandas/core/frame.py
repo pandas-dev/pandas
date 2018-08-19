@@ -1380,7 +1380,8 @@ class DataFrame(NDFrame):
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
 
-        By default, timestamps are converted to `datetime.datetime`:
+        By default, timestamps are returned using NumPy's datetime64
+        data type:
 
         >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
         >>> df
@@ -1388,17 +1389,24 @@ class DataFrame(NDFrame):
         2018-01-01 09:00:00  1  0.50
         2018-01-01 09:01:00  2  0.75
         >>> df.to_records()
+        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
+                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
+                  dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
+
+        Conversion of timestamps to `datetime.datetime` can be enabled:
+            
+        >>> df.to_records(convert_datetime64=True)
         rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
                    (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
-
-        The timestamp conversion can be disabled so NumPy's datetime64
-        data type is used instead:
-
+        
+        Setting convert_datetime64 to False provides the default behaviour:
+            
         >>> df.to_records(convert_datetime64=False)
         rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
                    ('2018-01-01T09:01:00.000000000', 2, 0.75)],
                   dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
+        
         """
 
         if convert_datetime64 is not None:
