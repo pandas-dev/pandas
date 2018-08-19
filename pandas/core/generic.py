@@ -1924,11 +1924,25 @@ class NDFrame(PandasObject, SelectionMixin):
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
 
-    >>> writer = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
-    >>> df1.to_excel(writer, sheet_name='Sheet1')
-    >>> df2 = df1.copy()
-    >>> df2.to_excel(writer, sheet_name='Sheet2')
-    >>> writer.save()
+    >>> with ExcelWriter('output.xlsx') as writer:
+    ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+    ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+    If you want to set engine that can manipulate Excel,
+    pass keyword argument named engine. Actually
+    engine is automatically chosen by file extension:
+
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
+    >>> with ExcelWriter('output2.xlsx', engine='openpyxl') as writer:
+    ...     df2.to_excel(writer)
+
+    You can set date format or datetime format:
+
+    >>> with ExcelWriter('path_to_file.xlsx',
+                          date_format='YYYY-MM-DD',
+                          datetime_format='YYYY-MM-DD HH:MM:SS') as writer:
+    ...     df.to_excel(writer)
+
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
