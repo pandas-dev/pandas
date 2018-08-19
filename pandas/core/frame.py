@@ -1342,9 +1342,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        index : boolean, default True
+        index : bool, default True
             Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default None
+        convert_datetime64 : bool, default None
             .. deprecated:: 0.23.0
 
             Whether to convert the index to datetime.datetime if it is a
@@ -1352,7 +1352,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : numpy.recarray
+        numpy.recarray
+            NumPy ndarray with the Dataframe labels as attributes and each row
+            of the Dataframe as an entry in the array.
 
         See Also
         --------
