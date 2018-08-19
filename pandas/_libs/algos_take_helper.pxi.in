@@ -264,29 +264,34 @@ def take_2d_multi_{{name}}_{{dest}}(ndarray[{{c_type_in}}, ndim=2] values,
 # take_2d internal function
 #----------------------------------------------------------------------
 
-{{py:
+ctypedef fused take_t:
+    float64_t
+    uint64_t
+    object
+    int64_t
 
-# dtype, ctype, init_result
-dtypes = [('float64', 'float64_t', 'np.empty_like(values)'),
-          ('uint64', 'uint64_t', 'np.empty_like(values)'),
-          ('object', 'object', 'values.copy()'),
-          ('int64', 'int64_t', 'np.empty_like(values)')]
-}}
 
-{{for dtype, ctype, init_result in dtypes}}
-
-cdef _take_2d_{{dtype}}(ndarray[{{ctype}}, ndim=2] values, object idx):
+cdef _take_2d(ndarray[take_t, ndim=2] values, object idx):
     cdef:
         Py_ssize_t i, j, N, K
         ndarray[Py_ssize_t, ndim=2, cast=True] indexer = idx
-        ndarray[{{ctype}}, ndim=2] result
+        ndarray[take_t, ndim=2] result
         object val
 
     N, K = (<object> values).shape
-    result = {{init_result}}
+    if take_t is object:
+        result = values.copy()
+    else:
+        result = np.empty_like(values)
+
     for i in range(N):
         for j in range(K):
             result[i, j] = values[i, indexer[i, j]]
     return result
 
-{{endfor}}
+
+# TODO: Are these treated as cdefs?
+_take_2d_float64 = _take_2d[float64_t]
+_take_2d_uint64 = _take_2d[uint64_t]
+_take_2d_object = _take_2d[object]
+_take_2d_int64 = _take_2d[int64_t]
