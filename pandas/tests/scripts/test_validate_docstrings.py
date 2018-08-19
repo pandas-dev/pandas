@@ -198,6 +198,8 @@ class GoodDocStrings(object):
         Get the mode(s) of each element along the axis selected. Adds a row
         for each mode per label, fills in gaps with nan.
 
+        This test is to ensure that directives don't affect the tests for
+        periods at the end of parameters.
         Note that there could be multiple values returned for the selected
         axis (when more than one item share the maximum frequency), which is
         the reason why a dataframe is returned. If you want to impute missing
@@ -208,8 +210,15 @@ class GoodDocStrings(object):
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Describe axis.
+
+            .. versionchanged:: 0.1.2
+
         numeric_only : boolean, default False
             Describes numeric_only.
+
+            .. versionadded:: 0.1.2
+            .. deprecated:: 0.00.0
+
         dropna : boolean, default True
             This param tests that the versionadded directive doesn't break the
             checks for the ending period.
@@ -412,7 +421,7 @@ class BadParameters(object):
            Doesn't end with a dot
         """
 
-    def no_description_period_with_version_added(self, kind):
+    def no_description_period_with_directive(self, kind):
         """
         Forgets to add a period, and also includes a directive.
 
@@ -422,6 +431,19 @@ class BadParameters(object):
            Doesn't end with a dot
 
            .. versionadded:: 0.00.0
+        """
+
+    def no_description_period_with_directives(self, kind):
+        """
+        Forgets to add a period, and also includes multiple directives.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionchanged:: 0.00.0
+           .. deprecated:: 0.00.0
         """
 
     def parameter_capitalization(self, kind):
@@ -581,7 +603,7 @@ class TestValidator(object):
           'Parameter "kind: str" has no type')),
         ('BadParameters', 'no_description_period',
          ('Parameter "kind" description should finish with "."',)),
-        ('BadParameters', 'no_description_period_with_version_added',
+        ('BadParameters', 'no_description_period_with_directive',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),
