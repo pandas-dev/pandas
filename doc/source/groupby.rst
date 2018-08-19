@@ -106,9 +106,8 @@ consider the following ``DataFrame``:
    .. versionadded:: 0.20
 
    A string passed to ``groupby`` may refer to either a column or an index level.
-   If a string matches both a column name and an index level name then a warning is
-   issued and the column takes precedence. This will result in an ambiguity error
-   in a future version.
+   If a string matches both a column name and an index level name, a
+   ``ValueError`` will be raised.
 
 .. ipython:: python
 
