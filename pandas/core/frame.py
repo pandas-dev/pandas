@@ -1376,6 +1376,15 @@ class DataFrame(NDFrame):
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
 
+        If the dataframe index has no label then the recarray attribute name
+        is set to 'index'. If the index has a label then this is used as the
+        attribute name:
+
+        >>> df.index.rename("I", inplace=True)
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i8'), ('B', '<f8')])
+
         The index can be excluded from the record array:
 
         >>> df.to_records(index=False)
