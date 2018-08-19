@@ -42,6 +42,7 @@ from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
+DIRECTIVES = ['.. versionadded', '.. versionchanged', '.. deprecated']
 
 
 def _load_obj(obj_name):
@@ -466,13 +467,15 @@ def validate_one(func_name):
                                   'should start with a '
                                   'capital letter'.format(param))
 
-            if '.. versionadded::' in doc.parameter_desc(param):
-                index = doc.parameter_desc(param).index('.. versionadded::')
-                # Check for periods at the end of the description before the
-                # versionadded directive
-                period_check_index = index - 1
-            else:
-                period_check_index = -1
+            period_check_index = -1
+            for directive in DIRECTIVES:
+                if directive in doc.parameter_desc(param):
+                    # Get index of character before start of directive
+                    index = doc.parameter_desc(param).index(directive) - 1
+                    # If this directive is closest to the description, use it.
+                    if index < period_check_index or period_check_index is -1:
+                        period_check_index = index
+
             if doc.parameter_desc(param)[period_check_index] != '.':
                 param_errs.append('Parameter "{}" description '
                                   'should finish with "."'.format(param))
