@@ -339,17 +339,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def fill_value(self):
         return self.dtype.fill_value
 
-    # @fill_value.setter
-    # def fill_value(self, value):
-    #     if not is_scalar(value):
-    #         raise ValueError('fill_value must be a scalar')
-    #     # if the specified value triggers type promotion, raise ValueError
-    #     # new_dtype, fill_value = maybe_promote(self.dtype.subdtype, value)
-    #     # if is_dtype_equal(self.dtype, new_dtype):
-    #     self._fill_value = value
-    #     # else:
-    #     #     msg = 'unable to set fill_value {fill} to {dtype} dtype'
-    #     #     raise ValueError(msg.format(fill=value, dtype=self.dtype))
+    @fill_value.setter
+    def fill_value(self, value):
+        # XXX: I think this should be deprecated, since fill_value goes into
+        # the hash of SparseDtype
+        if not is_scalar(value):
+            raise ValueError('fill_value must be a scalar')
+        self.dtype._fill_value = value
 
     @property
     def kind(self):
