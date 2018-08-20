@@ -308,7 +308,7 @@ def get_empty_dtype_and_na(join_units):
         elif is_timedelta64_dtype(dtype):
             upcast_cls = 'timedelta'
         elif is_sparse(dtype):
-            upcast_cls = dtype.subdtype.name
+            upcast_cls = dtype.subtype.name
         elif is_float_dtype(dtype) or is_numeric_dtype(dtype):
             upcast_cls = dtype.name
         else:

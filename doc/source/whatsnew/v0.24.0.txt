@@ -325,16 +325,22 @@ is the case with :attr:`Period.end_time`, for example
 ``SparseArray`` is now an ``ExtensionArray``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This has some backwards incompatible changes:
+SparseArray is now implements the ExtensionArray interface.
+To conform to this interface, and for consistency with the rest of pandas, some API breaking
+changes were made:
 
 - ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`
-- ``SparseArray.dtype`` and ``SparseSeries.dtype`` are now instances of ``SparseDtype``, rather than ``np.dtype``. Access the underlying dtype with ``SparseDtype.subdtype``.
-- :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values, not just the non-fill-value values (:issue:`todo`)
-- passing a ``fill_value`` to ``SparseArray.take`` no longer implies ``allow_fill=True``.
+- ``SparseArray.dtype`` and ``SparseSeries.dtype`` are now instances of ``SparseDtype``, rather than ``np.dtype``. Access the underlying dtype with ``SparseDtype.subtype``.
+- :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values, not just the non-fill-value values (:issue:`14167`)
+- Passing a ``fill_value`` to ``SparseArray.take`` no longer implies ``allow_fill=True``.
 - ``SparseArray.take`` no longer accepts scalars for indices.
-- ``SparseArray.astype(np.dtype)`` will create a dense NumPy array. To astype to a SparseArray with a different subdtype, use ``.astype(sparse_dtype)`` or a string like ``.astype('Sparse[float32]')``.
+- ``SparseArray.astype(np.dtype)`` will create a dense NumPy array. To astype to a SparseArray with a different subtype, use ``.astype(sparse_dtype)`` or a string like ``.astype('Sparse[float32]')``.
+- ``SparseArray.astype(sparse_dtype)`` will now change both the dtype of the underlying ``sp_values`` and the ``fill_value``. Previously, just
+  ``sparse_array.sp_values.dtype`` was changed.
 - Setting ``SparseArray.fill_value`` to a fill value with a different dtype is now allowed.
 - The result of concatenating a SparseSeries and a dense Series is a Series with sparse dtype.
+
+In addition to these API breaking changes, many performance improvements and bug fixes have been made.
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 

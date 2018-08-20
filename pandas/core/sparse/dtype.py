@@ -11,7 +11,7 @@ class SparseDtype(ExtensionDtype):
         from pandas.core.dtypes.missing import na_value_for_dtype
 
         if isinstance(dtype, type(self)):
-            dtype = dtype.subdtype
+            dtype = dtype.subtype
         else:
             dtype = np.dtype(dtype)
 
@@ -28,7 +28,7 @@ class SparseDtype(ExtensionDtype):
     def __eq__(self, other):
         # TODO: test
         if isinstance(other, type(self)):
-            return (self.subdtype == other.subdtype and
+            return (self.subtype == other.subtype and
                     self._is_na_fill_value is other._is_na_fill_value)
         else:
             return super(SparseDtype, self).__eq__(other)
@@ -45,26 +45,26 @@ class SparseDtype(ExtensionDtype):
     @property
     def _is_numeric(self):
         from pandas.core.dtypes.common import is_object_dtype
-        return not is_object_dtype(self.subdtype)
+        return not is_object_dtype(self.subtype)
 
     @property
     def kind(self):
-        return self.subdtype.kind
+        return self.subtype.kind
 
     @property
     def type(self):
-        return self.subdtype.type
+        return self.subtype.type
 
     @property
-    def subdtype(self):
+    def subtype(self):
         return self._dtype
 
     @property
     def name(self):
-        return 'Sparse[{}]'.format(self.subdtype.name)
+        return 'Sparse[{}]'.format(self.subtype.name)
 
     def __repr__(self):
-        return 'Sparse[{},{}]'.format(self.subdtype.name, self.fill_value)
+        return 'Sparse[{},{}]'.format(self.subtype.name, self.fill_value)
 
     @classmethod
     def construct_array_type(cls):

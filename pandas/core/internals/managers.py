@@ -819,7 +819,7 @@ class BlockManager(PandasObject):
         # Probably best to add this to the API
 
         if is_sparse(dtype):
-            dtype = dtype.subdtype
+            dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
             dtype = 'object'
 

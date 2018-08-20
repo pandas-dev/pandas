@@ -55,7 +55,7 @@ def _get_fill(arr):
     # coerce fill_value to arr dtype if possible
     # int64 SparseArray can have NaN as fill_value if there is no missing
     try:
-        return np.asarray(arr.fill_value, dtype=arr.dtype.subdtype)
+        return np.asarray(arr.fill_value, dtype=arr.dtype.subtype)
     except ValueError:
         return np.asarray(arr.fill_value)
 
@@ -67,8 +67,8 @@ def _sparse_array_op(left, right, op, name):
         name = name[2:-2]
 
     # dtype used to find corresponding sparse method
-    ltype = left.dtype.subdtype
-    rtype = right.dtype.subdtype
+    ltype = left.dtype.subtype
+    rtype = right.dtype.subtype
 
     if not is_dtype_equal(ltype, rtype):
         subtype = find_common_type([ltype, rtype])
@@ -77,7 +77,7 @@ def _sparse_array_op(left, right, op, name):
 
         left = left.astype(ltype)
         right = right.astype(rtype)
-        dtype = ltype.subdtype
+        dtype = ltype.subtype
     else:
         dtype = ltype
 
@@ -223,7 +223,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             data = data.sp_values
 
         if isinstance(dtype, SparseDtype):
-            dtype = dtype.subdtype
+            dtype = dtype.subtype
 
         if index is not None and not is_scalar(data):
             raise Exception("must only pass scalars with an index ")
@@ -467,9 +467,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if periods == 0:
             return self.copy()
 
-        subtype = np.result_type(np.nan, self.dtype.subdtype)
+        subtype = np.result_type(np.nan, self.dtype.subtype)
 
-        if subtype != self.dtype.subdtype:
+        if subtype != self.dtype.subtype:
             # just coerce up front
             arr = self.astype(SparseDtype(subtype, self.fill_value))
         else:
@@ -797,7 +797,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             For SparseDtype, this can change two things
 
             1. The dtype of ``self.sp_values`` will be set to
-               ``dtype.subdtype``
+               ``dtype.subtype``
             2. The ``fill_value`` will be set to ``dtype.fill_value``.
 
             For other dtypes, this will convert to a dense array
@@ -815,7 +815,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if isinstance(dtype, SparseDtype):
             # Sparse -> Sparse
             sp_values = astype_nansafe(self.sp_values,
-                                       dtype.subdtype,
+                                       dtype.subtype,
                                        copy=copy)
             if sp_values is self.sp_values and copy:
                 sp_values = sp_values.copy()

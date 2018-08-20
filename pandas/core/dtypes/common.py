@@ -1643,7 +1643,7 @@ def is_bool_dtype(arr_or_dtype):
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
     elif isinstance(arr_or_dtype, SparseDtype):
-        return issubclass(arr_or_dtype.subdtype.type, np.bool_)
+        return issubclass(arr_or_dtype.subtype.type, np.bool_)
     return issubclass(tipo, np.bool_)
 
 

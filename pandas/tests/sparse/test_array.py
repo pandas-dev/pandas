@@ -30,7 +30,7 @@ class TestSparseArray(object):
     def test_constructor_dtype(self):
         arr = SparseArray([np.nan, 1, 2, np.nan])
         assert arr.dtype == SparseDtype(np.float64, np.nan)
-        assert arr.dtype.subdtype == np.float64
+        assert arr.dtype.subtype == np.float64
         assert np.isnan(arr.fill_value)
 
         arr = SparseArray([np.nan, 1, 2, np.nan], fill_value=0)
@@ -409,7 +409,7 @@ class TestSparseArray(object):
         dtype = SparseDtype("float64", fill_value=0)
         result = arr.astype(dtype)
         expected = SparseArray._simple_new(np.array([0., 2.],
-                                                    dtype=dtype.subdtype),
+                                                    dtype=dtype.subtype),
                                            IntIndex(4, [2, 3]),
                                            dtype)
         tm.assert_sp_array_equal(result, expected)

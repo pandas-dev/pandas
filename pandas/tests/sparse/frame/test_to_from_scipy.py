@@ -55,7 +55,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # Ensure dtype is preserved if possible
     # XXX: verify this
     res_dtype = bool if is_bool_dtype(dtype) else dtype
-    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subdtype),
+    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subtype),
                            {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
 
@@ -109,7 +109,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
 
     # Ensure dtype is preserved if possible
     res_dtype = object
-    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subdtype),
+    tm.assert_contains_all(sdf.dtypes.apply(lambda dtype: dtype.subtype),
                            {np.dtype(res_dtype)})
     assert sdf.to_coo().dtype == res_dtype
 

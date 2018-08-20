@@ -262,7 +262,7 @@ class SparseDataFrame(DataFrame):
 
         dtype = find_common_type(self.dtypes)
         if isinstance(dtype, SparseDtype):
-            dtype = dtype.subdtype
+            dtype = dtype.subtype
 
         cols, rows, datas = [], [], []
         for col, name in enumerate(self):
