@@ -300,7 +300,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not (dtype is None or is_object_dtype(dtype)):
 
                 # coerce to the provided dtype
-                data = dtype.construct_array_type()(
+                data = dtype.construct_array_type()._from_sequence(
                     data, dtype=dtype, copy=False)
 
             # coerce to the object dtype
