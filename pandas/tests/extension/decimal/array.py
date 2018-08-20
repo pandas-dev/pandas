@@ -44,6 +44,10 @@ class DecimalDtype(ExtensionDtype):
             raise TypeError("Cannot construct a '{}' from "
                             "'{}'".format(cls, string))
 
+    @property
+    def _is_numeric(self):
+        return True
+
 
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 

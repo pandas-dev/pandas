@@ -665,7 +665,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass)
+                              klass=klass, ndim=self.ndim)
         except:
             if errors == 'raise':
                 raise
@@ -1949,6 +1949,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def is_view(self):
         """Extension arrays are never treated as views."""
         return False
+
+    @property
+    def is_numeric(self):
+        return self.values.dtype._is_numeric
 
     def setitem(self, indexer, value, mgr=None):
         """Set the value inplace, returning a same-typed block.

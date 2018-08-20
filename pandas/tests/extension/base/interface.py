@@ -67,3 +67,7 @@ class BaseInterfaceTests(BaseExtensionTests):
         # code, disallowing this for now until solved
         assert not hasattr(data, 'values')
         assert not hasattr(data, '_values')
+
+    def test_is_numeric_honored(self, data):
+        result = pd.Series(data)
+        assert result._data.blocks[0].is_numeric is data.dtype._is_numeric
