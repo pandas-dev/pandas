@@ -622,6 +622,7 @@ def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
 
 cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.intp)).descr.type_num
 
+
 cpdef ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
@@ -632,6 +633,7 @@ cpdef ensure_platform_int(object arr):
             return arr.astype(np.intp)
     else:
         return np.array(arr, dtype=np.intp)
+
 
 cpdef ensure_object(object arr):
     if util.is_array(arr):
