@@ -110,10 +110,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=None,
            verbose=None, reauth=False, if_exists='fail', private_key=None,
-           auth_local_webserver=False, table_schema=None):
+           auth_local_webserver=False, table_schema=None, progress_bar=True):
     pandas_gbq = _try_import()
     return pandas_gbq.to_gbq(
         dataframe, destination_table, project_id, chunksize=chunksize,
         verbose=verbose, reauth=reauth, if_exists=if_exists,
         private_key=private_key, auth_local_webserver=auth_local_webserver,
-        table_schema=table_schema)
+        table_schema=table_schema, progress_bar=progress_bar)
