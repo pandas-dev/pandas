@@ -829,47 +829,46 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(key, ABCDataFrame):
             raise TypeError('Indexing a Series with DataFrame is not '
                             'supported, use the appropriate DataFrame column')
-        else:
-            if isinstance(key, tuple):
-                try:
-                    return self._get_values_tuple(key)
-                except Exception:
-                    if len(key) == 1:
-                        key = key[0]
-                        if isinstance(key, slice):
-                            return self._get_values(key)
-                    raise
-
-            # pragma: no cover
-            if not isinstance(key, (list, np.ndarray, Series, Index)):
-                key = list(key)
-
-            if isinstance(key, Index):
-                key_type = key.inferred_type
-            else:
-                key_type = lib.infer_dtype(key)
-
-            if key_type == 'integer':
-                if self.index.is_integer() or self.index.is_floating():
-                    return self.loc[key]
-                else:
-                    return self._get_values(key)
-            elif key_type == 'boolean':
-                return self._get_values(key)
-            else:
-                try:
-                    # handle the dup indexing case (GH 4246)
-                    if isinstance(key, (list, tuple)):
-                        return self.loc[key]
-
-                    return self.reindex(key)
-                except Exception:
-                    # [slice(0, 5, None)] will break if you convert to ndarray,
-                    # e.g. as requested by np.median
-                    # hack
-                    if isinstance(key[0], slice):
+        elif isinstance(key, tuple):
+            try:
+                return self._get_values_tuple(key)
+            except Exception:
+                if len(key) == 1:
+                    key = key[0]
+                    if isinstance(key, slice):
                         return self._get_values(key)
-                    raise
+                raise
+
+        # pragma: no cover
+        if not isinstance(key, (list, np.ndarray, Series, Index)):
+            key = list(key)
+
+        if isinstance(key, Index):
+            key_type = key.inferred_type
+        else:
+            key_type = lib.infer_dtype(key)
+
+        if key_type == 'integer':
+            if self.index.is_integer() or self.index.is_floating():
+                return self.loc[key]
+            else:
+                return self._get_values(key)
+        elif key_type == 'boolean':
+            return self._get_values(key)
+
+        try:
+            # handle the dup indexing case (GH 4246)
+            if isinstance(key, (list, tuple)):
+                return self.loc[key]
+
+            return self.reindex(key)
+        except Exception:
+            # [slice(0, 5, None)] will break if you convert to ndarray,
+            # e.g. as requested by np.median
+            # hack
+            if isinstance(key[0], slice):
+                return self._get_values(key)
+            raise
 
     def _get_values_tuple(self, key):
         # mpl hackaround
@@ -1011,7 +1010,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
@@ -4100,7 +4098,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                      ordered=dtype.ordered)
             elif is_extension_array_dtype(dtype):
                 # create an extension array from its dtype
-                array_type = dtype.construct_array_type()
+                array_type = dtype.construct_array_type()._from_sequence
                 subarr = array_type(subarr, dtype=dtype, copy=copy)
 
             elif dtype is not None and raise_cast_failure:
