@@ -285,6 +285,9 @@ that the dates have been converted to UTC
 
 .. _whatsnew_0240.api_breaking.calendarday:
 
+CalendarDay Offset
+^^^^^^^^^^^^^^^^^^
+
 :class:`Day` and associated frequency alias ``'D'`` were documented to represent
 a calendar day; however, arithmetic and operations with :class:`Day` sometimes
 respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Timedelta(days=n)``).
@@ -318,22 +321,6 @@ Addition with :class:`CalendarDay` across a daylight savings time transition:
    ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
    ts + pd.offsets.Day(1)
    ts + pd.offsets.CalendarDay(1)
-
-However, if the resulting arithmetic results in a non-existent or ambiguous
-time, an error will raise.
-
-.. ipython:: python
-
-   Timestamp("2018-11-03 01:00:00", tz='US/Pacific') + CalendarDay(1)
-
-The ``'CD'` frequency alias can be used with :func:`date_range` to create
-a sequence of dates that are separate by a calendar day.
-
-.. ipython:: python
-
-   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
-   pd.date_range(start=ts, freq='CD', periods=3)
-   pd.date_range(start=ts, freq='D', periods=3)
 
 .. _whatsnew_0240.api_breaking.period_end_time:
 

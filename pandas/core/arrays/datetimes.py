@@ -244,9 +244,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # Make sure start and end are timezone localized if:
         # 1) freq = a Timedelta-like frequency (Tick)
         # 2) freq = None i.e. generating a linspaced range
-        localize_args = {'tz': None}
         if isinstance(freq, Tick) or freq is None:
             localize_args = {'tz': tz, 'ambiguous': False}
+        else:
+            localize_args = {'tz': None}
         if tz is not None:
             # Localize the start and end arguments
             if start is not None and start.tz is None:

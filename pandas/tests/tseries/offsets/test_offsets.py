@@ -3182,58 +3182,69 @@ def test_last_week_of_month_on_offset():
     assert fast == slow
 
 
-@pytest.mark.parametrize('box, assert_func', [
-    [None, None],
-    [DatetimeIndex, 'assert_index_equal'],
-    [Series, 'assert_series_equal']])
-def test_CalendarDay_with_timezone(box, assert_func):
-    # GH 22274
-    ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
-    expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
-    if box is not None:
-        ts = box(([ts]))
-        expected = box(([expected]))
-    result = ts + CalendarDay(1)
-    if assert_func:
-        getattr(tm, assert_func)(result, expected)
-    else:
+class TestCalendarDay(object):
+
+    def test_add_across_dst_scalar(self):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        result = ts + CalendarDay(1)
         assert result == expected
 
-    result = result - CalendarDay(1)
-    if assert_func:
-        getattr(tm, assert_func)(result, ts)
-    else:
+        result = result - CalendarDay(1)
         assert result == ts
 
-    # CalendarDay applied to a Timestamp that leads to ambiguous time
-    with pytest.raises(pytz.AmbiguousTimeError):
-        Timestamp("2018-11-03 01:00:00", tz='US/Pacific') + CalendarDay(1)
+    @pytest.mark.parametrize('box', [DatetimeIndex, Series])
+    def test_add_across_dst_array(self, box):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        arr = box([ts])
+        expected = box([expected])
+        result = arr + CalendarDay(1)
+        tm.assert_equal(result, expected)
 
-    # CalendarDay applied to a Timestamp that leads to non-existent time
-    with pytest.raises(pytz.NonExistentTimeError):
-        Timestamp("2019-03-09 02:00:00", tz='US/Pacific') + CalendarDay(1)
+        result = result - CalendarDay(1)
+        tm.assert_equal(arr, result)
 
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2018-11-03 01:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2018-11-03 01:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_AmbiguousTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.AmbiguousTimeError):
+            arg + CalendarDay(1)
 
-@pytest.mark.parametrize('arg, exp', [
-    [1, 2],
-    [-1, 0],
-    [-5, -4]
-])
-def test_CalendarDay_arithmetic_with_self(arg, exp):
-    # GH 22274
-    result = CalendarDay(1) + CalendarDay(arg)
-    expected = CalendarDay(exp)
-    assert result == expected
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2019-03-09 02:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2019-03-09 02:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_NonExistentTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.NonExistentTimeError):
+            arg + CalendarDay(1)
 
+    @pytest.mark.parametrize('arg, exp', [
+        [1, 2],
+        [-1, 0],
+        [-5, -4]
+    ])
+    def test_arithmetic(self, arg, exp):
+        # GH 22274
+        result = CalendarDay(1) + CalendarDay(arg)
+        expected = CalendarDay(exp)
+        assert result == expected
 
-@pytest.mark.parametrize('arg', [
-    timedelta(1),
-    Day(1),
-    Timedelta(1),
-    TimedeltaIndex([timedelta(1)])])
-def test_CalendarDay_invalid_arithmetic(arg):
-    # GH 22274
-    # CalendarDay (relative time) cannot be added to Timedelta-like objects
-    # (absolute time)
-    with pytest.raises(TypeError):
-        CalendarDay(1) + arg
+    @pytest.mark.parametrize('arg', [
+        timedelta(1),
+        Day(1),
+        Timedelta(1),
+        TimedeltaIndex([timedelta(1)])
+    ])
+    def test_invalid_arithmetic(self, arg):
+        # GH 22274
+        # CalendarDay (relative time) cannot be added to Timedelta-like objects
+        # (absolute time)
+        with pytest.raises(TypeError):
+            CalendarDay(1) + arg
