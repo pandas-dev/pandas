@@ -102,7 +102,7 @@ class _DtypeOpsMixin(object):
 
         By default ExtensionDtypes are assumed to be non-numeric.
         They'll be excluded from operations that exclude non-numeric
-        columns, like groupby reductions.
+        columns, like (groupby) reductions, plotting, etc.
         """
         return False
 
@@ -121,13 +121,8 @@ class ExtensionDtype(_DtypeOpsMixin):
     * name
     * construct_from_string
 
-<<<<<<< HEAD
-    The following properties affect the behavior of extension arrays
-    in operations:
-=======
     The following attributes influence the behavior of the dtype in
     pandas operations
->>>>>>> ea-is-numeric
 
     * _is_numeric
 

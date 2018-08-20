@@ -789,6 +789,15 @@ def test_groupby_mean_included():
     tm.assert_frame_equal(result, expected)
 
 
+def test_astype_nansafe():
+    # https://github.com/pandas-dev/pandas/pull/22343
+    arr = IntegerArray([np.nan, 1, 2], dtype="Int8")
+
+    with tm.assert_raises_regex(
+            ValueError, 'cannot convert float NaN to integer'):
+        arr.astype('uint32')
+
+
 # TODO(jreback) - these need testing / are broken
 
 # shift

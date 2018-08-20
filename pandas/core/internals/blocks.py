@@ -669,7 +669,8 @@ class Block(PandasObject):
                 except AttributeError:
                     pass
 
-            newb = make_block(values, placement=self.mgr_locs, klass=klass)
+            newb = make_block(values, placement=self.mgr_locs,
+                              klass=klass, ndim=self.ndim)
         except:
             if errors == 'raise':
                 raise

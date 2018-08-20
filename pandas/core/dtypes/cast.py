@@ -653,6 +653,9 @@ def astype_nansafe(arr, dtype, copy=True):
     ----------
     arr : ndarray
     dtype : np.dtype
+    copy : bool, default True
+        If False, a view will be attempted but may fail, if
+        e.g. the itemsizes don't align.
     """
 
     # dispatch on extension dtype if needed
@@ -739,8 +742,10 @@ def astype_nansafe(arr, dtype, copy=True):
                       FutureWarning, stacklevel=5)
         dtype = np.dtype(dtype.name + "[ns]")
 
-    if copy:
+    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+        # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
+
     return arr.view(dtype)
 
 
