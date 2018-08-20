@@ -6,6 +6,32 @@ from pandas import compat
 
 
 class SparseDtype(ExtensionDtype):
+    """
+    Dtype for data stored in :class:`SparseArray`.
+
+    This dtype implements the pandas ExtensionDtype interface.
+
+    .. versionadded:: 0.24.0
+
+    Parameters
+    ----------
+    dtype : numpy.dtype, default numpy.float64
+        The dtype of the underlying array storing the non-fill value values.
+    fill_value : scalar, optional.
+        The scalar value not stored in the SparseArray. By default, this
+        depends on `dtype`.
+
+        ========== ==========
+        dtype      na_value
+        ========== ==========
+        float      ``np.nan``
+        int        ``0``
+        bool       False
+        datetime64 ``pd.NaT``
+        ========== ==========
+
+        The default value may be overridden by specifying a `fill_value`.
+    """
 
     def __init__(self, dtype=np.float64, fill_value=None):
         from pandas.core.dtypes.missing import na_value_for_dtype

@@ -152,14 +152,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     """
     An ExtensionArray for storing sparse data.
 
+    .. versionchanged:: 0.24.0
+
+       Implements the ExtensionArray interface.
+
     Parameters
     ----------
     data : array-like
+        A dense array of values to store in the SparseArray. This may contain
+        `fill_value`.
     sparse_index : SparseIndex, optional
     index : Index
     fill_value : scalar, optional
-        The fill_value to use for this array. By default, this is depends
-        on the dtype of data.
+        Elements in `data` that are `fill_value` are not stored in the SparseArray.
+        For memory savings, this should be the most common value in `data`.
+        By default, `fill_value` depends on the dtype of `data`:
 
         ========== ==========
         data.dtype na_value
@@ -183,18 +190,12 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         * 'integer': uses an integer to store the location of
           each sparse value.
 
-    dtype : np.dtype, optional
+    dtype : np.dtype or SparseDtype, optional
+        The dtype to use for the SparseArray. For numpy dtypes, this
+        determines the dtype of ``self.sp_values``. For SparseDtype,
+        this determines ``self.sp_values`` and ``self.fill_value``.
     copy : bool, default False
         Whether to explicitly copy the incoming `data` array.
-
-
-    Notes
-    -----
-    The precedence for fill_value is
-
-    1. fill_value
-    2. dtype.fill_value for SparseDtype
-    3. data.fill_value for SparseArray
     """
 
     __array_priority__ = 15
