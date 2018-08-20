@@ -42,7 +42,7 @@ from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
-DIRECTIVES = ['.. versionadded', '.. versionchanged', '.. deprecated']
+DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 
 def _load_obj(obj_name):
@@ -236,6 +236,15 @@ class Docstring(object):
 
     def parameter_desc(self, param):
         return self.doc_parameters[param][1]
+
+    def parameter_desc_without_directives(self, param):
+        desc = self.parameter_desc(param)
+        for directive in DIRECTIVES:
+            full_directive = '.. {}'.format(directive)
+            if full_directive in desc:
+                # Only retain any description before the directive
+                desc = desc[:desc.index(full_directive)]
+        return desc
 
     @property
     def see_also(self):
@@ -466,17 +475,7 @@ def validate_one(func_name):
                 param_errs.append('Parameter "{}" description '
                                   'should start with a '
                                   'capital letter'.format(param))
-
-            period_check_index = -1
-            for directive in DIRECTIVES:
-                if directive in doc.parameter_desc(param):
-                    # Get index of character before start of directive
-                    index = doc.parameter_desc(param).index(directive) - 1
-                    # If this directive is closest to the description, use it.
-                    if index < period_check_index or period_check_index is -1:
-                        period_check_index = index
-
-            if doc.parameter_desc(param)[period_check_index] != '.':
+            if doc.parameter_desc_without_directives(param)[-1] != '.':
                 param_errs.append('Parameter "{}" description '
                                   'should finish with "."'.format(param))
     if param_errs:
