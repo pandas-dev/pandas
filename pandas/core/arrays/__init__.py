@@ -7,4 +7,4 @@ from .interval import IntervalArray  # noqa
 from .period import PeriodArrayMixin  # noqa
 from .timedeltas import TimedeltaArrayMixin  # noqa
 from .integer import (  # noqa
-    IntegerArray, to_integer_array)
+    IntegerArray, integer_array)
