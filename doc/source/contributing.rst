@@ -819,6 +819,46 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
    test_cool_feature.py::test_dtypes[int8] PASSED
    test_cool_feature.py::test_series[int8] PASSED
 
+Using ``hypothesis``
+~~~~~~~~~~~~~~~~~~~~
+With the usage of ``pytest``, things have become easier for testing by having reduced boilerplate for test cases and also by utilizing pytest's features like parametizing, skipping and marking test cases.
+
+However, one has to still come up with input data examples which can be tested against the functionality. There is always a possibility to skip testing an example which could have failed the test case.
+
+Hypothesis is a python package which helps in overcoming this issue by generating the input data based on some set of specifications provided by the user.
+e.g consider the test case for testing python's sum function for a list of int using hypothesis.
+
+.. code-block:: python
+
+    from hypothesis import strategies as st
+    from hypothesis import given
+
+
+    @given(st.lists(st.integers()))
+    def test_sum(seq):
+        total = 0
+        for item in seq:
+            total += item
+        assert sum(seq) == total
+
+
+output of test cases:
+
+.. code-block:: shell
+
+    collecting ... collected 1 item
+    hypothesis_example.py::test_sum PASSED                                   [100%]
+
+    ========================== 1 passed in 0.33 seconds ===========================
+
+In above example by applying a decorator "@given(st.lists(st.integers()))" to the unit test function, we have directed hypothesis to generate some random list of int as input for the test function, which eventually helps in adding more coverage for our test functions by generating random input data.
+
+For more information about hypothesis or in general about property based testing, check below links:
+
+- https://hypothesis.readthedocs.io/en/latest/quickstart.html
+- https://hypothesis.works/articles/what-is-property-based-testing/
+- http://blog.jessitron.com/2013/04/property-based-testing-what-is-it.html
+
 
 Running the test suite
 ----------------------

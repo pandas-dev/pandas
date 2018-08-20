@@ -25,3 +25,4 @@ dependencies:
   - cython>=0.28.2
   - pytest
   - pytest-xdist
+  - hypothesis

@@ -45,6 +45,7 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - hypothesis
   - pip:
     - backports.lzma
     - cpplint

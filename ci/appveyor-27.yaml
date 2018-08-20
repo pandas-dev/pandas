@@ -28,3 +28,4 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - hypothesis

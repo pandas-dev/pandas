@@ -23,5 +23,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - hypothesis
   - pip:
     - python-dateutil==2.5.3
