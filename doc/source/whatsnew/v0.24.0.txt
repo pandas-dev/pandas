@@ -446,7 +446,7 @@ ExtensionType Changes
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
--
+- :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 
 .. _whatsnew_0240.api.incompatibilities:
 

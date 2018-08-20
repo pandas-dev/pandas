@@ -637,22 +637,25 @@ class Block(PandasObject):
             # force the copy here
             if values is None:
 
-                if issubclass(dtype.type,
-                              (compat.text_type, compat.string_types)):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
+                if self.is_extension:
+                    values = self.values.astype(dtype)
                 else:
-                    values = self.get_values(dtype=dtype)
+                    if issubclass(dtype.type,
+                                  (compat.text_type, compat.string_types)):
 
-                # _astype_nansafe works fine with 1-d only
-                values = astype_nansafe(values.ravel(), dtype, copy=True)
+                        # use native type formatting for datetime/tz/timedelta
+                        if self.is_datelike:
+                            values = self.to_native_types()
+
+                        # astype formatting
+                        else:
+                            values = self.get_values()
+
+                    else:
+                        values = self.get_values(dtype=dtype)
+
+                    # _astype_nansafe works fine with 1-d only
+                    values = astype_nansafe(values.ravel(), dtype, copy=True)
 
                 # TODO(extension)
                 # should we make this attribute?
