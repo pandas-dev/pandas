@@ -677,9 +677,7 @@ class Block(PandasObject):
             newb = self.copy() if copy else self
 
         if newb.is_numeric and self.is_numeric:
-            # use values.shape, rather than newb.shape, as newb.shape
-            # may be incorrect for ExtensionBlocks.
-            if values.shape != self.shape:
+            if newb.shape != self.shape:
                 raise TypeError(
                     "cannot set astype for copy = [{copy}] for dtype "
                     "({dtype} [{itemsize}]) with smaller itemsize than "
