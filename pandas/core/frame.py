@@ -1381,7 +1381,7 @@ class DataFrame(NDFrame):
         is set to 'index'. If the index has a label then this is used as the
         field name:
 
-        >>> df.index.rename("I", inplace=True)
+        >>> df.index = df.index.rename("I")
         >>> df.to_records()
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('I', 'O'), ('A', '<i8'), ('B', '<f8')])
