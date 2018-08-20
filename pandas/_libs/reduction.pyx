@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 from distutils.version import LooseVersion
 
 from cython cimport Py_ssize_t
@@ -25,7 +24,7 @@ is_numpy_prior_1_6_2 = LooseVersion(np.__version__) < '1.6.2'
 cdef _get_result_array(object obj, Py_ssize_t size, Py_ssize_t cnt):
 
     if (util.is_array(obj) or
-            isinstance(obj, list) and len(obj) == cnt or
+            (isinstance(obj, list) and len(obj) == cnt) or
             getattr(obj, 'shape', None) == (cnt,)):
         raise ValueError('function does not reduce')
 

@@ -314,15 +314,13 @@ class DataFrame(NDFrame):
 
     Constructing DataFrame from numpy ndarray:
 
-    >>> df2 = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
-    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    ...                    columns=['a', 'b', 'c'])
     >>> df2
-        a   b   c   d   e
-    0   2   8   8   3   4
-    1   4   2   9   0   9
-    2   1   0   7   8   0
-    3   5   1   7   1   3
-    4   6   0   2   4   2
+       a  b  c
+    0  1  2  3
+    1  4  5  6
+    2  7  8  9
 
     See also
     --------
@@ -6666,7 +6664,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        else:
+        elif method == 'kendall':
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -6690,6 +6688,10 @@ class DataFrame(NDFrame):
                         c = corrf(ac, bc)
                     correl[i, j] = c
                     correl[j, i] = c
+        else:
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman', or 'kendall', '{method}' "
+                             "was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
@@ -6896,21 +6898,21 @@ class DataFrame(NDFrame):
         Constructing DataFrame from a dictionary:
 
         >>> df = pd.DataFrame({"Person":
-        ...                    ["John", "Myla", None, "John", "Myla"],
+        ...                    ["John", "Myla", "Lewis", "John", "Myla"],
         ...                    "Age": [24., np.nan, 21., 33, 26],
         ...                    "Single": [False, True, True, True, False]})
         >>> df
            Person   Age  Single
         0    John  24.0   False
         1    Myla   NaN    True
-        2    None  21.0    True
+        2   Lewis  21.0    True
         3    John  33.0    True
         4    Myla  26.0   False
 
         Notice the uncounted NA values:
 
         >>> df.count()
-        Person    4
+        Person    5
         Age       4
         Single    5
         dtype: int64
@@ -6920,7 +6922,7 @@ class DataFrame(NDFrame):
         >>> df.count(axis='columns')
         0    3
         1    2
-        2    2
+        2    3
         3    3
         4    3
         dtype: int64
@@ -6931,7 +6933,9 @@ class DataFrame(NDFrame):
                 Age
         Person
         John      2
+        Lewis     1
         Myla      1
+
         """
         axis = self._get_axis_number(axis)
         if level is not None:

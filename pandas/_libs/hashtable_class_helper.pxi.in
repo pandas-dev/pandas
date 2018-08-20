@@ -115,7 +115,8 @@ cdef class {{name}}Vector:
 
         if needs_resize(self.data):
             if self.external_view_exists:
-                raise ValueError("external reference but Vector.resize() needed")
+                raise ValueError("external reference but "
+                                 "Vector.resize() needed")
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
@@ -194,6 +195,7 @@ cdef class StringVector:
         for i in range(len(x)):
             self.append(x[i])
 
+
 cdef class ObjectVector:
 
     cdef:
@@ -215,7 +217,8 @@ cdef class ObjectVector:
     cdef inline append(self, object o):
         if self.n == self.m:
             if self.external_view_exists:
-                raise ValueError("external reference but Vector.resize() needed")
+                raise ValueError("external reference but "
+                                 "Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m, refcheck=False)
             self.data = <PyObject**> self.ao.data
@@ -405,8 +408,9 @@ cdef class {{name}}HashTable(HashTable):
                     if needs_resize(ud):
                         with gil:
                             if uniques.external_view_exists:
-                                raise ValueError("external reference to uniques held, "
-                                        "but Vector.resize() needed")
+                                raise ValueError("external reference to "
+                                                 "uniques held, but "
+                                                 "Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
@@ -742,7 +746,9 @@ cdef class StringHashTable(HashTable):
 
         return np.asarray(labels)
 
+
 na_sentinel = object
+
 
 cdef class PyObjectHashTable(HashTable):
 
