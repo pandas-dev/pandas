@@ -1422,6 +1422,14 @@ class EngFormatter(object):
     Formats float values according to engineering format.
 
     Based on matplotlib.ticker.EngFormatter
+
+    Parameters
+    ----------
+    accuracy : int
+        the number of decimal digits after the floating point. default None
+    use_eng_prefix : boolean
+        Weather using engineering format. default False
+
     """
 
     # The SI engineering prefixes
@@ -1522,7 +1530,18 @@ def set_eng_float_format(accuracy=3, use_eng_prefix=False):
     Format float in engineering format. By accuracy, we mean the number of
     decimal digits after the floating point.
 
-    See also EngFormatter.
+    Parameters
+    ----------
+    accuracy : int
+        the number of decimal digits after the floating point. default 3
+    use_eng_prefix : boolean
+        Weather using engineering format. default False
+
+
+    See Also
+    --------
+    EngFormatter : Formats float values according to engineering format.
+
     """
 
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))

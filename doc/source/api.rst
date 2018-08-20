@@ -2452,6 +2452,8 @@ Working with options
    get_option
    set_option
    option_context
+   set_eng_float_format
+
 
 Testing functions
 ~~~~~~~~~~~~~~~~~
