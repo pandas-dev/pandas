@@ -2166,6 +2166,7 @@ class TestDatetimeIndex(Base):
         tm.assert_series_equal(res, exp)
 
     def test_resample_apply_with_additional_args(self):
+        # GH 14615
         def f(data, add_arg):
             return np.mean(data) * add_arg
 
@@ -2178,6 +2179,13 @@ class TestDatetimeIndex(Base):
         result = self.series.resample('D').apply(f, add_arg=multiplier)
         expected = self.series.resample('D').mean().multiply(multiplier)
         tm.assert_series_equal(result, expected)
+
+        # Testing dataframe
+        df = pd.DataFrame({"A": 1, "B": 2},
+                          index=pd.date_range('2017', periods=10))
+        result = df.groupby("A").resample("D").agg(f, multiplier)
+        expected = df.groupby("A").resample('D').mean().multiply(multiplier)
+        assert_frame_equal(result, expected)
 
 
 class TestPeriodIndex(Base):
