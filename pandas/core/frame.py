@@ -6664,7 +6664,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        else:
+        elif method == 'kendall':
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -6688,6 +6688,10 @@ class DataFrame(NDFrame):
                         c = corrf(ac, bc)
                     correl[i, j] = c
                     correl[j, i] = c
+        else:
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman', or 'kendall', '{method}' "
+                             "was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
