@@ -266,9 +266,23 @@ class TestTableOrient(object):
         assert "pandas_version" in result['schema']
         result['schema'].pop('pandas_version')
 
-        fields = [{'name': 'id', 'type': 'integer'},
-                  {'name': 'a', 'type': 'integer'}]
-
+        fields = [
+            {"name": "id", "type": "integer"},
+            {
+                "name": "a",
+                "type": "integer",
+                "summary": {
+                    "count": 2.0,
+                    "mean": 1.5,
+                    "std": 0.7071067812,
+                    "min": 1.0,
+                    "25%": 1.25,
+                    "50%": 1.5,
+                    "75%": 1.75,
+                    "max": 2.0,
+                },
+            },
+        ]
         schema = {
             'fields': fields,
             'primaryKey': ['id'],
@@ -288,55 +302,79 @@ class TestTableOrient(object):
 
         assert "pandas_version" in result['schema']
         result['schema'].pop('pandas_version')
-
         fields = [
-            {'name': 'idx', 'type': 'integer'},
-            {'name': 'A', 'type': 'integer'},
-            {'name': 'B', 'type': 'string'},
-            {'name': 'C', 'type': 'datetime'},
-            {'name': 'D', 'type': 'duration'},
-            {'constraints': {'enum': ['a', 'b', 'c']},
-             'name': 'E',
-             'ordered': False,
-             'type': 'any'},
-            {'constraints': {'enum': ['a', 'b', 'c']},
-             'name': 'F',
-             'ordered': True,
-             'type': 'any'},
-            {'name': 'G', 'type': 'number'},
-            {'name': 'H', 'type': 'datetime', 'tz': 'US/Central'}
+            {"name": "idx", "type": "integer"},
+            {
+                "name": "A",
+                "type": "integer",
+                "summary": {
+                    "count": 4.0,
+                    "mean": 2.5,
+                    "std": 1.2909944487,
+                    "min": 1.0,
+                    "25%": 1.75,
+                    "50%": 2.5,
+                    "75%": 3.25,
+                    "max": 4.0,
+                },
+            },
+            {
+                "name": "B",
+                "type": "string",
+                "summary": {"count": 4, "unique": 3, "top": "c", "freq": 2},
+            },
+            {
+                "name": "C",
+                "type": "datetime",
+                "summary": {
+                    "count": 4,
+                    "unique": 4,
+                    "top": 1451779200000,
+                    "freq": 1,
+                    "first": 1451606400000,
+                    "last": 1451865600000,
+                },
+            },
+            {
+                "name": "D",
+                "type": "duration",
+                "summary": {
+                    "count": 4,
+                    "mean": 3690000,
+                    "std": 77459,
+                    "min": 3600000,
+                    "25%": 3645000,
+                    "50%": 3690000,
+                    "75%": 3735000,
+                    "max": 3780000,
+                },
+            },
         ]
 
         schema = {
             'fields': fields,
             'primaryKey': ['idx'],
         }
-        data = [
-            OrderedDict([('idx', 0), ('A', 1), ('B', 'a'),
-                         ('C', '2016-01-01T00:00:00.000Z'),
-                         ('D', 'P0DT1H0M0S'),
-                         ('E', 'a'), ('F', 'a'), ('G', 1.),
-                         ('H', '2016-01-01T06:00:00.000Z')
-                         ]),
-            OrderedDict([('idx', 1), ('A', 2), ('B', 'b'),
-                         ('C', '2016-01-02T00:00:00.000Z'),
-                         ('D', 'P0DT1H1M0S'),
-                         ('E', 'b'), ('F', 'b'), ('G', 2.),
-                         ('H', '2016-01-02T06:00:00.000Z')
-                         ]),
-            OrderedDict([('idx', 2), ('A', 3), ('B', 'c'),
-                         ('C', '2016-01-03T00:00:00.000Z'),
-                         ('D', 'P0DT1H2M0S'),
-                         ('E', 'c'), ('F', 'c'), ('G', 3.),
-                         ('H', '2016-01-03T06:00:00.000Z')
-                         ]),
-            OrderedDict([('idx', 3), ('A', 4), ('B', 'c'),
-                         ('C', '2016-01-04T00:00:00.000Z'),
-                         ('D', 'P0DT1H3M0S'),
-                         ('E', 'c'), ('F', 'c'), ('G', 4.),
-                         ('H', '2016-01-04T06:00:00.000Z')
-                         ]),
-        ]
+        data = [OrderedDict([('idx', 0),
+                            ('A', 1),
+                            ('B', 'a'),
+                            ('C', '2016-01-01T00:00:00.000Z'),
+                            ('D', 'P0DT1H0M0S')]),
+               OrderedDict([('idx', 1),
+                            ('A', 2),
+                            ('B', 'b'),
+                            ('C', '2016-01-02T00:00:00.000Z'),
+                            ('D', 'P0DT1H1M0S')]),
+               OrderedDict([('idx', 2),
+                            ('A', 3),
+                            ('B', 'c'),
+                            ('C', '2016-01-03T00:00:00.000Z'),
+                            ('D', 'P0DT1H2M0S')]),
+               OrderedDict([('idx', 3),
+                            ('A', 4),
+                            ('B', 'c'),
+                            ('C', '2016-01-04T00:00:00.000Z'),
+                            ('D', 'P0DT1H3M0S')])]
         expected = OrderedDict([('schema', schema), ('data', data)])
         assert result == expected
 
@@ -348,8 +386,9 @@ class TestTableOrient(object):
 
         expected = (
             OrderedDict([('schema', {
-                'fields': [{'name': 'index', 'type': 'number'},
-                           {'name': 'values', 'type': 'integer'}],
+                'fields': [{"name":"index","type":"number"},
+                {"name":"values","type":"integer","summary":
+                {"count":2.0,"mean":1.0,"std":0.0,"min":1.0,"25%":1.0,"50%":1.0,"75%":1.0,"max":1.0}}],
                 'primaryKey': ['index']
             }),
                 ('data', [OrderedDict([('index', 1.0), ('values', 1)]),
@@ -364,8 +403,9 @@ class TestTableOrient(object):
         result = json.loads(result, object_pairs_hook=OrderedDict)
         result['schema'].pop('pandas_version')
 
-        fields = [{'freq': 'Q-JAN', 'name': 'index', 'type': 'datetime'},
-                  {'name': 'values', 'type': 'integer'}]
+        fields = [{"name":"index","type":"datetime","freq":"Q-JAN"},
+        {"name":"values","type":"integer","summary":
+        {"count":2.0,"mean":1.0,"std":0.0,"min":1.0,"25%":1.0,"50%":1.0,"75%":1.0,"max":1.0}}]
 
         schema = {'fields': fields, 'primaryKey': ['index']}
         data = [OrderedDict([('index', '2015-11-01T00:00:00.000Z'),
@@ -383,10 +423,28 @@ class TestTableOrient(object):
 
         expected = (
             OrderedDict([('schema',
-                          {'fields': [{'name': 'index', 'type': 'any',
-                                       'constraints': {'enum': ['a', 'b']},
-                                       'ordered': False},
-                                      {'name': 'values', 'type': 'integer'}],
+                          {'fields': [
+                                        {
+                                            "name": "index",
+                                            "type": "any",
+                                            "constraints": {"enum": ["a", "b"]},
+                                            "ordered": False,
+                                        },
+                                        {
+                                            "name": "values",
+                                            "type": "integer",
+                                            "summary": {
+                                                "count": 2.0,
+                                                "mean": 1.0,
+                                                "std": 0.0,
+                                                "min": 1.0,
+                                                "25%": 1.0,
+                                                "50%": 1.0,
+                                                "75%": 1.0,
+                                                "max": 1.0,
+                                            },
+                                        },
+                                    ],
                            'primaryKey': ['index']}),
                          ('data', [
                              OrderedDict([('index', 'a'),
@@ -403,18 +461,50 @@ class TestTableOrient(object):
         self.df.to_json(orient='table', date_format='iso')
         self.df.to_json(orient='table')
 
-    @pytest.mark.parametrize('kind', [pd.Series, pd.Index])
-    def test_convert_pandas_type_to_json_field_int(self, kind):
+    def test_convert_pandas_type_to_json_field_int_series(self):
         data = [1, 2, 3]
-        result = convert_pandas_type_to_json_field(kind(data, name='name'))
-        expected = {"name": "name", "type": "integer"}
+        result = convert_pandas_type_to_json_field(pd.Series(data, name='name'))
+        expected = {'name': 'name',
+                    'type': 'integer',
+                    'summary': {'count': 3.0,
+                    'mean': 2.0,
+                    'std': 1.0,
+                    'min': 1.0,
+                    '25%': 1.5,
+                    '50%': 2.0,
+                    '75%': 2.5,
+                    'max': 3.0}}
+        assert result == expected
+    
+    def test_convert_pandas_type_to_json_field_int_index(self):
+        data = [1, 2, 3]
+        result = convert_pandas_type_to_json_field(pd.Index(data, name='name'))
+        expected = {'name': 'name',
+                    'type': 'integer'
+                    }
         assert result == expected
 
-    @pytest.mark.parametrize('kind', [pd.Series, pd.Index])
-    def test_convert_pandas_type_to_json_field_float(self, kind):
+    def test_convert_pandas_type_to_json_field_float_series(self):
         data = [1., 2., 3.]
-        result = convert_pandas_type_to_json_field(kind(data, name='name'))
-        expected = {"name": "name", "type": "number"}
+        result = convert_pandas_type_to_json_field(pd.Series(data, name='name'))
+        expected = {'name': 'name',
+                    'type': 'number',
+                    'summary': {'count': 3.0,
+                    'mean': 2.0,
+                    'std': 1.0,
+                    'min': 1.0,
+                    '25%': 1.5,
+                    '50%': 2.0,
+                    '75%': 2.5,
+                    'max': 3.0}}
+        assert result == expected
+
+    def test_convert_pandas_type_to_json_field_float_index(self):
+        data = [1., 2., 3.]
+        result = convert_pandas_type_to_json_field(pd.Index(data, name='name'))
+        expected = {'name': 'name',
+                    'type': 'number'
+                    }
         assert result == expected
 
     @pytest.mark.parametrize('dt_args,extra_exp', [
@@ -427,7 +517,15 @@ class TestTableOrient(object):
         if wrapper is pd.Series:
             data = pd.Series(data, name='values')
         result = convert_pandas_type_to_json_field(data)
-        expected = {"name": "values", "type": 'datetime'}
+        expected = {'name': 'values',
+                    'type': 'datetime',
+                    'tz': 'UTC',
+                    'summary': {'count': 3,
+                    'unique': 3,
+                    'top': pd.Timestamp('1970-01-01 00:00:00.000000003+0000', tz='UTC'),
+                    'freq': 1,
+                    'first': pd.Timestamp('1970-01-01 00:00:00.000000001+0000', tz='UTC'),
+                    'last': pd.Timestamp('1970-01-01 00:00:00.000000003+0000', tz='UTC')}}
         expected.update(extra_exp)
         assert result == expected
 
