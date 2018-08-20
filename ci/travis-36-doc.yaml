@@ -36,7 +36,6 @@ dependencies:
   - sphinx
   - sqlalchemy
   - statsmodels
-  - tzlocal
   - xarray
   - xlrd
   - xlsxwriter
