@@ -1344,10 +1344,6 @@ class TestSeriesAnalytics(TestData):
         exp = Series(s.values.repeat(5), index=s.index.values.repeat(5))
         assert_series_equal(reps, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.repeat(reps=5)
-            assert_series_equal(result, exp)
-
         to_rep = [2, 3, 4]
         reps = s.repeat(to_rep)
         exp = Series(s.values.repeat(to_rep),
