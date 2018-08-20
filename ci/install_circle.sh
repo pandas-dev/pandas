@@ -6,14 +6,7 @@ echo "[home_dir: $home_dir]"
 echo "[ls -ltr]"
 ls -ltr
 
-echo "[Using clean Miniconda install]"
-rm -rf "$MINICONDA_DIR"
-
-# install miniconda
-wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
-bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
-
-export PATH="$MINICONDA_DIR/bin:$PATH"
+apt-get update -y && apt-get install -y build-essential postgresql-client-9.6
 
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
@@ -48,9 +41,17 @@ source $ENVS_FILE
 
 # edit the locale override if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
+
+    apt-get update && apt-get -y install locales locales-all
+
+    export LANG=$LOCALE_OVERRIDE
+    export LC_ALL=$LOCALE_OVERRIDE
+
+    python -c "import locale; locale.setlocale(locale.LC_ALL, \"$LOCALE_OVERRIDE\")" || exit 1;
+
     echo "[Adding locale to the first line of pandas/__init__.py]"
     rm -f pandas/__init__.pyc
-    sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
+    sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, \"$LOCALE_OVERRIDE\")\n"
     sed -i "$sedc" pandas/__init__.py
     echo "[head -4 pandas/__init__.py]"
     head -4 pandas/__init__.py
