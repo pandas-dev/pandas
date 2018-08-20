@@ -45,6 +45,24 @@ PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 
 
 def get_api_items():
+    """
+    Parse api.rst file from the documentation, and extract all the functions,
+    methods, classes, attributes... This should include all pandas public API.
+
+    Yields
+    ------
+    name : str
+        The name of the object (e.g. 'pandas.Series.str.upper).
+    func : function
+        The object itself. In most cases this will be a function or method,
+        but it can also be classes, properties, cython objects...
+    section : str
+        The name of the section in the API page where the object item is
+        located.
+    subsection : str
+        The name of the subsection in the API page where the object item is
+        located.
+    """
     api_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
 
     previous_line = current_section = current_subsection = ''
@@ -177,9 +195,15 @@ class Docstring(object):
 
     @property
     def source_file_name(self):
+        """
+        File name where the object is implemented (e.g. pandas/core/frame.py).
+        """
         try:
             fname = inspect.getsourcefile(self.code_obj)
         except TypeError:
+            # In some cases the object is something complex like a cython
+            # object that can't be easily introspected. An it's better to
+            # return the source code file of the object as None, than crash
             pass
         else:
             if fname:
@@ -188,9 +212,15 @@ class Docstring(object):
 
     @property
     def source_file_def_line(self):
+        """
+        Number of line where the object is defined in its file.
+        """
         try:
             return inspect.getsourcelines(self.code_obj)[-1]
         except (OSError, TypeError):
+            # In some cases the object is something complex like a cython
+            # object that can't be easily introspected. An it's better to
+            # return the line number as None, than crash
             pass
 
     @property

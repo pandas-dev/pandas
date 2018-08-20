@@ -490,25 +490,33 @@ class TestValidator(object):
         return base_path
 
     def test_good_class(self):
-        assert len(validate_one(self._import_path(  # noqa: F821
-            klass='GoodDocStrings'))['errors']) == 0
+        errors = validate_one(self._import_path(  # noqa: F821
+            klass='GoodDocStrings'))['errors']
+        assert isinstance(errors, list)
+        assert not errors
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains'])
     def test_good_functions(self, func):
-        assert len(validate_one(self._import_path(   # noqa: F821
-            klass='GoodDocStrings', func=func))['errors']) == 0
+        errors = validate_one(self._import_path(   # noqa: F821
+            klass='GoodDocStrings', func=func))['errors']
+        assert isinstance(errors, list)
+        assert not errors
 
     def test_bad_class(self):
-        assert len(validate_one(self._import_path(  # noqa: F821
-            klass='BadGenericDocStrings'))['errors']) > 0
+        errors = validate_one(self._import_path(  # noqa: F821
+            klass='BadGenericDocStrings'))['errors']
+        assert isinstance(errors, list)
+        assert errors
 
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_generic_functions(self, func):
-        assert len(validate_one(self._import_path(  # noqa:F821
-            klass='BadGenericDocStrings', func=func))['errors']) > 0
+        errors = validate_one(self._import_path(  # noqa:F821
+            klass='BadGenericDocStrings', func=func))['errors']
+        assert isinstance(errors, list)
+        assert errors
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # Summary tests
@@ -546,6 +554,6 @@ class TestValidator(object):
                      marks=pytest.mark.xfail)
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
-        res = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
+        result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
         for msg in msgs:
-            assert msg in ''.join(res['errors'])
+            assert msg in ' '.join(result['errors'])
