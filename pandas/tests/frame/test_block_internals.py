@@ -12,7 +12,7 @@ import numpy as np
 
 from pandas import (DataFrame, Series, Timestamp, date_range, compat,
                     option_context, Categorical)
-from pandas.core.arrays import IntegerArray, IntervalArray
+from pandas.core.arrays import IntervalArray, integer_array
 from pandas.compat import StringIO
 import pandas as pd
 
@@ -440,9 +440,9 @@ starting,ending,measure
     def test_get_numeric_data_extension_dtype(self):
         # GH 22290
         df = DataFrame({
-            'A': IntegerArray([-10, np.nan, 0, 10, 20, 30], dtype='Int64'),
+            'A': integer_array([-10, np.nan, 0, 10, 20, 30], dtype='Int64'),
             'B': Categorical(list('abcabc')),
-            'C': IntegerArray([0, 1, 2, 3, np.nan, 5], dtype='UInt8'),
+            'C': integer_array([0, 1, 2, 3, np.nan, 5], dtype='UInt8'),
             'D': IntervalArray.from_breaks(range(7))})
         result = df._get_numeric_data()
         expected = df.loc[:, ['A', 'C']]

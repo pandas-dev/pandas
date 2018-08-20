@@ -777,7 +777,7 @@ def test_groupby_mean_included():
     df = pd.DataFrame({
         "A": ['a', 'b', 'b'],
         "B": [1, None, 3],
-        "C": IntegerArray([1, None, 3], dtype='Int64'),
+        "C": integer_array([1, None, 3], dtype='Int64'),
     })
 
     result = df.groupby("A").sum()
@@ -791,7 +791,7 @@ def test_groupby_mean_included():
 
 def test_astype_nansafe():
     # https://github.com/pandas-dev/pandas/pull/22343
-    arr = IntegerArray([np.nan, 1, 2], dtype="Int8")
+    arr = integer_array([np.nan, 1, 2], dtype="Int8")
 
     with tm.assert_raises_regex(
             ValueError, 'cannot convert float NaN to integer'):
