@@ -1337,13 +1337,14 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to a NumPy record array.
 
-        Index will be put in the 'index' field of the record array if
+        Index will be included as the first field of the record array if
         requested.
 
         Parameters
         ----------
         index : bool, default True
-            Include index in resulting record array, stored in 'index' field.
+            Include index in resulting record array, stored in 'index'
+            field or using the index label, if set.
         convert_datetime64 : bool, default None
             .. deprecated:: 0.23.0
 
@@ -1353,8 +1354,8 @@ class DataFrame(NDFrame):
         Returns
         -------
         numpy.recarray
-            NumPy ndarray with the Dataframe labels as attributes and each row
-            of the Dataframe as an entry in the array.
+            NumPy ndarray with the DataFrame labels as fields and each row
+            of the DataFrame as entries.
 
         See Also
         --------
@@ -1376,9 +1377,9 @@ class DataFrame(NDFrame):
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
 
-        If the dataframe index has no label then the recarray attribute name
+        If the DataFrame index has no label then the recarray field name
         is set to 'index'. If the index has a label then this is used as the
-        attribute name:
+        field name:
 
         >>> df.index.rename("I", inplace=True)
         >>> df.to_records()
