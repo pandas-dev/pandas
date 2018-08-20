@@ -76,7 +76,9 @@ class SparseSeries(Series):
         # 3. Implicit reindexing
         # 4. Implicit broadcasting
         # 5. Dict construction
-        if isinstance(data, SingleBlockManager):
+        if data is None:
+            data  =[]
+        elif isinstance(data, SingleBlockManager):
             index = data.index
             data = data.blocks[0].values
         elif isinstance(data, (ABCSeries, ABCSparseSeries)):

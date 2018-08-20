@@ -132,19 +132,19 @@ class TestSparseSeries(SharedWithSparse):
         assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([np.nan, 1, 2, np.nan], fill_value=0)
-        assert arr.dtype == SparseDtype(np.float64)
+        assert arr.dtype == SparseDtype(np.float64, 0)
         assert arr.fill_value == 0
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64, fill_value=np.nan)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == SparseDtype(np.int64, np.nan)
         assert np.isnan(arr.fill_value)
 
         arr = SparseSeries([0, 1, 2, 4], dtype=np.int64)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
         arr = SparseSeries([0, 1, 2, 4], fill_value=0, dtype=np.int64)
-        assert arr.dtype == SparseDtype(np.int64)
+        assert arr.dtype == SparseDtype(np.int64, 0)
         assert arr.fill_value == 0
 
     def test_iteration_and_str(self):
@@ -392,8 +392,12 @@ class TestSparseSeries(SharedWithSparse):
         assert self.ziseries2.shape == (15, )
 
     def test_astype(self):
-        with pytest.raises(ValueError):
-            self.bseries.astype(np.int64)
+        result = self.bseries.astype(np.int64)
+        expected = (self.bseries.to_dense()
+                    .fillna(0)
+                    .astype(np.int64)
+                    .to_sparse(fill_value=0))
+        tm.assert_sp_series_equal(result, expected)
 
     def test_astype_all(self):
         orig = pd.Series(np.array([1, 2, 3]))
@@ -902,19 +906,25 @@ class TestSparseSeries(SharedWithSparse):
         orig = pd.Series([np.nan, 2, np.nan, 4, 0, np.nan, 0])
         sparse = orig.to_sparse()
 
-        # tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse())
-        # tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse())
-        # tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse())
-        # tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse())
-        #
-        # tm.assert_sp_series_equal(sparse.shift(-1), orig.shift(-1).to_sparse())
-        # tm.assert_sp_series_equal(sparse.shift(-2), orig.shift(-2).to_sparse())
-        # tm.assert_sp_series_equal(sparse.shift(-3), orig.shift(-3).to_sparse())
-        # tm.assert_sp_series_equal(sparse.shift(-4), orig.shift(-4).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(0), orig.shift(0).to_sparse(),
+                                  check_kind=False)
+        tm.assert_sp_series_equal(sparse.shift(1), orig.shift(1).to_sparse(),
+                                  check_kind=False)
+        tm.assert_sp_series_equal(sparse.shift(2), orig.shift(2).to_sparse(),
+                                  check_kind=False)
+        tm.assert_sp_series_equal(sparse.shift(3), orig.shift(3).to_sparse(),
+                                  check_kind=False)
+
+        tm.assert_sp_series_equal(sparse.shift(-1), orig.shift(-1).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-2), orig.shift(-2).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-3), orig.shift(-3).to_sparse())
+        tm.assert_sp_series_equal(sparse.shift(-4), orig.shift(-4).to_sparse())
 
         sparse = orig.to_sparse(fill_value=0)
-        tm.assert_sp_series_equal(sparse.shift(0),
-                                  orig.shift(0).to_sparse(fill_value=sparse.fill_value))
+        tm.assert_sp_series_equal(
+            sparse.shift(0),
+            orig.shift(0).to_sparse(fill_value=sparse.fill_value)
+        )
         tm.assert_sp_series_equal(sparse.shift(1),
                                   orig.shift(1).to_sparse(fill_value=0),
                                   check_kind=False)
@@ -953,20 +963,24 @@ class TestSparseSeries(SharedWithSparse):
         # Do we want to astype in shift, for backwards compat?
         # If not, document it.
         tm.assert_sp_series_equal(sparse.shift(1).astype('f8'),
-                                  orig.shift(1).to_sparse())
+                                  orig.shift(1).to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.shift(2).astype('f8'),
-                                  orig.shift(2).to_sparse())
+                                  orig.shift(2).to_sparse(kind='integer'))
         tm.assert_sp_series_equal(sparse.shift(3).astype('f8'),
-                                  orig.shift(3).to_sparse())
+                                  orig.shift(3).to_sparse(kind='integer'))
 
         tm.assert_sp_series_equal(sparse.shift(-1).astype('f8'),
-                                  orig.shift(-1).to_sparse())
+                                  orig.shift(-1).to_sparse(),
+                                  check_kind=False)
         tm.assert_sp_series_equal(sparse.shift(-2).astype('f8'),
-                                  orig.shift(-2).to_sparse())
+                                  orig.shift(-2).to_sparse(),
+                                  check_kind=False)
         tm.assert_sp_series_equal(sparse.shift(-3).astype('f8'),
-                                  orig.shift(-3).to_sparse())
+                                  orig.shift(-3).to_sparse(),
+                                  check_kind=False)
         tm.assert_sp_series_equal(sparse.shift(-4).astype('f8'),
-                                  orig.shift(-4).to_sparse())
+                                  orig.shift(-4).to_sparse(),
+                                  check_kind=False)
 
     @pytest.mark.parametrize("fill_value", [
         0,
@@ -982,13 +996,6 @@ class TestSparseSeries(SharedWithSparse):
 
         result = sparse.shift(periods)
         expected = orig.shift(periods).to_sparse(fill_value=fill_value)
-
-        if pd.isna(fill_value):
-            # Work around pandas casting dense int to float
-            expected.values._sparse_values = expected.sp_values.astype(
-                int, copy=False
-            )
-            expected.values._dtype = SparseDtype(int)
 
         tm.assert_sp_series_equal(result, expected,
                                   check_kind=False,
@@ -1493,7 +1500,7 @@ def test_to_sparse():
     arr = pd.SparseArray([1, 2, None, 3])
     result = pd.Series(arr).to_sparse()
     assert len(result) == 4
-    tm.assert_sp_array_equal(result.values, arr)
+    tm.assert_sp_array_equal(result.values, arr, check_kind=False)
 
 
 def test_constructor_mismatched_raises():

@@ -3,6 +3,7 @@ import numpy as np
 from warnings import catch_warnings
 from pandas.util import testing as tm
 from pandas import SparseDataFrame, SparseSeries
+from pandas.core.sparse.api import SparseDtype
 from distutils.version import LooseVersion
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -44,7 +45,7 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
 
     # Assert frame is as expected
     # what is this test?
-    sdf_obj = sdf.astype(object)
+    sdf_obj = sdf.astype(SparseDtype(object, fill_value))
     tm.assert_sp_frame_equal(sdf_obj, expected)
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
@@ -98,7 +99,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
         fill_value if fill_value is not None else np.nan)
 
     # Assert frame is as expected
-    sdf_obj = sdf.astype(object)
+    sdf_obj = sdf.astype(SparseDtype(object, fill_value))
     tm.assert_sp_frame_equal(sdf_obj, expected)
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 

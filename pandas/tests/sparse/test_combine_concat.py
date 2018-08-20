@@ -170,8 +170,8 @@ class TestSparseSeriesConcat(object):
         # XXX: changed from SparseSeries to Series[sparse]
         exp = pd.Series(
             pd.SparseArray(exp, kind=kind, fill_value=0),
-            index = exp.index,
-            name = exp.name,
+            index=exp.index,
+            name=exp.name,
         )
         tm.assert_series_equal(res, exp)
 

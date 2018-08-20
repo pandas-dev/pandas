@@ -648,6 +648,12 @@ class TestSparseDataFrame(SharedWithSparse):
         pytest.raises(Exception, setattr, self.frame, 'index',
                       self.frame.index[:-1])
 
+    @pytest.mark.xfail(reason="TODO", strict=True)
+    def test_ctor_reindex(self):
+        idx = pd.Index([0, 1, 2, 3])
+        with tm.assert_raises_regex(ValueError, ''):
+            pd.SparseDataFrame({"A": [1, 2]}, index=idx)
+
     def test_append(self):
         a = self.frame[:5]
         b = self.frame[5:]
@@ -681,7 +687,8 @@ class TestSparseDataFrame(SharedWithSparse):
             appended = a.append(b, sort=True)
 
         tm.assert_sp_frame_equal(appended, expected[['A', 'B', 'C', 'D']],
-                                 consolidate_block_indices=True)
+                                 consolidate_block_indices=True,
+                                 check_kind=False)
 
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
@@ -693,15 +700,15 @@ class TestSparseDataFrame(SharedWithSparse):
 
         res = sparse.astype(np.float64)
         exp = pd.SparseDataFrame({'A': SparseArray([1., 2., 3., 4.],
-                                                   fill_value=0.,
+                                                   fill_value=np.nan,
                                                    kind='integer'),
                                   'B': SparseArray([4., 5., 6., 7.],
-                                                   fill_value=0.,
+                                                   fill_value=np.nan,
                                                    kind='integer')},
                                  default_fill_value=np.nan)
         tm.assert_sp_frame_equal(res, exp)
-        assert res['A'].dtype == SparseDtype(np.float64)
-        assert res['B'].dtype == SparseDtype(np.float64)
+        assert res['A'].dtype == SparseDtype(np.float64, np.nan)
+        assert res['B'].dtype == SparseDtype(np.float64, np.nan)
 
         sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],
                                                       dtype=np.int64,
@@ -713,15 +720,15 @@ class TestSparseDataFrame(SharedWithSparse):
         assert sparse['A'].dtype == SparseDtype(np.int64)
         assert sparse['B'].dtype == SparseDtype(np.int64)
 
-        res = sparse.astype(np.float64)
+        res = sparse.astype(SparseDtype(np.float64, 0.0))
         exp = pd.SparseDataFrame({'A': SparseArray([0., 2., 0., 4.],
                                                    fill_value=0.),
                                   'B': SparseArray([0., 5., 0., 7.],
                                                    fill_value=0.)},
                                  default_fill_value=0.)
         tm.assert_sp_frame_equal(res, exp)
-        assert res['A'].dtype == SparseDtype(np.float64)
-        assert res['B'].dtype == SparseDtype(np.float64)
+        assert res['A'].dtype == SparseDtype(np.float64, 0)
+        assert res['B'].dtype == SparseDtype(np.float64, 0)
 
     def test_astype_bool(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([0, 2, 0, 4],

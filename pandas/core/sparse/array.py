@@ -71,10 +71,13 @@ def _sparse_array_op(left, right, op, name):
     rtype = right.dtype.subdtype
 
     if not is_dtype_equal(ltype, rtype):
-        dtype = SparseDtype(find_common_type([ltype, rtype]))
-        left = left.astype(dtype)
-        right = right.astype(dtype)
-        dtype = dtype.subdtype
+        subtype = find_common_type([ltype, rtype])
+        ltype = SparseDtype(subtype, left.fill_value)
+        rtype = SparseDtype(subtype, right.fill_value)
+
+        left = left.astype(ltype)
+        right = right.astype(rtype)
+        dtype = ltype.subdtype
     else:
         dtype = ltype
 
@@ -112,10 +115,11 @@ def _sparse_array_op(left, right, op, name):
             right_sp_values = right.sp_values
 
         sparse_op = getattr(splib, opname)
+
         with np.errstate(all='ignore'):
-            result, index, fill = sparse_op(left_sp_values, left.sp_index,
-                                            left.fill_value, right_sp_values,
-                                            right.sp_index, right.fill_value)
+            result, index, fill = sparse_op(
+                left_sp_values, left.sp_index, left.fill_value,
+                right_sp_values, right.sp_index, right.fill_value)
 
     if result_dtype is None:
         result_dtype = result.dtype
@@ -138,7 +142,9 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
         fill_value = bool(fill_value)
-    return SparseArray(data, sparse_index=sparse_index, fill_value=fill_value,
+    return SparseArray(data,
+                       sparse_index=sparse_index,
+                       fill_value=fill_value,
                        dtype=dtype)
 
 
@@ -455,6 +461,29 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 new_dtype = self.dtype
 
         return self._simple_new(new_values, self._sparse_index, new_dtype)
+
+    def shift(self, periods=1):
+
+        if periods == 0:
+            return self.copy()
+
+        subtype = np.result_type(np.nan, self.dtype.subdtype)
+
+        if subtype != self.dtype.subdtype:
+            # just coerce up front
+            arr = self.astype(SparseDtype(subtype, self.fill_value))
+        else:
+            arr = self
+
+        empty = self._from_sequence([self.dtype.na_value] * abs(periods),
+                                    dtype=arr.dtype)
+        if periods > 0:
+            a = empty
+            b = arr[:-periods]
+        else:
+            a = arr[abs(periods):]
+            b = empty
+        return arr._concat_same_type([a, b])
 
     def unique(self):
         # The EA API currently expects unique to return the same EA.

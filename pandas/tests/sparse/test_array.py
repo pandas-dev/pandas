@@ -406,12 +406,10 @@ class TestSparseArray(object):
         expected = SparseArray([None, None, 0, 2], dtype=np.dtype('float32'))
         tm.assert_sp_array_equal(result, expected)
 
-        # float -> float, different fill
-        # This is strange, since some "fill_na" values are in the spares values.
-        # That probably complicates everything else.
         dtype = SparseDtype("float64", fill_value=0)
         result = arr.astype(dtype)
-        expected = SparseArray._simple_new(np.array([0., 2.], dtype=dtype.subdtype),
+        expected = SparseArray._simple_new(np.array([0., 2.],
+                                                    dtype=dtype.subdtype),
                                            IntIndex(4, [2, 3]),
                                            dtype)
         tm.assert_sp_array_equal(result, expected)
@@ -429,7 +427,6 @@ class TestSparseArray(object):
 
     @pytest.mark.xfail(reason="Different semantics", strict=True)
     def test_astype_all(self, any_real_dtype):
-        # This is why I worry about putting in on the type
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
         # Expected here is `[nan, 2, 3]` since the fill value changes.
@@ -719,7 +716,7 @@ class TestSparseArray(object):
         # fill_value can be nan if there is no missing hole.
         # only fill_value will be changed
         s = SparseArray([0, 0, 0, 0], fill_value=np.nan)
-        assert s.dtype == SparseDtype(np.int64)
+        assert s.dtype == SparseDtype(np.int64, fill_value=np.nan)
         assert np.isnan(s.fill_value)
         res = s.fillna(-1)
         exp = SparseArray([0, 0, 0, 0], fill_value=-1)
