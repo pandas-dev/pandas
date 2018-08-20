@@ -4570,8 +4570,9 @@ dtypes, including extension dtypes such as datetime with tz.
 Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
-* The index is included in the output by default, which can cause problems with non-Pandas consumers that are
-  not expecting that extra column. You can, however, omit indexes. (See below)
+* The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
+  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
+  force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
