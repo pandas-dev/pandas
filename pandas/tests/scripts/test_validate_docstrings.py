@@ -193,50 +193,22 @@ class GoodDocStrings(object):
         """
         pass
 
-    def mode(self, axis=0, numeric_only=False, dropna=True):
+    def mode(self, axis, numeric_only):
         """
-        Get the mode(s) of each element along the axis selected. Adds a row
-        for each mode per label, fills in gaps with nan.
-
-        This test is to ensure that directives don't affect the tests for
-        periods at the end of parameters.
-        Note that there could be multiple values returned for the selected
-        axis (when more than one item share the maximum frequency), which is
-        the reason why a dataframe is returned. If you want to impute missing
-        values with the mode in a dataframe ``df``, you can just do this:
-        ``df.fillna(df.mode().iloc[0])``
+        Ensure sphinx directives don't affect checks for trailing periods.
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns'}, default 0
-            Describe axis.
+        axis : str
+            Sentence ending in period, followed by single directive.
 
             .. versionchanged:: 0.1.2
 
-        numeric_only : boolean, default False
-            Describes numeric_only.
+        numeric_only : boolean
+            Sentence ending in period, followed by multiple directives.
 
             .. versionadded:: 0.1.2
             .. deprecated:: 0.00.0
-
-        dropna : boolean, default True
-            This param tests that the versionadded directive doesn't break the
-            checks for the ending period.
-            Don't consider counts of NaN/NaT.
-
-            .. versionadded:: 0.24.0
-
-        Returns
-        -------
-        modes : DataFrame (sorted)
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
-        >>> df.mode()
-           A
-        0  1
-        1  2
         """
         pass
 
