@@ -10,7 +10,7 @@ cpdef bint tz_compare(object start, object end)
 cpdef object get_timezone(object tz)
 cpdef object maybe_get_tz(object tz)
 
-cpdef get_utcoffset(tzinfo, obj)
+cdef get_utcoffset(tzinfo, obj)
 cdef bint is_fixed_offset(object tz)
 
 cdef object get_dst_info(object tz)
