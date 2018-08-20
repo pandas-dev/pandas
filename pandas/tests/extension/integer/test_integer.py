@@ -770,7 +770,7 @@ def test_groupby_mean_included():
     df = pd.DataFrame({
         "A": ['a', 'b', 'b'],
         "B": [1, None, 3],
-        "C": IntegerArray([1, None, 3], dtype='Int64'),
+        "C": integer_array([1, None, 3], dtype='Int64'),
     })
 
     result = df.groupby("A").sum()
