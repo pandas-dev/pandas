@@ -102,7 +102,7 @@ class _DtypeOpsMixin(object):
 
         By default ExtensionDtypes are assumed to be non-numeric.
         They'll be excluded from operations that exclude non-numeric
-        columns, like groupby reductions, plotting, etc.
+        columns, like (groupby) reductions, plotting, etc.
         """
         return False
 
