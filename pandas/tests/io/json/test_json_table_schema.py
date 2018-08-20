@@ -17,7 +17,6 @@ from pandas.io.json.table_schema import (
     set_default_names)
 import pandas.util.testing as tm
 
-
 class TestBuildSchema(object):
 
     def setup_method(self, method):
@@ -25,7 +24,7 @@ class TestBuildSchema(object):
             {'A': [1, 2, 3, 4],
              'B': ['a', 'b', 'c', 'c'],
              'C': pd.date_range('2016-01-01', freq='d', periods=4),
-             'D': pd.timedelta_range('1H', periods=4, freq='T'),
+             'D': pd.timedelta_range('1H', periods=4, freq='T')
              },
             index=pd.Index(range(4), name='idx'))
 
@@ -33,12 +32,38 @@ class TestBuildSchema(object):
         result = build_table_schema(self.df, version=False)
         expected = {
             'fields': [{'name': 'idx', 'type': 'integer'},
-                       {'name': 'A', 'type': 'integer'},
-                       {'name': 'B', 'type': 'string'},
-                       {'name': 'C', 'type': 'datetime'},
-                       {'name': 'D', 'type': 'duration'},
-                       ],
-            'primaryKey': ['idx']
+        {'name': 'A',
+        'summary': {'count': 4.0,
+            'mean': 2.5,
+            'std': 1.2909944487358056,
+            'min': 1.0,
+            '25%': 1.75,
+            '50%': 2.5,
+            '75%': 3.25,
+            'max': 4.0},
+            'type': 'integer'},
+        {'name': 'B',
+        'summary': {'count': 4, 'unique': 3, 'top': 'c', 'freq': 2},
+        'type': 'string'},
+        {'name': 'C',
+        'summary': {'count': 4,
+            'unique': 4,
+            'top': pd.Timestamp('2016-01-03 00:00:00'),
+            'freq': 1,
+            'first': pd.Timestamp('2016-01-01 00:00:00'),
+            'last': pd.Timestamp('2016-01-04 00:00:00')},
+            'type': 'datetime'},
+        {'name': 'D',
+        'summary': {'count': 4,
+            'mean': pd.Timedelta('0 days 01:01:30'),
+            'std': pd.Timedelta('0 days 00:01:17.459666924'),
+            'min': pd.Timedelta('0 days 01:00:00'),
+            '25%': pd.Timedelta('0 days 01:00:45'),
+            '50%': pd.Timedelta('0 days 01:01:30'),
+            '75%': pd.Timedelta('0 days 01:02:15'),
+            'max': pd.Timedelta('0 days 01:03:00')},
+            'type': 'duration'}
+        ],'primaryKey': ['idx']
         }
         assert result == expected
         result = build_table_schema(self.df)
@@ -48,8 +73,17 @@ class TestBuildSchema(object):
         s = pd.Series([1, 2, 3], name='foo')
         result = build_table_schema(s, version=False)
         expected = {'fields': [{'name': 'index', 'type': 'integer'},
-                               {'name': 'foo', 'type': 'integer'}],
-                    'primaryKey': ['index']}
+        {'name': 'foo',
+        'type': 'integer',
+        'summary': {'count': 3.0,
+            'mean': 2.0,
+            'std': 1.0,
+            'min': 1.0,
+            '25%': 1.5,
+            '50%': 2.0,
+            '75%': 2.5,
+            'max': 3.0}}],
+        'primaryKey': ['index']}
         assert result == expected
         result = build_table_schema(s)
         assert 'pandas_version' in result
@@ -57,8 +91,17 @@ class TestBuildSchema(object):
     def test_series_unnamed(self):
         result = build_table_schema(pd.Series([1, 2, 3]), version=False)
         expected = {'fields': [{'name': 'index', 'type': 'integer'},
-                               {'name': 'values', 'type': 'integer'}],
-                    'primaryKey': ['index']}
+        {'name': 'values',
+        'type': 'integer',
+        'summary': {'count': 3.0,
+            'mean': 2.0,
+            'std': 1.0,
+            'min': 1.0,
+            '25%': 1.5,
+            '50%': 2.0,
+            '75%': 2.5,
+            'max': 3.0}}],
+        'primaryKey': ['index']}
         assert result == expected
 
     def test_multiindex(self):
@@ -67,16 +110,40 @@ class TestBuildSchema(object):
         df.index = idx
 
         result = build_table_schema(df, version=False)
-        expected = {
-            'fields': [{'name': 'level_0', 'type': 'string'},
-                       {'name': 'level_1', 'type': 'integer'},
-                       {'name': 'A', 'type': 'integer'},
-                       {'name': 'B', 'type': 'string'},
-                       {'name': 'C', 'type': 'datetime'},
-                       {'name': 'D', 'type': 'duration'},
-                       ],
-            'primaryKey': ['level_0', 'level_1']
-        }
+        expected = {'fields': [{'name': 'level_0', 'type': 'string'},
+        {'name': 'level_1', 'type': 'integer'},
+        {'name': 'A',
+        'type': 'integer',
+        'summary': {'count': 4.0,
+            'mean': 2.5,
+            'std': 1.2909944487358056,
+            'min': 1.0,
+            '25%': 1.75,
+            '50%': 2.5,
+            '75%': 3.25,
+            'max': 4.0}},
+        {'name': 'B',
+        'type': 'string',
+        'summary': {'count': 4, 'unique': 3, 'top': 'c', 'freq': 2}},
+        {'name': 'C',
+        'type': 'datetime',
+        'summary': {'count': 4,
+            'unique': 4,
+            'top': pd.Timestamp('2016-01-03 00:00:00'),
+            'freq': 1,
+            'first': pd.Timestamp('2016-01-01 00:00:00'),
+            'last': pd.Timestamp('2016-01-04 00:00:00')}},
+        {'name': 'D',
+        'type': 'duration',
+        'summary': {'count': 4,
+            'mean': pd.Timedelta('0 days 01:01:30'),
+            'std': pd.Timedelta('0 days 00:01:17.459666924'),
+            'min': pd.Timedelta('0 days 01:00:00'),
+            '25%': pd.Timedelta('0 days 01:00:45'),
+            '50%': pd.Timedelta('0 days 01:01:30'),
+            '75%': pd.Timedelta('0 days 01:02:15'),
+            'max': pd.Timedelta('0 days 01:03:00')}}],
+        'primaryKey': ['level_0', 'level_1']}
         assert result == expected
 
         df.index.names = ['idx0', None]
