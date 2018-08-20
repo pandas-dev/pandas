@@ -766,6 +766,22 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_mean_included():
+    df = pd.DataFrame({
+        "A": ['a', 'b', 'b'],
+        "B": [1, None, 3],
+        "C": IntegerArray([1, None, 3], dtype='Int64'),
+    })
+
+    result = df.groupby("A").sum()
+    # TODO(#22346): preserve Int64 dtype
+    expected = pd.DataFrame({
+        "B": np.array([1.0, 3.0]),
+        "C": np.array([1, 3], dtype="int64")
+    }, index=pd.Index(['a', 'b'], name='A'))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_astype_nansafe():
     # https://github.com/pandas-dev/pandas/pull/22343
     arr = IntegerArray([np.nan, 1, 2], dtype="Int8")

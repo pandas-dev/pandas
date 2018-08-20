@@ -47,6 +47,10 @@ class _IntegerDtype(ExtensionDtype):
     def is_unsigned_integer(self):
         return self.kind == 'u'
 
+    @property
+    def _is_numeric(self):
+        return True
+
     @cache_readonly
     def numpy_dtype(self):
         """ Return an instance of our numpy dtype """
