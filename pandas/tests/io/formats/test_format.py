@@ -1269,19 +1269,40 @@ class TestDataFrameFormatting(object):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
-        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
-        df_s = df.to_string(index=False)
-        expected = " x  y\n 1  4\n 2  5\n 3  6"
+        dfs = [
 
-        assert df_s == expected
+            # ints
+            DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]}),
+            DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]}),
+            DataFrame({'x': [11, 22, -33], 'y': [4, 5, 6]}),
+            DataFrame({'x': [11, 22, -33], 'y': [4, 5, -6]}),
+            DataFrame({'x': [11, 22, -33], 'y': [44, 55, -66]}),
 
-        df = DataFrame({'x': [1, 2, -3], 'y': [4, 5, -6]})
+            # floats
+            DataFrame({'x': [0.1, 0.2, -0.3], 'y': [4, 5, 6]}),
+            DataFrame({'x': [0.1, 0.2, -0.3], 'y': [0.4, 0.5, 0.6]}),
+            DataFrame({'x': [0.1, 0.2, -0.3], 'y': [0.4, 0.5, -0.6]}),
+        ]
 
-        df_s = df.to_string(index=False)
-        expected = " x  y\n 1  4\n 2  5\n-3 -6"
+        exs = [
 
-        assert df_s == expected
+            # ints
+            " x  y\n 1  4\n 2  5\n 3  6",
+            "  x  y\n 11  4\n 22  5\n 33  6",
+            "  x  y\n 11  4\n 22  5\n-33  6",
+            "  x  y\n 11  4\n 22  5\n-33 -6",
+            "  x   y\n 11  44\n 22  55\n-33 -66",
+
+            # floats
+            "   x  y\n 0.1  4\n 0.2  5\n-0.3  6",
+            "   x    y\n 0.1  0.4\n 0.2  0.5\n-0.3  0.6",
+            "   x    y\n 0.1  0.4\n 0.2  0.5\n-0.3 -0.6",
+        ]
+
+        for df, expected in zip(dfs, exs):
+            df_s = df.to_string(index=False)
+            assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
@@ -1291,10 +1312,17 @@ class TestDataFrameFormatting(object):
 
         assert df_s == expected
 
-        df = DataFrame({'x': [1, 2, -3], 'y': [4, 5, -6]})
+        df = DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = " x  \\\n 1   \n 2   \n-3   \n\n y  \n 4  \n 5  \n-6  "
+        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, -33], 'y': [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
