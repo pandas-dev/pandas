@@ -61,6 +61,11 @@ class SparseDtype(ExtensionDtype):
         if isinstance(other, type(self)):
             subtype = self.subtype == other.subtype
             if self._is_na_fill_value:
+                # this case is complicated by two things:
+                # SparseDtype(float, float(nan)) == SparseDtype(float, np.nan)
+                # SparseDtype(float, np.nan)     != SparseDtype(float, pd.NaT)
+                # i.e. we want to treat any floating-point NaN as equal, but
+                # not a floating-point NaN and a datetime NaT.
                 fill_value = (
                     other._is_na_fill_value and
                     isinstance(self.fill_value, type(other.fill_value)) or
