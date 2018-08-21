@@ -19,33 +19,44 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # 1-d template
 #----------------------------------------------------------------------
 
-{{py:
-
-# name, c_type, dtype, can_hold_na, nogil
-dtypes = [('float64', 'float64_t', 'np.float64', True, True),
-          ('float32', 'float32_t', 'np.float32', True, True),
-          ('object', 'object', 'object', True, False),
-          ('int32', 'int32_t', 'np.int32', False, True),
-          ('int64', 'int64_t', 'np.int64', False, True),
-          ('uint64', 'uint64_t', 'np.uint64', False, True),
-          ('bool', 'uint8_t', 'np.bool', False, True)]
-
-def get_dispatch(dtypes):
-
-    for name, c_type, dtype, can_hold_na, nogil in dtypes:
-
-        nogil_str = 'with nogil:' if nogil else ''
-        tab = '    ' if nogil else ''
-        yield name, c_type, dtype, can_hold_na, nogil_str, tab
-}}
-
-{{for name, c_type, dtype, can_hold_na, nogil_str, tab
-      in get_dispatch(dtypes)}}
+ctypedef fused algos_t:
+    float64_t
+    float32_t
+    object
+    int32_t
+    int64_t
+    uint64_t
+    uint8_t
 
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
+def arrmap(ndarray[algos_t] index, object func):
+    cdef:
+        Py_ssize_t length = index.shape[0]
+        Py_ssize_t i = 0
+        ndarray[object] result = np.empty(length, dtype=np.object_)
+
+    from pandas._libs.lib import maybe_convert_objects
+
+    for i in range(length):
+        result[i] = func(index[i])
+
+    return maybe_convert_objects(result)
+
+
+arrmap_float64 = arrmap["float64_t"]
+arrmap_float32 = arrmap["float32_t"]
+arrmap_object = arrmap["object"]
+arrmap_int32 = arrmap["int32_t"]
+arrmap_int64 = arrmap["int64_t"]
+arrmap_uint64 = arrmap["uint64_t"]
+arrmap_bool = arrmap["uint8_t"]
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef map_indices(ndarray[algos_t] index):
     """
     Produce a dict mapping the values of the input array to their respective
     locations.
@@ -55,8 +66,9 @@ cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
 
     Better to do this with Cython because of the enormous speed boost.
     """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
+    cdef:
+        Py_ssize_t i, length
+        dict result = {}
 
     length = len(index)
 
@@ -66,13 +78,22 @@ cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
     return result
 
 
+map_indices_float64 = map_indices["float64_t"]
+map_indices_float32 = map_indices["float32_t"]
+map_indices_object = map_indices["object"]
+map_indices_int32 = map_indices["int32_t"]
+map_indices_int64 = map_indices["int64_t"]
+map_indices_uint64 = map_indices["uint64_t"]
+map_indices_bool = map_indices["uint8_t"]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new, limit=None):
+def pad(ndarray[algos_t] old, ndarray[algos_t] new, limit=None):
     cdef:
         Py_ssize_t i, j, nleft, nright
         ndarray[int64_t, ndim=1] indexer
-        {{c_type}} cur, next
+        algos_t cur, next
         int lim, fill_count = 0
 
     nleft = len(old)
@@ -129,20 +150,28 @@ def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new, limit=None):
 
     return indexer
 
+pad_float64 = pad["float64_t"]
+pad_float32 = pad["float32_t"]
+pad_object = pad["object"]
+pad_int32 = pad["int32_t"]
+pad_int64 = pad["int64_t"]
+pad_uint64 = pad["uint64_t"]
+pad_bool = pad["uint8_t"]
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
-                         ndarray[uint8_t, cast=True] mask,
-                         limit=None):
+def pad_inplace(ndarray[algos_t] values,
+                ndarray[uint8_t, cast=True] mask,
+                limit=None):
     cdef:
-        Py_ssize_t i, N
-        {{c_type}} val
-        int lim, fill_count = 0
+        cdef Py_ssize_t i, N
+        cdef algos_t val
+        cdef int lim, fill_count = 0
 
     N = len(values)
 
-    # GH 2778
+    # GH#2778
     if N == 0:
         return
 
@@ -167,19 +196,28 @@ def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
             val = values[i]
 
 
+pad_inplace_float64 = pad_inplace["float64_t"]
+pad_inplace_float32 = pad_inplace["float32_t"]
+pad_inplace_object = pad_inplace["object"]
+pad_inplace_int32 = pad_inplace["int32_t"]
+pad_inplace_int64 = pad_inplace["int64_t"]
+pad_inplace_uint64 = pad_inplace["uint64_t"]
+pad_inplace_bool = pad_inplace["uint8_t"]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
-                            ndarray[uint8_t, ndim=2] mask,
-                            limit=None):
+def pad_2d_inplace(ndarray[algos_t, ndim=2] values,
+                   ndarray[uint8_t, ndim=2] mask,
+                   limit=None):
     cdef:
         Py_ssize_t i, j, N, K
-        {{c_type}} val
+        algos_t val
         int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
-    # GH 2778
+    # GH#2778
     if N == 0:
         return
 
@@ -204,6 +242,16 @@ def pad_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
+
+pad_2d_inplace_float64 = pad_2d_inplace["float64_t"]
+pad_2d_inplace_float32 = pad_2d_inplace["float32_t"]
+pad_2d_inplace_object = pad_2d_inplace["object"]
+pad_2d_inplace_int32 = pad_2d_inplace["int32_t"]
+pad_2d_inplace_int64 = pad_2d_inplace["int64_t"]
+pad_2d_inplace_uint64 = pad_2d_inplace["uint64_t"]
+pad_2d_inplace_bool = pad_2d_inplace["uint8_t"]
+
 
 """
 Backfilling logic for generating fill vector
@@ -233,13 +281,12 @@ D
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
-                      limit=None):
+def backfill(ndarray[algos_t] old, ndarray[algos_t] new,limit=None):
     cdef:
-        Py_ssize_t i, j, nleft, nright
-        ndarray[int64_t, ndim=1] indexer
-        {{c_type}} cur, prev
-        int lim, fill_count = 0
+        cdef Py_ssize_t i, j, nleft, nright
+        cdef ndarray[int64_t, ndim=1] indexer
+        cdef algos_t cur, prev
+        cdef int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -297,19 +344,28 @@ def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
     return indexer
 
 
+backfill_float64 = backfill["float64_t"]
+backfill_float32 = backfill["float32_t"]
+backfill_object = backfill["object"]
+backfill_int32 = backfill["int32_t"]
+backfill_int64 = backfill["int64_t"]
+backfill_uint64 = backfill["uint64_t"]
+backfill_bool = backfill["uint8_t"]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
-                              ndarray[uint8_t, cast=True] mask,
-                              limit=None):
+def backfill_inplace(ndarray[algos_t] values,
+                     ndarray[uint8_t, cast=True] mask,
+                     limit=None):
     cdef:
-        Py_ssize_t i, N
-        {{c_type}} val
-        int lim, fill_count = 0
+        cdef Py_ssize_t i, N
+        cdef algos_t val
+        cdef int lim, fill_count = 0
 
     N = len(values)
 
-    # GH 2778
+    # GH#2778
     if N == 0:
         return
 
@@ -334,19 +390,28 @@ def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
             val = values[i]
 
 
+backfill_inplace_float64 = backfill_inplace["float64_t"]
+backfill_inplace_float32 = backfill_inplace["float32_t"]
+backfill_inplace_object = backfill_inplace["object"]
+backfill_inplace_int32 = backfill_inplace["int32_t"]
+backfill_inplace_int64 = backfill_inplace["int64_t"]
+backfill_inplace_uint64 = backfill_inplace["uint64_t"]
+backfill_inplace_bool = backfill_inplace["uint8_t"]
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def backfill_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
-                                 ndarray[uint8_t, ndim=2] mask,
-                                 limit=None):
+def backfill_2d_inplace(ndarray[algos_t, ndim=2] values,
+                        ndarray[uint8_t, ndim=2] mask,
+                        limit=None):
     cdef:
         Py_ssize_t i, j, N, K
-        {{c_type}} val
+        algos_t val
         int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
-    # GH 2778
+    # GH#2778
     if N == 0:
         return
 
@@ -371,6 +436,39 @@ def backfill_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
             else:
                 fill_count = 0
                 val = values[j, i]
+
+
+backfill_2d_inplace_float64 = backfill_2d_inplace["float64_t"]
+backfill_2d_inplace_float32 = backfill_2d_inplace["float32_t"]
+backfill_2d_inplace_object = backfill_2d_inplace["object"]
+backfill_2d_inplace_int32 = backfill_2d_inplace["int32_t"]
+backfill_2d_inplace_int64 = backfill_2d_inplace["int64_t"]
+backfill_2d_inplace_uint64 = backfill_2d_inplace["uint64_t"]
+backfill_2d_inplace_bool = backfill_2d_inplace["uint8_t"]
+
+
+{{py:
+
+# name, c_type, dtype, can_hold_na, nogil
+dtypes = [('float64', 'float64_t', 'np.float64', True, True),
+          ('float32', 'float32_t', 'np.float32', True, True),
+          ('object', 'object', 'object', True, False),
+          ('int32', 'int32_t', 'np.int32', False, True),
+          ('int64', 'int64_t', 'np.int64', False, True),
+          ('uint64', 'uint64_t', 'np.uint64', False, True),
+          ('bool', 'uint8_t', 'np.bool', False, True)]
+
+def get_dispatch(dtypes):
+
+    for name, c_type, dtype, can_hold_na, nogil in dtypes:
+
+        nogil_str = 'with nogil:' if nogil else ''
+        tab = '    ' if nogil else ''
+        yield name, c_type, dtype, can_hold_na, nogil_str, tab
+}}
+
+{{for name, c_type, dtype, can_hold_na, nogil_str, tab
+      in get_dispatch(dtypes)}}
 
 
 @cython.boundscheck(False)
@@ -428,22 +526,6 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
     {{tab}}    prev = cur
     return is_monotonic_inc, is_monotonic_dec, \
            is_unique and (is_monotonic_inc or is_monotonic_dec)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def arrmap_{{name}}(ndarray[{{c_type}}] index, object func):
-    cdef:
-        Py_ssize_t length = index.shape[0]
-        Py_ssize_t i = 0
-        ndarray[object] result = np.empty(length, dtype=np.object_)
-
-    from pandas._libs.lib import maybe_convert_objects
-
-    for i in range(length):
-        result[i] = func(index[i])
-
-    return maybe_convert_objects(result)
 
 {{endfor}}
 

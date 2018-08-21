@@ -8,34 +8,28 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # reshape
 # ----------------------------------------------------------------------
 
-{{py:
-
-# name, c_type
-dtypes = [('uint8', 'uint8_t'),
-          ('uint16', 'uint16_t'),
-          ('uint32', 'uint32_t'),
-          ('uint64', 'uint64_t'),
-          ('int8', 'int8_t'),
-          ('int16', 'int16_t'),
-          ('int32', 'int32_t'),
-          ('int64', 'int64_t'),
-          ('float32', 'float32_t'),
-          ('float64', 'float64_t'),
-          ('object', 'object')]
-}}
-
-{{for dtype, c_type in dtypes}}
-
+ctypedef fused reshape_t:
+    uint8_t
+    uint16_t
+    uint32_t
+    uint64_t
+    int8_t
+    int16_t
+    int32_t
+    int64_t
+    float32_t
+    float64_t
+    object
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def unstack_{{dtype}}(ndarray[{{c_type}}, ndim=2] values,
-                      ndarray[uint8_t, ndim=1] mask,
-                      Py_ssize_t stride,
-                      Py_ssize_t length,
-                      Py_ssize_t width,
-                      ndarray[{{c_type}}, ndim=2] new_values,
-                      ndarray[uint8_t, ndim=2] new_mask):
+def unstack(ndarray[reshape_t, ndim=2] values,
+            ndarray[uint8_t, ndim=1] mask,
+            Py_ssize_t stride,
+            Py_ssize_t length,
+            Py_ssize_t width,
+            ndarray[reshape_t, ndim=2] new_values,
+            ndarray[uint8_t, ndim=2] new_mask):
     """
     transform long sorted_values to wide new_values
 
@@ -50,23 +44,33 @@ def unstack_{{dtype}}(ndarray[{{c_type}}, ndim=2] values,
         result array
     new_mask : boolean ndarray
         result mask
-
     """
-
     cdef:
         Py_ssize_t i, j, w, nulls, s, offset
 
-    {{if dtype == 'object'}}
-    if True:
-    {{else}}
-    with nogil:
-    {{endif}}
+    if reshape_t is not object:
+        with nogil:
+            for i in range(stride):
+                nulls = 0
 
+                for j in range(length):
+                    for w in range(width):
+
+                        offset = j * width + w
+
+                        if mask[offset]:
+                            s = i * width + w
+                            new_values[j, s] = values[offset - nulls, i]
+                            new_mask[j, s] = 1
+                        else:
+                            nulls += 1
+
+    else:
+        # identical to above version, but "with nogil" is not available
         for i in range(stride):
-
             nulls = 0
-            for j in range(length):
 
+            for j in range(length):
                 for w in range(width):
 
                     offset = j * width + w
@@ -78,4 +82,15 @@ def unstack_{{dtype}}(ndarray[{{c_type}}, ndim=2] values,
                     else:
                         nulls += 1
 
-{{endfor}}
+
+unstack_uint8 = unstack["uint8_t"]
+unstack_uint16 = unstack["uint16_t"]
+unstack_uint32 = unstack["uint32_t"]
+unstack_uint64 = unstack["uint64_t"]
+unstack_int8 = unstack["int8_t"]
+unstack_int16 = unstack["int16_t"]
+unstack_int32 = unstack["int32_t"]
+unstack_int64 = unstack["int64_t"]
+unstack_float32 = unstack["float32_t"]
+unstack_float64 = unstack["float64_t"]
+unstack_object = unstack["object"]
