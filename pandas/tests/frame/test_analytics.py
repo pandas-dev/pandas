@@ -130,6 +130,14 @@ class TestDataFrameAnalytics(TestData):
             assert result.index is not result.columns
             assert result.index.equals(result.columns)
 
+    def test_corr_invalid_method(self):
+        # GH PR #22298
+        df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        msg = ("method must be either 'pearson', 'spearman', "
+               "or 'kendall'")
+        with tm.assert_raises_regex(ValueError, msg):
+            df.corr(method="____")
+
     def test_cov(self):
         # min_periods no NAs (corner case)
         expected = self.frame.cov()

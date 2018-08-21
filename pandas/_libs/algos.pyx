@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -45,7 +45,7 @@ tiebreakers = {
 }
 
 
-cdef inline are_diff(object left, object right):
+cdef inline bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:
