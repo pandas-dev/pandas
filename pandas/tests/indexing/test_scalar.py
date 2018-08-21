@@ -170,3 +170,36 @@ class TestScalar(Base):
 
         result = df.at[0, 'date']
         assert result == expected
+
+    def test_mixed_index_at_iat_loc_iloc_series(self):
+        # GH 19860
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        for el, item in s.iteritems():
+            assert s.at[el] == s.loc[el] == item
+        for i in range(len(s)):
+            assert s.iat[i] == s.iloc[i] == i + 1
+
+        with pytest.raises(KeyError):
+            s.at[4]
+        with pytest.raises(KeyError):
+            s.loc[4]
+
+
+    def test_mixed_index_at_iat_loc_iloc_dataframe(self):
+        # GH 19860
+        df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]],
+                          columns=['a', 'b', 'c', 1, 2])
+        for rowIdx, row in df.iterrows():
+            for el, item in row.iteritems():
+                assert df.at[rowIdx, el] == df.loc[rowIdx, el] == item
+
+        for row in range(2):
+            for i in range(5):
+                assert df.iat[row, i] == df.iloc[row, i] == row * 5 + i
+
+        with pytest.raises(KeyError):
+            df.at[0, 3]
+        with pytest.raises(KeyError):
+            df.loc[0, 3]
+
+
