@@ -32,7 +32,6 @@ from pandas.core.dtypes.common import (
     is_object_dtype, is_timedelta64_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
     is_bool_dtype,
-    is_sparse,
     is_list_like,
     is_scalar,
     is_extension_array_dtype,

@@ -17,7 +17,7 @@ from pandas.errors import PerformanceWarning
 from pandas.compat.numpy import function as nv
 
 from pandas.core.arrays.base import ExtensionArray, ExtensionOpsMixin
-from pandas.core.common import is_bool_indexer
+import pandas.core.common as com
 from pandas.core.dtypes.generic import (
     ABCSparseSeries, ABCSeries, ABCIndexClass
 )
@@ -576,7 +576,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
             if hasattr(key, '__len__') and len(self) != len(key):
                 return self.take(key)
-            elif is_bool_indexer(key) and len(self) == len(key):
+            elif com.is_bool_indexer(key) and len(self) == len(key):
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
             else:
                 # TODO: this densifies!
