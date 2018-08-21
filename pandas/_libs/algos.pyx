@@ -45,7 +45,7 @@ tiebreakers = {
 }
 
 
-cdef inline are_diff(object left, object right):
+cdef inline bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:

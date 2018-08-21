@@ -5,7 +5,7 @@ import pytest
 
 from pandas.tests.extension import base
 
-from pandas.core.arrays import IntegerArray
+from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
     UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
@@ -27,12 +27,12 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return IntegerArray(make_data(), dtype=dtype)
+    return integer_array(make_data(), dtype=dtype)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return IntegerArray([np.nan, 1], dtype=dtype)
+    return integer_array([np.nan, 1], dtype=dtype)
 
 
 @pytest.fixture
@@ -45,12 +45,12 @@ def data_repeated(data):
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return IntegerArray([1, 2, 0], dtype=dtype)
+    return integer_array([1, 2, 0], dtype=dtype)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return IntegerArray([1, np.nan, 0], dtype=dtype)
+    return integer_array([1, np.nan, 0], dtype=dtype)
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ def data_for_grouping(dtype):
     a = 0
     c = 2
     na = np.nan
-    return IntegerArray([b, b, na, na, a, a, b, c], dtype=dtype)
+    return integer_array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
 class BaseInteger(object):
