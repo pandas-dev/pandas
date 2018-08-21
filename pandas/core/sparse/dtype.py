@@ -37,13 +37,16 @@ class SparseDtype(ExtensionDtype):
     def __init__(self, dtype=np.float64, fill_value=None):
         # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
         from pandas.core.dtypes.missing import na_value_for_dtype
+        from pandas.core.dtypes.common import pandas_dtype, is_string_dtype
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
                 fill_value = dtype.fill_value
             dtype = dtype.subtype
-        else:
-            dtype = np.dtype(dtype)
+
+        dtype = pandas_dtype(dtype)
+        if is_string_dtype(dtype):
+            dtype = np.dtype('object')
 
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
@@ -110,14 +113,15 @@ class SparseDtype(ExtensionDtype):
 
     @classmethod
     def construct_from_string(cls, string):
+        msg = "Could not construct SparseDtype from '{}'".format(string)
         if string.startswith("Sparse"):
             sub_type = cls._parse_subtype(string)
             try:
                 return SparseDtype(sub_type)
             except Exception:
-                raise TypeError
+                raise TypeError(msg)
         else:
-            raise TypeError
+            raise TypeError(msg)
 
     @staticmethod
     def _parse_subtype(dtype):

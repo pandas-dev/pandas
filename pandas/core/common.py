@@ -100,9 +100,9 @@ values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    # TODO: This is currently broken for ExtensionArrays.
+    # TODO(https://github.com/pandas-dev/pandas/issues/22326)
     # We currently special case SparseArray, but that should *maybe* be
-    # just ExtensionArray.
+    # ExtensionArray, for other EAs that can hold booleans (Categorical).
     from pandas.core.sparse.api import SparseArray
 
     if isinstance(key, (ABCSeries, np.ndarray, ABCIndex, SparseArray)):
