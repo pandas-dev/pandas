@@ -1272,7 +1272,14 @@ class TestDataFrameFormatting(object):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(index=False)
-        expected = "x  y\n1  4\n2  5\n3  6"
+        expected = " x  y\n 1  4\n 2  5\n 3  6"
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [1, 2, -3], 'y': [4, 5, -6]})
+
+        df_s = df.to_string(index=False)
+        expected = " x  y\n 1  4\n 2  5\n-3 -6"
 
         assert df_s == expected
 
@@ -1280,7 +1287,14 @@ class TestDataFrameFormatting(object):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [1, 2, -3], 'y': [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = " x  \\\n 1   \n 2   \n-3   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
