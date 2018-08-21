@@ -1233,6 +1233,16 @@ class BarPlot(MPLPlot):
     def _start_base(self):
         return self.bottom
 
+    def _get_colors(self, num_colors=None, color_kwds='color'):
+        color = self.kwds.get(color_kwds)
+        if color is not None:
+            return color
+        else :
+            num_colors = self.nseries
+            return _get_standard_colors(num_colors=num_colors,
+                                        colormap=self.colormap,
+                                        color=self.kwds.get(color_kwds))
+
     def _make_plot(self):
         import matplotlib as mpl
 

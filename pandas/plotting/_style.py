@@ -91,7 +91,9 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             # mpl will raise error any of them is invalid
             pass
 
-    if len(colors) != num_colors:
+    if len(colors) > num_colors:
+        colors = colors[:num_colors]
+    elif len(colors) < num_colors:
         try:
             multiple = num_colors // len(colors) - 1
         except ZeroDivisionError:

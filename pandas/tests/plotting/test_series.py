@@ -21,6 +21,7 @@ import pandas.plotting as plotting
 from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
+from pandas.plotting._style import _get_standard_colors
 
 
 @td.skip_if_no_mpl
@@ -267,6 +268,34 @@ class TestSeriesPlots(TestPlotBase):
                     (0., 0., 1., 1.),
                     (1., 0., 0., 1.)]
         assert result == expected
+
+    def test_bar_user_colors_limited(self):
+        s = Series([1, 2, 3, 4])
+        ax = s.plot.bar(color=['red', 'blue'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.),
+                    (0., 0., 1., 1.)]
+        assert result == expected
+
+    def test_bar_user_colors_more_limited(self):
+        s = Series([1, 2, 3, 4, 5, 6])
+        ax = s.plot.bar(color=['red', 'blue'])
+        result = [p.get_facecolor() for p in ax.patches]
+        expected = [(1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.),
+                    (0., 0., 1., 1.),
+                    (1., 0., 0., 1.),
+                    (0., 0., 1., 1.)]
+        assert result == expected
+
+    @pytest.mark.parametrize("num_colors", range(0,15))
+    def test_standard_color(self, num_colors):
+        colors = _get_standard_colors(num_colors=num_colors)
+
+        assert len(colors) == num_colors
 
     def test_rotation(self):
         df = DataFrame(randn(5, 5))
