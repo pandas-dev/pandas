@@ -1917,12 +1917,6 @@ class NDFrame(PandasObject, SelectionMixin):
     ...                   columns=['col 1', 'col 2'])
     >>> df1.to_excel("output.xlsx")
 
-    To set the library that used to write the Excel file,
-    you can pass the `engine` keyword (the default engine is
-    automatically chosen depending on the file extension):
-
-    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
-
     To specify the sheet name:
 
     >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
@@ -1933,6 +1927,12 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> with pd.ExcelWriter('output.xlsx') as writer:
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+    To set the library that is used to write the Excel file,
+    you can pass the `engine` keyword (the default engine is
+    automatically chosen depending on the file extension):
+
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
 
     """
 
