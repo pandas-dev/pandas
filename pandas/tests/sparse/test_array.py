@@ -142,7 +142,7 @@ class TestSparseArray(object):
         (False, SparseDtype(bool, False)),
         (0.0, SparseDtype('float64', 0)),
         (1, SparseDtype('int64', 1)),
-        ('z', SparseDtype('object', 'Z'))])
+        ('z', SparseDtype('object', 'z'))])
     def test_scalar_with_index_infer_dtype(self, scalar, dtype):
         # GH 19163
         arr = SparseArray(scalar, index=[1, 2, 3], fill_value=scalar)
@@ -379,7 +379,7 @@ class TestSparseArray(object):
         assert not arr.fill_value
 
         arr = SparseArray([True, False, True], dtype=np.bool, fill_value=True)
-        assert arr.dtype == SparseDtype(np.bool)
+        assert arr.dtype == SparseDtype(np.bool, True)
         assert arr.fill_value
 
     def test_constructor_float32(self):
@@ -425,18 +425,16 @@ class TestSparseArray(object):
         with tm.assert_raises_regex(ValueError, 'NA'):
             arr.astype('Sparse[i8]')
 
-    @pytest.mark.xfail(reason="Different semantics", strict=True)
     def test_astype_all(self, any_real_dtype):
         vals = np.array([1, 2, 3])
         arr = SparseArray(vals, fill_value=1)
-        # Expected here is `[nan, 2, 3]` since the fill value changes.
-        typ = np.dtype(any_real_dtype).type
-
-        res = arr.astype(SparseDtype(typ))
-        assert res.dtype == SparseDtype(typ)
+        typ = np.dtype(any_real_dtype)
+        res = arr.astype(typ)
+        assert res.dtype == SparseDtype(typ, 1)
         assert res.sp_values.dtype == typ
 
-        tm.assert_numpy_array_equal(res.values, vals.astype(typ))
+        tm.assert_numpy_array_equal(np.asarray(res.values),
+                                    vals.astype(typ))
 
     def test_set_fill_value(self):
         arr = SparseArray([1., np.nan, 2.], fill_value=np.nan)

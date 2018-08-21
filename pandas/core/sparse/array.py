@@ -25,7 +25,6 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_object_dtype,
     is_array_like,
-    is_extension_array_dtype,
     pandas_dtype,
     is_bool_dtype,
     is_list_like,
@@ -164,9 +163,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     sparse_index : SparseIndex, optional
     index : Index
     fill_value : scalar, optional
-        Elements in `data` that are `fill_value` are not stored in the SparseArray.
-        For memory savings, this should be the most common value in `data`.
-        By default, `fill_value` depends on the dtype of `data`:
+        Elements in `data` that are `fill_value` are not stored in the
+        SparseArray. For memory savings, this should be the most common value
+        in `data`. By default, `fill_value` depends on the dtype of `data`:
 
         =========== ==========
         data.dtype  na_value
@@ -439,7 +438,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         preserves the amount of memory used.
         """
         # TODO: discussion on what the return type should be.
-        # I tihnk if self.fill_value is NA, then we want to maintain
+        # I think if self.fill_value is NA, then we want to maintain
         # the sparsity by setting new.fill_value to `value`.
 
         if ((method is None and value is None) or
@@ -458,7 +457,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
             if self._null_fill_value:
                 # This is essentially just updating the dtype.
-                new_dtype = SparseDtype(self.dtype, fill_value=value)
+                new_dtype = SparseDtype(self.dtype.subtype, fill_value=value)
             else:
                 new_dtype = self.dtype
 
@@ -793,23 +792,17 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         """
         Change the dtype of a SparseArray.
 
+        The output will always be a SparseArray. To convert to a dense
+        ndarray with a certain dtype, use :meth:`numpy.asarray`.
+
         Parameters
         ----------
         dtype : np.dtype or ExtensionDtype
-            The dtype to coerce to. Non-sparse `dtype` are wrapped in
-            ``SparseDtype``.
+            For SparseDtype, this changes the dtype of
+            ``self.sp_values`` and the ``self.fill_value``.
 
-            1. The dtype of ``self.sp_values`` will be set to
-               ``dtype.subtype``
-            2. The ``fill_value`` will be set to ``dtype.fill_value``.
-
-            .. warning::
-
-               Passing a numpy `dtype` like ``np.dtype('int8')`` will
-               astype to a SparseArray with the default fill value for
-               that `dtype` (e.g. 0 for integer `dtype`). Pass a
-               SparseDtype with the ``fill_value`` specified if you wish
-               to preserve the current fill value.
+            For other dtypes, this only changes the dtype of
+            ``self.sp_values``.
 
         copy : bool, default True
             Whether to ensure a copy is made, even if not necessary.
@@ -834,27 +827,28 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Indices: array([2, 3], dtype=int32)
 
         Using a NumPy dtype with a different kind (e.g. float) will coerce
-        `fill_value` to the fill value for that kind.
+        just ``self.sp_values``.
 
         >>> arr.astype(np.dtype('float64'))
-        [nan, nan, 1.0, 2.0]
-        Fill: nan
+        ... # doctest: +NORMALIZE_WHITESPACE
+        [0, 0, 1.0, 2.0]
+        Fill: 0
         IntIndex
         Indices: array([2, 3], dtype=int32)
 
-        Use a SparseDtype if you wish to be unambiguous about what the fill
-        value should be.
+        Use a SparseDtype if you wish to be change the fill value as well.
 
-        >>> arr.astype(SparseDtype("float64", fill_value=0))
-        >>> arr.astype(SparseDtype("float64", fill_value=0))
-        [0, 0, 1.0, 2.0]
-        Fill: 0
+        >>> arr.astype(SparseDtype("float64", fill_value=np.nan))
+        ... # doctest: +NORMALIZE_WHITESPACE
+        [nan, nan, 1.0, 2.0]
+        Fill: nan
         IntIndex
         Indices: array([2, 3], dtype=int32)
         """
         dtype = pandas_dtype(dtype)
 
-        dtype = SparseDtype(dtype)
+        if not isinstance(dtype, SparseDtype):
+            dtype = SparseDtype(dtype, fill_value=self.fill_value)
 
         sp_values = astype_nansafe(self.sp_values,
                                    dtype.subtype,

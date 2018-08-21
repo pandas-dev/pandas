@@ -82,7 +82,6 @@ class TestConstructors(base.BaseConstructorsTests):
 
 
 class TestReshaping(base.BaseReshapingTests):
-    pass
 
     def test_concat_mixed_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/20762
@@ -94,7 +93,8 @@ class TestReshaping(base.BaseReshapingTests):
 
         # dataframes
         result = pd.concat(dfs)
-        expected = pd.concat([x.astype(object) for x in dfs])
+        expected = pd.concat([x.apply(lambda s: np.asarray(s).astype(object))
+                              for x in dfs])
         self.assert_frame_equal(result, expected)
         #
         # # series

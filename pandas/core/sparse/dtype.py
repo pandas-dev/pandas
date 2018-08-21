@@ -28,6 +28,7 @@ class SparseDtype(ExtensionDtype):
         int        ``0``
         bool       False
         datetime64 ``pd.NaT``
+        timedelta64 ``pd.NaT``
         ========== ==========
 
         The default value may be overridden by specifying a `fill_value`.
@@ -38,7 +39,8 @@ class SparseDtype(ExtensionDtype):
         from pandas.core.dtypes.missing import na_value_for_dtype
 
         if isinstance(dtype, type(self)):
-            fill_value = dtype.fill_value
+            if fill_value is None:
+                fill_value = dtype.fill_value
             dtype = dtype.subtype
         else:
             dtype = np.dtype(dtype)
@@ -58,7 +60,8 @@ class SparseDtype(ExtensionDtype):
             if self._is_na_fill_value:
                 fill_value = (
                     other._is_na_fill_value and
-                    isinstance(self.fill_value, type(other.fill_value))
+                    isinstance(self.fill_value, type(other.fill_value)) or
+                    isinstance(other.fill_value, type(self.fill_value))
                 )
             else:
                 fill_value = self.fill_value == other.fill_value

@@ -33,7 +33,7 @@ class TestSparseArrayArithmetics(object):
 
             # ToDo: FIXME in GH 13843
             if not (self._base == pd.Series and
-                    a.dtype == SparseDtype('int64')):
+                    a.dtype.subtype == np.dtype('int64')):
                 self._assert((a // b).to_dense(), a_dense // b_dense)
                 self._assert((b // a).to_dense(), b_dense // a_dense)
 
@@ -59,7 +59,7 @@ class TestSparseArrayArithmetics(object):
 
             # ToDo: FIXME in GH 13843
             if not (self._base == pd.Series and
-                    a.dtype == SparseDtype('int64')):
+                    a.dtype.subtype == np.dtype('int64')):
                 self._assert((a // b_dense).to_dense(), a_dense // b_dense)
                 self._assert((b_dense // a).to_dense(), b_dense // a_dense)
 
@@ -71,7 +71,8 @@ class TestSparseArrayArithmetics(object):
 
     def _check_bool_result(self, res):
         assert isinstance(res, self._klass)
-        assert res.dtype == SparseDtype(np.bool)
+        assert isinstance(res.dtype, SparseDtype)
+        assert res.dtype.subtype == np.bool
         assert isinstance(res.fill_value, bool)
 
     def _check_comparison_ops(self, a, b, a_dense, b_dense):
@@ -298,9 +299,9 @@ class TestSparseArrayArithmetics(object):
             self._check_numeric_ops(a, b, values, rvalues)
 
             a = self._klass(values, fill_value=1, dtype=dtype, kind=kind)
-            assert a.dtype == SparseDtype(dtype)
+            assert a.dtype == SparseDtype(dtype, fill_value=1)
             b = self._klass(rvalues, fill_value=2, dtype=dtype, kind=kind)
-            assert b.dtype == SparseDtype(dtype)
+            assert b.dtype == SparseDtype(dtype, fill_value=2)
             self._check_numeric_ops(a, b, values, rvalues)
 
     def test_int_array_comparison(self):
@@ -384,7 +385,7 @@ class TestSparseArrayArithmetics(object):
 
                 a = self._klass(values, kind=kind, fill_value=1)
                 b = self._klass(rvalues, kind=kind, fill_value=2)
-                assert b.dtype == SparseDtype(rdtype)
+                assert b.dtype == SparseDtype(rdtype, fill_value=2)
                 self._check_numeric_ops(a, b, values, rvalues)
 
     def test_mixed_array_comparison(self):
@@ -414,7 +415,7 @@ class TestSparseArrayArithmetics(object):
 
                 a = self._klass(values, kind=kind, fill_value=1)
                 b = self._klass(rvalues, kind=kind, fill_value=2)
-                assert b.dtype == SparseDtype(rdtype)
+                assert b.dtype == SparseDtype(rdtype, fill_value=2)
                 self._check_comparison_ops(a, b, values, rvalues)
 
 

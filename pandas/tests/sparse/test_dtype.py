@@ -28,6 +28,13 @@ def test_from_sparse_dtype():
     assert result.fill_value == 0
 
 
+def test_from_sparse_dtype_fill_value():
+    dtype = SparseDtype('int', 1)
+    result = SparseDtype(dtype, fill_value=2)
+    expected = SparseDtype('int', 2)
+    assert result == expected
+
+
 @pytest.mark.parametrize('dtype, fill_value', [
     ('int', None),
     ('float', None),
@@ -42,6 +49,14 @@ def test_equal(dtype, fill_value):
     a = SparseDtype(dtype, fill_value)
     b = SparseDtype(dtype, fill_value)
     assert a == b
+    assert b == a
+
+
+def test_nans_equal():
+    a = SparseDtype(float, float('nan'))
+    b = SparseDtype(float, np.nan)
+    assert a == b
+    assert b == a
 
 
 @pytest.mark.parametrize('a, b', [

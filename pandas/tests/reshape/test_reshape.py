@@ -6,7 +6,7 @@ import pytest
 from collections import OrderedDict
 
 from pandas import DataFrame, Series
-from pandas.core.sparse.api import SparseDtype
+from pandas.core.sparse.api import SparseDtype, SparseArray
 import pandas as pd
 
 from numpy import nan
@@ -207,15 +207,17 @@ class TestGetDummies(object):
 
     def test_dataframe_dummies_mix_default(self, df, sparse, dtype):
         result = get_dummies(df, sparse=sparse, dtype=dtype)
+        if sparse:
+            arr = SparseArray
+            typ = SparseDtype(dtype, 0)
+        else:
+            arr = np.array
+            typ = dtype
         expected = DataFrame({'C': [1, 2, 3],
-                              'A_a': [1, 0, 1],
-                              'A_b': [0, 1, 0],
-                              'B_b': [1, 1, 0],
-                              'B_c': [0, 0, 1]})
-        cols = ['A_a', 'A_b', 'B_b', 'B_c']
-        typ = pd.SparseArray if sparse else pd.Series
-
-        expected[cols] = expected[cols].apply(lambda x: typ(x, dtype=dtype))
+                              'A_a': arr([1, 0, 1], dtype=typ),
+                              'A_b': arr([0, 1, 0], dtype=typ),
+                              'B_b': arr([1, 1, 0], dtype=typ),
+                              'B_c': arr([0, 0, 1], dtype=typ)})
         expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c']]
         assert_frame_equal(result, expected)
 
@@ -330,22 +332,23 @@ class TestGetDummies(object):
         df.loc[3, :] = [np.nan, np.nan, np.nan]
         result = get_dummies(df, dummy_na=True,
                              sparse=sparse, dtype=dtype).sort_index(axis=1)
-        expected = DataFrame({'C': [1, 2, 3, np.nan],
-                              'A_a': [1, 0, 1, 0],
-                              'A_b': [0, 1, 0, 0],
-                              'A_nan': [0, 0, 0, 1],
-                              'B_b': [1, 1, 0, 0],
-                              'B_c': [0, 0, 1, 0],
-                              'B_nan': [0, 0, 0, 1]}).sort_index(axis=1)
 
-        e_dtype = self.effective_dtype(dtype)
-        columns = ['A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan']
-        expected[columns] = expected[columns].astype(e_dtype)
         if sparse:
-            tmp = expected[columns].apply(
-                lambda x: pd.SparseSeries(x)
-            )
-            expected[tmp.columns] = tmp
+            arr = SparseArray
+            typ = SparseDtype(dtype, 0)
+        else:
+            arr = np.array
+            typ = dtype
+
+        expected = DataFrame({'C': [1, 2, 3, np.nan],
+                              'A_a': arr([1, 0, 1, 0], dtype=typ),
+                              'A_b': arr([0, 1, 0, 0], dtype=typ),
+                              'A_nan': arr([0, 0, 0, 1], dtype=typ),
+                              'B_b': arr([1, 1, 0, 0], dtype=typ),
+                              'B_c': arr([0, 0, 1, 0], dtype=typ),
+                              'B_nan': arr([0, 0, 0, 1], dtype=typ)
+                              }).sort_index(axis=1)
+
         assert_frame_equal(result, expected)
 
         result = get_dummies(df, dummy_na=False, sparse=sparse, dtype=dtype)
@@ -355,25 +358,22 @@ class TestGetDummies(object):
     def test_dataframe_dummies_with_categorical(self, df, sparse, dtype):
         df['cat'] = pd.Categorical(['x', 'y', 'y'])
         result = get_dummies(df, sparse=sparse, dtype=dtype).sort_index(axis=1)
-        expected = DataFrame({'C': [1, 2, 3],
-                              'A_a': [1, 0, 1],
-                              'A_b': [0, 1, 0],
-                              'B_b': [1, 1, 0],
-                              'B_c': [0, 0, 1],
-                              'cat_x': [1, 0, 0],
-                              'cat_y': [0, 1, 1]}).sort_index(axis=1)
-
-        columns = ['A_a', 'A_b', 'B_b', 'B_c', 'cat_x', 'cat_y']
-        effective_dtype = self.effective_dtype(dtype)
-        expected[columns] = expected[columns].astype(effective_dtype)
-        expected.sort_index(axis=1)
-
         if sparse:
-            expected[columns] = expected[columns].apply(
-                lambda x: pd.SparseSeries(x)
-            )
-            if dtype == 'bool':
-                raise pytest.xfail(reason="that apply is broken?")
+            arr = SparseArray
+            typ = SparseDtype(dtype, 0)
+        else:
+            arr = np.array
+            typ = dtype
+
+        expected = DataFrame({'C': [1, 2, 3],
+                              'A_a': arr([1, 0, 1], dtype=typ),
+                              'A_b': arr([0, 1, 0], dtype=typ),
+                              'B_b': arr([1, 1, 0], dtype=typ),
+                              'B_c': arr([0, 0, 1], dtype=typ),
+                              'cat_x': arr([1, 0, 0], dtype=typ),
+                              'cat_y': arr([0, 1, 1], dtype=typ)
+                              }).sort_index(axis=1)
+
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('get_dummies_kwargs,expected', [

@@ -11,7 +11,6 @@ import collections
 
 from pandas.core.dtypes.common import (
     is_scalar,
-    is_sparse,
 )
 from pandas.core.dtypes.missing import isna, notna, is_integer
 
@@ -25,16 +24,14 @@ import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
 
-from pandas.core.sparse.dtype import SparseDtype
 from pandas.core.sparse.array import (
     SparseArray,
-    _make_index)
+)
 from pandas._libs.sparse import BlockIndex, IntIndex
 
 from pandas.core.sparse.scipy_sparse import (
     _sparse_series_to_coo,
     _coo_to_sparse_series)
-from pandas.util._decorators import deprecate_kwarg
 
 
 _shared_doc_kwargs = dict(axes='index', klass='SparseSeries',
@@ -77,7 +74,7 @@ class SparseSeries(Series):
         # 4. Implicit broadcasting
         # 5. Dict construction
         if data is None:
-            data  =[]
+            data = []
         elif isinstance(data, SingleBlockManager):
             index = data.index
             data = data.blocks[0].values
@@ -468,20 +465,6 @@ class SparseSeries(Series):
         values = SparseArray(values, fill_value=self.fill_value,
                              kind=self.kind)
         self._data = SingleBlockManager(values, self.index)
-
-    @deprecate_kwarg(old_arg_name='raise_on_error', new_arg_name='errors',
-                     mapping={True: 'raise', False: 'ignore'})
-    def astype(self, dtype, copy=True, errors='raise', **kwargs):
-        if not is_sparse(dtype):
-            # XXX: deprecate this auto-sparse of dtype?
-            # At least make consistent with SparseArray
-            dtype = SparseDtype(dtype)
-        return super(SparseSeries, self).astype(
-            dtype=dtype,
-            copy=copy,
-            errors=errors,
-            **kwargs
-        )
 
     def to_dense(self, sparse_only=False):
         """
