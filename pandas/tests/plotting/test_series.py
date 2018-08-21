@@ -291,7 +291,7 @@ class TestSeriesPlots(TestPlotBase):
                     (0., 0., 1., 1.)]
         assert result == expected
 
-    @pytest.mark.parametrize("num_colors", range(0,15))
+    @pytest.mark.parametrize("num_colors",range(0,15))
     def test_standard_color(self, num_colors):
         colors = _get_standard_colors(num_colors=num_colors)
 

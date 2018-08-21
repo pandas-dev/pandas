@@ -1237,7 +1237,7 @@ class BarPlot(MPLPlot):
         color = self.kwds.get(color_kwds)
         if color is not None:
             return color
-        else :
+        else:
             num_colors = self.nseries
             return _get_standard_colors(num_colors=num_colors,
                                         colormap=self.colormap,
