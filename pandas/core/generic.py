@@ -1926,6 +1926,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     >>> with pd.ExcelWriter('output.xlsx') as writer:
     ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+    ...     df2 = df1.copy()
     ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
 
     To set the library that is used to write the Excel file,
