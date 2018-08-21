@@ -3115,8 +3115,8 @@ class Index(IndexOpsMixin, PandasObject):
                 iloc = self.get_loc(key)
                 return s[iloc]
             except KeyError:
-                if (len(self) > 0 and
-                        self.inferred_type in ['integer', 'boolean']):
+                if (len(self) > 0
+                        and (self.holds_integer() or self.is_boolean())):
                     raise
                 elif is_integer(key):
                     return s[key]
@@ -3129,7 +3129,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._engine.get_value(s, k,
                                           tz=getattr(series.dtype, 'tz', None))
         except KeyError as e1:
-            if len(self) > 0 and self.inferred_type in ['integer', 'boolean']:
+            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
                 raise
 
             try:

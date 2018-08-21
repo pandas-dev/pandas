@@ -666,6 +666,20 @@ class TestFancy(Base):
                     idxr(s2)['0'] = 0
                     assert s2.index.is_object()
 
+    @pytest.mark.parametrize("index,val", [
+        (Index([0, 1, '2']), '1'),
+        (Index([0, 1, '2']), 2),
+    ])
+    def test_mixed_index_not_contains(self, index, val):
+        assert val not in index
+
+    @pytest.mark.parametrize("index,val", [
+        (Index([0, 1, '2']), 0),
+        (Index([0, 1, '2']), '2'),
+    ])
+    def test_mixed_index_contains(self, index, val):
+        assert val in index
+
 
 class TestMisc(Base):
 
@@ -709,6 +723,27 @@ class TestMisc(Base):
             assert s.at[el] == item
         for i in range(len(s)):
             assert s.iat[i] == i + 1
+
+    def test_mixed_index_at_iat(self):
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        for el, item in s.iteritems():
+            assert s.at[el] == item
+        for i in range(len(s)):
+            assert s.iat[i] == i + 1
+
+    def test_mixed_index_assignment(self):
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        s.at['a'] = 11
+        assert s.iat[0] == 11
+        s.at[1] = 22
+        assert s.iat[3] == 22
+
+    def test_mixed_index_no_fallback(self):
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        with pytest.raises(KeyError):
+            s.at[0]
+        with pytest.raises(KeyError):
+            s.at[4]
 
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
