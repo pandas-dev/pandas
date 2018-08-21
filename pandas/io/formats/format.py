@@ -680,7 +680,7 @@ class DataFrameFormatter(TableFormatter):
         for i, ed in enumerate(col_bins):
             row = strcols[st:ed]
             if i > 0 and not self.index:
-                has_leading_sp = all([e[0] == ' ' for e in row[0]])
+                has_leading_sp = all(e[0] == ' ' for e in row[0])
                 if has_leading_sp:
                     row[0] = [e[1:] for e in row[0]]
             if self.index:
@@ -792,7 +792,7 @@ class DataFrameFormatter(TableFormatter):
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [[' ' + x if not self._get_formatter(i) and
-                            need_leadsp[x] and (self.index or i>0) else x]
+                            need_leadsp[x] and (self.index or i > 0) else x]
                            for i, (col, x) in enumerate(zip(columns,
                                                             fmt_columns))]
 
