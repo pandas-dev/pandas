@@ -234,11 +234,12 @@ class Docstring(object):
     def parameter_type(self, param):
         return self.doc_parameters[param][0]
 
-    def parameter_desc(self, param):
+    def raw_parameter_desc(self, param):
         return self.doc_parameters[param][1]
 
-    def parameter_desc_without_directives(self, param):
-        desc = self.parameter_desc(param)
+    def parameter_desc(self, param):
+        desc = self.raw_parameter_desc(param)
+        # Find and strip out any sphinx directives
         for directive in DIRECTIVES:
             full_directive = '.. {}'.format(directive)
             if full_directive in desc:
@@ -475,7 +476,7 @@ def validate_one(func_name):
                 param_errs.append('Parameter "{}" description '
                                   'should start with a '
                                   'capital letter'.format(param))
-            if doc.parameter_desc_without_directives(param)[-1] != '.':
+            if doc.parameter_desc(param)[-1] != '.':
                 param_errs.append('Parameter "{}" description '
                                   'should finish with "."'.format(param))
     if param_errs:
