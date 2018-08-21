@@ -637,22 +637,25 @@ class Block(PandasObject):
             # force the copy here
             if values is None:
 
-                if issubclass(dtype.type,
-                              (compat.text_type, compat.string_types)):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
+                if self.is_extension:
+                    values = self.values.astype(dtype)
                 else:
-                    values = self.get_values(dtype=dtype)
+                    if issubclass(dtype.type,
+                                  (compat.text_type, compat.string_types)):
 
-                # _astype_nansafe works fine with 1-d only
-                values = astype_nansafe(values.ravel(), dtype, copy=True)
+                        # use native type formatting for datetime/tz/timedelta
+                        if self.is_datelike:
+                            values = self.to_native_types()
+
+                        # astype formatting
+                        else:
+                            values = self.get_values()
+
+                    else:
+                        values = self.get_values(dtype=dtype)
+
+                    # _astype_nansafe works fine with 1-d only
+                    values = astype_nansafe(values.ravel(), dtype, copy=True)
 
                 # TODO(extension)
                 # should we make this attribute?
@@ -662,7 +665,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass)
+                              klass=klass, ndim=self.ndim)
         except:
             if errors == 'raise':
                 raise
@@ -1946,6 +1949,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def is_view(self):
         """Extension arrays are never treated as views."""
         return False
+
+    @property
+    def is_numeric(self):
+        return self.values.dtype._is_numeric
 
     def setitem(self, indexer, value, mgr=None):
         """Set the value inplace, returning a same-typed block.
