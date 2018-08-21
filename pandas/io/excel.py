@@ -852,7 +852,7 @@ class ExcelWriter(object):
     You can also append to an existing Excel file:
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
-    ...     df.to_excel(writer)
+    ...     df.to_excel(writer, sheet_name='Sheet3')
 
     .. versionadded:: 0.24.0
 
