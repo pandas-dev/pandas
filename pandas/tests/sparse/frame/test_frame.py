@@ -735,7 +735,7 @@ class TestSparseDataFrame(SharedWithSparse):
         assert sparse['A'].dtype == SparseDtype(np.int64)
         assert sparse['B'].dtype == SparseDtype(np.int64)
 
-        res = sparse.astype(bool)
+        res = sparse.astype(SparseDtype(bool, False))
         exp = pd.SparseDataFrame({'A': SparseArray([False, True, False, True],
                                                    dtype=np.bool,
                                                    fill_value=False,

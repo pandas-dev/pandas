@@ -392,7 +392,7 @@ class TestSparseSeries(SharedWithSparse):
         assert self.ziseries2.shape == (15, )
 
     def test_astype(self):
-        result = self.bseries.astype(np.int64)
+        result = self.bseries.astype(SparseDtype(np.int64, 0))
         expected = (self.bseries.to_dense()
                     .fillna(0)
                     .astype(np.int64)
@@ -406,8 +406,9 @@ class TestSparseSeries(SharedWithSparse):
         types = [np.float64, np.float32, np.int64,
                  np.int32, np.int16, np.int8]
         for typ in types:
-            res = s.astype(typ)
-            assert res.dtype == SparseDtype(typ)
+            dtype = SparseDtype(typ)
+            res = s.astype(dtype)
+            assert res.dtype == dtype
             tm.assert_series_equal(res.to_dense(), orig.astype(typ))
 
     def test_kind(self):
