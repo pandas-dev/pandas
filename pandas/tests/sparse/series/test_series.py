@@ -1508,3 +1508,9 @@ def test_constructor_mismatched_raises():
     msg = "Length of passed values is 2, index implies 3"
     with tm.assert_raises_regex(ValueError, msg):
         SparseSeries([1, 2], index=[1, 2, 3])
+
+
+def test_block_deprecated():
+    s = SparseSeries([1])
+    with tm.assert_produces_warning(FutureWarning):
+        s.block

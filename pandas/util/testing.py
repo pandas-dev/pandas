@@ -1623,8 +1623,7 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
     assert_index_equal(left.index, right.index,
                        obj='{obj}.index'.format(obj=obj))
 
-    # TODO: this can just be .values I think
-    assert_sp_array_equal(left.block.values, right.block.values,
+    assert_sp_array_equal(left.values, right.values,
                           check_kind=check_kind,
                           check_fill_value=check_fill_value,
                           consolidate_block_indices=consolidate_block_indices)

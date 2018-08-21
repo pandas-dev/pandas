@@ -103,11 +103,6 @@ class SparseSeries(Series):
             copy=False, fastpath=fastpath
         )
 
-    @property
-    def values(self):
-        """ return the array """
-        return self._data.blocks[0].values
-
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         # avoid infinite recursion for other SparseSeries inputs
         inputs = tuple(
@@ -119,10 +114,6 @@ class SparseSeries(Series):
                                  sparse_index=self.sp_index,
                                  fill_value=result.fill_value,
                                  copy=False).__finalize__(self)
-
-    def __array__(self, result=None):
-        """ the array interface, return my values """
-        return np.asarray(self.values)
 
     def __array_wrap__(self, result, context=None):
         """
@@ -151,12 +142,10 @@ class SparseSeries(Series):
         self.name = getattr(obj, 'name', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
-    def get_values(self):
-        """ same as values """
-        return self.values.to_dense().view()
-
     @property
     def block(self):
+        warnings.warn("SparseSeries.block is deprecated.", FutureWarning,
+                      stacklevel=2)
         return self._data._block
 
     @property
@@ -219,13 +208,6 @@ class SparseSeries(Series):
         return SparseArray(self.values, sparse_index=self.sp_index,
                            fill_value=fill_value, kind=kind, copy=copy)
 
-    def __len__(self):
-        return len(self.values)
-
-    @property
-    def shape(self):
-        return self._data.shape
-
     def __unicode__(self):
         # currently, unicode is same as repr...fixes infinite loop
         series_rep = Series.__unicode__(self)
@@ -268,10 +250,6 @@ class SparseSeries(Series):
         self._set_axis(0, index)
         self.name = name
 
-    def __iter__(self):
-        """ forward to the array """
-        return iter(self.values)
-
     def _set_subtyp(self, is_all_dates):
         if is_all_dates:
             object.__setattr__(self, '_subtyp', 'sparse_time_series')
@@ -307,28 +285,6 @@ class SparseSeries(Series):
             return self._get_val_at(key)
         else:
             return super(SparseSeries, self).__getitem__(key)
-        # try:
-        #     return self.index.get_value(self, key)
-        #
-        # except InvalidIndexError:
-        #     pass
-        # except KeyError:
-        #     if isinstance(key, (int, np.integer)):
-        #         return self._get_val_at(key)
-        #     elif key is Ellipsis:
-        #         return self
-        #     raise Exception('Requested index not in this series!')
-        #
-        # except TypeError:
-        #     # Could not hash item, must be array-like?
-        #     pass
-        #
-        # key = com.values_from_object(key)
-        # if self.index.nlevels > 1 and isinstance(key, tuple):
-        #     # to handle MultiIndex labels
-        #     key = self.index.get_loc(key)
-        # return self._constructor(self.values[key],
-        #                          index=self.index[key]).__finalize__(self)
 
     def _get_values(self, indexer):
         try:
@@ -540,21 +496,6 @@ class SparseSeries(Series):
             values.sp_values.astype('float64'), values.fill_value, new_index)
         return self._constructor(values, index=self.index).__finalize__(self)
 
-    @Appender(generic._shared_docs['take'])
-    def take(self, indices, axis=0, convert=None, *args, **kwargs):
-        if convert is not None:
-            msg = ("The 'convert' parameter is deprecated "
-                   "and will be removed in a future version.")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-        else:
-            convert = True
-
-        nv.validate_take_with_convert(convert, args, kwargs)
-        new_values = SparseArray.take(self.values, indices)
-        new_index = self.index.take(indices)
-        return self._constructor(new_values,
-                                 index=new_index).__finalize__(self)
-
     def cumsum(self, axis=0, *args, **kwargs):
         """
         Cumulative sum of non-NA/null values.
@@ -582,12 +523,14 @@ class SparseSeries(Series):
             new_array, index=self.index,
             sparse_index=new_array.sp_index).__finalize__(self)
 
+    # TODO: SparseSeries.isna is Sparse, while Series.isna is dense
     @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
         arr = SparseArray(isna(self.values.sp_values),
                           sparse_index=self.values.sp_index,
                           fill_value=isna(self.fill_value))
         return self._constructor(arr, index=self.index).__finalize__(self)
+
     isnull = isna
 
     @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
