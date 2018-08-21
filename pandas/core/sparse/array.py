@@ -1056,6 +1056,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
+        if compat.PY2:
+            special.add('div')
         aliases = {
             'subtract': 'sub',
             'multiply': 'mul',
@@ -1063,6 +1065,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             'true_divide': 'truediv',
             'power': 'pow',
             'remainder': 'mod',
+            'divide': 'div',
         }
         op_name = ufunc.__name__
         op_name = aliases.get(op_name, op_name)

@@ -9,6 +9,7 @@ from numpy import nan
 import numpy as np
 import pandas as pd
 
+from pandas import compat
 from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
@@ -789,9 +790,11 @@ class TestSparseArrayAnalytics(object):
         out = np.all(SparseArray(data, fill_value=pos))
         assert not out
 
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.all,
-                               SparseArray(data), out=out)
+        if not compat.PY2:
+            # raises with a different message on py2.
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.all,
+                                   SparseArray(data), out=out)
 
     @pytest.mark.parametrize('data,pos,neg', [
         ([False, True, False], True, False),
@@ -833,9 +836,10 @@ class TestSparseArrayAnalytics(object):
         out = np.any(SparseArray(data, fill_value=pos))
         assert not out
 
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.any,
-                               SparseArray(data), out=out)
+        if not compat.PY2:
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.any,
+                                   SparseArray(data), out=out)
 
     def test_sum(self):
         data = np.arange(10).astype(float)
