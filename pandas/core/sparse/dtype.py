@@ -15,7 +15,7 @@ class SparseDtype(ExtensionDtype):
 
     Parameters
     ----------
-    dtype : numpy.dtype, default numpy.float64
+    dtype : str, ExtensionDtype, numpy.dtype, type, default numpy.float64
         The dtype of the underlying array storing the non-fill value values.
     fill_value : scalar, optional.
         The scalar value not stored in the SparseArray. By default, this
@@ -34,9 +34,11 @@ class SparseDtype(ExtensionDtype):
     """
 
     def __init__(self, dtype=np.float64, fill_value=None):
+        # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
         from pandas.core.dtypes.missing import na_value_for_dtype
 
         if isinstance(dtype, type(self)):
+            fill_value = dtype.fill_value
             dtype = dtype.subtype
         else:
             dtype = np.dtype(dtype)
@@ -48,14 +50,20 @@ class SparseDtype(ExtensionDtype):
         self._fill_value = fill_value
 
     def __hash__(self):
-        # XXX: this needs to be part of the interface.
         return hash(str(self))
 
     def __eq__(self, other):
-        # TODO: test
         if isinstance(other, type(self)):
-            return (self.subtype == other.subtype and
-                    self._is_na_fill_value is other._is_na_fill_value)
+            subtype = self.subtype == other.subtype
+            if self._is_na_fill_value:
+                fill_value = (
+                    other._is_na_fill_value and
+                    isinstance(self.fill_value, type(other.fill_value))
+                )
+            else:
+                fill_value = self.fill_value == other.fill_value
+
+            return subtype and fill_value
         else:
             return super(SparseDtype, self).__eq__(other)
 

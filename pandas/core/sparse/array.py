@@ -168,14 +168,15 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         For memory savings, this should be the most common value in `data`.
         By default, `fill_value` depends on the dtype of `data`:
 
-        ========== ==========
-        data.dtype na_value
-        ========== ==========
-        float      ``np.nan``
-        int        ``0``
-        bool       False
-        datetime64 ``pd.NaT``
-        ========== ==========
+        =========== ==========
+        data.dtype  na_value
+        =========== ==========
+        float       ``np.nan``
+        int         ``0``
+        bool        False
+        datetime64  ``pd.NaT``
+        timedelta64 ``pd.NaT``
+        =========== ==========
 
         When ``data`` is already a ``SparseArray``, ``data.fill_value``
         is used unless specified, regardless of `data.dtype``.
@@ -795,38 +796,75 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         Parameters
         ----------
         dtype : np.dtype or ExtensionDtype
-            For SparseDtype, this can change two things
+            The dtype to coerce to. Non-sparse `dtype` are wrapped in
+            ``SparseDtype``.
 
             1. The dtype of ``self.sp_values`` will be set to
                ``dtype.subtype``
             2. The ``fill_value`` will be set to ``dtype.fill_value``.
 
-            For other dtypes, this will convert to a dense array
-            with `dtype` type.
+            .. warning::
+
+               Passing a numpy `dtype` like ``np.dtype('int8')`` will
+               astype to a SparseArray with the default fill value for
+               that `dtype` (e.g. 0 for integer `dtype`). Pass a
+               SparseDtype with the ``fill_value`` specified if you wish
+               to preserve the current fill value.
 
         copy : bool, default True
             Whether to ensure a copy is made, even if not necessary.
 
         Returns
         -------
-        array : ExtensionArray or ndarray.
+        SparseArray
+
+        Examples
+        --------
+        >>> arr = SparseArray([0, 0, 1, 2])
+        >>> arr
+        [0, 0, 1, 2]
+        Fill: 0
+        IntIndex
+        Indices: array([2, 3], dtype=int32)
+
+        >>> arr.astype(np.dtype('int32'))
+        [0, 0, 1, 2]
+        Fill: 0
+        IntIndex
+        Indices: array([2, 3], dtype=int32)
+
+        Using a NumPy dtype with a different kind (e.g. float) will coerce
+        `fill_value` to the fill value for that kind.
+
+        >>> arr.astype(np.dtype('float64'))
+        [nan, nan, 1.0, 2.0]
+        Fill: nan
+        IntIndex
+        Indices: array([2, 3], dtype=int32)
+
+        Use a SparseDtype if you wish to be unambiguous about what the fill
+        value should be.
+
+        >>> arr.astype(SparseDtype("float64", fill_value=0))
+        >>> arr.astype(SparseDtype("float64", fill_value=0))
+        [0, 0, 1.0, 2.0]
+        Fill: 0
+        IntIndex
+        Indices: array([2, 3], dtype=int32)
         """
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, SparseDtype):
-            # Sparse -> Sparse
-            sp_values = astype_nansafe(self.sp_values,
-                                       dtype.subtype,
-                                       copy=copy)
-            if sp_values is self.sp_values and copy:
-                sp_values = sp_values.copy()
+        dtype = SparseDtype(dtype)
 
+        sp_values = astype_nansafe(self.sp_values,
+                                   dtype.subtype,
+                                   copy=copy)
+        if sp_values is self.sp_values and copy:
+            sp_values = sp_values.copy()
 
-            return self._simple_new(sp_values,
-                                    self.sp_index,
-                                    dtype)
-        else:
-            return astype_nansafe(np.asarray(self), dtype=dtype)
+        return self._simple_new(sp_values,
+                                self.sp_index,
+                                dtype)
 
     def map(self, mapper):
         # this is used in apply.
