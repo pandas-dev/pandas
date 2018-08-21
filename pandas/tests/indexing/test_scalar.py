@@ -184,11 +184,10 @@ class TestScalar(Base):
         with pytest.raises(KeyError):
             s.loc[4]
 
-
     def test_mixed_index_at_iat_loc_iloc_dataframe(self):
         # GH 19860
         df = DataFrame([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9]],
-                          columns=['a', 'b', 'c', 1, 2])
+                       columns=['a', 'b', 'c', 1, 2])
         for rowIdx, row in df.iterrows():
             for el, item in row.iteritems():
                 assert df.at[rowIdx, el] == df.loc[rowIdx, el] == item
@@ -201,5 +200,3 @@ class TestScalar(Base):
             df.at[0, 3]
         with pytest.raises(KeyError):
             df.loc[0, 3]
-
-
