@@ -270,6 +270,7 @@ class TestSeriesPlots(TestPlotBase):
         assert result == expected
 
     def test_bar_user_colors_limited(self):
+        # GH 20585
         s = Series([1, 2, 3, 4])
         ax = s.plot.bar(color=['red', 'blue'])
         result = [p.get_facecolor() for p in ax.patches]
@@ -293,6 +294,7 @@ class TestSeriesPlots(TestPlotBase):
 
     @pytest.mark.parametrize("num_colors",range(0,15))
     def test_standard_color(self, num_colors):
+        # GH 20585
         colors = _get_standard_colors(num_colors=num_colors)
 
         assert len(colors) == num_colors
