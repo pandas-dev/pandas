@@ -5,12 +5,13 @@ import copy
 from textwrap import dedent
 
 import pandas as pd
-from pandas.core.base import GroupByMixin
-
+from pandas.core.groupby.base import GroupByMixin
+from pandas.core.groupby.ops import BinGrouper
 from pandas.core.groupby.groupby import (
-    BinGrouper, Grouper, _GroupBy, GroupBy, SeriesGroupBy, groupby,
-    PanelGroupBy, _pipe_template
+    _GroupBy, GroupBy, groupby, _pipe_template
 )
+from pandas.core.groupby.grouper import Grouper
+from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
@@ -1198,7 +1199,7 @@ class TimeGrouper(Grouper):
 
         freq = to_offset(freq)
 
-        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
         rule = freq.rule_code
         if (rule in end_types or
                 ('-' in rule and rule[:rule.find('-')] in end_types)):
@@ -1382,8 +1383,7 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        start = ax[0]
-        end = ax[-1]
+        start, end = ax.min(), ax.max()
         labels = binner = TimedeltaIndex(start=start,
                                          end=end,
                                          freq=self.freq,

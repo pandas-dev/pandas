@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
 cimport cython
@@ -9,14 +9,12 @@ from cpython.slice cimport PySlice_Check
 import numpy as np
 cimport numpy as cnp
 from numpy cimport (ndarray, float64_t, int32_t,
-                    int64_t, uint8_t, uint64_t, intp_t)
+                    int64_t, uint8_t, uint64_t, intp_t,
+                    # Note: NPY_DATETIME, NPY_TIMEDELTA are only available
+                    # for cimport in cython>=0.27.3
+                    NPY_DATETIME, NPY_TIMEDELTA)
 cnp.import_array()
 
-cdef extern from "numpy/arrayobject.h":
-    # These can be cimported directly from numpy in cython>=0.27.3
-    cdef enum NPY_TYPES:
-        NPY_DATETIME
-        NPY_TIMEDELTA
 
 cimport util
 
@@ -39,7 +37,7 @@ cdef inline bint is_definitely_invalid_key(object val):
             return True
 
     # we have a _data, means we are a NDFrame
-    return (PySlice_Check(val) or cnp.PyArray_Check(val)
+    return (PySlice_Check(val) or util.is_array(val)
             or PyList_Check(val) or hasattr(val, '_data'))
 
 
@@ -106,7 +104,7 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
-        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
+        if PySlice_Check(loc) or util.is_array(loc):
             return arr[loc]
         else:
             return get_value_at(arr, loc, tz=tz)
@@ -122,7 +120,7 @@ cdef class IndexEngine:
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
+        if PySlice_Check(loc) or util.is_array(loc):
             arr[loc] = value
         else:
             util.set_value_at(arr, loc, value)
@@ -321,15 +319,14 @@ cdef class IndexEngine:
         # form the set of the results (like ismember)
         members = np.empty(n, dtype=np.uint8)
         for i in range(n):
-            val = util.get_value_1d(values, i)
+            val = values[i]
             if val in stargets:
                 if val not in d:
                     d[val] = []
                 d[val].append(i)
 
         for i in range(n_t):
-
-            val = util.get_value_1d(targets, i)
+            val = targets[i]
 
             # found
             if val in d:

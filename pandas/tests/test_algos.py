@@ -7,6 +7,7 @@ from numpy.random import RandomState
 from numpy import nan
 from datetime import datetime
 from itertools import permutations
+import struct
 from pandas import (Series, Categorical, CategoricalIndex,
                     Timestamp, DatetimeIndex, Index, IntervalIndex)
 import pandas as pd
@@ -217,8 +218,8 @@ class TestFactorize(object):
         tm.assert_numpy_array_equal(result[0],
                                     np.array(expected_label, dtype=np.intp))
 
-        expected_level_array = com._asarray_tuplesafe(expected_level,
-                                                      dtype=object)
+        expected_level_array = com.asarray_tuplesafe(expected_level,
+                                                     dtype=object)
         tm.assert_numpy_array_equal(result[1], expected_level_array)
 
     def test_complex_sorting(self):
@@ -331,7 +332,8 @@ class TestUnique(object):
 
         dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000+0000',
                                    '2015-01-01T00:00:00.000000000+0000',
-                                   '2015-01-01T00:00:00.000000000+0000'])
+                                   '2015-01-01T00:00:00.000000000+0000'],
+                                  box=False)
         result = algos.unique(dt_index)
         tm.assert_numpy_array_equal(result, expected)
         assert result.dtype == expected.dtype
@@ -500,6 +502,25 @@ class TestUnique(object):
 
         tm.assert_numpy_array_equal(result, expected, strict_nan=True)
 
+    def test_signed_zero(self):
+        # GH 21866
+        a = np.array([-0.0, 0.0])
+        result = pd.unique(a)
+        expected = np.array([-0.0])  # 0.0 and -0.0 are equivalent
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_different_nans(self):
+        # GH 21866
+        # create different nans from bit-patterns:
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+        a = np.array([NAN1, NAN2])  # NAN1 and NAN2 are equivalent
+        result = pd.unique(a)
+        expected = np.array([np.nan])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestIsin(object):
 
@@ -527,7 +548,7 @@ class TestIsin(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(Series([1, 2]), set([1]))
+        result = algos.isin(Series([1, 2]), {1})
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -539,7 +560,7 @@ class TestIsin(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(Series(['a', 'b']), set(['a']))
+        result = algos.isin(Series(['a', 'b']), {'a'})
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -594,6 +615,68 @@ class TestIsin(object):
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_same_nan_is_in(self):
+        # GH 22160
+        # nan is special, because from " a is b" doesn't follow "a == b"
+        # at least, isin() should follow python's "np.nan in [nan] == True"
+        # casting to -> np.float64 -> another float-object somewher on
+        # the way could lead jepardize this behavior
+        comps = [np.nan]  # could be casted to float64
+        values = [np.nan]
+        expected = np.array([True])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_same_object_is_in(self):
+        # GH 22160
+        # there could be special treatment for nans
+        # the user however could define a custom class
+        # with similar behavior, then we at least should
+        # fall back to usual python's behavior: "a in [a] == True"
+        class LikeNan(object):
+            def __eq__(self):
+                return False
+
+            def __hash__(self):
+                return 0
+
+        a, b = LikeNan(), LikeNan()
+        # same object -> True
+        tm.assert_numpy_array_equal(algos.isin([a], [a]), np.array([True]))
+        # different objects -> False
+        tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
+
+    def test_different_nans(self):
+        # GH 22160
+        # all nans are handled as equivalent
+
+        comps = [float('nan')]
+        values = [float('nan')]
+        assert comps[0] is not values[0]  # different nan-objects
+
+        # as list of python-objects:
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+        # as object-array:
+        result = algos.isin(np.asarray(comps, dtype=np.object),
+                            np.asarray(values, dtype=np.object))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+        # as float64-array:
+        result = algos.isin(np.asarray(comps, dtype=np.float64),
+                            np.asarray(values, dtype=np.float64))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+    def test_no_cast(self):
+        # GH 22160
+        # ensure 42 is not casted to a string
+        comps = ['ss', 42]
+        values = ['42']
+        expected = np.array([False, False])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
@@ -602,6 +685,36 @@ class TestIsin(object):
 
         result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
+
+    def test_different_nan_objects(self):
+        # GH 22119
+        comps = np.array(['nan', np.nan * 1j, float('nan')], dtype=np.object)
+        vals = np.array([float('nan')], dtype=np.object)
+        expected = np.array([False, False, True])
+        result = algos.isin(comps, vals)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_different_nans_as_float64(self):
+        # GH 21866
+        # create different nans from bit-patterns,
+        # these nans will land in different buckets in the hash-table
+        # if no special care is taken
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+
+        # check that NAN1 and NAN2 are equivalent:
+        arr = np.array([NAN1, NAN2], dtype=np.float64)
+        lookup1 = np.array([NAN1], dtype=np.float64)
+        result = algos.isin(arr, lookup1)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        lookup2 = np.array([NAN2], dtype=np.float64)
+        result = algos.isin(arr, lookup2)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestValueCounts(object):
@@ -837,10 +950,8 @@ class TestDuplicated(object):
                   2, 4, 1, 5, 6]),
         np.array([1.1, 2.2, 1.1, np.nan, 3.3,
                   2.2, 4.4, 1.1, np.nan, 6.6]),
-        pytest.param(np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
-                               2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
-                     marks=pytest.mark.xfail(reason="Complex bug. GH 16399")
-                     ),
+        np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
+                  2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
         np.array(['a', 'b', 'a', 'e', 'c',
                   'b', 'd', 'a', 'e', 'f'], dtype=object),
         np.array([1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7],
@@ -1086,6 +1197,31 @@ class TestHashTable(object):
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
                                                             dtype=np.int64))
+
+    def test_add_signed_zeros(self):
+        # GH 21866 inconsistent hash-function for float64
+        # default hash-function would lead to different hash-buckets
+        # for 0.0 and -0.0 if there are more than 2^30 hash-buckets
+        # but this would mean 16GB
+        N = 4  # 12 * 10**8 would trigger the error, if you have enough memory
+        m = ht.Float64HashTable(N)
+        m.set_item(0.0, 0)
+        m.set_item(-0.0, 0)
+        assert len(m) == 1  # 0.0 and -0.0 are equivalent
+
+    def test_add_different_nans(self):
+        # GH 21866 inconsistent hash-function for float64
+        # create different nans from bit-patterns:
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+        # default hash function would lead to different hash-buckets
+        # for NAN1 and NAN2 even if there are only 4 buckets:
+        m = ht.Float64HashTable()
+        m.set_item(NAN1, 0)
+        m.set_item(NAN2, 0)
+        assert len(m) == 1  # NAN1 and NAN2 are equivalent
 
     def test_lookup_overflow(self, writable):
         xs = np.array([1, 2, 2**63], dtype=np.uint64)

@@ -37,7 +37,7 @@ class TestSeriesToCSV(TestData):
     def test_from_csv_deprecation(self):
         # see gh-17812
         with ensure_clean() as path:
-            self.ts.to_csv(path)
+            self.ts.to_csv(path, header=False)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
@@ -45,10 +45,28 @@ class TestSeriesToCSV(TestData):
                 depr_ts = Series.from_csv(path)
                 assert_series_equal(depr_ts, ts)
 
+    @pytest.mark.parametrize("arg", ["path", "header", "both"])
+    def test_to_csv_deprecation(self, arg):
+        # see gh-19715
+        with ensure_clean() as path:
+            if arg == "path":
+                kwargs = dict(path=path, header=False)
+            elif arg == "header":
+                kwargs = dict(path_or_buf=path)
+            else:  # Both discrepancies match.
+                kwargs = dict(path=path)
+
+            with tm.assert_produces_warning(FutureWarning):
+                self.ts.to_csv(**kwargs)
+
+                # Make sure roundtrip still works.
+                ts = self.read_csv(path)
+                assert_series_equal(self.ts, ts, check_names=False)
+
     def test_from_csv(self):
 
         with ensure_clean() as path:
-            self.ts.to_csv(path)
+            self.ts.to_csv(path, header=False)
             ts = self.read_csv(path)
             assert_series_equal(self.ts, ts, check_names=False)
 
@@ -65,7 +83,7 @@ class TestSeriesToCSV(TestData):
             ts_h = self.read_csv(path, header=0)
             assert ts_h.name == "ts"
 
-            self.series.to_csv(path)
+            self.series.to_csv(path, header=False)
             series = self.read_csv(path)
             assert_series_equal(self.series, series, check_names=False)
 
@@ -92,13 +110,13 @@ class TestSeriesToCSV(TestData):
         import io
 
         with ensure_clean() as path:
-            self.ts.to_csv(path)
+            self.ts.to_csv(path, header=False)
 
             with io.open(path, newline=None) as f:
                 lines = f.readlines()
             assert (lines[1] != '\n')
 
-            self.ts.to_csv(path, index=False)
+            self.ts.to_csv(path, index=False, header=False)
             arr = np.loadtxt(path)
             assert_almost_equal(arr, self.ts.values)
 
@@ -106,7 +124,7 @@ class TestSeriesToCSV(TestData):
         buf = StringIO()
         s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
 
-        s.to_csv(buf, encoding="UTF-8")
+        s.to_csv(buf, encoding="UTF-8", header=False)
         buf.seek(0)
 
         s2 = self.read_csv(buf, index_col=0, encoding="UTF-8")
@@ -116,7 +134,7 @@ class TestSeriesToCSV(TestData):
 
         with ensure_clean() as filename:
             ser = Series([0.123456, 0.234567, 0.567567])
-            ser.to_csv(filename, float_format="%.2f")
+            ser.to_csv(filename, float_format="%.2f", header=False)
 
             rs = self.read_csv(filename)
             xp = Series([0.12, 0.23, 0.57])
@@ -128,14 +146,14 @@ class TestSeriesToCSV(TestData):
         split = s.str.split(r'\s+and\s+')
 
         buf = StringIO()
-        split.to_csv(buf)
+        split.to_csv(buf, header=False)
 
     def test_to_csv_path_is_none(self):
         # GH 8215
         # Series.to_csv() was returning None, inconsistent with
         # DataFrame.to_csv() which returned string
         s = Series([1, 2, 3])
-        csv_str = s.to_csv(path=None)
+        csv_str = s.to_csv(path_or_buf=None, header=False)
         assert isinstance(csv_str, str)
 
     @pytest.mark.parametrize('s,encoding', [

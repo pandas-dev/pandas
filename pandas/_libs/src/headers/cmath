@@ -6,6 +6,7 @@
 #if defined(_MSC_VER) && (_MSC_VER < 1800)
 #include <cmath>
 namespace std {
+  __inline int isnan(double x) { return _isnan(x); }
   __inline int signbit(double num) { return _copysign(1.0, num) < 0; }
 }
 #else

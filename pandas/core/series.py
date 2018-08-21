@@ -6,7 +6,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import types
+import collections
 import warnings
 from textwrap import dedent
 
@@ -17,6 +17,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
+    is_string_like,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
@@ -32,7 +33,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_scalar,
     _is_unorderable_exception,
-    _ensure_platform_int,
+    ensure_platform_int,
     pandas_dtype)
 from pandas.core.dtypes.generic import (
     ABCSparseArray, ABCDataFrame, ABCIndexClass)
@@ -51,7 +52,7 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
-                               Float64Index, _ensure_index)
+                               Float64Index, ensure_index)
 from pandas.core.indexing import check_bool_indexer, maybe_convert_indices
 from pandas.core import generic, base
 from pandas.core.internals import SingleBlockManager
@@ -71,6 +72,8 @@ import pandas.core.algorithms as algorithms
 
 import pandas.core.common as com
 import pandas.core.nanops as nanops
+import pandas.core.indexes.base as ibase
+
 import pandas.io.formats.format as fmt
 from pandas.util._decorators import (
     Appender, deprecate, deprecate_kwarg, Substitution)
@@ -142,7 +145,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     Parameters
     ----------
-    data : array-like, dict, or scalar value
+    data : array-like, Iterable, dict, or scalar value
         Contains data stored in Series
 
         .. versionchanged :: 0.23.0
@@ -161,10 +164,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = set(['dt', 'cat', 'str'])
+    _accessors = {'dt', 'cat', 'str'}
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
+
+    # Override cache_readonly bc Series is mutable
+    hasnans = property(base.IndexOpsMixin.hasnans.func,
+                       doc=base.IndexOpsMixin.hasnans.__doc__)
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
@@ -183,7 +190,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
 
             if index is not None:
-                index = _ensure_index(index)
+                index = ensure_index(index)
 
             if data is None:
                 data = {}
@@ -230,19 +237,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`index` argument.  `copy` must '
                                          'be False.')
 
-            elif is_extension_array_dtype(data) and dtype is not None:
-                if not data.dtype.is_dtype(dtype):
-                    raise ValueError("Cannot specify a dtype '{}' with an "
-                                     "extension array of a different "
-                                     "dtype ('{}').".format(dtype,
-                                                            data.dtype))
-
-            elif (isinstance(data, types.GeneratorType) or
-                  (compat.PY3 and isinstance(data, map))):
-                data = list(data)
+            elif is_extension_array_dtype(data):
+                pass
             elif isinstance(data, (set, frozenset)):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
+            # If data is Iterable but not list-like, consume into list.
+            elif (isinstance(data, collections.Iterable)
+                  and not isinstance(data, collections.Sized)):
+                data = list(data)
             else:
 
                 # handle sparse passed here (and force conversion)
@@ -252,7 +255,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if index is None:
                 if not is_list_like(data):
                     data = [data]
-                index = com._default_index(len(data))
+                index = ibase.default_index(len(data))
             elif is_list_like(data):
 
                 # a scalar numpy array is list-like but doesn't
@@ -369,7 +372,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ override generic, we want to set the _typ here """
 
         if not fastpath:
-            labels = _ensure_index(labels)
+            labels = ensure_index(labels)
 
         is_all_dates = labels.is_all_dates
         if is_all_dates:
@@ -509,10 +512,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return selected slices of an array along given axis as a Series
 
+        .. deprecated:: 0.24.0
+
         See also
         --------
         numpy.ndarray.compress
         """
+        msg = ("Series.compress(condition) is deprecated. "
+               "Use 'Series[condition]' or "
+               "'np.asarray(series).compress(condition)' instead.")
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         nv.validate_compress(args, kwargs)
         return self[condition]
 
@@ -765,7 +774,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._get_values(slobj)
 
     def __getitem__(self, key):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
         try:
             result = self.index.get_value(self, key)
 
@@ -820,47 +829,46 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         elif isinstance(key, ABCDataFrame):
             raise TypeError('Indexing a Series with DataFrame is not '
                             'supported, use the appropriate DataFrame column')
-        else:
-            if isinstance(key, tuple):
-                try:
-                    return self._get_values_tuple(key)
-                except Exception:
-                    if len(key) == 1:
-                        key = key[0]
-                        if isinstance(key, slice):
-                            return self._get_values(key)
-                    raise
-
-            # pragma: no cover
-            if not isinstance(key, (list, np.ndarray, Series, Index)):
-                key = list(key)
-
-            if isinstance(key, Index):
-                key_type = key.inferred_type
-            else:
-                key_type = lib.infer_dtype(key)
-
-            if key_type == 'integer':
-                if self.index.is_integer() or self.index.is_floating():
-                    return self.loc[key]
-                else:
-                    return self._get_values(key)
-            elif key_type == 'boolean':
-                return self._get_values(key)
-            else:
-                try:
-                    # handle the dup indexing case (GH 4246)
-                    if isinstance(key, (list, tuple)):
-                        return self.loc[key]
-
-                    return self.reindex(key)
-                except Exception:
-                    # [slice(0, 5, None)] will break if you convert to ndarray,
-                    # e.g. as requested by np.median
-                    # hack
-                    if isinstance(key[0], slice):
+        elif isinstance(key, tuple):
+            try:
+                return self._get_values_tuple(key)
+            except Exception:
+                if len(key) == 1:
+                    key = key[0]
+                    if isinstance(key, slice):
                         return self._get_values(key)
-                    raise
+                raise
+
+        # pragma: no cover
+        if not isinstance(key, (list, np.ndarray, Series, Index)):
+            key = list(key)
+
+        if isinstance(key, Index):
+            key_type = key.inferred_type
+        else:
+            key_type = lib.infer_dtype(key)
+
+        if key_type == 'integer':
+            if self.index.is_integer() or self.index.is_floating():
+                return self.loc[key]
+            else:
+                return self._get_values(key)
+        elif key_type == 'boolean':
+            return self._get_values(key)
+
+        try:
+            # handle the dup indexing case (GH 4246)
+            if isinstance(key, (list, tuple)):
+                return self.loc[key]
+
+            return self.reindex(key)
+        except Exception:
+            # [slice(0, 5, None)] will break if you convert to ndarray,
+            # e.g. as requested by np.median
+            # hack
+            if isinstance(key[0], slice):
+                return self._get_values(key)
+            raise
 
     def _get_values_tuple(self, key):
         # mpl hackaround
@@ -883,7 +891,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._values[indexer]
 
     def __setitem__(self, key, value):
-        key = com._apply_if_callable(key, self)
+        key = com.apply_if_callable(key, self)
 
         def setitem(key, value):
             try:
@@ -989,7 +997,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if isinstance(key, Index):
             key = key.values
         else:
-            key = com._asarray_tuplesafe(key)
+            key = com.asarray_tuplesafe(key)
         indexer = self.index.get_indexer(key)
         mask = indexer == -1
         if mask.any():
@@ -1002,7 +1010,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         self._data = self._data.setitem(indexer=key, value=value)
         self._maybe_update_cacher()
 
-    @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
@@ -1041,7 +1048,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def _get_value(self, label, takeable=False):
         if takeable is True:
-            return com._maybe_box_datetimelike(self._values[label])
+            return com.maybe_box_datetimelike(self._values[label])
         return self.index.get_value(self._values, label)
     _get_value.__doc__ = get_value.__doc__
 
@@ -1198,7 +1205,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
-            new_index = com._default_index(len(self))
+            new_index = ibase.default_index(len(self))
             if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
@@ -1417,7 +1424,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nobs : int or Series (if level specified)
         """
         if level is None:
-            return notna(com._values_from_object(self)).sum()
+            return notna(com.values_from_object(self)).sum()
 
         if isinstance(level, compat.string_types):
             level = self.index._get_level_number(level)
@@ -1721,7 +1728,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
+        i = nanops.nanargmin(com.values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1791,7 +1798,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
-        i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
+        i = nanops.nanargmax(com.values_from_object(self), skipna=skipna)
         if i == -1:
             return np.nan
         return self.index[i]
@@ -1800,16 +1807,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     argmin = deprecate(
         'argmin', idxmin, '0.21.0',
         msg=dedent("""\
-        'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
-        will be corrected to return the positional minimum in the future.
-        Use 'series.values.argmin' to get the position of the minimum row.""")
+        The current behaviour of 'Series.argmin' is deprecated, use 'idxmin'
+        instead.
+        The behavior of 'argmin' will be corrected to return the positional
+        minimum in the future. For now, use 'series.values.argmin' or
+        'np.argmin(np.array(values))' to get the position of the minimum
+        row.""")
     )
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
         msg=dedent("""\
-        'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
-        will be corrected to return the positional maximum in the future.
-        Use 'series.values.argmax' to get the position of the maximum row.""")
+        The current behaviour of 'Series.argmax' is deprecated, use 'idxmax'
+        instead.
+        The behavior of 'argmax' will be corrected to return the positional
+        maximum in the future. For now, use 'series.values.argmax' or
+        'np.argmax(np.array(values))' to get the position of the maximum
+        row.""")
     )
 
     def round(self, decimals=0, *args, **kwargs):
@@ -1834,7 +1847,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         nv.validate_round(args, kwargs)
-        result = com._values_from_object(self).round(decimals)
+        result = com.values_from_object(self).round(decimals)
         result = self._constructor(result, index=self.index).__finalize__(self)
 
         return result
@@ -1917,8 +1930,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
             return np.nan
-        return nanops.nancorr(this.values, other.values, method=method,
-                              min_periods=min_periods)
+
+        if method in ['pearson', 'spearman', 'kendall']:
+            return nanops.nancorr(this.values, other.values, method=method,
+                                  min_periods=min_periods)
+
+        raise ValueError("method must be either 'pearson', "
+                         "'spearman', or 'kendall', '{method}' "
+                         "was supplied".format(method=method))
 
     def cov(self, other, min_periods=None):
         """
@@ -2002,7 +2021,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    NaN
         dtype: float64
         """
-        result = algorithms.diff(com._values_from_object(self), periods)
+        result = algorithms.diff(com.values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def autocorr(self, lag=1):
@@ -2045,7 +2064,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             lvals = left.values
             rvals = right.values
         else:
-            left = self
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[0] != rvals.shape[0]:
@@ -2075,7 +2093,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
-            sorter = _ensure_platform_int(sorter)
+            sorter = ensure_platform_int(sorter)
         return self._values.searchsorted(Series(value)._values,
                                          side=side, sorter=sorter)
 
@@ -2473,7 +2491,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
 
         # GH 5856/5853
         if inplace and self._is_cached:
@@ -2496,7 +2515,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bad = isna(arr)
 
         good = ~bad
-        idx = com._default_index(len(self))
+        idx = ibase.default_index(len(self))
 
         argsorted = _try_kind_sort(arr[good])
 
@@ -2645,7 +2664,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
         index = self.index
 
         if level is not None:
@@ -2672,7 +2692,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             indexer = nargsort(index, kind=kind, ascending=ascending,
                                na_position=na_position)
 
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
         new_index = index.take(indexer)
         new_index = new_index._sort_levels_monotonic()
 
@@ -2929,73 +2949,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def map(self, arg, na_action=None):
         """
-        Map values of Series using input correspondence (a dict, Series, or
-        function).
+        Map values of Series according to input correspondence.
+
+        Used for substituting each value in a Series with another value,
+        that may be derived from a function, a ``dict`` or
+        a :class:`Series`.
 
         Parameters
         ----------
         arg : function, dict, or Series
             Mapping correspondence.
-        na_action : {None, 'ignore'}
-            If 'ignore', propagate NA values, without passing them to the
+        na_action : {None, 'ignore'}, default None
+            If 'ignore', propagate NaN values, without passing them to the
             mapping correspondence.
 
         Returns
         -------
-        y : Series
+        Series
             Same index as caller.
-
-        Examples
-        --------
-
-        Map inputs to outputs (both of type `Series`):
-
-        >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
-        >>> x
-        one      1
-        two      2
-        three    3
-        dtype: int64
-
-        >>> y = pd.Series(['foo', 'bar', 'baz'], index=[1,2,3])
-        >>> y
-        1    foo
-        2    bar
-        3    baz
-
-        >>> x.map(y)
-        one   foo
-        two   bar
-        three baz
-
-        If `arg` is a dictionary, return a new Series with values converted
-        according to the dictionary's mapping:
-
-        >>> z = {1: 'A', 2: 'B', 3: 'C'}
-
-        >>> x.map(z)
-        one   A
-        two   B
-        three C
-
-        Use na_action to control whether NA values are affected by the mapping
-        function.
-
-        >>> s = pd.Series([1, 2, 3, np.nan])
-
-        >>> s2 = s.map('this is a string {}'.format, na_action=None)
-        0    this is a string 1.0
-        1    this is a string 2.0
-        2    this is a string 3.0
-        3    this is a string nan
-        dtype: object
-
-        >>> s3 = s.map('this is a string {}'.format, na_action='ignore')
-        0    this is a string 1.0
-        1    this is a string 2.0
-        2    this is a string 3.0
-        3                     NaN
-        dtype: object
 
         See Also
         --------
@@ -3005,20 +2976,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        When `arg` is a dictionary, values in Series that are not in the
+        When ``arg`` is a dictionary, values in Series that are not in the
         dictionary (as keys) are converted to ``NaN``. However, if the
         dictionary is a ``dict`` subclass that defines ``__missing__`` (i.e.
         provides a method for default values), then this default is used
-        rather than ``NaN``:
+        rather than ``NaN``.
 
-        >>> from collections import Counter
-        >>> counter = Counter()
-        >>> counter['bar'] += 1
-        >>> y.map(counter)
-        1    0
-        2    1
-        3    0
-        dtype: int64
+        Examples
+        --------
+        >>> s = pd.Series(['cat', 'dog', np.nan, 'rabbit'])
+        >>> s
+        0      cat
+        1      dog
+        2      NaN
+        3   rabbit
+        dtype: object
+
+        ``map`` accepts a ``dict`` or a ``Series``. Values that are not found
+        in the ``dict`` are converted to ``NaN``, unless the dict has a default
+        value (e.g. ``defaultdict``):
+
+        >>> s.map({'cat': 'kitten', 'dog': 'puppy'})
+        0   kitten
+        1    puppy
+        2      NaN
+        3      NaN
+        dtype: object
+
+        It also accepts a function:
+
+        >>> s.map('I am a {}'.format)
+        0       I am a cat
+        1       I am a dog
+        2       I am a nan
+        3    I am a rabbit
+        dtype: object
+
+        To avoid applying the function to missing values (and keep them as
+        ``NaN``) ``na_action='ignore'`` can be used:
+
+        >>> s.map('I am a {}'.format, na_action='ignore')
+        0     I am a cat
+        1     I am a dog
+        2            NaN
+        3  I am a rabbit
+        dtype: object
         """
         new_values = super(Series, self)._map_values(
             arg, na_action=na_action)
@@ -3066,7 +3068,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         versionadded='.. versionadded:: 0.20.0',
         **_shared_doc_kwargs))
     def aggregate(self, func, axis=0, *args, **kwargs):
-        axis = self._get_axis_number(axis)
+        # Validate the axis parameter
+        self._get_axis_number(axis)
         result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
 
@@ -3533,7 +3536,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(generic._shared_docs['_take'])
     def _take(self, indices, axis=0, is_copy=False):
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         new_index = self.index.take(indices)
 
         if is_categorical_dtype(self):
@@ -3756,56 +3759,62 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
-    def to_csv(self, path=None, index=True, sep=",", na_rep='',
-               float_format=None, header=False, index_label=None,
-               mode='w', encoding=None, compression=None, date_format=None,
-               decimal='.'):
-        """
-        Write Series to a comma-separated values (csv) file
+    @Appender(generic.NDFrame.to_csv.__doc__)
+    def to_csv(self, *args, **kwargs):
 
-        Parameters
-        ----------
-        path : string or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
-        header : boolean, default False
-            Write out series name
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.
-        mode : Python write mode, default 'w'
-        sep : character, default ","
-            Field delimiter for the output file.
-        encoding : string, optional
-            a string representing the encoding to use if the contents are
-            non-ascii, for python versions prior to 3
-        compression : string, optional
-            A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
-        date_format: string, default None
-            Format string for datetime objects.
-        decimal: string, default '.'
-            Character recognized as decimal separator. E.g. use ',' for
-            European data
-        """
-        from pandas.core.frame import DataFrame
-        df = DataFrame(self)
-        # result is only a string if no path provided, otherwise None
-        result = df.to_csv(path, index=index, sep=sep, na_rep=na_rep,
-                           float_format=float_format, header=header,
-                           index_label=index_label, mode=mode,
-                           encoding=encoding, compression=compression,
-                           date_format=date_format, decimal=decimal)
-        if path is None:
-            return result
+        names = ["path_or_buf", "sep", "na_rep", "float_format", "columns",
+                 "header", "index", "index_label", "mode", "encoding",
+                 "compression", "quoting", "quotechar", "line_terminator",
+                 "chunksize", "tupleize_cols", "date_format", "doublequote",
+                 "escapechar", "decimal"]
+
+        old_names = ["path_or_buf", "index", "sep", "na_rep", "float_format",
+                     "header", "index_label", "mode", "encoding",
+                     "compression", "date_format", "decimal"]
+
+        if "path" in kwargs:
+            warnings.warn("The signature of `Series.to_csv` was aligned "
+                          "to that of `DataFrame.to_csv`, and argument "
+                          "'path' will be renamed to 'path_or_buf'.",
+                          FutureWarning, stacklevel=2)
+            kwargs["path_or_buf"] = kwargs.pop("path")
+
+        if len(args) > 1:
+            # Either "index" (old signature) or "sep" (new signature) is being
+            # passed as second argument (while the first is the same)
+            maybe_sep = args[1]
+
+            if not (is_string_like(maybe_sep) and len(maybe_sep) == 1):
+                # old signature
+                warnings.warn("The signature of `Series.to_csv` was aligned "
+                              "to that of `DataFrame.to_csv`. Note that the "
+                              "order of arguments changed, and the new one "
+                              "has 'sep' in first place, for which \"{}\" is "
+                              "not a valid value. The old order will cease to "
+                              "be supported in a future version. Please refer "
+                              "to the documentation for `DataFrame.to_csv` "
+                              "when updating your function "
+                              "calls.".format(maybe_sep),
+                              FutureWarning, stacklevel=2)
+                names = old_names
+
+        pos_args = dict(zip(names[:len(args)], args))
+
+        for key in pos_args:
+            if key in kwargs:
+                raise ValueError("Argument given by name ('{}') and position "
+                                 "({})".format(key, names.index(key)))
+            kwargs[key] = pos_args[key]
+
+        if kwargs.get("header", None) is None:
+            warnings.warn("The signature of `Series.to_csv` was aligned "
+                          "to that of `DataFrame.to_csv`, and argument "
+                          "'header' will change its default value from False "
+                          "to True: please pass an explicit value to suppress "
+                          "this warning.", FutureWarning,
+                          stacklevel=2)
+            kwargs["header"] = False  # Backwards compatibility.
+        return self.to_frame().to_csv(**kwargs)
 
     @Appender(generic._shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
@@ -3912,8 +3921,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if kwargs:
             raise TypeError('dropna() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
-
-        axis = self._get_axis_number(axis or 0)
+        # Validate the axis parameter
+        self._get_axis_number(axis or 0)
 
         if self._can_hold_na:
             result = remove_na_arraylike(self)
@@ -4089,8 +4098,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                      ordered=dtype.ordered)
             elif is_extension_array_dtype(dtype):
                 # create an extension array from its dtype
-                array_type = dtype.construct_array_type()
-                subarr = array_type(subarr, copy=copy)
+                array_type = dtype.construct_array_type()._from_sequence
+                subarr = array_type(subarr, dtype=dtype, copy=copy)
 
             elif dtype is not None and raise_cast_failure:
                 raise
@@ -4127,10 +4136,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         subarr = data
 
         if dtype is not None and not data.dtype.is_dtype(dtype):
-            msg = ("Cannot coerce extension array to dtype '{typ}'. "
-                   "Do the coercion before passing to the constructor "
-                   "instead.".format(typ=dtype))
-            raise ValueError(msg)
+            subarr = data.astype(dtype)
 
         if copy:
             subarr = data.copy()
@@ -4192,7 +4198,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         if isinstance(data, np.ndarray):
             raise Exception('Data must be 1-dimensional')
         else:
-            subarr = com._asarray_tuplesafe(data, dtype=dtype)
+            subarr = com.asarray_tuplesafe(data, dtype=dtype)
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.

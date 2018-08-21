@@ -11,11 +11,12 @@ import warnings
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, _ensure_index, InvalidIndexError
+from pandas.core.index import Index, ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
@@ -149,8 +150,8 @@ class SparseSeries(Series):
                     data.fill(v)
 
             if index is None:
-                index = com._default_index(sparse_index.length)
-            index = _ensure_index(index)
+                index = ibase.default_index(sparse_index.length)
+            index = ensure_index(index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -374,7 +375,7 @@ class SparseSeries(Series):
             # Could not hash item, must be array-like?
             pass
 
-        key = com._values_from_object(key)
+        key = com.values_from_object(key)
         if self.index.nlevels > 1 and isinstance(key, tuple):
             # to handle MultiIndex labels
             key = self.index.get_loc(key)
@@ -623,8 +624,9 @@ class SparseSeries(Series):
         cumsum : SparseSeries
         """
         nv.validate_cumsum(args, kwargs)
+        # Validate axis
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            self._get_axis_number(axis)
 
         new_array = self.values.cumsum()
 
@@ -653,7 +655,8 @@ class SparseSeries(Series):
         Analogous to Series.dropna. If fill_value=NaN, returns a dense Series
         """
         # TODO: make more efficient
-        axis = self._get_axis_number(axis or 0)
+        # Validate axis
+        self._get_axis_number(axis or 0)
         dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"

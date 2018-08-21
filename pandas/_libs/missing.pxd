@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from tslibs.nattype cimport is_null_datetimelike
 

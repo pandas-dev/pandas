@@ -94,6 +94,18 @@ class _DtypeOpsMixin(object):
         except TypeError:
             return False
 
+    @property
+    def _is_numeric(self):
+        # type: () -> bool
+        """
+        Whether columns with this dtype should be considered numeric.
+
+        By default ExtensionDtypes are assumed to be non-numeric.
+        They'll be excluded from operations that exclude non-numeric
+        columns, like (groupby) reductions, plotting, etc.
+        """
+        return False
+
 
 class ExtensionDtype(_DtypeOpsMixin):
     """A custom data type, to be paired with an ExtensionArray.
@@ -108,6 +120,11 @@ class ExtensionDtype(_DtypeOpsMixin):
     * type
     * name
     * construct_from_string
+
+    The following attributes influence the behavior of the dtype in
+    pandas operations
+
+    * _is_numeric
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry
