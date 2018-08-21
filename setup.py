@@ -77,7 +77,6 @@ _pxi_dep_template = {
               '_libs/algos_rank_helper.pxi.in'],
     'groupby': ['_libs/groupby_helper.pxi.in'],
     'join': ['_libs/join_helper.pxi.in', '_libs/join_func_helper.pxi.in'],
-    'reshape': ['_libs/reshape_helper.pxi.in'],
     'hashtable': ['_libs/hashtable_class_helper.pxi.in',
                   '_libs/hashtable_func_helper.pxi.in'],
     'index': ['_libs/index_class_helper.pxi.in'],
@@ -559,7 +558,7 @@ ext_data = {
         'include': []},
     '_libs.reshape': {
         'pyxfile': '_libs/reshape',
-        'depends': _pxi_dep['reshape']},
+        'depends': []},
     '_libs.skiplist': {
         'pyxfile': '_libs/skiplist',
         'depends': ['pandas/_libs/src/skiplist.h']},
