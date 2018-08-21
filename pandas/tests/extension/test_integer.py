@@ -4,6 +4,7 @@ import pandas.util.testing as tm
 import pytest
 
 from pandas.tests.extension import base
+from pandas.core.dtypes.common import is_extension_array_dtype
 
 from pandas.core.arrays import IntegerArray, integer_array
 from pandas.core.arrays.integer import (
@@ -139,6 +140,13 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
             if s.dtype.is_unsigned_integer and (op_name == '__rsub__'):
                 # TODO see https://github.com/pandas-dev/pandas/issues/22023
                 pytest.skip("unsigned subtraction gives negative values")
+
+            if (hasattr(other, 'dtype')
+                    and not is_extension_array_dtype(other.dtype)
+                    and pd.api.types.is_integer_dtype(other.dtype)):
+                # other is np.int64 and would therefore always result in
+                # upcasting, so keeping other as same numpy_dtype
+                other = other.astype(s.dtype.numpy_dtype)
 
             result = op(s, other)
             expected = s.combine(other, op)
