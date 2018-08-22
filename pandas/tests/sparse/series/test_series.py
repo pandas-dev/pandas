@@ -1189,7 +1189,6 @@ class TestSparseSeriesScipyInteraction(object):
         assert il == il_result
         assert jl == jl_result
 
-    # @pytest.mark.xfail(reason="TODO", strict=True)
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
         val2 = np.array([3, np.nan, 4, 0, 0])
@@ -1277,7 +1276,6 @@ class TestSparseSeriesScipyInteraction(object):
         exp = pd.SparseSeries(exp, kind='block', fill_value=0)
         tm.assert_sp_series_equal(res, exp)
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_concat_sparse_dense(self):
         # use first input's fill_value
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -1294,21 +1292,21 @@ class TestSparseSeriesScipyInteraction(object):
 
             res = pd.concat([dense, sparse, dense])
             exp = pd.concat([dense, pd.Series(val1), dense])
-            exp = pd.SparseSeries(exp, kind=kind)
-            tm.assert_sp_series_equal(res, exp)
+            exp = exp.astype("Sparse")
+            tm.assert_series_equal(res, exp)
 
             sparse = pd.SparseSeries(val1, name='x', kind=kind, fill_value=0)
             dense = pd.Series(val2, name='y')
 
             res = pd.concat([sparse, dense])
             exp = pd.concat([pd.Series(val1), dense])
-            exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
-            tm.assert_sp_series_equal(res, exp)
+            exp = exp.astype(SparseDtype(exp.dtype, 0))
+            tm.assert_series_equal(res, exp)
 
             res = pd.concat([dense, sparse, dense])
             exp = pd.concat([dense, pd.Series(val1), dense])
-            exp = pd.SparseSeries(exp, kind=kind, fill_value=0)
-            tm.assert_sp_series_equal(res, exp)
+            exp = exp.astype(SparseDtype(exp.dtype, 0))
+            tm.assert_series_equal(res, exp)
 
     def test_value_counts(self):
         vals = [1, 2, nan, 0, nan, 1, 2, nan, nan, 1, 2, 0, 1, 1]
