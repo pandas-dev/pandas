@@ -389,7 +389,7 @@ This is mainly syntactic sugar for the alternative and much more verbose:
 Additionally this method avoids recomputing the internal grouping information
 derived from the passed key.
 
-.. _groupby.iterating:
+.. _groupby.iterating-label:
 
 Iterating through groups
 ------------------------
@@ -415,8 +415,7 @@ In the case of grouping by multiple keys, the group name will be a tuple:
       ...:        print(group)
       ...:
 
-It's standard Python-fu but remember you can unpack the tuple in the for loop
-statement if you wish: ``for (k1, k2), group in grouped:``.
+See :ref:`timeseries.iterating-label`.
 
 Selecting a group
 -----------------

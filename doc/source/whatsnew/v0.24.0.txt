@@ -42,7 +42,7 @@ Pandas has gained the ability to hold integer dtypes with missing values. This l
 Here is an example of the usage.
 
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
-marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`)
+marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`)
 
 .. ipython:: python
 
@@ -182,6 +182,7 @@ Other Enhancements
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
+- :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 
 .. _whatsnew_0240.api_breaking:
 
@@ -442,11 +443,12 @@ ExtensionType Changes
 - ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
+- Added ``ExtensionDtype._is_numeric`` for controlling whether an extension dtype is considered numeric (:issue:`22290`).
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
--
+- :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -496,6 +498,7 @@ Other API Changes
 - :meth:`PeriodIndex.tz_convert` and :meth:`PeriodIndex.tz_localize` have been removed (:issue:`21781`)
 - :class:`Index` subtraction will attempt to operate element-wise instead of raising ``TypeError`` (:issue:`19369`)
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
+- :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -516,6 +519,7 @@ Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
+- :meth:`Series.repeat` has renamed the ``reps`` argument to ``repeats`` (:issue:`14645`)
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 -
@@ -653,6 +657,7 @@ Indexing
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
+- ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
 - Bug in `scalar in Index` if scalar is a float while the Index is of integer dtype (:issue:`22085`)
 
 Missing
@@ -674,6 +679,7 @@ I/O
 
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
+- :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
 -
 
 Plotting

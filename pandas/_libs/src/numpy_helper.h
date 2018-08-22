@@ -28,20 +28,4 @@ PANDAS_INLINE PyObject* get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
     return PyArray_Scalar(item, PyArray_DESCR(ap), (PyObject*)ap);
 }
 
-// returns ASCII or UTF8 (py3) view on python str
-// python object owns memory, should not be freed
-PANDAS_INLINE const char* get_c_string(PyObject* obj) {
-#if PY_VERSION_HEX >= 0x03000000
-    return PyUnicode_AsUTF8(obj);
-#else
-    return PyString_AsString(obj);
-#endif
-}
-
-void set_array_not_contiguous(PyArrayObject* ao) {
-    // Numpy>=1.8-compliant equivalent to:
-    //  ao->flags &= ~(NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS);
-    PyArray_CLEARFLAGS(ao, (NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_F_CONTIGUOUS));
-}
-
 #endif  // PANDAS__LIBS_SRC_NUMPY_HELPER_H_

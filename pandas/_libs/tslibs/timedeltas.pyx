@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import collections
 import textwrap
 import warnings
