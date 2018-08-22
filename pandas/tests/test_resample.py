@@ -41,7 +41,7 @@ bday = BDay()
 
 # The various methods we support
 downsample_methods = ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-                      'median', 'prod', 'var', 'ohlc']
+                      'median', 'prod', 'var', 'ohlc', 'quantile']
 upsample_methods = ['count', 'size']
 series_methods = ['nunique']
 resample_methods = downsample_methods + upsample_methods + series_methods
@@ -781,6 +781,15 @@ class Base(object):
         for (rk, rv), (gk, gv) in zip(resampled, grouped):
             assert rk == gk
             assert_series_equal(rv, gv)
+
+    def test_resample_quantile(self):
+        # GH 15023
+        s = self.create_series()
+        q = 0.75
+        freq = 'H'
+        result = s.resample(freq).quantile(q)
+        expected = s.resample(freq).agg(lambda x: x.quantile(q))
+        tm.assert_series_equal(result, expected)
 
 
 class TestDatetimeIndex(Base):

@@ -769,6 +769,24 @@ one pass, you can do
             result = pd.Series([], index=result.index, dtype='int64')
         return result
 
+    def quantile(self, q=0.5, **kwargs):
+        """
+        Return value at the given quantile.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+
+        See Also
+        --------
+        Series.quantile
+        DataFrame.quantile
+        DataFrameGroupBy.quantile
+        """
+        return self._downsample('quantile', q=q, **kwargs)
+
 
 # downsample methods
 for method in ['sum', 'prod']:
@@ -1063,7 +1081,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            return self._groupby_and_aggregate(how, grouper=self.grouper)
+            return self._groupby_and_aggregate(how, grouper=self.grouper,
+                                               **kwargs)
         elif is_superperiod(ax.freq, self.freq):
             if how == 'ohlc':
                 # GH #13083
