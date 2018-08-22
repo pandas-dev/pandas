@@ -568,18 +568,9 @@ def test_as_index():
          'B': [101, 205]},
         columns=['cat', 'A', 'B'])
 
-    for name in [None, 'X', 'B', 'cat']:
+    for name in [None, 'X', 'B']:
         df.index = Index(list("abc"), name=name)
-
-        if name in group_columns and name in df.index.names:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = df.groupby(
-                    group_columns, as_index=False, observed=True).sum()
-
-        else:
-            result = df.groupby(
-                group_columns, as_index=False, observed=True).sum()
+        result = df.groupby(group_columns, as_index=False, observed=True).sum()
 
         tm.assert_frame_equal(result, expected)
 

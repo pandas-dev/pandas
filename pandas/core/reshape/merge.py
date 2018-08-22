@@ -811,7 +811,6 @@ class _MergeOperation(object):
         left_drop = []
 
         left, right = self.left, self.right
-        stacklevel = 5  # Number of stack levels from df.merge
 
         is_lkey = lambda x: is_array_like(x) and len(x) == len(left)
         is_rkey = lambda x: is_array_like(x) and len(x) == len(right)
@@ -837,8 +836,7 @@ class _MergeOperation(object):
                     else:
                         if rk is not None:
                             right_keys.append(
-                                right._get_label_or_level_values(
-                                    rk, stacklevel=stacklevel))
+                                right._get_label_or_level_values(rk))
                             join_names.append(rk)
                         else:
                             # work-around for merge_asof(right_index=True)
@@ -848,8 +846,7 @@ class _MergeOperation(object):
                     if not is_rkey(rk):
                         if rk is not None:
                             right_keys.append(
-                                right._get_label_or_level_values(
-                                    rk, stacklevel=stacklevel))
+                                right._get_label_or_level_values(rk))
                         else:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index)
@@ -862,8 +859,7 @@ class _MergeOperation(object):
                     else:
                         right_keys.append(rk)
                     if lk is not None:
-                        left_keys.append(left._get_label_or_level_values(
-                            lk, stacklevel=stacklevel))
+                        left_keys.append(left._get_label_or_level_values(lk))
                         join_names.append(lk)
                     else:
                         # work-around for merge_asof(left_index=True)
@@ -875,8 +871,7 @@ class _MergeOperation(object):
                     left_keys.append(k)
                     join_names.append(None)
                 else:
-                    left_keys.append(left._get_label_or_level_values(
-                        k, stacklevel=stacklevel))
+                    left_keys.append(left._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.right.index, MultiIndex):
                 right_keys = [lev._values.take(lab)
@@ -890,8 +885,7 @@ class _MergeOperation(object):
                     right_keys.append(k)
                     join_names.append(None)
                 else:
-                    right_keys.append(right._get_label_or_level_values(
-                        k, stacklevel=stacklevel))
+                    right_keys.append(right._get_label_or_level_values(k))
                     join_names.append(k)
             if isinstance(self.left.index, MultiIndex):
                 left_keys = [lev._values.take(lab)
