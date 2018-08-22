@@ -1,4 +1,7 @@
+import operator
+
 import numpy as np
+import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.sparse.api import SparseDtype
@@ -453,3 +456,14 @@ class TestSparseSeriesArithmetic(TestSparseArrayArithmetics):
         sb = pd.SparseSeries(np.arange(4), index=[10, 11, 12, 13],
                              dtype=np.int64, fill_value=np.nan)
         self._check_numeric_ops(sa, sb, da, db)
+
+
+@pytest.mark.parametrize("op", [
+    operator.eq,
+    operator.add,
+])
+def test_with_list(op):
+    arr = pd.SparseArray([0, 1], fill_value=0)
+    result = op(arr, [0, 1])
+    expected = op(arr, pd.SparseArray([0, 1]))
+    tm.assert_sp_array_equal(result, expected)

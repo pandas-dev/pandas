@@ -229,13 +229,6 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         result = op(s, other)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.skip(reason="segfault")
-    def test_compare_array(self, data, all_compare_operators):
-        op_name = all_compare_operators
-        s = pd.Series(data)
-        other = [0] * len(data)
-        self._compare_other(s, data, op_name, other)
-
 
 def test_slice():
     import pandas.util.testing as tm

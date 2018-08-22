@@ -1127,6 +1127,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 return _wrap_result(op_name, result, self.sp_index, fill)
 
             else:
+                other = np.asarray(other)
                 with np.errstate(all='ignore'):
                     # TODO: delete sparse stuff in core/ops.py
                     # TODO: look into _wrap_result
@@ -1160,6 +1161,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
             if isinstance(other, (ABCSeries, ABCIndexClass)):
                 other = getattr(other, 'values', other)
+
+            if not is_scalar(other) and not isinstance(other, type(self)):
+                # convert list-like to ndarary
+                other = np.asarray(other)
 
             if isinstance(other, np.ndarray):
                 # TODO: make this more flexible than just ndarray...
