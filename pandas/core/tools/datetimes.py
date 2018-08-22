@@ -275,9 +275,14 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 yearfirst=yearfirst,
                 require_iso8601=require_iso8601
             )
-            if tz_parsed is not None and box:
-                return DatetimeIndex._simple_new(result, name=name,
-                                                 tz=tz_parsed)
+            if tz_parsed is not None:
+                if box:
+                    return DatetimeIndex._simple_new(result, name=name,
+                                                     tz=tz_parsed)
+                else:
+                    result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                              for ts in result]
+                    return np.array(result, dtype=object)
 
         if box:
             if is_datetime64_dtype(result):
