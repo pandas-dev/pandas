@@ -273,8 +273,6 @@ def test_drop_duplicates_tuple():
 def test_drop_duplicates_empty(df):
     # GH 20516
     result = df.drop_duplicates()
-    if df.columns.empty is False:
-        df = DataFrame(columns=[])
     tm.assert_frame_equal(result, df)
 
 
