@@ -412,6 +412,8 @@ class ExtensionArray(object):
         Newly introduced missing values are filled with
         ``self.dtype.na_value``.
 
+        .. versionadded:: 0.24.0
+
         Parameters
         ----------
         periods : int, default 1
