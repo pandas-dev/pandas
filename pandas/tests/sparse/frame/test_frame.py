@@ -648,7 +648,6 @@ class TestSparseDataFrame(SharedWithSparse):
         pytest.raises(Exception, setattr, self.frame, 'index',
                       self.frame.index[:-1])
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_ctor_reindex(self):
         idx = pd.Index([0, 1, 2, 3])
         with tm.assert_raises_regex(ValueError, ''):

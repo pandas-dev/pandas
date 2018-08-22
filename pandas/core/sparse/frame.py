@@ -170,6 +170,10 @@ class SparseDataFrame(DataFrame):
                     v = [v.get(i, np.nan) for i in index]
 
                 v = sp_maker(v)
+
+            if index is not None and len(v) != len(index):
+                msg = "Length of passed values is {}, index implies {}"
+                raise ValueError(msg.format(len(v), len(index)))
             sdict[k] = v
 
         # TODO: figure out how to handle this case, all nan's?
