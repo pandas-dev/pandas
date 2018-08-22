@@ -553,18 +553,18 @@ class TestDataFrameFormatting(object):
         df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
                         'b': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"          a      b\na         あ      1\n"
-                    u"bb      いいい    222\nc         う  33333\n"
-                    u"ddd  ええええええ      4")
+        expected = (u"          a     b\na         あ     1\n"
+                    u"bb      いいい   222\nc         う 33333\n"
+                    u"ddd  ええええええ     4")
         assert _rep(df) == expected
 
         # last col
         df = DataFrame({'a': [1, 222, 33333, 4],
                         'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                        index=['a', 'bb', 'c', 'ddd'])
-        expected = (u"         a       b\na        1       あ\n"
-                    u"bb     222     いいい\nc    33333       う\n"
-                    u"ddd      4  ええええええ")
+        expected = (u"        a       b\na       1       あ\n"
+                    u"bb    222     いいい\nc   33333       う\n"
+                    u"ddd     4  ええええええ")
         assert _rep(df) == expected
 
         # all col
@@ -659,18 +659,18 @@ class TestDataFrameFormatting(object):
             df = DataFrame({'a': [u'あ', u'いいい', u'う', u'ええええええ'],
                             'b': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"                a      b\na              あ      1\n"
-                        u"bb         いいい    222\nc              う  33333\n"
-                        u"ddd  ええええええ      4")
+            expected = (u"                a     b\na              あ     1\n"
+                        u"bb         いいい   222\nc              う 33333\n"
+                        u"ddd  ええええええ     4")
             assert _rep(df) == expected
 
             # last col
             df = DataFrame({'a': [1, 222, 33333, 4],
                             'b': [u'あ', u'いいい', u'う', u'ええええええ']},
                            index=['a', 'bb', 'c', 'ddd'])
-            expected = (u"         a             b\na        1            あ\n"
-                        u"bb     222        いいい\nc    33333            う\n"
-                        u"ddd      4  ええええええ")
+            expected = (u"        a             b\na       1            あ\n"
+                        u"bb    222        いいい\nc   33333            う\n"
+                        u"ddd     4  ええええええ")
             assert _rep(df) == expected
 
             # all col
@@ -885,12 +885,12 @@ class TestDataFrameFormatting(object):
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                          dt   x\n'
-                        '0  2011-01-01 00:00:00-05:00   1\n'
-                        '1  2011-01-01 00:00:00-05:00   2\n'
-                        '..                       ...  ..\n'
-                        '8                        NaT   9\n'
-                        '9                        NaT  10\n\n'
+            expected = ('                          dt  x\n'
+                        '0  2011-01-01 00:00:00-05:00  1\n'
+                        '1  2011-01-01 00:00:00-05:00  2\n'
+                        '..                       ... ..\n'
+                        '8                        NaT  9\n'
+                        '9                        NaT 10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
 
@@ -898,12 +898,12 @@ class TestDataFrameFormatting(object):
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                          dt   x\n'
-                        '0                        NaT   1\n'
-                        '1                        NaT   2\n'
-                        '..                       ...  ..\n'
-                        '8  2011-01-01 00:00:00-05:00   9\n'
-                        '9  2011-01-01 00:00:00-05:00  10\n\n'
+            expected = ('                          dt  x\n'
+                        '0                        NaT  1\n'
+                        '1                        NaT  2\n'
+                        '..                       ... ..\n'
+                        '8  2011-01-01 00:00:00-05:00  9\n'
+                        '9  2011-01-01 00:00:00-05:00 10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
 
@@ -912,12 +912,12 @@ class TestDataFrameFormatting(object):
         df = pd.DataFrame({"dt": dts,
                            "x": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]})
         with option_context('display.max_rows', 5):
-            expected = ('                           dt   x\n'
-                        '0   2011-01-01 00:00:00+09:00   1\n'
-                        '1   2011-01-01 00:00:00+09:00   2\n'
-                        '..                        ...  ..\n'
-                        '8   2011-01-01 00:00:00-05:00   9\n'
-                        '9   2011-01-01 00:00:00-05:00  10\n\n'
+            expected = ('                           dt  x\n'
+                        '0   2011-01-01 00:00:00+09:00  1\n'
+                        '1   2011-01-01 00:00:00+09:00  2\n'
+                        '..                        ... ..\n'
+                        '8   2011-01-01 00:00:00-05:00  9\n'
+                        '9   2011-01-01 00:00:00-05:00 10\n\n'
                         '[10 rows x 2 columns]')
             assert repr(df) == expected
 
@@ -1253,7 +1253,7 @@ class TestDataFrameFormatting(object):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(header=False)
-        expected = "0  1  4\n1  2  5\n2  3  6"
+        expected = "0 1 4\n1 2 5\n2 3 6"
 
         assert df_s == expected
 
@@ -1261,7 +1261,7 @@ class TestDataFrameFormatting(object):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(header=['X', 'Y'])
-        expected = '   X  Y\n0  1  4\n1  2  5\n2  3  6'
+        expected = '  X Y\n0 1 4\n1 2 5\n2 3 6'
 
         assert df_s == expected
 
@@ -1428,10 +1428,10 @@ class TestDataFrameFormatting(object):
         rs = df.to_string(formatters={'__index__': lambda x: 'abc' [x]})
 
         xp = """\
-    0   1   2   3   4
-a   0   1   2   3   4
-b   5   6   7   8   9
-c  10  11  12  13  14\
+   0  1  2  3  4
+a  0  1  2  3  4
+b  5  6  7  8  9
+c 10 11 12 13 14\
 """
 
         assert rs == xp
@@ -1470,9 +1470,9 @@ c  10  11  12  13  14\
         assert result == expected
 
     def test_to_string_line_width(self):
-        df = DataFrame(123, lrange(10, 15), lrange(30))
+        df = DataFrame(123, lrange(10, 15), lrange(35))
         s = df.to_string(line_width=80)
-        assert max(len(l) for l in s.split('\n')) == 80
+        assert max(len(l) for l in s.split('\n')) <= 80
 
     def test_show_dimensions(self):
         df = DataFrame(123, lrange(10, 15), lrange(30))
@@ -1883,25 +1883,25 @@ class TestSeriesFormatting(object):
         idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
             u'おおお', u'かかかか'), (u'き', u'くく')])
         s = Series([1, 22, 3333, 44444], index=idx)
-        expected = (u"あ    いい          1\n"
-                    u"う    え          22\n"
-                    u"おおお  かかかか     3333\n"
-                    u"き    くく      44444\ndtype: int64")
+        expected = (u"あ    いい         1\n"
+                    u"う    え         22\n"
+                    u"おおお  かかかか    3333\n"
+                    u"き    くく     44444\ndtype: int64")
         assert _rep(s) == expected
 
         # object dtype, shorter than unicode repr
         s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
-        expected = (u"1          1\nAB        22\nNaN     3333\n"
-                    u"あああ    44444\ndtype: int64")
+        expected = (u"1         1\nAB       22\nNaN    3333\n"
+                    u"あああ   44444\ndtype: int64")
         assert _rep(s) == expected
 
         # object dtype, longer than unicode repr
         s = Series([1, 22, 3333, 44444],
                    index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-        expected = (u"1                          1\n"
-                    u"AB                        22\n"
-                    u"2011-01-01 00:00:00     3333\n"
-                    u"あああ                    44444\ndtype: int64")
+        expected = (u"1                         1\n"
+                    u"AB                       22\n"
+                    u"2011-01-01 00:00:00    3333\n"
+                    u"あああ                   44444\ndtype: int64")
         assert _rep(s) == expected
 
         # truncate
@@ -1961,26 +1961,26 @@ class TestSeriesFormatting(object):
             idx = pd.MultiIndex.from_tuples([(u'あ', u'いい'), (u'う', u'え'), (
                 u'おおお', u'かかかか'), (u'き', u'くく')])
             s = Series([1, 22, 3333, 44444], index=idx)
-            expected = (u"あ      いい            1\n"
-                        u"う      え             22\n"
-                        u"おおお  かかかか     3333\n"
-                        u"き      くく        44444\n"
+            expected = (u"あ      いい           1\n"
+                        u"う      え            22\n"
+                        u"おおお  かかかか    3333\n"
+                        u"き      くく       44444\n"
                         u"dtype: int64")
             assert _rep(s) == expected
 
             # object dtype, shorter than unicode repr
             s = Series([1, 22, 3333, 44444], index=[1, 'AB', np.nan, u'あああ'])
-            expected = (u"1             1\nAB           22\nNaN        3333\n"
-                        u"あああ    44444\ndtype: int64")
+            expected = (u"1            1\nAB          22\nNaN       3333\n"
+                        u"あああ   44444\ndtype: int64")
             assert _rep(s) == expected
 
             # object dtype, longer than unicode repr
             s = Series([1, 22, 3333, 44444],
                        index=[1, 'AB', pd.Timestamp('2011-01-01'), u'あああ'])
-            expected = (u"1                          1\n"
-                        u"AB                        22\n"
-                        u"2011-01-01 00:00:00     3333\n"
-                        u"あああ                 44444\ndtype: int64")
+            expected = (u"1                         1\n"
+                        u"AB                       22\n"
+                        u"2011-01-01 00:00:00    3333\n"
+                        u"あああ                44444\ndtype: int64")
             assert _rep(s) == expected
 
             # truncate
@@ -2128,8 +2128,8 @@ class TestSeriesFormatting(object):
         # GH 12615
         index = pd.period_range('2013-01', periods=6, freq='M')
         s = Series(np.arange(6, dtype='int64'), index=index)
-        exp = ("2013-01    0\n2013-02    1\n2013-03    2\n2013-04    3\n"
-               "2013-05    4\n2013-06    5\nFreq: M, dtype: int64")
+        exp = ("2013-01   0\n2013-02   1\n2013-03   2\n2013-04   3\n"
+               "2013-05   4\n2013-06   5\nFreq: M, dtype: int64")
         assert str(s) == exp
 
         s = Series(index)
@@ -2251,7 +2251,7 @@ class TestSeriesFormatting(object):
         s = Series([0, 100, 200, 400])
         with option_context("display.max_rows", 2):
             strrepr = repr(s).replace('\n', '')
-        assert getndots(strrepr) == 3
+        assert getndots(strrepr) == 2
 
     def test_show_dimensions(self):
         # gh-7117
@@ -2273,25 +2273,25 @@ class TestSeriesFormatting(object):
         s = Series(range(100), dtype='int64')
         s.name = 'myser'
         res = s.to_string(max_rows=2, name=True)
-        exp = '0      0\n      ..\n99    99\nName: myser'
+        exp = '0     0\n     ..\n99   99\nName: myser'
         assert res == exp
         res = s.to_string(max_rows=2, name=False)
-        exp = '0      0\n      ..\n99    99'
+        exp = '0     0\n     ..\n99   99'
         assert res == exp
 
     def test_to_string_dtype(self):
         s = Series(range(100), dtype='int64')
         res = s.to_string(max_rows=2, dtype=True)
-        exp = '0      0\n      ..\n99    99\ndtype: int64'
+        exp = '0     0\n     ..\n99   99\ndtype: int64'
         assert res == exp
         res = s.to_string(max_rows=2, dtype=False)
-        exp = '0      0\n      ..\n99    99'
+        exp = '0     0\n     ..\n99   99'
         assert res == exp
 
     def test_to_string_length(self):
         s = Series(range(100), dtype='int64')
         res = s.to_string(max_rows=2, length=True)
-        exp = '0      0\n      ..\n99    99\nLength: 100'
+        exp = '0     0\n     ..\n99   99\nLength: 100'
         assert res == exp
 
     def test_to_string_na_rep(self):
@@ -2311,10 +2311,10 @@ class TestSeriesFormatting(object):
         s = pd.Series(range(10), dtype='int64')
         s.index.name = 'foo'
         res = s.to_string(header=True, max_rows=2)
-        exp = 'foo\n0    0\n    ..\n9    9'
+        exp = 'foo\n0   0 \n    ..\n9   9 '
         assert res == exp
         res = s.to_string(header=False, max_rows=2)
-        exp = '0    0\n    ..\n9    9'
+        exp = '0   0 \n    ..\n9   9 '
         assert res == exp
 
 
