@@ -202,14 +202,9 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     series_array_exc = None
 
     def test_error(self, data, all_arithmetic_operators):
-        # not sure
+        # not sure what this test is doing
+        # should this check _is_numeric in the base test?
         pass
-
-    @pytest.mark.xfail(reson="what is this test doing?", strict=True)
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        super(TestArithmeticOps, self).test_arith_series_with_array(
-            data, all_arithmetic_operators
-        )
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):

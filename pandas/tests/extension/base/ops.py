@@ -73,7 +73,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         # ndarray & other series
         op_name = all_arithmetic_operators
         s = pd.Series(data)
-        self.check_opname(s, op_name, [s.iloc[0]] * len(s),
+        self.check_opname(s, op_name, pd.Series([s.iloc[0]] * len(s)),
                           exc=self.series_array_exc)
 
     def test_divmod(self, data):

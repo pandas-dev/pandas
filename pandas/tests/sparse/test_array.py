@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import compat
+from pandas.errors import PerformanceWarning
 from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
@@ -983,9 +984,28 @@ class TestSparseArrayAnalytics(object):
         # (2 * 8) + 2 * 4
         assert result == 24
 
-    def test_nbytes_block(selfs):
+    def test_nbytes_block(self):
         arr = SparseArray([1, 2, 0, 0, 0], kind='block')
         result = arr.nbytes
         # (2 * 8) + 4 + 4
         # sp_values, blocs, blenghts
         assert result == 24
+
+
+def test_setting_fill_value_fillna_still_works():
+    # This is why letting users update fill_value / dtype is bad
+    # astype has the same problem.
+    arr = SparseArray([1., np.nan, 1.0], fill_value=0.0)
+    with tm.assert_produces_warning(PerformanceWarning):
+        arr.fill_value = np.nan
+    result = arr.isna()
+    expected = np.array([False, True, False])
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_setting_fill_value():
+    arr = SparseArray([0.0, np.nan], fill_value=0)
+    with tm.assert_produces_warning(PerformanceWarning):
+        arr.fill_value = np.nan
+    expected = SparseArray([0.0, np.nan], fill_value=np.nan)
+    tm.assert_sp_array_equal(arr, expected)

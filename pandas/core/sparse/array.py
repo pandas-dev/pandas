@@ -350,9 +350,20 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def fill_value(self, value):
         # XXX: I think this should be deprecated, since fill_value goes into
         # the hash of SparseDtype
-        if not is_scalar(value):
-            raise ValueError('fill_value must be a scalar')
-        self.dtype._fill_value = value
+        warnings.warn(
+            "Updating fill_value requires converting to a dense array",
+            PerformanceWarning,
+            stacklevel=2
+        )
+        dtype = SparseDtype(self.dtype.subtype, value)
+        sparse_values, sparse_index, _ = make_sparse(
+            np.asarray(self), kind=self.kind,
+            fill_value=dtype.fill_value, copy=False
+        )
+        self._sparse_index = sparse_index
+        self._sparse_values = sparse_values
+        self._dtype = dtype
+        return self
 
     @property
     def kind(self):
@@ -396,15 +407,9 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self.to_dense()
 
     def isna(self):
-        if isna(self.fill_value):
-            # Then just the sparse values
-            mask = np.ones(len(self), dtype=bool)
-            # TODO: avoid to_int_index
-            mask[self.sp_index.to_int_index().indices] = False
-        else:
-            # This is inevitable expensive?
-            mask = pd.isna(np.asarray(self))
-        return mask
+        # Two unfortunate things here:
+        # 1. We can't
+        return pd.isna(np.asarray(self))
 
     def fillna(self, value=None, method=None, limit=None):
         """
@@ -1250,7 +1255,7 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
 
     Returns
     -------
-    (sparse_values, index) : (ndarray, SparseIndex)
+    (sparse_values, index, fill_value) : (ndarray, SparseIndex, Scalar)
     """
 
     arr = _sanitize_values(arr)
