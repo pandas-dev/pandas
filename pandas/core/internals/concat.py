@@ -151,11 +151,8 @@ class JoinUnit(object):
         values = self.block.values
         if self.block.is_categorical:
             values_flat = values.categories
-        elif self.block.is_sparse:
-            # fill_value is not NaN and have holes
-            if not values._null_fill_value and values.sp_index.ngaps > 0:
-                return False
-            values_flat = values.ravel(order='K')
+        elif is_sparse(self.block.values.dtype):
+            return False
         elif self.block.is_extension:
             values_flat = values
         else:
@@ -269,7 +266,6 @@ def get_empty_dtype_and_na(join_units):
     dtype
     na
     """
-
     if len(join_units) == 1:
         blk = join_units[0].block
         if blk is None:

@@ -282,11 +282,15 @@ class TestSparseDataFrameConcat(object):
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp, check_kind=False)
 
-    @pytest.mark.xfail(reason="concat sparse and dense", strict=True)
+    def test_concat_bug(self):
+        from pandas.core.sparse.api import SparseDtype
+        x = pd.SparseDataFrame({"A": pd.SparseArray([np.nan, np.nan], fill_value=0)})
+        y = pd.SparseDataFrame({"B": []})
+        res = pd.concat([x, y], sort=False)[['A']]
+        exp = pd.DataFrame({"A": pd.SparseArray([np.nan, np.nan], dtype=SparseDtype(float, 0))})
+        tm.assert_frame_equal(res, exp)
+
     def test_concat_different_columns_buggy(self):
-        # I'm confused here. We're getting different fill values
-        # and so different sparse values for C (all NaN and not present).
-        # fill_value = 0
         sparse = self.dense1.to_sparse(fill_value=0)
         sparse3 = self.dense3.to_sparse(fill_value=0)
 
@@ -302,7 +306,8 @@ class TestSparseDataFrameConcat(object):
         exp = (pd.concat([self.dense3, self.dense1], sort=True)
                  .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
-        tm.assert_sp_frame_equal(res, exp, check_kind=False)
+        tm.assert_sp_frame_equal(res, exp, check_kind=False,
+                                 consolidate_block_indices=True)
 
         # different fill values
         sparse = self.dense1.to_sparse()
@@ -341,7 +346,6 @@ class TestSparseDataFrameConcat(object):
             exp = pd.concat([self.dense1,
                              self.dense2[col]]).to_sparse(fill_value=0)
             exp._default_fill_value = np.nan
-            exp['C'] = res['C']
             tm.assert_sp_frame_equal(res, exp, check_kind=False,
                                      consolidate_block_indices=True)
 
@@ -350,7 +354,6 @@ class TestSparseDataFrameConcat(object):
                              self.dense1]).to_sparse(fill_value=0)
             exp['C'] = res['C']
             exp._default_fill_value = np.nan
-            raise pytest.xfail("Test is buggy. no idea")
             tm.assert_sp_frame_equal(res, exp, consolidate_block_indices=True,
                                      check_kind=False)
 
