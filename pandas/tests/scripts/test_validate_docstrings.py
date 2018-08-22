@@ -471,6 +471,9 @@ class TestValidator(object):
             from validate_docstrings import validate_one
             globals()[global_validate_one] = validate_one
         except ImportError:
+            # Remove addition to `sys.path`
+            sys.path.pop()
+
             # Import will fail if the pandas installation is not inplace.
             raise pytest.skip("pandas/scripts directory does not exist")
 
