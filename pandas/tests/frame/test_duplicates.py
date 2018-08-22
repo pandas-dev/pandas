@@ -262,6 +262,7 @@ def test_drop_duplicates_tuple():
     result = df.drop_duplicates((('AA', 'AB'), 'B'))
     tm.assert_frame_equal(result, expected)
 
+
 @pytest.mark.parametrize('df', [
     DataFrame(),
     DataFrame(columns=[]),
@@ -274,7 +275,7 @@ def test_drop_duplicates_empty(df):
     result = df.drop_duplicates()
     if df.columns.empty is False:
         result = DataFrame(columns=[])
-    tm.assert_frame_equal(df, expected)
+    tm.assert_frame_equal(result, df)
 
 
 def test_drop_duplicates_NA():
