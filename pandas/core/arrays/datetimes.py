@@ -271,6 +271,20 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                                           freq=freq)
             else:
                 index = _generate_regular_range(cls, start, end, periods, freq)
+
+                if tz is not None and getattr(index, 'tz', None) is None:
+                    arr = conversion.tz_localize_to_utc(
+                        ensure_int64(index.values),
+                        tz, ambiguous=ambiguous)
+
+                    index = cls(arr)
+
+                    # index is localized datetime64 array -> have to convert
+                    # start/end as well to compare
+                    if start is not None:
+                        start = start.tz_localize(tz).asm8
+                    if end is not None:
+                        end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
             arr = np.linspace(start.value, end.value, periods)
