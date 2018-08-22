@@ -209,6 +209,8 @@ class GoodDocStrings(object):
 
             .. versionadded:: 0.1.2
             .. deprecated:: 0.00.0
+                A multiline description,
+                which spans another line.
         """
         pass
 
