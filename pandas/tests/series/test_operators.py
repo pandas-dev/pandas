@@ -537,7 +537,7 @@ class TestSeriesComparisons(object):
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
-    def test_comparison_with_index(self):
+    def test_logical_ops_with_index(self):
         # GH22092
         ser = Series([True, True, False, False])
         idx1 = Index([True, False, True, False])
