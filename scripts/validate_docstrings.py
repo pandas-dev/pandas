@@ -234,11 +234,8 @@ class Docstring(object):
     def parameter_type(self, param):
         return self.doc_parameters[param][0]
 
-    def raw_parameter_desc(self, param):
-        return self.doc_parameters[param][1]
-
     def parameter_desc(self, param):
-        desc = self.raw_parameter_desc(param)
+        desc = self.doc_parameters[param][1]
         # Find and strip out any sphinx directives
         for directive in DIRECTIVES:
             full_directive = '.. {}'.format(directive)
