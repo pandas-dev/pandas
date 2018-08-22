@@ -289,6 +289,8 @@ class TestFloat64Index(Numeric):
         pytest.raises(KeyError, idx.get_loc, 1.5)
         pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
                       tolerance=0.1)
+        pytest.raises(KeyError, idx.get_loc, True)
+        pytest.raises(KeyError, idx.get_loc, False)
 
         with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
