@@ -42,7 +42,7 @@ Pandas has gained the ability to hold integer dtypes with missing values. This l
 Here is an example of the usage.
 
 We can construct a ``Series`` with the specified dtype. The dtype string ``Int64`` is a pandas ``ExtensionDtype``. Specifying a list or array using the traditional missing value
-marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`)
+marker of ``np.nan`` will infer to integer dtype. The display of the ``Series`` will also use the ``NaN`` to indicate missing values in string outputs. (:issue:`20700`, :issue:`20747`, :issue:`22441`)
 
 .. ipython:: python
 
@@ -182,6 +182,8 @@ Other Enhancements
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
+- :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
+- :ref:`Series.resample` and :ref:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 
 .. _whatsnew_0240.api_breaking:
 
@@ -560,6 +562,7 @@ Removal of prior version deprecations/changes
 - :meth:`Series.repeat` has renamed the ``reps`` argument to ``repeats`` (:issue:`14645`)
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
+- Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
 -
 
 .. _whatsnew_0240.performance:
@@ -695,6 +698,7 @@ Indexing
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
+- ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
 
 Missing
 ^^^^^^^
@@ -715,6 +719,7 @@ I/O
 
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
+- :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
 -
 
 Plotting
@@ -732,7 +737,7 @@ Groupby/Resample/Rolling
   ``SeriesGroupBy`` when the grouping variable only contains NaNs and numpy version < 1.13 (:issue:`21956`).
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
--
+- Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
 
 Sparse
 ^^^^^^
