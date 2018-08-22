@@ -230,20 +230,6 @@ class TestSparseArray(object):
         tm.assert_raises_regex(
             IndexError, "bounds", lambda: self.arr.take([11]))
 
-    @pytest.mark.xfail(reason="don't want to change signature", strict=True)
-    def test_take_invalid_kwargs(self):
-        msg = r"take\(\) got an unexpected keyword argument 'foo'"
-        tm.assert_raises_regex(TypeError, msg, self.arr.take,
-                               [2, 3], foo=2)
-
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, self.arr.take,
-                               [2, 3], out=self.arr)
-
-        msg = "the 'mode' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, self.arr.take,
-                               [2, 3], mode='clip')
-
     def test_take_filling(self):
         # similar tests as GH 12631
         sparse = SparseArray([np.nan, np.nan, 1, np.nan, 4])

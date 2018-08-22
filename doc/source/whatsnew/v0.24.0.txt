@@ -343,6 +343,7 @@ changes were made:
 - ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a spares column with a dense column while preserving
   the sparse subtype. The result will be an object-dtype SparseArray.
 - Concatenating a SparseSeries and a dense series now returns a Series with sparse values.
+- ``SparseArray.take`` no longer accepts the ``out`` and ``mode`` parameters (previously, this raised if they were specified).
 
 
 Some new warnings are issued for operations that require or are likely to materialize a large dense array:
