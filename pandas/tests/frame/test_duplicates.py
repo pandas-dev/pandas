@@ -262,29 +262,19 @@ def test_drop_duplicates_tuple():
     result = df.drop_duplicates((('AA', 'AB'), 'B'))
     tm.assert_frame_equal(result, expected)
 
-
-def test_drop_duplicates_empty():
+@pytest.mark.parametrize('df', [
+    DataFrame(),
+    DataFrame(columns=[]),
+    DataFrame(columns=['A', 'B', 'C']),
+    DataFrame(index=[]),
+    DataFrame(index=['A', 'B', 'C'])
+])
+def test_drop_duplicates_empty(df):
     # GH 20516
-    expected = DataFrame()
-    result = expected.drop_duplicates()
-    tm.assert_frame_equal(result, expected)
-
-    expected = DataFrame(columns=[])
-    result = expected.drop_duplicates()
-    tm.assert_frame_equal(result, expected)
-
-    df = DataFrame(columns=['A', 'B', 'C'])
     result = df.drop_duplicates()
-    expected = DataFrame(columns=[])  # The column infos are not carrying over
-    tm.assert_frame_equal(result, expected)
-
-    expected = DataFrame(index=[])
-    result = expected.drop_duplicates()
-    tm.assert_frame_equal(result, expected)
-
-    expected = DataFrame(index=['A', 'B', 'C'])
-    result = expected.drop_duplicates()
-    tm.assert_frame_equal(result, expected)
+    if df.columns.empty is False:
+        result = DataFrame(columns=[])
+    tm.assert_frame_equal(df, expected)
 
 
 def test_drop_duplicates_NA():
