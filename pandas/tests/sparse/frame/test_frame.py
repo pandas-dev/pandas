@@ -67,13 +67,21 @@ class TestSparseDataFrame(SharedWithSparse):
 
         self.empty = SparseDataFrame()
 
-    @pytest.mark.xfail(reason="Fix default kind.", strict=True)
     def test_iterrows(self):
-        super(TestSparseDataFrame, self).test_iterrows()
+        for k, v in self.frame.iterrows():
+            exp = self.frame.loc[k]
+            tm.assert_sp_series_equal(v, exp, check_kind=False)
 
-    @pytest.mark.xfail(reason="Fix default kind.", strict=True)
+        for k, v in self.mixed_frame.iterrows():
+            exp = self.mixed_frame.loc[k]
+            tm.assert_sp_series_equal(v, exp, check_kind=False)
+
     def test_itertuples(self):
-        super(TestSparseDataFrame, self).test_itertuples()
+        for i, tup in enumerate(self.frame.itertuples()):
+            s = self.klass._constructor_sliced(tup[1:])
+            s.name = tup[0]
+            expected = self.frame.iloc[i, :].reset_index(drop=True)
+            tm.assert_sp_series_equal(s, expected, check_kind=False)
 
     def test_fill_value_when_combine_const(self):
         # GH12723
