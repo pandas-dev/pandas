@@ -205,10 +205,6 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
         # not sure
         pass
 
-    @pytest.mark.xfail(reason="TODO", strict=True)
-    def test_divmod(self, data):
-        super().test_divmod(data)
-
     @pytest.mark.xfail(reson="what is this test doing?", strict=True)
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         super(TestArithmeticOps, self).test_arith_series_with_array(

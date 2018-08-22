@@ -1112,6 +1112,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 with np.errstate(all='ignore'):
                     fill = op(_get_fill(self), np.asarray(other))
                     result = op(self.sp_values, other)
+
+                if op_name == 'divmod':
+                    left, right = result
+                    lfill, rfill = fill
+                    return (_wrap_result(op_name, left, self.sp_index, lfill),
+                            _wrap_result(op_name, right, self.sp_index, rfill))
+
                 return _wrap_result(op_name, result, self.sp_index, fill)
 
             else:
