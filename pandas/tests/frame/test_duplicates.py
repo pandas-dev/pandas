@@ -275,6 +275,9 @@ def test_drop_duplicates_empty(df):
     result = df.drop_duplicates()
     tm.assert_frame_equal(result, df)
 
+    result = df.drop_duplicates(inplace=True)
+    tm.assert_frame_equal(result, df)
+
 
 def test_drop_duplicates_NA():
     # none
