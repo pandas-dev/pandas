@@ -315,6 +315,7 @@ respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Time
 :class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
 and respect calendar day arithmetic while :class:`Day` and frequency alias ``'D'``
 will now respect absolute time (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+See the :ref:`documentation here <timeseries.dayvscalendarday>` for more information.
 
 Addition with :class:`CalendarDay` across a daylight savings time transition:
 

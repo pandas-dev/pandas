@@ -248,6 +248,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             localize_args = {'tz': tz, 'ambiguous': False}
         else:
             localize_args = {'tz': None}
+
         if tz is not None:
             # Localize the start and end arguments
             if start is not None and start.tz is None:
@@ -258,11 +259,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if start and end:
             # Make sure start and end have the same tz
-            if start.tz is None and end.tz is not None:
-                start = start.tz_localize(**localize_args)
-
-            if end.tz is None and start.tz is not None:
-                end = end.tz_localize(**localize_args)
+            start = _maybe_localize_point(start, start.tz, end.tz,
+                                          localize_args)
+            end = _maybe_localize_point(end, end.tz, start.tz, localize_args)
 
         if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
@@ -1310,3 +1309,24 @@ def _maybe_normalize_endpoints(start, end, normalize):
             _normalized = _normalized and end.time() == _midnight
 
     return start, end, _normalized
+
+
+def _maybe_localize_point(ts, is_none, is_not_none, localize_args):
+    """
+    Localize a start or end Timestamp to the timezone of the corresponding
+    start or end Timestamp
+
+    Parameters
+    ----------
+    ts : start or end Timestamp to potentially localize
+    is_none : tz argument that should be None
+    is_not_none : tz argument that should not be None
+    localize_args : dict to pass to tz_localize
+
+    Returns
+    -------
+    ts : Timestamp
+    """
+    if is_none is None and is_not_none is not None:
+        ts = ts.tz_localize(**localize_args)
+    return ts

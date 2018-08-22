@@ -892,12 +892,13 @@ Day vs. CalendarDay
 ~~~~~~~~~~~~~~~~~~~
 
 :class:`Day` (``'D'``) is a timedelta-like offset that respects absolute time
-arithmetic and essentially is an alias for 24 :class:`Hour`. This offset is the default
+arithmetic and is an alias for 24 :class:`Hour`. This offset is the default
 argument to many pandas time related function like :func:`date_range` and :func:`timedelta_range`.
 
 :class:`CalendarDay` (``'CD'``) is a relativedelta-like offset that respects
 calendar time arithmetic. :class:`CalendarDay` is useful preserving calendar day
-semantics with date times with have day light savings transitions.
+semantics with date times with have day light savings transitions, i.e. :class:`CalendarDay`
+will preserve the hour before the day light savings transition.
 
 .. ipython:: python
 
