@@ -175,22 +175,6 @@ class TestSparseSeriesConcat(object):
         )
         tm.assert_series_equal(res, exp)
 
-    @pytest.mark.xfail(reason="Correct result is unclear.", strict=True)
-    def test_concat_mixed_dtypes(self):
-        # Concatenating sparse, regular, and categorical.
-        # Who should "win" in the dtype determination?
-        # This test assumes that sparse wins.
-        # At the moment, we're just object.
-        df1 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
-        df2 = pd.DataFrame({"A": [1, 2, 3]})
-        df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
-
-        result = pd.concat([df1, df2, df3], ignore_index=True)
-        expected = pd.DataFrame({
-            "A": pd.SparseArray([1, 2, 3, 1, 2, 3, 'a', 'b', 'c'])
-        })
-        tm.assert_frame_equal(result, expected)
-
 
 class TestSparseDataFrameConcat(object):
 
