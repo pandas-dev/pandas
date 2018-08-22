@@ -3901,6 +3901,7 @@ class DataFrame(NDFrame):
             # if there are any labels that are invalid, we raise a KeyError
             missing = [x for x in col_labels if x not in self]
             raise KeyError('{}'.format(missing))
+
         elif len(set(col_labels)) < len(col_labels):
             # if all are valid labels, but there are duplicates
             dup = Series(col_labels)

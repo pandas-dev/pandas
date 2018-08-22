@@ -20,10 +20,8 @@ from pandas.core.dtypes.common import (
 
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import TestData
 
-
-class TestDataFrameAlterAxes(TestData):
+class TestDataFrameAlterAxes():
 
     def test_set_index_directly(self, mixed_frame):
         df = mixed_frame
