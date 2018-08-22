@@ -409,8 +409,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
-            result = self._data.astype(dtype.numpy_dtype,
-                                       casting='same_kind', copy=False)
+            result = self._data.astype(dtype.numpy_dtype, copy=False)
             return type(self)(result, mask=self._mask, copy=False)
 
         # coerce
