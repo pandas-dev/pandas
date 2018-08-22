@@ -842,7 +842,7 @@ class ExcelWriter(object):
     ...     df1.to_excel(writer, sheet_name='Sheet1')
     ...     df2.to_excel(writer, sheet_name='Sheet2')
 
-    You can set date format or datetime format:
+    You can set the date format or datetime format:
 
     >>> with ExcelWriter('path_to_file.xlsx',
                           date_format='YYYY-MM-DD',
@@ -853,8 +853,6 @@ class ExcelWriter(object):
 
     >>> with ExcelWriter('path_to_file.xlsx', mode='a') as writer:
     ...     df.to_excel(writer, sheet_name='Sheet3')
-
-    .. versionadded:: 0.24.0
 
     Attributes
     ----------
