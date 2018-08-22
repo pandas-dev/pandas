@@ -424,7 +424,6 @@ class TestSparseSeriesIndexing(object):
         expected = pd.Series([0, np.nan, np.nan, 2], target).to_sparse()
         tm.assert_sp_series_equal(expected, actual)
 
-    @pytest.mark.xfail(reason="unclear", strict=True)
     def tests_indexing_with_sparse(self):
         # GH 13985
 
@@ -435,14 +434,16 @@ class TestSparseSeriesIndexing(object):
                                          dtype=bool)
 
                 tm.assert_sp_array_equal(pd.SparseArray([1, 3], kind=kind),
-                                         arr[indexer])
+                                         arr[indexer],)
 
                 s = pd.SparseSeries(arr, index=['a', 'b', 'c'],
                                     dtype=np.float64)
-                # What is exp.fill_value? Is it 0 since the data are ints?
-                # Is it NaN since dtype is float64?
-                exp = pd.SparseSeries([1, 3], index=['a', 'c'],
-                                      dtype=np.float64, kind=kind)
+
+                exp = pd.SparseSeries(
+                    [1, 3], index=['a', 'c'],
+                    dtype=SparseDtype(np.float64, s.fill_value),
+                    kind=kind
+                )
                 tm.assert_sp_series_equal(s[indexer], exp)
                 tm.assert_sp_series_equal(s.loc[indexer], exp)
                 tm.assert_sp_series_equal(s.iloc[indexer], exp)
