@@ -284,10 +284,12 @@ class TestSparseDataFrameConcat(object):
 
     def test_concat_bug(self):
         from pandas.core.sparse.api import SparseDtype
-        x = pd.SparseDataFrame({"A": pd.SparseArray([np.nan, np.nan], fill_value=0)})
+        x = pd.SparseDataFrame({"A": pd.SparseArray([np.nan, np.nan],
+                                                    fill_value=0)})
         y = pd.SparseDataFrame({"B": []})
         res = pd.concat([x, y], sort=False)[['A']]
-        exp = pd.DataFrame({"A": pd.SparseArray([np.nan, np.nan], dtype=SparseDtype(float, 0))})
+        exp = pd.DataFrame({"A": pd.SparseArray([np.nan, np.nan],
+                                                dtype=SparseDtype(float, 0))})
         tm.assert_frame_equal(res, exp)
 
     def test_concat_different_columns_buggy(self):
@@ -405,7 +407,6 @@ class TestSparseDataFrameConcat(object):
                              itertools.product([None, 0, 1, np.nan],
                                                [0, 1],
                                                [1, 0]))
-    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_concat_sparse_dense_rows(self, fill_value, sparse_idx, dense_idx):
         frames = [self.dense1, self.dense2]
         sparse_frame = [frames[dense_idx],
@@ -417,7 +418,6 @@ class TestSparseDataFrameConcat(object):
             res = pd.concat(sparse_frame)
             exp = pd.concat(dense_frame)
 
-            # XXX: why this is sparse is not clear to me.
             assert isinstance(res, pd.SparseDataFrame)
             tm.assert_frame_equal(res.to_dense(), exp)
 
@@ -428,9 +428,11 @@ class TestSparseDataFrameConcat(object):
                              itertools.product([None, 0, 1, np.nan],
                                                [0, 1],
                                                [1, 0]))
-    @pytest.mark.xfail(reason="who knowns")
+    @pytest.mark.xfail(reason="The iloc fails and I can't make expected",
+                       strict=False)
     def test_concat_sparse_dense_cols(self, fill_value, sparse_idx, dense_idx):
         # See GH16874, GH18914 and #18686 for why this should be a DataFrame
+        from pandas.core.dtypes.common import is_sparse
 
         frames = [self.dense1, self.dense3]
 
@@ -442,10 +444,10 @@ class TestSparseDataFrameConcat(object):
         for _ in range(2):
             res = pd.concat(sparse_frame, axis=1)
             exp = pd.concat(dense_frame, axis=1)
+            cols = [i for (i, x) in enumerate(res.dtypes) if is_sparse(x)]
 
-            for i in range(4, 8):
-                exp.iloc[:, i] = exp.iloc[:, i].to_sparse()
-                # uhmm this is broken
+            for col in cols:
+                exp.iloc[:, col] = exp.iloc[:, col].astype("Sparse")
 
             for column in frames[dense_idx].columns:
                 if dense_idx == sparse_idx:
