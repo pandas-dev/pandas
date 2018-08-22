@@ -1118,17 +1118,26 @@ class TestSparseDataFrame(SharedWithSparse):
         msg = "the 'axes' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.transpose, sdf, axes=1)
 
-    @pytest.mark.xfail(reason="mixed broken dtypes", strict=True)
     def test_combine_first(self):
         df = self.frame
-
         result = df[::2].combine_first(df)
-        result2 = df[::2].combine_first(df.to_dense())
 
         expected = df[::2].to_dense().combine_first(df.to_dense())
         expected = expected.to_sparse(fill_value=df.default_fill_value)
 
-        tm.assert_sp_frame_equal(result, result2)
+        tm.assert_sp_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason="No longer supported.", strict=True)
+    def test_combine_first_with_dense(self):
+        # We could support this if we allow
+        # pd.core.dtypes.cast.find_common_type to special case SparseDtype
+        # but I don't think that's worth it.
+        df = self.frame
+
+        result = df[::2].combine_first(df.to_dense())
+        expected = df[::2].to_dense().combine_first(df.to_dense())
+        expected = expected.to_sparse(fill_value=df.default_fill_value)
+
         tm.assert_sp_frame_equal(result, expected)
 
     def test_combine_add(self):
