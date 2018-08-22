@@ -272,7 +272,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             data = data.copy()
 
         if fill_value is None:
-            fill_value_dtype = dtype or data.dtype
+            fill_value_dtype = data.dtype if dtype is None else dtype
             if fill_value_dtype is None:
                 fill_value = np.nan
             else:
