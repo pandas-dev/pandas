@@ -1892,12 +1892,8 @@ def _flex_comp_method_FRAME(cls, op, special):
             result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
         return result
 
-    if op_name in _op_descriptions:
-        op_desc = _op_descriptions[op_name]
-        doc = _flex_comp_doc_FRAME.format(desc=op_desc['desc'],
-                                          op_name=op_name)
-    else:
-        doc = "Flexible wrappers to comparison methods"
+    doc = _flex_comp_doc_FRAME.format(op_name=op_name,
+                                      desc=_op_descriptions[op_name]['desc'])
 
     @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
