@@ -96,24 +96,6 @@ class TestReshaping(base.BaseReshapingTests):
         expected = pd.concat([x.apply(lambda s: np.asarray(s).astype(object))
                               for x in dfs])
         self.assert_frame_equal(result, expected)
-        #
-        # # series
-        # result = pd.concat([x['A'] for x in dfs])
-        # expected = pd.concat([x['A'].astype(object) for x in dfs])
-        # self.assert_series_equal(result, expected)
-        #
-        # # simple test for just EA and one other
-        # result = pd.concat([df1, df2])
-        # # We can preserve float dtype here.
-        # # XXX the different behavior between frame and series is bad.
-        # # fix this.
-        # expected = pd.concat([df1.astype(float), df2.astype(float)])
-        # self.assert_frame_equal(result, expected)
-        #
-        # result = pd.concat([df1['A'], df2['A']])
-        # expected = pd.concat([df1['A'].astype(float),
-        #                       df2['A'].astype(float)])
-        # self.assert_series_equal(result, expected)
 
 
 class TestGetitem(base.BaseGetitemTests):
@@ -228,11 +210,3 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
         tm.assert_series_equal(result, expected)
-
-
-def test_slice():
-    import pandas.util.testing as tm
-
-    arr = pd.SparseArray([1, None, 2])
-    result = arr[:]
-    tm.assert_sp_array_equal(arr, result)
