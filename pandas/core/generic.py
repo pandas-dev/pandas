@@ -1412,14 +1412,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
-    def _check_label_or_level_ambiguity(self, key, axis=0, stacklevel=1):
+    def _check_label_or_level_ambiguity(self, key, axis=0):
         """
-        Check whether `key` matches both a level of the input `axis` and a
-        label of the other axis and raise a ``FutureWarning`` if this is the
-        case.
+        Check whether `key` is ambiguous.
 
-        Note: This method will be altered to raise an ambiguity exception in
-        a future version.
+        By ambiguous, we mean that it matches both a level of the input
+        `axis` and a label of the other axis.
 
         Parameters
         ----------
@@ -1427,18 +1425,10 @@ class NDFrame(PandasObject, SelectionMixin):
             label or level name
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
-
-        Returns
-        -------
-        ambiguous: bool
 
         Raises
         ------
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
+        ValueError: `key` is ambiguous
         """
 
         axis = self._get_axis_number(axis)
@@ -1464,21 +1454,15 @@ class NDFrame(PandasObject, SelectionMixin):
                                          ('an', 'index'))
 
             msg = ("'{key}' is both {level_article} {level_type} level and "
-                   "{label_article} {label_type} label.\n"
-                   "Defaulting to {label_type}, but this will raise an "
-                   "ambiguity error in a future version"
+                   "{label_article} {label_type} label, which is ambiguous."
                    ).format(key=key,
                             level_article=level_article,
                             level_type=level_type,
                             label_article=label_article,
                             label_type=label_type)
+            raise ValueError(msg)
 
-            warnings.warn(msg, FutureWarning, stacklevel=stacklevel + 1)
-            return True
-        else:
-            return False
-
-    def _get_label_or_level_values(self, key, axis=0, stacklevel=1):
+    def _get_label_or_level_values(self, key, axis=0):
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1497,8 +1481,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Label or level name.
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
 
         Returns
         -------
@@ -1524,8 +1506,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         if self._is_label_reference(key, axis=axis):
-            self._check_label_or_level_ambiguity(key, axis=axis,
-                                                 stacklevel=stacklevel + 1)
+            self._check_label_or_level_ambiguity(key, axis=axis)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values

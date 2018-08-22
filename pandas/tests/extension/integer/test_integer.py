@@ -565,16 +565,17 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         expected = pd.Series(np.asarray(mixed))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('dtype', [Int8Dtype(), 'Int8'])
+    @pytest.mark.parametrize('dtype', [Int8Dtype(), 'Int8',
+                                       UInt32Dtype(), 'UInt32'])
     def test_astype_specific_casting(self, dtype):
         s = pd.Series([1, 2, 3], dtype='Int64')
         result = s.astype(dtype)
-        expected = pd.Series([1, 2, 3], dtype='Int8')
+        expected = pd.Series([1, 2, 3], dtype=dtype)
         self.assert_series_equal(result, expected)
 
         s = pd.Series([1, 2, 3, None], dtype='Int64')
         result = s.astype(dtype)
-        expected = pd.Series([1, 2, 3, None], dtype='Int8')
+        expected = pd.Series([1, 2, 3, None], dtype=dtype)
         self.assert_series_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
