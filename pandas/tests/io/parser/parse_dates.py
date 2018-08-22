@@ -13,9 +13,9 @@ import numpy as np
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslib import Timestamp
 
+import pytz
 import pandas as pd
 import pandas.io.parsers as parsers
-import pandas.core.tools.datetimes as tools
 import pandas.util.testing as tm
 
 import pandas.io.date_converters as conv
@@ -356,21 +356,13 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
 
     def test_parse_tz_aware(self):
         # See gh-1693
-        import pytz
         data = StringIO("Date,x\n2012-06-13T01:39:00Z,0.5")
 
         # it works
         result = self.read_csv(data, index_col=0, parse_dates=True)
         stamp = result.index[0]
         assert stamp.minute == 39
-        try:
-            assert result.index.tz is pytz.utc
-        except AssertionError:
-            arr = result.index.to_pydatetime()
-            result = tools.to_datetime(arr, utc=True)[0]
-            assert stamp.minute == result.minute
-            assert stamp.hour == result.hour
-            assert stamp.day == result.day
+        assert result.index.tz is pytz.utc
 
     def test_multiple_date_cols_index(self):
         data = """
@@ -674,3 +666,19 @@ date,time,prn,rxstatus
         # (i.e. float precision should remain unchanged).
         result = self.read_csv(StringIO(data), parse_dates=parse_dates)
         tm.assert_frame_equal(result, expected)
+
+    def test_parse_timezone(self):
+        # gh-22256
+        data = """dt,val
+                  2018-01-04 09:01:00+09:00,23350
+                  2018-01-04 09:02:00+09:00,23400
+                  2018-01-04 09:03:00+09:00,23400
+                  2018-01-04 09:04:00+09:00,23400
+                  2018-01-04 09:05:00+09:00,23400"""
+        parsed = self.read_csv(StringIO(data), parse_dates=['dt'])
+        dti = pd.DatetimeIndex(start='2018-01-04 09:01:00',
+                               end='2018-01-04 09:05:00', freq='1min',
+                               tz=pytz.FixedOffset(540))
+        expected_data = {'dt': dti, 'val': [23350, 23400, 23400, 23400, 23400]}
+        expected = DataFrame(expected_data)
+        tm.assert_frame_equal(parsed, expected)
