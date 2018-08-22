@@ -274,7 +274,7 @@ def test_drop_duplicates_empty(df):
     # GH 20516
     result = df.drop_duplicates()
     if df.columns.empty is False:
-        result = DataFrame(columns=[])
+        df = DataFrame(columns=[])
     tm.assert_frame_equal(result, df)
 
 
