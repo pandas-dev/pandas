@@ -715,7 +715,6 @@ class TestSparseSeries(SharedWithSparse):
         reindexed.sp_values[:] = 1.
         tm.assert_numpy_array_equal(self.bseries.sp_values, np.repeat(1., 10))
 
-    @pytest.mark.xfail(reason="who knows", strict=True)
     def test_sparse_reindex(self):
         length = 10
 
@@ -832,7 +831,6 @@ class TestSparseSeries(SharedWithSparse):
         assert not isinstance(result, SparseSeries)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.xfail(reason="sparse_reindex", strict=True)
     def test_homogenize(self):
         def _check_matches(indices, expected):
             data = {}

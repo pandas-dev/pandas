@@ -488,12 +488,14 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        # TODO: This was copied from SparseBlock.
-        # The dtype handling looks incorrect
-        # I also have no idea what it's supposed to do.
+        if not isinstance(new_index, (IntIndex, BlockIndex)):
+            raise TypeError("new index must be a SparseIndex")
         values = self.values
         values = values.sp_index.to_int_index().reindex(
             values.sp_values.astype('float64'), values.fill_value, new_index)
+        values = SparseArray(values,
+                             sparse_index=new_index,
+                             fill_value=self.values.fill_value)
         return self._constructor(values, index=self.index).__finalize__(self)
 
     def cumsum(self, axis=0, *args, **kwargs):
