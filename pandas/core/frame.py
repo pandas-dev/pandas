@@ -3888,28 +3888,9 @@ class DataFrame(NDFrame):
         -------
         dataframe : DataFrame
         """
-        from pandas import Series
-
+        inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
             keys = [keys]
-
-        # collect elements from "keys" that are not allowed array types
-        col_labels = [x for x in keys
-                      if not isinstance(x, (Series, Index, MultiIndex,
-                                            list, np.ndarray))]
-        if any(x not in self for x in col_labels):
-            # if there are any labels that are invalid, we raise a KeyError
-            missing = [x for x in col_labels if x not in self]
-            raise KeyError('{}'.format(missing))
-
-        elif len(set(col_labels)) < len(col_labels):
-            # if all are valid labels, but there are duplicates
-            dup = Series(col_labels)
-            dup = list(dup.loc[dup.duplicated()])
-            raise ValueError('Passed duplicate column names '
-                             'to keys: {dup}'.format(dup=dup))
-
-        inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if inplace:
             frame = self

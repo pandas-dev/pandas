@@ -185,9 +185,8 @@ class TestDataFrameAlterAxes():
         keys = [box1(df['A']), box2(df['A'])]
 
         # == gives ambiguous Boolean for Series
-        if keys[0] is 'A' and keys[1] is 'A':
-            with tm.assert_raises_regex(ValueError,
-                                        'Passed duplicate column names.*'):
+        if drop and keys[0] is 'A' and keys[1] is 'A':
+            with tm.assert_raises_regex(KeyError, '.*'):
                 df.set_index(keys, drop=drop, append=append)
         else:
             result = df.set_index(keys, drop=drop, append=append)
@@ -225,15 +224,17 @@ class TestDataFrameAlterAxes():
                                     'Index has duplicate keys'):
             df.set_index([df['A'], df['A']], verify_integrity=True)
 
-    def test_set_index_raise(self, frame_of_index_cols):
+    @pytest.mark.parametrize('append', [True, False])
+    @pytest.mark.parametrize('drop', [True, False])
+    def test_set_index_raise(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
 
         with tm.assert_raises_regex(KeyError, '.*'):  # column names are A-E
-            df.set_index(['foo', 'bar', 'baz'], verify_integrity=True)
+            df.set_index(['foo', 'bar', 'baz'], drop=drop, append=append)
 
         # non-existent key in list with arrays
         with tm.assert_raises_regex(KeyError, '.*'):
-            df.set_index([df['A'], df['B'], 'X'], verify_integrity=True)
+            df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
     def test_construction_with_categorical_index(self):
         ci = tm.makeCategoricalIndex(10)
