@@ -659,11 +659,8 @@ Indexing
 - Fixed ``DataFrame[np.nan]`` when columns are non-unique (:issue:`21428`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
-<<<<<<< HEAD
 - Bug where mixed indexes wouldn't allow integers for ``.at`` (:issue:`19860`)
-=======
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
->>>>>>> upstream/master
 
 Missing
 ^^^^^^^
