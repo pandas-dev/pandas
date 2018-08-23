@@ -448,22 +448,40 @@ class TestValidator(object):
     @pytest.fixture(autouse=True, scope="class")
     def import_scripts(self):
         """
-        Because the scripts directory is above the top level pandas package
-        we need to hack sys.path to know where to find that directory for
-        import. The below traverses up the file system to find the scripts
-        directory, adds to location to sys.path and imports the required
-        module into the global namespace before as part of class setup,
-        reverting those changes on teardown.
+        Import the validation scripts from the scripts directory.
+
+        Because the scripts directory is above the top level pandas package,
+        we need to modify `sys.path` so that Python knows where to find it.
+
+        The code below traverses up the file system to find the scripts
+        directory, adds the location to `sys.path`, and imports the required
+        module into the global namespace before as part of class setup.
+
+        During teardown, those changes are reverted.
         """
+
         up = os.path.dirname
+        global_validate_one = "validate_one"
         file_dir = up(os.path.abspath(__file__))
-        script_dir = os.path.join(up(up(up(file_dir))), 'scripts')
+
+        script_dir = os.path.join(up(up(up(file_dir))), "scripts")
         sys.path.append(script_dir)
-        from validate_docstrings import validate_one
-        globals()['validate_one'] = validate_one
+
+        try:
+            from validate_docstrings import validate_one
+            globals()[global_validate_one] = validate_one
+        except ImportError:
+            # Remove addition to `sys.path`
+            sys.path.pop()
+
+            # Import will fail if the pandas installation is not inplace.
+            raise pytest.skip("pandas/scripts directory does not exist")
+
         yield
+
+        # Teardown.
         sys.path.pop()
-        del globals()['validate_one']
+        del globals()[global_validate_one]
 
     def _import_path(self, klass=None, func=None):
         """
