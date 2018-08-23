@@ -121,17 +121,10 @@ class SparseSeries(Series):
 
         See SparseArray.__array_wrap__ for detail.
         """
-        if isinstance(context, tuple) and len(context) == 3:
-            ufunc, args, domain = context
-            args = [getattr(a, 'fill_value', a) for a in args]
-            with np.errstate(all='ignore'):
-                fill_value = ufunc(self.fill_value, *args[1:])
-        else:
-            fill_value = self.fill_value
-
+        result = self.values.__array_wrap__(result, context=context)
         return self._constructor(result, index=self.index,
                                  sparse_index=self.sp_index,
-                                 fill_value=fill_value,
+                                 fill_value=result.fill_value,
                                  copy=False).__finalize__(self)
 
     def __array_finalize__(self, obj):

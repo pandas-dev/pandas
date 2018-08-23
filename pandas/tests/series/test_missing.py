@@ -809,7 +809,8 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
 
         result = s[-2:].reindex(index, method='backfill', limit=5)
-        expected = s[-2:].reindex(index).fillna(method='backfill')
+        with tm.assert_produces_warning(PerformanceWarning):
+            expected = s[-2:].reindex(index).fillna(method='backfill')
         expected = expected.to_dense()
         expected[:3] = np.nan
         expected = expected.to_sparse()

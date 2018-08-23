@@ -409,7 +409,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     def isna(self):
         fill = self._null_fill_value
         indices = self.sp_index.to_int_index().indices
-        out = np.full(self.shape, fill)
+        out = np.full(self.shape, fill, dtype=bool)
         out[indices] = pd.isna(self.sp_values)
         return out
 
@@ -1079,6 +1079,13 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
     def __abs__(self):
         return np.abs(self)
+
+    def __array_wrap__(self, array, context=None):
+        fill_value = context[0](self.fill_value)
+        sp_values = array[self.sp_index.to_int_index().indices]
+        dtype = SparseDtype(array.dtype, fill_value)
+
+        return self._simple_new(sp_values, self.sp_index, dtype)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         new_inputs = []
