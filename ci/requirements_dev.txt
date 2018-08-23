@@ -5,7 +5,7 @@ NumPy
 flake8
 flake8-comprehensions
 moto
-pytest>=3.1
+pytest>=3.6
 python-dateutil>=2.5.0
 pytz
 setuptools>=24.2.0
