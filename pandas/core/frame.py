@@ -1337,14 +1337,15 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to a NumPy record array.
 
-        Index will be put in the 'index' field of the record array if
+        Index will be included as the first field of the record array if
         requested.
 
         Parameters
         ----------
-        index : boolean, default True
-            Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default None
+        index : bool, default True
+            Include index in resulting record array, stored in 'index'
+            field or using the index label, if set.
+        convert_datetime64 : bool, default None
             .. deprecated:: 0.23.0
 
             Whether to convert the index to datetime.datetime if it is a
@@ -1352,7 +1353,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : numpy.recarray
+        numpy.recarray
+            NumPy ndarray with the DataFrame labels as fields and each row
+            of the DataFrame as entries.
 
         See Also
         --------
@@ -1374,31 +1377,20 @@ class DataFrame(NDFrame):
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
 
+        If the DataFrame index has no label then the recarray field name
+        is set to 'index'. If the index has a label then this is used as the
+        field name:
+
+        >>> df.index = df.index.rename("I")
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i8'), ('B', '<f8')])
+
         The index can be excluded from the record array:
 
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
-
-        By default, timestamps are converted to `datetime.datetime`:
-
-        >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
-        >>> df
-                             A     B
-        2018-01-01 09:00:00  1  0.50
-        2018-01-01 09:01:00  2  0.75
-        >>> df.to_records()
-        rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
-                   (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
-                  dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
-
-        The timestamp conversion can be disabled so NumPy's datetime64
-        data type is used instead:
-
-        >>> df.to_records(convert_datetime64=False)
-        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
-                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
-                  dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -4401,7 +4393,6 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        stacklevel = 2  # Number of stack levels from df.sort_values
 
         if not isinstance(by, list):
             by = [by]
@@ -4413,8 +4404,7 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self._get_label_or_level_values(x, axis=axis,
-                                                    stacklevel=stacklevel)
+                k = self._get_label_or_level_values(x, axis=axis)
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
@@ -4423,8 +4413,7 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis,
-                                                stacklevel=stacklevel)
+            k = self._get_label_or_level_values(by, axis=axis)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
@@ -6664,7 +6653,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        else:
+        elif method == 'kendall':
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -6688,6 +6677,10 @@ class DataFrame(NDFrame):
                         c = corrf(ac, bc)
                     correl[i, j] = c
                     correl[j, i] = c
+        else:
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman', or 'kendall', '{method}' "
+                             "was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
@@ -7256,8 +7249,7 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
-        Return values at the given quantile over requested axis, a la
-        numpy.percentile.
+        Return values at the given quantile over requested axis.
 
         Parameters
         ----------
@@ -7322,6 +7314,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
         self._check_percentile(q)
 

@@ -106,9 +106,8 @@ consider the following ``DataFrame``:
    .. versionadded:: 0.20
 
    A string passed to ``groupby`` may refer to either a column or an index level.
-   If a string matches both a column name and an index level name then a warning is
-   issued and the column takes precedence. This will result in an ambiguity error
-   in a future version.
+   If a string matches both a column name and an index level name, a
+   ``ValueError`` will be raised.
 
 .. ipython:: python
 
@@ -389,7 +388,7 @@ This is mainly syntactic sugar for the alternative and much more verbose:
 Additionally this method avoids recomputing the internal grouping information
 derived from the passed key.
 
-.. _groupby.iterating:
+.. _groupby.iterating-label:
 
 Iterating through groups
 ------------------------
@@ -415,8 +414,7 @@ In the case of grouping by multiple keys, the group name will be a tuple:
       ...:        print(group)
       ...:
 
-It's standard Python-fu but remember you can unpack the tuple in the for loop
-statement if you wish: ``for (k1, k2), group in grouped:``.
+See :ref:`timeseries.iterating-label`.
 
 Selecting a group
 -----------------

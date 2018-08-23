@@ -1412,14 +1412,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
-    def _check_label_or_level_ambiguity(self, key, axis=0, stacklevel=1):
+    def _check_label_or_level_ambiguity(self, key, axis=0):
         """
-        Check whether `key` matches both a level of the input `axis` and a
-        label of the other axis and raise a ``FutureWarning`` if this is the
-        case.
+        Check whether `key` is ambiguous.
 
-        Note: This method will be altered to raise an ambiguity exception in
-        a future version.
+        By ambiguous, we mean that it matches both a level of the input
+        `axis` and a label of the other axis.
 
         Parameters
         ----------
@@ -1427,18 +1425,10 @@ class NDFrame(PandasObject, SelectionMixin):
             label or level name
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
-
-        Returns
-        -------
-        ambiguous: bool
 
         Raises
         ------
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
+        ValueError: `key` is ambiguous
         """
 
         axis = self._get_axis_number(axis)
@@ -1464,21 +1454,15 @@ class NDFrame(PandasObject, SelectionMixin):
                                          ('an', 'index'))
 
             msg = ("'{key}' is both {level_article} {level_type} level and "
-                   "{label_article} {label_type} label.\n"
-                   "Defaulting to {label_type}, but this will raise an "
-                   "ambiguity error in a future version"
+                   "{label_article} {label_type} label, which is ambiguous."
                    ).format(key=key,
                             level_article=level_article,
                             level_type=level_type,
                             label_article=label_article,
                             label_type=label_type)
+            raise ValueError(msg)
 
-            warnings.warn(msg, FutureWarning, stacklevel=stacklevel + 1)
-            return True
-        else:
-            return False
-
-    def _get_label_or_level_values(self, key, axis=0, stacklevel=1):
+    def _get_label_or_level_values(self, key, axis=0):
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1497,8 +1481,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Label or level name.
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
 
         Returns
         -------
@@ -1524,8 +1506,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         if self._is_label_reference(key, axis=axis):
-            self._check_label_or_level_ambiguity(key, axis=axis,
-                                                 stacklevel=stacklevel + 1)
+            self._check_label_or_level_ambiguity(key, axis=axis)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values
@@ -6081,89 +6062,191 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['interpolate'] = """
         Please note that only ``method='linear'`` is supported for
-        DataFrames/Series with a MultiIndex.
+        DataFrame/Series with a MultiIndex.
 
         Parameters
         ----------
-        method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
-                  'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline', 'piecewise_polynomial',
-                  'from_derivatives', 'pchip', 'akima'}
+        method : str, default 'linear'
+            Interpolation technique to use. One of:
 
-            * 'linear': ignore the index and treat the values as equally
+            * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
-              default
-            * 'time': interpolation works on daily and higher resolution
-              data to interpolate given length of interval
-            * 'index', 'values': use the actual numerical values of the index
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial' is passed to
-              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
-              'spline' require that you also specify an `order` (int),
+            * 'time': Works on daily and higher resolution data to interpolate
+              given length of interval.
+            * 'index', 'values': use the actual numerical values of the index.
+            * 'pad': Fill in NaNs using existing values.
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
+              'barycentric', 'polynomial': Passed to
+              `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
+              require that you also specify an `order` (int),
               e.g. ``df.interpolate(method='polynomial', order=4)``.
-              These use the actual numerical values of the index.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
-              are all wrappers around the scipy interpolation methods of
-              similar names. These use the actual numerical values of the
-              index. For more information on their behavior, see the
-              `scipy documentation
-              <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-              and `tutorial documentation
-              <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
-            * 'from_derivatives' refers to
-              :meth:`scipy.interpolate.BPoly.from_derivatives` which
+              These use the numerical values of the index.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
+              Wrappers around the SciPy interpolation methods of similar
+              names. See `Notes`.
+            * 'from_derivatives': Refers to
+              `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
-              scipy 0.18
+              scipy 0.18.
 
             .. versionadded:: 0.18.1
 
                Added support for the 'akima' method.
                Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in scipy 0.18; backwards-compatible with
-               scipy < 0.18
+               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
+               SciPy < 0.18
 
-        axis : {0, 1}, default 0
-            * 0: fill column-by-column
-            * 1: fill row-by-row
-        limit : int, default None.
-            Maximum number of consecutive NaNs to fill. Must be greater than 0.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Axis to interpolate along.
+        limit : int, optional
+            Maximum number of consecutive NaNs to fill. Must be greater than
+            0.
+        inplace : bool, default False
+            Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-        limit_area : {'inside', 'outside'}, default None
-            * None: (default) no fill restriction
-            * 'inside' Only fill NaNs surrounded by valid values (interpolate).
-            * 'outside' Only fill NaNs outside valid values (extrapolate).
-
             If limit is specified, consecutive NaNs will be filled in this
             direction.
+        limit_area : {`None`, 'inside', 'outside'}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
 
             .. versionadded:: 0.21.0
-        inplace : bool, default False
-            Update the NDFrame in place if possible.
+
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
-        kwargs : keyword arguments to pass on to the interpolating function.
+        **kwargs
+            Keyword arguments to pass on to the interpolating function.
 
         Returns
         -------
-        Series or DataFrame of same shape interpolated at the NaNs
+        Series or DataFrame
+            Returns the same object type as the caller, interpolated at
+            some or all ``NaN`` values
 
         See Also
         --------
-        reindex, replace, fillna
+        fillna : Fill missing values using different methods.
+        scipy.interpolate.Akima1DInterpolator : Piecewise cubic polynomials
+            (Akima interpolator).
+        scipy.interpolate.BPoly.from_derivatives : Piecewise polynomial in the
+            Bernstein basis.
+        scipy.interpolate.interp1d : Interpolate a 1-D function.
+        scipy.interpolate.KroghInterpolator : Interpolate polynomial (Krogh
+            interpolator).
+        scipy.interpolate.PchipInterpolator : PCHIP 1-d monotonic cubic
+            interpolation.
+        scipy.interpolate.CubicSpline : Cubic spline data interpolator.
+
+        Notes
+        -----
+        The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+        methods are wrappers around the respective SciPy implementations of
+        similar names. These use the actual numerical values of the index.
+        For more information on their behavior, see the
+        `SciPy documentation
+        <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+        and `SciPy tutorial
+        <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
 
         Examples
         --------
-
-        Filling in NaNs
+        Filling in ``NaN`` in a :class:`~pandas.Series` via linear
+        interpolation.
 
         >>> s = pd.Series([0, 1, np.nan, 3])
+        >>> s
+        0    0.0
+        1    1.0
+        2    NaN
+        3    3.0
+        dtype: float64
         >>> s.interpolate()
-        0    0
-        1    1
-        2    2
-        3    3
+        0    0.0
+        1    1.0
+        2    2.0
+        3    3.0
         dtype: float64
 
+        Filling in ``NaN`` in a Series by padding, but filling at most two
+        consecutive ``NaN`` at a time.
+
+        >>> s = pd.Series([np.nan, "single_one", np.nan,
+        ...                "fill_two_more", np.nan, np.nan, np.nan,
+        ...                4.71, np.nan])
+        >>> s
+        0              NaN
+        1       single_one
+        2              NaN
+        3    fill_two_more
+        4              NaN
+        5              NaN
+        6              NaN
+        7             4.71
+        8              NaN
+        dtype: object
+        >>> s.interpolate(method='pad', limit=2)
+        0              NaN
+        1       single_one
+        2       single_one
+        3    fill_two_more
+        4    fill_two_more
+        5    fill_two_more
+        6              NaN
+        7             4.71
+        8             4.71
+        dtype: object
+
+        Filling in ``NaN`` in a Series via polynomial interpolation or splines:
+        Both 'polynomial' and 'spline' methods require that you also specify
+        an ``order`` (int).
+
+        >>> s = pd.Series([0, 2, np.nan, 8])
+        >>> s.interpolate(method='polynomial', order=2)
+        0    0.000000
+        1    2.000000
+        2    4.666667
+        3    8.000000
+        dtype: float64
+
+        Fill the DataFrame forward (that is, going down) along each column
+        using linear interpolation.
+
+        Note how the last entry in column 'a' is interpolated differently,
+        because there is no entry after it to use for interpolation.
+        Note how the first entry in column 'b' remains ``NaN``, because there
+        is no entry befofe it to use for interpolation.
+
+        >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
+        ...                    (np.nan, 2.0, np.nan, np.nan),
+        ...                    (2.0, 3.0, np.nan, 9.0),
+        ...                    (np.nan, 4.0, -4.0, 16.0)],
+        ...                   columns=list('abcd'))
+        >>> df
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  NaN  2.0  NaN   NaN
+        2  2.0  3.0  NaN   9.0
+        3  NaN  4.0 -4.0  16.0
+        >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  1.0  2.0 -2.0   5.0
+        2  2.0  3.0 -3.0   9.0
+        3  2.0  4.0 -4.0  16.0
+
+        Using polynomial interpolation.
+
+        >>> df['d'].interpolate(method='polynomial', order=2)
+        0     1.0
+        1     4.0
+        2     9.0
+        3    16.0
+        Name: d, dtype: float64
         """
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
