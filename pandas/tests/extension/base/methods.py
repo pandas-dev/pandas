@@ -145,7 +145,7 @@ class BaseMethodsTests(BaseExtensionTests):
         (0, [0, 1, 2, 3, 4]),
         (2, [-1, -1, 0, 1, 2]),
     ])
-    def test_container_shift_negative(self, data, frame, periods, indices):
+    def test_container_shift(self, data, frame, periods, indices):
         # https://github.com/pandas-dev/pandas/issues/22386
         subset = data[:5]
         data = pd.Series(subset, name='A')

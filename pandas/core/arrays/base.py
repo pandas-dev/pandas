@@ -59,6 +59,10 @@ class ExtensionArray(object):
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
 
+    The remaining methods implemented on this class should be performant,
+    as they only compose abstract methods. Still, a more efficient
+    implementation may be available, and these methods can be overridden.
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -408,6 +412,8 @@ class ExtensionArray(object):
         Newly introduced missing values are filled with
         ``self.dtype.na_value``.
 
+        .. versionadded:: 0.24.0
+
         Parameters
         ----------
         periods : int, default 1
@@ -418,6 +424,8 @@ class ExtensionArray(object):
         -------
         shifted : ExtensionArray
         """
+        # Note: this implementation assumes that `self.dtype.na_value` can be
+        # stored in an instance of your ExtensionArray with `self.dtype`.
         if periods == 0:
             return self.copy()
         empty = self._from_sequence([self.dtype.na_value] * abs(periods),
