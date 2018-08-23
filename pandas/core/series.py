@@ -3046,21 +3046,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Examples
     --------
 
-    >>> s = pd.Series(np.random.randn(10))
+    >>> s = pd.Series(range(1,10,1))
 
     >>> s.agg('min')
-    -1.3018049988556679
+    1
 
     >>> s.agg(['min', 'max'])
-    min   -1.301805
-    max    1.127688
-    dtype: float64
+    min   1
+    max   9
+    dtype: int64
 
     See also
     --------
-    pandas.Series.apply
-    pandas.Series.transform
-
+    pandas.Series.apply : Invoke function on a Series.
+    pandas.Series.transform : Transform function producing
+     a Series with like indexes.
     """)
 
     @Appender(_agg_doc)
@@ -3337,7 +3337,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    2
         5    3
         dtype: int64
-
         """
         kwargs['inplace'] = validate_bool_kwarg(kwargs.get('inplace', False),
                                                 'inplace')
