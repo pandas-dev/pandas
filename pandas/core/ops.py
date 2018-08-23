@@ -355,124 +355,21 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
-_add_example_FRAME = """
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-...                  columns=['one'])
->>> a
-   one
-a  1.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-...                       two=[np.nan, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  NaN
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.add(b, fill_value=0)
-   one  two
-a  2.0  NaN
-b  1.0  2.0
-c  1.0  NaN
-d  1.0  NaN
-e  NaN  2.0
-"""
-
-_sub_example_FRAME = """
->>> a = pd.DataFrame([2, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-...                  columns=['one'])
->>> a
-   one
-a  2.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-...                       two=[3, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  3.0
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.sub(b, fill_value=0)
-   one  two
-a  1.0  -3.0
-b  1.0  -2.0
-c  1.0  NaN
-d  -1.0  NaN
-e  NaN  -2.0
-"""
-
-_mod_example_FRAME = """
-**Using a scalar argument**
-
->>> df = pd.DataFrame([2, 4, np.nan, 6.2], index=["a", "b", "c", "d"],
-...                   columns=['one'])
->>> df
-    one
-a   2.0
-b   4.0
-c   NaN
-d   6.2
->>> df.mod(3, fill_value=-1)
-    one
-a   2.0
-b   1.0
-c   2.0
-d   0.2
-
-**Using a DataFrame argument**
-
->>> df = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
-...                   index=['a', 'b', 'c', 'd'])
->>> df
-    one   two
-a   NaN   NaN
-b   2.0   1.0
-c   3.0   1.0
-d   14.0  3.0
->>> other = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
-...                           three=[np.nan, 10, np.nan, -7]),
-...                      index=['a', 'b', 'd', 'e'])
->>> other
-    one three
-a   NaN NaN
-b   NaN 10.0
-d   6.0 NaN
-e   NaN -7.0
->>> df.mod(other, fill_value=3)
-    one   three two
-a   NaN   NaN   NaN
-b   2.0   3.0   1.0
-c   0.0   NaN   1.0
-d   2.0   NaN   0.0
-e   NaN  -4.0   NaN
-"""
-
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
             'desc': 'Addition',
-            'reverse': 'radd',
-            'df_examples': _add_example_FRAME},
+            'reverse': 'radd'},
     'sub': {'op': '-',
             'desc': 'Subtraction',
-            'reverse': 'rsub',
-            'df_examples': _sub_example_FRAME},
+            'reverse': 'rsub'},
     'mul': {'op': '*',
             'desc': 'Multiplication',
             'reverse': 'rmul',
             'df_examples': None},
     'mod': {'op': '%',
             'desc': 'Modulo',
-            'reverse': 'rmod',
-            'df_examples': _mod_example_FRAME},
+            'reverse': 'rmod'},
     'pow': {'op': '**',
             'desc': 'Exponential power',
             'reverse': 'rpow',
@@ -599,24 +496,30 @@ result : DataFrame
 """
 
 _flex_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
+{desc} of dataframe and other, element-wise (binary operator `{op_name}`
+and reverse version `{reverse}`).
 
-Equivalent to ``{equiv}``, but with support to substitute a fill_value for
-missing data in one of the inputs.
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
+arithmetic operators.
+
+Equivalent to `+`, `-`, `*`, `/`, `//`, `%`, `^` but with support to
+substitute a fill_value for missing data in one of the inputs.
 
 Parameters
 ----------
-other : Series, DataFrame, or constant
-axis : {{0, 1, 'index', 'columns'}}
-    For Series input, axis to match Series index on
-level : int or name
+other : scalar, sequence, Series, or DataFrame
+    Any single or multiple element data structure, or list-like object.
+axis :  {{0 or 'index', 1 or 'columns'}}
+    Whether to compare by the index (0 or 'index') or columns
+    (1 or 'columns'). For Series input, axis to match Series index on.
+level : int or object
     Broadcast across a level, matching Index values on the
-    passed MultiIndex level
+    passed MultiIndex level.
 fill_value : None or float value, default None
     Fill existing missing (NaN) values, and any new element needed for
     successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
-    the result will be missing
+    the result will be missing.
 
 Notes
 -----
@@ -624,15 +527,113 @@ Mismatched indices will be unioned together
 
 Returns
 -------
-result : DataFrame
+DataFrame
+    Result of the arithmetic operation.
+
+See Also
+--------
+DataFrame.add : Add DataFrames
+DataFrame.sub : Subtract DataFrames
+DataFrame.mul : Multiply DataFrames
+DataFrame.div : Divide Datafames (float division)
+DataFrame.truediv : Divide Datafames (float division)
+DataFrame.floordiv : Divide Datafames (integer division)
+DataFrame.mod : Calculate modulo (remainder after division) of DataFrames
+DataFrame.pow : Calculate exponential power of Datafames
 
 Examples
 --------
-{df_examples}
+>>> df = pd.DataFrame({{'assets': [400, 250, 100],
+...                    'liability': [120, 360, 280]}},
+...                    index = ['A', 'B', 'C'])
+>>> df
+   assets  liability
+A     400        120
+B     250        360
+C     100        280
 
-See also
---------
-DataFrame.{reverse}
+Add a scalar with operator version which return the same results.
+
+>>> df + 100
+   assets  liability
+A     500        220
+B     350        460
+C     200        380
+
+>>> df.add(100)
+   assets  liability
+A     500        220
+B     350        460
+C     200        380
+
+Subtract a list and Series by axis with operator version.
+
+>>> df - [100, 250]
+   assets  liability
+A     300       -130
+B     150        110
+C       0         30
+
+>>> df.sub([100, 250], axis='columns')
+   assets  liability
+A     300       -130
+B     150        110
+C       0         30
+
+>>> df.sub(pd.Series([100, 250, 300], index=['A', 'B', 'C']), axis='index')
+   assets  liability
+A     300         20
+B       0        110
+C    -200        -20
+
+Multiply a DataFrame of different shape with operator version.
+
+>>> other = pd.DataFrame({{'assets': [2, 5, 3, 1]}},
+...                       index = ['A', 'B', 'C', 'D'])
+>>> other
+   assets
+A       2
+B       5
+C       3
+D       1
+
+>>> df * other
+   assets  liability
+A   800.0        NaN
+B  1250.0        NaN
+C   300.0        NaN
+D     NaN        NaN
+
+>>> df.mul(other, fill_value=0)
+   assets  liability
+A   800.0        0.0
+B  1250.0        0.0
+C   300.0        0.0
+D     0.0        NaN
+
+Divide by a Multindex
+
+>>> df_multindex = pd.DataFrame({{'assets': [250, 150, 100, 150, 300, 220],
+...                              'liability': [100, 250, 300, 200, 175, 225]}},
+...                              index = [['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
+...                                       ['A', 'B', 'C', 'A', 'B' ,'C']])
+>>> df_multindex
+      assets  liability
+Q1 A     250        100
+   B     150        250
+   C     100        300
+Q2 A     150        200
+   B     300        175
+   C     220        225
+
+>>> df.div(df_multindex, level=1)
+        assets  liability
+Q1 A  1.600000   1.200000
+   B  1.666667   1.440000
+   C  1.000000   0.933333
+Q2 A  2.666667   0.600000
+   B  0.833333   2.057143
+   C  0.454545   1.244444
 """
 
 _flex_comp_doc_FRAME = """
@@ -697,29 +698,35 @@ results.
 A  False     True
 B  False    False
 C   True    False
+
 >>> df.eq(100)
     cost  revenue
 A  False     True
 B  False    False
 C   True    False
 
-Compare to a list and Series by axis and operator version.
+Compare to a list and Series by axis and operator version. As shown,
+for list axis is by default 'index', but for Series axis is by
+default 'columns'.
 
 >>> df != [100, 250, 300]
    cost  revenue
 A  True    False
 B  True    False
 C  True    False
+
 >>> df.ne([100, 250, 300], axis='index')
-  cost  revenue
+   cost  revenue
 A  True    False
 B  True    False
 C  True    False
+
 >>> df != pd.Series([100, 250, 300])
    cost  revenue     0     1     2
 A  True     True  True  True  True
 B  True     True  True  True  True
 C  True     True  True  True  True
+
 >>> df.ne(pd.Series([100, 250, 300]), axis='columns')
    cost  revenue     0     1     2
 A  True     True  True  True  True
@@ -736,6 +743,7 @@ A      300
 B      250
 C      100
 D      150
+
 >>> df.gt(other)
     cost  revenue
 A  False    False
@@ -833,8 +841,7 @@ def _make_flex_doc(op_name, typ):
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                              equiv=equiv, reverse=op_desc['reverse'],
-                              df_examples=op_desc['df_examples'])
+                              equiv=equiv, reverse=op_desc['reverse'])
     elif typ == 'panel':
         base_doc = _flex_doc_PANEL
         doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
