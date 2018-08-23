@@ -186,18 +186,19 @@ class TestDataFrameAlterAxes():
 
         # == gives ambiguous Boolean for Series
         if drop and keys[0] is 'A' and keys[1] is 'A':
-            with tm.assert_raises_regex(KeyError, '.*'):
-                df.set_index(keys, drop=drop, append=append)
+            # can't drop same column twice
+            first_drop = False
         else:
-            result = df.set_index(keys, drop=drop, append=append)
+            first_drop = drop
 
-            # to test against already-tested behavior, we add sequentially,
-            # hence second append always True; must wrap in list, otherwise
-            # list-box will be illegal
-            expected = df.set_index([keys[0]], drop=drop, append=append)
-            expected = expected.set_index([keys[1]], drop=drop, append=True)
+        # to test against already-tested behaviour, we add sequentially,
+        # hence second append always True; must wrap in list, otherwise
+        # list-box will be illegal
+        expected = df.set_index([keys[0]], drop=first_drop, append=append)
+        expected = expected.set_index([keys[1]], drop=drop, append=True)
 
-            tm.assert_frame_equal(result, expected)
+        result = df.set_index(keys, drop=drop, append=append)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize('append', [True, False])
     @pytest.mark.parametrize('drop', [True, False])
@@ -229,12 +230,23 @@ class TestDataFrameAlterAxes():
     def test_set_index_raise(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
 
-        with tm.assert_raises_regex(KeyError, '.*'):  # column names are A-E
+        with tm.assert_raises_regex(KeyError, "['foo', 'bar', 'baz']"):
+            # column names are A-E
             df.set_index(['foo', 'bar', 'baz'], drop=drop, append=append)
 
         # non-existent key in list with arrays
-        with tm.assert_raises_regex(KeyError, '.*'):
+        with tm.assert_raises_regex(KeyError, 'X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
+
+        rgx = 'keys may only contain a combination of the following:.*'
+        # forbidden type, e.g. set
+        with tm.assert_raises_regex(TypeError, rgx):
+            df.set_index(set(df['A']), drop=drop, append=append)
+
+        # forbidden type in list, e.g. set
+        with tm.assert_raises_regex(TypeError, rgx):
+            df.set_index(['A', df['A'], set(df['A'])],
+                         drop=drop, append=append)
 
     def test_construction_with_categorical_index(self):
         ci = tm.makeCategoricalIndex(10)
