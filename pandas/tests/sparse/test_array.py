@@ -574,8 +574,7 @@ class TestSparseArray(object):
             # check numpy compat
             dense[4:, :]
 
-    @pytest.mark.parametrize("op", ["add", "sub", "mul", "iadd", "isub",
-                                    "imul", "ifloordiv", "itruediv",
+    @pytest.mark.parametrize("op", ["add", "sub", "mul",
                                     "truediv", "floordiv", "pow"])
     def test_binary_operators(self, op):
         op = getattr(operator, op)
@@ -624,6 +623,12 @@ class TestSparseArray(object):
         with np.errstate(all="ignore"):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
                 _check_op(op, first_arr, second_arr)
+
+    def test_ndarray_inplace_raises(self):
+        sp_array = SparseArray([1, 2, 3])
+        array = np.array([1, 2, 3])
+        with tm.assert_raises_regex(TypeError, "not supported"):
+            array += sp_array
 
     # TODO: figure out correct behavior
     # @pytest.mark.parametrize("op", ["ipow"])

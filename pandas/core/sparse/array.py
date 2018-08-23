@@ -1076,6 +1076,10 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         new_inputs = []
         new_fill_values = []
 
+        if kwargs.get('out', None) is not None:
+            # This comes from, e.g. ndarray += SparseArray
+            raise TypeError("The 'out' keyword is not supported.")
+
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
         if compat.PY2:
