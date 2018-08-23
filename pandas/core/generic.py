@@ -9360,7 +9360,11 @@ class NDFrame(PandasObject, SelectionMixin):
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
-        r"""Write object to a comma-separated values (csv) file
+        r"""
+        Write object to a comma-separated values (csv) file.
+
+        .. versionchanged:: 0.24.0
+            The order of arguments for Series was changed.
 
         Parameters
         ----------
@@ -9372,68 +9376,80 @@ class NDFrame(PandasObject, SelectionMixin):
         sep : character, default ','
             Field delimiter for the output file.
         na_rep : string, default ''
-            Missing data representation
+            Missing data representation.
         float_format : string, default None
-            Format string for floating point numbers
+            Format string for floating point numbers.
         columns : sequence, optional
-            Columns to write
+            Columns to write.
         header : boolean or list of string, default True
             Write out the column names. If a list of strings is given it is
-            assumed to be aliases for the column names
+            assumed to be aliases for the column names.
             .. versionchanged:: 0.24.0
                 Previously defaulted to False for Series.
         index : boolean, default True
-            Write row names (index)
+            Write row names (index).
         index_label : string or sequence, or False, default None
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
             sequence should be given if the object uses MultiIndex.  If
             False do not print fields for index names. Use index_label=False
-            for easier importing in R
+            for easier importing in R.
         mode : str
-            Python write mode, default 'w'
+            Python write mode, default 'w'.
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                      default 'infer'
-            If 'infer' and `path_or_buf` is path-like, then detect compression
-            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
-            (otherwise no compression).
-
+        compression : string, default 'infer'
+            Compression mode among the following possible values: {'infer',
+            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
+            is path-like, then detect compression from the following
+            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
+            compression).
             .. versionchanged:: 0.24.0
-               'infer' option added and set to default
+               'infer' option added and set to default.
+        quoting : optional constant from csv module
+            Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric.
+        quotechar : string (length 1), default '\"'
+            Character used to quote fields.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
-            file
-        quoting : optional constant from csv module
-            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
-            will treat them as non-numeric
-        quotechar : string (length 1), default '\"'
-            character used to quote fields
-        doublequote : boolean, default True
-            Control quoting of `quotechar` inside a field
-        escapechar : string (length 1), default None
-            character used to escape `sep` and `quotechar` when appropriate
+            file.
         chunksize : int or None
-            rows to write at a time
+            Rows to write at a time.
         tupleize_cols : boolean, default False
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
-
             Write MultiIndex columns as a list of tuples (if True) or in
             the new, expanded format, where each MultiIndex column is a row
             in the CSV (if False).
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
         date_format : string, default None
-            Format string for datetime objects
-        decimal: string, default '.'
+            Format string for datetime objects.
+        doublequote : boolean, default True
+            Control quoting of `quotechar` inside a field.
+        escapechar : string (length 1), default None
+            Character used to escape `sep` and `quotechar` when appropriate.
+        decimal : string, default '.'
             Character recognized as decimal separator. E.g. use ',' for
-            European data
+            European data.
 
-        .. versionchanged:: 0.24.0
-            The order of arguments for Series was changed.
+        Returns
+        -------
+        If path_or_buf is None, returns the resulting csv format as a string.
+        Otherwise returns None.
+
+        See Also
+        --------
+        pandas.read_csv : load a CSV file into a DataFrame
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({'col1': [1], 'col2': ['a'], 'col3': [10.1]})
+        >>> df.to_csv(decimal=',', sep=';', float_format='%.2f', index=False)
+        'col1;col2;col3\n1;a;10,10\n'
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
