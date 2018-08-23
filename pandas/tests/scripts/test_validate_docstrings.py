@@ -193,6 +193,27 @@ class GoodDocStrings(object):
         """
         pass
 
+    def mode(self, axis, numeric_only):
+        """
+        Ensure sphinx directives don't affect checks for trailing periods.
+
+        Parameters
+        ----------
+        axis : str
+            Sentence ending in period, followed by single directive.
+
+            .. versionchanged:: 0.1.2
+
+        numeric_only : boolean
+            Sentence ending in period, followed by multiple directives.
+
+            .. versionadded:: 0.1.2
+            .. deprecated:: 0.00.0
+                A multiline description,
+                which spans another line.
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -374,6 +395,31 @@ class BadParameters(object):
            Doesn't end with a dot
         """
 
+    def no_description_period_with_directive(self, kind):
+        """
+        Forgets to add a period, and also includes a directive.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionadded:: 0.00.0
+        """
+
+    def no_description_period_with_directives(self, kind):
+        """
+        Forgets to add a period, and also includes multiple directives.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionchanged:: 0.00.0
+           .. deprecated:: 0.00.0
+        """
+
     def parameter_capitalization(self, kind):
         """
         Forgets to capitalize the description.
@@ -513,7 +559,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains'])
+        'contains', 'mode'])
     def test_good_functions(self, func):
         assert validate_one(self._import_path(   # noqa: F821
             klass='GoodDocStrings', func=func)) == 0
@@ -548,6 +594,8 @@ class TestValidator(object):
           'Unknown parameters {kind: str}',
           'Parameter "kind: str" has no type')),
         ('BadParameters', 'no_description_period',
+         ('Parameter "kind" description should finish with "."',)),
+        ('BadParameters', 'no_description_period_with_directive',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),
