@@ -9438,8 +9438,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        If path_or_buf is None, returns the resulting csv format as a string.
-        Otherwise returns None.
+        None or str
+            If path_or_buf is None, returns the resulting csv format as a
+            string. Otherwise returns None.
 
         See Also
         --------
@@ -9449,7 +9450,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
-        ... 'mask': ['red', 'purple'], 'weapon': ['sai', 'bo staff']})
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']})
         >>> df.to_csv(index=False)
         'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
         """
