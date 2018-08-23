@@ -2068,6 +2068,18 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
                                  limit=limit),
             placement=self.mgr_locs)
 
+    def shift(self, periods, axis=0, mgr=None):
+        """
+        Shift the block by `periods`.
+
+        Dispatches to underlying ExtensionArray and re-boxes in an
+        ExtensionBlock.
+        """
+        # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
+        return [self.make_block_same_class(self.values.shift(periods=periods),
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
+
 
 class NumericBlock(Block):
     __slots__ = ()
@@ -2690,10 +2702,6 @@ class CategoricalBlock(ExtensionBlock):
             result = _block_shape(result, ndim=self.ndim)
 
         return result
-
-    def shift(self, periods, axis=0, mgr=None):
-        return self.make_block_same_class(values=self.values.shift(periods),
-                                          placement=self.mgr_locs)
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime
