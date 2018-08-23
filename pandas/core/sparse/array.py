@@ -407,9 +407,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return self.to_dense()
 
     def isna(self):
-        # Two unfortunate things here:
-        # 1. We can't
-        return pd.isna(np.asarray(self))
+        fill = self._null_fill_value
+        indices = self.sp_index.to_int_index().indices
+        out = np.full(self.shape, fill)
+        out[indices] = pd.isna(self.sp_values)
+        return out
 
     def fillna(self, value=None, method=None, limit=None):
         """
