@@ -410,12 +410,12 @@ class TestCasting(object):
         s = pd.Series([1, 2, 3], dtype='Int64')
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3], dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         s = pd.Series([1, 2, 3, None], dtype='Int64')
         result = s.astype(dtype)
         expected = pd.Series([1, 2, 3, None], dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
 
