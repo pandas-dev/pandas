@@ -74,7 +74,7 @@ class TestDtype(base.BaseDtypeTests):
 
 class TestInterface(base.BaseInterfaceTests):
     def test_no_values_attribute(self, data):
-        pytest.skip("Welp")
+        pytest.skip("We have values")
 
 
 class TestConstructors(base.BaseConstructorsTests):
