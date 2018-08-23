@@ -20,14 +20,14 @@ if [ "$LINT" ]; then
 
     # pandas/_libs/src is C code, so no need to search there.
     echo "Linting *.py"
-    flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C406,C408,C409,E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting *.py DONE"
 
     echo "Linting setup.py"
-    flake8 setup.py --ignore=C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 setup.py --ignore=E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
@@ -41,21 +41,21 @@ if [ "$LINT" ]; then
     echo "Linting asv_bench/benchmarks/*.py DONE"
 
     echo "Linting scripts/*.py"
-    flake8 scripts --filename=*.py --ignore=C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 scripts --filename=*.py --ignore=C408,E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting scripts/*.py DONE"
 
     echo "Linting doc scripts"
-    flake8 doc/make.py doc/source/conf.py --ignore=C406,C408,C409,C410,E402,E731,E741,W503
+    flake8 doc/make.py doc/source/conf.py --ignore=E402,E731,E741,W503
     if [ $? -ne "0" ]; then
         RET=1
     fi
     echo "Linting doc scripts DONE"
 
     echo "Linting *.pyx"
-    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C407,C411
+    flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
     if [ $? -ne "0" ]; then
         RET=1
     fi

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport (Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE,
                       PyUnicode_Check, PyUnicode_AsASCIIString)

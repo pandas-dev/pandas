@@ -703,6 +703,24 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
    ts2[[0, 2, 6]].index
 
+.. _timeseries.iterating-label:
+
+Iterating through groups
+------------------------
+
+With the :ref:`Resampler` object in hand, iterating through the grouped data is very
+natural and functions similarly to :py:func:`itertools.groupby`:
+
+.. ipython:: python
+
+   resampled = df.resample('H')
+
+   for name, group in resampled:
+       print(name)
+       print(group)
+
+See :ref:`groupby.iterating-label`.
+
 .. _timeseries.components:
 
 Time/Date Components
