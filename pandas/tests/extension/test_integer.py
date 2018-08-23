@@ -89,50 +89,7 @@ def data_for_grouping(dtype):
     return integer_array([b, b, na, na, a, a, b, c], dtype=dtype)
 
 
-class BaseInteger(object):
-
-    def assert_index_equal(self, left, right, *args, **kwargs):
-
-        left_na = left.isna()
-        right_na = right.isna()
-
-        tm.assert_numpy_array_equal(left_na, right_na)
-        return tm.assert_index_equal(left[~left_na],
-                                     right[~right_na],
-                                     *args, **kwargs)
-
-    def assert_series_equal(self, left, right, *args, **kwargs):
-
-        left_na = left.isna()
-        right_na = right.isna()
-
-        tm.assert_series_equal(left_na, right_na)
-        return tm.assert_series_equal(left[~left_na],
-                                      right[~right_na],
-                                      *args, **kwargs)
-
-    def assert_frame_equal(self, left, right, *args, **kwargs):
-        # TODO(EA): select_dtypes
-        tm.assert_index_equal(
-            left.columns, right.columns,
-            exact=kwargs.get('check_column_type', 'equiv'),
-            check_names=kwargs.get('check_names', True),
-            check_exact=kwargs.get('check_exact', False),
-            check_categorical=kwargs.get('check_categorical', True),
-            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
-
-        integers = (left.dtypes == 'integer').index
-
-        for col in integers:
-            self.assert_series_equal(left[col], right[col],
-                                     *args, **kwargs)
-
-        left = left.drop(columns=integers)
-        right = right.drop(columns=integers)
-        tm.assert_frame_equal(left, right, *args, **kwargs)
-
-
-class TestDtype(BaseInteger, base.BaseDtypeTests):
+class TestDtype(base.BaseDtypeTests):
 
     @pytest.mark.skip(reason="using multiple dtypes")
     def test_is_dtype_unboxes_dtype(self):
@@ -143,7 +100,7 @@ class TestDtype(BaseInteger, base.BaseDtypeTests):
         assert dtype.construct_array_type() is IntegerArray
 
 
-class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
+class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
         # overwriting to indicate ops don't raise an error
@@ -202,7 +159,7 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
         pass
 
 
-class TestComparisonOps(BaseInteger, base.BaseComparisonOpsTests):
+class TestComparisonOps(base.BaseComparisonOpsTests):
 
     def check_opname(self, s, op_name, other, exc=None):
         super(TestComparisonOps, self).check_opname(s, op_name,
@@ -212,15 +169,15 @@ class TestComparisonOps(BaseInteger, base.BaseComparisonOpsTests):
         self.check_opname(s, op_name, other)
 
 
-class TestInterface(BaseInteger, base.BaseInterfaceTests):
+class TestInterface(base.BaseInterfaceTests):
     pass
 
 
-class TestConstructors(BaseInteger, base.BaseConstructorsTests):
+class TestConstructors(base.BaseConstructorsTests):
     pass
 
 
-class TestReshaping(BaseInteger, base.BaseReshapingTests):
+class TestReshaping(base.BaseReshapingTests):
     pass
 
     # for test_concat_mixed_dtypes test
@@ -228,15 +185,15 @@ class TestReshaping(BaseInteger, base.BaseReshapingTests):
     # TODO(jreback) once integrated this would
 
 
-class TestGetitem(BaseInteger, base.BaseGetitemTests):
+class TestGetitem(base.BaseGetitemTests):
     pass
 
 
-class TestMissing(BaseInteger, base.BaseMissingTests):
+class TestMissing(base.BaseMissingTests):
     pass
 
 
-class TestMethods(BaseInteger, base.BaseMethodsTests):
+class TestMethods(base.BaseMethodsTests):
 
     @pytest.mark.parametrize('dropna', [True, False])
     def test_value_counts(self, all_data, dropna):
@@ -254,11 +211,11 @@ class TestMethods(BaseInteger, base.BaseMethodsTests):
         self.assert_series_equal(result, expected)
 
 
-class TestCasting(BaseInteger, base.BaseCastingTests):
+class TestCasting(base.BaseCastingTests):
     pass
 
 
-class TestGroupby(BaseInteger, base.BaseGroupbyTests):
+class TestGroupby(base.BaseGroupbyTests):
 
     @pytest.mark.xfail(reason="groupby not working", strict=True)
     def test_groupby_extension_no_sort(self, data_for_grouping):
