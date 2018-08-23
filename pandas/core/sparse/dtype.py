@@ -38,6 +38,7 @@ class SparseDtype(ExtensionDtype):
         # type: (Union[str, np.dtype, 'ExtensionDtype', type], Any) -> None
         from pandas.core.dtypes.missing import na_value_for_dtype
         from pandas.core.dtypes.common import pandas_dtype, is_string_dtype
+        from pandas.core.dtypes.common import is_scalar
 
         if isinstance(dtype, type(self)):
             if fill_value is None:
@@ -51,6 +52,9 @@ class SparseDtype(ExtensionDtype):
         if fill_value is None:
             fill_value = na_value_for_dtype(dtype)
 
+        if not is_scalar(fill_value):
+            raise ValueError("fill_value must be a scalar. Got {} "
+                             "instead".format(fill_value))
         self._dtype = dtype
         self._fill_value = fill_value
 
@@ -80,6 +84,18 @@ class SparseDtype(ExtensionDtype):
 
     @property
     def fill_value(self):
+        """
+        The fill value of the array.
+
+        Converting the SparseArray to a dense ndarray will fill the
+        array with this value.
+
+        .. warning::
+
+           It's possible to end up with a SparseArray that has ``fill_value``
+           values in ``sp_values``. This can occur, for example, when setting
+           ``SparseArray.fill_value`` directly.
+        """
         return self._fill_value
 
     @property

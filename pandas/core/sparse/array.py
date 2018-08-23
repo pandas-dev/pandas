@@ -348,22 +348,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @fill_value.setter
     def fill_value(self, value):
-        # XXX: I think this should be deprecated, since fill_value goes into
-        # the hash of SparseDtype
-        warnings.warn(
-            "Updating fill_value requires converting to a dense array",
-            PerformanceWarning,
-            stacklevel=2
-        )
-        dtype = SparseDtype(self.dtype.subtype, value)
-        sparse_values, sparse_index, _ = make_sparse(
-            np.asarray(self), kind=self.kind,
-            fill_value=dtype.fill_value, copy=False
-        )
-        self._sparse_index = sparse_index
-        self._sparse_values = sparse_values
-        self._dtype = dtype
-        return self
+        self._dtype = SparseDtype(self.dtype.subtype, value)
 
     @property
     def kind(self):

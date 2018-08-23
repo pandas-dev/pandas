@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import compat
-from pandas.errors import PerformanceWarning
 from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
@@ -982,18 +981,22 @@ def test_setting_fill_value_fillna_still_works():
     # This is why letting users update fill_value / dtype is bad
     # astype has the same problem.
     arr = SparseArray([1., np.nan, 1.0], fill_value=0.0)
-    with tm.assert_produces_warning(PerformanceWarning):
-        arr.fill_value = np.nan
+    arr.fill_value = np.nan
     result = arr.isna()
     expected = np.array([False, True, False])
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_setting_fill_value():
+def test_setting_fill_value_updates():
     arr = SparseArray([0.0, np.nan], fill_value=0)
-    with tm.assert_produces_warning(PerformanceWarning):
-        arr.fill_value = np.nan
-    expected = SparseArray([0.0, np.nan], fill_value=np.nan)
+    arr.fill_value = np.nan
+    # use private constructor to get the index right
+    # otherwise both nans would be un-stored.
+    expected = SparseArray._simple_new(
+        sparse_array=np.array([np.nan]),
+        sparse_index=IntIndex(2, [1]),
+        dtype=SparseDtype(float, np.nan),
+    )
     tm.assert_sp_array_equal(arr, expected)
 
 
