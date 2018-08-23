@@ -327,23 +327,21 @@ is the case with :attr:`Period.end_time`, for example
 ``SparseArray`` is now an ``ExtensionArray``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-SparseArray is now implements the ExtensionArray interface.
+SparseArray now implements the ExtensionArray interface.
 To conform to this interface, and for consistency with the rest of pandas, some API breaking
 changes were made:
 
-- ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`
+- ``SparseArray`` is no longer a subclass of :class:`numpy.ndarray`. To convert a SparseArray to a NumPy array, use :meth:`numpy.asarray`.
 - ``SparseArray.dtype`` and ``SparseSeries.dtype`` are now instances of ``SparseDtype``, rather than ``np.dtype``. Access the underlying dtype with ``SparseDtype.subtype``.
 - :meth:`numpy.asarray(sparse_array)` now returns a dense array with all the values, not just the non-fill-value values (:issue:`14167`)
-- Passing a ``fill_value`` to ``SparseArray.take`` no longer implies ``allow_fill=True``.
-- ``SparseArray.take`` no longer accepts scalars for indices.
-- ``SparseArray.astype(sparse_dtype)`` will now change both the dtype of the underlying ``sp_values`` and the ``fill_value``. Previously, just
-  ``sparse_array.sp_values.dtype`` was changed. The same holds for a Series with spares values.
-- Setting ``SparseArray.fill_value`` to a fill value with a different dtype is now allowed.
+- ``SparseArray.take`` now matches the API of :meth:`pandas.api.extensions.ExtensionArray.take`.
+  * The default value of ``allow_fill`` has changed from ``False`` to ``True``.
+  * The ``out`` and ``mode`` parameters are now longer accepted (previously, this raised if they were specified).
+  * Passing a scalar for ``indices`` is no longer allowed.
 - The result of concatenating a mix of sparse and dense Series is a Series with sparse values.
-- ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a spares column with a dense column while preserving
+- ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving
   the sparse subtype. The result will be an object-dtype SparseArray.
-- Concatenating a SparseSeries and a dense series now returns a Series with sparse values.
-- ``SparseArray.take`` no longer accepts the ``out`` and ``mode`` parameters (previously, this raised if they were specified).
+- Setting ``SparseArray.fill_value`` to a fill value with a different dtype is now allowed.
 
 
 Some new warnings are issued for operations that require or are likely to materialize a large dense array:
@@ -481,7 +479,6 @@ ExtensionType Changes
 - :meth:`~Series.shift` now dispatches to :meth:`ExtensionArray.shift` (:issue:`22386`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
-- Added ``ExtensionDtype._is_numeric`` for controlling whether an extension dtype is considered numeric.
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 
 .. _whatsnew_0240.api.incompatibilities:
@@ -733,15 +730,6 @@ Groupby/Resample/Rolling
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
 - Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
 
-.. _whatsnew_0240.bug_fixes.sparse:
-
-Sparse
-^^^^^^
-
--
--
--
-
 Reshaping
 ^^^^^^^^^
 
@@ -755,6 +743,8 @@ Reshaping
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
 - Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the `to_replace` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 -
+
+.. _whatsnew_0240.bug_fixes.sparse:
 
 Sparse
 ^^^^^^

@@ -491,7 +491,30 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
             b = empty
         return arr._concat_same_type([a, b])
 
+    def _first_fill_value_loc(self):
+        """
+        Get the location of the first missing value.
+
+        Returns
+        -------
+        int
+        """
+        if len(self) == 0 or self.sp_index.npoints == len(self):
+            return -1
+
+        indices = self.sp_index.to_int_index().indices
+        if indices[0] > 0:
+            return 0
+
+        diff = indices[1:] - indices[:-1]
+        return np.searchsorted(diff, 2) + 1
+
     def unique(self):
+        uniques = list(pd.unique(self.sp_values))
+        fill_loc = self._first_fill_value_loc()
+        if fill_loc >= 0:
+            uniques.insert(fill_loc, self.fill_value)
+        return type(self)(uniques, fill_value=self.fill_value)
         # The EA API currently expects unique to return the same EA.
         # That doesn't really make sense for sparse.
         # Can we have it expect Union[EA, ndarray]?

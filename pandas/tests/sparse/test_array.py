@@ -995,3 +995,30 @@ def test_setting_fill_value():
         arr.fill_value = np.nan
     expected = SparseArray([0.0, np.nan], fill_value=np.nan)
     tm.assert_sp_array_equal(arr, expected)
+
+
+@pytest.mark.parametrize("arr, loc", [
+    ([None, 1, 2], 0),
+    ([0, None, 2], 1),
+    ([0, 1, None], 2),
+    ([0, 1, 1, None, None], 3),
+    ([1, 1, 1, 2], -1),
+    ([], -1),
+])
+def test_first_fill_value_loc(arr, loc):
+    result = SparseArray(arr)._first_fill_value_loc()
+    assert result == loc
+
+
+@pytest.mark.parametrize('arr', [
+    [1, 2, np.nan, np.nan],
+    [1, np.nan, 2, np.nan],
+    [1, 2, np.nan],
+])
+@pytest.mark.parametrize("fill_value", [
+    np.nan, 0, 1
+])
+def test_unique_na_fill(arr, fill_value):
+    a = pd.SparseArray(arr, fill_value=fill_value).unique()
+    b = pd.Series(arr).unique()
+    np.testing.assert_array_equal(a, b)
