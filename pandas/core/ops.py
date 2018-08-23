@@ -1182,7 +1182,7 @@ def dispatch_to_extension_op(op, left, right):
                 new_right = [new_right]
             new_right = list(new_right)
         elif is_extension_array_dtype(right) and type(left) != type(right):
-            new_right = list(new_right)
+            new_right = list(right)
         else:
             new_right = right
 
