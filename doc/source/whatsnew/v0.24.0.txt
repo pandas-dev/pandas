@@ -658,7 +658,7 @@ Indexing
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
-- Bug in `scalar in Index` if scalar is a float while the Index is of integer dtype (:issue:`22085`)
+- Bug in ``scalar in Index`` if scalar is a float while the Index is of integer dtype (:issue:`22085`)
 
 Missing
 ^^^^^^^
