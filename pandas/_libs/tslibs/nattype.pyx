@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport (
     PyFloat_Check, PyComplex_Check,
@@ -16,13 +15,14 @@ cimport numpy as cnp
 from numpy cimport int64_t
 cnp.import_array()
 
+cimport util
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
                    is_datetime64_object, is_timedelta64_object)
 
 # ----------------------------------------------------------------------
 # Constants
-nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
+nat_strings = {'NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'}
 
 cdef int64_t NPY_NAT = get_nat()
 iNaT = NPY_NAT  # python-visible constant
@@ -585,5 +585,29 @@ NaT = NaTType()
 
 cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
-    return val is None or (
-        PyFloat_Check(val) and val != val) or val is NaT
+    return val is None or util.is_nan(val) or val is NaT
+
+
+cdef inline bint is_null_datetimelike(object val):
+    """
+    Determine if we have a null for a timedelta/datetime (or integer versions)
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    null_datetimelike : bool
+    """
+    if val is None or util.is_nan(val):
+        return True
+    elif val is NaT:
+        return True
+    elif util.is_timedelta64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_integer_object(val):
+        return val == NPY_NAT
+    return False

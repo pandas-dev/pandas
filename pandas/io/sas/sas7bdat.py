@@ -13,15 +13,19 @@ Partial documentation of the file format:
 Reference for binary data compression:
   http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
 """
-
-import pandas as pd
-from pandas import compat
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas.errors import EmptyDataError
-import numpy as np
+from datetime import datetime
 import struct
+
+import numpy as np
+
+from pandas import compat
+from pandas.errors import EmptyDataError
+
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas._sas import Parser
+
+import pandas as pd
 
 
 class _subheader_pointer(object):
@@ -169,7 +173,7 @@ class SAS7BDATReader(BaseIterator):
                 self.encoding or self.default_encoding)
 
         # Timestamp is epoch 01/01/1960
-        epoch = pd.datetime(1960, 1, 1)
+        epoch = datetime(1960, 1, 1)
         x = self._read_float(const.date_created_offset + align1,
                              const.date_created_length)
         self.date_created = epoch + pd.to_timedelta(x, unit='s')
@@ -321,7 +325,7 @@ class SAS7BDATReader(BaseIterator):
                   (compression == 0))
             f2 = (ptype == const.compressed_subheader_type)
             if (self.compression != "") and f1 and f2:
-                index = const.index.dataSubheaderIndex
+                index = const.SASIndex.data_subheader_index
             else:
                 self.close()
                 raise ValueError("Unknown subheader signature")
@@ -360,23 +364,23 @@ class SAS7BDATReader(BaseIterator):
         offset = pointer.offset
         length = pointer.length
 
-        if subheader_index == const.index.rowSizeIndex:
+        if subheader_index == const.SASIndex.row_size_index:
             processor = self._process_rowsize_subheader
-        elif subheader_index == const.index.columnSizeIndex:
+        elif subheader_index == const.SASIndex.column_size_index:
             processor = self._process_columnsize_subheader
-        elif subheader_index == const.index.columnTextIndex:
+        elif subheader_index == const.SASIndex.column_text_index:
             processor = self._process_columntext_subheader
-        elif subheader_index == const.index.columnNameIndex:
+        elif subheader_index == const.SASIndex.column_name_index:
             processor = self._process_columnname_subheader
-        elif subheader_index == const.index.columnAttributesIndex:
+        elif subheader_index == const.SASIndex.column_attributes_index:
             processor = self._process_columnattributes_subheader
-        elif subheader_index == const.index.formatAndLabelIndex:
+        elif subheader_index == const.SASIndex.format_and_label_index:
             processor = self._process_format_subheader
-        elif subheader_index == const.index.columnListIndex:
+        elif subheader_index == const.SASIndex.column_list_index:
             processor = self._process_columnlist_subheader
-        elif subheader_index == const.index.subheaderCountsIndex:
+        elif subheader_index == const.SASIndex.subheader_counts_index:
             processor = self._process_subheader_counts
-        elif subheader_index == const.index.dataSubheaderIndex:
+        elif subheader_index == const.SASIndex.data_subheader_index:
             self._current_page_data_subheader_pointers.append(pointer)
             return
         else:

@@ -53,7 +53,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype)
 from pandas.core.arrays import Categorical
 from pandas.core.dtypes.concat import union_categoricals
-import pandas.io.common as com
+import pandas.io.common as icom
 
 from pandas.errors import (ParserError, DtypeWarning,
                            EmptyDataError, ParserWarning)
@@ -445,10 +445,9 @@ cdef class TextReader:
         # suboptimal
         if usecols is not None:
             self.has_usecols = 1
-            if callable(usecols):
-                self.usecols = usecols
-            else:
-                self.usecols = set(usecols)
+            # GH-20558, validate usecols at higher level and only pass clean
+            # usecols into TextReader.
+            self.usecols = usecols
 
         # XXX
         if skipfooter > 0:
@@ -666,7 +665,8 @@ cdef class TextReader:
             if b'utf-16' in (self.encoding or b''):
                 # we need to read utf-16 through UTF8Recoder.
                 # if source is utf-16, convert source to utf-8 by UTF8Recoder.
-                source = com.UTF8Recoder(source, self.encoding.decode('utf-8'))
+                source = icom.UTF8Recoder(source,
+                                          self.encoding.decode('utf-8'))
                 self.encoding = b'utf-8'
                 self.c_encoding = <char*> self.encoding
 
@@ -1357,7 +1357,7 @@ cdef asbytes(object o):
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = _ensure_encoded(list(com._NA_VALUES))
+_NA_VALUES = _ensure_encoded(list(icom._NA_VALUES))
 
 
 def _maybe_upcast(arr):
@@ -2248,7 +2248,7 @@ def sanitize_objects(ndarray[object] values, set na_values,
     n = len(values)
     onan = np.nan
 
-    for i from 0 <= i < n:
+    for i in range(n):
         val = values[i]
         if (convert_empty and val == '') or (val in na_values):
             values[i] = onan

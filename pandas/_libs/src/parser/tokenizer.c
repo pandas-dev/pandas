@@ -69,9 +69,9 @@ static void free_if_not_null(void **ptr) {
 
 */
 
-static void *grow_buffer(void *buffer, size_t length, size_t *capacity,
-                         size_t space, size_t elsize, int *error) {
-    size_t cap = *capacity;
+static void *grow_buffer(void *buffer, int64_t length, int64_t *capacity,
+                         int64_t space, int64_t elsize, int *error) {
+    int64_t cap = *capacity;
     void *newbuffer = buffer;
 
     // Can we fit potentially nbytes tokens (+ null terminators) in the stream?
@@ -169,7 +169,7 @@ int parser_cleanup(parser_t *self) {
 }
 
 int parser_init(parser_t *self) {
-    size_t sz;
+    int64_t sz;
 
     /*
       Initialize data buffers
@@ -262,7 +262,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
         ("\n\nmake_stream_space: nbytes = %zu.  grow_buffer(self->stream...)\n",
          nbytes))
     self->stream = (char *)grow_buffer((void *)self->stream, self->stream_len,
-                                       (size_t*)&self->stream_cap, nbytes * 2,
+                                       (int64_t*)&self->stream_cap, nbytes * 2,
                                        sizeof(char), &status);
     TRACE(
         ("make_stream_space: self->stream=%p, self->stream_len = %zu, "
@@ -289,7 +289,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     cap = self->words_cap;
     self->words =
         (char **)grow_buffer((void *)self->words, self->words_len,
-                             (size_t*)&self->words_cap, nbytes,
+                             (int64_t*)&self->words_cap, nbytes,
                              sizeof(char *), &status);
     TRACE(
         ("make_stream_space: grow_buffer(self->self->words, %zu, %zu, %zu, "
@@ -320,7 +320,7 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     cap = self->lines_cap;
     self->line_start =
         (int64_t *)grow_buffer((void *)self->line_start, self->lines + 1,
-                           (size_t*)&self->lines_cap, nbytes,
+                           (int64_t*)&self->lines_cap, nbytes,
                            sizeof(int64_t), &status);
     TRACE((
         "make_stream_space: grow_buffer(self->line_start, %zu, %zu, %zu, %d)\n",
@@ -353,7 +353,7 @@ static int push_char(parser_t *self, char c) {
             ("push_char: ERROR!!! self->stream_len(%d) >= "
              "self->stream_cap(%d)\n",
              self->stream_len, self->stream_cap))
-        size_t bufsize = 100;
+        int64_t bufsize = 100;
         self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize,
                  "Buffer overflow caught - possible malformed input file.\n");
@@ -363,14 +363,14 @@ static int push_char(parser_t *self, char c) {
     return 0;
 }
 
-int P_INLINE end_field(parser_t *self) {
+int PANDAS_INLINE end_field(parser_t *self) {
     // XXX cruft
     if (self->words_len >= self->words_cap) {
         TRACE(
             ("end_field: ERROR!!! self->words_len(%zu) >= "
              "self->words_cap(%zu)\n",
              self->words_len, self->words_cap))
-        size_t bufsize = 100;
+        int64_t bufsize = 100;
         self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize,
                  "Buffer overflow caught - possible malformed input file.\n");
@@ -402,8 +402,8 @@ int P_INLINE end_field(parser_t *self) {
 }
 
 static void append_warning(parser_t *self, const char *msg) {
-    size_t ex_length;
-    size_t length = strlen(msg);
+    int64_t ex_length;
+    int64_t length = strlen(msg);
     void *newptr;
 
     if (self->warn_msg == NULL) {
@@ -423,7 +423,7 @@ static int end_line(parser_t *self) {
     char *msg;
     int64_t fields;
     int ex_fields = self->expected_fields;
-    size_t bufsize = 100;  // for error or warning messages
+    int64_t bufsize = 100;  // for error or warning messages
 
     fields = self->line_fields[self->lines];
 
@@ -495,7 +495,7 @@ static int end_line(parser_t *self) {
                 fields < ex_fields) {
             // might overrun the buffer when closing fields
             if (make_stream_space(self, ex_fields - fields) < 0) {
-                size_t bufsize = 100;
+                int64_t bufsize = 100;
                 self->error_msg = (char *)malloc(bufsize);
                 snprintf(self->error_msg, bufsize, "out of memory");
                 return -1;
@@ -516,7 +516,7 @@ static int end_line(parser_t *self) {
             TRACE((
                 "end_line: ERROR!!! self->lines(%zu) >= self->lines_cap(%zu)\n",
                 self->lines, self->lines_cap))
-            size_t bufsize = 100;
+            int64_t bufsize = 100;
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
                      "Buffer overflow caught - "
@@ -577,7 +577,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     self->datalen = bytes_read;
 
     if (status != REACHED_EOF && self->data == NULL) {
-        size_t bufsize = 200;
+        int64_t bufsize = 200;
         self->error_msg = (char *)malloc(bufsize);
 
         if (status == CALLING_READ_FAILED) {
@@ -608,7 +608,7 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes) {
     if (slen >= self->stream_cap) {                                           \
         TRACE(("PUSH_CHAR: ERROR!!! slen(%d) >= stream_cap(%d)\n", slen,      \
                self->stream_cap))                                             \
-        size_t bufsize = 100;                                                 \
+        int64_t bufsize = 100;                                                \
         self->error_msg = (char *)malloc(bufsize);                            \
         snprintf(self->error_msg, bufsize,                                    \
                  "Buffer overflow caught - possible malformed input file.\n");\
@@ -729,7 +729,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int64_t start_lines) {
     char *buf = self->data + self->datapos;
 
     if (make_stream_space(self, self->datalen - self->datapos) < 0) {
-        size_t bufsize = 100;
+        int64_t bufsize = 100;
         self->error_msg = (char *)malloc(bufsize);
         snprintf(self->error_msg, bufsize, "out of memory");
         return -1;
@@ -1036,7 +1036,7 @@ int tokenize_bytes(parser_t *self, size_t line_limit, int64_t start_lines) {
                     PUSH_CHAR(c);
                     self->state = IN_FIELD;
                 } else {
-                    size_t bufsize = 100;
+                    int64_t bufsize = 100;
                     self->error_msg = (char *)malloc(bufsize);
                     snprintf(self->error_msg, bufsize,
                             "delimiter expected after quote in quote");
@@ -1132,7 +1132,7 @@ linelimit:
 }
 
 static int parser_handle_eof(parser_t *self) {
-    size_t bufsize = 100;
+    int64_t bufsize = 100;
 
     TRACE(
         ("handling eof, datalen: %d, pstate: %d\n", self->datalen, self->state))
@@ -1177,7 +1177,7 @@ static int parser_handle_eof(parser_t *self) {
 }
 
 int parser_consume_rows(parser_t *self, size_t nrows) {
-    size_t i, offset, word_deletions, char_count;
+    int64_t i, offset, word_deletions, char_count;
 
     if (nrows > self->lines) {
         nrows = self->lines;
@@ -1381,11 +1381,11 @@ int tokenize_all_rows(parser_t *self) {
     return status;
 }
 
-P_INLINE void uppercase(char *p) {
+PANDAS_INLINE void uppercase(char *p) {
     for (; *p; ++p) *p = toupper(*p);
 }
 
-int P_INLINE to_longlong(char *item, long long *p_value) {
+int PANDAS_INLINE to_longlong(char *item, long long *p_value) {
     char *p_end;
 
     // Try integer conversion.  We explicitly give the base to be 10. If

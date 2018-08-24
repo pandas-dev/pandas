@@ -16,6 +16,12 @@ class _DtypeOpsMixin(object):
     # classes will inherit from this Mixin. Once everything is compatible, this
     # class's methods can be moved to ExtensionDtype and removed.
 
+    # na_value is the default NA value to use for this type. This is used in
+    # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
+    # of the NA value, not the physical NA vaalue for storage.
+    # e.g. for JSONArray, this is an empty dictionary.
+    na_value = np.nan
+
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
 
@@ -88,9 +94,23 @@ class _DtypeOpsMixin(object):
         except TypeError:
             return False
 
+    @property
+    def _is_numeric(self):
+        # type: () -> bool
+        """
+        Whether columns with this dtype should be considered numeric.
+
+        By default ExtensionDtypes are assumed to be non-numeric.
+        They'll be excluded from operations that exclude non-numeric
+        columns, like (groupby) reductions, plotting, etc.
+        """
+        return False
+
 
 class ExtensionDtype(_DtypeOpsMixin):
     """A custom data type, to be paired with an ExtensionArray.
+
+    .. versionadded:: 0.23.0
 
     Notes
     -----
@@ -100,6 +120,19 @@ class ExtensionDtype(_DtypeOpsMixin):
     * type
     * name
     * construct_from_string
+
+    The following attributes influence the behavior of the dtype in
+    pandas operations
+
+    * _is_numeric
+
+    Optionally one can override construct_array_type for construction
+    with the name of this dtype via the Registry
+
+    * construct_array_type
+
+    The `na_value` class attribute can be used to set the default NA value
+    for this type. :attr:`numpy.nan` is used by default.
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -144,6 +177,16 @@ class ExtensionDtype(_DtypeOpsMixin):
         Will be used for display in, e.g. ``Series.dtype``
         """
         raise AbstractMethodError(self)
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
 
     @classmethod
     def construct_from_string(cls, string):

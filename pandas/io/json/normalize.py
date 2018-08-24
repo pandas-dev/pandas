@@ -170,6 +170,11 @@ def json_normalize(data, record_path=None, meta=None,
     3      Summit        1234   John Kasich     Ohio        OH
     4    Cuyahoga        1337   John Kasich     Ohio        OH
 
+    >>> data = {'A': [1, 2]}
+    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+        Prefix.0
+    0          1
+    1          2
     """
     def _pull_field(js, spec):
         result = js
@@ -189,7 +194,8 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any(isinstance(x, dict) for x in compat.itervalues(data[0])):
+        if any([isinstance(x, dict)
+                for x in compat.itervalues(y)] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -258,7 +264,8 @@ def json_normalize(data, record_path=None, meta=None,
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result.rename(columns=lambda x: record_prefix + x, inplace=True)
+        result = result.rename(
+            columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
     for k, v in compat.iteritems(meta_vals):

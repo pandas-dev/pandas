@@ -17,8 +17,8 @@ If you are brand new to pandas or open-source development, we recommend going
 through the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
 to find issues that interest you. There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
-and `Difficulty Novice
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
+and `good first issue
+<https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open>`_
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
@@ -32,8 +32,9 @@ Bug reports and enhancement requests
 
 Bug reports are an important part of making *pandas* more stable. Having a complete bug report
 will allow others to reproduce the bug and provide insight into fixing. See
-`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ for tips on
-writing a good bug report.
+`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
+`this blogpost <http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
+for tips on writing a good bug report.
 
 Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
 to confirm the bug still exists. It is also worth searching existing bug reports and pull requests
@@ -137,11 +138,11 @@ steps; you only need to install the compiler.
 
 For Windows developers, the following links may be helpful.
 
-- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-- https://cowboyprogrammer.org/building-python-wheels-for-windows/
-- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+* https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
+* https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
+* https://cowboyprogrammer.org/building-python-wheels-for-windows/
+* https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
+* https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -154,11 +155,11 @@ Creating a Python Environment
 Now that you have a C compiler, create an isolated pandas development
 environment:
 
-- Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
+* Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
   <https://conda.io/miniconda.html>`_
-- Make sure your conda is up to date (``conda update conda``)
-- Make sure that you have :ref:`cloned the repository <contributing.forking>`
-- ``cd`` to the *pandas* source directory
+* Make sure your conda is up to date (``conda update conda``)
+* Make sure that you have :ref:`cloned the repository <contributing.forking>`
+* ``cd`` to the *pandas* source directory
 
 We'll now kick off a three-step process:
 
@@ -285,7 +286,7 @@ complex changes to the documentation as well.
 
 Some other important things to know about the docs:
 
-- The *pandas* documentation consists of two parts: the docstrings in the code
+* The *pandas* documentation consists of two parts: the docstrings in the code
   itself and the docs in this folder ``pandas/doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
@@ -293,11 +294,16 @@ Some other important things to know about the docs:
   overviews per topic together with some other information (what's new,
   installation, etc).
 
-- The docstrings follow a pandas convention, based on the **Numpy Docstring
+* The docstrings follow a pandas convention, based on the **Numpy Docstring
   Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
   instructions on how to write a correct docstring.
 
-- The tutorials make heavy use of the `ipython directive
+  .. toctree::
+     :maxdepth: 2
+
+     contributing_docstring.rst
+
+* The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
@@ -318,7 +324,7 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
-- Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+* Our API documentation in ``doc/source/api.rst`` houses the auto-generated
   documentation from the docstrings. For classes, there are a few subtleties
   around controlling which methods and attributes have pages auto-generated.
 
@@ -357,6 +363,31 @@ the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page
 and the actual public methods.
 This will identify methods documented in ``doc/source/api.rst`` that are not actually
 class methods, and existing methods that are not documented in ``doc/source/api.rst``.
+
+
+Updating a *pandas* docstring
+-----------------------------
+
+When improving a single function or method's docstring, it is not necessarily
+needed to build the full documentation (see next section).
+However, there is a script that checks a docstring (for example for the ``DataFrame.mean`` method)::
+
+    python scripts/validate_docstrings.py pandas.DataFrame.mean
+
+This script will indicate some formatting errors if present, and will also
+run and test the examples included in the docstring.
+Check the :ref:`pandas docstring guide <docstring>` for a detailed guide
+on how to format the docstring.
+
+The examples in the docstring ('doctests') must be valid Python code,
+that in a deterministic way returns the presented output, and that can be
+copied and run by users. This can be checked with the script above, and is
+also tested on Travis. A failing doctest will be a blocker for merging a PR.
+Check the :ref:`examples <docstring.examples>` section in the docstring guide
+for some tips and tricks to get the doctests passing.
+
+When doing a PR with a docstring update, it is good to post the
+output of the validation script in a comment on github.
 
 
 How to build the *pandas* documentation
@@ -430,6 +461,25 @@ the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
+Spell checking documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When contributing to documentation to **pandas** it's good to check if your work
+contains any spelling errors. Sphinx provides an easy way to spell check documentation
+and docstrings.
+
+Running the spell check is easy. Just navigate to your local ``pandas/doc/`` directory and run::
+
+    python make.py spellcheck
+
+The spellcheck will take a few minutes to run (between 1 to 6 minutes). Sphinx will alert you
+with warnings and misspelt words - these misspelt words will be added to a file called
+``output.txt`` and you can find it on your local directory ``pandas/doc/build/spelling/``.
+
+The Sphinx spelling extension uses an EN-US dictionary to correct words, what means that in
+some cases you might need to add a word to this dictionary. You can do so by adding the word to
+the bag-of-words file named ``spelling_wordlist.txt`` located in the folder ``pandas/doc/``.
+
 .. _contributing.code:
 
 Contributing to the code base
@@ -463,11 +513,11 @@ standard. Google provides an open source style checker called ``cpplint``, but w
 use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
 
-  - we restrict line-length to 80 characters to promote readability
-  - every header file must include a header guard to avoid name collisions if re-included
+* we restrict line-length to 80 characters to promote readability
+* every header file must include a header guard to avoid name collisions if re-included
 
 :ref:`Continuous Integration <contributing.ci>` will run the
-`cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
+`cpplint <https://pypi.org/project/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
@@ -511,11 +561,11 @@ Python (PEP8)
 There are several tools to ensure you abide by this standard. Here are *some* of
 the more common ``PEP8`` issues:
 
-  - we restrict line-length to 79 characters to promote readability
-  - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+* we restrict line-length to 79 characters to promote readability
+* passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
 :ref:`Continuous Integration <contributing.ci>` will run
-the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
+the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
@@ -627,13 +677,13 @@ Adding tests is one of the most common requests after code is pushed to *pandas*
 it is worth getting in the habit of writing tests ahead of time so this is never an issue.
 
 Like many packages, *pandas* uses `pytest
-<http://doc.pytest.org/en/latest/>`_ and the convenient
+<http://docs.pytest.org/en/latest/>`_ and the convenient
 extensions in `numpy.testing
 <http://docs.scipy.org/doc/numpy/reference/routines.testing.html>`_.
 
 .. note::
 
-   The earliest supported pytest version is 3.1.0.
+   The earliest supported pytest version is 3.6.0.
 
 Writing tests
 ~~~~~~~~~~~~~
@@ -677,7 +727,7 @@ Transitioning to ``pytest``
     class TestReallyCoolFeature(object):
         ....
 
-Going forward, we are moving to a more *functional* style using the `pytest <http://doc.pytest.org/en/latest/>`__ framework, which offers a richer testing
+Going forward, we are moving to a more *functional* style using the `pytest <http://docs.pytest.org/en/latest/>`__ framework, which offers a richer testing
 framework that will facilitate testing and developing. Thus, instead of writing test classes, we will write test functions like this:
 
 .. code-block:: python
@@ -690,14 +740,14 @@ Using ``pytest``
 
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
-- functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
-- ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
-- using ``parametrize``: allow testing of multiple cases
-- to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
-- ``fixture``, code for object construction, on a per-test basis
-- using bare ``assert`` for scalars and truth-testing
-- ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
-- the typical pattern of constructing an ``expected`` and comparing versus the ``result``
+* functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+* ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
+* using ``parametrize``: allow testing of multiple cases
+* to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
+* ``fixture``, code for object construction, on a per-test basis
+* using bare ``assert`` for scalars and truth-testing
+* ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
+* the typical pattern of constructing an ``expected`` and comparing versus the ``result``
 
 We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
 
@@ -741,7 +791,7 @@ A test run of this yields
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    tester.py::test_dtypes[int8] PASSED
@@ -763,7 +813,7 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
    ((pandas) bash-3.2$ pytest  test_cool_feature.py  -v -k int8
    =========================== test session starts ===========================
-   platform darwin -- Python 3.6.2, pytest-3.2.1, py-1.4.31, pluggy-0.4.0
+   platform darwin -- Python 3.6.2, pytest-3.6.0, py-1.4.31, pluggy-0.4.0
    collected 11 items
 
    test_cool_feature.py::test_dtypes[int8] PASSED
@@ -792,7 +842,7 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
 speed up local testing on multicore machines. To use this feature, you will
 need to install `pytest-xdist` via::
 
@@ -812,7 +862,7 @@ On Windows, one can type::
 This can significantly reduce the time it takes to locally run tests before
 submitting a pull request.
 
-For more, see the `pytest <http://doc.pytest.org/en/latest/>`_ documentation.
+For more, see the `pytest <http://docs.pytest.org/en/latest/>`_ documentation.
 
     .. versionadded:: 0.20.0
 
@@ -899,7 +949,7 @@ Documenting your code
 Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
-GitHub issue number when adding your entry (using `` :issue:`1234` `` where `1234` is the
+GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
 issue/pull request number).
 
 If your code is an enhancement, it is most likely necessary to add usage
@@ -944,21 +994,21 @@ Finally, commit your changes to your local repository with an explanatory messag
 uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
-    * ENH: Enhancement, new functionality
-    * BUG: Bug fix
-    * DOC: Additions/updates to documentation
-    * TST: Additions/updates to tests
-    * BLD: Updates to the build process/scripts
-    * PERF: Performance improvement
-    * CLN: Code cleanup
+* ENH: Enhancement, new functionality
+* BUG: Bug fix
+* DOC: Additions/updates to documentation
+* TST: Additions/updates to tests
+* BLD: Updates to the build process/scripts
+* PERF: Performance improvement
+* CLN: Code cleanup
 
 The following defines how a commit message should be structured.  Please reference the
 relevant GitHub issues in your commit message using GH1234 or #1234.  Either style
 is fine, but the former is generally preferred:
 
-    * a subject line with `< 80` chars.
-    * One blank line.
-    * Optionally, a commit message body.
+* a subject line with `< 80` chars.
+* One blank line.
+* Optionally, a commit message body.
 
 Now you can commit your changes in your local repository::
 
@@ -1019,7 +1069,7 @@ release.  To submit a pull request:
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
-the code. 
+the code.
 
 .. _contributing.update-pr:
 
@@ -1027,7 +1077,7 @@ Updating your pull request
 --------------------------
 
 Based on the review you get on your pull request, you will probably need to make
-some changes to the code. In that case, you can make them in your branch, 
+some changes to the code. In that case, you can make them in your branch,
 add a new commit to that branch, push it to GitHub, and the pull request will be
 automatically updated.  Pushing them to GitHub again is done by::
 
@@ -1038,7 +1088,7 @@ This will automatically update your pull request with the latest code and restar
 
 Another reason you might need to update your pull request is to solve conflicts
 with changes that have been merged into the master branch since you opened your
-pull request. 
+pull request.
 
 To do this, you need to "merge upstream master" in your branch::
 
@@ -1086,6 +1136,5 @@ branch has not actually been merged.
 The branch will still exist on GitHub, so to delete it there do::
 
     git push origin --delete shiny-new-feature
-
 
 .. _Gitter: https://gitter.im/pydata/pandas
