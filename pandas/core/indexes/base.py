@@ -1996,8 +1996,7 @@ class Index(IndexOpsMixin, PandasObject):
             if (is_float(key) and is_integer_dtype(self.dtype) and
                     int(key) != key):
                 return False
-            else:
-                return key in self._engine
+            return key in self._engine
         except (OverflowError, TypeError, ValueError):
             return False
 
