@@ -275,14 +275,25 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                 yearfirst=yearfirst,
                 require_iso8601=require_iso8601
             )
-            if tz_parsed is not None and box:
-                return DatetimeIndex._simple_new(result, name=name,
-                                                 tz=tz_parsed)
+            if tz_parsed is not None:
+                if box:
+                    # We can take a shortcut since the datetime64 numpy array
+                    # is in UTC
+                    return DatetimeIndex._simple_new(result, name=name,
+                                                     tz=tz_parsed)
+                else:
+                    # Convert the datetime64 numpy array to an numpy array
+                    # of datetime objects
+                    result = [Timestamp(ts, tz=tz_parsed).to_pydatetime()
+                              for ts in result]
+                    return np.array(result, dtype=object)
 
         if box:
+            # Ensure we return an Index in all cases where box=True
             if is_datetime64_dtype(result):
                 return DatetimeIndex(result, tz=tz, name=name)
             elif is_object_dtype(result):
+                # e.g. an Index of datetime objects
                 from pandas import Index
                 return Index(result, name=name)
         return result
