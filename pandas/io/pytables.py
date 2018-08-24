@@ -1732,10 +1732,11 @@ class IndexCol(StringMixin):
                     itemsize = self.itemsize
                 if c.itemsize < itemsize:
                     raise ValueError(
-                        "Trying to store a string with len [%s] in [%s] "
-                        "column but\nthis column has a limit of [%s]!\n"
+                        "Trying to store a string with len [%s] in the "
+                        "column [%s], but\nthis column has a limit of [%s]!\n"
                         "Consider using min_itemsize to preset the sizes on "
-                        "these columns" % (itemsize, self.cname, c.itemsize))
+                        "these columns" % (itemsize, self.values[0],
+                                           c.itemsize))
                 return c.itemsize
 
         return None
