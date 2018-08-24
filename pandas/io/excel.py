@@ -916,6 +916,14 @@ class ExcelWriter(object):
     def __init__(self, path, engine=None,
                  date_format=None, datetime_format=None, mode='w',
                  **engine_kwargs):
+
+        # check for contant_memory option
+        options = engine_kwargs.get('options', {})
+        constant_memory = options.get('constant_memory', None)
+        if constant_memory:
+            raise NotImplementedError('The option constant_memory=True is '
+                                      'not supported.')
+
         # validate that this engine can handle the extension
         if isinstance(path, string_types):
             ext = os.path.splitext(path)[-1]

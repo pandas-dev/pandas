@@ -1831,6 +1831,13 @@ class TestExcelWriter(_WriterBase):
         result = read_excel(self.path, 'test_c', comment='#')
         tm.assert_frame_equal(result, expected)
 
+    def test_constant_memory_option_raises_NotImplementedError(self, engine):
+        df = DataFrame({'a': ['1', '2'], 'b': ['2', '3']})
+        with pytest.raises(NotImplementedError):
+            xlw = pd.ExcelWriter(self.path, engine=engine,
+                                 options=dict(constant_memory=True))
+            df.to_excel(xlw)
+
     def test_comment_emptyline(self, merge_cells, engine, ext):
         # Re issue #18735
         # Test that read_excel ignores commented lines at the end of file
