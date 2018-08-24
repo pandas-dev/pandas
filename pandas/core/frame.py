@@ -197,7 +197,7 @@ indicator : bool or str, default False
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
 
-validate : str, default None
+validate : str, optional
     If specified, checks if merge is of specified type.
 
     * "one_to_one" or "1:1": check if merge keys are unique in both
@@ -212,7 +212,7 @@ validate : str, default None
 
 Returns
 -------
-df: DataFrame
+DataFrame
     A DataFrame of the two merged objects.
 
 Notes
@@ -231,9 +231,9 @@ Examples
 --------
 
 >>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-...                   'value': [1, 2, 3, 5]})
+...                     'value': [1, 2, 3, 5]})
 >>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-...                   'value': [5, 6, 7, 8]})
+...                     'value': [5, 6, 7, 8]})
 >>> df1
     lkey value
 0   foo      1
