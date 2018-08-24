@@ -2510,7 +2510,7 @@ class StringMethods(NoNewAttributesMixin):
     @copy(str_match)
     def match(self, pat, case=True, flags=0, na=np.nan):
         result = str_match(self._parent, pat, case=case, flags=flags, na=na)
-        return self._wrap_result(result)
+        return self._wrap_result(result, na=na)
 
     @copy(str_replace)
     def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
