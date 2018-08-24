@@ -467,3 +467,52 @@ def test_with_list(op):
     result = op(arr, [0, 1])
     expected = op(arr, pd.SparseArray([0, 1]))
     tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize('ufunc', [
+    np.abs, np.exp,
+])
+@pytest.mark.parametrize('arr', [
+    pd.SparseArray([0, 0, -1, 1]),
+    pd.SparseArray([None, None, -1, 1]),
+])
+def test_ufuncs(ufunc, arr):
+    result = ufunc(arr)
+    fill_value = ufunc(arr.fill_value)
+    expected = pd.SparseArray(ufunc(np.asarray(arr)), fill_value=fill_value)
+    tm.assert_sp_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("a, b", [
+    (pd.SparseArray([0, 0, 0]), np.array([0, 1, 2])),
+    (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+    (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+    (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+    (pd.SparseArray([0, 0, 0], fill_value=1), np.array([0, 1, 2])),
+])
+@pytest.mark.parametrize("ufunc", [
+    np.add,
+    np.greater,
+])
+def test_binary_ufuncs(ufunc, a, b):
+    # can't say anything about fill value here.
+    result = ufunc(a, b)
+    expected = ufunc(np.asarray(a), np.asarray(b))
+    assert isinstance(result, pd.SparseArray)
+    tm.assert_numpy_array_equal(np.asarray(result), expected)
+
+
+def test_ndarray_inplace():
+    sparray = pd.SparseArray([0, 2, 0, 0])
+    ndarray = np.array([0, 1, 2, 3])
+    ndarray += sparray
+    expected = np.array([0, 3, 2, 3])
+    tm.assert_numpy_array_equal(ndarray, expected)
+
+
+def test_sparray_inplace():
+    sparray = pd.SparseArray([0, 2, 0, 0])
+    ndarray = np.array([0, 1, 2, 3])
+    sparray += ndarray
+    expected = pd.SparseArray([0, 3, 2, 3], fill_value=0)
+    tm.assert_sp_array_equal(sparray, expected)

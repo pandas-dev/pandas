@@ -5,6 +5,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103,W0231
 
 import operator
+import numbers
 import numpy as np
 import warnings
 
@@ -657,7 +658,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if self.sp_index.npoints == 0:
             # Avoid taking from the empty self.sp_values
-            taken = np.full(sp_indexer.shape, fill_value=fill_value)
+            taken = np.full(sp_indexer.shape, fill_value=fill_value,
+                            dtype=np.result_type(fill_value))
         else:
             taken = self.sp_values.take(sp_indexer)
 
@@ -708,7 +710,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if self.sp_index.npoints == 0:
             # edge case in take...
             # I think just return
-            out = np.full(indices.shape, self.fill_value)
+            out = np.full(indices.shape, self.fill_value,
+                          dtype=np.result_type(self.fill_value))
             arr, sp_index, fill_value = make_sparse(out,
                                                     fill_value=self.fill_value)
             return type(self)(arr, sparse_index=sp_index,
@@ -1066,19 +1069,21 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         return np.abs(self)
 
     def __array_wrap__(self, array, context=None):
-        fill_value = context[0](self.fill_value)
-        sp_values = array[self.sp_index.to_int_index().indices]
-        dtype = SparseDtype(array.dtype, fill_value)
+        from pandas.core.dtypes.generic import ABCSparseSeries
 
-        return self._simple_new(sp_values, self.sp_index, dtype)
+        ufunc, inputs, _ = context
+        inputs = tuple(x.values if isinstance(x, ABCSparseSeries) else x
+                       for x in inputs)
+        return self.__array_ufunc__(ufunc, '__call__', *inputs)
+
+    _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        new_inputs = []
-        new_fill_values = []
+        out = kwargs.get('out', ())
 
-        if kwargs.get('out', None) is not None:
-            # This comes from, e.g. ndarray += SparseArray
-            raise TypeError("The 'out' keyword is not supported.")
+        for x in inputs + out:
+            if not isinstance(x, self._HANDLED_TYPES + (SparseArray,)):
+                return NotImplemented
 
         special = {'add', 'sub', 'mul', 'pow', 'mod', 'floordiv', 'truediv',
                    'divmod', 'eq', 'ne', 'lt', 'gt', 'le', 'ge', 'remainder'}
@@ -1096,28 +1101,34 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         op_name = ufunc.__name__
         op_name = aliases.get(op_name, op_name)
 
-        if op_name in special:
+        if op_name in special and kwargs.get('out') is None:
             if isinstance(inputs[0], type(self)):
-                # this is surely incorrect...
                 return getattr(self, '__{}__'.format(op_name))(inputs[1])
             else:
                 return getattr(self, '__r{}__'.format(op_name))(inputs[0])
 
-        for input in inputs:
-            if isinstance(input, type(self)):
-                new_inputs.append(self.sp_values)
-                new_fill_values.append(self.fill_value)
-            else:
-                new_inputs.append(input)
-                new_fill_values.append(input)
+        if len(inputs) == 1:
+            # No alignment necessary.
+            sp_values = getattr(ufunc, method)(self.sp_values, **kwargs)
+            fill_value = getattr(ufunc, method)(self.fill_value, **kwargs)
+            return self._simple_new(sp_values,
+                                    self.sp_index,
+                                    SparseDtype(sp_values.dtype, fill_value))
 
-        new_values = ufunc(*new_inputs, **kwargs)
-        new_fill = ufunc(*new_fill_values, **kwargs)
-        # TODO:
-        # call ufunc on fill_value?
-        # What about a new sparse index?
-        return type(self)(new_values, sparse_index=self.sp_index,
-                          fill_value=new_fill)
+        result = getattr(ufunc, method)(*[np.asarray(x) for x in inputs],
+                                        **kwargs)
+        if out:
+            if len(out) == 1:
+                out = out[0]
+            return out
+
+        if type(result) is tuple:
+            return tuple(type(self)(x) for x in result)
+        elif method == 'at':
+            # no return value
+            return None
+        else:
+            return type(self)(result)
 
     # ------------------------------------------------------------------------
     # Ops

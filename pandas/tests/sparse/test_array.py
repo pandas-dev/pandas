@@ -624,28 +624,6 @@ class TestSparseArray(object):
             for first_arr, second_arr in [(arr1, arr2), (farr1, farr2)]:
                 _check_op(op, first_arr, second_arr)
 
-    def test_ndarray_inplace_raises(self):
-        sp_array = SparseArray([1, 2, 3])
-        array = np.array([1, 2, 3])
-        with tm.assert_raises_regex(TypeError, "not supported"):
-            array += sp_array
-
-    # TODO: figure out correct behavior
-    # @pytest.mark.parametrize("op", ["ipow"])
-    # def test_binary_operators_not_implemented(self, op):
-    #     data1 = np.random.randn(20)
-    #     data2 = np.random.randn(20)
-    #
-    #     data1[::2] = np.nan
-    #     data2[::3] = np.nan
-    #
-    #     arr1 = SparseArray(data1)
-    #     arr2 = SparseArray(data2)
-    #
-    #     with np.errstate(all="ignore"):
-    #         with pytest.raises(NotImplementedError):
-    #             getattr(operator, op)(arr1, arr2)
-
     def test_pickle(self):
         def _check_roundtrip(obj):
             unpickled = tm.round_trip_pickle(obj)
