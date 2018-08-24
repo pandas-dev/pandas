@@ -7,7 +7,7 @@ dependencies:
   - cython=0.28.2
   - jinja2=2.8
   - numexpr=2.4.4 # we test that we correctly don't use an unsupported numexpr
-  - numpy=1.9.2
+  - numpy=1.9.3
   - openpyxl
   - psycopg2
   - pytables=3.2.2

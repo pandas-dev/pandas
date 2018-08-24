@@ -7,7 +7,7 @@ dependencies:
   - cython=0.28.2
   - lxml
   - matplotlib=1.4.3
-  - numpy=1.9.2
+  - numpy=1.9.3
   - openpyxl=2.4.0
   - python-dateutil
   - python-blosc
