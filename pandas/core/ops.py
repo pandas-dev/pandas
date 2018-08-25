@@ -502,7 +502,7 @@ and reverse version `{reverse}`).
 Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
 arithmetic operators.
 
-Equivalent to `+`, `-`, `*`, `/`, `//`, `%`, `^` but with support to
+Equivalent to `+`, `-`, `*`, `/`, `//`, `%`, **` but with support to
 substitute a fill_value for missing data in one of the inputs.
 
 Parameters
@@ -512,10 +512,10 @@ other : scalar, sequence, Series, or DataFrame
 axis :  {{0 or 'index', 1 or 'columns'}}
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns'). For Series input, axis to match Series index on.
-level : int or object
+level : int or label
     Broadcast across a level, matching Index values on the
     passed MultiIndex level.
-fill_value : None or float value, default None
+fill_value : float or None, default None
     Fill existing missing (NaN) values, and any new element needed for
     successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
@@ -523,7 +523,7 @@ fill_value : None or float value, default None
 
 Notes
 -----
-Mismatched indices will be unioned together
+Mismatched indices will be unioned together.
 
 Returns
 -------
@@ -532,108 +532,122 @@ DataFrame
 
 See Also
 --------
-DataFrame.add : Add DataFrames
-DataFrame.sub : Subtract DataFrames
-DataFrame.mul : Multiply DataFrames
-DataFrame.div : Divide Datafames (float division)
-DataFrame.truediv : Divide Datafames (float division)
-DataFrame.floordiv : Divide Datafames (integer division)
-DataFrame.mod : Calculate modulo (remainder after division) of DataFrames
-DataFrame.pow : Calculate exponential power of Datafames
+DataFrame.add : Add DataFrames.
+DataFrame.sub : Subtract DataFrames.
+DataFrame.mul : Multiply DataFrames.
+DataFrame.div : Divide DataFrames (float division).
+DataFrame.truediv : Divide DataFrames (float division).
+DataFrame.floordiv : Divide DataFrames (integer division).
+DataFrame.mod : Calculate modulo (remainder after division) of
+    DataFrames.
+DataFrame.pow : Calculate exponential power of DataFrames.
 
 Examples
 --------
->>> df = pd.DataFrame({{'assets': [400, 250, 100],
-...                    'liability': [120, 360, 280]}},
-...                    index = ['A', 'B', 'C'])
+>>> df = pd.DataFrame({{'A': [4, 6, 8],
+...                    'B': [3, 5, 9]}})
 >>> df
-   assets  liability
-A     400        120
-B     250        360
-C     100        280
+   A  B
+0  4  3
+1  6  5
+2  8  9
 
-Add a scalar with operator version which return the same results.
+Add a scalar with operator version which return the same
+results.
 
->>> df + 100
-   assets  liability
-A     500        220
-B     350        460
-C     200        380
+>>> df + 5
+    A   B
+0   9   8
+1  11  10
+2  13  14
 
->>> df.add(100)
-   assets  liability
-A     500        220
-B     350        460
-C     200        380
+>>> df.add(5)
+    A   B
+0   9   8
+1  11  10
+2  13  14
+
+Divide by constant with reverse version.
+
+>>> df.div(10)
+     A    B
+0  0.4  0.3
+1  0.6  0.5
+2  0.8  0.9
+
+>>> df.rdiv(10)
+          A         B
+0  2.500000  3.333333
+1  1.666667  2.000000
+2  1.250000  1.111111
 
 Subtract a list and Series by axis with operator version.
 
->>> df - [100, 250]
-   assets  liability
-A     300       -130
-B     150        110
-C       0         30
+>>> df - [1, 2]
+   A  B
+0  3  1
+1  5  3
+2  7  7
 
->>> df.sub([100, 250], axis='columns')
-   assets  liability
-A     300       -130
-B     150        110
-C       0         30
+>>> df.sub([1, 2], axis='columns')
+   A  B
+0  3  1
+1  5  3
+2  7  7
 
->>> df.sub(pd.Series([100, 250, 300], index=['A', 'B', 'C']), axis='index')
-   assets  liability
-A     300         20
-B       0        110
-C    -200        -20
+>>> df.sub(pd.Series([1, 2, 4]), axis='index')
+   A  B
+0  3  2
+1  4  3
+2  4  5
 
 Multiply a DataFrame of different shape with operator version.
 
->>> other = pd.DataFrame({{'assets': [2, 5, 3, 1]}},
-...                       index = ['A', 'B', 'C', 'D'])
+>>> other = pd.DataFrame({{'A': [2, 5, 3, 1]}})
 >>> other
-   assets
-A       2
-B       5
-C       3
-D       1
+   A
+0  2
+1  5
+2  3
+3  1
 
 >>> df * other
-   assets  liability
-A   800.0        NaN
-B  1250.0        NaN
-C   300.0        NaN
-D     NaN        NaN
+      A   B
+0   8.0 NaN
+1  30.0 NaN
+2  24.0 NaN
+3   NaN NaN
 
 >>> df.mul(other, fill_value=0)
-   assets  liability
-A   800.0        0.0
-B  1250.0        0.0
-C   300.0        0.0
-D     0.0        NaN
+      A    B
+0   8.0  0.0
+1  30.0  0.0
+2  24.0  0.0
+3   0.0  NaN
 
-Divide by a Multindex
+Divide by a MultiIndex by level.
 
->>> df_multindex = pd.DataFrame({{'assets': [250, 150, 100, 150, 300, 220],
-...                              'liability': [100, 250, 300, 200, 175, 225]}},
+>>> df_multindex = pd.DataFrame({{'A': [2, 4, 6, 8, 3, 4],
+...                              'B': [1, 3, 5, 7, 5, 6]}},
 ...                              index = [['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
-...                                       ['A', 'B', 'C', 'A', 'B' ,'C']])
+...                                       [0, 1, 2, 0, 1, 2]])
 >>> df_multindex
-      assets  liability
-Q1 A     250        100
-   B     150        250
-   C     100        300
-Q2 A     150        200
-   B     300        175
-   C     220        225
+      A  B
+Q1 0  2  1
+   1  4  3
+   2  6  5
+Q2 0  8  7
+   1  3  5
+   2  4  6
 
 >>> df.div(df_multindex, level=1)
-        assets  liability
-Q1 A  1.600000   1.200000
-   B  1.666667   1.440000
-   C  1.000000   0.933333
-Q2 A  2.666667   0.600000
-   B  0.833333   2.057143
-   C  0.454545   1.244444
+             A         B
+Q1 0  2.000000  3.000000
+   1  1.500000  1.666667
+   2  1.333333  1.800000
+Q2 0  0.500000  0.428571
+   1  2.000000  1.000000
+   2  2.000000  1.500000
 """
 
 _flex_comp_doc_FRAME = """
@@ -652,7 +666,7 @@ other : scalar, sequence, Series, or DataFrame
 axis :  {{0 or 'index', 1 or 'columns'}}, default 'columns'
     Whether to compare by the index (0 or 'index') or columns
     (1 or 'columns').
-level : int or object
+level : int or label
     Broadcast across a level, matching Index values on the passed
     MultiIndex level.
 
@@ -663,16 +677,16 @@ DataFrame of bool
 
 See Also
 --------
-DataFrame.eq : Compare DataFrames for equality elementwise
-DataFrame.ne : Compare DataFrames for inequality elementwise
+DataFrame.eq : Compare DataFrames for equality elementwise.
+DataFrame.ne : Compare DataFrames for inequality elementwise.
 DataFrame.le : Compare DataFrames for less than inequality
-    or equality elementwise
+    or equality elementwise.
 DataFrame.lt : Compare DataFrames for strictly less than
-    inequality elementwise
+    inequality elementwise.
 DataFrame.ge : Compare DataFrames for greater than inequality
-    or equality elementwise
+    or equality elementwise.
 DataFrame.gt : Compare DataFrames for strictly greater than
-    inequality elementwise
+    inequality elementwise.
 
 Notes
 --------
