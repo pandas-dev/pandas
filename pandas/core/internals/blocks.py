@@ -298,6 +298,10 @@ class Block(PandasObject):
 
     def _slice(self, slicer):
         """ return a slice of my values """
+
+        #  Non-tuple Multidimensional indexing is deprecated in np
+        if isinstance(slicer, list):
+            slicer = tuple(slicer)
         return self.values[slicer]
 
     def reshape_nd(self, labels, shape, ref_items, mgr=None):
