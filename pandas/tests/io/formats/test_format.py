@@ -1270,39 +1270,20 @@ class TestDataFrameFormatting(object):
 
     def test_to_string_no_index(self):
 
-        dfs = [
+        df = DataFrame({'x': [11, 22], 'y': [33, -44], 'z': ['AAA', '   ']})
 
-            # ints
-            DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]}),
-            DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]}),
-            DataFrame({'x': [11, 22, -33], 'y': [4, 5, 6]}),
-            DataFrame({'x': [11, 22, -33], 'y': [4, 5, -6]}),
-            DataFrame({'x': [11, 22, -33], 'y': [44, 55, -66]}),
+        df_s = df.to_string(index=False)
+        # Leading space is expected for positive numbers.
+        expected = ("  x   y    z\n
+                    " 11  33  AAA\n"
+                    " 22 -44     ")
+        assert df_s == expected
 
-            # floats
-            DataFrame({'x': [0.1, 0.2, -0.3], 'y': [4, 5, 6]}),
-            DataFrame({'x': [0.1, 0.2, -0.3], 'y': [0.4, 0.5, 0.6]}),
-            DataFrame({'x': [0.1, 0.2, -0.3], 'y': [0.4, 0.5, -0.6]}),
-        ]
-
-        exs = [
-
-            # ints
-            " x  y\n 1  4\n 2  5\n 3  6",
-            "  x  y\n 11  4\n 22  5\n 33  6",
-            "  x  y\n 11  4\n 22  5\n-33  6",
-            "  x  y\n 11  4\n 22  5\n-33 -6",
-            "  x   y\n 11  44\n 22  55\n-33 -66",
-
-            # floats
-            "   x  y\n 0.1  4\n 0.2  5\n-0.3  6",
-            "   x    y\n 0.1  0.4\n 0.2  0.5\n-0.3  0.6",
-            "   x    y\n 0.1  0.4\n 0.2  0.5\n-0.3 -0.6",
-        ]
-
-        for df, expected in zip(dfs, exs):
-            df_s = df.to_string(index=False)
-            assert df_s == expected
+        df_s = df[['y', 'x', 'z']].to_string(index=False)
+        expected = ("  y   x    z\n"
+                    " 33  11  AAA\n"
+                    "-44  22     ")
+        assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
