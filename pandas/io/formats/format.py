@@ -288,8 +288,7 @@ class SeriesFormatter(object):
         if self.index:
             result = self.adj.adjoin(3, *[fmt_index[1:], fmt_values])
         else:
-            result = self.adj.adjoin(3, fmt_values).replace('\n ',
-                                                            '\n').strip()
+            result = self.adj.adjoin(3, fmt_values)
 
         if self.header and have_header:
             result = fmt_index[0] + '\n' + result
