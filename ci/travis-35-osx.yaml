@@ -25,3 +25,4 @@ dependencies:
   - pytest-xdist
   - pip:
     - python-dateutil==2.5.3
+    - hypothesis>=3.58.0

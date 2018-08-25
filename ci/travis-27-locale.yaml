@@ -22,6 +22,7 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - hypothesis>=3.58.0
   - pip:
     - html5lib==1.0b2
     - beautifulsoup4==4.2.1
