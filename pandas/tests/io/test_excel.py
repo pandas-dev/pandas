@@ -1831,8 +1831,9 @@ class TestExcelWriter(_WriterBase):
         result = read_excel(self.path, 'test_c', comment='#')
         tm.assert_frame_equal(result, expected)
 
-    # RE issue # 15392
     def test_constant_memory_option_raises_NotImplementedError(self, engine):
+        # Re issue # 15392
+        # Test ExcelWriter with constant_memory=True raises NotImplementedError
         df = DataFrame({'a': ['1', '2'], 'b': ['2', '3']})
         msg = 'The option constant_memory=True is not supported.'
         with tm.assert_raises_regex(NotImplementedError, msg):

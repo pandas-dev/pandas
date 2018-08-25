@@ -671,7 +671,7 @@ Missing
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
 - :func:`Series.isin` now treats all nans as equal also for `np.object`-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
-- Bug in: class:`ExcelWriter` where exporting data frames to excel using xlsxwriter with option constant_memory set to true, most of the cells are empty. Now raises NotImlementedError. (:issue:`15392`)
+- Bug in: class:`ExcelWriter` where exporting `DataFrames` to Excel using ``xlsxwriter`` with option `constant_memory` set to True, most of the cells are empty. Now raises ``NotImlementedError``. (:issue:`15392`)
 
 MultiIndex
 ^^^^^^^^^^
