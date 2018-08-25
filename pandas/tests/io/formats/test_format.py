@@ -1274,7 +1274,7 @@ class TestDataFrameFormatting(object):
 
         df_s = df.to_string(index=False)
         # Leading space is expected for positive numbers.
-        expected = ("  x   y    z\n
+        expected = ("  x   y    z\n"
                     " 11  33  AAA\n"
                     " 22 -44     ")
         assert df_s == expected
