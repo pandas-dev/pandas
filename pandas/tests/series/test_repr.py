@@ -29,12 +29,12 @@ class TestSeriesRepr(TestData):
                                    [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
                            names=['first', 'second'])
         s = Series(lrange(0, len(index)), index=index, name='sth')
-        expected = ["first  second", "foo    one       0",
-                    "       two       1", "       three     2",
-                    "bar    one       3", "       two       4",
-                    "baz    two       5", "       three     6",
-                    "qux    one       7", "       two       8",
-                    "       three     9", "Name: sth, dtype: int64"]
+        expected = ["first  second", "foo    one      0",
+                    "       two      1", "       three    2",
+                    "bar    one      3", "       two      4",
+                    "baz    two      5", "       three    6",
+                    "qux    one      7", "       two      8",
+                    "       three    9", "Name: sth, dtype: int64"]
         expected = "\n".join(expected)
         assert repr(s) == expected
 
@@ -234,7 +234,7 @@ class TestCategoricalRepr(object):
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))
-        exp = u("0    1\n1    2\n2    3\n3    4\n" +
+        exp = u("0   1\n1   2\n2   3\n3   4\n" +
                 "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
 
         assert exp == a.__unicode__()
@@ -253,25 +253,25 @@ class TestCategoricalRepr(object):
 
     def test_categorical_series_repr(self):
         s = Series(Categorical([1, 2, 3]))
-        exp = """0    1
-1    2
-2    3
+        exp = """0   1
+1   2
+2   3
 dtype: category
 Categories (3, int64): [1, 2, 3]"""
 
         assert repr(s) == exp
 
         s = Series(Categorical(np.arange(10)))
-        exp = """0    0
-1    1
-2    2
-3    3
-4    4
-5    5
-6    6
-7    7
-8    8
-9    9
+        exp = """0   0
+1   1
+2   2
+3   3
+4   4
+5   5
+6   6
+7   7
+8   8
+9   9
 dtype: category
 Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
@@ -279,25 +279,25 @@ Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
     def test_categorical_series_repr_ordered(self):
         s = Series(Categorical([1, 2, 3], ordered=True))
-        exp = """0    1
-1    2
-2    3
+        exp = """0   1
+1   2
+2   3
 dtype: category
 Categories (3, int64): [1 < 2 < 3]"""
 
         assert repr(s) == exp
 
         s = Series(Categorical(np.arange(10), ordered=True))
-        exp = """0    0
-1    1
-2    2
-3    3
-4    4
-5    5
-6    6
-7    7
-8    8
-9    9
+        exp = """0   0
+1   1
+2   2
+3   3
+4   4
+5   5
+6   6
+7   7
+8   8
+9   9
 dtype: category
 Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 

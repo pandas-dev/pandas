@@ -63,10 +63,10 @@ class TestToLatex(object):
         withoutindex_result = df.to_latex(index=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
- a &   b \\
+a &   b \\
 \midrule
- 1 &  b1 \\
- 2 &  b2 \\
+1 &  b1 \\
+2 &  b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -199,12 +199,12 @@ c3 & 0 &  0 &  1 &  2 &  3 \\
         expected = r"""\begin{tabular}{lrrrrr}
 \toprule
 a & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-b &  0 &  1 &  0 &  1 &  0 \\
+b &  0 & 1 &  0 & 1 &  0 \\
 \midrule
-0 &  0 &  4 &  0 &  4 &  0 \\
-1 &  1 &  5 &  1 &  5 &  1 \\
-2 &  2 &  6 &  2 &  6 &  2 \\
-3 &  3 &  7 &  3 &  7 &  3 \\
+0 &  0 & 4 &  0 & 4 &  0 \\
+1 &  1 & 5 &  1 & 5 &  1 \\
+2 &  2 & 6 &  2 & 6 &  2 \\
+3 &  3 & 7 &  3 & 7 &  3 \\
 \bottomrule
 \end{tabular}
 """
@@ -279,13 +279,13 @@ B & c &  NaN \\
         expected = r"""\begin{tabular}{lrrrrr}
 \toprule
 {} & \multicolumn{2}{l}{c1} & \multicolumn{2}{l}{c2} & c3 \\
-{} &  0 &  1 &  0 &  1 &  0 \\
+{} &  0 & 1 &  0 & 1 &  0 \\
 \midrule
-0 &  0 &  5 &  0 &  5 &  0 \\
-1 &  1 &  6 &  1 &  6 &  1 \\
-2 &  2 &  7 &  2 &  7 &  2 \\
-3 &  3 &  8 &  3 &  8 &  3 \\
-4 &  4 &  9 &  4 &  9 &  4 \\
+0 &  0 & 5 &  0 & 5 &  0 \\
+1 &  1 & 6 &  1 & 6 &  1 \\
+2 &  2 & 7 &  2 & 7 &  2 \\
+3 &  3 & 8 &  3 & 8 &  3 \\
+4 &  4 & 9 &  4 & 9 &  4 \\
 \bottomrule
 \end{tabular}
 """
@@ -294,14 +294,14 @@ B & c &  NaN \\
         result = df.to_latex(multicolumn=False)
         expected = r"""\begin{tabular}{lrrrrr}
 \toprule
-{} & c1 &    & c2 &    & c3 \\
-{} &  0 &  1 &  0 &  1 &  0 \\
+{} & c1 &   & c2 &   & c3 \\
+{} &  0 & 1 &  0 & 1 &  0 \\
 \midrule
-0 &  0 &  5 &  0 &  5 &  0 \\
-1 &  1 &  6 &  1 &  6 &  1 \\
-2 &  2 &  7 &  2 &  7 &  2 \\
-3 &  3 &  8 &  3 &  8 &  3 \\
-4 &  4 &  9 &  4 &  9 &  4 \\
+0 &  0 & 5 &  0 & 5 &  0 \\
+1 &  1 & 6 &  1 & 6 &  1 \\
+2 &  2 & 7 &  2 & 7 &  2 \\
+3 &  3 & 8 &  3 & 8 &  3 \\
+4 &  4 & 9 &  4 & 9 &  4 \\
 \bottomrule
 \end{tabular}
 """
@@ -330,15 +330,15 @@ c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
         expected = r"""\begin{tabular}{llrrrrr}
 \toprule
    &   & \multicolumn{2}{c}{c1} & \multicolumn{2}{c}{c2} & c3 \\
-   &   &  0 &  1 &  0 &  1 &  0 \\
+   &   &  0 & 1 &  0 & 1 &  0 \\
 \midrule
-\multirow{2}{*}{c1} & 0 &  0 &  1 &  2 &  3 &  4 \\
-   & 1 &  5 &  6 &  7 &  8 &  9 \\
+\multirow{2}{*}{c1} & 0 &  0 & 1 &  2 & 3 &  4 \\
+   & 1 &  5 & 6 &  7 & 8 &  9 \\
 \cline{1-7}
-\multirow{2}{*}{c2} & 0 &  0 &  1 &  2 &  3 &  4 \\
-   & 1 &  5 &  6 &  7 &  8 &  9 \\
+\multirow{2}{*}{c2} & 0 &  0 & 1 &  2 & 3 &  4 \\
+   & 1 &  5 & 6 &  7 & 8 &  9 \\
 \cline{1-7}
-c3 & 0 &  0 &  1 &  2 &  3 &  4 \\
+c3 & 0 &  0 & 1 &  2 & 3 &  4 \\
 \bottomrule
 \end{tabular}
 """
@@ -422,7 +422,7 @@ b &       b &     b \\
         withoutindex_result = df.to_latex(index=False, longtable=True)
         withoutindex_expected = r"""\begin{longtable}{rl}
 \toprule
- a &   b \\
+a &   b \\
 \midrule
 \endhead
 \midrule
@@ -432,8 +432,8 @@ b &       b &     b \\
 
 \bottomrule
 \endlastfoot
- 1 &  b1 \\
- 2 &  b2 \\
+1 &  b1 \\
+2 &  b2 \\
 \end{longtable}
 """
 
@@ -478,8 +478,8 @@ b &       b &     b \\
         withindex_result = df.to_latex(header=False)
         withindex_expected = r"""\begin{tabular}{lrl}
 \toprule
-0 &  1 &  b1 \\
-1 &  2 &  b2 \\
+0 & 1 &  b1 \\
+1 & 2 &  b2 \\
 \bottomrule
 \end{tabular}
 """
@@ -489,8 +489,8 @@ b &       b &     b \\
         withoutindex_result = df.to_latex(index=False, header=False)
         withoutindex_expected = r"""\begin{tabular}{rl}
 \toprule
- 1 &  b1 \\
- 2 &  b2 \\
+1 &  b1 \\
+2 &  b2 \\
 \bottomrule
 \end{tabular}
 """
