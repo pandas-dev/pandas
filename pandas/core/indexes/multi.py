@@ -29,7 +29,8 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.missing as missing
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    default_pprint, format_object_summary, pprint_thing)
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -947,28 +948,57 @@ class MultiIndex(Index):
 
     # --------------------------------------------------------------------
     # Rendering Methods
+    def _formatter_func(self, tup):
+        """
+        Formats each item in tup according to its level's formatter function.
+        """
+        formatter_funcs = [level._formatter_func for level in self.levels]
+        return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        attrs = [
-            ('levels', ibase.default_pprint(self._levels,
-                                            max_seq_items=False)),
-            ('codes', ibase.default_pprint(self._codes,
-                                           max_seq_items=False))]
-        if com._any_not_none(*self.names):
-            attrs.append(('names', ibase.default_pprint(self.names)))
-        if self.sortorder is not None:
-            attrs.append(('sortorder', ibase.default_pprint(self.sortorder)))
+        attrs = []
+        attrs.append(('dtype', "'{}'".format(self.dtype)))
+        if self.names is not None and any(self.names):
+            attrs.append(('names', default_pprint(self.names)))
+        max_seq_items = get_option('display.max_seq_items') or len(self)
+        if len(self) > max_seq_items:
+            attrs.append(('length', len(self)))
         return attrs
 
     def _format_space(self):
-        return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
+        return " "
 
     def _format_data(self, name=None):
-        # we are formatting thru the attributes
-        return None
+        """
+        Return the formatted data as a unicode string
+        """
+        return format_object_summary(self, self._formatter_func,
+                                     name=name, is_multi=True)
+
+    def __unicode__(self):
+        """
+        Return a string representation for this MultiIndex.
+
+        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
+        py2/py3.
+        """
+        klass = self.__class__.__name__
+        data = self._format_data()
+        attrs = self._format_attrs()
+        space = self._format_space()
+
+        prepr = (",%s" % space).join("%s=%s" % (k, v) for k, v in attrs)
+
+        # no data provided, just attributes
+        if data is None:
+            data = ''
+
+        res = "%s(%s%s)" % (klass, data, prepr)
+
+        return res
 
     def _format_native_types(self, na_rep='nan', **kwargs):
         new_levels = []
