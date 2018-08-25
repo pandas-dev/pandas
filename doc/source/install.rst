@@ -202,7 +202,8 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 3.6 and run:
+<http://docs.pytest.org/en/latest/>`__ >= 3.6 and `Hypothesis
+<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
 

@@ -41,6 +41,7 @@ dependencies:
   - pytest-xdist
   - pytest-cov
   - moto
+  - hypothesis>=3.58.0
   - pip:
     - brotlipy
     - coverage

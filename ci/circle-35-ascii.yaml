@@ -11,3 +11,5 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pip:
+    - hypothesis>=3.58.0

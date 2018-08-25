@@ -31,3 +31,5 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - pip:
+    - hypothesis>=3.58.0
