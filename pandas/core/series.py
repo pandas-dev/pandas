@@ -3104,17 +3104,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Invoke function on values of Series. Can be ufunc (a NumPy function
         that applies to the entire Series) or a Python function that only works
-        on single values
+        on single values.
 
         Parameters
         ----------
         func : function
-        convert_dtype : boolean, default True
+            Python function or NumPy ufunc.
+        convert_dtype : bool, default True
             Try to find better dtype for elementwise function results. If
-            False, leave as dtype=object
+            False, leave as dtype=object.
         args : tuple
-            Positional arguments to pass to function in addition to the value
-        Additional keyword arguments will be passed as keywords to the function
+            Positional arguments to pass to func in addition to the value.
+        **kwds : dict
+            Additional keyword arguments will be passed to func.
 
         Returns
         -------
@@ -3193,8 +3195,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         New York    3.044522
         Helsinki    2.484907
         dtype: float64
-
-
         """
         if len(self) == 0:
             return self._constructor(dtype=self.dtype,
