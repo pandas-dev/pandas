@@ -3116,7 +3116,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         args : tuple
             Positional arguments to pass to func in addition to the value.
         **kwds : dict
-            Additional keyword arguments will be passed to func.
+            Additional keyword arguments passed to func.
 
         Returns
         -------
