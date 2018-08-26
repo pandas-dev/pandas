@@ -615,6 +615,7 @@ Timezones
 - Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
 - Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
+- Bug in :meth:`DataFrame.resample` when :class:`DatetimeIndex` starts or ends on a DST transition (:issue:`10117`, :issue:`19375`)
 
 Offsets
 ^^^^^^^

@@ -893,34 +893,39 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     tdata = <int64_t*> cnp.PyArray_DATA(trans)
     ntrans = len(trans)
 
+    # Determine whether each date lies left of the DST transition (store in
+    # result_a) or right of the DST transition (store in result_b)
     result_a = np.empty(n, dtype=np.int64)
     result_b = np.empty(n, dtype=np.int64)
     result_a.fill(NPY_NAT)
     result_b.fill(NPY_NAT)
 
-    # left side
-    idx_shifted = (np.maximum(0, trans.searchsorted(
+    idx_shifted_left = (np.maximum(0, trans.searchsorted(
         vals - DAY_NS, side='right') - 1)).astype(np.int64)
 
-    for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = bisect_right_i8(tdata, v, ntrans) - 1
-
-        # timestamp falls to the left side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_a[i] = v
-
-    # right side
-    idx_shifted = (np.maximum(0, trans.searchsorted(
+    idx_shifted_right = (np.maximum(0, trans.searchsorted(
         vals + DAY_NS, side='right') - 1)).astype(np.int64)
 
     for i in range(n):
-        v = vals[i] - deltas[idx_shifted[i]]
-        pos = bisect_right_i8(tdata, v, ntrans) - 1
+        v_left = vals[i] - deltas[idx_shifted_left[i]]
+        if v_left in trans:
+            # The vals[i] lies directly on the DST border.
+            result_a[i] = v_left
+        else:
+            pos_left = bisect_right_i8(tdata, v_left, ntrans) - 1
+            # timestamp falls to the left side of the DST transition
+            if v_left + deltas[pos_left] == vals[i]:
+                result_a[i] = v_left
 
-        # timestamp falls to the right side of the DST transition
-        if v + deltas[pos] == vals[i]:
-            result_b[i] = v
+        v_right = vals[i] - deltas[idx_shifted_right[i]]
+        if v_right in trans:
+            # The vals[i] lies directly on the DST border.
+            result_b[i] = v_right
+        else:
+            pos_right = bisect_right_i8(tdata, v_right, ntrans) - 1
+            # timestamp falls to the right side of the DST transition
+            if v_right + deltas[pos_right] == vals[i]:
+                result_b[i] = v_right
 
     if infer_dst:
         dst_hours = np.empty(n, dtype=np.int64)

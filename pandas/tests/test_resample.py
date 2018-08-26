@@ -2125,6 +2125,26 @@ class TestDatetimeIndex(Base):
                                            freq='H'))
         tm.assert_series_equal(result, expected)
 
+    def test_bin_edges_on_DST_transition(self):
+        # GH 10117
+        # Ends on DST boundary
+        idx = date_range("2014-10-26 00:30:00", "2014-10-26 02:30:00",
+                         freq="30T", tz="Europe/London")
+        expected = Series(range(len(idx)), index=idx)
+        result = expected.resample('30T').mean()
+        tm.assert_series_equal(result, expected)
+
+        # Starts on DST boundary
+        idx = date_range('2014-03-09 03:00', periods=4,
+                         freq='H', tz='America/Chicago')
+        s = Series(range(len(idx)), index=idx)
+        result = s.resample('H', label='right', closed='right').sum()
+        expected = Series([1, 2, 3], index=date_range('2014-03-09 04:00',
+                                                      periods=3,
+                                                      freq='H',
+                                                      tz='America/Chicago'))
+        tm.assert_series_equal(result, expected)
+
     def test_resample_with_nat(self):
         # GH 13020
         index = DatetimeIndex([pd.NaT,
