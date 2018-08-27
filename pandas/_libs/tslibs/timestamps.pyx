@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -17,8 +16,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array,
-                   INT64_MAX)
+                   is_integer_object, is_string_object, is_array)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
@@ -1103,7 +1101,7 @@ class Timestamp(_Timestamp):
 
 
 # Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 # the smallest value we could actually represent is
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution

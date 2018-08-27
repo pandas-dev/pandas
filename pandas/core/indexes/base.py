@@ -122,6 +122,14 @@ def _make_arithmetic_op(op, cls):
         elif isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
+        elif isinstance(other, np.ndarray) and is_timedelta64_dtype(other):
+            # GH#22390; wrap in Series for op, this will in turn wrap in
+            # TimedeltaIndex, but will correctly raise TypeError instead of
+            # NullFrequencyError for add/sub ops
+            from pandas import Series
+            other = Series(other)
+            out = op(self, other)
+            return Index(out, name=self.name)
 
         other = self._validate_for_numeric_binop(other, op)
 
@@ -239,7 +247,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = set(['str'])
+    _accessors = {'str'}
 
     str = CachedAccessor("str", StringMethods)
 
@@ -301,7 +309,7 @@ class Index(IndexOpsMixin, PandasObject):
             if not (dtype is None or is_object_dtype(dtype)):
 
                 # coerce to the provided dtype
-                data = dtype.construct_array_type()(
+                data = dtype.construct_array_type()._from_sequence(
                     data, dtype=dtype, copy=False)
 
             # coerce to the object dtype
@@ -1279,39 +1287,52 @@ class Index(IndexOpsMixin, PandasObject):
 
     def set_names(self, names, level=None, inplace=False):
         """
-        Set new names on index. Defaults to returning new index.
+        Set Index or MultiIndex name.
+
+        Able to set new names partially and by level.
 
         Parameters
         ----------
-        names : str or sequence
-            name(s) to set
-        level : int, level name, or sequence of int/level names (default None)
-            If the index is a MultiIndex (hierarchical), level(s) to set (None
-            for all levels).  Otherwise level must be None
-        inplace : bool
-            if True, mutates in place
+        names : label or list of label
+            Name(s) to set.
+        level : int, label or list of int or label, optional
+            If the index is a MultiIndex, level(s) to set (None for all
+            levels). Otherwise level must be None.
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new Index or
+            MultiIndex.
 
         Returns
         -------
-        new index (of same type and class...etc) [if inplace, returns None]
+        Index
+            The same type as the caller or None if inplace is True.
+
+        See Also
+        --------
+        Index.rename : Able to set new names without level.
 
         Examples
         --------
-        >>> pd.Index([1, 2, 3, 4]).set_names('foo')
-        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> pd.Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
-                                            names=['foo', 'bar'])
-        >>> idx.set_names(['baz', 'quz'])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'baz', u'quz'])
-        >>> idx.set_names('baz', level=0)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'baz', u'bar'])
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Int64Index([1, 2, 3, 4], dtype='int64')
+        >>> idx.set_names('quarter')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='quarter')
+
+        >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
+        ...                                   [2018, 2019]])
+        >>> idx
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]])
+        >>> idx.set_names(['kind', 'year'], inplace=True)
+        >>> idx
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['kind', 'year'])
+        >>> idx.set_names('species', level=0)
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['species', 'year'])
         """
 
         from .multi import MultiIndex
@@ -1320,7 +1341,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if level is not None and not is_list_like(level) and is_list_like(
                 names):
-            raise TypeError("Names must be a string")
+            msg = "Names must be a string when a single level is provided."
+            raise TypeError(msg)
 
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
@@ -1340,18 +1362,48 @@ class Index(IndexOpsMixin, PandasObject):
 
     def rename(self, name, inplace=False):
         """
-        Set new names on index. Defaults to returning new index.
+        Alter Index or MultiIndex name.
+
+        Able to set new names without level. Defaults to returning new index.
+        Length of names must match number of levels in MultiIndex.
 
         Parameters
         ----------
-        name : str or list
-            name to set
-        inplace : bool
-            if True, mutates in place
+        name : label or list of labels
+            Name(s) to set.
+        inplace : boolean, default False
+            Modifies the object directly, instead of creating a new Index or
+            MultiIndex.
 
         Returns
         -------
-        new index (of same type and class...etc) [if inplace, returns None]
+        Index
+            The same type as the caller or None if inplace is True.
+
+        See Also
+        --------
+        Index.set_names : Able to set new names partially and by level.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['A', 'C', 'A', 'B'], name='score')
+        >>> idx.rename('grade')
+        Index(['A', 'C', 'A', 'B'], dtype='object', name='grade')
+
+        >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
+        ...                                   [2018, 2019]],
+        ...                                   names=['kind', 'year'])
+        >>> idx
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['kind', 'year'])
+        >>> idx.rename(['species', 'year'])
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['species', 'year'])
+        >>> idx.rename('species')
+        Traceback (most recent call last):
+        TypeError: Must pass list-like as `names`.
         """
         return self.set_names([name], inplace=inplace)
 
@@ -2464,7 +2516,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where < self.values[first])] = -1
+        result[(locs == 0) & (where.values < self.values[first])] = -1
 
         return result
 
@@ -2646,6 +2698,8 @@ class Index(IndexOpsMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
         return Index(np.array(self) + other)
 
     def __radd__(self, other):

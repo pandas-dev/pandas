@@ -314,15 +314,13 @@ class DataFrame(NDFrame):
 
     Constructing DataFrame from numpy ndarray:
 
-    >>> df2 = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
-    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    ...                    columns=['a', 'b', 'c'])
     >>> df2
-        a   b   c   d   e
-    0   2   8   8   3   4
-    1   4   2   9   0   9
-    2   1   0   7   8   0
-    3   5   1   7   1   3
-    4   6   0   2   4   2
+       a  b  c
+    0  1  2  3
+    1  4  5  6
+    2  7  8  9
 
     See also
     --------
@@ -1339,14 +1337,15 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to a NumPy record array.
 
-        Index will be put in the 'index' field of the record array if
+        Index will be included as the first field of the record array if
         requested.
 
         Parameters
         ----------
-        index : boolean, default True
-            Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default None
+        index : bool, default True
+            Include index in resulting record array, stored in 'index'
+            field or using the index label, if set.
+        convert_datetime64 : bool, default None
             .. deprecated:: 0.23.0
 
             Whether to convert the index to datetime.datetime if it is a
@@ -1354,7 +1353,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : numpy.recarray
+        numpy.recarray
+            NumPy ndarray with the DataFrame labels as fields and each row
+            of the DataFrame as entries.
 
         See Also
         --------
@@ -1376,31 +1377,20 @@ class DataFrame(NDFrame):
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
 
+        If the DataFrame index has no label then the recarray field name
+        is set to 'index'. If the index has a label then this is used as the
+        field name:
+
+        >>> df.index = df.index.rename("I")
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i8'), ('B', '<f8')])
+
         The index can be excluded from the record array:
 
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
-
-        By default, timestamps are converted to `datetime.datetime`:
-
-        >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
-        >>> df
-                             A     B
-        2018-01-01 09:00:00  1  0.50
-        2018-01-01 09:01:00  2  0.75
-        >>> df.to_records()
-        rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
-                   (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
-                  dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
-
-        The timestamp conversion can be disabled so NumPy's datetime64
-        data type is used instead:
-
-        >>> df.to_records(convert_datetime64=False)
-        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
-                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
-                  dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -1713,107 +1703,6 @@ class DataFrame(NDFrame):
                                               ref_items=selfsorted.columns)
 
         return self._constructor_expanddim(new_mgr)
-
-    def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
-               columns=None, header=True, index=True, index_label=None,
-               mode='w', encoding=None, compression='infer', quoting=None,
-               quotechar='"', line_terminator='\n', chunksize=None,
-               tupleize_cols=None, date_format=None, doublequote=True,
-               escapechar=None, decimal='.'):
-        r"""Write DataFrame to a comma-separated values (csv) file
-
-        Parameters
-        ----------
-        path_or_buf : string or file handle, default None
-            File path or object, if None is provided the result is returned as
-            a string.
-        sep : character, default ','
-            Field delimiter for the output file.
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
-        columns : sequence, optional
-            Columns to write
-        header : boolean or list of string, default True
-            Write out the column names. If a list of strings is given it is
-            assumed to be aliases for the column names
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, or False, default None
-            Column label for index column(s) if desired. If None is given, and
-            `header` and `index` are True, then the index names are used. A
-            sequence should be given if the DataFrame uses MultiIndex.  If
-            False do not print fields for index names. Use index_label=False
-            for easier importing in R
-        mode : str
-            Python write mode, default 'w'
-        encoding : string, optional
-            A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                      default 'infer'
-            If 'infer' and `path_or_buf` is path-like, then detect compression
-            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
-            (otherwise no compression).
-
-            .. versionchanged:: 0.24.0
-               'infer' option added and set to default
-        line_terminator : string, default ``'\n'``
-            The newline character or character sequence to use in the output
-            file
-        quoting : optional constant from csv module
-            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
-            will treat them as non-numeric
-        quotechar : string (length 1), default '\"'
-            character used to quote fields
-        doublequote : boolean, default True
-            Control quoting of `quotechar` inside a field
-        escapechar : string (length 1), default None
-            character used to escape `sep` and `quotechar` when appropriate
-        chunksize : int or None
-            rows to write at a time
-        tupleize_cols : boolean, default False
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
-
-            Write MultiIndex columns as a list of tuples (if True) or in
-            the new, expanded format, where each MultiIndex column is a row
-            in the CSV (if False).
-        date_format : string, default None
-            Format string for datetime objects
-        decimal: string, default '.'
-            Character recognized as decimal separator. E.g. use ',' for
-            European data
-
-        """
-
-        if tupleize_cols is not None:
-            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
-                          "will be removed in a future version",
-                          FutureWarning, stacklevel=2)
-        else:
-            tupleize_cols = False
-
-        from pandas.io.formats.csvs import CSVFormatter
-        formatter = CSVFormatter(self, path_or_buf,
-                                 line_terminator=line_terminator, sep=sep,
-                                 encoding=encoding,
-                                 compression=compression, quoting=quoting,
-                                 na_rep=na_rep, float_format=float_format,
-                                 cols=columns, header=header, index=index,
-                                 index_label=index_label, mode=mode,
-                                 chunksize=chunksize, quotechar=quotechar,
-                                 tupleize_cols=tupleize_cols,
-                                 date_format=date_format,
-                                 doublequote=doublequote,
-                                 escapechar=escapechar, decimal=decimal)
-        formatter.save()
-
-        if path_or_buf is None:
-            return formatter.path_or_buf.getvalue()
 
     @Appender(_shared_docs['to_excel'] % _shared_doc_kwargs)
     def to_excel(self, excel_writer, sheet_name='Sheet1', na_rep='',
@@ -4436,6 +4325,9 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
+        if self.empty:
+            return self.copy()
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
@@ -4469,6 +4361,9 @@ class DataFrame(NDFrame):
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+
+        if self.empty:
+            return Series()
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -4504,7 +4399,6 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        stacklevel = 2  # Number of stack levels from df.sort_values
 
         if not isinstance(by, list):
             by = [by]
@@ -4516,8 +4410,7 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self._get_label_or_level_values(x, axis=axis,
-                                                    stacklevel=stacklevel)
+                k = self._get_label_or_level_values(x, axis=axis)
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
@@ -4526,8 +4419,7 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis,
-                                                stacklevel=stacklevel)
+            k = self._get_label_or_level_values(by, axis=axis)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
@@ -4911,20 +4803,7 @@ class DataFrame(NDFrame):
 
         if this._is_mixed_type or other._is_mixed_type:
             # iterate over columns
-            if this.columns.is_unique:
-                # unique columns
-                result = {col: _arith_op(this[col], other[col])
-                          for col in this}
-                result = self._constructor(result, index=new_index,
-                                           columns=new_columns, copy=False)
-            else:
-                # non-unique columns
-                result = {i: _arith_op(this.iloc[:, i], other.iloc[:, i])
-                          for i, col in enumerate(this.columns)}
-                result = self._constructor(result, index=new_index, copy=False)
-                result.columns = new_columns
-            return result
-
+            return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
 
@@ -4949,6 +4828,14 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
+        if lib.is_scalar(other) or np.ndim(other) == 0:
+            new_data = {i: func(self.iloc[:, i], other)
+                        for i, col in enumerate(self.columns)}
+
+            result = self._constructor(new_data, index=self.index, copy=False)
+            result.columns = self.columns
+            return result
+
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
                                    try_cast=try_cast)
@@ -4958,27 +4845,16 @@ class DataFrame(NDFrame):
         # compare_frame assumes self._indexed_same(other)
 
         import pandas.core.computation.expressions as expressions
-        # unique
-        if self.columns.is_unique:
 
-            def _compare(a, b):
-                return {col: func(a[col], b[col]) for col in a.columns}
+        def _compare(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
 
-            new_data = expressions.evaluate(_compare, str_rep, self, other)
-            return self._constructor(data=new_data, index=self.index,
-                                     columns=self.columns, copy=False)
-        # non-unique
-        else:
-
-            def _compare(a, b):
-                return {i: func(a.iloc[:, i], b.iloc[:, i])
-                        for i, col in enumerate(a.columns)}
-
-            new_data = expressions.evaluate(_compare, str_rep, self, other)
-            result = self._constructor(data=new_data, index=self.index,
-                                       copy=False)
-            result.columns = self.columns
-            return result
+        new_data = expressions.evaluate(_compare, str_rep, self, other)
+        result = self._constructor(data=new_data, index=self.index,
+                                   copy=False)
+        result.columns = self.columns
+        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -5346,8 +5222,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Data reshaping
 
-    def pivot(self, index=None, columns=None, values=None):
-        """
+    _shared_docs['pivot'] = """
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
@@ -5357,7 +5232,7 @@ class DataFrame(NDFrame):
         columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 
         Parameters
-        ----------
+        ----------%s
         index : string or object, optional
             Column to use to make new frame's index. If None, uses
             existing index.
@@ -5449,7 +5324,11 @@ class DataFrame(NDFrame):
            ...
         ValueError: Index contains duplicate entries, cannot reshape
         """
-        from pandas.core.reshape.reshape import pivot
+
+    @Substitution('')
+    @Appender(_shared_docs['pivot'])
+    def pivot(self, index=None, columns=None, values=None):
+        from pandas.core.reshape.pivot import pivot
         return pivot(self, index=index, columns=columns, values=values)
 
     _shared_docs['pivot_table'] = """
@@ -6780,7 +6659,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        else:
+        elif method == 'kendall':
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -6804,6 +6683,10 @@ class DataFrame(NDFrame):
                         c = corrf(ac, bc)
                     correl[i, j] = c
                     correl[j, i] = c
+        else:
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman', or 'kendall', '{method}' "
+                             "was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
@@ -7010,21 +6893,21 @@ class DataFrame(NDFrame):
         Constructing DataFrame from a dictionary:
 
         >>> df = pd.DataFrame({"Person":
-        ...                    ["John", "Myla", None, "John", "Myla"],
+        ...                    ["John", "Myla", "Lewis", "John", "Myla"],
         ...                    "Age": [24., np.nan, 21., 33, 26],
         ...                    "Single": [False, True, True, True, False]})
         >>> df
            Person   Age  Single
         0    John  24.0   False
         1    Myla   NaN    True
-        2    None  21.0    True
+        2   Lewis  21.0    True
         3    John  33.0    True
         4    Myla  26.0   False
 
         Notice the uncounted NA values:
 
         >>> df.count()
-        Person    4
+        Person    5
         Age       4
         Single    5
         dtype: int64
@@ -7034,7 +6917,7 @@ class DataFrame(NDFrame):
         >>> df.count(axis='columns')
         0    3
         1    2
-        2    2
+        2    3
         3    3
         4    3
         dtype: int64
@@ -7045,7 +6928,9 @@ class DataFrame(NDFrame):
                 Age
         Person
         John      2
+        Lewis     1
         Myla      1
+
         """
         axis = self._get_axis_number(axis)
         if level is not None:
@@ -7370,8 +7255,7 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
-        Return values at the given quantile over requested axis, a la
-        numpy.percentile.
+        Return values at the given quantile over requested axis.
 
         Parameters
         ----------
@@ -7436,6 +7320,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
         self._check_percentile(q)
 
@@ -7630,12 +7515,14 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # figure out the index, if necessary
     if index is None:
         index = extract_index(arrays)
+    else:
+        index = ensure_index(index)
 
     # don't force copy because getting jammed in an ndarray anyway
     arrays = _homogenize(arrays, index, dtype)
 
     # from BlockManager perspective
-    axes = [ensure_index(columns), ensure_index(index)]
+    axes = [ensure_index(columns), index]
 
     return create_block_manager_from_arrays(arrays, arr_names, axes)
 

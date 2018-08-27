@@ -97,6 +97,23 @@ class Resampler(_GroupBy):
 
         return object.__getattribute__(self, attr)
 
+    def __iter__(self):
+        """
+        Resampler iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+
+        See Also
+        --------
+        GroupBy.__iter__
+
+        """
+        self._set_binner()
+        return super(Resampler, self).__iter__()
+
     @property
     def obj(self):
         return self.groupby.obj
@@ -234,12 +251,15 @@ one pass, you can do
         klass='DataFrame',
         versionadded='',
         axis=''))
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = self._aggregate(arg, *args, **kwargs)
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
-            result = self._groupby_and_aggregate(arg,
+            how = func
+            grouper = None
+            result = self._groupby_and_aggregate(how,
+                                                 grouper,
                                                  *args,
                                                  **kwargs)
 
@@ -749,6 +769,24 @@ one pass, you can do
             result = pd.Series([], index=result.index, dtype='int64')
         return result
 
+    def quantile(self, q=0.5, **kwargs):
+        """
+        Return value at the given quantile.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+
+        See Also
+        --------
+        Series.quantile
+        DataFrame.quantile
+        DataFrameGroupBy.quantile
+        """
+        return self._downsample('quantile', q=q, **kwargs)
+
 
 # downsample methods
 for method in ['sum', 'prod']:
@@ -852,7 +890,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
-    def _apply(self, f, **kwargs):
+    def _apply(self, f, grouper=None, *args, **kwargs):
         """
         dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object
@@ -864,7 +902,7 @@ class _GroupByMixin(GroupByMixin):
             if isinstance(f, compat.string_types):
                 return getattr(x, f)(**kwargs)
 
-            return x.apply(f, **kwargs)
+            return x.apply(f, *args, **kwargs)
 
         result = self._groupby.apply(func)
         return self._wrap_result(result)
@@ -1043,7 +1081,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            return self._groupby_and_aggregate(how, grouper=self.grouper)
+            return self._groupby_and_aggregate(how, grouper=self.grouper,
+                                               **kwargs)
         elif is_superperiod(ax.freq, self.freq):
             if how == 'ohlc':
                 # GH #13083
@@ -1199,7 +1238,7 @@ class TimeGrouper(Grouper):
 
         freq = to_offset(freq)
 
-        end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])
+        end_types = {'M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'}
         rule = freq.rule_code
         if (rule in end_types or
                 ('-' in rule and rule[:rule.find('-')] in end_types)):
@@ -1383,8 +1422,7 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        start = ax[0]
-        end = ax[-1]
+        start, end = ax.min(), ax.max()
         labels = binner = TimedeltaIndex(start=start,
                                          end=end,
                                          freq=self.freq,

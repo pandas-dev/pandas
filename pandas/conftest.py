@@ -123,13 +123,10 @@ def all_arithmetic_operators(request):
     return request.param
 
 
-# use sorted as dicts in py<3.6 have random order, which xdist doesn't like
-_cython_table = sorted(((key, value) for key, value in
-                        pd.core.base.SelectionMixin._cython_table.items()),
-                       key=lambda x: x[0].__name__)
+_cython_table = pd.core.base.SelectionMixin._cython_table.items()
 
 
-@pytest.fixture(params=_cython_table)
+@pytest.fixture(params=list(_cython_table))
 def cython_table_items(request):
     return request.param
 
@@ -453,3 +450,37 @@ def mock():
         return importlib.import_module("unittest.mock")
     else:
         return pytest.importorskip("mock")
+
+
+# ----------------------------------------------------------------
+# Global setup for tests using Hypothesis
+
+from hypothesis import strategies as st
+
+# Registering these strategies makes them globally available via st.from_type,
+# which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
+for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-99, 99),
+        normalize=st.booleans(),
+    ))
+
+for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-5, 5),
+        normalize=st.booleans(),
+        month=st.integers(min_value=1, max_value=12),
+    ))
+
+for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-24, 24),
+        normalize=st.booleans(),
+        startingMonth=st.integers(min_value=1, max_value=12)
+    ))

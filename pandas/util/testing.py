@@ -504,23 +504,19 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
 
     try:
         locale.setlocale(lc_var, new_locale)
-
-        try:
-            normalized_locale = locale.getlocale()
-        except ValueError:
-            yield new_locale
+        normalized_locale = locale.getlocale()
+        if com._all_not_none(*normalized_locale):
+            yield '.'.join(normalized_locale)
         else:
-            if com._all_not_none(*normalized_locale):
-                yield '.'.join(normalized_locale)
-            else:
-                yield new_locale
+            yield new_locale
     finally:
         locale.setlocale(lc_var, current_locale)
 
 
 def can_set_locale(lc, lc_var=locale.LC_ALL):
     """
-    Check to see if we can set a locale without raising an Exception.
+    Check to see if we can set a locale, and subsequently get the locale,
+    without raising an Exception.
 
     Parameters
     ----------
@@ -538,7 +534,8 @@ def can_set_locale(lc, lc_var=locale.LC_ALL):
     try:
         with set_locale(lc, lc_var=lc_var):
             pass
-    except locale.Error:  # horrible name for a Exception subclass
+    except (ValueError,
+            locale.Error):  # horrible name for a Exception subclass
         return False
     else:
         return True
@@ -594,7 +591,7 @@ def set_defaultencoding(encoding):
 
 
 def capture_stdout(f):
-    """
+    r"""
     Decorator to capture stdout in a buffer so that it can be checked
     (or suppressed) during testing.
 
@@ -612,7 +609,6 @@ def capture_stdout(f):
     --------
 
     >>> from pandas.util.testing import capture_stdout
-    >>>
     >>> import sys
     >>>
     >>> @capture_stdout
@@ -642,7 +638,7 @@ def capture_stdout(f):
 
 
 def capture_stderr(f):
-    """
+    r"""
     Decorator to capture stderr in a buffer so that it can be checked
     (or suppressed) during testing.
 
@@ -660,7 +656,6 @@ def capture_stderr(f):
     --------
 
     >>> from pandas.util.testing import capture_stderr
-    >>>
     >>> import sys
     >>>
     >>> @capture_stderr
@@ -909,8 +904,8 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
     if exact == 'equiv':
         if type(left) != type(right):
             # allow equivalence of Int64Index/RangeIndex
-            types = set([type(left).__name__, type(right).__name__])
-            if len(types - set(['Int64Index', 'RangeIndex'])):
+            types = {type(left).__name__, type(right).__name__}
+            if len(types - {'Int64Index', 'RangeIndex'}):
                 msg = '{obj} classes are not equivalent'.format(obj=obj)
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
@@ -2373,7 +2368,7 @@ with_connectivity_check = network
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
-    r"""
+    """
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable
@@ -2399,6 +2394,7 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "pear" does not match "'apple'"
 
     You can also use this in a with statement.
+
     >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
     ...     1 + {}
     >>> with assert_raises_regex(TypeError, 'banana'):
