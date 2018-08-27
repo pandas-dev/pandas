@@ -3187,7 +3187,7 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value):
             try:
                 value = Series(value)
-            except:
+            except ValueError:
                 raise ValueError('Cannot set a frame with no defined index '
                                  'and a value that cannot be converted to a '
                                  'Series')
@@ -7621,7 +7621,7 @@ def _prep_ndarray(values, copy=True):
                 values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)
-        except:
+        except Exception:
             values = convert(values)
 
     else:
