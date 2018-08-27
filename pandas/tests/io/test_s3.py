@@ -1,7 +1,7 @@
-from six import BytesIO
+import pytest
 
-from botocore.response import StreamingBody
 from pandas import read_csv
+from pandas.compat import BytesIO
 from pandas.io.common import is_s3_url
 
 
@@ -13,6 +13,9 @@ class TestS3URL(object):
 
 
 def test_streaming_s3_objects():
+    pytest.importorskip('botocore', minversion='1.10.47')
+    from botocore.response import StreamingBody
+
     data = [
         b'foo,bar,baz\n1,2,3\n4,5,6\n',
         b'just,the,header\n',
