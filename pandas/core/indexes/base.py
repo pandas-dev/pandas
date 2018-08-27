@@ -155,7 +155,6 @@ def _make_arithmetic_op(op, cls):
 
     name = '__{name}__'.format(name=op.__name__)
     # TODO: docstring?
-    foo = 'bar' # Never commit, just testing CI
     return set_function_name(index_arithmetic_method, name, cls)
 
 

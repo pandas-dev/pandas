@@ -227,3 +227,9 @@ class TestSeries(Generic):
         # GH18800
         with tm.assert_produces_warning(FutureWarning):
             pd.Series([]).valid()
+
+    def test_shift_always_copy(self):
+        # GH22397
+        s = Series([1, 2, 3])
+        assert s.shift(0) is not s
+        assert s.shift(1) is not s
