@@ -258,7 +258,7 @@ def _tables():
         try:
             _table_file_open_policy_is_strict = (
                 tables.file._FILE_OPEN_POLICY == 'strict')
-        except:
+        except Exception:
             pass
 
     return _table_mod
@@ -395,11 +395,11 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
                                      'contains multiple datasets.')
             key = candidate_only_group._v_pathname
         return store.select(key, auto_close=auto_close, **kwargs)
-    except:
+    except Exception:
         # if there is an error, close the store
         try:
             store.close()
-        except:
+        except Exception:
             pass
 
         raise
@@ -517,10 +517,9 @@ class HDFStore(StringMixin):
         """ allow attribute access to get stores """
         try:
             return self.get(name)
-        except:
-            pass
-        raise AttributeError("'%s' object has no attribute '%s'" %
-                             (type(self).__name__, name))
+        except Exception:
+            raise AttributeError("'%s' object has no attribute '%s'" %
+                                 (type(self).__name__, name))
 
     def __contains__(self, key):
         """ check for existence of this key
@@ -675,7 +674,7 @@ class HDFStore(StringMixin):
             if fsync:
                 try:
                     os.fsync(self._handle.fileno())
-                except:
+                except Exception:
                     pass
 
     def get(self, key):
@@ -1161,7 +1160,7 @@ class HDFStore(StringMixin):
             if not key.startswith('/'):
                 key = '/' + key
             return self._handle.get_node(self.root, key)
-        except:
+        except Exception:
             return None
 
     def get_storer(self, key):
@@ -1270,7 +1269,7 @@ class HDFStore(StringMixin):
         # validate
         try:
             kwargs['format'] = _FORMAT_MAP[format.lower()]
-        except:
+        except Exception:
             raise TypeError("invalid HDFStore format specified [{0}]"
                             .format(format))
 
@@ -1307,7 +1306,7 @@ class HDFStore(StringMixin):
 
                 try:
                     pt = _TYPE_MAP[type(value)]
-                except:
+                except KeyError:
                     error('_TYPE_MAP')
 
                 # we are actually a table
@@ -1318,7 +1317,7 @@ class HDFStore(StringMixin):
         if u('table') not in pt:
             try:
                 return globals()[_STORER_MAP[pt]](self, group, **kwargs)
-            except:
+            except Exception:
                 error('_STORER_MAP')
 
         # existing node (and must be a table)
@@ -1354,12 +1353,12 @@ class HDFStore(StringMixin):
                     fields = group.table._v_attrs.fields
                     if len(fields) == 1 and fields[0] == u('value'):
                         tt = u('legacy_frame')
-                except:
+                except Exception:
                     pass
 
         try:
             return globals()[_TABLE_MAP[tt]](self, group, **kwargs)
-        except:
+        except Exception:
             error('_TABLE_MAP')
 
     def _write_to_group(self, key, value, format, index=True, append=False,
@@ -1624,7 +1623,7 @@ class IndexCol(StringMixin):
         """ return whether I am an indexed column """
         try:
             return getattr(self.table.cols, self.cname).is_indexed
-        except:
+        except Exception:
             False
 
     def copy(self):
@@ -1656,7 +1655,7 @@ class IndexCol(StringMixin):
             kwargs['name'] = _ensure_decoded(self.index_name)
         try:
             self.values = Index(values, **kwargs)
-        except:
+        except Exception:
 
             # if the output freq is different that what we recorded,
             # it should be None (see also 'doc example part 2')
@@ -1869,7 +1868,7 @@ class DataCol(IndexCol):
                 m = re.search(r"values_block_(\d+)", name)
                 if m:
                     name = "values_%s" % m.groups()[0]
-        except:
+        except Exception:
             pass
 
         return cls(name=name, cname=cname, **kwargs)
@@ -2232,7 +2231,7 @@ class DataCol(IndexCol):
 
                 try:
                     self.data = self.data.astype(dtype, copy=False)
-                except:
+                except Exception:
                     self.data = self.data.astype('O', copy=False)
 
         # convert nans / decode
@@ -2325,7 +2324,7 @@ class Fixed(StringMixin):
             self.version = tuple(int(x) for x in version.split('.'))
             if len(self.version) == 2:
                 self.version = self.version + (0,)
-        except:
+        except Exception:
             self.version = (0, 0, 0)
 
     @property
@@ -2769,7 +2768,7 @@ class GenericFixed(Fixed):
             else:
                 try:
                     items = list(items)
-                except:
+                except TypeError:
                     pass
                 ws = performance_doc % (inferred_type, key, items)
                 warnings.warn(ws, PerformanceWarning, stacklevel=7)
@@ -2843,7 +2842,7 @@ class SeriesFixed(GenericFixed):
     def shape(self):
         try:
             return len(getattr(self.group, 'values')),
-        except:
+        except TypeError:
             return None
 
     def read(self, **kwargs):
@@ -2961,7 +2960,7 @@ class BlockManagerFixed(GenericFixed):
                 shape = shape[::-1]
 
             return shape
-        except:
+        except Exception:
             return None
 
     def read(self, start=None, stop=None, **kwargs):
@@ -3495,7 +3494,7 @@ class Table(Fixed):
         if axes is None:
             try:
                 axes = _AXES_MAP[type(obj)]
-            except:
+            except KeyError:
                 raise TypeError("cannot properly create the storer for: "
                                 "[group->%s,value->%s]"
                                 % (self.group._v_name, type(obj)))
@@ -3614,7 +3613,7 @@ class Table(Fixed):
                     b, b_items = by_items.pop(items)
                     new_blocks.append(b)
                     new_blk_items.append(b_items)
-                except:
+                except Exception:
                     raise ValueError(
                         "cannot match existing table structure for [%s] on "
                         "appending data" % ','.join(pprint_thing(item) for
@@ -3642,7 +3641,7 @@ class Table(Fixed):
             if existing_table is not None and validate:
                 try:
                     existing_col = existing_table.values_axes[i]
-                except:
+                except KeyError:
                     raise ValueError("Incompatible appended table [%s] with "
                                      "existing table [%s]"
                                      % (blocks, existing_table.values_axes))
@@ -4460,7 +4459,7 @@ def _get_info(info, name):
     """ get/create the info for this name """
     try:
         idx = info[name]
-    except:
+    except KeyError:
         idx = info[name] = dict()
     return idx
 
@@ -4782,7 +4781,7 @@ class Selection(object):
                             )
                         self.coordinates = where
 
-            except:
+            except Exception:
                 pass
 
         if self.coordinates is None:

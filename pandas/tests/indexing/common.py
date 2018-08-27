@@ -157,7 +157,7 @@ class Base(object):
         with catch_warnings(record=True):
             try:
                 xp = getattr(obj, method).__getitem__(_axify(obj, key, axis))
-            except:
+            except Exception:
                 xp = getattr(obj, method).__getitem__(key)
 
         return xp
@@ -219,7 +219,7 @@ class Base(object):
 
                 try:
                     xp = self.get_result(obj, method2, k2, a)
-                except:
+                except Exception:
                     result = 'no comp'
                     _print(result)
                     return

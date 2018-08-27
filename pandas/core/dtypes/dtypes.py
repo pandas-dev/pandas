@@ -344,10 +344,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         try:
             if string == 'category':
                 return cls()
-        except:
-            pass
-
-        raise TypeError("cannot construct a CategoricalDtype")
+        except Exception:
+            TypeError("cannot construct a CategoricalDtype")
 
     @staticmethod
     def validate_ordered(ordered):
@@ -499,7 +497,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
                 if m is not None:
                     unit = m.groupdict()['unit']
                     tz = m.groupdict()['tz']
-            except:
+            except Exception:
                 raise ValueError("could not construct DatetimeTZDtype")
 
         elif isinstance(unit, compat.string_types):

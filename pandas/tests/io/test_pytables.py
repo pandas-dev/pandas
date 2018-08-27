@@ -47,7 +47,7 @@ def safe_remove(path):
     if path is not None:
         try:
             os.remove(path)
-        except:
+        except Exception:
             pass
 
 
@@ -55,7 +55,7 @@ def safe_close(store):
     try:
         if store is not None:
             store.close()
-    except:
+    except Exception:
         pass
 
 
@@ -113,7 +113,7 @@ def _maybe_remove(store, key):
     no content from previous tests using the same table name."""
     try:
         store.remove(key)
-    except:
+    except Exception:
         pass
 
 
@@ -4590,7 +4590,7 @@ class TestHDFStore(Base):
                     safe_close(tstore)
                     try:
                         os.close(fd)
-                    except:
+                    except Exception:
                         pass
                     safe_remove(new_f)
 

@@ -1252,12 +1252,12 @@ class StataReader(StataParser, BaseIterator):
 
         try:
             self.typlist = [self.TYPE_MAP[typ] for typ in typlist]
-        except:
+        except KeyError:
             raise ValueError("cannot convert stata types [{0}]"
                              .format(','.join(str(x) for x in typlist)))
         try:
             self.dtyplist = [self.DTYPE_MAP[typ] for typ in typlist]
-        except:
+        except KeyError:
             raise ValueError("cannot convert stata dtypes [{0}]"
                              .format(','.join(str(x) for x in typlist)))
 

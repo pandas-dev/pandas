@@ -1808,7 +1808,7 @@ class CParserWrapper(ParserBase):
         # close additional handles opened by C parser (for compression)
         try:
             self._reader.close()
-        except:
+        except Exception:
             pass
 
     def _set_noconvert_columns(self):
@@ -3037,7 +3037,7 @@ def _make_date_converter(date_parser=None, dayfirst=False,
                     errors='ignore',
                     infer_datetime_format=infer_datetime_format
                 )
-            except:
+            except Exception:
                 return tools.to_datetime(
                     parsing.try_parse_dates(strs, dayfirst=dayfirst))
         else:
@@ -3266,7 +3266,7 @@ def _floatify_na_values(na_values):
             v = float(v)
             if not np.isnan(v):
                 result.add(v)
-        except:
+        except Exception:
             pass
     return result
 
@@ -3287,11 +3287,11 @@ def _stringify_na_values(na_values):
                 result.append(str(v))
 
             result.append(v)
-        except:
+        except Exception:
             pass
         try:
             result.append(int(x))
-        except:
+        except Exception:
             pass
     return set(result)
 

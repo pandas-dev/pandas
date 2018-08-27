@@ -2708,7 +2708,7 @@ class TestStringMethods(object):
                 expected = Series([s[start:stop:step] if not isna(s) else NA
                                    for s in values])
                 tm.assert_series_equal(result, expected)
-            except:
+            except AssertionError:
                 print('failed on %s:%s:%s' % (start, stop, step))
                 raise
 

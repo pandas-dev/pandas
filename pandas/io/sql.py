@@ -382,7 +382,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
     try:
         _is_table_name = pandas_sql.has_table(sql)
-    except:
+    except Exception:
         _is_table_name = False
 
     if _is_table_name:
@@ -847,7 +847,7 @@ class SQLTable(PandasObject):
             try:
                 tz = col.tzinfo  # noqa
                 return DateTime(timezone=True)
-            except:
+            except Exception:
                 return DateTime
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
@@ -1360,7 +1360,7 @@ class SQLiteDatabase(PandasSQL):
         try:
             yield cur
             self.con.commit()
-        except:
+        except Exception:
             self.con.rollback()
             raise
         finally:

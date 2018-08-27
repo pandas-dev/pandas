@@ -980,12 +980,12 @@ class MultiIndex(Index):
                     return _try_mi(key)
                 except (KeyError):
                     raise
-                except:
+                except Exception:
                     pass
 
                 try:
                     return _try_mi(Timestamp(key))
-                except:
+                except Exception:
                     pass
 
             raise InvalidIndexError(key)
@@ -1640,7 +1640,7 @@ class MultiIndex(Index):
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
             return MultiIndex.from_tuples(new_tuples, names=self.names)
-        except:
+        except TypeError:
             return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
@@ -2269,8 +2269,7 @@ class MultiIndex(Index):
             for i in sorted(levels, reverse=True):
                 try:
                     new_index = new_index.droplevel(i)
-                except:
-
+                except ValueError:
                     # no dropping here
                     return orig_index
             return new_index
@@ -2769,11 +2768,11 @@ class MultiIndex(Index):
                                    labels=[[]] * self.nlevels,
                                    verify_integrity=False)
             else:
-                msg = 'other must be a MultiIndex or a list of tuples'
                 try:
                     other = MultiIndex.from_tuples(other)
-                except:
-                    raise TypeError(msg)
+                except TypeError:
+                    raise TypeError('other must be a MultiIndex or a list '
+                                    'of tuples.')
         else:
             result_names = self.names if self.names == other.names else None
         return other, result_names

@@ -1358,7 +1358,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         try:
             df = f()
-        except:
+        except Exception:
             pass
         assert (df['foo', 'one'] == 0).all()
 

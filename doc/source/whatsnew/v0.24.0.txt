@@ -737,7 +737,7 @@ Build Changes
 
 - Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
 - Testing pandas now requires ``hypothesis>=3.58`` (:issue:22280).  You can find `the Hypothesis docs here <https://hypothesis.readthedocs.io/en/latest/index.html>`_, and a pandas-specific introduction :ref:`in the contributing guide <using-hypothesis>` .
--
+- ci/lint.sh now supports flake8 > 3.4.1 (:issue:`18419`)
 
 Other
 ^^^^^

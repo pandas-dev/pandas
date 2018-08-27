@@ -813,7 +813,7 @@ def _ensure_numeric(x):
         elif is_object_dtype(x):
             try:
                 x = x.astype(np.complex128)
-            except:
+            except Exception:
                 x = x.astype(np.float64)
             else:
                 if not np.any(x.imag):
