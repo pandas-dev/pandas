@@ -239,7 +239,7 @@ without timezone localization. This is inconsistent from parsing the same
 datetime string with :class:`Timestamp` which would preserve the UTC
 offset in the ``tz`` attribute. Now, :func:`to_datetime` preserves the UTC
 offset in the ``tz`` attribute when all the datetime strings have the same
-UTC offset (:issue:`17697`, :issue:`11736`)
+UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
 
 *Previous Behavior*:
 
@@ -729,6 +729,7 @@ Build Changes
 ^^^^^^^^^^^^^
 
 - Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
+- Testing pandas now requires ``hypothesis>=3.58`` (:issue:22280).  You can find `the Hypothesis docs here <https://hypothesis.readthedocs.io/en/latest/index.html>`_, and a pandas-specific introduction :ref:`in the contributing guide <using-hypothesis>` .
 -
 
 Other
