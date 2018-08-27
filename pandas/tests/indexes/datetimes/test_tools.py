@@ -592,6 +592,17 @@ class TestToDatetime(object):
         result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
+    def test_iso_8601_strings_same_offset_no_box(self):
+        # GH 22446
+        data = ['2018-01-04 09:01:00+09:00', '2018-01-04 09:02:00+09:00']
+        result = pd.to_datetime(data, box=False)
+        expected = np.array([
+            datetime(2018, 1, 4, 9, 1, tzinfo=pytz.FixedOffset(540)),
+            datetime(2018, 1, 4, 9, 2, tzinfo=pytz.FixedOffset(540))
+        ],
+            dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736
         ts_strings = ["2015-11-18 15:30:00+05:30",
