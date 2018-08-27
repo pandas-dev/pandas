@@ -76,5 +76,5 @@ __all__ = ['np',
            '_np_version_under1p13',
            '_np_version_under1p14',
            '_np_version_under1p15',
-           '_np_version_equal1p15'
+           '_np_version_equal1p15',
            ]

@@ -2193,8 +2193,8 @@ class TestHDFStore(Base):
 
     @pytest.mark.skipif(
         _np_version_equal1p15,
-        reason=("pytables conda build package needs build "
-                "with numpy 1.15: gh-22098"))
+        reason=("Skipping  pytables test when numpy version is "
+                "exactly equal to 1.15: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591
