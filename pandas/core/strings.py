@@ -2024,12 +2024,11 @@ class StringMethods(NoNewAttributesMixin):
                     los = los + nxt
                     join_warn = join_warn or wnx
 
-                    if depr_warn:
-                        warnings.warn('list-likes other than Series, Index, '
-                                      'or np.ndarray WITHIN another list-like '
-                                      'are deprecated and will be removed in '
-                                      'a future version.',
-                                      FutureWarning, stacklevel=3)
+                if depr_warn:
+                    warnings.warn('list-likes other than Series, Index, or '
+                                  'np.ndarray WITHIN another list-like are '
+                                  'deprecated and will be removed in a future '
+                                  'version.', FutureWarning, stacklevel=3)
                 return (los, join_warn)
             elif all(not is_list_like(x) for x in others):
                 return ([Series(others, index=idx)], False)
