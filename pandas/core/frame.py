@@ -4325,6 +4325,9 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
+        if self.empty:
+            return self.copy()
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
@@ -4358,6 +4361,9 @@ class DataFrame(NDFrame):
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+
+        if self.empty:
+            return Series()
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -7249,8 +7255,7 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
-        Return values at the given quantile over requested axis, a la
-        numpy.percentile.
+        Return values at the given quantile over requested axis.
 
         Parameters
         ----------
@@ -7315,6 +7320,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
         self._check_percentile(q)
 
