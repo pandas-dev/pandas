@@ -1941,7 +1941,7 @@ class StringMethods(NoNewAttributesMixin):
                  boolean whether FutureWarning should be raised)
         """
 
-        # once str.cat defaults to alignment, this function can be simplified;
+        # Once str.cat defaults to alignment, this function can be simplified;
         # will not need `ignore_index` and the second boolean output anymore
 
         from pandas import Index, Series, DataFrame
