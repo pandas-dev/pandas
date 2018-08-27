@@ -7,6 +7,11 @@ import pandas.util.testing as tm
 from pandas import DataFrame, date_range, NaT
 
 
+# This module is the start of transitioning from attributes of
+# pandas/tests/frame/common.TestData towards fixtures (GH22471).
+# Until all modules have been transitioned, it is advised not to change
+# the (admittedly suboptimal) names of these fixtures.
+
 @pytest.fixture
 def frame():
     return DataFrame(tm.getSeriesData())
