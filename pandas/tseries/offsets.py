@@ -2130,7 +2130,7 @@ class CalendarDay(SingleConstructorOffset):
     respects absolute time.
     """
     _adjust_dst = True
-    _inc = timedelta(days=1)
+    _inc = Timedelta(days=1)
     _prefix = 'CD'
     _attributes = frozenset(['n', 'normalize'])
 

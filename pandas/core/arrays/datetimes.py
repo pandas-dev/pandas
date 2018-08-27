@@ -266,6 +266,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
                 # Currently always False; never hit
+                # Should be reimplemented as apart of #17914
                 index = cls._cached_range(start, end, periods=periods,
                                           freq=freq)
             else:
