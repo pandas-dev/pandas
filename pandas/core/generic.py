@@ -9205,18 +9205,12 @@ class NDFrame(PandasObject, SelectionMixin):
             cls, 'median', name, name2, axis_descr,
             'Return the median of the values for the requested axis',
             nanops.nanmedian)
-        cls.max = _make_stat_function(
+        cls.max = _make_min_max_function(
             cls, 'max', name, name2, axis_descr,
-            """This method returns the maximum of the values in the object.
-            If you want the *index* of the maximum, use ``idxmax``. This is
-            the equivalent of the ``numpy.ndarray`` method ``argmax``.""",
-            nanops.nanmax)
-        cls.min = _make_stat_function(
+            'maximum', nanops.nanmax, _max_examples)
+        cls.min = _make_min_max_function(
             cls, 'min', name, name2, axis_descr,
-            """This method returns the minimum of the values in the object.
-            If you want the *index* of the minimum, use ``idxmin``. This is
-            the equivalent of the ``numpy.ndarray`` method ``argmin``.""",
-            nanops.nanmin)
+            'minimum', nanops.nanmin, _min_examples)
 
     @classmethod
     def _add_series_only_operations(cls):
@@ -9474,27 +9468,68 @@ def _doc_parms(cls):
 
 
 _num_doc = """
-
 %(desc)s
 
 Parameters
 ----------
-axis : %(axis_descr)s
-skipna : boolean, default True
+axis : %(axis_descr)s, default 0
+    Axis along which to take the %(outname)s. Not implemented for Series.
+    For a DataFrame the value 0 applies %(outname)s on each row, and 1 applies 
+    it on each column.
+skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
-numeric_only : boolean, default None
-    Include only float, int, boolean columns. If None, will attempt to use
+    particular level, collapsing into a %(name1)s.
+numeric_only : bool, default None
+    Include only float, int, bool columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
-%(min_count)s\
+**kwargs : any, default None
+    Additional keyword arguments.
+%(min_count)s
+Returns
+-------
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+
+%(examples)s
+"""
+
+_min_max_doc = """
+Return the %(desc)s of the values in the object.
+
+If you want the *index* of the %(desc)s, use ``idx%(outname)s``. This is the 
+equivalent of the ``numpy.ndarray`` method ``arg%(outname)s``.
+
+Parameters
+----------
+axis : %(axis_descr)s, default 0
+    Axis along which to take the %(desc)s. Not implemented for Series.
+    For a DataFrame the value 0 applies %(desc)s on each row, and 1 applies 
+    it on each column.
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+level : int or level name, default None
+    If the axis is a MultiIndex (hierarchical), count along a
+    particular level, collapsing into a %(name1)s.
+numeric_only : bool, default None
+    Include only float, int, bool columns. If None, will attempt to use
+    everything, then use only numeric data. Not implemented for Series.
+**kwargs : any, default None
+    Additional keyword arguments.
 
 Returns
 -------
 %(outname)s : %(name1)s or %(name2)s (if level specified)
 
-%(examples)s"""
+See Also
+--------
+%(name2)s.min : Return the minimum over %(name2)s axis.
+%(name2)s.max : Return the maximum over %(name2)s axis.
+%(name2)s.idxmin : Return the index of the minimum over %(name2)s axis.
+%(name2)s.idxmax : Return the index of the maximum over %(name2)s axis.
+
+%(examples)s
+"""
 
 _num_ddof_doc = """
 
@@ -9978,6 +10013,130 @@ True
 Series([], dtype: bool)
 """
 
+_max_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([1, np.nan, 4, 3])
+>>> s
+0    1.0
+1    NaN
+2    4.0
+3    3.0
+dtype: float64
+
+By default NA's are ignored.
+
+>>> s.max()
+4.0
+
+If you choose to include NA's, the method will return ``nan``.
+
+>>> s.max(skipna=False)
+nan
+
+**Dataframe**
+
+>>> df = pd.DataFrame([[1, np.nan, 9], [8, 6, 2]])
+>>> df
+   0    1  2
+0  1  NaN  9
+1  8  6.0  2
+
+By default NA's are ignored and it finds the maximum for each column (or index (0)).
+
+>>> df.max()
+0    8.0
+1    6.0
+2    9.0
+dtype: float64
+
+You can also find the row (or index) wise maxima.
+
+>>> df.max(axis=1)
+0    9.0
+1    8.0
+dtype: float64
+
+You can also use ``index`` or ``column`` to refer to an axis.
+
+>>> df.max(axis=index)
+0    9.0
+1    8.0
+dtype: float64
+
+If you choose to include NA's, the method will return ``nan``.
+
+>>> df.max(skipna=False)
+0    8.0
+1    NaN
+2    9.0
+dtype: float64
+"""
+
+_min_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([1, np.nan, 4, 3])
+>>> s
+0    1.0
+1    NaN
+2    4.0
+3    3.0
+dtype: float64
+
+By default NA's are ignored.
+
+>>> s.min()
+1.0
+
+If you choose to include NA's, the method will return ``nan``.
+
+>>> s.min(skipna=False)
+nan
+
+**Dataframe**
+
+>>> df = pd.DataFrame([[1, np.nan, 9], [8, 6, 2]])
+>>> df
+   0    1  2
+0  1  NaN  9
+1  8  6.0  2
+
+By default NA's are ignored and it finds the minimum for each column (or index (0)).
+
+>>> df.min()
+0    1.0
+1    6.0
+2    2.0
+dtype: float64
+
+You can also find the row (or index) wise minima.
+
+>>> df.min(axis=1)
+0    1.0
+1    2.0
+dtype: float64
+
+You can also use ``index`` or ``column`` to refer to an axis.
+
+>>> df.min(axis=index)
+0    1.0
+1    2.0
+dtype: float64
+
+If you choose to include NA's, the method will return ``nan``.
+
+>>> df.min(skipna=False)
+0    1.0
+1    NaN
+2    2.0
+dtype: float64
+"""
+
 _sum_examples = """\
 Examples
 --------
@@ -10066,6 +10225,28 @@ def _make_stat_function(cls, name, name1, name2, axis_descr, desc, f):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, min_count='', examples='')
     @Appender(_num_doc)
+    def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
+                  **kwargs):
+        nv.validate_stat_func(tuple(), kwargs, fname=name)
+        if skipna is None:
+            skipna = True
+        if axis is None:
+            axis = self._stat_axis_number
+        if level is not None:
+            return self._agg_by_level(name, axis=axis, level=level,
+                                      skipna=skipna)
+        return self._reduce(f, name, axis=axis, skipna=skipna,
+                            numeric_only=numeric_only)
+
+    return set_function_name(stat_func, name, cls)
+
+
+def _make_min_max_function(cls, name, name1, name2, axis_descr, desc, f,
+                           examples):
+    @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
+                  axis_descr=axis_descr, min_count='', examples=examples,
+                  see_also='')
+    @Appender(_min_max_doc)
     def stat_func(self, axis=None, skipna=None, level=None, numeric_only=None,
                   **kwargs):
         nv.validate_stat_func(tuple(), kwargs, fname=name)
