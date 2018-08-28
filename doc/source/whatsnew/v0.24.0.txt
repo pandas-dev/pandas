@@ -582,6 +582,7 @@ Datetimelike
 - Bug in :class:`DataFrame` comparisons against ``Timestamp``-like objects failing to raise ``TypeError`` for inequality checks with mismatched types (:issue:`8932`,:issue:`22163`)
 - Bug in :class:`DataFrame` with mixed dtypes including ``datetime64[ns]`` incorrectly raising ``TypeError`` on equality comparisons (:issue:`13128`,:issue:`22163`)
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`,:issue:`22163`)
+- Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise `OverflowError` (:issue:22492, :issue:22508)
 
 Timedelta
 ^^^^^^^^^

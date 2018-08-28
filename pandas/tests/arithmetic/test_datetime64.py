@@ -1570,6 +1570,27 @@ class TestDatetimeIndexArithmetic(object):
             with pytest.raises(OverflowError):
                 dtimin - variant
 
+    def test_datetimeindex_sub_datetimeindex_overflow(self):
+        dtimax = pd.to_datetime(['now', pd.Timestamp.max])
+        dtimin = pd.to_datetime(['now', pd.Timestamp.min])
+
+        ts_neg = pd.to_datetime(['1950-01-01', '1950-01-01'])
+        ts_pos = pd.to_datetime(['1980-01-01', '1980-01-01'])
+
+        with pytest.raises(OverflowError):
+            dtimax - ts_neg
+
+        expected = pd.Timestamp.max.value - ts_pos[1].value
+        res = dtimax - ts_pos
+        assert res[1].value == expected
+
+        expected = pd.Timestamp.min.value - ts_neg[1].value
+        res = dtimin - ts_neg
+        assert res[1].value == expected
+
+        with pytest.raises(OverflowError):
+            dtimin - ts_pos
+    
     @pytest.mark.parametrize('names', [('foo', None, None),
                                        ('baz', 'bar', None),
                                        ('bar', 'bar', 'bar')])
