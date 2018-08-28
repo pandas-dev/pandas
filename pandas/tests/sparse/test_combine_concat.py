@@ -18,7 +18,7 @@ class TestSparseArrayConcat(object):
         # Can't make any assertions about the sparse index itself
         # since we aren't don't merge sparse blocs across arrays
         # in to_concat
-        expected = np.array([1, 2, 1, 2, 2])
+        expected = np.array([1, 2, 1, 2, 2], dtype='int64')
         tm.assert_numpy_array_equal(result.sp_values, expected)
         assert result.kind == kind
 
@@ -29,7 +29,7 @@ class TestSparseArrayConcat(object):
         b = pd.SparseArray([1, 0, 2, 2], kind=other)
 
         result = pd.SparseArray._concat_same_type([a, b])
-        expected = np.array([1, 2, 1, 2, 2])
+        expected = np.array([1, 2, 1, 2, 2], dtype='int64')
         tm.assert_numpy_array_equal(result.sp_values, expected)
         assert result.kind == kind
 

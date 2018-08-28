@@ -971,7 +971,8 @@ class TestSparseDataFrameIndexing(object):
                              [0, 0, 0],
                              [0, 0, 0],
                              [0, 0, 0]],
-                            index=list('ABCD'), columns=list('xyz'))
+                            index=list('ABCD'), columns=list('xyz'),
+                            dtype='int64')
         sparse = orig.to_sparse(fill_value=0)
 
         res = sparse.reindex(['A', 'C', 'B'])

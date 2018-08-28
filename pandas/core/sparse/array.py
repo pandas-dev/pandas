@@ -959,6 +959,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         numpy.all
         """
         nv.validate_all(args, kwargs)
+        if 'out' in kwargs:
+            raise ValueError("The 'out' parameter is not supported.")
 
         values = self.sp_values
 
@@ -980,6 +982,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         numpy.any
         """
         nv.validate_any(args, kwargs)
+        if 'out' in kwargs:
+            raise ValueError("The 'out' parameter is not supported.")
 
         values = self.sp_values
 
