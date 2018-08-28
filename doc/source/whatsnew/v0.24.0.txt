@@ -515,7 +515,7 @@ Deprecations
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
 - :func:`pandas.read_table` is deprecated. Instead, use :func:`pandas.read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
-  many ``Series``, ``Index`` or 1-dimenstional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
+  many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 
 .. _whatsnew_0240.prior_deprecations:
 
