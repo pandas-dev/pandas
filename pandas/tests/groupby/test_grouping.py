@@ -534,6 +534,23 @@ class TestGrouping():
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
+    def test_list_grouper_with_nat(self):
+        # GH 14715
+        df = pd.DataFrame({'date': pd.date_range('1/1/2011',
+                                                 periods=365, freq='D')})
+        df.iloc[-1] = pd.NaT
+        grouper = pd.Grouper(key='date', freq='AS')
+
+        # Grouper in a list grouping
+        result = df.groupby([grouper])
+        expected = {pd.Timestamp('2011-01-01'): pd.Index(list(range(364)))}
+        tm.assert_dict_equal(result.groups, expected)
+
+        # Test case without a list
+        result = df.groupby(grouper)
+        expected = {pd.Timestamp('2011-01-01'): 365}
+        tm.assert_dict_equal(result.groups, expected)
+
 
 # get_group
 # --------------------------------
