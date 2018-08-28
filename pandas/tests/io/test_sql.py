@@ -254,7 +254,7 @@ class PandasSQLTest(object):
             return self.conn.cursor()
 
     @pytest.fixture(params=[('io', 'data', 'iris.csv')])
-    def _load_iris_data(self, datapath, request):
+    def load_iris_data(self, datapath, request):
         import io
         iris_csv_file = datapath(*request.param)
 
@@ -511,7 +511,7 @@ class _TestSQLApi(PandasSQLTest):
         self.conn = self.connect()
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, _load_iris_data):
+    def setup_method(self, load_iris_data):
         self.load_test_data_and_sql()
 
     def load_test_data_and_sql(self):
@@ -1035,7 +1035,7 @@ class _EngineToConnMixin(object):
     """
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, _load_iris_data):
+    def setup_method(self, load_iris_data):
         super(_EngineToConnMixin, self).load_test_data_and_sql()
         engine = self.conn
         conn = engine.connect()
@@ -1166,7 +1166,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         self._load_test1_data()
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, _load_iris_data):
+    def setup_method(self, load_iris_data):
         self.load_test_data_and_sql()
 
     @classmethod
@@ -1941,7 +1941,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self._load_test1_data()
 
     @pytest.fixture(autouse=True)
-    def setup_method(self, _load_iris_data):
+    def setup_method(self, load_iris_data):
         self.load_test_data_and_sql()
 
     def test_read_sql(self):
