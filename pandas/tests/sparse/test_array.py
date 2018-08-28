@@ -760,7 +760,7 @@ class TestSparseArrayAnalytics(object):
         assert not out
 
         # raises with a different message on py2.
-        msg = "the 'out' parameter is not supported"
+        msg = "the \'out\' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.all,
                                SparseArray(data), out=out)
 
@@ -804,7 +804,7 @@ class TestSparseArrayAnalytics(object):
         out = np.any(SparseArray(data, fill_value=pos))
         assert not out
 
-        msg = "the 'out' parameter is not supported"
+        msg = "the \'out\' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.any,
                                SparseArray(data), out=out)
 
@@ -1005,4 +1005,6 @@ def test_first_fill_value_loc(arr, loc):
 def test_unique_na_fill(arr, fill_value):
     a = pd.SparseArray(arr, fill_value=fill_value).unique()
     b = pd.Series(arr).unique()
+    assert isinstance(a, SparseArray)
+    a = np.asarray(a)
     tm.assert_numpy_array_equal(a, b)

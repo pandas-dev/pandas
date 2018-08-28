@@ -447,6 +447,8 @@ class ExtensionArray(object):
         """
         from pandas import unique
 
+        # TODO: Could me more performant by scanning our indices for
+        # the location of the first fill value.
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques, dtype=self.dtype)
 
