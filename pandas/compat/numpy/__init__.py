@@ -15,7 +15,7 @@ _np_version_under1p12 = _nlv < LooseVersion('1.12')
 _np_version_under1p13 = _nlv < LooseVersion('1.13')
 _np_version_under1p14 = _nlv < LooseVersion('1.14')
 _np_version_under1p15 = _nlv < LooseVersion('1.15')
-_np_version_equal1p15 = _nlv == LooseVersion('1.15')
+
 
 if _nlv < '1.9':
     raise ImportError('this version of pandas is incompatible with '
@@ -75,6 +75,5 @@ __all__ = ['np',
            '_np_version_under1p12',
            '_np_version_under1p13',
            '_np_version_under1p14',
-           '_np_version_under1p15',
-           '_np_version_equal1p15',
+           '_np_version_under1p15'
            ]
