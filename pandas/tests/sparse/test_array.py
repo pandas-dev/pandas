@@ -759,11 +759,10 @@ class TestSparseArrayAnalytics(object):
         out = np.all(SparseArray(data, fill_value=pos))
         assert not out
 
-        if not compat.PY2:
-            # raises with a different message on py2.
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.all,
-                                   SparseArray(data), out=out)
+        # raises with a different message on py2.
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.all,
+                               SparseArray(data), out=out)
 
     @pytest.mark.parametrize('data,pos,neg', [
         ([False, True, False], True, False),
@@ -805,10 +804,9 @@ class TestSparseArrayAnalytics(object):
         out = np.any(SparseArray(data, fill_value=pos))
         assert not out
 
-        if not compat.PY2:
-            msg = "the 'out' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.any,
-                                   SparseArray(data), out=out)
+        msg = "the 'out' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.any,
+                               SparseArray(data), out=out)
 
     def test_sum(self):
         data = np.arange(10).astype(float)
@@ -1007,4 +1005,4 @@ def test_first_fill_value_loc(arr, loc):
 def test_unique_na_fill(arr, fill_value):
     a = pd.SparseArray(arr, fill_value=fill_value).unique()
     b = pd.Series(arr).unique()
-    np.testing.assert_array_equal(a, b)
+    tm.assert_numpy_array_equal(a, b)

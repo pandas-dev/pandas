@@ -637,7 +637,7 @@ class BlockManager(PandasObject):
         Like is_mixed_type, but handles NonConsolidatable blocks
         """
         if self.any_extension_types:
-            return len(set(block.dtype for block in self.blocks)) == 1
+            return len({block.dtype for block in self.blocks}) == 1
         else:
             return self.is_mixed_type
 

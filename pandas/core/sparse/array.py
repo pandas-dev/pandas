@@ -740,7 +740,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        fill_values = list(x.fill_value for x in to_concat)
+        fill_values = [x.fill_value for x in to_concat]
 
         fill_value = fill_values[0]
 
