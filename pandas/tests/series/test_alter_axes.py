@@ -6,44 +6,38 @@ import pytest
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 
-from pandas import Index, Series
-from pandas.core.index import MultiIndex, RangeIndex
+from pandas import Series, DataFrame, Index, MultiIndex, RangeIndex
 
 from pandas.compat import lrange, range, zip
-from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
-from .common import TestData
 
+class TestSeriesAlterAxes():
 
-class TestSeriesAlterAxes(TestData):
-
-    def test_setindex(self):
+    def test_setindex(self, series):
         # wrong type
-        series = self.series.copy()
         pytest.raises(TypeError, setattr, series, 'index', None)
 
         # wrong length
-        series = self.series.copy()
         pytest.raises(Exception, setattr, series, 'index',
                       np.arange(len(series) - 1))
 
         # works
-        series = self.series.copy()
         series.index = np.arange(len(series))
         assert isinstance(series.index, Index)
 
-    def test_rename(self):
+    # Renaming
+
+    def test_rename(self, ts):
         renamer = lambda x: x.strftime('%Y%m%d')
-        renamed = self.ts.rename(renamer)
-        assert renamed.index[0] == renamer(self.ts.index[0])
+        renamed = ts.rename(renamer)
+        assert renamed.index[0] == renamer(ts.index[0])
 
         # dict
-        rename_dict = dict(zip(self.ts.index, renamed.index))
-        renamed2 = self.ts.rename(rename_dict)
-        assert_series_equal(renamed, renamed2)
+        rename_dict = dict(zip(ts.index, renamed.index))
+        renamed2 = ts.rename(rename_dict)
+        tm.assert_series_equal(renamed, renamed2)
 
         # partial dict
         s = Series(np.arange(4), index=['a', 'b', 'c', 'd'], dtype='int64')
@@ -105,12 +99,12 @@ class TestSeriesAlterAxes(TestData):
         assert s.name is None
         assert s is not s2
 
-    def test_rename_inplace(self):
+    def test_rename_inplace(self, ts):
         renamer = lambda x: x.strftime('%Y%m%d')
-        expected = renamer(self.ts.index[0])
+        expected = renamer(ts.index[0])
 
-        self.ts.rename(renamer, inplace=True)
-        assert self.ts.index[0] == expected
+        ts.rename(renamer, inplace=True)
+        assert ts.index[0] == expected
 
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
@@ -135,7 +129,7 @@ class TestSeriesAlterAxes(TestData):
         s = ser.reset_index(drop=True)
         s2 = ser
         s2.reset_index(drop=True, inplace=True)
-        assert_series_equal(s, s2)
+        tm.assert_series_equal(s, s2)
 
         # level
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
@@ -150,8 +144,8 @@ class TestSeriesAlterAxes(TestData):
         assert isinstance(rs, Series)
 
     def test_reset_index_level(self):
-        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
-                          columns=['A', 'B', 'C'])
+        df = DataFrame([[1, 2, 3], [4, 5, 6]],
+                       columns=['A', 'B', 'C'])
 
         for levels in ['A', 'B'], [0, 1]:
             # With MultiIndex
@@ -189,19 +183,19 @@ class TestSeriesAlterAxes(TestData):
                 s.reset_index(level=[0, 1, 2])
 
         # Check that .reset_index([],drop=True) doesn't fail
-        result = pd.Series(range(4)).reset_index([], drop=True)
-        expected = pd.Series(range(4))
-        assert_series_equal(result, expected)
+        result = Series(range(4)).reset_index([], drop=True)
+        expected = Series(range(4))
+        tm.assert_series_equal(result, expected)
 
     def test_reset_index_range(self):
         # GH 12071
-        s = pd.Series(range(2), name='A', dtype='int64')
+        s = Series(range(2), name='A', dtype='int64')
         series_result = s.reset_index()
         assert isinstance(series_result.index, RangeIndex)
-        series_expected = pd.DataFrame([[0, 0], [1, 1]],
-                                       columns=['index', 'A'],
-                                       index=RangeIndex(stop=2))
-        assert_frame_equal(series_result, series_expected)
+        series_expected = DataFrame([[0, 0], [1, 1]],
+                                    columns=['index', 'A'],
+                                    index=RangeIndex(stop=2))
+        tm.assert_frame_equal(series_result, series_expected)
 
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
@@ -212,11 +206,11 @@ class TestSeriesAlterAxes(TestData):
 
         # no change, position
         result = s.reorder_levels([0, 1, 2])
-        assert_series_equal(s, result)
+        tm.assert_series_equal(s, result)
 
         # no change, labels
         result = s.reorder_levels(['L0', 'L1', 'L2'])
-        assert_series_equal(s, result)
+        tm.assert_series_equal(s, result)
 
         # rotate, position
         result = s.reorder_levels([1, 2, 0])
@@ -225,17 +219,17 @@ class TestSeriesAlterAxes(TestData):
                                    [0, 0, 0, 0, 0, 0]],
                            names=['L1', 'L2', 'L0'])
         expected = Series(np.arange(6), index=e_idx)
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
-    def test_rename_axis_inplace(self):
+    def test_rename_axis_inplace(self, ts):
         # GH 15704
-        series = self.ts.copy()
+        series = ts.copy()
         expected = series.rename_axis('foo')
         result = series.copy()
         no_return = result.rename_axis('foo', inplace=True)
 
         assert no_return is None
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_set_axis_inplace_axes(self, axis_series):
         # GH14636
@@ -291,25 +285,25 @@ class TestSeriesAlterAxes(TestData):
         #  GH 20925
 
         # KeyError raised for series index when passed level name is missing
-        s = pd.Series(range(4))
+        s = Series(range(4))
         with tm.assert_raises_regex(KeyError, 'must be same as name'):
             s.reset_index('wrong', drop=True)
         with tm.assert_raises_regex(KeyError, 'must be same as name'):
             s.reset_index('wrong')
 
         # KeyError raised for series when level to be dropped is missing
-        s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
+        s = Series(range(4), index=MultiIndex.from_product([[1, 2]] * 2))
         with tm.assert_raises_regex(KeyError, 'not found'):
             s.reset_index('wrong', drop=True)
 
     def test_droplevel(self):
         # GH20342
-        ser = pd.Series([1, 2, 3, 4])
-        ser.index = pd.MultiIndex.from_arrays([(1, 2, 3, 4), (5, 6, 7, 8)],
-                                              names=['a', 'b'])
+        ser = Series([1, 2, 3, 4])
+        ser.index = MultiIndex.from_arrays([(1, 2, 3, 4), (5, 6, 7, 8)],
+                                           names=['a', 'b'])
         expected = ser.reset_index('b', drop=True)
         result = ser.droplevel('b', axis='index')
-        assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
         # test that droplevel raises ValueError on axis != 0
         with pytest.raises(ValueError):
             ser.droplevel(1, axis='columns')
