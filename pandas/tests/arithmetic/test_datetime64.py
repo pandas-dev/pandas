@@ -1590,7 +1590,7 @@ class TestDatetimeIndexArithmetic(object):
 
         with pytest.raises(OverflowError):
             dtimin - ts_pos
-    
+
     @pytest.mark.parametrize('names', [('foo', None, None),
                                        ('baz', 'bar', None),
                                        ('bar', 'bar', 'bar')])
