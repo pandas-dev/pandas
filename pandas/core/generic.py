@@ -2536,9 +2536,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        buf : StringIO-like, optional
-            Buffer to write to.
-        columns : sequence, optional, default None
+        buf : file descriptor or None
+            Buffer to write to. If None, the output is returned as a string.
+        columns : list of label, optional
             The subset of columns to write. Writes all columns by default.
         col_space : int, optional
             The minimum width of each column.
@@ -2549,18 +2549,19 @@ class NDFrame(PandasObject, SelectionMixin):
             Write row names (index).
         na_rep : str, default 'NaN'
             Missing data representation.
-        formatters : list or dict of one-param. functions, optional
+        formatters : list of functions or dict of {str: function}, optional
             Formatter functions to apply to columns' elements by position or
             name. The result of each function must be a unicode string.
             List must be of length equal to the number of columns.
-        float_format : str, default None
+        float_format : str, optional
             Format string for floating point numbers.
         sparsify : bool, optional, default None
             Set to False for a DataFrame with a hierarchical index to print
-            every multiindex key at each row.
-        index_names : bool, optional, default True
+            every multiindex key at each row. If None, the default will be
+            read from the config module.
+        index_names : bool, default True
             Prints the names of the indexes.
-        bold_rows : boolean, default False
+        bold_rows : bool, default False
             Make the row labels bold in the output.
         column_format : str, default None
             The columns format as specified in `LaTeX table format
@@ -2570,8 +2571,8 @@ class NDFrame(PandasObject, SelectionMixin):
             When set to None, the value will default from the pandas config
             module. Use a longtable environment instead of tabular. Requires
             adding a \usepackage{longtable} to your LaTeX preamble.
-        escape : bool, default will be read from the pandas config module
-            Default: True.
+        escape : bool, default None
+            If None, default will be read from the pandas config module.
             When set to False prevents from escaping latex special
             characters in column names.
         encoding : str, default None
@@ -2604,8 +2605,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.to_csv : Write a DataFrame to CSV format.
-        DataFrame.to_excel : Write a DataFrame to an Excel file.
+        DataFrame.to_string : Render a DataFrame to a console-friendly
+            tabular output.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
 
         Examples
         --------
