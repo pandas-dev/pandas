@@ -1571,6 +1571,7 @@ class TestDatetimeIndexArithmetic(object):
                 dtimin - variant
 
     def test_datetimeindex_sub_datetimeindex_overflow(self):
+        # GH#22492, GH#22508
         dtimax = pd.to_datetime(['now', pd.Timestamp.max])
         dtimin = pd.to_datetime(['now', pd.Timestamp.min])
 
@@ -1590,6 +1591,16 @@ class TestDatetimeIndexArithmetic(object):
 
         with pytest.raises(OverflowError):
             dtimin - ts_pos
+
+        tmin = pd.to_datetime([pd.Timestamp.min])
+        t1 = tmin + pd.Timedelta.max + pd.Timedelta('1us')
+        with pytest.raises(OverflowError):
+            t1 - tmin
+
+        tmax = pd.to_datetime([pd.Timestamp.max])
+        t2 = tmax + pd.Timedelta.min - pd.Timedelta('1us')
+        with pytest.raises(OverflowError):
+            tmax - t2
 
     @pytest.mark.parametrize('names', [('foo', None, None),
                                        ('baz', 'bar', None),
