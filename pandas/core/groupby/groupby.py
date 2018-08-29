@@ -1919,7 +1919,7 @@ class GroupBy(_GroupBy):
         """
         self._reset_group_selection()
         mask = self._cumcount_array() < n
-        return self._selected_obj[mask]
+        return self._selected_obj[mask].dropna(subset=[self.keys])
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1946,7 +1946,7 @@ class GroupBy(_GroupBy):
         """
         self._reset_group_selection()
         mask = self._cumcount_array(ascending=False) < n
-        return self._selected_obj[mask]
+        return self._selected_obj[mask].dropna(subset=[self.keys])
 
 
 GroupBy._add_numeric_operations()
