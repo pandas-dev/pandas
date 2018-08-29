@@ -1647,9 +1647,8 @@ cdef class _Period(object):
                 return NaT
             elif util.is_integer_object(other):
                 warnings.warn("Addition of integers to {cls} is "
-                              "deprecated, will be removed in version "
-                              "0.26.0 (or 1.0, whichever comes first).  "
-                              "Instead of adding `n`, add "
+                              "deprecated, will be removed in a future "
+                              "version.  Instead of adding `n`, add "
                               "`n * self.freq`"
                               .format(cls=type(self).__name__),
                               FutureWarning)
@@ -1681,9 +1680,8 @@ cdef class _Period(object):
                 return self + neg_other
             elif util.is_integer_object(other):
                 warnings.warn("Subtraction of integers from {cls} is "
-                              "deprecated, will be removed in version "
-                              "0.26.0 (or 1.0, whichever comes first).  "
-                              "Instead of subtracting `n`, subtract "
+                              "deprecated, will be removed in a future "
+                              "version.  Instead of subtracting `n`, subtract "
                               "`n * self.freq`"
                               .format(cls=type(self).__name__),
                               FutureWarning)

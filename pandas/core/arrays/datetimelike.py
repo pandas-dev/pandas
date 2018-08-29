@@ -470,9 +470,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         if self.freq is not None:
             # case with freq of None will raise
             warnings.warn("Addition/subtraction of integer array from {cls} "
-                          "is deprecated, will be removed in version "
-                          "0.26.0 (or 1.0, whichever comes first).  "
-                          "Instead of adding `arr`, add `arr * self.freq`"
+                          "is deprecated, will be removed in a future "
+                          "version.  Instead of adding `arr`, "
+                          "add `arr * self.freq`"
                           .format(cls=type(self).__name__), FutureWarning)
 
         if is_period_dtype(self):
@@ -596,9 +596,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 if self.freq is not None:
                     # case with freq of None will raise
                     warnings.warn("Addition of integers to {cls} is "
-                                  "deprecated, will be removed in version "
-                                  "0.26.0 (or 1.0, whichever comes first).  "
-                                  "Instead of adding `n`, add `n * self.freq`"
+                                  "deprecated, will be removed in a future "
+                                  "version.  Instead of adding `n`, "
+                                  "add `n * self.freq`"
                                   .format(cls=type(self).__name__),
                                   FutureWarning)
                 result = self.shift(other)
@@ -656,10 +656,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 if self.freq is not None:
                     # case with freq of None will raise
                     warnings.warn("Subtraction of integers from {cls} is "
-                                  "deprecated, will be removed in version "
-                                  "0.26.0 (or 1.0, whichever comes first).  "
-                                  "Instead of subtracting `n`, subtract "
-                                  "`n * self.freq`"
+                                  "deprecated, will be removed in a future "
+                                  "version.  Instead of subtracting `n`, "
+                                  "subtract `n * self.freq`"
                                   .format(cls=type(self).__name__),
                                   FutureWarning)
                 result = self.shift(-other)
