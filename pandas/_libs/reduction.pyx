@@ -280,8 +280,7 @@ cdef class SeriesBinGrouper:
                     result = _get_result_array(res,
                                                self.ngroups,
                                                len(self.dummy_arr))
-
-                util.assign_value_1d(result, i, res)
+                result[i] = res
 
                 islider.advance(group_size)
                 vslider.advance(group_size)
@@ -406,7 +405,7 @@ cdef class SeriesGrouper:
                                                    self.ngroups,
                                                    len(self.dummy_arr))
 
-                    util.assign_value_1d(result, lab, res)
+                    result[lab] = res
                     counts[lab] = group_size
                     islider.advance(group_size)
                     vslider.advance(group_size)
