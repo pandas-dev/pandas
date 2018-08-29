@@ -4822,8 +4822,8 @@ class DataFrame(NDFrame):
             # Fastpath; operate directly on data
             new_data = func(left.values.T, right.values).T
             return self._constructor(new_data,
-                                    index=left.index, columns=self.columns,
-                                    copy=False)
+                                     index=left.index, columns=self.columns,
+                                     copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
