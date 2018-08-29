@@ -26,7 +26,6 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 from pandas.compat import range, lrange, zip, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
 import pandas.tseries.offsets as offsets
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Minute, BDay
 
 from pandas.core.groupby.groupby import DataError
