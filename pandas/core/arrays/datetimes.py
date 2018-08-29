@@ -287,8 +287,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                         end = end.tz_localize(tz).asm8
         else:
             # Create a linearly spaced date_range in local time
-            arr = np.linspace(start.value, end.value, periods, dtype='M8[ns]')
-            index = cls._simple_new(arr, freq=None, tz=tz)
+            arr = np.linspace(start.value, end.value, periods)
+            index = cls._simple_new(arr.astype('M8[ns]'), freq=None, tz=tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
