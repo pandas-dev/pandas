@@ -2192,9 +2192,9 @@ class TestHDFStore(Base):
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
     @pytest.mark.skipif(
-        LooseVersion(np.__version__) == LooseVersion('1.15'),
+        LooseVersion(np.__version__) == LooseVersion('1.15.0'),
         reason=("Skipping  pytables test when numpy version is "
-                "exactly equal to 1.15: gh-22098"))
+                "exactly equal to 1.15.0: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591
