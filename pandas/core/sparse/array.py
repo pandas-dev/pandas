@@ -614,10 +614,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             return libindex.get_value_at(self.sp_values, sp_loc)
 
-    def _boolean_mask(self, key):
-        # strategy:
-        pass
-
     def take(self, indices, allow_fill=False, fill_value=None):
         if is_scalar(indices):
             raise ValueError("'indices' must be an array, not a "
