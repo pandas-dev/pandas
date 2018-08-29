@@ -104,10 +104,7 @@ cdef class IndexEngine:
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or util.is_array(loc):
-            arr[loc] = value
-        else:
-            util.set_value_at(arr, loc, value)
+        arr[loc] = value
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
