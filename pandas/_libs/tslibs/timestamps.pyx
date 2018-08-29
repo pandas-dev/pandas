@@ -250,7 +250,8 @@ cdef class _Timestamp(datetime):
         return np.datetime64(self.value, 'ns')
 
     def __add__(self, other):
-        cdef int64_t other_int, nanos
+        cdef:
+            int64_t other_int, nanos
 
         if is_timedelta64_object(other):
             other_int = other.astype('timedelta64[ns]').view('i8')
@@ -258,6 +259,15 @@ cdef class _Timestamp(datetime):
                              tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
+            if self.freq is None:
+                warnings.warn("Addition of integers to {cls} is "
+                              "deprecated, will be removed in version "
+                              "0.26.0 (or 1.0, whichever comes first).  "
+                              "Instead of adding `n`, add "
+                              "`n * self.freq`"
+                              .format(cls=type(self).__name__),
+                              FutureWarning)
+
             if self is NaT:
                 # to be compat with Period
                 return NaT

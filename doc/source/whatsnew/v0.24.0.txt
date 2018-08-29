@@ -514,6 +514,8 @@ Deprecations
 - The signature of :meth:`Series.to_csv` has been uniformed to that of doc:meth:`DataFrame.to_csv`: the name of the first argument is now 'path_or_buf', the order of subsequent arguments has changed, the 'header' argument now defaults to True. (:issue:`19715`)
 - :meth:`Categorical.from_codes` has deprecated providing float values for the ``codes`` argument. (:issue:`21767`)
 - :func:`pandas.read_table` is deprecated. Instead, use :func:`pandas.read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
+- Addition or subtraction of integers with :class:`Timestamp`, :class:`Period`, :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex` is deprecated, will be removed in a future version (:issue:`21939`)
+- Addition or subtraction of integer-dtyped arrays with:class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex` is deprecated, will be removed in a future version (:issue:`21939`)
 
 .. _whatsnew_0240.prior_deprecations:
 

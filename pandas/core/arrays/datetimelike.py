@@ -466,6 +466,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         result : same class as self
         """
         assert op in [operator.add, operator.sub]
+
+        if self.freq is not None:
+            # case with freq of None will raise
+            warnings.warn("Addition/subtraction of integer array from {cls} "
+                          "is deprecated, will be removed in version "
+                          "0.26.0 (or 1.0, whichever comes first).  "
+                          "Instead of adding `arr`, add `arr * self.freq`"
+                          .format(cls=type(self).__name__), FutureWarning)
+
         if is_period_dtype(self):
             # easy case for PeriodIndex
             if op is operator.sub:
@@ -584,6 +593,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
+                if self.freq is not None:
+                    # case with freq of None will raise
+                    warnings.warn("Addition of integers to {cls} is "
+                                  "deprecated, will be removed in version "
+                                  "0.26.0 (or 1.0, whichever comes first).  "
+                                  "Instead of adding `n`, add `n * self.freq`"
+                                  .format(cls=type(self).__name__),
+                                  FutureWarning)
                 result = self.shift(other)
 
             # array-like others
@@ -636,6 +653,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
+                if self.freq is not None:
+                    # case with freq of None will raise
+                    warnings.warn("Subtraction of integers from {cls} is "
+                                  "deprecated, will be removed in version "
+                                  "0.26.0 (or 1.0, whichever comes first).  "
+                                  "Instead of subtracting `n`, subtract "
+                                  "`n * self.freq`"
+                                  .format(cls=type(self).__name__),
+                                  FutureWarning)
                 result = self.shift(-other)
             elif isinstance(other, Period):
                 result = self._sub_period(other)
