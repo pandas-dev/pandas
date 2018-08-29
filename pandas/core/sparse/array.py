@@ -446,7 +446,10 @@ class SparseArray(PandasObject, np.ndarray):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return libindex.get_value_at(self, sp_loc)
+            # libindex.get_value_at will end up calling __getitem__,
+            # so to avoid recursing we need to unwrap `self` so the
+            # ndarray.__getitem__ implementation is called.
+            return libindex.get_value_at(np.asarray(self), sp_loc)
 
     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
