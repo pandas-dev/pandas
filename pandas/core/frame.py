@@ -4806,21 +4806,29 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
-
-        return self._constructor(result, index=new_index, columns=new_columns,
-                                 copy=False)
+            return self._constructor(result,
+                                     index=new_index, columns=new_columns,
+                                     copy=False)
 
     def _combine_match_index(self, other, func, level=None):
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        new_data = func(left.values.T, right.values).T
-        return self._constructor(new_data,
-                                 index=left.index, columns=self.columns,
-                                 copy=False)
+        assert left.index.equals(right.index)
+
+        if left._is_mixed_type or right._is_mixed_type:
+            # Operate column-wise to avoid expensive copy/cast
+            return ops.dispatch_to_series(left, right, func)
+        else:
+            # Fastpath; operate directly on data
+            new_data = func(left.values.T, right.values).T
+            return self._constructor(new_data,
+                                    index=left.index, columns=self.columns,
+                                    copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
+        assert left.columns.equals(right.index)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
@@ -4829,12 +4837,7 @@ class DataFrame(NDFrame):
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:
-            new_data = {i: func(self.iloc[:, i], other)
-                        for i, col in enumerate(self.columns)}
-
-            result = self._constructor(new_data, index=self.index, copy=False)
-            result.columns = self.columns
-            return result
+            return ops.dispatch_to_series(self, other, func)
 
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
