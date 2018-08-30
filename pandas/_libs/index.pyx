@@ -93,6 +93,9 @@ cdef class IndexEngine:
     def __contains__(self, object val):
         self._ensure_mapping_populated()
         hash(val)
+        if (util.is_float_object(val) and isinstance(self, Int64Engine) and
+            int(val) != val):
+            return False
         return val in self.mapping
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
