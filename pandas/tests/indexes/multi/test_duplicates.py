@@ -268,6 +268,7 @@ def test_duplicated_large(keep):
 
 @pytest.mark.parametrize('keep', ['first', 'last'])
 def test_duplicated_inverse(idx_dup, keep):
+    # GH 21357
     # check that return_inverse kwarg does not affect outcome;
     # index of inverse must be correctly transformed as well
 

@@ -380,6 +380,7 @@ class Base(object):
 
     @pytest.mark.parametrize('keep', ['first', 'last'])
     def test_duplicated_inverse(self, indices, keep):
+        # GH 21357
         # check that return_inverse kwarg does not affect outcome
         if type(indices) is not self._holder:
             pytest.skip('Can only check if we have the correct type')

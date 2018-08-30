@@ -93,6 +93,7 @@ def test_duplicated_subset(subset, keep):
     ('last', [25, 9, 9, 16, 25])
 ])
 def test_duplicated_inverse(keep, expected_inv_values):
+    # GH 21357
     # check that return_inverse kwarg does not affect outcome;
     # index of inverse must be correctly transformed as well
     idx = [1, 4, 9, 16, 25]
@@ -121,9 +122,10 @@ def test_duplicated_inverse_raises():
 
 
 @pytest.mark.parametrize('keep', ['first', 'last'])
-@pytest.mark.parametrize('subset', [None, ['A', 'B'], 'A'])
+@pytest.mark.parametrize('subset', [['A', 'B', 'C'], ['A', 'B'], ['A']])
 def test_duplicated_inverse_large(subset, keep):
-    # unsorted index important to check 'first'/'last' functionality
+    # unsorted index (through .sample); important to check correct
+    # 'first'/'last' functionality of return_inverse
     df = DataFrame(np.random.randint(0, 10, (10000, 3)),
                    columns=list('ABC')).sample(5000)
 
@@ -131,13 +133,6 @@ def test_duplicated_inverse_large(subset, keep):
     result_isdup, result_inv = df.duplicated(keep=keep, subset=subset,
                                              return_inverse=True)
     tm.assert_series_equal(result_isdup, expected_isdup)
-
-    if subset is None:
-        subset = list(df.columns)
-    elif isinstance(subset, string_types):
-        # need to have a DataFrame, not a Series
-        # -> select columns with singleton list, not string
-        subset = [subset]
 
     unique = df.loc[~expected_isdup, subset]
     reconstr = unique.reindex(result_inv).set_index(result_inv.index)

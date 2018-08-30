@@ -145,6 +145,7 @@ def test_duplicated_nan_none(keep, expected):
     ('last', [25, 9, 9, 16, 25])
 ])
 def test_duplicated_inverse(keep, expected_inv_values):
+    # GH 21357
     # check that return_inverse kwarg does not affect outcome;
     # index of inverse must be correctly transformed as well
     idx = [1, 4, 9, 16, 25]

@@ -4366,6 +4366,13 @@ class DataFrame(NDFrame):
         -------
         duplicated : Series or tuple of Series if return_inverse is True
 
+        Notes
+        -----
+        The `return_inverse`-keyword works as expected for
+        ``keep='first'|'last'``, but cannot be used together with
+        ``keep=False`` (since discarding all duplicates makes it impossible to
+        construct an inverse).
+
         Examples
         --------
         By default, for each set of duplicated values, the first occurrence is
