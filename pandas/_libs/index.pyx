@@ -96,8 +96,7 @@ cdef class IndexEngine:
         if (util.is_float_object(val) and isinstance(self, Int64Engine) and
                 int(val) != val):
             return False
-        else:
-            return val in self.mapping
+        return val in self.mapping
 
     cpdef get_value(self, ndarray arr, object key, object tz=None):
         """
