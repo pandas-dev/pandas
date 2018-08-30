@@ -29,7 +29,7 @@ from distutils.version import LooseVersion
 
 from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
                            import_lzma)
-from pandas.compat.numpy import _np_version_under1p15
+from pandas.compat.numpy import _np_version_under1p15, _np_version_under1p11
 from pandas.core.computation.expressions import (_USE_NUMEXPR,
                                                  _NUMEXPR_INSTALLED)
 
@@ -161,6 +161,8 @@ def skip_if_no(package, min_version=None):
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 
+skip_if_np_lt_111 = pytest.mark.skipif(_np_version_under1p11,
+                                       reason="NumPy 1.11 or greater required")
 skip_if_np_lt_115 = pytest.mark.skipif(_np_version_under1p15,
                                        reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),

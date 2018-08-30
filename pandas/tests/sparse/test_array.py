@@ -14,6 +14,7 @@ from pandas.core.sparse.api import SparseArray, SparseSeries, SparseDtype
 from pandas._libs.sparse import IntIndex
 from pandas.util.testing import assert_almost_equal
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 @pytest.fixture(params=["integer", "block"])
@@ -744,6 +745,7 @@ class TestSparseArrayAnalytics(object):
         ([1, 2, 1], 1, 0),
         ([1.0, 2.0, 1.0], 1.0, 0.0)
     ])
+    @td.skip_if_np_lt_111  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -762,7 +764,7 @@ class TestSparseArrayAnalytics(object):
         # raises with a different message on py2.
         msg = "the \'out\' parameter is not supported"
         tm.assert_raises_regex(ValueError, msg, np.all,
-                               SparseArray(data), out=out)
+                               SparseArray(data), out=np.array([]))
 
     @pytest.mark.parametrize('data,pos,neg', [
         ([False, True, False], True, False),
@@ -789,6 +791,7 @@ class TestSparseArrayAnalytics(object):
         ([0, 2, 0], 2, 0),
         ([0.0, 2.0, 0.0], 2.0, 0.0)
     ])
+    @td.skip_if_np_lt_111  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
