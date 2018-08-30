@@ -500,8 +500,7 @@ class Categorical(ExtensionArray, PandasObject):
     def copy(self):
         """ Copy constructor. """
         return self._constructor(values=self._codes.copy(),
-                                 categories=self.categories,
-                                 ordered=self.ordered,
+                                 dtype=self.dtype,
                                  fastpath=True)
 
     def astype(self, dtype, copy=True):
@@ -1632,8 +1631,8 @@ class Categorical(ExtensionArray, PandasObject):
             self._codes = codes
             return
         else:
-            return self._constructor(values=codes, categories=self.categories,
-                                     ordered=self.ordered, fastpath=True)
+            return self._constructor(values=codes, dtype=self.dtype,
+                                     fastpath=True)
 
     def _values_for_rank(self):
         """
@@ -1777,8 +1776,7 @@ class Categorical(ExtensionArray, PandasObject):
                                 'or Series, but you passed a '
                                 '"{0}"'.format(type(value).__name__))
 
-        return self._constructor(values, categories=self.categories,
-                                 ordered=self.ordered, fastpath=True)
+        return self._constructor(values, dtype=self.dtype, fastpath=True)
 
     def take_nd(self, indexer, allow_fill=None, fill_value=None):
         """
@@ -1823,8 +1821,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         codes = take(self._codes, indexer, allow_fill=allow_fill,
                      fill_value=fill_value)
-        result = self._constructor(codes, categories=self.categories,
-                                   ordered=self.ordered, fastpath=True)
+        result = self._constructor(codes, dtype=self.dtype, fastpath=True)
         return result
 
     take = take_nd
@@ -1843,9 +1840,8 @@ class Categorical(ExtensionArray, PandasObject):
                                      "categorical")
             slicer = slicer[1]
 
-        _codes = self._codes[slicer]
-        return self._constructor(values=_codes, categories=self.categories,
-                                 ordered=self.ordered, fastpath=True)
+        codes = self._codes[slicer]
+        return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
     def __len__(self):
         """The length of this Categorical."""
@@ -2157,8 +2153,8 @@ class Categorical(ExtensionArray, PandasObject):
             good = self._codes != -1
             values = self._codes[good]
         values = sorted(htable.mode_int64(ensure_int64(values), dropna))
-        result = self._constructor(values=values, categories=self.categories,
-                                   ordered=self.ordered, fastpath=True)
+        result = self._constructor(values=values, dtype=self.dtype,
+                                   fastpath=True)
         return result
 
     def unique(self):
@@ -2298,8 +2294,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         nv.validate_repeat(args, kwargs)
         codes = self._codes.repeat(repeats)
-        return self._constructor(values=codes, categories=self.categories,
-                                 ordered=self.ordered, fastpath=True)
+        return self._constructor(values=codes, dtype=self.dtype, fastpath=True)
 
     # Implement the ExtensionArray interface
     @property
