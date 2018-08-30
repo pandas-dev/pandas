@@ -793,17 +793,27 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         Return the month names of the DateTimeIndex with specified locale.
 
+        .. versionadded:: 0.23.0
+
         Parameters
         ----------
-        locale : string, default None (English locale)
-            locale determining the language in which to return the month name
+        locale : str, optional
+            Locale determining the language in which to return the month name.
+            Default is English locale.
 
         Returns
         -------
-        month_names : Index
-            Index of month names
+        Index
+            Index of month names.
 
-        .. versionadded:: 0.23.0
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(start='2018-01', freq='M', periods=3)
+        >>> idx
+        DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
+                      dtype='datetime64[ns]', freq='M')
+        >>> idx.month_name()
+        Index(['January', 'February', 'March'], dtype='object')
         """
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
@@ -819,17 +829,27 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         Return the day names of the DateTimeIndex with specified locale.
 
+        .. versionadded:: 0.23.0
+
         Parameters
         ----------
-        locale : string, default None (English locale)
-            locale determining the language in which to return the day name
+        locale : str, optional
+            Locale determining the language in which to return the day name.
+            Default is English locale.
 
         Returns
         -------
-        month_names : Index
-            Index of day names
+        Index
+            Index of day names.
 
-        .. versionadded:: 0.23.0
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(start='2018-01-01', freq='D', periods=3)
+        >>> idx
+        DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.day_name()
+        Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
         """
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
