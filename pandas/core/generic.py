@@ -9473,9 +9473,13 @@ _num_doc = """
 Parameters
 ----------
 axis : %(axis_descr)s, default 0
-    Axis along which to take the %(outname)s. Not implemented for Series.
-    For a DataFrame the value 0 applies %(outname)s on each row, and 1 applies 
-    it on each column.
+    Indicate which axis or axes should be reduced. Not implemented for Series.
+    - 0 / ‘index’ : reduce the index, return a Series whose index is the 
+    original column labels.
+    - 1 / ‘columns’ : reduce the columns, return a Series whose index is the 
+    original index.
+    For a DataFrame the value 0 applies %(outname)s on each column, 
+    and 1 applies it on each row.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
@@ -9503,9 +9507,11 @@ equivalent of the ``numpy.ndarray`` method ``arg%(outname)s``.
 Parameters
 ----------
 axis : %(axis_descr)s, default 0
-    Axis along which to take the %(desc)s. Not implemented for Series.
-    For a DataFrame the value 0 applies %(desc)s on each row, and 1 applies 
-    it on each column.
+    Indicate which axis or axes should be reduced. Not implemented for Series.
+    
+    - 0 / ‘index’ : reduce the index, return a Series whose index is the original column labels.
+    - 1 / ‘columns’ : reduce the columns, return a Series whose index is the original index.
+    For a DataFrame the value 0 applies %(desc)s on each column, and 1 applies it on each row.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
@@ -10044,7 +10050,8 @@ nan
 0  1  NaN  9
 1  8  6.0  2
 
-By default NA's are ignored and it finds the maximum for each column (or index (0)).
+By default NA's are ignored and it finds the maximum for each column, thereby  
+reducing the index.
 
 >>> df.max()
 0    8.0
@@ -10052,21 +10059,23 @@ By default NA's are ignored and it finds the maximum for each column (or index (
 2    9.0
 dtype: float64
 
-You can also find the row (or index) wise maxima.
+You can also find the maximum per row, thereby reducing the columns.
 
 >>> df.max(axis=1)
 0    9.0
 1    8.0
 dtype: float64
 
-You can also use ``index`` or ``column`` to refer to an axis.
+You can also use ``index`` or ``column`` to refer to an axis you want to reduce.
 
->>> df.max(axis=index)
-0    9.0
-1    8.0
+>>> df.max(axis='index')
+0    8.0
+1    6.0
+2    9.0
 dtype: float64
 
-If you choose to include NA's, the method will return ``nan``.
+If you choose to include NA's, the method will return ``nan`` for rows or columns
+which contain a NA.
 
 >>> df.max(skipna=False)
 0    8.0
@@ -10106,7 +10115,8 @@ nan
 0  1  NaN  9
 1  8  6.0  2
 
-By default NA's are ignored and it finds the minimum for each column (or index (0)).
+By default NA's are ignored and it finds the minimum for each column, thereby  
+reducing the index.
 
 >>> df.min()
 0    1.0
@@ -10114,21 +10124,23 @@ By default NA's are ignored and it finds the minimum for each column (or index (
 2    2.0
 dtype: float64
 
-You can also find the row (or index) wise minima.
+You can also find the minimum per row, thereby reducing the columns.
 
 >>> df.min(axis=1)
 0    1.0
 1    2.0
 dtype: float64
 
-You can also use ``index`` or ``column`` to refer to an axis.
+You can also use ``index`` or ``column`` to refer to an axis you want to reduce.
 
->>> df.min(axis=index)
+>>> df.min(axis='index')
 0    1.0
-1    2.0
+1    6.0
+2    2.0
 dtype: float64
 
-If you choose to include NA's, the method will return ``nan``.
+If you choose to include NA's, the method will return ``nan`` for rows or columns
+which contain a NA.
 
 >>> df.min(skipna=False)
 0    1.0
