@@ -28,9 +28,9 @@ def _axify(obj, key, axis):
 class Base(object):
     """ indexing comprehensive base class """
 
-    _objs = set(['series', 'frame', 'panel'])
-    _typs = set(['ints', 'uints', 'labels', 'mixed',
-                 'ts', 'floats', 'empty', 'ts_rev', 'multi'])
+    _objs = {'series', 'frame', 'panel'}
+    _typs = {'ints', 'uints', 'labels', 'mixed', 'ts', 'floats', 'empty',
+             'ts_rev', 'multi'}
 
     def setup_method(self, method):
 

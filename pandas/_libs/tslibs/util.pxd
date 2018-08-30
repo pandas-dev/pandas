@@ -24,10 +24,10 @@ cdef extern from "Python.h":
     bint PyComplex_Check(object obj) nogil
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
 
+from numpy cimport int64_t
 
 cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
-    ctypedef signed long long int64_t
     int _import_array() except -1
 
 cdef extern from "numpy/ndarrayobject.h":
@@ -41,21 +41,6 @@ cdef extern from "numpy/ndarrayobject.h":
 
 cdef extern from  "numpy/npy_common.h":
     int64_t NPY_MIN_INT64
-
-
-cdef extern from "../src/headers/stdint.h":
-    enum: UINT8_MAX
-    enum: UINT16_MAX
-    enum: UINT32_MAX
-    enum: UINT64_MAX
-    enum: INT8_MIN
-    enum: INT8_MAX
-    enum: INT16_MIN
-    enum: INT16_MAX
-    enum: INT32_MAX
-    enum: INT32_MIN
-    enum: INT64_MAX
-    enum: INT64_MIN
 
 
 cdef inline int64_t get_nat():
@@ -228,5 +213,16 @@ cdef inline bint is_offset_object(object val):
     return getattr(val, '_typ', None) == "dateoffset"
 
 
-cdef inline bint _checknull(object val):
-    return val is None or (PyFloat_Check(val) and val != val)
+cdef inline bint is_nan(object val):
+    """
+    Check if val is a Not-A-Number float, including float('NaN') and np.nan.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_nan : bool
+    """
+    return is_float_object(val) and val != val

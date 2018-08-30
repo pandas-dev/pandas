@@ -56,7 +56,7 @@ matrix:
           - python-gtk2
     - dist: trusty
       env:
-        - JOB="3.6, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true
+        - JOB="3.6, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true DOCTEST=true
     # In allow_failures
     - dist: trusty
       env:
@@ -119,6 +119,7 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - ci/doctests.sh
   - echo "checking imports"
   - source activate pandas && python ci/check_imports.py
   - echo "script done"

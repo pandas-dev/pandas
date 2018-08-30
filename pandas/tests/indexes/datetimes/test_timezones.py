@@ -731,12 +731,48 @@ class TestDatetimeIndexTimezones(object):
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_timetz_accessor(self, tz_naive_fixture):
+        # GH21358
+        if tz_naive_fixture is not None:
+            tz = dateutil.tz.gettz(tz_naive_fixture)
+        else:
+            tz = None
+
+        expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
+
+        index = DatetimeIndex(['2018-06-04 10:20:30', pd.NaT], tz=tz)
+        result = index.timetz
+
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_dti_drop_dont_lose_tz(self):
         # GH#2621
         ind = date_range("2012-12-01", periods=10, tz="utc")
         ind = ind.drop(ind[-1])
 
         assert ind.tz is not None
+
+    def test_drop_dst_boundary(self):
+        # see gh-18031
+        tz = "Europe/Brussels"
+        freq = "15min"
+
+        start = pd.Timestamp("201710290100", tz=tz)
+        end = pd.Timestamp("201710290300", tz=tz)
+        index = pd.date_range(start=start, end=end, freq=freq)
+
+        expected = DatetimeIndex(["201710290115", "201710290130",
+                                  "201710290145", "201710290200",
+                                  "201710290215", "201710290230",
+                                  "201710290245", "201710290200",
+                                  "201710290215", "201710290230",
+                                  "201710290245", "201710290300"],
+                                 tz=tz, freq=freq,
+                                 ambiguous=[True, True, True, True,
+                                            True, True, True, False,
+                                            False, False, False, False])
+        result = index.drop(index[0])
+        tm.assert_index_equal(result, expected)
 
     def test_date_range_localize(self):
         rng = date_range('3/11/2012 03:00', periods=15, freq='H',
