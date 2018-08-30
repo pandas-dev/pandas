@@ -327,6 +327,23 @@ def test_drop_duplicates_tuple():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize('df', [
+    DataFrame(),
+    DataFrame(columns=[]),
+    DataFrame(columns=['A', 'B', 'C']),
+    DataFrame(index=[]),
+    DataFrame(index=['A', 'B', 'C'])
+])
+def test_drop_duplicates_empty(df):
+    # GH 20516
+    result = df.drop_duplicates()
+    tm.assert_frame_equal(result, df)
+
+    result = df.copy()
+    result.drop_duplicates(inplace=True)
+    tm.assert_frame_equal(result, df)
+
+
 def test_drop_duplicates_NA():
     # none
     df = DataFrame({'A': [None, None, 'foo', 'bar',

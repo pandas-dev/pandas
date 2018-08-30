@@ -107,6 +107,37 @@ def _maybe_match_name(a, b):
     return None
 
 
+def maybe_upcast_for_op(obj):
+    """
+    Cast non-pandas objects to pandas types to unify behavior of arithmetic
+    and comparison operations.
+
+    Parameters
+    ----------
+    obj: object
+
+    Returns
+    -------
+    out : object
+
+    Notes
+    -----
+    Be careful to call this *after* determining the `name` attribute to be
+    attached to the result of the arithmetic operation.
+    """
+    if type(obj) is datetime.timedelta:
+        # GH#22390  cast up to Timedelta to rely on Timedelta
+        # implementation; otherwise operation against numeric-dtype
+        # raises TypeError
+        return pd.Timedelta(obj)
+    elif isinstance(obj, np.ndarray) and is_timedelta64_dtype(obj):
+        # GH#22390 Unfortunately we need to special-case right-hand
+        # timedelta64 dtypes because numpy casts integer dtypes to
+        # timedelta64 when operating with timedelta64
+        return pd.TimedeltaIndex(obj)
+    return obj
+
+
 # -----------------------------------------------------------------------------
 # Reversed Operations not available in the stdlib operator module.
 # Defining these instead of using lambdas allows us to reference them by name.
@@ -1222,6 +1253,7 @@ def _arith_method_SERIES(cls, op, special):
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
+        right = maybe_upcast_for_op(right)
 
         if is_categorical_dtype(left):
             raise TypeError("{typ} cannot perform the operation "
@@ -1240,6 +1272,16 @@ def _arith_method_SERIES(cls, op, special):
 
         elif is_timedelta64_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.TimedeltaIndex)
+            return construct_result(left, result,
+                                    index=left.index, name=res_name,
+                                    dtype=result.dtype)
+
+        elif is_timedelta64_dtype(right) and not is_scalar(right):
+            # i.e. exclude np.timedelta64 object
+            # Note: we cannot use dispatch_to_index_op because
+            # that may incorrectly raise TypeError when we
+            # should get NullFrequencyError
+            result = op(pd.Index(left), right)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)

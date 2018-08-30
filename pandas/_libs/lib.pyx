@@ -492,9 +492,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         if is_datelike and checknull(v):
             result[i] = NPY_NAT
         else:
-            # we can use the unsafe version because we know `result` is mutable
-            # since it was created from `np.empty`
-            util.set_value_at_unsafe(result, i, v)
+            result[i] = v
 
     return result
 
@@ -505,9 +503,7 @@ cpdef ndarray[object] astype_unicode(ndarray arr):
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        # we can use the unsafe version because we know `result` is mutable
-        # since it was created from `np.empty`
-        util.set_value_at_unsafe(result, i, unicode(arr[i]))
+        result[i] = unicode(arr[i])
 
     return result
 
@@ -518,9 +514,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        # we can use the unsafe version because we know `result` is mutable
-        # since it was created from `np.empty`
-        util.set_value_at_unsafe(result, i, str(arr[i]))
+        result[i] = str(arr[i])
 
     return result
 

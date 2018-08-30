@@ -46,8 +46,7 @@ from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
 from tslibs.offsets cimport to_offset
 
-from tslibs.timestamps cimport (create_timestamp_from_ts,
-                                _NS_UPPER_BOUND, _NS_LOWER_BOUND)
+from tslibs.timestamps cimport create_timestamp_from_ts
 from tslibs.timestamps import Timestamp
 
 
@@ -350,8 +349,8 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # check the bounds
         if not need_to_iterate:
 
-            if ((fvalues < _NS_LOWER_BOUND).any()
-                    or (fvalues > _NS_UPPER_BOUND).any()):
+            if ((fvalues < Timestamp.min.value).any()
+                    or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime("cannot convert input with unit "
                                           "'{unit}'".format(unit=unit))
             result = (iresult * m).astype('M8[ns]')
