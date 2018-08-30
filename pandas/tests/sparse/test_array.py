@@ -745,7 +745,7 @@ class TestSparseArrayAnalytics(object):
         ([1, 2, 1], 1, 0),
         ([1.0, 2.0, 1.0], 1.0, 0.0)
     ])
-    @td.skip_if_np_lt_111  # prior didn't dispatch
+    @td.skip_if_np_lt_115  # prior didn't dispatch
     def test_numpy_all(self, data, pos, neg):
         # GH 17570
         out = np.all(SparseArray(data))
@@ -791,7 +791,7 @@ class TestSparseArrayAnalytics(object):
         ([0, 2, 0], 2, 0),
         ([0.0, 2.0, 0.0], 2.0, 0.0)
     ])
-    @td.skip_if_np_lt_111  # prior didn't dispatch
+    @td.skip_if_np_lt_115  # prior didn't dispatch
     def test_numpy_any(self, data, pos, neg):
         # GH 17570
         out = np.any(SparseArray(data))
