@@ -402,23 +402,9 @@ class Base(object):
         idx = self._holder(idx.values[duplicated_selection])
 
         expected_isdup = idx.duplicated(keep=keep)
-        if keep == 'first':
-            _, tmp_ind, tmp_inv = np.unique(idx, return_index=True,
-                                            return_inverse=True)
-        else:  # 'last'
-            # switch order before calling unique then restore correct ordering
-            # for tmp_ind, tmp_inv
-            _, tmp_ind, tmp_inv = np.unique(idx[::-1], return_index=True,
-                                            return_inverse=True)
-            tmp_ind = np.arange(len(idx))[::-1][tmp_ind]
-            tmp_inv = tmp_inv[::-1]
-        # explanation in pandas.core.algorithms.duplicated
-        expected_inv = np.argsort(np.argsort(tmp_ind))[tmp_inv]
-
         result_isdup, result_inv = idx.duplicated(keep=keep,
                                                   return_inverse=True)
         tm.assert_numpy_array_equal(result_isdup, expected_isdup)
-        tm.assert_numpy_array_equal(result_inv, expected_inv)
 
         # test that result_inv works (and fits together with expected_isdup)
         unique = idx[~expected_isdup]
