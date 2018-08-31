@@ -49,6 +49,7 @@ class TestGetItem(object):
         with pytest.raises(TypeError):
             tdi.get_loc(pd.Timestamp('1970-01-02'))
 
+
 class TestWhere(object):
     # placeholder for symmetry with DatetimeIndex and PeriodIndex tests
     pass
