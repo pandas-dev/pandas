@@ -353,7 +353,6 @@ class NaTType(_NaT):
     strptime = _make_error_func('strptime', datetime)
     strftime = _make_error_func('strftime', datetime)
     isocalendar = _make_error_func('isocalendar', datetime)
-    dst = _make_error_func('dst', datetime)
     ctime = _make_error_func('ctime', datetime)
     time = _make_error_func('time', datetime)
     toordinal = _make_error_func('toordinal', datetime)
