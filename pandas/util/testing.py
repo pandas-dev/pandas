@@ -1306,12 +1306,15 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_categorical=True,
                        check_like=False,
                        obj='DataFrame'):
-    """Check that left and right DataFrame are equal.
+    """
+    Check that left and right DataFrame are equal.
 
     Parameters
     ----------
     left : DataFrame
+        First frame to compare.
     right : DataFrame
+        Second frame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
     check_index_type : bool / string {'equiv'}, default 'equiv'
@@ -1325,14 +1328,14 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical, i.e.
 
         * left.index.names == right.index.names
         * left.columns.names == right.columns.names
-
+        .
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -1345,10 +1348,10 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_like : bool, default False
         If True, ignore the order of index & columns.
         Note: index labels must match their respective rows
-        (same as in columns) - same labels must be with the same data
+        (same as in columns) - same labels must be with the same data.
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
     """
 
     # instance validation
