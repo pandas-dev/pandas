@@ -9473,13 +9473,15 @@ _num_doc = """
 Parameters
 ----------
 axis : %(axis_descr)s, default 0
-    Indicate which axis or axes should be reduced. Not implemented for Series.
-    - 0 / ‘index’ : reduce the index, return a Series whose index is the 
-    original column labels.
-    - 1 / ‘columns’ : reduce the columns, return a Series whose index is the 
-    original index.
-    For a DataFrame the value 0 applies %(outname)s on each column, 
-    and 1 applies it on each row.
+    Indicate which axis should be reduced. Not implemented for Series.
+
+    * 0 / ‘index’ : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / ‘columns’ : reduce the columns, return a Series whose index is the
+      original index.
+
+    For a DataFrame the value 0 applies %(outname)s on each column, and 1
+    applies it on each row.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
@@ -9501,17 +9503,20 @@ Returns
 _min_max_doc = """
 Return the %(desc)s of the values in the object.
 
-If you want the *index* of the %(desc)s, use ``idx%(outname)s``. This is the 
+If you want the *index* of the %(desc)s, use ``idx%(outname)s``. This is the
 equivalent of the ``numpy.ndarray`` method ``arg%(outname)s``.
 
 Parameters
 ----------
 axis : %(axis_descr)s, default 0
-    Indicate which axis or axes should be reduced. Not implemented for Series.
-    
-    - 0 / ‘index’ : reduce the index, return a Series whose index is the original column labels.
-    - 1 / ‘columns’ : reduce the columns, return a Series whose index is the original index.
-    For a DataFrame the value 0 applies %(desc)s on each column, and 1 applies it on each row.
+    Indicate which axis should be reduced. Not implemented for Series.
+
+    * 0 / ‘index’ : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / ‘columns’ : reduce the columns, return a Series whose index is the
+      original index.
+    For a DataFrame the value 0 applies %(desc)s on each column, and 1 applies
+    it on each row.
 skipna : bool, default True
     Exclude NA/null values when computing the result.
 level : int or level name, default None
@@ -10037,7 +10042,8 @@ By default NA's are ignored.
 >>> s.max()
 4.0
 
-If you choose to include NA's, the method will return ``nan``.
+If you choose to include NA's, the method will return ``nan`` if there is one
+in the Series.
 
 >>> s.max(skipna=False)
 nan
@@ -10050,7 +10056,7 @@ nan
 0  1  NaN  9
 1  8  6.0  2
 
-By default NA's are ignored and it finds the maximum for each column, thereby  
+By default NA's are ignored and it finds the maximum for each column, thereby
 reducing the index.
 
 >>> df.max()
@@ -10066,7 +10072,8 @@ You can also find the maximum per row, thereby reducing the columns.
 1    8.0
 dtype: float64
 
-You can also use ``index`` or ``column`` to refer to an axis you want to reduce.
+You can also use ``index`` or ``column`` to refer to an axis you want to
+reduce.
 
 >>> df.max(axis='index')
 0    8.0
@@ -10074,8 +10081,8 @@ You can also use ``index`` or ``column`` to refer to an axis you want to reduce.
 2    9.0
 dtype: float64
 
-If you choose to include NA's, the method will return ``nan`` for rows or columns
-which contain a NA.
+If you choose to include NA's, the method will return ``nan`` for rows or
+columns which contain a NA.
 
 >>> df.max(skipna=False)
 0    8.0
@@ -10102,7 +10109,8 @@ By default NA's are ignored.
 >>> s.min()
 1.0
 
-If you choose to include NA's, the method will return ``nan``.
+If you choose to include NA's, the method will return ``nan`` if there is one
+in the Series.
 
 >>> s.min(skipna=False)
 nan
@@ -10115,7 +10123,7 @@ nan
 0  1  NaN  9
 1  8  6.0  2
 
-By default NA's are ignored and it finds the minimum for each column, thereby  
+By default NA's are ignored and it finds the minimum for each column, thereby
 reducing the index.
 
 >>> df.min()
@@ -10131,7 +10139,8 @@ You can also find the minimum per row, thereby reducing the columns.
 1    2.0
 dtype: float64
 
-You can also use ``index`` or ``column`` to refer to an axis you want to reduce.
+You can also use ``index`` or ``column`` to refer to an axis you want to
+reduce.
 
 >>> df.min(axis='index')
 0    1.0
@@ -10139,8 +10148,8 @@ You can also use ``index`` or ``column`` to refer to an axis you want to reduce.
 2    2.0
 dtype: float64
 
-If you choose to include NA's, the method will return ``nan`` for rows or columns
-which contain a NA.
+If you choose to include NA's, the method will return ``nan`` for rows or
+columns which contain a NA.
 
 >>> df.min(skipna=False)
 0    1.0
