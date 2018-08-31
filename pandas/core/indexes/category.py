@@ -460,9 +460,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        cat = Categorical(values,
-                          categories=self.categories,
-                          ordered=self.ordered)
+        cat = Categorical(values, dtype=self.dtype)
         return self._shallow_copy(cat, **self._get_attributes_dict())
 
     def reindex(self, target, method=None, level=None, limit=None,
