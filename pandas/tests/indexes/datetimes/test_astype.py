@@ -246,7 +246,9 @@ class TestToPeriod(object):
     def test_to_period_millisecond(self):
         index = self.index
 
-        period = index.to_period(freq='L')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            period = index.to_period(freq='L')
         assert 2 == len(period)
         assert period[0] == Period('2007-01-01 10:11:12.123Z', 'L')
         assert period[1] == Period('2007-01-01 10:11:13.789Z', 'L')
@@ -254,7 +256,9 @@ class TestToPeriod(object):
     def test_to_period_microsecond(self):
         index = self.index
 
-        period = index.to_period(freq='U')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            period = index.to_period(freq='U')
         assert 2 == len(period)
         assert period[0] == Period('2007-01-01 10:11:12.123456Z', 'U')
         assert period[1] == Period('2007-01-01 10:11:13.789123Z', 'U')
@@ -266,81 +270,95 @@ class TestToPeriod(object):
 
         ts = date_range('1/1/2000', '4/1/2000', tz='US/Eastern')
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=UTC)
+            ts = date_range('1/1/2000', '4/1/2000', tz=UTC)
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+            ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
+
+    def test_to_period_tz_warning(self):
+        # GH#21333 make sure a warning is issued when timezone
+        # info is lost
+        dti = date_range('1/1/2000', '4/1/2000', tz='US/Eastern')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            dti.to_period()
 
     def test_to_period_tz_explicit_pytz(self):
         xp = date_range('1/1/2000', '4/1/2000').to_period()
 
         ts = date_range('1/1/2000', '4/1/2000', tz=pytz.timezone('US/Eastern'))
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
+            ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+            ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_tz_dateutil(self):
         xp = date_range('1/1/2000', '4/1/2000').to_period()
 
         ts = date_range('1/1/2000', '4/1/2000', tz='dateutil/US/Eastern')
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
+            ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+            ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+            assert result == expected
+            tm.assert_index_equal(ts.to_period(), xp)
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])

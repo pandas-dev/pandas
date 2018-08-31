@@ -41,6 +41,13 @@ class TestGetItem(object):
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
+    def test_timestamp_invalid_key(self):
+        # GH#20464
+        tdi = pd.timedelta_range(0, periods=10)
+        with pytest.raises(TypeError):
+            tdi.get_loc(pd.Timestamp('1970-01-01'))
+        with pytest.raises(TypeError):
+            tdi.get_loc(pd.Timestamp('1970-01-02'))
 
 class TestWhere(object):
     # placeholder for symmetry with DatetimeIndex and PeriodIndex tests

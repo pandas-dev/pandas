@@ -586,3 +586,11 @@ class TestDatetimeIndex(object):
         with pytest.raises(KeyError) as excinfo:
             index.get_loc('1/1/2000')
         assert '2000' in str(excinfo.value)
+
+    def test_timedelta_invalid_key(self):
+        # GH#20464
+        dti = pd.date_range('1970-01-01', periods=10)
+        with pytest.raises(TypeError):
+            dti.get_loc(pd.Timedelta(0))
+        with pytest.raises(TypeError):
+            dti.get_loc(pd.Timedelta(1))
