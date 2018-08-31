@@ -14,7 +14,7 @@ import pandas as pd
 from pandas import (Series, DataFrame, Panel, MultiIndex, Int64Index,
                     RangeIndex, Categorical, bdate_range,
                     date_range, timedelta_range, Index, DatetimeIndex,
-                    isna, compat, concat, Timestamp, _np_version_under1p15)
+                    isna, compat, concat, Timestamp)
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -2192,9 +2192,9 @@ class TestHDFStore(Base):
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
     @pytest.mark.skipif(
-        not _np_version_under1p15,
-        reason=("pytables conda build package needs build "
-                "with numpy 1.15: gh-22098"))
+        LooseVersion(np.__version__) == LooseVersion('1.15.0'),
+        reason=("Skipping  pytables test when numpy version is "
+                "exactly equal to 1.15.0: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591
