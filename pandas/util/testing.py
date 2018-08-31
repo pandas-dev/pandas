@@ -1320,7 +1320,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_column_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical.
-    check_frame_type : bool, default False
+    check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
