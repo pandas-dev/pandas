@@ -37,7 +37,8 @@ class TestSeriesDatetimeValues(TestData):
         ok_for_dt = DatetimeIndex._datetimelike_ops
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
                              'tz_convert', 'normalize', 'strftime', 'round',
-                             'floor', 'ceil', 'day_name', 'month_name']
+                             'floor', 'ceil', 'day_name', 'month_name',
+                             'is_dst']
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = ['components', 'to_pytimedelta', 'total_seconds',
                              'round', 'floor', 'ceil']

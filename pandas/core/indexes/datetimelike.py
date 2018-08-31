@@ -284,7 +284,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         if getattr(self, 'tz', None) is not None:
             if not isinstance(result, ABCIndexClass):
                 result = self._simple_new(result)
-            result = result.tz_localize(self.tz)
+            result = result.tz_localize(self.tz, ambiguous=self.is_dst())
         return result
 
     def _box_values_as_index(self):

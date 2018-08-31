@@ -582,6 +582,7 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.to_pydatetime
    Series.dt.tz_localize
    Series.dt.tz_convert
+   Series.dt.is_dst
    Series.dt.normalize
    Series.dt.strftime
    Series.dt.round
@@ -1778,6 +1779,7 @@ Time-specific operations
    DatetimeIndex.snap
    DatetimeIndex.tz_convert
    DatetimeIndex.tz_localize
+   DatetimeIndex.is_dst
    DatetimeIndex.round
    DatetimeIndex.floor
    DatetimeIndex.ceil

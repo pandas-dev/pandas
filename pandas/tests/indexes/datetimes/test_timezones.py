@@ -1012,6 +1012,17 @@ class TestDatetimeIndexTimezones(object):
         for i, ts in enumerate(index):
             assert ts == index[i]
 
+    def test_is_dst(self):
+        dti = pd.date_range('2018-11-04', periods=4, freq='H', tz='US/Pacific')
+        result = dti.is_dst()
+        expected = Index([True, True, False, False])
+        tm.assert_index_equal(result, expected)
+
+        dti_naive = dti.tz_localize(None)
+        result = dti_naive.is_dst()
+        expected = Index([False] * 4)
+        tm.assert_index_equal(result, expected)
+
 
 class TestDateRange(object):
     """Tests for date_range with timezones"""
