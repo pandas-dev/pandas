@@ -153,22 +153,10 @@ def is_sparse(arr):
     >>> is_sparse(bsr_matrix([1, 2, 3]))
     False
     """
-    from pandas.core.sparse.array import SparseArray
     from pandas.core.sparse.dtype import SparseDtype
-    from pandas.core.generic import ABCSeries
-    from pandas.core.internals import BlockManager, Block
 
-    if isinstance(arr, BlockManager):
-        # SparseArrays are only 1d
-        if arr.ndim == 1:
-            arr = arr.blocks[0]
-        else:
-            return False
-
-    if isinstance(arr, (ABCSeries, Block)):
-        arr = arr.values
-
-    return isinstance(arr, (SparseArray, ABCSparseSeries, SparseDtype))
+    dtype = getattr(arr, 'dtype', arr)
+    return isinstance(dtype, SparseDtype)
 
 
 def is_scipy_sparse(arr):
