@@ -251,18 +251,20 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         if tz is not None:
             # Localize the start and end arguments
-            if start is not None and start.tz is None:
-                start = start.tz_localize(**localize_args)
-
-            if end is not None and end.tz is None:
-                end = end.tz_localize(**localize_args)
-
+            start = _maybe_localize_point(
+                start, getattr(start, 'tz', None), start, localize_args
+            )
+            end = _maybe_localize_point(
+                end, getattr(end, 'tz', None), end, localize_args
+            )
         if start and end:
             # Make sure start and end have the same tz
-            start = _maybe_localize_point(start, start.tz, end.tz,
-                                          localize_args)
-            end = _maybe_localize_point(end, end.tz, start.tz, localize_args)
-
+            start = _maybe_localize_point(
+                start, start.tz, end.tz, localize_args
+            )
+            end = _maybe_localize_point(
+                end, end.tz, start.tz, localize_args
+            )
         if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
                 # Currently always False; never hit
