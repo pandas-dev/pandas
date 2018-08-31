@@ -1643,6 +1643,8 @@ def is_bool_dtype(arr_or_dtype):
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
     elif isinstance(arr_or_dtype, SparseDtype):
+        # TODO: Do this for all EAs? Document behavior and ramifications.
+        # https://github.com/pandas-dev/pandas/issues/22326
         return issubclass(arr_or_dtype.subtype.type, np.bool_)
     return issubclass(tipo, np.bool_)
 

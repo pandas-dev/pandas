@@ -345,6 +345,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @property
     def fill_value(self):
+        """
+        Elements in `data` that are `fill_value` are not stored.
+
+        For memory savings, this should be the most common value in the array.
+        """
         return self.dtype.fill_value
 
     @fill_value.setter
