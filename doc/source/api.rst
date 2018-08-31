@@ -1987,6 +1987,7 @@ Methods
     Timestamp.isocalendar
     Timestamp.isoformat
     Timestamp.isoweekday
+    Timestamp.is_dst
     Timestamp.month_name
     Timestamp.normalize
     Timestamp.now

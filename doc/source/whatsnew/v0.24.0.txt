@@ -184,7 +184,7 @@ Other Enhancements
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :ref:`Series.resample` and :ref:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
-- :class:`DatetimeIndex` has gained a ``is_dst`` method (:issue:`18885`, :issue:`18946`)
+- :class:`DatetimeIndex` and :class:`Timestamp` have gained a ``is_dst`` method (:issue:`18885`, :issue:`18946`)
 
 .. _whatsnew_0240.api_breaking:
 

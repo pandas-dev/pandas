@@ -307,3 +307,14 @@ class TestTimestampTZOperations(object):
         expected = _datetime.timetz()
 
         assert result == expected
+
+    def test_timestamp_is_dst(self):
+        ts_naive = Timestamp('2018-11-04')
+        assert ts_naive.is_dst() is False
+
+        ts_aware = ts_naive.tz_localize('US/Pacific')
+        assert ts_aware.is_dst() is True
+
+        # DST transition at 2am
+        ts_aware = Timestamp('2018-11-04 04:00').tz_localize('US/Pacific')
+        assert ts_aware.is_dst() is False
