@@ -959,8 +959,7 @@ class MultiIndex(Index):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        attrs = []
-        attrs.append(('dtype', "'{}'".format(self.dtype)))
+        attrs = [('dtype', "'{}'".format(self.dtype))]
         if self.names is not None and any(self.names):
             attrs.append(('names', default_pprint(self.names)))
         max_seq_items = get_option('display.max_seq_items') or len(self)
@@ -976,29 +975,7 @@ class MultiIndex(Index):
         Return the formatted data as a unicode string
         """
         return format_object_summary(self, self._formatter_func,
-                                     name=name, is_multi=True)
-
-    def __unicode__(self):
-        """
-        Return a string representation for this MultiIndex.
-
-        Invoked by unicode(df) in py2 only. Yields a Unicode String in both
-        py2/py3.
-        """
-        klass = self.__class__.__name__
-        data = self._format_data()
-        attrs = self._format_attrs()
-        space = self._format_space()
-
-        prepr = (",%s" % space).join("%s=%s" % (k, v) for k, v in attrs)
-
-        # no data provided, just attributes
-        if data is None:
-            data = ''
-
-        res = "%s(%s%s)" % (klass, data, prepr)
-
-        return res
+                                     name=name, line_break_each_value=True)
 
     def _format_native_types(self, na_rep='nan', **kwargs):
         new_levels = []

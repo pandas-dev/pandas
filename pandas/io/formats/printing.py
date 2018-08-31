@@ -265,7 +265,7 @@ default_pprint = lambda x, max_seq_items=None: \
 
 
 def format_object_summary(obj, formatter, is_justify=True, name=None,
-                          indent_for_name=True, is_multi=False):
+                          indent_for_name=True, line_break_each_value=False):
     """
     Return the formatted obj as a unicode string
 
@@ -282,8 +282,10 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     indent_for_name : bool, default True
         Whether subsequent lines should be be indented to
         align with the name.
-    is_multi : bool, default False
-        Is ``obj`` a :class:`MultiIndex` or not
+    line_break_each_value : bool, default False
+        If True, inserts a line break for each value of ``obj``.
+        If False, only break lines when the a line of values gets wider
+        than the display width
 
     Returns
     -------
@@ -308,7 +310,11 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         space2 = "\n "  # space for the opening '['
 
     n = len(obj)
-    sep = ',' if not is_multi else (',\n ' + ' ' * len(name))
+    if not line_break_each_value:
+        sep = ','
+    else:
+        # If we want to align on each value, we need a different separator.
+        sep = (',\n ' + ' ' * len(name))
     max_seq_items = get_option('display.max_seq_items') or n
 
     # are we a truncated display
@@ -336,10 +342,10 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
     if n == 0:
         summary = '[]{}'.format(close)
-    elif n == 1 and not is_multi:
+    elif n == 1 and not line_break_each_value:
         first = formatter(obj[0])
         summary = '[{}]{}'.format(first, close)
-    elif n == 2 and not is_multi:
+    elif n == 2 and not line_break_each_value:
         first = formatter(obj[0])
         last = formatter(obj[-1])
         summary = '[{}, {}]{}'.format(first, last, close)
@@ -355,22 +361,31 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
 
         # adjust all values to max length if needed
         if is_justify:
-            head, tail = _justify(head, tail, display_width, best_len,
-                                  is_truncated, is_multi)
-        if is_multi:
+            if line_break_each_value:
+                head, tail = _justify(head, tail)
+            elif (is_truncated or not (len(', '.join(head)) < display_width and
+                                       len(', '.join(tail)) < display_width)):
+                max_length = max(best_len(head), best_len(tail))
+                head = [x.rjust(max_length) for x in head]
+                tail = [x.rjust(max_length) for x in tail]
+            # If we are not truncated and we are only a single
+            # line, then don't justify
+
+        if line_break_each_value:
+            # truncate vertically if wider than max_space
             max_space = display_width - len(space2)
             item = tail[0]
-            for i in reversed(range(1, len(item) + 1)):
-                if len(_pprint_seq(item, max_seq_items=i)) < max_space:
+            for max_items in reversed(range(1, len(item) + 1)):
+                if len(_pprint_seq(item, max_seq_items=max_items)) < max_space:
                     break
-            head = [_pprint_seq(x, max_seq_items=i) for x in head]
-            tail = [_pprint_seq(x, max_seq_items=i) for x in tail]
+            head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
+            tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
 
         summary = ""
         line = space2
 
-        for i in range(len(head)):
-            word = head[i] + sep + ' '
+        for max_items in range(len(head)):
+            word = head[max_items] + sep + ' '
             summary, line = _extend_line(summary, line, word,
                                          display_width, space2)
 
@@ -379,8 +394,8 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
             summary += line.rstrip() + space2 + '...'
             line = space2
 
-        for i in range(len(tail) - 1):
-            word = tail[i] + sep + ' '
+        for max_items in range(len(tail) - 1):
+            word = tail[max_items] + sep + ' '
             summary, line = _extend_line(summary, line, word,
                                          display_width, space2)
 
@@ -394,7 +409,7 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         close = ']' + close.rstrip(' ')
         summary += close
 
-        if len(summary) > (display_width) or is_multi:
+        if len(summary) > (display_width) or line_break_each_value:
             summary += space1
         else:  # one row
             summary += ' '
@@ -405,50 +420,41 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
     return summary
 
 
-def _justify(head, tail, display_width, best_len,
-             is_truncated=False, is_multi=False):
+def _justify(head, tail):
     """
-    Justify each item in head and tail, so they align properly.
-    """
-    if is_multi:
-        max_length = _max_level_item_length(head + tail)
-        head = [tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length))
-                for seq in head]
-        tail = [tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length))
-                for seq in tail]
-    elif (is_truncated or not (len(', '.join(head)) < display_width and
-                               len(', '.join(tail)) < display_width)):
-        max_length = max(best_len(head), best_len(tail))
-        head = [x.rjust(max_length) for x in head]
-        tail = [x.rjust(max_length) for x in tail]
-
-    return head, tail
-
-
-def _max_level_item_length(seq):
-    """
-    For each position for the sequences in ``seq``, find the largest length.
-
-    Used for justifying individual values in a :class:`pandas.MultiIndex`.
+    Justify each item in each list-like in head and tail, so each item
+    right-aligns when the two list-likes are stacked vertically.
 
     Parameters
     ----------
-    seq : list-like of list-likes of strings
+    head : list-like of list-likes of strings
+    tail : list-like of list-likes of strings
 
     Returns
     -------
-    max_length : list of ints
+    head : list of tuples of strings
+    tail : list of tuples of strings
 
     Examples
     --------
-    >>> _max_level_item_length([['s', 'ab'], ['abc', 'a']])
-    [3, 2]
+    >>> _justify([['a', 'b']], [['abc', 'abcd']])
+    ([('  a', '   b')], [('abc', 'abcd')])
     """
-    max_length = [0] * len(seq[0])
-    for inner_seq in seq:
+    combined = head + tail  # type: Sequence[Sequence[str]]
+
+    # For each position for the sequences in ``combined``,
+    # find the length of the largest string.
+    max_length = [0] * len(combined[0])  # type: List[int]
+    for inner_seq in combined:
         length = [len(item) for item in inner_seq]
         max_length = [max(x, y) for x, y in zip(max_length, length)]
-    return max_length
+
+    # justify each item in each list-like in head and tail using max_length
+    head = [tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length))
+            for seq in head]
+    tail = [tuple(x.rjust(max_len) for x, max_len in zip(seq, max_length))
+            for seq in tail]
+    return head, tail
 
 
 def format_object_attrs(obj):

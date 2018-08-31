@@ -55,31 +55,11 @@ def test_repr_with_unicode_data():
         assert "\\" not in repr(index)  # we don't want unicode-escaped
 
 
-@pytest.mark.skip(reason="#22511 will remove this test")
-def test_repr_roundtrip():
-
+def test_repr_roundtrip_raises():
     mi = MultiIndex.from_product([list('ab'), range(3)],
                                  names=['first', 'second'])
-    str(mi)
-
-    tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
-
-    mi_u = MultiIndex.from_product(
-        [list('ab'), range(3)], names=['first', 'second'])
-    result = eval(repr(mi_u))
-    tm.assert_index_equal(result, mi_u, exact=True)
-
-    # formatting
-    str(mi)
-
-    # long format
-    mi = MultiIndex.from_product([list('abcdefg'), range(10)],
-                                 names=['first', 'second'])
-
-    tm.assert_index_equal(eval(repr(mi)), mi, exact=True)
-
-    result = eval(repr(mi_u))
-    tm.assert_index_equal(result, mi_u, exact=True)
+    with pytest.raises(TypeError):
+        eval(repr(mi))
 
 
 def test_unicode_string_with_unicode():
@@ -98,25 +78,16 @@ def test_repr_max_seq_item_setting(idx):
 
 class TestRepr(object):
 
-    def setup_class(self):
-        n = 1000
-        ci = pd.CategoricalIndex(list('a' * n) + (['abc'] * n))
-        dti = pd.date_range('2000-01-01', freq='s', periods=n * 2)
-        self.narrow_mi = pd.MultiIndex.from_arrays([ci, ci.codes + 9, dti],
-                                                   names=['a', 'b', 'dti'])
-
-        levels = [ci, ci.codes + 9, dti, dti, dti]
-        names = ['a', 'b', 'dti_1', 'dti_2', 'dti_3']
-        self.wide_mi = pd.MultiIndex.from_arrays(levels, names=names)
-
     def test_repr(self, idx):
         result = idx[:1].__repr__()
-        expected = """MultiIndex([('foo', 'one')],
+        expected = """\
+MultiIndex([('foo', 'one')],
            dtype='object', names=['first', 'second'])"""
         assert result == expected
 
         result = idx.__repr__()
-        expected = """MultiIndex([('foo', 'one'),
+        expected = """\
+MultiIndex([('foo', 'one'),
             ('foo', 'two'),
             ('bar', 'one'),
             ('baz', 'two'),
@@ -127,7 +98,8 @@ class TestRepr(object):
 
         with pd.option_context('display.max_seq_items', 5):
             result = idx.__repr__()
-            expected = """MultiIndex([('foo', 'one'),
+            expected = """\
+MultiIndex([('foo', 'one'),
             ('foo', 'two'),
             ...
             ('qux', 'one'),
@@ -135,14 +107,15 @@ class TestRepr(object):
            dtype='object', names=['first', 'second'], length=6)"""
             assert result == expected
 
-    def test_rjust(self):
-        result = self.narrow_mi[:1].__repr__()
+    def test_rjust(self, narrow_multi_index):
+        mi = narrow_multi_index
+        result = mi[:1].__repr__()
         expected = """\
 MultiIndex([('a', 9, '2000-01-01 00:00:00')],
            dtype='object', names=['a', 'b', 'dti'])"""
         assert result == expected
 
-        result = self.narrow_mi[::500].__repr__()
+        result = mi[::500].__repr__()
         expected = """\
 MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
             (  'a',  9, '2000-01-01 00:08:20'),
@@ -151,7 +124,7 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
            dtype='object', names=['a', 'b', 'dti'])"""
         assert result == expected
 
-        result = self.narrow_mi.__repr__()
+        result = mi.__repr__()
         expected = """\
 MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
             (  'a',  9, '2000-01-01 00:00:01'),
@@ -177,13 +150,14 @@ MultiIndex([(  'a',  9, '2000-01-01 00:00:00'),
            dtype='object', names=['a', 'b', 'dti'], length=2000)"""
         assert result == expected
 
-    def test_tuple_width(self):
-        result = self.wide_mi[:1].__repr__()
+    def test_tuple_width(self, wide_multi_index):
+        mi = wide_multi_index
+        result = mi[:1].__repr__()
         expected = """MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...)],
            dtype='object', names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""
         assert result == expected
 
-        result = self.wide_mi[:10].__repr__()
+        result = mi[:10].__repr__()
         expected = """\
 MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
             ('a', 9, '2000-01-01 00:00:01', '2000-01-01 00:00:01', ...),
@@ -198,7 +172,7 @@ MultiIndex([('a', 9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
            dtype='object', names=['a', 'b', 'dti_1', 'dti_2', 'dti_3'])"""
         assert result == expected
 
-        result = self.wide_mi.__repr__()
+        result = mi.__repr__()
         expected = """\
 MultiIndex([(  'a',  9, '2000-01-01 00:00:00', '2000-01-01 00:00:00', ...),
             (  'a',  9, '2000-01-01 00:00:01', '2000-01-01 00:00:01', ...),
