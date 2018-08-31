@@ -13,23 +13,24 @@ from pandas.compat import lrange, range, zip
 import pandas.util.testing as tm
 
 
-class TestSeriesAlterAxes():
+class TestSeriesAlterAxes(object):
 
-    def test_setindex(self, series):
+    def test_setindex(self, string_series):
         # wrong type
-        pytest.raises(TypeError, setattr, series, 'index', None)
+        pytest.raises(TypeError, setattr, string_series, 'index', None)
 
         # wrong length
-        pytest.raises(Exception, setattr, series, 'index',
-                      np.arange(len(series) - 1))
+        pytest.raises(Exception, setattr, string_series, 'index',
+                      np.arange(len(string_series) - 1))
 
         # works
-        series.index = np.arange(len(series))
-        assert isinstance(series.index, Index)
+        string_series.index = np.arange(len(string_series))
+        assert isinstance(string_series.index, Index)
 
     # Renaming
 
-    def test_rename(self, ts):
+    def test_rename(self, datetime_series):
+        ts = datetime_series
         renamer = lambda x: x.strftime('%Y%m%d')
         renamed = ts.rename(renamer)
         assert renamed.index[0] == renamer(ts.index[0])
@@ -99,12 +100,12 @@ class TestSeriesAlterAxes():
         assert s.name is None
         assert s is not s2
 
-    def test_rename_inplace(self, ts):
+    def test_rename_inplace(self, datetime_series):
         renamer = lambda x: x.strftime('%Y%m%d')
-        expected = renamer(ts.index[0])
+        expected = renamer(datetime_series.index[0])
 
-        ts.rename(renamer, inplace=True)
-        assert ts.index[0] == expected
+        datetime_series.rename(renamer, inplace=True)
+        assert datetime_series.index[0] == expected
 
     def test_set_index_makes_timeseries(self):
         idx = tm.makeDateIndex(10)
@@ -221,11 +222,10 @@ class TestSeriesAlterAxes():
         expected = Series(np.arange(6), index=e_idx)
         tm.assert_series_equal(result, expected)
 
-    def test_rename_axis_inplace(self, ts):
+    def test_rename_axis_inplace(self, datetime_series):
         # GH 15704
-        series = ts.copy()
-        expected = series.rename_axis('foo')
-        result = series.copy()
+        expected = datetime_series.rename_axis('foo')
+        result = datetime_series
         no_return = result.rename_axis('foo', inplace=True)
 
         assert no_return is None
