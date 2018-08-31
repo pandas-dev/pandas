@@ -406,7 +406,9 @@ class Base(object):
                                                   return_inverse=True)
         tm.assert_numpy_array_equal(result_isdup, expected_isdup)
 
-        # test that result_inv works (and fits together with expected_isdup)
+        # the following tests the correctness of result_inv in two ways:
+        # - it needs to fit together with expected_isdup
+        # - it needs to correctly reconstruct the object
         unique = idx[~expected_isdup]
         reconstr = unique[result_inv]
         tm.assert_index_equal(reconstr, idx)

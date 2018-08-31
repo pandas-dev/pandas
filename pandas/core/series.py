@@ -1633,7 +1633,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         set on False and all others on True:
 
         >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'],
-                                index=[1, 4, 9, 16, 25])
+        ...                     index=[1, 4, 9, 16, 25])
         >>> animals.duplicated()
         1     False
         4     False

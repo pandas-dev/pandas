@@ -4382,8 +4382,8 @@ class DataFrame(NDFrame):
         set on False and all others on True:
 
         >>> data = {'species': ['lama', 'cow', 'lama', 'ant', 'lama', 'bee'],
-                    'type': ['mammal'] * 3 + ['insect', 'mammal', 'insect']}
-        >>> animals = pd.DataFrame(data, index=[1, 4, 9, 16, 25])
+        ...         'type': ['mammal'] * 3 + ['insect', 'mammal', 'insect']}
+        >>> animals = pd.DataFrame(data, index=[1, 4, 9, 16, 25, 36])
         >>> animals
            species    type
         1     lama  mammal
