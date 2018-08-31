@@ -459,7 +459,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        new_values = self_i8 - other_i8
+        new_values = checked_add_with_arr(self_i8, -other_i8,
+                                          arr_mask=self._isnan)
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
