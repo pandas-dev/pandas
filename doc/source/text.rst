@@ -306,7 +306,7 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All one-dimensional list-likes can be arbitrarily combined in a list-like container (including iterators, ``dict``-views, etc.):
+All one-dimensional list-likes can be combined in a list-like container (including iterators, ``dict``-views, etc.):
 
 .. ipython:: python
 
