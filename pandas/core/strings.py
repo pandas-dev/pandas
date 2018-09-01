@@ -703,7 +703,7 @@ def str_repeat(arr, repeats):
     1    bb
     2    cc
 
-    Array of int repeats corresponding string in Series
+    Sequence of int repeats corresponding string in Series
 
     >>> s.str.repeat(repeats=[1, 2, 3])
     0      a
