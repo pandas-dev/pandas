@@ -1341,9 +1341,9 @@ def str_pad(arr, width, side='left', fillchar=' '):
     0         panda
     1           fox
 
-    >>> s.str.pad(10, 'right')
-    0    panda     
-    1    fox       
+    >>> s.str.pad(10, 'right', '-')
+    0    panda-----
+    1    fox-------
 
     >>> s.str.pad(10, 'both', '-')
     0    --panda---
