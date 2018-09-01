@@ -1336,7 +1336,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     >>> s
     0    panda
     1      fox
-    
+
     >>> s.str.pad(10)
     0         panda
     1           fox
@@ -1348,7 +1348,6 @@ def str_pad(arr, width, side='left', fillchar=' '):
     >>> s.str.pad(10, 'both', '-')
     0    --panda---
     1    ---fox----
-
     """
 
     if not isinstance(fillchar, compat.string_types):
