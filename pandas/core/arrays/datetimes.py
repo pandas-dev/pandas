@@ -1322,8 +1322,8 @@ def _maybe_localize_point(ts, is_none, is_not_none, localize_args):
     Parameters
     ----------
     ts : start or end Timestamp to potentially localize
-    is_none : tz argument that should be None
-    is_not_none : tz argument that should not be None
+    is_none : argument that should be None
+    is_not_none : argument that should not be None
     localize_args : dict to pass to tz_localize
 
     Returns
