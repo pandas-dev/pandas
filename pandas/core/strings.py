@@ -1314,21 +1314,42 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index with additional characters on
+    specified side to fill up to specified width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in fillchar
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
+        Side from which to fill resulting string
+    fillchar : str, default ' '
         Additional character for filling, default is whitespace
 
     Returns
     -------
-    padded : Series/Index of objects
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object
+
+    Examples
+    --------
+    >>> s = pd.Series(["panda", "fox"])
+    >>> s
+    0    panda
+    1      fox
+
+    >>> s.str.pad(width=10)
+    0         panda
+    1           fox
+
+    >>> s.str.pad(width=10, side='right', fillchar='-')
+    0    panda-----
+    1    fox-------
+
+    >>> s.str.pad(width=10, side='both', fillchar='-')
+    0    --panda---
+    1    ---fox----
     """
 
     if not isinstance(fillchar, compat.string_types):
