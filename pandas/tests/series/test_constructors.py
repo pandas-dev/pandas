@@ -144,10 +144,15 @@ class TestSeriesConstructors():
         result = pd.Series(13, index=[1], dtype=str)
         assert result.values.tolist() == ['13']
 
-    def test_constructor_string_series_string_type(self):
+    def test_constructor_string_element_string_type(self):
         # GH 22477
         result = pd.Series('entry', index=[1], dtype=str)
         assert result.values.tolist() == ['entry']
+
+    def test_constructor_unicode_element_string_type(self):
+        # GH 22477
+        result = pd.Series(u'ѐ', index=[1], dtype=str)
+        assert result.values.tolist() == [u'ѐ']
 
     def test_constructor_dtype_str_na_values(self, string_dtype):
         # https://github.com/pandas-dev/pandas/issues/21083
