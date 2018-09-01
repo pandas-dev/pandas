@@ -137,7 +137,7 @@ class TestSeriesConstructors():
     def test_constructor_no_data_string_type(self):
         result = pd.Series(index=[1], dtype=str)
         assert result.isna().all()
-    
+
     def test_constructor_single_element_string_type(self):
         result = pd.Series(13, index=[1], dtype=str)
         assert result.values.tolist() == ['13']
