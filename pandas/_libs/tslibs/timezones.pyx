@@ -305,9 +305,8 @@ cdef object get_dst_info(object tz, dst):
 
 def _is_dst(int64_t[:] values, object tz):
     """
-    Return a boolean array where True indicates a value that lies in
-    daylight savings time and False indicates a value that does not lie in
-    daylight savings time
+    Return a boolean array indicating whether each epoch timestamp is in
+    daylight savings time with respect with the passed timezone.
 
     Parameters
     ----------
@@ -318,8 +317,8 @@ def _is_dst(int64_t[:] values, object tz):
 
     Returns
     -------
-    ndarray
-        Booleans
+    ndarray of booleans
+        True indicates daylight savings time
     """
     cdef:
         Py_ssize_t n = len(values)

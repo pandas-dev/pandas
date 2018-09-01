@@ -1013,7 +1013,12 @@ class TestDatetimeIndexTimezones(object):
             assert ts == index[i]
 
     def test_is_dst(self):
-        dti = pd.date_range('2018-11-04', periods=4, freq='H', tz='US/Pacific')
+        dti = DatetimeIndex([])
+        result = dti.is_dst()
+        expected = Index([])
+        tm.assert_index_equal(result, expected)
+
+        dti = date_range('2018-11-04', periods=4, freq='H', tz='US/Pacific')
         result = dti.is_dst()
         expected = Index([True, True, False, False])
         tm.assert_index_equal(result, expected)
