@@ -1399,7 +1399,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     Returns
     -------
     Series or Index of object
-        Series or Index containing sliced substring from original string
+        Series or Index containing sliced substring from original string object
 
     Examples
     --------
