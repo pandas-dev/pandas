@@ -28,11 +28,10 @@ from np_datetime import OutOfBoundsDatetime
 
 from util cimport (is_string_object,
                    is_datetime64_object,
-                   is_integer_object, is_float_object, is_array)
+                   is_integer_object, is_float_object)
 
 from timedeltas cimport cast_from_unit
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
-                        treat_tz_as_dateutil, treat_tz_as_pytz,
                         get_utcoffset, get_dst_info,
                         get_timezone, maybe_get_tz, tz_compare)
 from parsing import parse_datetime_string
@@ -540,7 +539,7 @@ cdef inline void localize_tso(_TSObject obj, tzinfo tz):
         dt64_to_dtstruct(local_val, &obj.dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz, False)
 
         if is_fixed_offset(tz):
             # static/fixed tzinfo; in this case we know len(deltas) == 1
@@ -636,7 +635,7 @@ cdef inline int64_t[:] _tz_convert_dst(int64_t[:] values, tzinfo tz,
         int64_t[:] deltas
         int64_t v
 
-    trans, deltas, typ = get_dst_info(tz)
+    trans, deltas, typ = get_dst_info(tz, False)
     if not to_utc:
         # We add `offset` below instead of subtracting it
         deltas = -1 * np.array(deltas, dtype='i8')
@@ -888,7 +887,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous)
 
-    trans, deltas, typ = get_dst_info(tz)
+    trans, deltas, typ = get_dst_info(tz, False)
 
     tdata = <int64_t*> cnp.PyArray_DATA(trans)
     ntrans = len(trans)
@@ -1150,7 +1149,7 @@ cdef int64_t[:] _normalize_local(int64_t[:] stamps, object tz):
             result[i] = _normalized_stamp(&dts)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz, False)
 
         if typ not in ['pytz', 'dateutil']:
             # static/fixed; in this case we know that len(delta) == 1
@@ -1227,7 +1226,7 @@ def is_date_array_normalized(int64_t[:] stamps, tz=None):
             if (dts.hour + dts.min + dts.sec + dts.us) > 0:
                 return False
     else:
-        trans, deltas, typ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz, False)
 
         if typ not in ['pytz', 'dateutil']:
             # static/fixed; in this case we know that len(delta) == 1

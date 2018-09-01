@@ -1516,7 +1516,7 @@ cdef int64_t[:] localize_dt64arr_to_period(int64_t[:] stamps,
             result[i] = get_period_ordinal(&dts, freq)
     else:
         # Adjust datetime64 timestamp, recompute datetimestruct
-        trans, deltas, typ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz, False)
 
         if typ not in ['pytz', 'dateutil']:
             # static/fixed; in this case we know that len(delta) == 1

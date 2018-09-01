@@ -186,16 +186,28 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cdef int64_t[:] unbox_utcoffsets(object transinfo):
+cdef int64_t[:] unbox_utcoffsets(object transinfo, dst):
+    """
+    Unpack the offset information from pytz timezone objects
+
+    Parameters
+    ----------
+    transinfo : list of tuples
+        Each tuple contains (UTC offset, DST offset, tz abbreviation)
+    dst : boolean
+        True returns an array of the DST offsets
+        False returns an array of UTC offsets
+    """
     cdef:
         Py_ssize_t i, sz
         int64_t[:] arr
+        int key
 
     sz = len(transinfo)
     arr = np.empty(sz, dtype='i8')
-
+    key = int(dst)
     for i in range(sz):
-        arr[i] = int(transinfo[i][0].total_seconds()) * 1000000000
+        arr[i] = int(transinfo[i][key].total_seconds()) * 1000000000
 
     return arr
 
@@ -204,9 +216,22 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo):
 # Daylight Savings
 
 
-cdef object get_dst_info(object tz):
+cdef object get_dst_info(object tz, dst):
     """
-    return a tuple of :
+    Return DST info from a timezone
+
+    Parameters
+    ----------
+    tz : object
+        timezone
+    dst : bool
+        True returns the DST specific offset
+        False returns the UTC offset
+        Specific for pytz timezones only
+
+    Returns
+    -------
+    tuple
       (UTC times of DST transitions,
        UTC offsets in microseconds corresponding to DST transitions,
        string of type of transitions)
@@ -230,7 +255,7 @@ cdef object get_dst_info(object tz):
                     trans[0] = NPY_NAT + 1
             except Exception:
                 pass
-            deltas = unbox_utcoffsets(tz._transition_info)
+            deltas = unbox_utcoffsets(tz._transition_info, dst)
             typ = 'pytz'
 
         elif treat_tz_as_dateutil(tz):
@@ -276,6 +301,45 @@ cdef object get_dst_info(object tz):
         dst_cache[cache_key] = (trans, deltas, typ)
 
     return dst_cache[cache_key]
+
+
+def _is_dst(int64_t[:] values, object tz):
+    """
+    Return a boolean array where True indicates a value that lies in
+    daylight savings time and False indicates a value that does not lie in
+    daylight savings time
+
+    Parameters
+    ----------
+    values : ndarray
+        i8 representation of the datetimes
+    tz : object
+        timezone
+
+    Returns
+    -------
+    ndarray
+        Booleans
+    """
+    cdef:
+        Py_ssize_t n = len(values)
+        # Cython boolean memoryviews are not supported yet
+        # https://github.com/cython/cython/issues/2204
+        # bint[:] result
+        object typ
+
+    result = np.zeros(n, dtype=bool)
+    if tz is None:
+        return result
+    transitions, offsets, typ = get_dst_info(tz, True)
+    offsets = np.array(offsets)
+    # Fixed timezone offsets do not have DST transitions
+    if typ not in {'pytz', 'dateutil'}:
+        return result
+    positions = transitions.searchsorted(values, side='right')
+    # DST has 0 offset
+    result = offsets[positions] == 0
+    return result
 
 
 def infer_tzinfo(start, end):
