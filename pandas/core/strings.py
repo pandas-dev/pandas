@@ -686,6 +686,7 @@ def str_repeat(arr, repeats):
     Returns
     -------
     Series or Index of object
+        Series or Index of repeated string object specified by input parameter repeats
 
     Examples
     --------
