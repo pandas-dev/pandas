@@ -29,7 +29,7 @@ cdef extern from "Python.h":
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, uint8_t, uint64_t, int64_t
+from numpy cimport ndarray, uint8_t, uint64_t, int64_t, float64_t
 cnp.import_array()
 
 from util cimport UINT64_MAX, INT64_MAX, INT64_MIN
@@ -694,7 +694,7 @@ cdef class TextReader:
             if ptr == NULL:
                 if not os.path.exists(source):
                     raise compat.FileNotFoundError(
-                        'File %s does not exist' % source)
+                        'File {source} does not exist'.format(source=source))
                 raise IOError('Initializing from file failed')
 
             self.parser.source = ptr
@@ -772,9 +772,10 @@ cdef class TextReader:
 
                     if name == '':
                         if self.has_mi_columns:
-                            name = 'Unnamed: %d_level_%d' % (i, level)
+                            name = ('Unnamed: {i}_level_{lvl}'
+                                    .format(i=i, lvl=level))
                         else:
-                            name = 'Unnamed: %d' % i
+                            name = 'Unnamed: {i}'.format(i=i)
                         unnamed_count += 1
 
                     count = counts.get(name, 0)
@@ -849,8 +850,8 @@ cdef class TextReader:
             #                        'data has %d fields'
             #                        % (passed_count, field_count))
 
-            if self.has_usecols and self.allow_leading_cols and \
-                    not callable(self.usecols):
+            if (self.has_usecols and self.allow_leading_cols and
+                    not callable(self.usecols)):
                 nuse = len(self.usecols)
                 if nuse == passed_count:
                     self.leading_cols = 0
@@ -1027,8 +1028,10 @@ cdef class TextReader:
 
         if self.table_width - self.leading_cols > num_cols:
             raise ParserError(
-                "Too many columns specified: expected %s and found %s" %
-                (self.table_width - self.leading_cols, num_cols))
+                "Too many columns specified: expected {expected} and "
+                "found {found}"
+                .format(expected=self.table_width - self.leading_cols,
+                        found=num_cols))
 
         results = {}
         nused = 0
@@ -1036,8 +1039,8 @@ cdef class TextReader:
             if i < self.leading_cols:
                 # Pass through leading columns always
                 name = i
-            elif self.usecols and not callable(self.usecols) and \
-                    nused == len(self.usecols):
+            elif (self.usecols and not callable(self.usecols) and
+                    nused == len(self.usecols)):
                 # Once we've gathered all requested columns, stop. GH5766
                 break
             else:
@@ -1103,7 +1106,7 @@ cdef class TextReader:
                 col_res = _maybe_upcast(col_res)
 
             if col_res is None:
-                raise ParserError('Unable to parse column %d' % i)
+                raise ParserError('Unable to parse column {i}'.format(i=i))
 
             results[i] = col_res
 
@@ -1222,8 +1225,8 @@ cdef class TextReader:
         elif dtype.kind == 'U':
             width = dtype.itemsize
             if width > 0:
-                raise TypeError("the dtype %s is not "
-                                "supported for parsing" % dtype)
+                raise TypeError("the dtype {dtype} is not "
+                                "supported for parsing".format(dtype=dtype))
 
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
@@ -1241,12 +1244,12 @@ cdef class TextReader:
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
         elif is_datetime64_dtype(dtype):
-            raise TypeError("the dtype %s is not supported "
+            raise TypeError("the dtype {dtype} is not supported "
                             "for parsing, pass this column "
-                            "using parse_dates instead" % dtype)
+                            "using parse_dates instead".format(dtype=dtype))
         else:
-            raise TypeError("the dtype %s is not "
-                            "supported for parsing" % dtype)
+            raise TypeError("the dtype {dtype} is not "
+                            "supported for parsing".format(dtype=dtype))
 
     cdef _string_convert(self, Py_ssize_t i, int64_t start, int64_t end,
                          bint na_filter, kh_str_t *na_hashset):
@@ -2058,7 +2061,7 @@ cdef kh_float64_t* kset_float64_from_list(values) except NULL:
         khiter_t k
         kh_float64_t *table
         int ret = 0
-        cnp.float64_t val
+        float64_t val
         object value
 
     table = kh_init_float64()
@@ -2101,7 +2104,7 @@ cdef raise_parser_error(object base, parser_t *parser):
                 Py_XDECREF(type)
                 raise old_exc
 
-    message = '%s. C error: ' % base
+    message = '{base}. C error: '.format(base=base)
     if parser.error_msg != NULL:
         if PY3:
             message += parser.error_msg.decode('utf-8')
