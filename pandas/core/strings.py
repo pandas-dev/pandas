@@ -680,12 +680,33 @@ def str_repeat(arr, repeats):
 
     Parameters
     ----------
-    repeats : int or array
+    repeats : int or array of int
         Same value for all (int) or different value per (array)
 
     Returns
     -------
-    repeated : Series/Index of objects
+    Series  or Index of objects
+
+    Examples
+    --------
+    
+    >>> s = pd.Series(['a', 'b', 'c'])
+    >>> s
+    0    a
+    1    b
+    2    c
+    
+    Single int repeats string in Series
+    >>> s.str.repeat(2)
+    0    aa
+    1    bb
+    2    cc
+
+    Array of int repeats corresponding string in Series 
+    >>> s.str.repeat([1, 2, 3])
+    0      a
+    1     bb
+    2    ccc
     """
     if is_scalar(repeats):
 
