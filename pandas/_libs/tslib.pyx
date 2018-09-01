@@ -46,8 +46,7 @@ from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
 from tslibs.offsets cimport to_offset
 
-from tslibs.timestamps cimport (create_timestamp_from_ts,
-                                _NS_UPPER_BOUND, _NS_LOWER_BOUND)
+from tslibs.timestamps cimport create_timestamp_from_ts
 from tslibs.timestamps import Timestamp
 
 
@@ -61,11 +60,13 @@ cdef inline object create_datetime_from_ts(
     return datetime(dts.year, dts.month, dts.day, dts.hour,
                     dts.min, dts.sec, dts.us, tz)
 
+
 cdef inline object create_date_from_ts(
         int64_t value, npy_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.date from its parts """
     return date(dts.year, dts.month, dts.day)
+
 
 cdef inline object create_time_from_ts(
         int64_t value, npy_datetimestruct dts,
@@ -348,10 +349,10 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # check the bounds
         if not need_to_iterate:
 
-            if ((fvalues < _NS_LOWER_BOUND).any()
-                    or (fvalues > _NS_UPPER_BOUND).any()):
-                raise OutOfBoundsDatetime(
-                    "cannot convert input with unit '{0}'".format(unit))
+            if ((fvalues < Timestamp.min.value).any()
+                    or (fvalues > Timestamp.max.value).any()):
+                raise OutOfBoundsDatetime("cannot convert input with unit "
+                                          "'{unit}'".format(unit=unit))
             result = (iresult * m).astype('M8[ns]')
             iresult = result.view('i8')
             iresult[mask] = iNaT
@@ -377,8 +378,8 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     except OverflowError:
                         if is_raise:
                             raise OutOfBoundsDatetime(
-                                "cannot convert input {0} with the unit "
-                                "'{1}'".format(val, unit))
+                                "cannot convert input {val} with the unit "
+                                "'{unit}'".format(val=val, unit=unit))
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
@@ -393,16 +394,16 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
                     except ValueError:
                         if is_raise:
                             raise ValueError(
-                                "non convertible value {0} with the unit "
-                                "'{1}'".format(val, unit))
+                                "non convertible value {val} with the unit "
+                                "'{unit}'".format(val=val, unit=unit))
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
                     except:
                         if is_raise:
                             raise OutOfBoundsDatetime(
-                                "cannot convert input {0} with the unit "
-                                "'{1}'".format(val, unit))
+                                "cannot convert input {val} with the unit "
+                                "'{unit}'".format(val=val, unit=unit))
                         elif is_ignore:
                             raise AssertionError
                         iresult[i] = NPY_NAT
@@ -695,8 +696,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if is_coerce:
                     iresult[i] = NPY_NAT
                 else:
-                    raise TypeError("{0} is not convertible to datetime"
-                                    .format(type(val)))
+                    raise TypeError("{typ} is not convertible to datetime"
+                                    .format(typ=type(val)))
 
         if seen_datetime and seen_integer:
             # we have mixed datetimes & integers

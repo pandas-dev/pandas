@@ -50,23 +50,7 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
 
 
 cpdef object get_value_box(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i, sz
-
-    if util.is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
-
-    if i < 0 and sz > 0:
-        i += sz
-
-    if i >= sz or sz == 0 or i < 0:
-        raise IndexError('index out of bounds')
-
-    return get_value_at(arr, i, tz=None)
+    return get_value_at(arr, loc, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -120,10 +104,7 @@ cdef class IndexEngine:
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or util.is_array(loc):
-            arr[loc] = value
-        else:
-            util.set_value_at(arr, loc, value)
+        arr[loc] = value
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):

@@ -193,6 +193,27 @@ class GoodDocStrings(object):
         """
         pass
 
+    def mode(self, axis, numeric_only):
+        """
+        Ensure sphinx directives don't affect checks for trailing periods.
+
+        Parameters
+        ----------
+        axis : str
+            Sentence ending in period, followed by single directive.
+
+            .. versionchanged:: 0.1.2
+
+        numeric_only : boolean
+            Sentence ending in period, followed by multiple directives.
+
+            .. versionadded:: 0.1.2
+            .. deprecated:: 0.00.0
+                A multiline description,
+                which spans another line.
+        """
+        pass
+
 
 class BadGenericDocStrings(object):
     """Everything here has a bad docstring
@@ -374,6 +395,31 @@ class BadParameters(object):
            Doesn't end with a dot
         """
 
+    def no_description_period_with_directive(self, kind):
+        """
+        Forgets to add a period, and also includes a directive.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionadded:: 0.00.0
+        """
+
+    def no_description_period_with_directives(self, kind):
+        """
+        Forgets to add a period, and also includes multiple directives.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionchanged:: 0.00.0
+           .. deprecated:: 0.00.0
+        """
+
     def parameter_capitalization(self, kind):
         """
         Forgets to capitalize the description.
@@ -448,22 +494,40 @@ class TestValidator(object):
     @pytest.fixture(autouse=True, scope="class")
     def import_scripts(self):
         """
-        Because the scripts directory is above the top level pandas package
-        we need to hack sys.path to know where to find that directory for
-        import. The below traverses up the file system to find the scripts
-        directory, adds to location to sys.path and imports the required
-        module into the global namespace before as part of class setup,
-        reverting those changes on teardown.
+        Import the validation scripts from the scripts directory.
+
+        Because the scripts directory is above the top level pandas package,
+        we need to modify `sys.path` so that Python knows where to find it.
+
+        The code below traverses up the file system to find the scripts
+        directory, adds the location to `sys.path`, and imports the required
+        module into the global namespace before as part of class setup.
+
+        During teardown, those changes are reverted.
         """
+
         up = os.path.dirname
+        global_validate_one = "validate_one"
         file_dir = up(os.path.abspath(__file__))
-        script_dir = os.path.join(up(up(up(file_dir))), 'scripts')
+
+        script_dir = os.path.join(up(up(up(file_dir))), "scripts")
         sys.path.append(script_dir)
-        from validate_docstrings import validate_one
-        globals()['validate_one'] = validate_one
+
+        try:
+            from validate_docstrings import validate_one
+            globals()[global_validate_one] = validate_one
+        except ImportError:
+            # Remove addition to `sys.path`
+            sys.path.pop()
+
+            # Import will fail if the pandas installation is not inplace.
+            raise pytest.skip("pandas/scripts directory does not exist")
+
         yield
+
+        # Teardown.
         sys.path.pop()
-        del globals()['validate_one']
+        del globals()[global_validate_one]
 
     def _import_path(self, klass=None, func=None):
         """
@@ -495,7 +559,7 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains'])
+        'contains', 'mode'])
     def test_good_functions(self, func):
         assert len(validate_one(self._import_path(   # noqa: F821
             klass='GoodDocStrings', func=func))['errors']) == 0
@@ -530,6 +594,8 @@ class TestValidator(object):
           'Unknown parameters {kind: str}',
           'Parameter "kind: str" has no type')),
         ('BadParameters', 'no_description_period',
+         ('Parameter "kind" description should finish with "."',)),
+        ('BadParameters', 'no_description_period_with_directive',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),

@@ -42,6 +42,7 @@ from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
+DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 
 def get_api_items():
@@ -301,7 +302,14 @@ class Docstring(object):
         return self.doc_parameters[param][0]
 
     def parameter_desc(self, param):
-        return self.doc_parameters[param][1]
+        desc = self.doc_parameters[param][1]
+        # Find and strip out any sphinx directives
+        for directive in DIRECTIVES:
+            full_directive = '.. {}'.format(directive)
+            if full_directive in desc:
+                # Only retain any description before the directive
+                desc = desc[:desc.index(full_directive)]
+        return desc
 
     @property
     def see_also(self):
