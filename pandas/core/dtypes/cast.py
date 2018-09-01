@@ -1222,7 +1222,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         if isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
             subarr = np.empty(length, dtype=object)
             if not isna(value):
-                value = str(value)
+                value = text_type(value)
         else:
             subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
