@@ -1028,6 +1028,11 @@ class TestDatetimeIndexTimezones(object):
         expected = Index([False] * 4)
         tm.assert_index_equal(result, expected)
 
+        dti_fixed = dti.tz_localize(pytz.FixedOffset(300))
+        result = dti_fixed.is_dst()
+        expected = Index([False] * 4)
+        tm.assert_index_equal(result, expected)
+
         dti_nat = pd.DatetimeIndex([pd.NaT])
         result = dti_nat.is_dst()
         expected = Index([False])
