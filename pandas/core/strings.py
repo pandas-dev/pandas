@@ -1321,14 +1321,16 @@ def str_pad(arr, width, side='left', fillchar=' '):
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in fillchar
     side : {'left', 'right', 'both'}, default 'left'
+        Side from which to fill resulting string
     fillchar : str, default ' '
         Additional character for filling, default is whitespace
 
     Returns
     -------
-    Series or Index of objects
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object
 
     Examples
     --------
@@ -1337,15 +1339,15 @@ def str_pad(arr, width, side='left', fillchar=' '):
     0    panda
     1      fox
 
-    >>> s.str.pad(10)
+    >>> s.str.pad(width=10)
     0         panda
     1           fox
 
-    >>> s.str.pad(10, 'right', '-')
+    >>> s.str.pad(width=10, side='right', fillchar='-')
     0    panda-----
     1    fox-------
 
-    >>> s.str.pad(10, 'both', '-')
+    >>> s.str.pad(width=10, side='both', fillchar='-')
     0    --panda---
     1    ---fox----
     """
