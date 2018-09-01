@@ -689,7 +689,6 @@ def str_repeat(arr, repeats):
 
     Examples
     --------
-
     >>> s = pd.Series(['a', 'b', 'c'])
     >>> s
     0    a
