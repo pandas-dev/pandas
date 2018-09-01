@@ -148,6 +148,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __init__(self, data=None, index=None, dtype=None, name=None,
                  copy=False, fastpath=False):
+
         # we are called internally, so short-circuit
         if fastpath:
 
@@ -4209,6 +4210,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     """ sanitize input data to an ndarray, copy if specified, coerce to the
     dtype if specified
     """
+
     if dtype is not None:
         dtype = pandas_dtype(dtype)
 
