@@ -1314,8 +1314,8 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index with additional characters on
+    specified side to fill up to specified width.
 
     Parameters
     ----------
@@ -1323,12 +1323,31 @@ def str_pad(arr, width, side='left', fillchar=' '):
         Minimum width of resulting string; additional characters will be filled
         with spaces
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
+    fillchar : str, default ' '
         Additional character for filling, default is whitespace
 
     Returns
     -------
-    padded : Series/Index of objects
+    Series or Index of objects
+
+    Examples
+    --------
+    >>> s = pd.Series(["panda", "fox"])
+    >>> s
+    0    panda
+    1      fox
+
+    >>> s.str.pad(10)
+    0         panda
+    1           fox
+
+    >>> s.str.pad(10, 'right')
+    0    panda     
+    1    fox       
+
+    >>> s.str.pad(10, 'both', '-')
+    0    --panda---
+    1    ---fox----
     """
 
     if not isinstance(fillchar, compat.string_types):
@@ -1385,17 +1404,40 @@ def str_rsplit(arr, pat=None, n=None):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in the Series/Index
+    Slice substrings from each element in the Series or Index
 
     Parameters
     ----------
     start : int or None
+        Start position for slice operation
     stop : int or None
+        Stop position for slice operation
     step : int or None
+        Step size for slice operation
 
     Returns
     -------
-    sliced : Series/Index of objects
+    Series or Index of object
+        Series or Index containing sliced substring from original string
+
+    Examples
+    --------
+    >>> s = pd.Series(["panda", "fox"])
+    >>> s
+    0    panda
+    1      fox
+
+    >>> s.str.slice(start=2)
+    0    nda
+    1      x
+
+    >>> s.str.slice(stop=2)
+    0    pa
+    1    fo
+
+    >>> s.str.slice(step=2)
+    0    pna
+    1     fx
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
