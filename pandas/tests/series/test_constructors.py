@@ -135,10 +135,12 @@ class TestSeriesConstructors():
         assert result.index.tolist() == ['b', 'a', 'c']
 
     def test_constructor_no_data_string_type(self):
+        # GH 22477
         result = pd.Series(index=[1], dtype=str)
         assert result.isna().all()
 
     def test_constructor_single_element_string_type(self):
+        # GH 22477
         result = pd.Series(13, index=[1], dtype=str)
         assert result.values.tolist() == ['13']
 
