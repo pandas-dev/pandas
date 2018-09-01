@@ -134,6 +134,14 @@ class TestSeriesConstructors():
         result = pd.Series(index=['b', 'a', 'c'])
         assert result.index.tolist() == ['b', 'a', 'c']
 
+    def test_constructor_no_data_string_type(self):
+        result = pd.Series(index=[1], dtype=str)
+        assert result.isna().all()
+    
+    def test_constructor_single_element_string_type(self):
+        result = pd.Series(13, index=[1], dtype=str)
+        assert result.values.tolist() == ['13']
+
     def test_constructor_dtype_str_na_values(self, string_dtype):
         # https://github.com/pandas-dev/pandas/issues/21083
         ser = Series(['x', None], dtype=string_dtype)
