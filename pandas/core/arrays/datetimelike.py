@@ -473,7 +473,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                           "is deprecated, will be removed in a future "
                           "version.  Instead of adding `arr`, "
                           "add `arr * self.freq`"
-                          .format(cls=type(self).__name__), FutureWarning)
+                          .format(cls=type(self).__name__),
+                          FutureWarning)
 
         if is_period_dtype(self):
             # easy case for PeriodIndex

@@ -1428,7 +1428,7 @@ class TimeGrouper(Grouper):
                                          freq=self.freq,
                                          name=ax.name)
 
-        end_stamps = labels + 1
+        end_stamps = labels + self.freq
         bins = ax.searchsorted(end_stamps, side='left')
 
         # Addresses GH #10530

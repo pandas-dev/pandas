@@ -1771,7 +1771,7 @@ cdef class _Period(object):
     def end_time(self):
         # freq.n can't be negative or 0
         # ordinal = (self + self.freq.n).start_time.value - 1
-        ordinal = (self + 1).start_time.value - 1
+        ordinal = (self + self.freq).start_time.value - 1
         return Timestamp(ordinal)
 
     def to_timestamp(self, freq=None, how='start', tz=None):
@@ -1798,7 +1798,8 @@ cdef class _Period(object):
 
         end = how == 'E'
         if end:
-            return (self + 1).to_timestamp(how='start') - Timedelta(1, 'ns')
+            endpoint = (self + self.freq).to_timestamp(how='start')
+            return endpoint - Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
