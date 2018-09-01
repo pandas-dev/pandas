@@ -558,7 +558,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
     Returns
     -------
-    replaced : Series/Index of objects
+    Series/Index of objects
 
     Raises
     ------
