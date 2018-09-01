@@ -1404,17 +1404,40 @@ def str_rsplit(arr, pat=None, n=None):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in the Series/Index
+    Slice substrings from each element in the Series or Index
 
     Parameters
     ----------
     start : int or None
+        Start position for slice operation
     stop : int or None
+        Stop position for slice operation
     step : int or None
+        Step size for slice operation
 
     Returns
     -------
-    sliced : Series/Index of objects
+    Series or Index of object
+        Series or Index containing sliced substring from original string
+
+    Examples
+    --------
+    >>> s = pd.Series(["panda", "fox"])
+    >>> s
+    0    panda
+    1      fox
+
+    >>> s.str.slice(start=2)
+    0    nda
+    1      x
+
+    >>> s.str.slice(stop=2)
+    0    pa
+    1    fo
+
+    >>> s.str.slice(step=2)
+    0    pna
+    1     fx
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
