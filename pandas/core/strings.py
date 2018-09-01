@@ -689,20 +689,20 @@ def str_repeat(arr, repeats):
 
     Examples
     --------
-    
+
     >>> s = pd.Series(['a', 'b', 'c'])
     >>> s
     0    a
     1    b
     2    c
-    
+
     Single int repeats string in Series
     >>> s.str.repeat(2)
     0    aa
     1    bb
     2    cc
 
-    Array of int repeats corresponding string in Series 
+    Array of int repeats corresponding string in Series
     >>> s.str.repeat([1, 2, 3])
     0      a
     1     bb
