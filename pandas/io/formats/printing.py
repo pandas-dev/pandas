@@ -310,11 +310,12 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         space2 = "\n "  # space for the opening '['
 
     n = len(obj)
-    if not line_break_each_value:
-        sep = ','
+    if line_break_each_value:
+        # If we want to vertically align on each value of obj, we need to
+        # separate values by a line break and indent the values
+        sep = ',\n ' + ' ' * len(name)
     else:
-        # If we want to align on each value, we need a different separator.
-        sep = (',\n ' + ' ' * len(name))
+        sep = ','
     max_seq_items = get_option('display.max_seq_items') or n
 
     # are we a truncated display
@@ -477,6 +478,8 @@ def format_object_attrs(obj):
         attrs.append(('dtype', "'{}'".format(obj.dtype)))
     if getattr(obj, 'name', None) is not None:
         attrs.append(('name', default_pprint(obj.name)))
+    elif getattr(obj, 'names', None) is not None and any(obj.names):
+        attrs.append(('names', default_pprint(obj.names)))
     max_seq_items = get_option('display.max_seq_items') or len(obj)
     if len(obj) > max_seq_items:
         attrs.append(('length', len(obj)))

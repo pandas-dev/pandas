@@ -955,21 +955,6 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_attrs(self):
-        """
-        Return a list of tuples of the (attr,formatted_value)
-        """
-        attrs = [('dtype', "'{}'".format(self.dtype))]
-        if self.names is not None and any(self.names):
-            attrs.append(('names', default_pprint(self.names)))
-        max_seq_items = get_option('display.max_seq_items') or len(self)
-        if len(self) > max_seq_items:
-            attrs.append(('length', len(self)))
-        return attrs
-
-    def _format_space(self):
-        return " "
-
     def _format_data(self, name=None):
         """
         Return the formatted data as a unicode string
