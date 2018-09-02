@@ -675,8 +675,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
 def str_repeat(arr, repeats):
     """
-    Duplicate each string in the Series/Index by indicated number
-    of times.
+    Duplicate each string in the Series or Index
 
     Parameters
     ----------
@@ -686,7 +685,7 @@ def str_repeat(arr, repeats):
     Returns
     -------
     Series or Index of object
-        Series or Index of repeated string objects specified by 
+        Series or Index of repeated string objects specified by
         input parameter repeats
 
     Examples
