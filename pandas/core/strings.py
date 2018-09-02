@@ -1314,17 +1314,17 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index up to width
+    Pad strings in the Series/Index up to width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with character defined in fillchar
+        with character defined in fillchar.
     side : {'left', 'right', 'both'}, default 'left'
-        Side from which to fill resulting string
+        Side from which to fill resulting string.
     fillchar : str, default ' '
-        Additional character for filling, default is whitespace
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
