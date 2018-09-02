@@ -3100,6 +3100,7 @@ class TestDataFrameIndexing(TestData):
         assert_series_equal(result, expected)
 
     def test_interval_index(self):
+        # GH 19977
         index = pd.interval_range(start=0, periods=3)
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
                           index=index,
