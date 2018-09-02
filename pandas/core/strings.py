@@ -1314,8 +1314,7 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with additional characters on
-    specified side to fill up to specified width.
+    Pad strings in the Series/Index up to width
 
     Parameters
     ----------
