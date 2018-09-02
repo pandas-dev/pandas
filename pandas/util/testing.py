@@ -1335,7 +1335,6 @@ def assert_frame_equal(left, right, check_dtype=True,
 
         * left.index.names == right.index.names
         * left.columns.names == right.columns.names
-        .
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -1352,6 +1351,11 @@ def assert_frame_equal(left, right, check_dtype=True,
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.
+
+    See Also
+    --------
+    assert_series_equal: equivalent method to this for asserting Series equality
+    DataFrame.equals: check DataFrame equality
     """
 
     # instance validation
