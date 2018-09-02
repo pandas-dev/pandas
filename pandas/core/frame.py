@@ -7240,12 +7240,6 @@ class DataFrame(NDFrame):
         Series.mode : Return the highest frequency value in a Series.
         Series.value_counts : Return the counts of values in a Series.
 
-        Notes
-        -----
-        Every column or row of the resulting DataFrame contains all its modes.
-        And possibly NaN values at the end (if other columns or rows have a
-        higher number of modes).
-
         Examples
         --------
         >>> df = pd.DataFrame([('bird', 2, 2),
@@ -7261,8 +7255,8 @@ class DataFrame(NDFrame):
         spider   arthropod     8    0.0
         ostrich       bird     2    NaN
 
-        By default, missing values are not considered, and the mode of winds
-        are both 0 and 2. The second row of species and legs contains NaN,
+        By default, missing values are not considered, and the mode of wings
+        are both 0 and 2. The second row of species and legs contains ``NaN``,
         because they have only one mode, but the DataFrame has two rows.
 
         >>> df.mode()
@@ -7270,8 +7264,8 @@ class DataFrame(NDFrame):
         0    bird   2.0    0.0
         1     NaN   NaN    2.0
 
-        Setting ``dropna=False`` NaN values are considered and they can be the
-        mode (like for wings).
+        Setting ``dropna=False`` ``NaN`` values are considered and they can be
+        the mode (like for wings).
 
         >>> df.mode(dropna=False)
           species  legs  wings
