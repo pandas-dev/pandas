@@ -3114,7 +3114,8 @@ class TestDataFrameIndexing(TestData):
                           index=index,
                           columns=['A', 'B', 'C'])
 
-        index_exp = pd.interval_range(start=0, periods=2, freq=1, closed='both')
+        index_exp = pd.interval_range(start=0, periods=2,
+                                      freq=1, closed='both')
         expected = pd.Series([1, 4], index=index_exp, name='A')
         result = df.loc[1, 'A']
         assert_series_equal(result, expected)
