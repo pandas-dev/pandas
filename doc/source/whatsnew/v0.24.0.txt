@@ -669,6 +669,7 @@ Indexing
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
 - Bug where mixed indexes wouldn't allow integers for ``.at`` (:issue:`19860`)
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
+- Bug when asking ``.loc`` for :class:`DataFrame` with :class:`IntervalIndex` index. (:issue:`19977`)
 
 Missing
 ^^^^^^^
