@@ -675,18 +675,18 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
 def str_repeat(arr, repeats):
     """
-    Duplicate each string in the Series or Index
+    Duplicate each string in the Series or Index.
 
     Parameters
     ----------
     repeats : int or sequence of int
-        Same value for all (int) or different value per (sequence)
+        Same value for all (int) or different value per (sequence).
 
     Returns
     -------
     Series or Index of object
         Series or Index of repeated string objects specified by
-        input parameter repeats
+        input parameter repeats.
 
     Examples
     --------
@@ -711,7 +711,6 @@ def str_repeat(arr, repeats):
     2    ccc
     """
     if is_scalar(repeats):
-
         def rep(x):
             try:
                 return compat.binary_type.__mul__(x, repeats)
