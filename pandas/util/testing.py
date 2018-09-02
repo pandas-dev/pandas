@@ -1354,7 +1354,7 @@ def assert_frame_equal(left, right, check_dtype=True,
 
     See Also
     --------
-    assert_series_equal: equivalent method to this for asserting Series equality
+    assert_series_equal: equivalent method for asserting Series equality
     DataFrame.equals: check DataFrame equality
     """
 
