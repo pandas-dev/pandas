@@ -21,14 +21,14 @@ if [ "$DOCTEST" ]; then
 
     # DataFrame / Series docstrings
     pytest --doctest-modules -v pandas/core/frame.py \
-        -k"-assign -axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_records -to_stata -transform"
+        -k"-assign -axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_stata -transform"
 
     if [ $? -ne "0" ]; then
         RET=1
     fi
 
     pytest --doctest-modules -v pandas/core/series.py \
-        -k"-agg -map -nlargest -nonzero -nsmallest -reindex -searchsorted -to_dict"
+        -k"-nlargest -nonzero -nsmallest -reindex -searchsorted -to_dict"
 
     if [ $? -ne "0" ]; then
         RET=1

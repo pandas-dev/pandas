@@ -1,8 +1,10 @@
-import os
-import sys
-
-import numpy as np
+import string
+import random
 import pytest
+import numpy as np
+
+import validate_docstrings
+validate_one = validate_docstrings.validate_one
 
 
 class GoodDocStrings(object):
@@ -44,7 +46,7 @@ class GoodDocStrings(object):
         float
             Random number generated.
         """
-        return random.random()  # noqa: F821
+        return random.random()
 
     def random_letters(self):
         """
@@ -60,9 +62,8 @@ class GoodDocStrings(object):
         letters : str
             String of random letters.
         """
-        length = random.randint(1, 10)  # noqa: F821
-        letters = ''.join(random.choice(string.ascii_lowercase)  # noqa: F821
-                          for i in range(length))
+        length = random.randint(1, 10)
+        letters = "".join(random.sample(string.ascii_lowercase, length))
         return length, letters
 
     def sample_values(self):
@@ -78,7 +79,7 @@ class GoodDocStrings(object):
             Random number generated.
         """
         while True:
-            yield random.random()  # noqa: F821
+            yield random.random()
 
     def head(self):
         """
@@ -190,6 +191,27 @@ class GoodDocStrings(object):
         2     True
         3    False
         dtype: bool
+        """
+        pass
+
+    def mode(self, axis, numeric_only):
+        """
+        Ensure sphinx directives don't affect checks for trailing periods.
+
+        Parameters
+        ----------
+        axis : str
+            Sentence ending in period, followed by single directive.
+
+            .. versionchanged:: 0.1.2
+
+        numeric_only : boolean
+            Sentence ending in period, followed by multiple directives.
+
+            .. versionadded:: 0.1.2
+            .. deprecated:: 0.00.0
+                A multiline description,
+                which spans another line.
         """
         pass
 
@@ -374,6 +396,31 @@ class BadParameters(object):
            Doesn't end with a dot
         """
 
+    def no_description_period_with_directive(self, kind):
+        """
+        Forgets to add a period, and also includes a directive.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionadded:: 0.00.0
+        """
+
+    def no_description_period_with_directives(self, kind):
+        """
+        Forgets to add a period, and also includes multiple directives.
+
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+
+           .. versionchanged:: 0.00.0
+           .. deprecated:: 0.00.0
+        """
+
     def parameter_capitalization(self, kind):
         """
         Forgets to capitalize the description.
@@ -445,26 +492,6 @@ class BadReturns(object):
 
 class TestValidator(object):
 
-    @pytest.fixture(autouse=True, scope="class")
-    def import_scripts(self):
-        """
-        Because the scripts directory is above the top level pandas package
-        we need to hack sys.path to know where to find that directory for
-        import. The below traverses up the file system to find the scripts
-        directory, adds to location to sys.path and imports the required
-        module into the global namespace before as part of class setup,
-        reverting those changes on teardown.
-        """
-        up = os.path.dirname
-        file_dir = up(os.path.abspath(__file__))
-        script_dir = os.path.join(up(up(up(file_dir))), 'scripts')
-        sys.path.append(script_dir)
-        from validate_docstrings import validate_one
-        globals()['validate_one'] = validate_one
-        yield
-        sys.path.pop()
-        del globals()['validate_one']
-
     def _import_path(self, klass=None, func=None):
         """
         Build the required import path for tests in this module.
@@ -481,27 +508,29 @@ class TestValidator(object):
         str
             Import path of specified object in this module
         """
-        base_path = 'pandas.tests.scripts.test_validate_docstrings'
+        base_path = "scripts.tests.test_validate_docstrings"
+
         if klass:
-            base_path = '.'.join([base_path, klass])
+            base_path = ".".join([base_path, klass])
+
         if func:
-            base_path = '.'.join([base_path, func])
+            base_path = ".".join([base_path, func])
 
         return base_path
 
     def test_good_class(self):
-        assert validate_one(self._import_path(  # noqa: F821
+        assert validate_one(self._import_path(
             klass='GoodDocStrings')) == 0
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains'])
+        'contains', 'mode'])
     def test_good_functions(self, func):
-        assert validate_one(self._import_path(   # noqa: F821
+        assert validate_one(self._import_path(
             klass='GoodDocStrings', func=func)) == 0
 
     def test_bad_class(self):
-        assert validate_one(self._import_path(  # noqa: F821
+        assert validate_one(self._import_path(
             klass='BadGenericDocStrings')) > 0
 
     @pytest.mark.parametrize("func", [
@@ -530,6 +559,8 @@ class TestValidator(object):
           'Unknown parameters {kind: str}',
           'Parameter "kind: str" has no type')),
         ('BadParameters', 'no_description_period',
+         ('Parameter "kind" description should finish with "."',)),
+        ('BadParameters', 'no_description_period_with_directive',
          ('Parameter "kind" description should finish with "."',)),
         ('BadParameters', 'parameter_capitalization',
          ('Parameter "kind" description should start with a capital letter',)),
