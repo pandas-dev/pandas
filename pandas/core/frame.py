@@ -726,12 +726,31 @@ class DataFrame(NDFrame):
 
     def iteritems(self):
         """
-        Iterator over (column name, Series) pairs.
+        Iterate over DataFrame columns as (column name, Series) pairs.
 
         See also
         --------
         iterrows : Iterate over DataFrame rows as (index, Series) pairs.
         itertuples : Iterate over DataFrame rows as namedtuples of the values.
+
+        Examples
+        --------
+
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
+                             index=['a', 'b'])
+        >>> df
+           col1 col2
+        a     1  0.1
+        b     2  0.2
+        >>> for col in df.iteritems():
+        ...     print(col)
+        ...
+        ('col1', a   1
+        b   2
+        Name: col1, dtype: int64)
+        ('col2', a   0.1
+        b   0.2
+        Name: col2, dtype: float64)
 
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
