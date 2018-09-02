@@ -7220,9 +7220,10 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            The axis to iterate over while searching for the mode.
-            To find the mode for each column, use ``axis='index'``.
-            To find the mode for each row, use ``axis='columns'``.
+            The axis to iterate over while searching for the mode:
+
+            * 0 or 'index' : get mode of each column
+            * 1 or 'columns' : get mode of each row
         numeric_only : bool, default False
             If True, only apply to numeric columns.
         dropna : bool, default True
