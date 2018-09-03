@@ -151,8 +151,8 @@ class TestSeriesConstructors():
 
     def test_constructor_unicode_element_string_type(self):
         # GH 22477
-        result = pd.Series(u'ѐ', index=[1], dtype=str)
-        assert result.values.tolist() == [u'ѐ']
+        result = pd.Series('ѐ', index=[1], dtype=str)
+        assert result.values.tolist() == ['ѐ']
 
     def test_constructor_dtype_str_na_values(self, string_dtype):
         # https://github.com/pandas-dev/pandas/issues/21083

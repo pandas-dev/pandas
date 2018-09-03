@@ -6,7 +6,7 @@ import numpy as np
 
 from pandas._libs import lib, tslib, tslibs
 from pandas._libs.tslibs import OutOfBoundsDatetime, Period, iNaT
-from pandas.compat import PY3, string_types, text_type
+from pandas.compat import PY3, string_types, text_type, to_str
 
 from .common import (
     _INT64_DTYPE, _NS_DTYPE, _POSSIBLY_CAST_DTYPES, _TD_DTYPE, _string_dtypes,
@@ -1222,7 +1222,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         if isinstance(dtype, np.dtype) and dtype.kind in ("U", "S"):
             subarr = np.empty(length, dtype=object)
             if not isna(value):
-                value = text_type(value)
+                value = to_str(value)
         else:
             subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)
