@@ -1333,22 +1333,46 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
     Examples
     --------
-    >>> s = pd.Series(["panda", "fox"])
+    >>> s = pd.Series(["caribou", "tiger"])
     >>> s
-    0    panda
-    1      fox
+    0    caribou
+    1      tiger
+    dtype: object
 
     >>> s.str.pad(width=10)
-    0         panda
-    1           fox
+    0       caribou
+    1         tiger
+    dtype: object
 
     >>> s.str.pad(width=10, side='right', fillchar='-')
-    0    panda-----
-    1    fox-------
+    0    caribou---
+    1    tiger-----
+    dtype: object
 
     >>> s.str.pad(width=10, side='both', fillchar='-')
-    0    --panda---
-    1    ---fox----
+    0    -caribou--
+    1    --tiger---
+    dtype: object
+    
+    >>> s = pd.Series(["caribou", 0, np.NaN])
+    >>> s.str.pad(width=10, fillchar='-')
+    0    ---caribou
+    1           NaN
+    2           NaN
+    dtype: object
+
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character.
+    Series.str.pad: Fills the specified sides of strings with an arbitrary
+        character.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0' 
+        character.
     """
 
     if not isinstance(fillchar, compat.string_types):
