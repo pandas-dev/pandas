@@ -1309,12 +1309,17 @@ def assert_frame_equal(left, right, check_dtype=True,
     """
     Check that left and right DataFrame are equal.
 
+    This function is intended to compare two DataFrames and output any
+    differences. Is is mostly intended for use in unit tests.
+    Additional parameters allow varying the strictness of the
+    equality checks performed.
+
     Parameters
     ----------
     left : DataFrame
-        First frame to compare.
+        First DataFrame to compare.
     right : DataFrame
-        Second frame to compare.
+        Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
     check_index_type : {'equiv'} or bool, default 'equiv'
@@ -1354,8 +1359,32 @@ def assert_frame_equal(left, right, check_dtype=True,
 
     See Also
     --------
-    assert_series_equal: equivalent method for asserting Series equality
-    DataFrame.equals: check DataFrame equality
+    assert_series_equal : Equivalent method for asserting Series equality.
+    DataFrame.equals : Check DataFrame equality.
+
+    Examples
+    --------
+    This example shows comparing two DataFrames that are equal
+    but with columns of differing dtypes.
+
+    >>> from pandas.util.testing import assert_frame_equal
+    >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
+
+    df1 equals itself.
+    >>> assert_frame_equal(df1, df1)
+
+    df1 differs from df2 as column 'b' is of a different type.
+    >>> assert_frame_equal(df1, df2)
+    Traceback (most recent call last):
+    AssertionError: Attributes are different
+
+    Attribute "dtype" are different
+    [left]:  int64
+    [right]: float64
+
+    Ignore differing dtypes in columns with check_dtype.
+    >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
 
     # instance validation
