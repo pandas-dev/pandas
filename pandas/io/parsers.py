@@ -1632,7 +1632,6 @@ class ParserBase(object):
         converted : ndarray
         na_count : int
         """
-
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = algorithms.isin(values, list(na_values))
@@ -1650,15 +1649,15 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values,
-                                                        False)
+                    na_count = parsers.sanitize_objects(result,
+                                                        na_values, False)
         else:
             result = values
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = libops.maybe_convert_bool(values,
+            result = libops.maybe_convert_bool(np.asarray(values),
                                                true_values=self.true_values,
                                                false_values=self.false_values)
 

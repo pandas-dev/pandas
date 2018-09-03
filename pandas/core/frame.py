@@ -314,15 +314,13 @@ class DataFrame(NDFrame):
 
     Constructing DataFrame from numpy ndarray:
 
-    >>> df2 = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
-    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    ...                    columns=['a', 'b', 'c'])
     >>> df2
-        a   b   c   d   e
-    0   2   8   8   3   4
-    1   4   2   9   0   9
-    2   1   0   7   8   0
-    3   5   1   7   1   3
-    4   6   0   2   4   2
+       a  b  c
+    0  1  2  3
+    1  4  5  6
+    2  7  8  9
 
     See also
     --------
@@ -1339,14 +1337,15 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to a NumPy record array.
 
-        Index will be put in the 'index' field of the record array if
+        Index will be included as the first field of the record array if
         requested.
 
         Parameters
         ----------
-        index : boolean, default True
-            Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default None
+        index : bool, default True
+            Include index in resulting record array, stored in 'index'
+            field or using the index label, if set.
+        convert_datetime64 : bool, default None
             .. deprecated:: 0.23.0
 
             Whether to convert the index to datetime.datetime if it is a
@@ -1354,7 +1353,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : numpy.recarray
+        numpy.recarray
+            NumPy ndarray with the DataFrame labels as fields and each row
+            of the DataFrame as entries.
 
         See Also
         --------
@@ -1376,31 +1377,20 @@ class DataFrame(NDFrame):
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
 
+        If the DataFrame index has no label then the recarray field name
+        is set to 'index'. If the index has a label then this is used as the
+        field name:
+
+        >>> df.index = df.index.rename("I")
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i8'), ('B', '<f8')])
+
         The index can be excluded from the record array:
 
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
-
-        By default, timestamps are converted to `datetime.datetime`:
-
-        >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
-        >>> df
-                             A     B
-        2018-01-01 09:00:00  1  0.50
-        2018-01-01 09:01:00  2  0.75
-        >>> df.to_records()
-        rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
-                   (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
-                  dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
-
-        The timestamp conversion can be disabled so NumPy's datetime64
-        data type is used instead:
-
-        >>> df.to_records(convert_datetime64=False)
-        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
-                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
-                  dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -4335,6 +4325,9 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
+        if self.empty:
+            return self.copy()
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
@@ -4368,6 +4361,9 @@ class DataFrame(NDFrame):
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+
+        if self.empty:
+            return Series()
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -4403,7 +4399,6 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        stacklevel = 2  # Number of stack levels from df.sort_values
 
         if not isinstance(by, list):
             by = [by]
@@ -4415,8 +4410,7 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self._get_label_or_level_values(x, axis=axis,
-                                                    stacklevel=stacklevel)
+                k = self._get_label_or_level_values(x, axis=axis)
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
@@ -4425,8 +4419,7 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis,
-                                                stacklevel=stacklevel)
+            k = self._get_label_or_level_values(by, axis=axis)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
@@ -6666,7 +6659,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        else:
+        elif method == 'kendall':
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -6690,6 +6683,10 @@ class DataFrame(NDFrame):
                         c = corrf(ac, bc)
                     correl[i, j] = c
                     correl[j, i] = c
+        else:
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman', or 'kendall', '{method}' "
+                             "was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
@@ -6896,21 +6893,21 @@ class DataFrame(NDFrame):
         Constructing DataFrame from a dictionary:
 
         >>> df = pd.DataFrame({"Person":
-        ...                    ["John", "Myla", None, "John", "Myla"],
+        ...                    ["John", "Myla", "Lewis", "John", "Myla"],
         ...                    "Age": [24., np.nan, 21., 33, 26],
         ...                    "Single": [False, True, True, True, False]})
         >>> df
            Person   Age  Single
         0    John  24.0   False
         1    Myla   NaN    True
-        2    None  21.0    True
+        2   Lewis  21.0    True
         3    John  33.0    True
         4    Myla  26.0   False
 
         Notice the uncounted NA values:
 
         >>> df.count()
-        Person    4
+        Person    5
         Age       4
         Single    5
         dtype: int64
@@ -6920,7 +6917,7 @@ class DataFrame(NDFrame):
         >>> df.count(axis='columns')
         0    3
         1    2
-        2    2
+        2    3
         3    3
         4    3
         dtype: int64
@@ -6931,7 +6928,9 @@ class DataFrame(NDFrame):
                 Age
         Person
         John      2
+        Lewis     1
         Myla      1
+
         """
         axis = self._get_axis_number(axis)
         if level is not None:
@@ -7256,8 +7255,7 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
-        Return values at the given quantile over requested axis, a la
-        numpy.percentile.
+        Return values at the given quantile over requested axis.
 
         Parameters
         ----------
@@ -7322,6 +7320,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
         self._check_percentile(q)
 
