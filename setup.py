@@ -491,8 +491,7 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 ts_include = ['pandas/_libs/tslibs/src']
 
 
-lib_depends = ['pandas/_libs/src/numpy_helper.h',
-               'pandas/_libs/src/parse_helper.h',
+lib_depends = ['pandas/_libs/src/parse_helper.h',
                'pandas/_libs/src/compat_helper.h']
 
 np_datetime_headers = [

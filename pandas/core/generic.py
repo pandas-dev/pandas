@@ -4439,7 +4439,6 @@ class NDFrame(PandasObject, SelectionMixin):
         - function.
         - list of functions.
         - dict of column names -> functions (or list of functions).
-
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -8146,7 +8145,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative
+            Number of periods to move, can be positive or negative.
         freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from the tseries module or time rule (e.g. 'EOM').
             See Notes.
