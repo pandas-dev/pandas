@@ -1,8 +1,10 @@
-import os
-import sys
-
-import numpy as np
+import string
+import random
 import pytest
+import numpy as np
+
+import validate_docstrings
+validate_one = validate_docstrings.validate_one
 
 
 class GoodDocStrings(object):
@@ -44,7 +46,7 @@ class GoodDocStrings(object):
         float
             Random number generated.
         """
-        return random.random()  # noqa: F821
+        return random.random()
 
     def random_letters(self):
         """
@@ -60,9 +62,8 @@ class GoodDocStrings(object):
         letters : str
             String of random letters.
         """
-        length = random.randint(1, 10)  # noqa: F821
-        letters = ''.join(random.choice(string.ascii_lowercase)  # noqa: F821
-                          for i in range(length))
+        length = random.randint(1, 10)
+        letters = "".join(random.sample(string.ascii_lowercase, length))
         return length, letters
 
     def sample_values(self):
@@ -78,7 +79,7 @@ class GoodDocStrings(object):
             Random number generated.
         """
         while True:
-            yield random.random()  # noqa: F821
+            yield random.random()
 
     def head(self):
         """
@@ -491,44 +492,6 @@ class BadReturns(object):
 
 class TestValidator(object):
 
-    @pytest.fixture(autouse=True, scope="class")
-    def import_scripts(self):
-        """
-        Import the validation scripts from the scripts directory.
-
-        Because the scripts directory is above the top level pandas package,
-        we need to modify `sys.path` so that Python knows where to find it.
-
-        The code below traverses up the file system to find the scripts
-        directory, adds the location to `sys.path`, and imports the required
-        module into the global namespace before as part of class setup.
-
-        During teardown, those changes are reverted.
-        """
-
-        up = os.path.dirname
-        global_validate_one = "validate_one"
-        file_dir = up(os.path.abspath(__file__))
-
-        script_dir = os.path.join(up(up(up(file_dir))), "scripts")
-        sys.path.append(script_dir)
-
-        try:
-            from validate_docstrings import validate_one
-            globals()[global_validate_one] = validate_one
-        except ImportError:
-            # Remove addition to `sys.path`
-            sys.path.pop()
-
-            # Import will fail if the pandas installation is not inplace.
-            raise pytest.skip("pandas/scripts directory does not exist")
-
-        yield
-
-        # Teardown.
-        sys.path.pop()
-        del globals()[global_validate_one]
-
     def _import_path(self, klass=None, func=None):
         """
         Build the required import path for tests in this module.
@@ -545,27 +508,29 @@ class TestValidator(object):
         str
             Import path of specified object in this module
         """
-        base_path = 'pandas.tests.scripts.test_validate_docstrings'
+        base_path = "scripts.tests.test_validate_docstrings"
+
         if klass:
-            base_path = '.'.join([base_path, klass])
+            base_path = ".".join([base_path, klass])
+
         if func:
-            base_path = '.'.join([base_path, func])
+            base_path = ".".join([base_path, func])
 
         return base_path
 
     def test_good_class(self):
-        assert validate_one(self._import_path(  # noqa: F821
+        assert validate_one(self._import_path(
             klass='GoodDocStrings')) == 0
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode'])
     def test_good_functions(self, func):
-        assert validate_one(self._import_path(   # noqa: F821
+        assert validate_one(self._import_path(
             klass='GoodDocStrings', func=func)) == 0
 
     def test_bad_class(self):
-        assert validate_one(self._import_path(  # noqa: F821
+        assert validate_one(self._import_path(
             klass='BadGenericDocStrings')) > 0
 
     @pytest.mark.parametrize("func", [

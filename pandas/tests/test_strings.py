@@ -313,7 +313,9 @@ class TestStringMethods(object):
             assert_series_or_index_equal(s.str.cat([tt, s]), exp)
 
         # Series/Index with list of list-likes
-        assert_series_or_index_equal(s.str.cat([t.values, list(s)]), exp)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            # nested lists will be deprecated
+            assert_series_or_index_equal(s.str.cat([t.values, list(s)]), exp)
 
         # Series/Index with mixed list of Series/list-like
         # s as Series has same index as t -> no warning
@@ -327,7 +329,10 @@ class TestStringMethods(object):
             assert_series_or_index_equal(s.str.cat([tt, s.values]), exp)
 
         # Series/Index with iterator of list-likes
-        assert_series_or_index_equal(s.str.cat(iter([t.values, list(s)])), exp)
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            # nested list-likes will be deprecated
+            assert_series_or_index_equal(s.str.cat(iter([t.values, list(s)])),
+                                         exp)
 
         # errors for incorrect lengths
         rgx = 'All arrays must be same length, except.*'
@@ -348,11 +353,11 @@ class TestStringMethods(object):
 
         # list of list-likes
         with tm.assert_raises_regex(ValueError, rgx):
-            s.str.cat([z.values, list(s)])
+            s.str.cat([z.values, s.values])
 
         # mixed list of Series/list-like
         with tm.assert_raises_regex(ValueError, rgx):
-            s.str.cat([z, list(s)])
+            s.str.cat([z, s.values])
 
         # errors for incorrect arguments in list-like
         rgx = 'others must be Series, Index, DataFrame,.*'
@@ -423,11 +428,15 @@ class TestStringMethods(object):
         e = concat([t, s], axis=1, join=(join if join == 'inner' else 'outer'))
         sa, ea = s.align(e, join=join)
         exp = exp_outer.loc[ea.index]
-        tm.assert_series_equal(s.str.cat([t, u], join=join, na_rep='-'), exp)
+
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            # nested lists will be deprecated
+            tm.assert_series_equal(s.str.cat([t, u], join=join, na_rep='-'),
+                                   exp)
 
         # errors for incorrect lengths
         rgx = 'If `others` contains arrays or lists.*'
-        z = ['1', '2', '3']
+        z = Series(['1', '2', '3']).values
 
         # unindexed object of wrong length
         with tm.assert_raises_regex(ValueError, rgx):
@@ -442,8 +451,8 @@ class TestStringMethods(object):
         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])
 
         # iterator of elements with different types
-        exp = Series(['aaA', 'bbB', 'c-C', 'ddD', '-e-'])
-        tm.assert_series_equal(s.str.cat(iter([t, ['A', 'B', 'C', 'D']]),
+        exp = Series(['aaa', 'bbb', 'c-c', 'ddd', '-e-'])
+        tm.assert_series_equal(s.str.cat(iter([t, s.values]),
                                          join='outer', na_rep='-'), exp)
 
         # right-align with different indexes in others
