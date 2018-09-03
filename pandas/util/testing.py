@@ -1317,10 +1317,10 @@ def assert_frame_equal(left, right, check_dtype=True,
         Second frame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default 'equiv'
+    check_index_type : {'equiv'} or bool, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default 'equiv'
+    check_column_type : {'equiv'} or bool, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical.
     check_frame_type : bool, default True
