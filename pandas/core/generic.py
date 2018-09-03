@@ -1303,58 +1303,80 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def equals(self, other):
         """
-        Test whether two DataFrame objects contain the same elements.
+        Test whether two NDFrame objects contain the same elements.
 
-        This function allows two DataFrame objects to be compared against
-        each other to see if they same shape and elements. NaNs in the same
-        location are considered equal. The column headers do not need to have
-        the same type, but the elements within the columns must be
-        the same dtype.
+        This function allows two NDFrame objects to be compared against
+        each other to see if they have the same shape and elements. NaNs in
+        the same location are considered equal. The column headers do not
+        need to have the same type, but the elements within the columns must
+        be the same dtype.
 
         Parameters
         ----------
-        other : DataFrame
-            The other DataFrame to be compared with the first.
+        other : NDFrame
+            The other NDFrame to be compared with the first.
 
         Returns
         -------
         bool
-            True if all elements are the same in both DataFrames, False
+            True if all elements are the same in both NDFrames, False
             otherwise.
 
         See Also
         --------
-        pandas.Series.eq : Compare two Series objects of the same length
+        Series.eq : Compare two Series objects of the same length
             and return a Series where each element is True if the element
             in each Series is equal, False otherwise.
-
+        DataFrame.eq : Compare two DataFrame objects of the same shape and
+            return a DataFrame where each element is True if the respective
+            element in each DataFrame is equal, False otherwise.
         numpy.array_equal : Return True if two arrays have the same shape
             and elements, False otherwise.
 
         Notes
         -----
         This function requires that the elements have the same dtype as their
-        respective elements in the other DataFrame. However, the indices do
-        not need to have the same type, as long as they are still considered
-        equal.
+        respective elements in the other DataFrame. However, the column labels
+        do not need to have the same type, as long as they are still
+        considered equal.
 
         Examples
         --------
-        >>> a = pd.DataFrame({1:[0], 0:[1]})
-        >>> b = pd.DataFrame({1.0:[0], 0.0:[1]})
+        >>> df = pd.DataFrame({1:[0], 0:[1]})
+        >>> df
+           1  0
+        0  0  1
 
-        DataFrames a and b have the same element types and values, but have
-        different types for the indices, which will still return True.
+        DataFrames df and exactly_equal have the same types and values for
+        their elements and column labels, which will return True.
 
-        >>> a.equals(b)
+        >>> exactly_equal = pd.DataFrame({1:[0], 0:[1]})
+        >>> exactly_equal
+           1  0
+        0  0  1
+        >>> df.equals(exactly_equal)
         True
 
-        DataFrames a and c have different types for the same values for their
-        elements, and will return False even though the indices are the same
-        values and types.
+        DataFrames df and different_column_label have the same element
+        types and values, but have different types for the column labels,
+        which will still return True.
 
-        >>> c = pd.DataFrame({1:[0.0], 0:[1.0]})
-        >>> a.equals(c)
+        >>> different_column_label = pd.DataFrame({1.0:[0], 0.0:[1]})
+        >>> different_column_label
+           1.0  0.0
+        0    0    1
+        >>> df.equals(different_column_label)
+        True
+
+        DataFrames df and different_data_type have different types for the
+        same values for their elements, and will return False even though
+        their column labels are the same values and types.
+
+        >>> different_data_type = pd.DataFrame({1:[0.0], 0:[1.0]})
+        >>> different_data_type
+             1    0
+        0  0.0  1.0
+        >>> df.equals(different_data_type)
         False
         """
         if not isinstance(other, self._constructor):
