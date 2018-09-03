@@ -1167,7 +1167,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from pandas import DataFrame
-        if not name:
+        if name is None:
             name = self.name or 0
         result = DataFrame({name: self.values.copy()})
 
