@@ -617,7 +617,10 @@ def _make_parser_function(name, default_sep=','):
                  delim_whitespace=False,
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
-                 float_precision=None):
+                 float_precision=None,
+
+                 # Deprecated with warnings
+                 skiprows=None):
 
         # deprecate read_table GH21948
         if name == "read_table":
@@ -646,6 +649,15 @@ def _make_parser_function(name, default_sep=','):
         else:
             engine = 'c'
             engine_specified = False
+
+        # Handle deprecated kwargs
+        if skiprows:
+            warnings.warn(
+                "skiprows will be deprecated. Use skip_rows instead.",
+                FutureWarning
+            )
+            if not skip_rows:
+                skip_rows = skiprows
 
         kwds = dict(delimiter=delimiter,
                     engine=engine,
