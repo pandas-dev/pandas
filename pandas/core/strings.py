@@ -1329,7 +1329,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     Returns
     -------
     Series or Index of object
-        Returns Series or Index with minimum number of char in object
+        Returns Series or Index with minimum number of char in object.
 
     Examples
     --------
