@@ -857,8 +857,9 @@ def str_extract(arr, pat, flags=0, expand=True):
     pat : string
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        ``re`` module flags, e.g. ``re.IGNORECASE``.
-        See :mod:`re`
+        Flags from the ``re`` module, e.g. ``re.IGNORECASE``, that
+        modify regular expression matching for things like case,
+        spaces, etc. For more details, see :mod:`re`.
     expand : bool, default True
         If True, return DataFrame with one column per capture group.
         If False, return a Series/Index if there is one capture group
@@ -868,13 +869,15 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     Returns
     -------
-    DataFrame with one row for each subject string, and one column for
-    each group. Any capture group names in regular expression pat will
-    be used for column names; otherwise capture group numbers will be
-    used. The dtype of each result column is always object, even when
-    no match is found. If expand=False and pat has only one capture group,
-    then return a Series (if subject is a Series) or Index (if subject
-    is an Index).
+    DataFrame or Series or Index
+        A DataFrame with one row for each subject string, and one
+        column for each group. Any capture group names in regular
+        expression pat will be used for column names; otherwise
+        capture group numbers will be used. The dtype of each result
+        column is always object, even when no match is found. If
+        ``expand=False`` and pat has only one capture group, then
+        return a Series (if subject is a Series) or Index (if subject
+        is an Index).
 
     See Also
     --------
