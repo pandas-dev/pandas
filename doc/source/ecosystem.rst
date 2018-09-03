@@ -338,6 +338,16 @@ found in NumPy or pandas, which work well with pandas' data containers.
 Cyberpandas provides an extension type for storing arrays of IP Addresses. These
 arrays can be stored inside pandas' Series and DataFrame.
 
+`pint`_
+~~~~~~~
+
+`Pint <https://pint.readthedocs.io/en/latest/>` provides an extension type for
+storing numeric arrays with units. These arrays can be stored inside pandas'
+Series and DataFrame. Operations between Series and DataFrame columns which
+use pint's extension array are then units aware.
+
+Note that this feature requires Pint v0.9 or higher.
+
 .. _ecosystem.accessors:
 
 Accessors
@@ -352,7 +362,9 @@ Library        Accessor   Classes
 ============== ========== =========================
 `cyberpandas`_ ``ip``     ``Series``
 `pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
+`pint`_        ``pint``   ``Series``, ``DataFrame``
 ============== ========== =========================
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
 .. _pdvega: https://jakevdp.github.io/pdvega/
+.. _pint: https://github.com/hgrecco/pint
