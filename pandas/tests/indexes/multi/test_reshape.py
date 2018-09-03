@@ -126,5 +126,5 @@ def test_delete_base(idx):
     assert result.name == expected.name
 
     with pytest.raises((IndexError, ValueError)):
-        # either depending on numpy version
-        result = idx.delete(len(idx))
+        # Exception raised depends on NumPy version.
+        idx.delete(len(idx))

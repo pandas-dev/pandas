@@ -55,8 +55,9 @@ cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
 
     Better to do this with Cython because of the enormous speed boost.
     """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
+    cdef:
+        Py_ssize_t i, length
+        dict result = {}
 
     length = len(index)
 
