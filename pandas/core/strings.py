@@ -1353,7 +1353,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     0    -caribou--
     1    --tiger---
     dtype: object
-    
+
     >>> s = pd.Series(["caribou", 0, np.NaN])
     >>> s.str.pad(width=10, fillchar='-')
     0    ---caribou
@@ -1371,7 +1371,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
         character.
     Series.str.center: Fills boths sides of strings with an arbitrary
         character.
-    Series.str.zfill:  Pad strings in the Series/Index by prepending '0' 
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
         character.
     """
 
