@@ -1126,7 +1126,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         index : boolean, default True
             Set the index of the returned DataFrame as the original Index.
-        
+
         name : object, default None
             The passed name should substitute for the series name (if it has
             one).
