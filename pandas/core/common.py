@@ -14,7 +14,9 @@ from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import iteritems, PY36, OrderedDict
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex, ABCIndexClass, ABCSparseArray
+)
 from pandas.core.dtypes.common import is_integer, is_bool_dtype
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
@@ -103,9 +105,7 @@ def is_bool_indexer(key):
     # TODO(https://github.com/pandas-dev/pandas/issues/22326)
     # We currently special case SparseArray, but that should *maybe* be
     # ExtensionArray, for other EAs that can hold booleans (Categorical).
-    from pandas.core.sparse.api import SparseArray
-
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex, SparseArray)):
+    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex, ABCSparseArray)):
         if key.dtype == np.object_:
             key = np.asarray(values_from_object(key))
 

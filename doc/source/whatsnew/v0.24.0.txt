@@ -339,8 +339,7 @@ changes were made:
   * The ``out`` and ``mode`` parameters are now longer accepted (previously, this raised if they were specified).
   * Passing a scalar for ``indices`` is no longer allowed.
 - The result of concatenating a mix of sparse and dense Series is a Series with sparse values, rather than a ``SparseSeries``.
-- ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving
-  the sparse subtype. The result will be an object-dtype SparseArray.
+- ``SparseDataFrame.combine`` and ``DataFrame.combine_first`` no longer supports combining a sparse column with a dense column while preserving the sparse subtype. The result will be an object-dtype SparseArray.
 - Setting :attr:`SparseArray.fill_value` to a fill value with a different dtype is now allowed.
 
 
