@@ -41,10 +41,11 @@ from pandas.core.missing import interpolate_2d
 import pandas._libs.sparse as splib
 from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas._libs import index as libindex
+from pandas._libs import lib
 import pandas.core.algorithms as algos
 import pandas.io.formats.printing as printing
 
-from .dtype import SparseDtype
+from pandas.core.sparse.dtype import SparseDtype
 
 
 _sparray_doc_kwargs = dict(klass='SparseArray')
@@ -61,6 +62,22 @@ def _get_fill(arr):
 
 
 def _sparse_array_op(left, right, op, name):
+    """
+    Perform a binary operation between two arrays.
+
+    Parameters
+    ----------
+    left : Union[SparseArray, ndarray]
+    right : Union[SparseArray, ndarray]
+    op : Callable
+        The binary operation to perform
+    name str
+        Name of the callable.
+
+    Returns
+    -------
+    SparseArray
+    """
     # type: (SparseArray, SparseArray, Callable, str) -> Any
     if name.startswith('__'):
         # For lookups in _libs.sparse we need non-dunder op name
@@ -136,8 +153,7 @@ def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
         dtype = np.bool
 
-    if not is_scalar(fill_value):
-        fill_value = fill_value.item()
+    fill_value = lib.item_from_zerodim(fill_value)
 
     if is_bool_dtype(dtype):
         # fill_value may be np.bool_
