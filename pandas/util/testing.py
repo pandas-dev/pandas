@@ -673,7 +673,7 @@ def capture_stderr(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stderr = StringIO()
