@@ -31,6 +31,7 @@ from util cimport (is_string_object,
                    is_integer_object, is_float_object, is_array)
 
 from timedeltas cimport cast_from_unit
+from timestamps import Timestamp
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         treat_tz_as_dateutil, treat_tz_as_pytz,
                         get_utcoffset, get_dst_info,
@@ -826,7 +827,7 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
-                       object errors='raise'):
+                       object nonexistent=None, object errors='raise'):
     """
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -837,6 +838,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     tz : tzinfo or None
     ambiguous : str, bool, or arraylike
         If arraylike, must have the same length as vals
+    nonexistent : str
     errors : {"raise", "coerce"}, default "raise"
 
     Returns
@@ -853,7 +855,9 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ndarray[int64_t] result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
-        bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
+        bint infer_nonexisit = nonexistent == 'infer'
+        bint is_coerce = errors == 'coerce' or nonexistent == 'NaT'
+        bint is_raise = errors == 'raise' or nonexistent == 'raise'
 
     # Vectorized version of DstTzInfo.localize
 
@@ -995,7 +999,15 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         elif right != NPY_NAT:
             result[i] = right
         else:
-            if is_coerce:
+            if infer_nonexisit:
+                # Infer the timestamp; based on pytz's DstTzInfo.normalize
+                val = vals[i]
+                utc_offset = get_utcoffset(tz, Timestamp(val))
+                utc_offset = int(utc_offset.total_seconds()) * 1000000000
+                utc_val = vals[i] - utc_offset
+                local_val = tz_convert_single(utc_val, 'UTC', tz)
+                result[i] = local_val
+            elif is_coerce:
                 result[i] = NPY_NAT
             else:
                 stamp = _render_tstamp(vals[i])
