@@ -2555,27 +2555,28 @@ class NDFrame(PandasObject, SelectionMixin):
             List must be of length equal to the number of columns.
         float_format : str, optional
             Format string for floating point numbers.
-        sparsify : bool, optional, default None
+        sparsify : bool, optional
             Set to False for a DataFrame with a hierarchical index to print
-            every multiindex key at each row. If None, the default will be
+            every multiindex key at each row. By default, the value will be
             read from the config module.
         index_names : bool, default True
             Prints the names of the indexes.
         bold_rows : bool, default False
             Make the row labels bold in the output.
-        column_format : str, default None
+        column_format : str, optional
             The columns format as specified in `LaTeX table format
             <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g. 'rcl' for 3
-            columns.
-        longtable : bool, default None
-            When set to None, the value will default from the pandas config
+            columns. By default, 'l' will be used for all columns except
+            columns of numbers, which default to 'r'.
+        longtable : bool, optional
+            By default, the value will be read from the pandas config
             module. Use a longtable environment instead of tabular. Requires
             adding a \usepackage{longtable} to your LaTeX preamble.
-        escape : bool, default None
-            If None, default will be read from the pandas config module.
-            When set to False prevents from escaping latex special
+        escape : bool, optional
+            By default, the value will be read from the pandas config
+            module. When set to False prevents from escaping latex special
             characters in column names.
-        encoding : str, default None
+        encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         decimal : str, default '.'
