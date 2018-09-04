@@ -363,9 +363,13 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         # adjust all values to max length if needed
         if is_justify:
             if line_break_each_value:
+                # Justify each string in the values of head and tail, so the
+                # strings will right align when head and tail are stacked
+                # vertically.
                 head, tail = _justify(head, tail)
             elif (is_truncated or not (len(', '.join(head)) < display_width and
                                        len(', '.join(tail)) < display_width)):
+                # Each string in head and tail should align with each other
                 max_length = max(best_len(head), best_len(tail))
                 head = [x.rjust(max_length) for x in head]
                 tail = [x.rjust(max_length) for x in tail]
@@ -373,11 +377,15 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
             # line, then don't justify
 
         if line_break_each_value:
-            # truncate vertically if wider than max_space
+            # Now head and tail are of type List[Tuple[str]]. Below we
+            # convert them into List[str], so there will be one string per
+            # value. Also truncate items horizontally if wider than
+            # max_space
             max_space = display_width - len(space2)
-            item = tail[0]
-            for max_items in reversed(range(1, len(item) + 1)):
-                if len(_pprint_seq(item, max_seq_items=max_items)) < max_space:
+            value = tail[0]
+            for max_items in reversed(range(1, len(value) + 1)):
+                pprinted_seq = _pprint_seq(value, max_seq_items=max_items)
+                if len(pprinted_seq) < max_space:
                     break
             head = [_pprint_seq(x, max_seq_items=max_items) for x in head]
             tail = [_pprint_seq(x, max_seq_items=max_items) for x in tail]
