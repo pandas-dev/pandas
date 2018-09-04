@@ -226,6 +226,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if isinstance(dtype, SparseDtype):
             dtype = dtype.subtype
+            if fill_value is None:
+                fill_value = dtype.fill_value
 
         if index is not None and not is_scalar(data):
             raise Exception("must only pass scalars with an index ")
@@ -326,7 +328,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls(values)
+        return cls(values, dtype=original.dtype)
 
     # ------------------------------------------------------------------------
     # Data
@@ -507,28 +509,18 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         fill_loc = self._first_fill_value_loc()
         if fill_loc >= 0:
             uniques.insert(fill_loc, self.fill_value)
-        return type(self)(uniques, fill_value=self.fill_value)
-        # The EA API currently expects unique to return the same EA.
-        # That doesn't really make sense for sparse.
-        # Can we have it expect Union[EA, ndarray]?
-        return type(self)(pd.unique(self.sp_values))
+        return type(self)(uniques, dtype=self.dtype)
 
     def factorize(self, na_sentinel=-1):
-        # hhhhhhhhhhhhhhhhhhhhhhhhhhhhmmmm
-        # Ok. here's the plan...
-        # We known that we'll share the same sparsity
-        # so factorize our known values
-        # and then rebuild using the same sparse index?
-        if na_sentinel > 0:
-            raise ValueError("na_sentinel must be less than 0. "
-                             "Got {}".format(na_sentinel))
-
-        known, uniques = pd.factorize(self.sp_values)
-        new = SparseArray(known, sparse_index=self.sp_index,
-                          fill_value=na_sentinel)
-        # ah, but we have to go to sparse :/
-        # so we're backwards in our sparsity her.
-        return np.asarray(new), type(self)(uniques)
+        # Currently, ExtensionArray.factorize -> Tuple[ndarray, EA]
+        # The sparsity on this is backwards from what Sparse would want. Want
+        # ExtensionArray.factorize -> Tuple[EA, EA]
+        # Given that we have to return a dense array of labels, why bother
+        # implementing an efficient factorize?
+        labels, uniques = pd.factorize(np.asarray(self),
+                                       na_sentinel=na_sentinel)
+        uniques = SparseArray(uniques, dtype=self.dtype)
+        return labels, uniques
 
     def value_counts(self, dropna=True):
         """
@@ -595,10 +587,11 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                 else:
                     key = np.asarray(key)
 
-            if hasattr(key, '__len__') and len(self) != len(key):
-                return self.take(key)
-            elif com.is_bool_indexer(key) and len(self) == len(key):
+            if com.is_bool_indexer(key) and len(self) == len(key):
                 return self.take(np.arange(len(key), dtype=np.int32)[key])
+            elif hasattr(key, '__len__'):
+                # This used to be len(self) != len(key). Why is that?
+                return self.take(key)
             else:
                 # TODO: this densifies!
                 data_slice = self.values[key]
@@ -627,12 +620,16 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
         if indices.size == 0:
             result = []
+            kwargs = {'dtype': self.dtype}
         elif allow_fill:
             result = self._take_with_fill(indices, fill_value=fill_value)
+            kwargs = {}
         else:
             result = self._take_without_fill(indices)
+            kwargs = {'dtype': self.dtype}
 
-        return type(self)(result, fill_value=self.fill_value, kind=self.kind)
+        return type(self)(result, fill_value=self.fill_value, kind=self.kind,
+                          **kwargs)
 
     def _take_with_fill(self, indices, fill_value=None):
         if fill_value is None:
@@ -648,7 +645,8 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         if len(self) == 0:
             # Empty... Allow taking only if all empty
             if (indices == -1).all():
-                taken = np.empty_like(indices, dtype=self.sp_values.dtype)
+                dtype = np.result_type(self.sp_values, fill_value)
+                taken = np.empty_like(indices, dtype=dtype)
                 taken.fill(fill_value)
                 return taken
             else:
@@ -1330,8 +1328,8 @@ def make_sparse(arr, kind='block', fill_value=None, dtype=None, copy=False):
 
     index = _make_index(length, indices, kind)
     sparsified_values = arr[mask]
-
-    sparsified_values = np.asarray(sparsified_values, dtype=dtype)
+    if dtype is not None:
+        sparsified_values = astype_nansafe(sparsified_values, dtype=dtype)
     # TODO: copy
     return sparsified_values, index, fill_value
 

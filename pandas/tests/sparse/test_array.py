@@ -78,6 +78,11 @@ class TestSparseArray(object):
         it = (type(x) == type(y) and x == y for x, y in zip(arr, arr_expected))
         assert np.fromiter(it, dtype=np.bool).all()
 
+    @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
+    def test_constructor_na_dtype(self, dtype):
+        with tm.assert_raises_regex(ValueError, "Cannot convert"):
+            SparseArray([0, 1, np.nan], dtype=dtype)
+
     def test_constructor_spindex_dtype(self):
         arr = SparseArray(data=[1, 2], sparse_index=IntIndex(4, [1, 2]))
         # XXX: Behavior change: specifying SparseIndex no longer changes the
@@ -573,6 +578,11 @@ class TestSparseArray(object):
         with pytest.raises(IndexError):
             # check numpy compat
             dense[4:, :]
+
+    def test_boolean_slice_empty(self):
+        arr = pd.SparseArray([0, 1, 2])
+        res = arr[[False, False, False]]
+        assert res.dtype == arr.dtype
 
     @pytest.mark.parametrize("op", ["add", "sub", "mul",
                                     "truediv", "floordiv", "pow"])

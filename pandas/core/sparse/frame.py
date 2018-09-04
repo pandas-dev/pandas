@@ -176,12 +176,15 @@ class SparseDataFrame(DataFrame):
                 raise ValueError(msg.format(len(v), len(index)))
             sdict[k] = v
 
-        # TODO: figure out how to handle this case, all nan's?
-        # add in any other columns we want to have (completeness)
-        nan_arr = np.empty(len(index), dtype='float64')
-        nan_arr.fill(np.nan)
-        nan_arr = sp_maker(nan_arr)
-        sdict.update((c, nan_arr) for c in columns if c not in sdict)
+        if len(columns.difference(sdict)):
+            # TODO: figure out how to handle this case, all nan's?
+            # add in any other columns we want to have (completeness)
+            nan_arr = np.empty(len(index), dtype='float64')
+            nan_arr.fill(np.nan)
+            nan_arr = SparseArray(nan_arr, kind=self._default_kind,
+                                  fill_value=self._default_fill_value,
+                                  copy=False)
+            sdict.update((c, nan_arr) for c in columns if c not in sdict)
 
         return to_manager(sdict, columns, index)
 
