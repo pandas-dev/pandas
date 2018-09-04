@@ -810,7 +810,7 @@ class BlockManager(PandasObject):
         Items must be contained in the blocks
         """
         from pandas.core.dtypes.common import is_sparse
-        dtype = _interleaved_dtype(self.blocks, allow_extension=True)
+        dtype = _interleaved_dtype(self.blocks)
 
         # This is unclear...
         # For things like SparseArray we want to go Sparse[T] -> ndarray[T]
@@ -937,7 +937,7 @@ class BlockManager(PandasObject):
             return result[loc]
 
         # unique
-        dtype = _interleaved_dtype(self.blocks, allow_extension=True)
+        dtype = _interleaved_dtype(self.blocks)
         if is_extension_array_dtype(dtype):
             values = []
             rls = []
@@ -1902,19 +1902,22 @@ def _stack_arrays(tuples, dtype):
     return stacked, placement
 
 
-def _interleaved_dtype(blocks, allow_extension=False):
+def _interleaved_dtype(blocks):
+    """
+    Get the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[Block]
+
+    Returns
+    -------
+    dtype : Optional[Union[np.dtype, ExtensionDtype]]
+    """
     if not len(blocks):
         return None
 
-    dtype = find_common_type([b.dtype for b in blocks])
-    if allow_extension:
-        return dtype
-
-    # only numpy compat
-    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
-        dtype = np.object
-
-    return dtype
+    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks):
