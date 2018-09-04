@@ -3251,32 +3251,33 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame({'temp_c': (17.0, 25.0)},
-                                index=['portland', 'berkeley'])
+                                index=['Portland', 'Berkeley'])
+                  temp_c
+        Portland    17.0
+        Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
-
         >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
                   temp_c  temp_f
-        portland    17.0    62.6
-        berkeley    25.0    77.0
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        Where the value already exists and is inserted:
-
+        Alternatively, the same behavior can be achieved by directly
+        referencing an existing Series or list-like:
         >>> newcol = df['temp_c'] * 9 / 5 + 32
         >>> df.assign(temp_f=newcol)
                   temp_c  temp_f
-        portland    17.0    62.6
-        berkeley    25.0    77.0
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        Where the keyword arguments depend on each other
-
-        >>> df = pd.DataFrame({'A': [1, 2, 3]})
-
-        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
-            A  B  C
-         0  1  1  2
-         1  2  2  4
-         2  3  3  6
+        In Python 3.6+, you can create multiple columns within the same assign
+        where one of the columns depends on another one defined within the same
+        assign:
+        >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
+                        temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+                  temp_c  temp_f  temp_k
+        Portland    17.0    62.6  290.15
+        Berkeley    25.0    77.0  298.15
         """
         data = self.copy()
 
