@@ -6,6 +6,8 @@ import numpy as np
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
+from pandas.util.testing import capture_stderr
+
 
 class GoodDocStrings(object):
     """
@@ -518,10 +520,12 @@ class TestValidator(object):
 
         return base_path
 
+    @capture_stderr
     def test_good_class(self):
         assert validate_one(self._import_path(
             klass='GoodDocStrings')) == 0
 
+    @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode'])
@@ -529,10 +533,12 @@ class TestValidator(object):
         assert validate_one(self._import_path(
             klass='GoodDocStrings', func=func)) == 0
 
+    @capture_stderr
     def test_bad_class(self):
         assert validate_one(self._import_path(
             klass='BadGenericDocStrings')) > 0
 
+    @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_generic_functions(self, func):
