@@ -707,6 +707,7 @@ Groupby/Resample/Rolling
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
 - Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
+- Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to `loffset` kwarg (:issue:`7687`).
 
 Sparse
 ^^^^^^

@@ -366,7 +366,8 @@ one pass, you can do
         """
 
         needs_offset = (
-            isinstance(self.loffset, (DateOffset, timedelta)) and
+            isinstance(self.loffset, (DateOffset, timedelta,
+                                      np.timedelta64)) and
             isinstance(result.index, DatetimeIndex) and
             len(result.index) > 0
         )
