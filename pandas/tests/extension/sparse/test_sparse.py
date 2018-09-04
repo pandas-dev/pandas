@@ -121,15 +121,15 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
 
     def test_align_frame(self, data, na_value):
         self._check_unsupported(data)
-        super().test_align_frame(data, na_value)
+        super(TestReshaping, self).test_align_frame(data, na_value)
 
     def test_align_series_frame(self, data, na_value):
         self._check_unsupported(data)
-        super().test_align_series_frame(data, na_value)
+        super(TestReshaping, self).test_align_series_frame(data, na_value)
 
     def test_merge(self, data, na_value):
         self._check_unsupported(data)
-        super().test_merge(data, na_value)
+        super(TestReshaping, self).test_merge(data, na_value)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
@@ -144,7 +144,7 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
 
     def test_reindex(self, data, na_value):
         self._check_unsupported(data)
-        super().test_reindex(data, na_value)
+        super(TestGetitem, self).test_reindex(data, na_value)
 
 
 # Skipping TestSetitem, since we don't implement it.
