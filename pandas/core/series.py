@@ -3120,7 +3120,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series or DataFrame 
+        Series or DataFrame
             If func returns a Series object the result will be a DataFrame.
 
         See Also
