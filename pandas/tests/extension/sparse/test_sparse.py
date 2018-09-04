@@ -238,11 +238,17 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
-        super(TestArithmeticOps, self).test_arith_series_with_scalar(data, all_arithmetic_operators)
+        super(TestArithmeticOps, self).test_arith_series_with_scalar(
+            data,
+            all_arithmetic_operators
+        )
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
-        super(TestArithmeticOps, self).test_arith_series_with_array(data, all_arithmetic_operators)
+        super(TestArithmeticOps, self).test_arith_series_with_array(
+            data,
+            all_arithmetic_operators
+        )
 
 
 class TestComparisonOps(BaseSparseTests, base.BaseComparisonOpsTests):

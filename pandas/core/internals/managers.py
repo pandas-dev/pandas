@@ -12,9 +12,6 @@ from pandas._libs import lib, internals as libinternals
 from pandas.util._validators import validate_bool_kwarg
 from pandas.compat import range, map, zip
 
-from pandas.core.dtypes.dtypes import (
-    ExtensionDtype,
-    PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
     is_datetimelike_v_numeric,
