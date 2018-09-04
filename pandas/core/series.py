@@ -3114,28 +3114,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Try to find better dtype for elementwise function results. If
             False, leave as dtype=object.
         args : tuple
-            Positional arguments to pass to func in addition to the value.
-        **kwds :
+            Positional arguments passed to func after the series value.
+        **kwds
             Additional keyword arguments passed to func.
 
         Returns
         -------
-        y : Series or DataFrame if func returns a Series
+        Series or DataFrame 
+            If func returns a Series object the result will be a DataFrame.
 
-        See also
+        See Also
         --------
-        Series.map: For element-wise operations
-        Series.agg: only perform aggregating type operations
-        Series.transform: only perform transforming type operations
+        Series.map: For element-wise operations.
+        Series.agg: only perform aggregating type operations.
+        Series.transform: only perform transforming type operations.
 
         Examples
         --------
-
         Create a series with typical summer temperatures for each city.
 
-        >>> series = pd.Series([20, 21, 12], index=['London',
+        >>> s = pd.Series([20, 21, 12], index=['London',
         ... 'New York','Helsinki'])
-        >>> series
+        >>> s
         London      20
         New York    21
         Helsinki    12
@@ -3146,7 +3146,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> def square(x):
         ...     return x**2
-        >>> series.apply(square)
+        >>> s.apply(square)
         London      400
         New York    441
         Helsinki    144
@@ -3155,7 +3155,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Square the values by passing an anonymous function as an
         argument to ``apply()``.
 
-        >>> series.apply(lambda x: x**2)
+        >>> s.apply(lambda x: x**2)
         London      400
         New York    441
         Helsinki    144
@@ -3168,7 +3168,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> def subtract_custom_value(x, custom_value):
         ...     return x-custom_value
 
-        >>> series.apply(subtract_custom_value, args=(5,))
+        >>> s.apply(subtract_custom_value, args=(5,))
         London      15
         New York    16
         Helsinki     7
@@ -3182,7 +3182,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ...         x+=kwargs[month]
         ...     return x
 
-        >>> series.apply(add_custom_values, june=30, july=20, august=25)
+        >>> s.apply(add_custom_values, june=30, july=20, august=25)
         London      95
         New York    96
         Helsinki    87
@@ -3190,7 +3190,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Use a function from the Numpy library.
 
-        >>> series.apply(np.log)
+        >>> s.apply(np.log)
         London      2.995732
         New York    3.044522
         Helsinki    2.484907
