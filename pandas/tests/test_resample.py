@@ -1173,27 +1173,20 @@ class TestDatetimeIndex(Base):
         df.resample('M', kind='period').mean()
         df.resample('W-WED', kind='period').mean()
 
-    def test_resample_loffset(self):
+    @pytest.mark.parametrize('loffset', [timedelta(minutes=1),
+                                         '1min', Minute(1),
+                                         np.timedelta64(1, 'm')])
+    def test_resample_loffset(self, loffset):
+        # GH 7687
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
         s = Series(np.random.randn(14), index=rng)
 
         result = s.resample('5min', closed='right', label='right',
-                            loffset=timedelta(minutes=1)).mean()
+                            loffset=loffset).mean()
         idx = date_range('1/1/2000', periods=4, freq='5min')
         expected = Series([s[0], s[1:6].mean(), s[6:11].mean(), s[11:].mean()],
                           index=idx + timedelta(minutes=1))
         assert_series_equal(result, expected)
-
-        expected = s.resample(
-            '5min', closed='right', label='right',
-            loffset='1min').mean()
-        assert_series_equal(result, expected)
-
-        expected = s.resample(
-            '5min', closed='right', label='right',
-            loffset=Minute(1)).mean()
-        assert_series_equal(result, expected)
-
         assert result.index.freq == Minute(5)
 
         # from daily

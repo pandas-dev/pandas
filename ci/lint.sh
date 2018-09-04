@@ -24,6 +24,11 @@ if [ "$LINT" ]; then
     if [ $? -ne "0" ]; then
         RET=1
     fi
+
+    flake8 scripts/tests --filename=*.py
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
     echo "Linting *.py DONE"
 
     echo "Linting setup.py"
@@ -175,7 +180,7 @@ if [ "$LINT" ]; then
         RET=1
     fi
     echo "Check for old-style classes DONE"
-    
+
     echo "Check for backticks incorrectly rendering because of missing spaces"
     grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
 
