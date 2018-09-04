@@ -527,6 +527,7 @@ Removal of prior version deprecations/changes
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
+- :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats``(:issue:`14645`)
 -
 
 .. _whatsnew_0240.performance:

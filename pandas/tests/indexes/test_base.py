@@ -2402,15 +2402,6 @@ class TestMixedIntIndex(Base):
         result = index.repeat(repeats)
         tm.assert_index_equal(result, expected)
 
-    def test_repeat_warns_n_keyword(self):
-        index = pd.Index([1, 2, 3])
-        expected = pd.Index([1, 1, 2, 2, 3, 3])
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = index.repeat(n=2)
-
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize("index", [
         pd.Index([np.nan]), pd.Index([np.nan, 1]),
         pd.Index([1, 2, np.nan]), pd.Index(['a', 'b', np.nan]),

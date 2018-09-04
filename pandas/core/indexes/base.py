@@ -53,7 +53,7 @@ from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
 from pandas.core import ops
 from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+    Appender, Substitution, cache_readonly)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
@@ -773,7 +773,6 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     # ops compat
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Index.
