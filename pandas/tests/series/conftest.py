@@ -9,8 +9,6 @@ from pandas import Series
 def datetime_series():
     """
     Fixture for Series of floats with DatetimeIndex
-
-    See pandas.util.testing.makeTimeSeries
     """
     s = tm.makeTimeSeries()
     s.name = 'ts'
@@ -21,8 +19,6 @@ def datetime_series():
 def string_series():
     """
     Fixture for Series of floats with Index of unique strings
-
-    See pandas.util.testing.makeStringSeries
     """
     s = tm.makeStringSeries()
     s.name = 'series'
@@ -33,8 +29,6 @@ def string_series():
 def object_series():
     """
     Fixture for Series of dtype datetime64[ns] with Index of unique strings
-
-    See pandas.util.testing.makeObjectSeries
     """
     s = tm.makeObjectSeries()
     s.name = 'objects'
