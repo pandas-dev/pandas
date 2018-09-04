@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 import numpy as np
@@ -41,13 +41,14 @@ class TestGetItem(object):
             tm.assert_index_equal(result, expected)
             assert result.freq == expected.freq
 
-    def test_timestamp_invalid_key(self):
+    @pytest.mark.parametrize('key', [pd.Timestamp('1970-01-01'),
+                                     pd.Timestamp('1970-01-02'),
+                                     datetime(1970, 1, 1)])
+    def test_timestamp_invalid_key(self, key):
         # GH#20464
         tdi = pd.timedelta_range(0, periods=10)
         with pytest.raises(TypeError):
-            tdi.get_loc(pd.Timestamp('1970-01-01'))
-        with pytest.raises(TypeError):
-            tdi.get_loc(pd.Timestamp('1970-01-02'))
+            tdi.get_loc(key)
 
 
 class TestWhere(object):

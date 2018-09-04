@@ -740,7 +740,8 @@ class Timestamp(_Timestamp):
         if self.tz is not None:
             # GH#21333
             warnings.warn("Converting to Period representation will "
-                          "drop timezone information.")
+                          "drop timezone information.",
+                          UserWarning)
 
         if freq is None:
             freq = self.freq

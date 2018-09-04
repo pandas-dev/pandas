@@ -729,7 +729,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         if self.tz is not None:
             warnings.warn("Converting to PeriodIndex representation will "
-                          "drop timezone information.")
+                          "drop timezone information.", UserWarning)
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
@@ -1205,7 +1205,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             key = Timestamp(key, tz=self.tz)
             return Index.get_loc(self, key, method, tolerance)
 
-        if isinstance(key, timedelta):
+        elif isinstance(key, timedelta):
             # GH#20464
             raise TypeError("Cannot index {cls} with {other}"
                             .format(cls=type(self).__name__,
