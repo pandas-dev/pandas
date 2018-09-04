@@ -1844,6 +1844,64 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
+    def test_to_html_pivot_table_max_cols(self):
+        # GH https://github.com/pandas-dev/pandas/issues/6131
+        df = DataFrame([
+            {'a': 'aa', 'b': 'ba', 'c': 'ca', 'd': 1},
+            {'a': 'ab', 'b': 'bb', 'c': 'cc', 'd': 2},
+            {'a': 'ac', 'b': 'bc', 'c': 'cc', 'd': 3}
+        ])
+        result = df.pivot_table(
+            columns=['a'], index=['b', 'c']).to_html(max_cols=2)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th></th>
+              <th></th>
+              <th colspan="3" halign="left">d</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th>a</th>
+              <th>aa</th>
+              <th>...</th>
+              <th>ac</th>
+            </tr>
+            <tr>
+              <th>b</th>
+              <th>c</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>ba</th>
+              <th>ca</th>
+              <td>1.0</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bb</th>
+              <th>cc</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bc</th>
+              <th>cc</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>3.0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
