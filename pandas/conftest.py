@@ -9,6 +9,11 @@ import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
+from hypothesis import settings, HealthCheck
+
+settings.suppress_health_check = (HealthCheck.too_slow,)
+# HealthCheck.all() to disable all health checks
+
 
 def pytest_addoption(parser):
     parser.addoption("--skip-slow", action="store_true",
