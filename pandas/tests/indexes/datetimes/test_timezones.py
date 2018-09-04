@@ -1012,30 +1012,20 @@ class TestDatetimeIndexTimezones(object):
         for i, ts in enumerate(index):
             assert ts == index[i]
 
-    def test_is_dst(self):
-        dti = DatetimeIndex([])
+    @pytest.mark.parametrize('arg, expected_arg', [
+        [[], []],
+        [date_range('2018-11-04', periods=4, freq='H', tz='US/Pacific'),
+         [True, True, False, False]],
+        [date_range('2018-11-04', periods=4, freq='H'),
+         [False] * 4],
+        [date_range('2018-11-04', periods=4, freq='H', tz=pytz.FixedOffset(3)),
+         [False] * 4],
+        [[pd.NaT], [False]]
+    ])
+    def test_is_dst(self, arg, expected_arg):
+        dti = DatetimeIndex(arg)
         result = dti.is_dst()
-        expected = Index([])
-        tm.assert_index_equal(result, expected)
-
-        dti = date_range('2018-11-04', periods=4, freq='H', tz='US/Pacific')
-        result = dti.is_dst()
-        expected = Index([True, True, False, False])
-        tm.assert_index_equal(result, expected)
-
-        dti_naive = dti.tz_localize(None)
-        result = dti_naive.is_dst()
-        expected = Index([False] * 4)
-        tm.assert_index_equal(result, expected)
-
-        dti_fixed = dti.tz_localize(pytz.FixedOffset(300))
-        result = dti_fixed.is_dst()
-        expected = Index([False] * 4)
-        tm.assert_index_equal(result, expected)
-
-        dti_nat = pd.DatetimeIndex([pd.NaT])
-        result = dti_nat.is_dst()
-        expected = Index([False])
+        expected = Index(expected_arg)
         tm.assert_index_equal(result, expected)
 
 

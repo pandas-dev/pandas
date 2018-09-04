@@ -471,7 +471,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         >>> dti.is_dst()
         Index([True, True, False, False], dtype='object')
         """
-        return Index(timezones._is_dst(self.asi8, self.tz))
+        return Index(timezones.is_dst(self.asi8, self.tz))
 
     @property
     def size(self):

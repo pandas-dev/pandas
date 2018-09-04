@@ -108,7 +108,8 @@ def _p_tz_cache_key(tz):
     return tz_cache_key(tz)
 
 
-# Timezone data caches, key is the pytz string or dateutil file name.
+# Timezone data (UTC offset) caches
+# key is the pytz string or dateutil file name.
 dst_cache = {}
 
 
@@ -225,7 +226,8 @@ cdef object get_dst_info(object tz, dst):
     tz : object
         timezone
     dst : bool
-        True returns the DST specific offset
+        True returns the DST specific offset and will NOT store the results in
+        dst_cache. dst_cache is reserved for caching UTC offsets.
         False returns the UTC offset
         Specific for pytz timezones only
 
@@ -246,7 +248,7 @@ cdef object get_dst_info(object tz, dst):
                 np.array([num], dtype=np.int64),
                 None)
 
-    if cache_key not in dst_cache:
+    if cache_key not in dst_cache or dst:
         if treat_tz_as_pytz(tz):
             trans = np.array(tz._utc_transition_times, dtype='M8[ns]')
             trans = trans.view('i8')
@@ -298,12 +300,14 @@ cdef object get_dst_info(object tz, dst):
             deltas = np.array([num], dtype=np.int64)
             typ = 'static'
 
+        if dst:
+            return trans, deltas, typ
         dst_cache[cache_key] = (trans, deltas, typ)
 
     return dst_cache[cache_key]
 
 
-def _is_dst(int64_t[:] values, object tz):
+def is_dst(int64_t[:] values, object tz):
     """
     Return a boolean array indicating whether each epoch timestamp is in
     daylight savings time with respect with the passed timezone.
@@ -322,9 +326,6 @@ def _is_dst(int64_t[:] values, object tz):
     """
     cdef:
         Py_ssize_t n = len(values)
-        # Cython boolean memoryviews are not supported yet
-        # https://github.com/cython/cython/issues/2204
-        # bint[:] result
         object typ
 
     result = np.zeros(n, dtype=bool)
@@ -335,9 +336,9 @@ def _is_dst(int64_t[:] values, object tz):
     # Fixed timezone offsets do not have DST transitions
     if typ not in {'pytz', 'dateutil'}:
         return result
-    positions = transitions.searchsorted(values, side='right')
-    # DST has 0 offset
-    result = offsets[positions] == 0
+    positions = transitions.searchsorted(values, side='right') - 1
+    # DST has nonzero offset
+    result = offsets[positions] != 0
     return result
 
 
