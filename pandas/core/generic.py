@@ -1118,13 +1118,8 @@ class NDFrame(PandasObject, SelectionMixin):
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
-
-            # TODO: we already did a copy above, can we avoid doing again?
-            new_data = result._data.copy(deep=copy)
-            from pandas.core.internals.managers import _transform_index
-            new_labels = _transform_index(new_data.axes[baxis], f, level)
-            new_data.set_axis(baxis, new_labels)
-            result._data = new_data
+            result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
+                                                    level=level)
             result._clear_item_cache()
 
         if inplace:
