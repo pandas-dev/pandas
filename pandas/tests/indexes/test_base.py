@@ -1245,21 +1245,6 @@ class TestIndex(Base):
         e1 = np.array([1, 3, -1], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
-    def test_get_indexer_with_NA_values(self, unique_nulls_fixture,
-                                        unique_nulls_fixture2):
-        # GH 22332
-        # check pairwise, that no pair of na values
-        # is mangled
-        if unique_nulls_fixture is unique_nulls_fixture2:
-            return  # skip it, values are not unique
-        arr = np.array([unique_nulls_fixture,
-                        unique_nulls_fixture2], dtype=np.object)
-        index = pd.Index(arr, dtype=np.object)
-        result = index.get_indexer([unique_nulls_fixture,
-                                    unique_nulls_fixture2, 'Unknown'])
-        expected = np.array([0, 1, -1], dtype=np.int64)
-        tm.assert_numpy_array_equal(result, expected)
-
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("expected,method", [
         (np.array([-1, 0, 0, 1, 1], dtype=np.intp), 'pad'),
@@ -1377,6 +1362,21 @@ class TestIndex(Base):
         numeric_index = pd.Index(range(4))
         result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_with_NA_values(self, unique_nulls_fixture,
+                                        unique_nulls_fixture2):
+        # GH 22332
+        # check pairwise, that no pair of na values
+        # is mangled
+        if unique_nulls_fixture is unique_nulls_fixture2:
+            return  # skip it, values are not unique
+        arr = np.array([unique_nulls_fixture,
+                        unique_nulls_fixture2], dtype=np.object)
+        index = pd.Index(arr, dtype=np.object)
+        result = index.get_indexer([unique_nulls_fixture,
+                                    unique_nulls_fixture2, 'Unknown'])
+        expected = np.array([0, 1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
