@@ -1638,6 +1638,7 @@ def dispatch_to_series(left, right, func):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
+    right = lib.item_from_zerodim(right)
     if lib.is_scalar(right):
         new_data = {i: func(left.iloc[:, i], right)
                     for i in range(len(left.columns))}
