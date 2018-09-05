@@ -2528,6 +2528,8 @@ class NDFrame(PandasObject, SelectionMixin):
                  encoding=None, decimal='.', multicolumn=None,
                  multicolumn_format=None, multirow=None):
         r"""
+        Render an object to a LaTeX tabular environment table.
+
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \usepackage{booktabs}.
 
