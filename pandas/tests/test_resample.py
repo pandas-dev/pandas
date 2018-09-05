@@ -26,7 +26,6 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 from pandas.compat import range, lrange, zip, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
 import pandas.tseries.offsets as offsets
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import Minute, BDay
 
 from pandas.core.groupby.groupby import DataError
@@ -626,12 +625,7 @@ class Base(object):
         obj = series_and_frame
 
         result = obj.resample(freq).asfreq()
-        if freq == '2D':
-            new_index = obj.index.take(np.arange(0, len(obj.index), 2))
-            new_index.freq = to_offset('2D')
-        else:
-            new_index = self.create_index(obj.index[0], obj.index[-1],
-                                          freq=freq)
+        new_index = self.create_index(obj.index[0], obj.index[-1], freq=freq)
         expected = obj.reindex(new_index)
         assert_almost_equal(result, expected)
 
@@ -2931,6 +2925,17 @@ class TestTimedeltaIndex(Base):
                                                    periods=3,
                                                    freq='1S'))
         assert_frame_equal(result, expected)
+
+    def test_resample_as_freq_with_subperiod(self):
+        # GH 13022
+        index = timedelta_range('00:00:00', '00:10:00', freq='5T')
+        df = DataFrame(data={'value': [1, 5, 10]}, index=index)
+        result = df.resample('2T').asfreq()
+        expected_data = {'value': [1, np.nan, np.nan, np.nan, np.nan, 10]}
+        expected = DataFrame(data=expected_data,
+                             index=timedelta_range('00:00:00',
+                                                   '00:10:00', freq='2T'))
+        tm.assert_frame_equal(result, expected)
 
 
 class TestResamplerGrouper(object):
