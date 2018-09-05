@@ -3,7 +3,7 @@ import numpy as np
 
 from pandas.compat import zip
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
@@ -36,114 +36,28 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()
 
 
-def _get_array_list(arr, others):
-    """
-    Auxiliary function for :func:`str_cat`
+def interleave_sep(all_cols, sep):
+    '''
+    Auxiliary function for :meth:`str.cat`
 
     Parameters
     ----------
-    arr : ndarray
-        The left-most ndarray of the concatenation
-    others : list, ndarray, Series
-        The rest of the content to concatenate. If list of list-likes,
-        all elements must be passable to ``np.asarray``.
+    all_cols : list of numpy arrays
+        List of arrays to be concatenated with sep
+    sep : string
+        The separator string for concatenating the columns
 
     Returns
     -------
     list
-        List of all necessary arrays
-    """
-    from pandas.core.series import Series
-
-    if len(others) and isinstance(com.values_from_object(others)[0],
-                                  (list, np.ndarray, Series)):
-        arrays = [arr] + list(others)
-    else:
-        arrays = [arr, others]
-
-    return [np.asarray(x, dtype=object) for x in arrays]
-
-
-def str_cat(arr, others=None, sep=None, na_rep=None):
-    """
-    Auxiliary function for :meth:`str.cat`
-
-    If `others` is specified, this function concatenates the Series/Index
-    and elements of `others` element-wise.
-    If `others` is not being passed then all values in the Series are
-    concatenated in a single string with a given `sep`.
-
-    Parameters
-    ----------
-    others : list-like, or list of list-likes, optional
-        List-likes (or a list of them) of the same length as calling object.
-        If None, returns str concatenating strings of the Series.
-    sep : string or None, default None
-        If None, concatenates without any separator.
-    na_rep : string or None, default None
-        If None, NA in the series are ignored.
-
-    Returns
-    -------
-    concat
-        ndarray containing concatenated results (if `others is not None`)
-        or str (if `others is None`)
-    """
-    if sep is None:
-        sep = ''
-
-    if others is not None:
-        arrays = _get_array_list(arr, others)
-
-        n = _length_check(arrays)
-        masks = np.array([isna(x) for x in arrays])
-        cats = None
-
-        if na_rep is None:
-            na_mask = np.logical_or.reduce(masks, axis=0)
-
-            result = np.empty(n, dtype=object)
-            np.putmask(result, na_mask, np.nan)
-
-            notmask = ~na_mask
-
-            tuples = zip(*[x[notmask] for x in arrays])
-            cats = [sep.join(tup) for tup in tuples]
-
-            result[notmask] = cats
-        else:
-            for i, x in enumerate(arrays):
-                x = np.where(masks[i], na_rep, x)
-                if cats is None:
-                    cats = x
-                else:
-                    cats = cats + sep + x
-
-            result = cats
-
-        return result
-    else:
-        arr = np.asarray(arr, dtype=object)
-        mask = isna(arr)
-        if na_rep is None and mask.any():
-            if sep == '':
-                na_rep = ''
-            else:
-                return sep.join(arr[notna(arr)])
-        return sep.join(np.where(mask, na_rep, arr))
-
-
-def _length_check(others):
-    n = None
-    for x in others:
-        try:
-            if n is None:
-                n = len(x)
-            elif len(x) != n:
-                raise ValueError('All arrays must be same length')
-        except TypeError:
-            raise ValueError('Must pass arrays containing strings to str_cat')
-    return n
+        The list of arrays interleaved with sep; to be fed to np.sum
+    '''
+    if sep == '':
+        # no need to add empty strings
+        return all_cols
+    result = [sep] * (2 * len(all_cols) - 1)
+    result[::2] = all_cols
+    return result
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -2283,6 +2197,8 @@ class StringMethods(NoNewAttributesMixin):
 
         if isinstance(others, compat.string_types):
             raise ValueError("Did you mean to supply a `sep` keyword?")
+        if sep is None:
+            sep = ''
 
         if isinstance(self._orig, Index):
             data = Series(self._orig, index=self._orig)
@@ -2291,9 +2207,13 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
-            return self._wrap_result(result,
-                                     use_codes=(not self._is_categorical))
+            data = data.astype(object).values
+            mask = isna(data)
+            if mask.any():
+                if na_rep is None:
+                    return sep.join(data[~mask])
+                return sep.join(np.where(mask, na_rep, data))
+            return sep.join(data)
 
         try:
             # turn anything in "others" into lists of Series
@@ -2320,23 +2240,42 @@ class StringMethods(NoNewAttributesMixin):
                           "'outer'|'inner'|'right'`. The future default will "
                           "be `join='left'`.", FutureWarning, stacklevel=2)
 
-        # align if required
-        if join is not None:
+        # if join is None, _get_series_list already aligned indexes
+        join = 'left' if join is None else join
+
+        if any(not data.index.equals(x.index) for x in others):
             # Need to add keys for uniqueness in case of duplicate columns
             others = concat(others, axis=1,
                             join=(join if join == 'inner' else 'outer'),
-                            keys=range(len(others)))
+                            keys=range(len(others)), copy=False)
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
-        # str_cat discards index
-        res = str_cat(data, others=others, sep=sep, na_rep=na_rep)
+        all_cols = [x.astype(object).values for x in [data] + others]
+        masks = np.array([isna(x) for x in all_cols])
+        union_mask = np.logical_or.reduce(masks, axis=0)
+
+        if na_rep is None and union_mask.any():
+            result = np.empty(len(data), dtype=object)
+            np.putmask(result, union_mask, np.nan)
+
+            not_masked = ~union_mask
+            all_cols = interleave_sep([x[not_masked] for x in all_cols], sep)
+
+            result[not_masked] = np.sum(all_cols, axis=0)
+        elif na_rep is not None and union_mask.any():
+            # fill NaNs
+            all_cols = [np.where(masks[i], na_rep, all_cols[i])
+                        for i in range(len(all_cols))]
+            result = np.sum(interleave_sep(all_cols, sep), axis=0)
+        else:  # no NaNs
+            result = np.sum(interleave_sep(all_cols, sep), axis=0)
 
         if isinstance(self._orig, Index):
-            res = Index(res, name=self._orig.name)
+            result = Index(result, name=self._orig.name)
         else:  # Series
-            res = Series(res, index=data.index, name=self._orig.name)
-        return res
+            result = Series(result, index=data.index, name=self._orig.name)
+        return result
 
     _shared_docs['str_split'] = ("""
     Split strings around given separator/delimiter.

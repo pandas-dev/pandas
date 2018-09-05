@@ -97,53 +97,6 @@ class TestStringMethods(object):
         assert i == 100
         assert s == 'h'
 
-    def test_cat(self):
-        one = np.array(['a', 'a', 'b', 'b', 'c', NA], dtype=np.object_)
-        two = np.array(['a', NA, 'b', 'd', 'foo', NA], dtype=np.object_)
-
-        # single array
-        result = strings.str_cat(one)
-        exp = 'aabbc'
-        assert result == exp
-
-        result = strings.str_cat(one, na_rep='NA')
-        exp = 'aabbcNA'
-        assert result == exp
-
-        result = strings.str_cat(one, na_rep='-')
-        exp = 'aabbc-'
-        assert result == exp
-
-        result = strings.str_cat(one, sep='_', na_rep='NA')
-        exp = 'a_a_b_b_c_NA'
-        assert result == exp
-
-        result = strings.str_cat(two, sep='-')
-        exp = 'a-b-d-foo'
-        assert result == exp
-
-        # Multiple arrays
-        result = strings.str_cat(one, [two], na_rep='NA')
-        exp = np.array(['aa', 'aNA', 'bb', 'bd', 'cfoo', 'NANA'],
-                       dtype=np.object_)
-        tm.assert_numpy_array_equal(result, exp)
-
-        result = strings.str_cat(one, two)
-        exp = np.array(['aa', NA, 'bb', 'bd', 'cfoo', NA], dtype=np.object_)
-        tm.assert_almost_equal(result, exp)
-
-        # error for incorrect lengths
-        rgx = 'All arrays must be same length'
-        three = Series(['1', '2', '3'])
-
-        with tm.assert_raises_regex(ValueError, rgx):
-            strings.str_cat(one, three)
-
-        # error for incorrect type
-        rgx = "Must pass arrays containing strings to str_cat"
-        with tm.assert_raises_regex(ValueError, rgx):
-            strings.str_cat(one, 'three')
-
     @pytest.mark.parametrize('box', [Series, Index])
     @pytest.mark.parametrize('other', [None, Series, Index])
     def test_str_cat_name(self, box, other):
@@ -3136,7 +3089,7 @@ class TestStringMethods(object):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
         if compat.PY3:
-            pytest.raises(TypeError, lhs.str.cat, rhs)
+            pytest.raises(TypeError, lhs.str.cat, rhs, sep=',')
         else:
             result = lhs.str.cat(rhs)
             expected = Series(np.array(
