@@ -27,11 +27,8 @@ from pandas.core.arrays.integer import (
 
 
 def make_data():
-    return (list(range(1, 9)) +
-            [np.nan] +
-            list(range(10, 98)) +
-            [np.nan] +
-            [99, 100])
+    return (list(range(1, 9)) + [np.nan] + list(range(10, 98))
+            + [np.nan] + [99, 100])
 
 
 @pytest.fixture(params=[Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
