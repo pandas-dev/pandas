@@ -13,7 +13,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl
+  - openpyxl=2.5.5
   - psycopg2
   - pymysql
   - pytables

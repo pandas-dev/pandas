@@ -712,6 +712,7 @@ Groupby/Resample/Rolling
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
 - Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to `loffset` kwarg (:issue:`7687`).
+- Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 
 Sparse
 ^^^^^^
