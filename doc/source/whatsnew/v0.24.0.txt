@@ -604,6 +604,8 @@ Performance Improvements
   :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
   (:issue:`21372`)
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
+- Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
+
 
 .. _whatsnew_0240.docs:
 
