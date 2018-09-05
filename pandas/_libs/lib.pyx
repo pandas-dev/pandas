@@ -492,9 +492,7 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         if is_datelike and checknull(v):
             result[i] = NPY_NAT
         else:
-            # we can use the unsafe version because we know `result` is mutable
-            # since it was created from `np.empty`
-            util.set_value_at_unsafe(result, i, v)
+            result[i] = v
 
     return result
 
@@ -505,9 +503,7 @@ cpdef ndarray[object] astype_unicode(ndarray arr):
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        # we can use the unsafe version because we know `result` is mutable
-        # since it was created from `np.empty`
-        util.set_value_at_unsafe(result, i, unicode(arr[i]))
+        result[i] = unicode(arr[i])
 
     return result
 
@@ -518,9 +514,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        # we can use the unsafe version because we know `result` is mutable
-        # since it was created from `np.empty`
-        util.set_value_at_unsafe(result, i, str(arr[i]))
+        result[i] = str(arr[i])
 
     return result
 
@@ -1153,7 +1147,7 @@ def infer_dtype(object value, bint skipna=False):
 
     # try to use a valid value
     for i in range(n):
-        val = util.get_value_1d(values, i)
+        val = values[i]
 
         # do not use is_nul_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
@@ -1240,7 +1234,7 @@ def infer_dtype(object value, bint skipna=False):
             return 'interval'
 
     for i in range(n):
-        val = util.get_value_1d(values, i)
+        val = values[i]
         if (util.is_integer_object(val) and
                 not util.is_timedelta64_object(val) and
                 not util.is_datetime64_object(val)):
@@ -2255,7 +2249,7 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     keys = getattr(keys, 'values', keys)
 
     for i in range(n):
-        val = util.get_value_1d(keys, i)
+        val = keys[i]
         if val in mapping:
             output[i] = mapping[val]
         else:

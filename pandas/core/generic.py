@@ -738,14 +738,14 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df = pd.DataFrame([
-        ...:     [1, 2, 3, 4],
-        ...:     [5, 6, 7, 8],
-        ...:     [9, 10, 11, 12]
-        ...: ]).set_index([0, 1]).rename_axis(['a', 'b'])
+        ...     [1, 2, 3, 4],
+        ...     [5, 6, 7, 8],
+        ...     [9, 10, 11, 12]
+        ... ]).set_index([0, 1]).rename_axis(['a', 'b'])
 
         >>> df.columns = pd.MultiIndex.from_tuples([
-        ...:    ('c', 'e'), ('d', 'f')
-        ...:], names=['level_1', 'level_2'])
+        ...    ('c', 'e'), ('d', 'f')
+        ... ], names=['level_1', 'level_2'])
 
         >>> df
         level_1   c   d
@@ -1412,14 +1412,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
-    def _check_label_or_level_ambiguity(self, key, axis=0, stacklevel=1):
+    def _check_label_or_level_ambiguity(self, key, axis=0):
         """
-        Check whether `key` matches both a level of the input `axis` and a
-        label of the other axis and raise a ``FutureWarning`` if this is the
-        case.
+        Check whether `key` is ambiguous.
 
-        Note: This method will be altered to raise an ambiguity exception in
-        a future version.
+        By ambiguous, we mean that it matches both a level of the input
+        `axis` and a label of the other axis.
 
         Parameters
         ----------
@@ -1427,18 +1425,10 @@ class NDFrame(PandasObject, SelectionMixin):
             label or level name
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
-
-        Returns
-        -------
-        ambiguous: bool
 
         Raises
         ------
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
+        ValueError: `key` is ambiguous
         """
 
         axis = self._get_axis_number(axis)
@@ -1464,21 +1454,15 @@ class NDFrame(PandasObject, SelectionMixin):
                                          ('an', 'index'))
 
             msg = ("'{key}' is both {level_article} {level_type} level and "
-                   "{label_article} {label_type} label.\n"
-                   "Defaulting to {label_type}, but this will raise an "
-                   "ambiguity error in a future version"
+                   "{label_article} {label_type} label, which is ambiguous."
                    ).format(key=key,
                             level_article=level_article,
                             level_type=level_type,
                             label_article=label_article,
                             label_type=label_type)
+            raise ValueError(msg)
 
-            warnings.warn(msg, FutureWarning, stacklevel=stacklevel + 1)
-            return True
-        else:
-            return False
-
-    def _get_label_or_level_values(self, key, axis=0, stacklevel=1):
+    def _get_label_or_level_values(self, key, axis=0):
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1497,8 +1481,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Label or level name.
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
 
         Returns
         -------
@@ -1524,8 +1506,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         if self._is_label_reference(key, axis=axis):
-            self._check_label_or_level_ambiguity(key, axis=axis,
-                                                 stacklevel=stacklevel + 1)
+            self._check_label_or_level_ambiguity(key, axis=axis)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values
@@ -4458,7 +4439,6 @@ class NDFrame(PandasObject, SelectionMixin):
         - function.
         - list of functions.
         - dict of column names -> functions (or list of functions).
-
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -6081,89 +6061,191 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['interpolate'] = """
         Please note that only ``method='linear'`` is supported for
-        DataFrames/Series with a MultiIndex.
+        DataFrame/Series with a MultiIndex.
 
         Parameters
         ----------
-        method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
-                  'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline', 'piecewise_polynomial',
-                  'from_derivatives', 'pchip', 'akima'}
+        method : str, default 'linear'
+            Interpolation technique to use. One of:
 
-            * 'linear': ignore the index and treat the values as equally
+            * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
-              default
-            * 'time': interpolation works on daily and higher resolution
-              data to interpolate given length of interval
-            * 'index', 'values': use the actual numerical values of the index
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial' is passed to
-              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
-              'spline' require that you also specify an `order` (int),
+            * 'time': Works on daily and higher resolution data to interpolate
+              given length of interval.
+            * 'index', 'values': use the actual numerical values of the index.
+            * 'pad': Fill in NaNs using existing values.
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
+              'barycentric', 'polynomial': Passed to
+              `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
+              require that you also specify an `order` (int),
               e.g. ``df.interpolate(method='polynomial', order=4)``.
-              These use the actual numerical values of the index.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
-              are all wrappers around the scipy interpolation methods of
-              similar names. These use the actual numerical values of the
-              index. For more information on their behavior, see the
-              `scipy documentation
-              <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-              and `tutorial documentation
-              <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
-            * 'from_derivatives' refers to
-              :meth:`scipy.interpolate.BPoly.from_derivatives` which
+              These use the numerical values of the index.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
+              Wrappers around the SciPy interpolation methods of similar
+              names. See `Notes`.
+            * 'from_derivatives': Refers to
+              `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
-              scipy 0.18
+              scipy 0.18.
 
             .. versionadded:: 0.18.1
 
                Added support for the 'akima' method.
                Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in scipy 0.18; backwards-compatible with
-               scipy < 0.18
+               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
+               SciPy < 0.18
 
-        axis : {0, 1}, default 0
-            * 0: fill column-by-column
-            * 1: fill row-by-row
-        limit : int, default None.
-            Maximum number of consecutive NaNs to fill. Must be greater than 0.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Axis to interpolate along.
+        limit : int, optional
+            Maximum number of consecutive NaNs to fill. Must be greater than
+            0.
+        inplace : bool, default False
+            Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-        limit_area : {'inside', 'outside'}, default None
-            * None: (default) no fill restriction
-            * 'inside' Only fill NaNs surrounded by valid values (interpolate).
-            * 'outside' Only fill NaNs outside valid values (extrapolate).
-
             If limit is specified, consecutive NaNs will be filled in this
             direction.
+        limit_area : {`None`, 'inside', 'outside'}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
 
             .. versionadded:: 0.21.0
-        inplace : bool, default False
-            Update the NDFrame in place if possible.
+
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
-        kwargs : keyword arguments to pass on to the interpolating function.
+        **kwargs
+            Keyword arguments to pass on to the interpolating function.
 
         Returns
         -------
-        Series or DataFrame of same shape interpolated at the NaNs
+        Series or DataFrame
+            Returns the same object type as the caller, interpolated at
+            some or all ``NaN`` values
 
         See Also
         --------
-        reindex, replace, fillna
+        fillna : Fill missing values using different methods.
+        scipy.interpolate.Akima1DInterpolator : Piecewise cubic polynomials
+            (Akima interpolator).
+        scipy.interpolate.BPoly.from_derivatives : Piecewise polynomial in the
+            Bernstein basis.
+        scipy.interpolate.interp1d : Interpolate a 1-D function.
+        scipy.interpolate.KroghInterpolator : Interpolate polynomial (Krogh
+            interpolator).
+        scipy.interpolate.PchipInterpolator : PCHIP 1-d monotonic cubic
+            interpolation.
+        scipy.interpolate.CubicSpline : Cubic spline data interpolator.
+
+        Notes
+        -----
+        The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+        methods are wrappers around the respective SciPy implementations of
+        similar names. These use the actual numerical values of the index.
+        For more information on their behavior, see the
+        `SciPy documentation
+        <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+        and `SciPy tutorial
+        <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
 
         Examples
         --------
-
-        Filling in NaNs
+        Filling in ``NaN`` in a :class:`~pandas.Series` via linear
+        interpolation.
 
         >>> s = pd.Series([0, 1, np.nan, 3])
+        >>> s
+        0    0.0
+        1    1.0
+        2    NaN
+        3    3.0
+        dtype: float64
         >>> s.interpolate()
-        0    0
-        1    1
-        2    2
-        3    3
+        0    0.0
+        1    1.0
+        2    2.0
+        3    3.0
         dtype: float64
 
+        Filling in ``NaN`` in a Series by padding, but filling at most two
+        consecutive ``NaN`` at a time.
+
+        >>> s = pd.Series([np.nan, "single_one", np.nan,
+        ...                "fill_two_more", np.nan, np.nan, np.nan,
+        ...                4.71, np.nan])
+        >>> s
+        0              NaN
+        1       single_one
+        2              NaN
+        3    fill_two_more
+        4              NaN
+        5              NaN
+        6              NaN
+        7             4.71
+        8              NaN
+        dtype: object
+        >>> s.interpolate(method='pad', limit=2)
+        0              NaN
+        1       single_one
+        2       single_one
+        3    fill_two_more
+        4    fill_two_more
+        5    fill_two_more
+        6              NaN
+        7             4.71
+        8             4.71
+        dtype: object
+
+        Filling in ``NaN`` in a Series via polynomial interpolation or splines:
+        Both 'polynomial' and 'spline' methods require that you also specify
+        an ``order`` (int).
+
+        >>> s = pd.Series([0, 2, np.nan, 8])
+        >>> s.interpolate(method='polynomial', order=2)
+        0    0.000000
+        1    2.000000
+        2    4.666667
+        3    8.000000
+        dtype: float64
+
+        Fill the DataFrame forward (that is, going down) along each column
+        using linear interpolation.
+
+        Note how the last entry in column 'a' is interpolated differently,
+        because there is no entry after it to use for interpolation.
+        Note how the first entry in column 'b' remains ``NaN``, because there
+        is no entry befofe it to use for interpolation.
+
+        >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
+        ...                    (np.nan, 2.0, np.nan, np.nan),
+        ...                    (2.0, 3.0, np.nan, 9.0),
+        ...                    (np.nan, 4.0, -4.0, 16.0)],
+        ...                   columns=list('abcd'))
+        >>> df
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  NaN  2.0  NaN   NaN
+        2  2.0  3.0  NaN   9.0
+        3  NaN  4.0 -4.0  16.0
+        >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  1.0  2.0 -2.0   5.0
+        2  2.0  3.0 -3.0   9.0
+        3  2.0  4.0 -4.0  16.0
+
+        Using polynomial interpolation.
+
+        >>> df['d'].interpolate(method='polynomial', order=2)
+        0     1.0
+        1     4.0
+        2     9.0
+        3    16.0
+        Name: d, dtype: float64
         """
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
@@ -8063,7 +8145,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative
+            Number of periods to move, can be positive or negative.
         freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from the tseries module or time rule (e.g. 'EOM').
             See Notes.
@@ -9270,6 +9352,115 @@ class NDFrame(PandasObject, SelectionMixin):
                                              'klass': 'NDFrame'})
     def last_valid_index(self):
         return self._find_valid_index('last')
+
+    def to_csv(self, path_or_buf=None, sep=",", na_rep='', float_format=None,
+               columns=None, header=True, index=True, index_label=None,
+               mode='w', encoding=None, compression='infer', quoting=None,
+               quotechar='"', line_terminator='\n', chunksize=None,
+               tupleize_cols=None, date_format=None, doublequote=True,
+               escapechar=None, decimal='.'):
+        r"""Write object to a comma-separated values (csv) file
+
+        Parameters
+        ----------
+        path_or_buf : string or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
+            .. versionchanged:: 0.24.0
+                Was previously named "path" for Series.
+        sep : character, default ','
+            Field delimiter for the output file.
+        na_rep : string, default ''
+            Missing data representation
+        float_format : string, default None
+            Format string for floating point numbers
+        columns : sequence, optional
+            Columns to write
+        header : boolean or list of string, default True
+            Write out the column names. If a list of strings is given it is
+            assumed to be aliases for the column names
+            .. versionchanged:: 0.24.0
+                Previously defaulted to False for Series.
+        index : boolean, default True
+            Write row names (index)
+        index_label : string or sequence, or False, default None
+            Column label for index column(s) if desired. If None is given, and
+            `header` and `index` are True, then the index names are used. A
+            sequence should be given if the object uses MultiIndex.  If
+            False do not print fields for index names. Use index_label=False
+            for easier importing in R
+        mode : str
+            Python write mode, default 'w'
+        encoding : string, optional
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
+                      default 'infer'
+            If 'infer' and `path_or_buf` is path-like, then detect compression
+            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
+            (otherwise no compression).
+
+            .. versionchanged:: 0.24.0
+               'infer' option added and set to default
+        line_terminator : string, default ``'\n'``
+            The newline character or character sequence to use in the output
+            file
+        quoting : optional constant from csv module
+            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric
+        quotechar : string (length 1), default '\"'
+            character used to quote fields
+        doublequote : boolean, default True
+            Control quoting of `quotechar` inside a field
+        escapechar : string (length 1), default None
+            character used to escape `sep` and `quotechar` when appropriate
+        chunksize : int or None
+            rows to write at a time
+        tupleize_cols : boolean, default False
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+
+            Write MultiIndex columns as a list of tuples (if True) or in
+            the new, expanded format, where each MultiIndex column is a row
+            in the CSV (if False).
+        date_format : string, default None
+            Format string for datetime objects
+        decimal: string, default '.'
+            Character recognized as decimal separator. E.g. use ',' for
+            European data
+
+        .. versionchanged:: 0.24.0
+            The order of arguments for Series was changed.
+        """
+
+        df = self if isinstance(self, ABCDataFrame) else self.to_frame()
+
+        if tupleize_cols is not None:
+            warnings.warn("The 'tupleize_cols' parameter is deprecated and "
+                          "will be removed in a future version",
+                          FutureWarning, stacklevel=2)
+        else:
+            tupleize_cols = False
+
+        from pandas.io.formats.csvs import CSVFormatter
+        formatter = CSVFormatter(df, path_or_buf,
+                                 line_terminator=line_terminator, sep=sep,
+                                 encoding=encoding,
+                                 compression=compression, quoting=quoting,
+                                 na_rep=na_rep, float_format=float_format,
+                                 cols=columns, header=header, index=index,
+                                 index_label=index_label, mode=mode,
+                                 chunksize=chunksize, quotechar=quotechar,
+                                 tupleize_cols=tupleize_cols,
+                                 date_format=date_format,
+                                 doublequote=doublequote,
+                                 escapechar=escapechar, decimal=decimal)
+        formatter.save()
+
+        if path_or_buf is None:
+            return formatter.path_or_buf.getvalue()
 
 
 def _doc_parms(cls):

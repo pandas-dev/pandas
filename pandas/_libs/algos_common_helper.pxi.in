@@ -55,8 +55,9 @@ cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
 
     Better to do this with Cython because of the enormous speed boost.
     """
-    cdef Py_ssize_t i, length
-    cdef dict result = {}
+    cdef:
+        Py_ssize_t i, length
+        dict result = {}
 
     length = len(index)
 
@@ -68,12 +69,12 @@ cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
-                 limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int64_t, ndim=1] indexer
-    cdef {{c_type}} cur, next
-    cdef int lim, fill_count = 0
+def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new, limit=None):
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int64_t, ndim=1] indexer
+        {{c_type}} cur, next
+        int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -135,9 +136,10 @@ def pad_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
 def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
                          ndarray[uint8_t, cast=True] mask,
                          limit=None):
-    cdef Py_ssize_t i, N
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
+    cdef:
+        Py_ssize_t i, N
+        {{c_type}} val
+        int lim, fill_count = 0
 
     N = len(values)
 
@@ -171,9 +173,10 @@ def pad_inplace_{{name}}(ndarray[{{c_type}}] values,
 def pad_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
                             ndarray[uint8_t, ndim=2] mask,
                             limit=None):
-    cdef Py_ssize_t i, j, N, K
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
+    cdef:
+        Py_ssize_t i, j, N, K
+        {{c_type}} val
+        int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
@@ -233,10 +236,11 @@ D
 @cython.wraparound(False)
 def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
                       limit=None):
-    cdef Py_ssize_t i, j, nleft, nright
-    cdef ndarray[int64_t, ndim=1] indexer
-    cdef {{c_type}} cur, prev
-    cdef int lim, fill_count = 0
+    cdef:
+        Py_ssize_t i, j, nleft, nright
+        ndarray[int64_t, ndim=1] indexer
+        {{c_type}} cur, prev
+        int lim, fill_count = 0
 
     nleft = len(old)
     nright = len(new)
@@ -299,9 +303,10 @@ def backfill_{{name}}(ndarray[{{c_type}}] old, ndarray[{{c_type}}] new,
 def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
                               ndarray[uint8_t, cast=True] mask,
                               limit=None):
-    cdef Py_ssize_t i, N
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
+    cdef:
+        Py_ssize_t i, N
+        {{c_type}} val
+        int lim, fill_count = 0
 
     N = len(values)
 
@@ -335,9 +340,10 @@ def backfill_inplace_{{name}}(ndarray[{{c_type}}] values,
 def backfill_2d_inplace_{{name}}(ndarray[{{c_type}}, ndim=2] values,
                                  ndarray[uint8_t, ndim=2] mask,
                                  limit=None):
-    cdef Py_ssize_t i, j, N, K
-    cdef {{c_type}} val
-    cdef int lim, fill_count = 0
+    cdef:
+        Py_ssize_t i, j, N, K
+        {{c_type}} val
+        int lim, fill_count = 0
 
     K, N = (<object> values).shape
 
@@ -428,10 +434,10 @@ def is_monotonic_{{name}}(ndarray[{{c_type}}] arr, bint timelike):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def arrmap_{{name}}(ndarray[{{c_type}}] index, object func):
-    cdef Py_ssize_t length = index.shape[0]
-    cdef Py_ssize_t i = 0
-
-    cdef ndarray[object] result = np.empty(length, dtype=np.object_)
+    cdef:
+        Py_ssize_t length = index.shape[0]
+        Py_ssize_t i = 0
+        ndarray[object] result = np.empty(length, dtype=np.object_)
 
     from pandas._libs.lib import maybe_convert_objects
 
@@ -535,6 +541,7 @@ def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
 
 cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.intp)).descr.type_num
 
+
 cpdef ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
@@ -545,6 +552,7 @@ cpdef ensure_platform_int(object arr):
             return arr.astype(np.intp)
     else:
         return np.array(arr, dtype=np.intp)
+
 
 cpdef ensure_object(object arr):
     if util.is_array(arr):
