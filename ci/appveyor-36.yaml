@@ -10,7 +10,7 @@ dependencies:
   - matplotlib
   - numexpr
   - numpy=1.13*
-  - openpyxl
+  - openpyxl=2.5.5
   - pyarrow
   - pytables
   - python-dateutil
