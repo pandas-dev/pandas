@@ -263,6 +263,8 @@ def to_parquet(df, path, engine='auto', compression='snappy', index=None,
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file. If ``None``, the
         engine's default behavior will be used.
+
+        .. versionadded 0.24.0
     kwargs
         Additional keyword arguments passed to the engine
     """
