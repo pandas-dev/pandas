@@ -538,14 +538,17 @@ class TestUnique(object):
                                             struct.pack("d", result[0]))[0]
             assert result_nan_bits == bits_for_nan1
 
-    def test_do_not_mangle_na_values(self):
+    def test_do_not_mangle_na_values(self, unique_nulls_fixture,
+                                     unique_nulls_fixture2):
         # GH 22295
-        a = np.array([None, np.nan, pd.NaT], dtype=np.object)
+        if unique_nulls_fixture is unique_nulls_fixture2:
+            return  # skip it, values not unique
+        a = np.array([unique_nulls_fixture,
+                      unique_nulls_fixture2], dtype=np.object)
         result = pd.unique(a)
-        assert result.size == 3
-        assert a[0] is None
-        assert np.isnan(a[1])
-        assert a[2] is pd.NaT
+        assert result.size == 2
+        assert a[0] is unique_nulls_fixture
+        assert a[1] is unique_nulls_fixture2
 
 
 class TestIsin(object):
