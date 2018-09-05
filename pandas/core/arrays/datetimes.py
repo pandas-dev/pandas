@@ -241,34 +241,26 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         tz, _ = _infer_tz_from_endpoints(start, end, tz)
 
-        # Make sure start and end are timezone localized if:
-        # 1) freq = a Timedelta-like frequency (Tick)
-        # 2) freq = None i.e. generating a linspaced range
-        if isinstance(freq, Tick) or freq is None:
-            localize_args = {'tz': tz, 'ambiguous': False}
-        else:
-            localize_args = {'tz': None}
-
         if tz is not None:
             # Localize the start and end arguments
             start = _maybe_localize_point(
-                start, getattr(start, 'tz', None), start, localize_args
+                start, getattr(start, 'tz', None), start, freq, tz
             )
             end = _maybe_localize_point(
-                end, getattr(end, 'tz', None), end, localize_args
+                end, getattr(end, 'tz', None), end, freq, tz
             )
         if start and end:
             # Make sure start and end have the same tz
             start = _maybe_localize_point(
-                start, start.tz, end.tz, localize_args
+                start, start.tz, end.tz, freq, tz
             )
             end = _maybe_localize_point(
-                end, end.tz, start.tz, localize_args
+                end, end.tz, start.tz, freq, tz
             )
         if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
                 # Currently always False; never hit
-                # Should be reimplemented as apart of #17914
+                # Should be reimplemented as apart of GH 17914
                 index = cls._cached_range(start, end, periods=periods,
                                           freq=freq)
             else:
@@ -290,7 +282,9 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         else:
             # Create a linearly spaced date_range in local time
             arr = np.linspace(start.value, end.value, periods)
-            index = cls._simple_new(arr.astype('M8[ns]'), freq=None, tz=tz)
+            index = cls._simple_new(
+                arr.astype('M8[ns]', copy=False), freq=None, tz=tz
+            )
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -1315,7 +1309,7 @@ def _maybe_normalize_endpoints(start, end, normalize):
     return start, end, _normalized
 
 
-def _maybe_localize_point(ts, is_none, is_not_none, localize_args):
+def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     """
     Localize a start or end Timestamp to the timezone of the corresponding
     start or end Timestamp
@@ -1325,12 +1319,20 @@ def _maybe_localize_point(ts, is_none, is_not_none, localize_args):
     ts : start or end Timestamp to potentially localize
     is_none : argument that should be None
     is_not_none : argument that should not be None
-    localize_args : dict to pass to tz_localize
+    freq : Tick, DateOffset, or None
+    tz : str, timezone object or None
 
     Returns
     -------
     ts : Timestamp
     """
+    # Make sure start and end are timezone localized if:
+    # 1) freq = a Timedelta-like frequency (Tick)
+    # 2) freq = None i.e. generating a linspaced range
+    if isinstance(freq, Tick) or freq is None:
+        localize_args = {'tz': tz, 'ambiguous': False}
+    else:
+        localize_args = {'tz': None}
     if is_none is None and is_not_none is not None:
         ts = ts.tz_localize(**localize_args)
     return ts
