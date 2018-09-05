@@ -2161,6 +2161,12 @@ class TestXSQLite(SQLiteMixIn):
         self.method = request.function
         self.conn = sqlite3.connect(':memory:')
 
+        # In some test cases we may close db connection
+        # Re-open conn here so we can perform cleanup in teardown
+        yield
+        self.method = request.function
+        self.conn = sqlite3.connect(':memory:')
+
     def test_basic(self):
         frame = tm.makeTimeDataFrame()
         self._check_roundtrip(frame)
@@ -2237,7 +2243,7 @@ class TestXSQLite(SQLiteMixIn):
         with pytest.raises(Exception):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
-    def test_execute_closed_connection(self, request, datapath):
+    def test_execute_closed_connection(self):
         create_sql = """
         CREATE TABLE test
         (
@@ -2255,9 +2261,6 @@ class TestXSQLite(SQLiteMixIn):
 
         with pytest.raises(Exception):
             tquery("select * from test", con=self.conn)
-
-        # Initialize connection again (needed for tearDown)
-        self.setup_method(request, datapath)
 
     def test_na_roundtrip(self):
         pass
