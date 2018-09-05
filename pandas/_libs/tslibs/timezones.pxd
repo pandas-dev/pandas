@@ -13,4 +13,4 @@ cpdef object maybe_get_tz(object tz)
 cdef get_utcoffset(tzinfo, obj)
 cdef bint is_fixed_offset(object tz)
 
-cdef object get_dst_info(object tz, dst)
+cdef object get_dst_info(object tz, bint dst)

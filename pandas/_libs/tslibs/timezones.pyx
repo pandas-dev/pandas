@@ -187,9 +187,10 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cdef int64_t[:] unbox_utcoffsets(object transinfo, dst):
+cdef int64_t[:] unbox_utcoffsets(object transinfo, bint dst):
     """
-    Unpack the offset information from pytz timezone objects
+    Unpack the offset information from the _transition_info attribute of pytz
+    timezones
 
     Parameters
     ----------
@@ -206,9 +207,10 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo, dst):
 
     sz = len(transinfo)
     arr = np.empty(sz, dtype='i8')
-    key = int(dst)
     for i in range(sz):
-        arr[i] = int(transinfo[i][key].total_seconds()) * 1000000000
+        # If dst == True, extract the DST shift in nanoseconds
+        # If dst == False, extract the UTC offset in nanoseconds
+        arr[i] = int(transinfo[i][dst].total_seconds()) * 1000000000
 
     return arr
 
@@ -217,15 +219,15 @@ cdef int64_t[:] unbox_utcoffsets(object transinfo, dst):
 # Daylight Savings
 
 
-cdef object get_dst_info(object tz, dst):
+cdef object get_dst_info(object tz, bint dst):
     """
     Return DST info from a timezone
 
     Parameters
     ----------
     tz : object
-        timezone
-    dst : bool
+        timezone object
+    dst : bint
         True returns the DST specific offset and will NOT store the results in
         dst_cache. dst_cache is reserved for caching UTC offsets.
         False returns the UTC offset
@@ -333,10 +335,12 @@ def is_dst(int64_t[:] values, object tz):
         return result
     transitions, offsets, typ = get_dst_info(tz, True)
     offsets = np.array(offsets)
+
     # Fixed timezone offsets do not have DST transitions
     if typ not in {'pytz', 'dateutil'}:
         return result
     positions = transitions.searchsorted(values, side='right') - 1
+
     # DST has nonzero offset
     result = offsets[positions] != 0
     return result
