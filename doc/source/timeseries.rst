@@ -2250,7 +2250,7 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
    didx.tz_convert(None)
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
-   didx.tz_convert('UCT').tz_localize(None)
+   didx.tz_convert('UTC').tz_localize(None)
 
 .. _timeseries.timezone_ambiguous:
 
