@@ -469,12 +469,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         if self.freq is not None:
             # case with freq of None will raise
+            # we need to use a different stacklevel for Index vs Array
+            lvl = 3 + 1 * isinstance(self, ABCIndexClass)
             warnings.warn("Addition/subtraction of integer array from {cls} "
                           "is deprecated, will be removed in a future "
                           "version.  Instead of adding `arr`, "
                           "add `arr * self.freq`"
                           .format(cls=type(self).__name__),
-                          FutureWarning)
+                          FutureWarning, stacklevel=lvl)
 
         if is_period_dtype(self):
             # easy case for PeriodIndex
@@ -596,12 +598,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # as is_integer returns True for these
                 if self.freq is not None:
                     # case with freq of None will raise
+                    # we need to use a different stacklevel for Index vs Array
+                    lvl = 2 + 1 * isinstance(self, ABCIndexClass)
                     warnings.warn("Addition of integers to {cls} is "
                                   "deprecated, will be removed in a future "
                                   "version.  Instead of adding `n`, "
                                   "add `n * self.freq`"
                                   .format(cls=type(self).__name__),
-                                  FutureWarning)
+                                  FutureWarning, stacklevel=lvl)
                 result = self.shift(other)
 
             # array-like others
@@ -656,12 +660,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                 # as is_integer returns True for these
                 if self.freq is not None:
                     # case with freq of None will raise
+                    # we need to use a different stacklevel for Index vs Array
+                    lvl = 2 + 1 * isinstance(self, ABCIndexClass)
                     warnings.warn("Subtraction of integers from {cls} is "
                                   "deprecated, will be removed in a future "
                                   "version.  Instead of subtracting `n`, "
                                   "subtract `n * self.freq`"
                                   .format(cls=type(self).__name__),
-                                  FutureWarning)
+                                  FutureWarning, stacklevel=lvl)
                 result = self.shift(-other)
             elif isinstance(other, Period):
                 result = self._sub_period(other)
