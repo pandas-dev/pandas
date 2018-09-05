@@ -15,10 +15,6 @@ def test_shift(idx):
     pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
 
-def test_bounds(idx):
-    idx._bounds
-
-
 def test_groupby(idx):
     groups = idx.groupby(np.array([1, 1, 1, 2, 2, 2]))
     labels = idx.get_values().tolist()

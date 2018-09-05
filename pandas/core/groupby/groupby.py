@@ -1168,7 +1168,12 @@ class GroupBy(_GroupBy):
         """
         nv.validate_groupby_func('var', args, kwargs)
         if ddof == 1:
-            return self._cython_agg_general('var', **kwargs)
+            try:
+                return self._cython_agg_general('var', **kwargs)
+            except Exception:
+                f = lambda x: x.var(ddof=ddof, **kwargs)
+                with _group_selection_context(self):
+                    return self._python_agg_general(f)
         else:
             f = lambda x: x.var(ddof=ddof, **kwargs)
             with _group_selection_context(self):
@@ -1705,6 +1710,9 @@ class GroupBy(_GroupBy):
         -----
         DataFrame with ranking of values within each group
         """
+        if na_option not in {'keep', 'top', 'bottom'}:
+            msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+            raise ValueError(msg)
         return self._cython_transform('rank', numeric_only=False,
                                       ties_method=method, ascending=ascending,
                                       na_option=na_option, pct=pct, axis=axis)

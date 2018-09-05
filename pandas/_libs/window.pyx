@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
 cimport cython
@@ -9,11 +9,12 @@ from libc.stdlib cimport malloc, free
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, double_t, int64_t, float64_t
+from numpy cimport ndarray, double_t, int64_t, float64_t, float32_t
 cnp.import_array()
 
 
 cdef extern from "src/headers/cmath" namespace "std":
+    bint isnan(double) nogil
     int signbit(double) nogil
     double sqrt(double x) nogil
 
@@ -24,11 +25,11 @@ from skiplist cimport (skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef cnp.float32_t MINfloat32 = np.NINF
-cdef cnp.float64_t MINfloat64 = np.NINF
+cdef float32_t MINfloat32 = np.NINF
+cdef float64_t MINfloat64 = np.NINF
 
-cdef cnp.float32_t MAXfloat32 = np.inf
-cdef cnp.float64_t MAXfloat64 = np.inf
+cdef float32_t MAXfloat32 = np.inf
+cdef float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
@@ -608,12 +609,12 @@ def roll_mean(ndarray[double_t] input, int64_t win, int64_t minp,
     else:
 
         with nogil:
-            for i from 0 <= i < minp - 1:
+            for i in range(minp - 1):
                 val = input[i]
                 add_mean(val, &nobs, &sum_x, &neg_ct)
                 output[i] = NaN
 
-            for i from minp - 1 <= i < N:
+            for i in range(minp - 1, N):
                 val = input[i]
                 add_mean(val, &nobs, &sum_x, &neg_ct)
 
@@ -653,16 +654,16 @@ cdef inline void add_var(double val, double *nobs, double *mean_x,
                          double *ssqdm_x) nogil:
     """ add a value from the var calc """
     cdef double delta
+    # `isnan` instead of equality as fix for GH-21813, msvc 2017 bug
+    if isnan(val):
+        return
 
-    # Not NaN
-    if val == val:
-        nobs[0] = nobs[0] + 1
-
-        # a part of Welford's method for the online variance-calculation
-        # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-        delta = val - mean_x[0]
-        mean_x[0] = mean_x[0] + delta / nobs[0]
-        ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
+    nobs[0] = nobs[0] + 1
+    # a part of Welford's method for the online variance-calculation
+    # https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+    delta = val - mean_x[0]
+    mean_x[0] = mean_x[0] + delta / nobs[0]
+    ssqdm_x[0] = ssqdm_x[0] + ((nobs[0] - 1) * delta ** 2) / nobs[0]
 
 
 cdef inline void remove_var(double val, double *nobs, double *mean_x,
@@ -746,7 +747,7 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
 
             # Over the first window, observations can only be added, never
             # removed
-            for i from 0 <= i < win:
+            for i in range(win):
                 add_var(input[i], &nobs, &mean_x, &ssqdm_x)
                 output[i] = calc_var(minp, ddof, nobs, ssqdm_x)
 
@@ -755,7 +756,7 @@ def roll_var(ndarray[double_t] input, int64_t win, int64_t minp,
 
             # After the first window, observations can both be added and
             # removed
-            for i from win <= i < N:
+            for i in range(win, N):
                 val = input[i]
                 prev = input[i - win]
 
@@ -815,6 +816,7 @@ cdef inline double calc_skew(int64_t minp, int64_t nobs, double x, double xx,
 
     return result
 
+
 cdef inline void add_skew(double val, int64_t *nobs, double *x, double *xx,
                           double *xxx) nogil:
     """ add a value from the skew calc """
@@ -827,6 +829,7 @@ cdef inline void add_skew(double val, int64_t *nobs, double *x, double *xx,
         x[0] = x[0] + val
         xx[0] = xx[0] + val * val
         xxx[0] = xxx[0] + val * val * val
+
 
 cdef inline void remove_skew(double val, int64_t *nobs, double *x, double *xx,
                              double *xxx) nogil:
@@ -895,12 +898,12 @@ def roll_skew(ndarray[double_t] input, int64_t win, int64_t minp,
     else:
 
         with nogil:
-            for i from 0 <= i < minp - 1:
+            for i in range(minp - 1):
                 val = input[i]
                 add_skew(val, &nobs, &x, &xx, &xxx)
                 output[i] = NaN
 
-            for i from minp - 1 <= i < N:
+            for i in range(minp - 1, N):
                 val = input[i]
                 add_skew(val, &nobs, &x, &xx, &xxx)
 
@@ -950,6 +953,7 @@ cdef inline double calc_kurt(int64_t minp, int64_t nobs, double x, double xx,
 
     return result
 
+
 cdef inline void add_kurt(double val, int64_t *nobs, double *x, double *xx,
                           double *xxx, double *xxxx) nogil:
     """ add a value from the kurotic calc """
@@ -963,6 +967,7 @@ cdef inline void add_kurt(double val, int64_t *nobs, double *x, double *xx,
         xx[0] = xx[0] + val * val
         xxx[0] = xxx[0] + val * val * val
         xxxx[0] = xxxx[0] + val * val * val * val
+
 
 cdef inline void remove_kurt(double val, int64_t *nobs, double *x, double *xx,
                              double *xxx, double *xxxx) nogil:
@@ -1030,11 +1035,11 @@ def roll_kurt(ndarray[double_t] input, int64_t win, int64_t minp,
 
         with nogil:
 
-            for i from 0 <= i < minp - 1:
+            for i in range(minp - 1):
                 add_kurt(input[i], &nobs, &x, &xx, &xxx, &xxxx)
                 output[i] = NaN
 
-            for i from minp - 1 <= i < N:
+            for i in range(minp - 1, N):
                 add_kurt(input[i], &nobs, &x, &xx, &xxx, &xxxx)
 
                 if i > win - 1:
@@ -1588,7 +1593,7 @@ def roll_generic(object obj,
 
     elif not raw:
         # series
-        for i from 0 <= i < N:
+        for i in range(N):
             if counts[i] >= minp:
                 sl = slice(int_max(i + offset - win + 1, 0),
                            int_min(i + offset + 1, N))
@@ -1651,7 +1656,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
     minp = _check_minp(len(weights), minp, in_n)
 
     if avg:
-        for win_i from 0 <= win_i < win_n:
+        for win_i in range(win_n):
             val_win = weights[win_i]
             if val_win != val_win:
                 continue
@@ -1663,7 +1668,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
                     counts[in_i + (win_n - win_i) - 1] += 1
                     tot_wgt[in_i + (win_n - win_i) - 1] += val_win
 
-        for in_i from 0 <= in_i < in_n:
+        for in_i in range(in_n):
             c = counts[in_i]
             if c < minp:
                 output[in_i] = NaN
@@ -1675,7 +1680,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
                     output[in_i] /= tot_wgt[in_i]
 
     else:
-        for win_i from 0 <= win_i < win_n:
+        for win_i in range(win_n):
             val_win = weights[win_i]
             if val_win != val_win:
                 continue
@@ -1687,7 +1692,7 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
                     output[in_i + (win_n - win_i) - 1] += val_in * val_win
                     counts[in_i + (win_n - win_i) - 1] += 1
 
-        for in_i from 0 <= in_i < in_n:
+        for in_i in range(in_n):
             c = counts[in_i]
             if c < minp:
                 output[in_i] = NaN
@@ -1698,14 +1703,13 @@ def roll_window(ndarray[float64_t, ndim=1, cast=True] input,
 # Exponentially weighted moving average
 
 
-def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na,
-         int minp):
+def ewma(double_t[:] vals, double_t com, int adjust, int ignore_na, int minp):
     """
     Compute exponentially-weighted moving average using center-of-mass.
 
     Parameters
     ----------
-    input : ndarray (float64 type)
+    vals : ndarray (float64 type)
     com : float64
     adjust: int
     ignore_na: int
@@ -1716,28 +1720,29 @@ def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na,
     y : ndarray
     """
 
-    cdef Py_ssize_t N = len(input)
-    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+    cdef:
+        Py_ssize_t N = len(vals)
+        ndarray[double_t] output = np.empty(N, dtype=float)
+        double alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
+        Py_ssize_t i, nobs
+
     if N == 0:
         return output
 
     minp = max(minp, 1)
 
-    cdef double alpha, old_wt_factor, new_wt, weighted_avg, old_wt, cur
-    cdef Py_ssize_t i, nobs
-
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
     new_wt = 1. if adjust else alpha
 
-    weighted_avg = input[0]
+    weighted_avg = vals[0]
     is_observation = (weighted_avg == weighted_avg)
     nobs = int(is_observation)
     output[0] = weighted_avg if (nobs >= minp) else NaN
     old_wt = 1.
 
-    for i from 1 <= i < N:
-        cur = input[i]
+    for i in range(1, N):
+        cur = vals[i]
         is_observation = (cur == cur)
         nobs += int(is_observation)
         if weighted_avg == weighted_avg:
@@ -1766,7 +1771,7 @@ def ewma(ndarray[double_t] input, double_t com, int adjust, int ignore_na,
 # Exponentially weighted moving covariance
 
 
-def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
+def ewmcov(double_t[:] input_x, double_t[:] input_y,
            double_t com, int adjust, int ignore_na, int minp, int bias):
     """
     Compute exponentially-weighted moving variance using center-of-mass.
@@ -1786,19 +1791,22 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
     y : ndarray
     """
 
-    cdef Py_ssize_t N = len(input_x)
+    cdef:
+        Py_ssize_t N = len(input_x)
+        double alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
+        double sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
+        Py_ssize_t i, nobs
+        ndarray[double_t] output
+
     if len(input_y) != N:
         raise ValueError("arrays are of different lengths "
-                         "(%d and %d)" % (N, len(input_y)))
-    cdef ndarray[double_t] output = np.empty(N, dtype=float)
+                         "({N} and {len_y})".format(N=N, len_y=len(input_y)))
+
+    output = np.empty(N, dtype=float)
     if N == 0:
         return output
 
     minp = max(minp, 1)
-
-    cdef double alpha, old_wt_factor, new_wt, mean_x, mean_y, cov
-    cdef double sum_wt, sum_wt2, old_wt, cur_x, cur_y, old_mean_x, old_mean_y
-    cdef Py_ssize_t i, nobs
 
     alpha = 1. / (1. + com)
     old_wt_factor = 1. - alpha
@@ -1817,7 +1825,7 @@ def ewmcov(ndarray[double_t] input_x, ndarray[double_t] input_y,
     sum_wt2 = 1.
     old_wt = 1.
 
-    for i from 1 <= i < N:
+    for i in range(1, N):
         cur_x = input_x[i]
         cur_y = input_y[i]
         is_observation = ((cur_x == cur_x) and (cur_y == cur_y))

@@ -53,7 +53,7 @@ from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
 from pandas.core import ops
 from pandas.util._decorators import (
-    Appender, Substitution, cache_readonly, deprecate_kwarg)
+    Appender, Substitution, cache_readonly)
 from pandas.core.indexes.frozen import FrozenList
 import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
@@ -122,6 +122,14 @@ def _make_arithmetic_op(op, cls):
         elif isinstance(other, ABCTimedeltaIndex):
             # Defer to subclass implementation
             return NotImplemented
+        elif isinstance(other, np.ndarray) and is_timedelta64_dtype(other):
+            # GH#22390; wrap in Series for op, this will in turn wrap in
+            # TimedeltaIndex, but will correctly raise TypeError instead of
+            # NullFrequencyError for add/sub ops
+            from pandas import Series
+            other = Series(other)
+            out = op(self, other)
+            return Index(out, name=self.name)
 
         other = self._validate_for_numeric_binop(other, op)
 
@@ -238,7 +246,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = set(['str'])
+    _accessors = {'str'}
 
     str = CachedAccessor("str", StringMethods)
 
@@ -274,13 +282,33 @@ class Index(IndexOpsMixin, PandasObject):
             return IntervalIndex(data, dtype=dtype, name=name, copy=copy,
                                  closed=closed)
 
+        elif (is_datetime64_any_dtype(data) or
+              (dtype is not None and is_datetime64_any_dtype(dtype)) or
+                'tz' in kwargs):
+            from pandas import DatetimeIndex
+            result = DatetimeIndex(data, copy=copy, name=name,
+                                   dtype=dtype, **kwargs)
+            if dtype is not None and is_dtype_equal(_o_dtype, dtype):
+                return Index(result.to_pydatetime(), dtype=_o_dtype)
+            else:
+                return result
+
+        elif (is_timedelta64_dtype(data) or
+              (dtype is not None and is_timedelta64_dtype(dtype))):
+            from pandas import TimedeltaIndex
+            result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is not None and _o_dtype == dtype:
+                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            else:
+                return result
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
 
                 # coerce to the provided dtype
-                data = dtype.construct_array_type()(
+                data = dtype.construct_array_type()._from_sequence(
                     data, dtype=dtype, copy=False)
 
             # coerce to the object dtype
@@ -290,27 +318,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # index-like
         elif isinstance(data, (np.ndarray, Index, ABCSeries)):
-
-            if (is_datetime64_any_dtype(data) or
-                (dtype is not None and is_datetime64_any_dtype(dtype)) or
-                    'tz' in kwargs):
-                from pandas import DatetimeIndex
-                result = DatetimeIndex(data, copy=copy, name=name,
-                                       dtype=dtype, **kwargs)
-                if dtype is not None and is_dtype_equal(_o_dtype, dtype):
-                    return Index(result.to_pydatetime(), dtype=_o_dtype)
-                else:
-                    return result
-
-            elif (is_timedelta64_dtype(data) or
-                  (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas import TimedeltaIndex
-                result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
-                if dtype is not None and _o_dtype == dtype:
-                    return Index(result.to_pytimedelta(), dtype=_o_dtype)
-                else:
-                    return result
-
             if dtype is not None:
                 try:
 
@@ -766,7 +773,6 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     # ops compat
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
         Repeat elements of an Index.
@@ -994,6 +1000,12 @@ class Index(IndexOpsMixin, PandasObject):
         return self.copy(**kwargs)
 
     def __deepcopy__(self, memo=None):
+        """
+        Parameters
+        ----------
+        memo, default None
+            Standard signature. Unused
+        """
         if memo is None:
             memo = {}
         return self.copy(deep=True)
@@ -1273,39 +1285,52 @@ class Index(IndexOpsMixin, PandasObject):
 
     def set_names(self, names, level=None, inplace=False):
         """
-        Set new names on index. Defaults to returning new index.
+        Set Index or MultiIndex name.
+
+        Able to set new names partially and by level.
 
         Parameters
         ----------
-        names : str or sequence
-            name(s) to set
-        level : int, level name, or sequence of int/level names (default None)
-            If the index is a MultiIndex (hierarchical), level(s) to set (None
-            for all levels).  Otherwise level must be None
-        inplace : bool
-            if True, mutates in place
+        names : label or list of label
+            Name(s) to set.
+        level : int, label or list of int or label, optional
+            If the index is a MultiIndex, level(s) to set (None for all
+            levels). Otherwise level must be None.
+        inplace : bool, default False
+            Modifies the object directly, instead of creating a new Index or
+            MultiIndex.
 
         Returns
         -------
-        new index (of same type and class...etc) [if inplace, returns None]
+        Index
+            The same type as the caller or None if inplace is True.
+
+        See Also
+        --------
+        Index.rename : Able to set new names without level.
 
         Examples
         --------
-        >>> pd.Index([1, 2, 3, 4]).set_names('foo')
-        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> pd.Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                            (2, u'one'), (2, u'two')],
-                                            names=['foo', 'bar'])
-        >>> idx.set_names(['baz', 'quz'])
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'baz', u'quz'])
-        >>> idx.set_names('baz', level=0)
-        MultiIndex(levels=[[1, 2], [u'one', u'two']],
-                   labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
-                   names=[u'baz', u'bar'])
+        >>> idx = pd.Index([1, 2, 3, 4])
+        >>> idx
+        Int64Index([1, 2, 3, 4], dtype='int64')
+        >>> idx.set_names('quarter')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='quarter')
+
+        >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
+        ...                                   [2018, 2019]])
+        >>> idx
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]])
+        >>> idx.set_names(['kind', 'year'], inplace=True)
+        >>> idx
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['kind', 'year'])
+        >>> idx.set_names('species', level=0)
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['species', 'year'])
         """
 
         from .multi import MultiIndex
@@ -1314,7 +1339,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if level is not None and not is_list_like(level) and is_list_like(
                 names):
-            raise TypeError("Names must be a string")
+            msg = "Names must be a string when a single level is provided."
+            raise TypeError(msg)
 
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
@@ -1334,18 +1360,48 @@ class Index(IndexOpsMixin, PandasObject):
 
     def rename(self, name, inplace=False):
         """
-        Set new names on index. Defaults to returning new index.
+        Alter Index or MultiIndex name.
+
+        Able to set new names without level. Defaults to returning new index.
+        Length of names must match number of levels in MultiIndex.
 
         Parameters
         ----------
-        name : str or list
-            name to set
-        inplace : bool
-            if True, mutates in place
+        name : label or list of labels
+            Name(s) to set.
+        inplace : boolean, default False
+            Modifies the object directly, instead of creating a new Index or
+            MultiIndex.
 
         Returns
         -------
-        new index (of same type and class...etc) [if inplace, returns None]
+        Index
+            The same type as the caller or None if inplace is True.
+
+        See Also
+        --------
+        Index.set_names : Able to set new names partially and by level.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['A', 'C', 'A', 'B'], name='score')
+        >>> idx.rename('grade')
+        Index(['A', 'C', 'A', 'B'], dtype='object', name='grade')
+
+        >>> idx = pd.MultiIndex.from_product([['python', 'cobra'],
+        ...                                   [2018, 2019]],
+        ...                                   names=['kind', 'year'])
+        >>> idx
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['kind', 'year'])
+        >>> idx.rename(['species', 'year'])
+        MultiIndex(levels=[['cobra', 'python'], [2018, 2019]],
+                   labels=[[1, 1, 0, 0], [0, 1, 0, 1]],
+                   names=['species', 'year'])
+        >>> idx.rename('species')
+        Traceback (most recent call last):
+        TypeError: Must pass list-like as `names`.
         """
         return self.set_names([name], inplace=inplace)
 
@@ -1642,11 +1698,11 @@ class Index(IndexOpsMixin, PandasObject):
         # if we are mixed and have integers
         try:
             if is_positional and self.is_mixed():
-                # TODO: i, j are not used anywhere
+                # Validate start & stop
                 if start is not None:
-                    i = self.get_loc(start)  # noqa
+                    self.get_loc(start)
                 if stop is not None:
-                    j = self.get_loc(stop)  # noqa
+                    self.get_loc(stop)
                 is_positional = False
         except KeyError:
             if self.inferred_type == 'mixed-integer-float':
@@ -2458,7 +2514,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = np.arange(len(self))[mask].take(locs)
 
         first = mask.argmax()
-        result[(locs == 0) & (where < self.values[first])] = -1
+        result[(locs == 0) & (where.values < self.values[first])] = -1
 
         return result
 
@@ -2640,6 +2696,8 @@ class Index(IndexOpsMixin, PandasObject):
         return result.argsort(*args, **kwargs)
 
     def __add__(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
         return Index(np.array(self) + other)
 
     def __radd__(self, other):
@@ -3066,8 +3124,8 @@ class Index(IndexOpsMixin, PandasObject):
                 iloc = self.get_loc(key)
                 return s[iloc]
             except KeyError:
-                if (len(self) > 0 and
-                        self.inferred_type in ['integer', 'boolean']):
+                if (len(self) > 0
+                        and (self.holds_integer() or self.is_boolean())):
                     raise
                 elif is_integer(key):
                     return s[key]
@@ -3080,7 +3138,7 @@ class Index(IndexOpsMixin, PandasObject):
             return self._engine.get_value(s, k,
                                           tz=getattr(series.dtype, 'tz', None))
         except KeyError as e1:
-            if len(self) > 0 and self.inferred_type in ['integer', 'boolean']:
+            if len(self) > 0 and (self.holds_integer() or self.is_boolean()):
                 raise
 
             try:

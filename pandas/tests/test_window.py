@@ -621,8 +621,9 @@ class TestExpanding(Base):
     @pytest.mark.parametrize(
         'expander',
         [1, pytest.param('ls', marks=pytest.mark.xfail(
-                         reason='GH 16425 expanding with '
-                                'offset not supported'))])
+                         reason='GH#16425 expanding with '
+                                'offset not supported',
+                         strict=True))])
     def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames
@@ -1991,7 +1992,7 @@ _consistency_data = _create_consistency_data()
 
 def _rolling_consistency_cases():
     for window in [1, 2, 3, 10, 20]:
-        for min_periods in set([0, 1, 2, 3, 4, window]):
+        for min_periods in {0, 1, 2, 3, 4, window}:
             if min_periods and (min_periods > window):
                 continue
             for center in [False, True]:
@@ -2521,8 +2522,8 @@ class TestMomentsConsistency(Base):
         frame2.values[:] = np.random.randn(*frame2.shape)
 
         res3 = getattr(self.frame.rolling(window=10), method)(frame2)
-        exp = DataFrame(dict((k, getattr(self.frame[k].rolling(
-            window=10), method)(frame2[k])) for k in self.frame))
+        exp = DataFrame({k: getattr(self.frame[k].rolling(
+            window=10), method)(frame2[k]) for k in self.frame})
         tm.assert_frame_equal(res3, exp)
 
     def test_ewmcov(self):

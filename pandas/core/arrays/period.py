@@ -386,6 +386,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
 
 PeriodArrayMixin._add_comparison_ops()
+PeriodArrayMixin._add_datetimelike_methods()
 
 
 # -------------------------------------------------------------------

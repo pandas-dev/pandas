@@ -40,7 +40,7 @@ from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import (
-    generate_range, Tick, CDay, prefix_mapping)
+    generate_range, CDay, prefix_mapping)
 
 from pandas.core.tools.timedeltas import to_timedelta
 from pandas.util._decorators import (
@@ -49,7 +49,7 @@ import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
 
-from pandas._libs import (lib, index as libindex, tslibs, tslib as libts,
+from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
                                  ccalendar)
@@ -96,9 +96,6 @@ def _dt_index_cmp(cls, op):
         return Index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
-
-
-_midnight = time(0, 0)
 
 
 def _new_DatetimeIndex(cls, d):
@@ -173,6 +170,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     nanosecond
     date
     time
+    timetz
     dayofyear
     weekofyear
     week
@@ -263,7 +261,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                   'dayofyear', 'quarter', 'days_in_month',
                   'daysinmonth', 'microsecond',
                   'nanosecond']
-    _other_ops = ['date', 'time']
+    _other_ops = ['date', 'time', 'timetz']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = ['to_period', 'tz_localize',
                              'tz_convert',
@@ -323,7 +321,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
 
-        if isinstance(data, DatetimeIndex):
+        if isinstance(data, DatetimeArrayMixin):
             if tz is None:
                 tz = data.tz
             elif data.tz is None:
@@ -375,135 +373,19 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-    def _generate_range(cls, start, end, periods, name, freq, tz=None,
-                        normalize=False, ambiguous='raise', closed=None):
-        if com.count_not_none(start, end, periods, freq) != 3:
-            raise ValueError('Of the four parameters: start, end, periods, '
-                             'and freq, exactly three must be specified')
+    @Appender(DatetimeArrayMixin._generate_range.__doc__)
+    def _generate_range(cls, start, end, periods, name=None, freq=None,
+                        tz=None, normalize=False, ambiguous='raise',
+                        closed=None):
+        out = super(DatetimeIndex, cls)._generate_range(
+            start, end, periods, freq,
+            tz=tz, normalize=normalize, ambiguous=ambiguous, closed=closed)
+        out.name = name
+        return out
 
-        _normalized = True
-
-        if start is not None:
-            start = Timestamp(start)
-
-        if end is not None:
-            end = Timestamp(end)
-
-        if start is None and end is None:
-            if closed is not None:
-                raise ValueError("Closed has to be None if not both of start"
-                                 "and end are defined")
-
-        left_closed, right_closed = dtl.validate_endpoints(closed)
-
-        try:
-            inferred_tz = timezones.infer_tzinfo(start, end)
-        except Exception:
-            raise TypeError('Start and end cannot both be tz-aware with '
-                            'different timezones')
-
-        inferred_tz = timezones.maybe_get_tz(inferred_tz)
-        tz = timezones.maybe_get_tz(tz)
-
-        if tz is not None and inferred_tz is not None:
-            if not timezones.tz_compare(inferred_tz, tz):
-                raise AssertionError("Inferred time zone not equal to passed "
-                                     "time zone")
-
-        elif inferred_tz is not None:
-            tz = inferred_tz
-
-        if start is not None:
-            if normalize:
-                start = tslibs.normalize_date(start)
-                _normalized = True
-            else:
-                _normalized = _normalized and start.time() == _midnight
-
-        if end is not None:
-            if normalize:
-                end = tslibs.normalize_date(end)
-                _normalized = True
-            else:
-                _normalized = _normalized and end.time() == _midnight
-
-        if hasattr(freq, 'delta') and freq != offsets.Day():
-            if inferred_tz is None and tz is not None:
-                # naive dates
-                if start is not None and start.tz is None:
-                    start = start.tz_localize(tz, ambiguous=False)
-
-                if end is not None and end.tz is None:
-                    end = end.tz_localize(tz, ambiguous=False)
-
-            if start and end:
-                if start.tz is None and end.tz is not None:
-                    start = start.tz_localize(end.tz, ambiguous=False)
-
-                if end.tz is None and start.tz is not None:
-                    end = end.tz_localize(start.tz, ambiguous=False)
-
-            if _use_cached_range(freq, _normalized, start, end):
-                index = cls._cached_range(start, end, periods=periods,
-                                          freq=freq, name=name)
-            else:
-                index = _generate_regular_range(cls, start, end, periods, freq)
-
-        else:
-
-            if tz is not None:
-                # naive dates
-                if start is not None and start.tz is not None:
-                    start = start.replace(tzinfo=None)
-
-                if end is not None and end.tz is not None:
-                    end = end.replace(tzinfo=None)
-
-            if start and end:
-                if start.tz is None and end.tz is not None:
-                    end = end.replace(tzinfo=None)
-
-                if end.tz is None and start.tz is not None:
-                    start = start.replace(tzinfo=None)
-
-            if freq is not None:
-                if _use_cached_range(freq, _normalized, start, end):
-                    index = cls._cached_range(start, end, periods=periods,
-                                              freq=freq, name=name)
-                else:
-                    index = _generate_regular_range(cls, start, end,
-                                                    periods, freq)
-
-                if tz is not None and getattr(index, 'tz', None) is None:
-                    arr = conversion.tz_localize_to_utc(ensure_int64(index),
-                                                        tz,
-                                                        ambiguous=ambiguous)
-
-                    index = cls(arr)
-
-                    # index is localized datetime64 array -> have to convert
-                    # start/end as well to compare
-                    if start is not None:
-                        start = start.tz_localize(tz).asm8
-                    if end is not None:
-                        end = end.tz_localize(tz).asm8
-            else:
-                # Create a linearly spaced date_range in local time
-                start = start.tz_localize(tz)
-                end = end.tz_localize(tz)
-                index = tools.to_datetime(np.linspace(start.value,
-                                                      end.value, periods),
-                                          utc=True)
-                index = index.tz_convert(tz)
-
-        if not left_closed and len(index) and index[0] == start:
-            index = index[1:]
-        if not right_closed and len(index) and index[-1] == end:
-            index = index[:-1]
-
-        index = cls._simple_new(index.values, name=name, freq=freq, tz=tz)
-
-        return index
+    @classmethod
+    def _use_cached_range(cls, freq, _normalized, start, end):
+        return _use_cached_range(freq, _normalized, start, end)
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -1683,48 +1565,6 @@ DatetimeIndex._add_comparison_methods()
 DatetimeIndex._add_numeric_methods_disabled()
 DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
-
-
-def _generate_regular_range(cls, start, end, periods, freq):
-    if isinstance(freq, Tick):
-        stride = freq.nanos
-        if periods is None:
-            b = Timestamp(start).value
-            # cannot just use e = Timestamp(end) + 1 because arange breaks when
-            # stride is too large, see GH10887
-            e = (b + (Timestamp(end).value - b) // stride * stride +
-                 stride // 2 + 1)
-            # end.tz == start.tz by this point due to _generate implementation
-            tz = start.tz
-        elif start is not None:
-            b = Timestamp(start).value
-            e = b + np.int64(periods) * stride
-            tz = start.tz
-        elif end is not None:
-            e = Timestamp(end).value + stride
-            b = e - np.int64(periods) * stride
-            tz = end.tz
-        else:
-            raise ValueError("at least 'start' or 'end' should be specified "
-                             "if a 'period' is given.")
-
-        data = np.arange(b, e, stride, dtype=np.int64)
-        data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
-    else:
-        if isinstance(start, Timestamp):
-            start = start.to_pydatetime()
-
-        if isinstance(end, Timestamp):
-            end = end.to_pydatetime()
-
-        xdr = generate_range(start=start, end=end,
-                             periods=periods, offset=freq)
-
-        dates = list(xdr)
-        # utc = len(dates) > 0 and dates[0].tzinfo is not None
-        data = tools.to_datetime(dates)
-
-    return data
 
 
 def date_range(start=None, end=None, periods=None, freq=None, tz=None,

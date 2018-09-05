@@ -9,6 +9,7 @@ dependencies:
   - fastparquet
   - feather-format
   - flake8=3.4.1
+  - flake8-comprehensions
   - gcsfs
   - html5lib
   - ipython
@@ -28,6 +29,7 @@ dependencies:
   - PyCrypto
   - pymysql=0.6.3
   - pytables
+  - blosc=1.14.3
   - python-blosc
   - python-dateutil=2.5.0
   - python=2.7*
@@ -43,6 +45,7 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - hypothesis>=3.58.0
   - pip:
     - backports.lzma
     - cpplint
