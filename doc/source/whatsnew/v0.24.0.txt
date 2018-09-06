@@ -17,6 +17,8 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+- ``DataFrame`` has a new function :func:`corrmatrix` which creates a correlation matrix between columns of two DataFrame objects.
+
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support

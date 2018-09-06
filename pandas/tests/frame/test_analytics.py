@@ -256,6 +256,15 @@ class TestDataFrameAnalytics(TestData):
         expected = pd.Series(data=corrs, index=['a', 'b'])
         tm.assert_series_equal(result, expected)
 
+    def test_corrmatrix(self):
+        a = self.tsframe
+        noise = Series(randn(len(a)), index=a.index)
+
+        b = self.tsframe.add(noise, axis=0)
+
+        colcorr = a.corrmatrix(b)
+        tm.assert_almost_equal(colcorr.loc['A', 'A'], a['A'].corr(b['A']))
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
