@@ -37,6 +37,17 @@ def test_to_frame():
     expected.index = index
     tm.assert_frame_equal(result, expected)
 
+    index = MultiIndex.from_tuples(tuples)
+    result = index.to_frame(index=False, names=['first', 'second'])
+    expected = DataFrame(tuples)
+    expected.columns = ['first', 'second']
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(names=['first', 'second'])
+    expected.index = index
+    expected.columns = ['first', 'second']
+    tm.assert_frame_equal(result, expected)
+
     index = MultiIndex.from_product([range(5),
                                      pd.date_range('20130101', periods=3)])
     result = index.to_frame(index=False)
@@ -45,9 +56,17 @@ def test_to_frame():
             1: np.tile(pd.date_range('20130101', periods=3), 5)})
     tm.assert_frame_equal(result, expected)
 
-    index = MultiIndex.from_product([range(5),
-                                     pd.date_range('20130101', periods=3)])
     result = index.to_frame()
+    expected.index = index
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(index=False, names=['first', 'second'])
+    expected = DataFrame(
+        {'first': np.repeat(np.arange(5, dtype='int64'), 3),
+         'second': np.tile(pd.date_range('20130101', periods=3), 5)})
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(names=['first', 'second'])
     expected.index = index
     tm.assert_frame_equal(result, expected)
 

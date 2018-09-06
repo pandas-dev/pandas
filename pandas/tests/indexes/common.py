@@ -81,6 +81,17 @@ class Base(object):
         df = idx.to_frame(index=False)
         assert df.index is not idx
 
+        new_idx_name = 'new_name'
+        df = idx.to_frame(name=new_idx_name)
+
+        assert df.index is idx
+        assert len(df.columns) == 1
+        assert df.columns[0] == new_idx_name
+        assert df[new_idx_name].values is not idx.values
+
+        df = idx.to_frame(index=False, name=new_idx_name)
+        assert df.index is not idx
+
     def test_shift(self):
 
         # GH8083 test the base class for shift
