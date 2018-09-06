@@ -28,10 +28,19 @@ from pandas.core.indexes.numeric import Int64Index
 class RangeIndex(Int64Index):
 
     """
-    Immutable Index implementing a monotonic integer range.
+    Immutable :class:`~pandas.Index` implementing a monotonic integer range.
 
-    RangeIndex is a memory-saving special case of :class:`~pandas.Int64Index`
-    limited to representing monotonic ranges. Using RangeIndex may in some
+    Like a python `range`, a `RangeIndex` contains values from `start`
+    (inclusive) to `stop` (exclusive)
+    with increments of size `step`. This means that for a positive `step`,
+    the contents of a `RangeIndex` r are determined by
+    the formula ``r[i] = start + step*i where i >= 0 and r[i] < stop``.
+    Accordingly, for a negative `step`, the contents of the `RangeIndex` are
+    still determined by the formula ``r[i] = start + step*i``, but the constraints
+    are ``i >= 0 and r[i] > stop``.
+
+    `RangeIndex` is a memory-saving special case of :class:`~pandas.Int64Index`
+    limited to representing monotonic ranges. Using `RangeIndex` may in some
     instances improve computing speed.
 
     This is the default index type used
@@ -59,6 +68,17 @@ class RangeIndex(Int64Index):
     --------
     Index : The base pandas Index type
     Int64Index : Index of int64 data
+
+    Examples
+    --------
+    >>> pd.RangeIndex(0, 4, 1)
+    RangeIndex(start=0, stop=4, step=1)
+
+    The step and start parameters are optional, and `RangeIndex` excludes stop:
+
+    >>> list(pd.RangeIndex(4))
+    [0, 1, 2, 3]
+
 
     Attributes
     ----------
