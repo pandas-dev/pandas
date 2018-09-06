@@ -6921,9 +6921,9 @@ class DataFrame(NDFrame):
 
             for i, col1 in enumerate(self.columns):
                 for j, col2 in enumerate(other.columns):
-                    corr[i,j] = self[col1].corr(other[col2],
-                                                method=method,
-                                                min_periods=min_periods)
+                    corr[i, j] = self[col1].corr(other[col2],
+                                                 method=method,
+                                                 min_periods=min_periods)
             return DataFrame(data=corr,
                              index=self.columns,
                              columns=other.columns)
