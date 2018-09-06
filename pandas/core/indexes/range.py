@@ -30,6 +30,9 @@ class RangeIndex(Int64Index):
     """
     Immutable :class:`~pandas.Index` implementing a monotonic integer range.
 
+    Most users do not need to use this class and should instead pass a python
+    `range` to :class:`~pandas.Index` to construct a `RangeIndex`.
+
     Like a python `range`, a `RangeIndex` contains values from `start`
     (inclusive) to `stop` (exclusive)
     with increments of size `step`. This means that for a positive `step`,
@@ -71,6 +74,14 @@ class RangeIndex(Int64Index):
 
     Examples
     --------
+    Most users should use :class:`~pandas.RangeIndex` to construct a
+    `RangeIndex`.
+
+    >>> pd.Index(range(4))
+    RangeIndex(start=0, stop=4, step=1)
+
+    However, `RangeIndex` can also directly be constructed.
+
     >>> pd.RangeIndex(0, 4, 1)
     RangeIndex(start=0, stop=4, step=1)
 

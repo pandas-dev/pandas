@@ -177,7 +177,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     Parameters
     ----------
-    data : array-like (1-dimensional)
+    data : array-like (1-dimensional) or python `range`
     dtype : NumPy dtype (default: object)
         If dtype is None, we find the dtype that best fits the data.
         If an actual dtype is provided, we coerce to that dtype if it's safe.
@@ -200,6 +200,9 @@ class Index(IndexOpsMixin, PandasObject):
 
     >>> pd.Index(list('abc'))
     Index(['a', 'b', 'c'], dtype='object')
+
+    >>> pd.Index(range(4))
+    RangeIndex(start=0, stop=4, step=1)
 
     See Also
     ---------
