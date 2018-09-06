@@ -1126,7 +1126,7 @@ class MultiIndex(Index):
         """ convert to object if we are a categorical """
         return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
 
-    def to_frame(self, index=True):
+    def to_frame(self, index=True, names=None):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
@@ -1143,11 +1143,21 @@ class MultiIndex(Index):
         """
 
         from pandas import DataFrame
-        result = DataFrame({(name or level):
-                            self._get_level_values(level)
-                            for name, level in
-                            zip(self.names, range(len(self.levels)))},
-                           copy=False)
+        if names is not None:
+            if len(names) != len(self.levels):
+                raise AssertionError("'names' should have same lenght as "
+                                     "number of levels on index")
+            result = DataFrame({(name):
+                                self._get_level_values(level)
+                                for name, level in
+                                zip(names, range(len(self.levels)))},
+                               copy=False)
+        else:
+            result = DataFrame({(name or level):
+                                self._get_level_values(level)
+                                for name, level in
+                                zip(self.names, range(len(self.levels)))},
+                               copy=False)
         if index:
             result.index = self
         return result
