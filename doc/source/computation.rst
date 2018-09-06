@@ -166,6 +166,19 @@ DataFrame objects.
    df1.corrwith(df2)
    df2.corrwith(df1, axis=1)
 
+A method :meth:`~DataFrame.corrmatrix` creates a correlation matrix between
+all columns of the first DataFrame object and all columns of the second
+DataFrame object.
+
+.. ipython:: python
+
+   index = ['a', 'b', 'c', 'd', 'e']
+   columns1 = ['one', 'two']
+   columns2 = ['three', 'four']
+   df1 = pd.DataFrame(np.random.randn(5, 2), index=index, columns=columns1)
+   df2 = pd.DataFrame(np.random.randn(4, 2), index=index[:4], columns=columns2)
+   df1.corrmatrix(df2)
+
 .. _computation.ranking:
 
 Data ranking

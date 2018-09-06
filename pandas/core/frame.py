@@ -6875,6 +6875,59 @@ class DataFrame(NDFrame):
 
         return correl
 
+    def corrmatrix(self, other, method='pearson', min_periods=1):
+        """
+        Compute correlation matrix between columns of two DataFrame objects.
+        Resulting DataFrame object will have dimension of shape
+        (self.shape[1], other.shape[1])
+
+        Parameters
+        ----------
+        other : DataFrame, Series
+        method : {'pearson', 'kendall', 'spearman'}
+            * pearson : standard correlation coefficient
+            * kendall : Kendall Tau correlation coefficient
+            * spearman : Spearman rank correlation
+        min_periods : int, optional
+            Minimum number of observations required per pair of columns
+            to have a valid result. Currently only available for pearson
+            and spearman correlation
+
+        Returns
+        -------
+        correls : DataFrame if `other' is DataFrame else Series
+        """
+
+        if other is self:
+            self.corr(method='pearson', min_periods=min_periods)
+
+        if isinstance(self.index, MultiIndex) \
+           or isinstance(self.columns, MultiIndex) \
+           or isinstance(other.index, MultiIndex):
+            raise TypeError("MultiIndex is not supported")
+
+        if isinstance(other, Series):
+            corr = np.zeros(self.shape[1])
+
+            for i, col1 in enumerate(self.columns):
+                corr[i] = self[col1].corr(other,
+                                          method=method,
+                                          min_periods=min_periods)
+            return Series(data=corr[i], index=self.columns)
+        else:
+            if isinstance(other.columns, MultiIndex):
+                raise TypeError("MultiIndex is not supported")
+            corr = np.zeros((self.shape[1], other.shape[1]))
+
+            for i, col1 in enumerate(self.columns):
+                for j, col2 in enumerate(other.columns):
+                    corr[i,j] = self[col1].corr(other[col2],
+                                                method=method,
+                                                min_periods=min_periods)
+            return DataFrame(data=corr,
+                             index=self.columns,
+                             columns=other.columns)
+
     # ----------------------------------------------------------------------
     # ndarray-like stats methods
 
