@@ -23,9 +23,9 @@ class BaseOpsUtil(BaseExtensionTests):
     def check_opname(self, s, op_name, other, exc=Exception):
         op = self.get_op_from_name(op_name)
 
-        self._check_op(s, op, other, exc)
+        self._check_op(s, op, other, op_name, exc)
 
-    def _check_op(self, s, op, other, exc=Exception):
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
             expected = s.combine(other, op)
@@ -74,7 +74,7 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         op_name = all_arithmetic_operators
         s = pd.Series(data)
         self.check_opname(s, op_name, pd.Series([s.iloc[0]] * len(s)),
-                          exc=self.series_array_exc)
+                          exc=TypeError)
 
     def test_divmod(self, data):
         s = pd.Series(data)
@@ -119,5 +119,5 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
         s = pd.Series(data)
-        other = [0] * len(data)
+        other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)

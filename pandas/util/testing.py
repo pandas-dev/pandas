@@ -2458,7 +2458,7 @@ def network(t, url="http://www.google.com",
                 raise
             else:
                 skip("Skipping test due to lack of connectivity"
-                     " and error {error}".format(e))
+                     " and error {error}".format(error=e))
 
     return wrapper
 
