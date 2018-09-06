@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
-from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -751,11 +751,6 @@ class MultiIndex(Index):
     @cache_readonly
     def inferred_type(self):
         return 'mixed'
-
-    @staticmethod
-    def _from_elements(values, labels=None, levels=None, names=None,
-                       sortorder=None):
-        return MultiIndex(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
         count = self.names.count(level)
@@ -1651,7 +1646,6 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,
@@ -2185,11 +2179,6 @@ class MultiIndex(Index):
 
         if not isinstance(key, tuple):
             loc = self._get_level_indexer(key, level=0)
-
-            # _get_level_indexer returns an empty slice if the key has
-            # been dropped from the MultiIndex
-            if isinstance(loc, slice) and loc.start == loc.stop:
-                raise KeyError(key)
             return _maybe_to_slice(loc)
 
         keylen = len(key)
@@ -2443,14 +2432,21 @@ class MultiIndex(Index):
 
         else:
 
-            loc = level_index.get_loc(key)
-            if isinstance(loc, slice):
-                return loc
-            elif level > 0 or self.lexsort_depth == 0:
-                return np.array(labels == loc, dtype=bool)
+            code = level_index.get_loc(key)
 
-            i = labels.searchsorted(loc, side='left')
-            j = labels.searchsorted(loc, side='right')
+            if level > 0 or self.lexsort_depth == 0:
+                # Desired level is not sorted
+                locs = np.array(labels == code, dtype=bool, copy=False)
+                if not locs.any():
+                    # The label is present in self.levels[level] but unused:
+                    raise KeyError(key)
+                return locs
+
+            i = labels.searchsorted(code, side='left')
+            j = labels.searchsorted(code, side='right')
+            if i == j:
+                # The label is present in self.levels[level] but unused:
+                raise KeyError(key)
             return slice(i, j)
 
     def get_locs(self, seq):

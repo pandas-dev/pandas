@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import collections
 import textwrap
 import warnings
@@ -162,7 +161,7 @@ cpdef convert_to_timedelta64(object ts, object unit):
         if ts.astype('int64') == NPY_NAT:
             return np.timedelta64(NPY_NAT)
     elif is_timedelta64_object(ts):
-        ts = ts.astype("m8[{0}]".format(unit.lower()))
+        ts = ts.astype("m8[{unit}]".format(unit=unit.lower()))
     elif is_integer_object(ts):
         if ts == NPY_NAT:
             return np.timedelta64(NPY_NAT)
@@ -265,7 +264,7 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
         m = 1L
         p = 0
     else:
-        raise ValueError("cannot cast unit {0}".format(unit))
+        raise ValueError("cannot cast unit {unit}".format(unit=unit))
 
     # just give me the unit back
     if ts is None:
@@ -273,11 +272,11 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
 
     # cast the unit, multiply base/frace separately
     # to avoid precision issues from float -> int
-    base = <int64_t> ts
+    base = <int64_t>ts
     frac = ts - base
     if p:
         frac = round(frac, p)
-    return <int64_t> (base * m) + <int64_t> (frac * m)
+    return <int64_t>(base * m) + <int64_t>(frac * m)
 
 
 cdef inline _decode_if_necessary(object ts):
@@ -296,10 +295,10 @@ cdef inline parse_timedelta_string(object ts):
 
     cdef:
         unicode c
-        bint neg=0, have_dot=0, have_value=0, have_hhmmss=0
-        object current_unit=None
-        int64_t result=0, m=0, r
-        list number=[], frac=[], unit=[]
+        bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
+        object current_unit = None
+        int64_t result = 0, m = 0, r
+        list number = [], frac = [], unit = []
 
     # neg : tracks if we have a leading negative for the value
     # have_dot : tracks if we are processing a dot (either post hhmmss or
@@ -374,7 +373,7 @@ cdef inline parse_timedelta_string(object ts):
                 have_hhmmss = 1
             else:
                 raise ValueError("expecting hh:mm:ss format, "
-                                 "received: {0}".format(ts))
+                                 "received: {ts}".format(ts=ts))
 
             unit, number = [], []
 
@@ -483,7 +482,7 @@ cdef inline timedelta_from_spec(object number, object frac, object unit):
         unit = ''.join(unit)
         unit = timedelta_abbrevs[unit.lower()]
     except KeyError:
-        raise ValueError("invalid abbreviation: {0}".format(unit))
+        raise ValueError("invalid abbreviation: {unit}".format(unit=unit))
 
     n = ''.join(number) + '.' + ''.join(frac)
     return cast_from_unit(float(n), unit)
@@ -592,10 +591,10 @@ cdef inline int64_t parse_iso_format_string(object ts) except? -1:
     cdef:
         unicode c
         int64_t result = 0, r
-        int p=0
+        int p = 0
         object dec_unit = 'ms', err_msg
-        bint have_dot=0, have_value=0, neg=0
-        list number=[], unit=[]
+        bint have_dot = 0, have_value = 0, neg = 0
+        list number = [], unit = []
 
     ts = _decode_if_necessary(ts)
 
@@ -682,8 +681,8 @@ cdef _to_py_int_float(v):
         return int(v)
     elif is_float_object(v):
         return float(v)
-    raise TypeError("Invalid type {0}. Must be int or "
-                    "float.".format(type(v)))
+    raise TypeError("Invalid type {typ}. Must be int or "
+                    "float.".format(typ=type(v)))
 
 
 # Similar to Timestamp/datetime, this is a construction requirement for
@@ -729,9 +728,10 @@ cdef class _Timedelta(timedelta):
                             return True
 
                         # only allow ==, != ops
-                        raise TypeError('Cannot compare type {!r} with type ' \
-                                        '{!r}'.format(type(self).__name__,
-                                                      type(other).__name__))
+                        raise TypeError('Cannot compare type {cls} with '
+                                        'type {other}'
+                                        .format(cls=type(self).__name__,
+                                                other=type(other).__name__))
                 if util.is_array(other):
                     return PyObject_RichCompare(np.array([self]), other, op)
                 return PyObject_RichCompare(other, self, reverse_ops[op])
@@ -740,9 +740,9 @@ cdef class _Timedelta(timedelta):
                     return False
                 elif op == Py_NE:
                     return True
-                raise TypeError('Cannot compare type {!r} with type ' \
-                                '{!r}'.format(type(self).__name__,
-                                              type(other).__name__))
+                raise TypeError('Cannot compare type {cls} with type {other}'
+                                .format(cls=type(self).__name__,
+                                        other=type(other).__name__))
 
         return cmp_scalar(self.value, ots.value, op)
 
@@ -929,7 +929,7 @@ cdef class _Timedelta(timedelta):
     def nanoseconds(self):
         """
         Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
-       
+
         Returns
         -------
         int
@@ -980,8 +980,8 @@ cdef class _Timedelta(timedelta):
             sign = " "
 
         if format == 'all':
-            fmt = "{days} days{sign}{hours:02}:{minutes:02}:{seconds:02}." \
-                  "{milliseconds:03}{microseconds:03}{nanoseconds:03}"
+            fmt = ("{days} days{sign}{hours:02}:{minutes:02}:{seconds:02}."
+                   "{milliseconds:03}{microseconds:03}{nanoseconds:03}")
         else:
             # if we have a partial day
             subs = (self._h or self._m or self._s or
@@ -1006,7 +1006,7 @@ cdef class _Timedelta(timedelta):
         return fmt.format(**comp_dict)
 
     def __repr__(self):
-        return "Timedelta('{0}')".format(self._repr_base(format='long'))
+        return "Timedelta('{val}')".format(val=self._repr_base(format='long'))
 
     def __str__(self):
         return self._repr_base(format='long')
@@ -1060,8 +1060,8 @@ cdef class _Timedelta(timedelta):
                                                  components.nanoseconds)
         # Trim unnecessary 0s, 1.000000000 -> 1
         seconds = seconds.rstrip('0').rstrip('.')
-        tpl = 'P{td.days}DT{td.hours}H{td.minutes}M{seconds}S'.format(
-            td=components, seconds=seconds)
+        tpl = ('P{td.days}DT{td.hours}H{td.minutes}M{seconds}S'
+               .format(td=components, seconds=seconds))
         return tpl
 
 
@@ -1368,7 +1368,7 @@ class Timedelta(_Timedelta):
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
 
-        elif is_float_object(other) and util._checknull(other):
+        elif is_float_object(other) and util.is_nan(other):
             # i.e. np.nan
             return NotImplemented
 

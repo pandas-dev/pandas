@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
-
-from cpython.datetime cimport timedelta
 
 from numpy cimport int64_t
 

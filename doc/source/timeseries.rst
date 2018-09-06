@@ -703,6 +703,24 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
    ts2[[0, 2, 6]].index
 
+.. _timeseries.iterating-label:
+
+Iterating through groups
+------------------------
+
+With the :ref:`Resampler` object in hand, iterating through the grouped data is very
+natural and functions similarly to :py:func:`itertools.groupby`:
+
+.. ipython:: python
+
+   resampled = df.resample('H')
+
+   for name, group in resampled:
+       print(name)
+       print(group)
+
+See :ref:`groupby.iterating-label`.
+
 .. _timeseries.components:
 
 Time/Date Components
@@ -724,6 +742,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     nanosecond,"The nanoseconds of the datetime"
     date,"Returns datetime.date (does not contain timezone information)"
     time,"Returns datetime.time (does not contain timezone information)"
+    timetz,"Returns datetime.time as local time with timezone information"
     dayofyear,"The ordinal day of year"
     weekofyear,"The week ordinal of the year"
     week,"The week ordinal of the year"
@@ -2209,7 +2228,7 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
    didx.tz_convert(None)
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
-   didx.tz_convert('UCT').tz_localize(None)
+   didx.tz_convert('UTC').tz_localize(None)
 
 .. _timeseries.timezone_ambiguous:
 
