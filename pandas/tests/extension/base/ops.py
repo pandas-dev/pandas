@@ -50,7 +50,16 @@ class BaseOpsUtil(BaseExtensionTests):
 
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
-    """Various Series and DataFrame arithmetic ops methods."""
+    """Various Series and DataFrame arithmetic ops methods.
+
+    Subclasses supporting various ops should set the class variables
+    to indicate that they support ops of that kind
+
+    * series_scalar_exc = TypeError
+    * frame_scalar_exc = TypeError
+    * series_array_exc = TypeError
+    * divmod_exc = TypeError
+    """
     series_scalar_exc = TypeError
     frame_scalar_exc = TypeError
     series_array_exc = TypeError
