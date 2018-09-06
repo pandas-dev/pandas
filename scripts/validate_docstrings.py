@@ -163,7 +163,7 @@ class Docstring(object):
 
     @property
     def summary(self):
-        if not self.doc['Extended Summary'] and len(self.doc['Summary']) > 1:
+        if len(self.doc['Summary']) > 1:
             return ''
         return ' '.join(self.doc['Summary'])
 

@@ -362,6 +362,15 @@ class BadSummaries(object):
         which is not correct.
         """
 
+    def two_paragraph_multi_line(self):
+        """
+        Extends beyond one line
+        which is not correct.
+
+        Extends beyond one line, which in itself is correct but the
+        previous short summary should still be an issue.
+        """
+
 
 class BadParameters(object):
     """
@@ -556,6 +565,8 @@ class TestValidator(object):
         ('BadSummaries', 'no_capitalization',
          ('Summary must start with infinitive verb',)),
         ('BadSummaries', 'multi_line',
+         ('a short summary in a single line should be present',)),
+        ('BadSummaries', 'two_paragraph_multi_line',
          ('a short summary in a single line should be present',)),
         # Parameters tests
         ('BadParameters', 'missing_params',
