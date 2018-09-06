@@ -6899,7 +6899,7 @@ class DataFrame(NDFrame):
         """
 
         if other is self:
-            self.corr(method='pearson', min_periods=min_periods)
+            return self.corr(method=method, min_periods=min_periods)
 
         if isinstance(self.index, MultiIndex) \
            or isinstance(self.columns, MultiIndex) \
