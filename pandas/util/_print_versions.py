@@ -21,7 +21,7 @@ def get_sys_info():
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             so, serr = pipe.communicate()
-        except:
+        except ValueError:
             pass
         else:
             if pipe.returncode == 0:
@@ -50,7 +50,7 @@ def get_sys_info():
             ("LANG", "{lang}".format(lang=os.environ.get('LANG', "None"))),
             ("LOCALE", '.'.join(map(str, locale.getlocale()))),
         ])
-    except:
+    except Exception:
         pass
 
     return blob
@@ -108,7 +108,7 @@ def show_versions(as_json=False):
                 mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
-        except:
+        except Exception:
             deps_blob.append((modname, None))
 
     if (as_json):

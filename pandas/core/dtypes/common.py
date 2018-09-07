@@ -440,7 +440,7 @@ def is_timedelta64_dtype(arr_or_dtype):
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except:
+    except Exception:
         return False
     return issubclass(tipo, np.timedelta64)
 

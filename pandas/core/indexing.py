@@ -2146,7 +2146,7 @@ class _iLocIndexer(_LocationIndexer):
         self._has_valid_tuple(tup)
         try:
             return self._getitem_lowerdim(tup)
-        except:
+        except IndexingError:
             pass
 
         retval = self.obj
@@ -2705,13 +2705,13 @@ def maybe_droplevels(index, key):
         for _ in key:
             try:
                 index = index.droplevel(0)
-            except:
+            except ValueError:
                 # we have dropped too much, so back out
                 return original_index
     else:
         try:
             index = index.droplevel(0)
-        except:
+        except ValueError:
             pass
 
     return index

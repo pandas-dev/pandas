@@ -214,7 +214,7 @@ class TestFrameFlexArithmetic(object):
                             dtype = dict(C=None)
                         tm.assert_frame_equal(result, exp)
                         _check_mixed_int(result, dtype=dtype)
-            except:
+            except Exception:
                 printing.pprint_thing("Failing operation %r" % op)
                 raise
 

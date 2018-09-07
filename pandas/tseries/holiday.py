@@ -292,7 +292,7 @@ holiday_calendars = {}
 def register(cls):
     try:
         name = cls.name
-    except:
+    except Exception:
         name = cls.__name__
     holiday_calendars[name] = cls
 
@@ -424,7 +424,7 @@ class AbstractHolidayCalendar(object):
         """
         try:
             other = other.rules
-        except:
+        except Exception:
             pass
 
         if not isinstance(other, list):
@@ -433,7 +433,7 @@ class AbstractHolidayCalendar(object):
 
         try:
             base = base.rules
-        except:
+        except Exception:
             pass
 
         if not isinstance(base, list):

@@ -33,7 +33,7 @@ def load_reduce(self):
                 cls = args[0]
                 stack[-1] = object.__new__(cls)
                 return
-            except:
+            except Exception:
                 pass
 
         # try to re-encode the arguments
@@ -44,7 +44,7 @@ def load_reduce(self):
             try:
                 stack[-1] = func(*args)
                 return
-            except:
+            except Exception:
                 pass
 
         # unknown exception, re-raise
@@ -182,7 +182,7 @@ def load_newobj_ex(self):
 
 try:
     Unpickler.dispatch[pkl.NEWOBJ_EX[0]] = load_newobj_ex
-except:
+except Exception:
     pass
 
 
@@ -200,15 +200,11 @@ def load(fh, encoding=None, compat=False, is_verbose=False):
     compat: provide Series compatibility mode, boolean, default False
     is_verbose: show exception output
     """
+    fh.seek(0)
+    if encoding is not None:
+        up = Unpickler(fh, encoding=encoding)
+    else:
+        up = Unpickler(fh)
+    up.is_verbose = is_verbose
 
-    try:
-        fh.seek(0)
-        if encoding is not None:
-            up = Unpickler(fh, encoding=encoding)
-        else:
-            up = Unpickler(fh)
-        up.is_verbose = is_verbose
-
-        return up.load()
-    except:
-        raise
+    return up.load()

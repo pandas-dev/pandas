@@ -405,13 +405,13 @@ class ExprVisitor(BaseExprVisitor):
         return self.visit(cmpr)
 
     def visit_Subscript(self, node, **kwargs):
-        # only allow simple suscripts
+        # only allow simple subscripts
 
         value = self.visit(node.value)
         slobj = self.visit(node.slice)
         try:
             value = value.value
-        except:
+        except AttributeError:
             pass
 
         try:

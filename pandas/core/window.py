@@ -2502,7 +2502,7 @@ def _offset(window, center):
     offset = (window - 1) / 2. if center else 0
     try:
         return int(offset)
-    except:
+    except ValueError:
         return offset.astype(int)
 
 

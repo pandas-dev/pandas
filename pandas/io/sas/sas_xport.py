@@ -246,7 +246,7 @@ class XportReader(BaseIterator):
             contents = filepath_or_buffer.read()
             try:
                 contents = contents.encode(self._encoding)
-            except:
+            except Exception:
                 pass
             self.filepath_or_buffer = compat.BytesIO(contents)
 

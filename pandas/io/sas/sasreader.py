@@ -46,7 +46,7 @@ def read_sas(filepath_or_buffer, format=None, index=None, encoding=None,
                 format = "sas7bdat"
             else:
                 raise ValueError("unable to infer format of SAS file")
-        except:
+        except Exception:
             pass
 
     if format.lower() == 'xport':

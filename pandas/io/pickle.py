@@ -168,12 +168,12 @@ def read_pickle(path, compression='infer'):
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=False))
             # compat pickle
-            except:
+            except Exception:
                 return read_wrapper(
                     lambda f: pc.load(f, encoding=encoding, compat=True))
     try:
         return try_read(path)
-    except:
+    except Exception:
         if PY3:
             return try_read(path, encoding='latin1')
         raise

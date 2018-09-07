@@ -306,7 +306,7 @@ class SparseArray(PandasObject, np.ndarray):
     def __len__(self):
         try:
             return self.sp_index.length
-        except:
+        except Exception:
             return 0
 
     def __unicode__(self):

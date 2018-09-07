@@ -1546,7 +1546,7 @@ def _bool_method_SERIES(cls, op, special):
                     y = bool(y)
                 try:
                     result = libops.scalar_binop(x, y, op)
-                except:
+                except Exception:
                     raise TypeError("cannot compare a dtyped [{dtype}] array "
                                     "with a scalar of type [{typ}]"
                                     .format(dtype=x.dtype,

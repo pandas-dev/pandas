@@ -136,7 +136,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         # https://github.com/numpy/numpy/issues/5370
         try:
             v = self.dtype.type(v)
-        except:
+        except Exception:
             pass
         return super(FrozenNDArray, self).searchsorted(
             v, side=side, sorter=sorter)
