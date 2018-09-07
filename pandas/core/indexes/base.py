@@ -1120,7 +1120,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Create a DataFrame with a column containing the Index.
 
-        .. versionadded:: 0.21.0
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------

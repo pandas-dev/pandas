@@ -81,6 +81,7 @@ class Base(object):
         df = idx.to_frame(index=False)
         assert df.index is not idx
 
+        # See GH-22580
         new_idx_name = 'new_name'
         df = idx.to_frame(name=new_idx_name)
 
