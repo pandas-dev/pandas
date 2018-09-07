@@ -560,6 +560,7 @@ class TestIndex(Base):
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
     def test_insert_missing(self, nulls_fixture):
+        # GH 22295
         # test there is no mangling of NA values
         expected = Index(['a', nulls_fixture, 'b', 'c'])
         result = Index(list('abc')).insert(1, nulls_fixture)
