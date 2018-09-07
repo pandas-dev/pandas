@@ -199,6 +199,14 @@ def test_compact_numerical_values(datapath):
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
+def test_many_columns(datapath):
+    fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
+    df = pd.read_sas(fname, encoding='latin-1')
+    fname = datapath("io", "sas", "data", "many_columns.csv")
+    df0 = pd.read_csv(fname, encoding='latin-1')
+    tm.assert_frame_equal(df, df0)
+
+
 def test_zero_variables(datapath):
     # Check if the SAS file has zero variables (PR #18184)
     fname = datapath("io", "sas", "data", "zero_variables.sas7bdat")

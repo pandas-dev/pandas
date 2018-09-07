@@ -742,6 +742,7 @@ I/O
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 - :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
 - :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
+- :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
 
 Plotting
 ^^^^^^^^
