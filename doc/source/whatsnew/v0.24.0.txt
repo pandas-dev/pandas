@@ -285,6 +285,46 @@ that the dates have been converted to UTC
 .. ipython:: python
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
+.. _whatsnew_0240.api_breaking.calendarday:
+
+CalendarDay Offset
+^^^^^^^^^^^^^^^^^^
+
+:class:`Day` and associated frequency alias ``'D'`` were documented to represent
+a calendar day; however, arithmetic and operations with :class:`Day` sometimes
+respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Timedelta(days=n)``).
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+
+    In [2]: ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+
+    # Respects calendar arithmetic
+    In [3]: pd.date_range(start=ts, freq='D', periods=3)
+    Out[3]:
+    DatetimeIndex(['2016-10-30 00:00:00+03:00', '2016-10-31 00:00:00+02:00',
+                   '2016-11-01 00:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Helsinki]', freq='D')
+
+    # Respects absolute arithmetic
+    In [4]: ts + pd.tseries.frequencies.to_offset('D')
+    Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
+
+:class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
+and respect calendar day arithmetic while :class:`Day` and frequency alias ``'D'``
+will now respect absolute time (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+See the :ref:`documentation here <timeseries.dayvscalendarday>` for more information.
+
+Addition with :class:`CalendarDay` across a daylight savings time transition:
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
+
 .. _whatsnew_0240.api_breaking.period_end_time:
 
 Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
@@ -530,7 +570,7 @@ Removal of prior version deprecations/changes
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
 - :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats``(:issue:`14645`)
--
+- Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`,:issue:`6581`)
 
 .. _whatsnew_0240.performance:
 
