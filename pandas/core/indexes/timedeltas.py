@@ -742,7 +742,7 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         Right bound for generating timedeltas
     periods : integer, default None
         Number of periods to generate
-    freq : string or DateOffset, default 'D' (calendar daily)
+    freq : string or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'
     name : string, default None
         Name of the resulting TimedeltaIndex
