@@ -30,10 +30,19 @@ def zero(request):
 
 @pytest.fixture(params=[pd.Float64Index(np.arange(5, dtype='float64')),
                         pd.Int64Index(np.arange(5, dtype='int64')),
-                        pd.UInt64Index(np.arange(5, dtype='uint64'))],
+                        pd.UInt64Index(np.arange(5, dtype='uint64')),
+                        pd.RangeIndex(5)],
                 ids=lambda x: type(x).__name__)
-def idx(request):
+def numeric_index(request):
     return request.param
+
+
+@pytest.fixture
+def td_series():
+    """
+    Return a Series with dtype='timedelta64[ns]', including a NaT.
+    """
+    return pd.Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
 @pytest.fixture(params=[pd.Timedelta('5m4s').to_pytimedelta(),
@@ -43,6 +52,76 @@ def idx(request):
 def scalar_td(request):
     """
     Several variants of Timedelta scalars representing 5 minutes and 4 seconds
+    """
+    return request.param
+
+
+# ------------------------------------------------------------------
+# DateOffset Fixtures
+
+_common_mismatch = [pd.offsets.YearBegin(2),
+                    pd.offsets.MonthBegin(1),
+                    pd.offsets.Minute()]
+
+
+@pytest.fixture(params=[pd.Timedelta(minutes=30).to_pytimedelta(),
+                        np.timedelta64(30, 's'),
+                        pd.Timedelta(seconds=30)] + _common_mismatch)
+def not_hourly(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Hourly frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[np.timedelta64(4, 'h'),
+                        pd.Timedelta(hours=23).to_pytimedelta(),
+                        pd.Timedelta('23:00:00')] + _common_mismatch)
+def not_daily(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Daily frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[np.timedelta64(365, 'D'),
+                        pd.Timedelta(365).to_pytimedelta(),
+                        pd.Timedelta(days=365)] + _common_mismatch)
+def mismatched(request):
+    """
+    Several timedelta-like and DateOffset instances that are _not_
+    compatible with Monthly or Annual frequencies.
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.offsets.Day(3),
+                        pd.Timedelta(days=3).to_pytimedelta(),
+                        np.timedelta64(3, 'D'),
+                        pd.offsets.Hour(72),
+                        pd.Timedelta(minutes=60 * 24 * 3).to_pytimedelta(),
+                        np.timedelta64(72, 'h'),
+                        pd.Timedelta('72:00:00')])
+def three_days(request):
+    """
+    Several timedelta-like and DateOffset objects that each represent
+    a 3-day timedelta
+    """
+    return request.param
+
+
+@pytest.fixture(params=[pd.offsets.Hour(2),
+                        pd.Timedelta(hours=2),
+                        np.timedelta64(2, 'h'),
+                        pd.offsets.Minute(120),
+                        pd.Timedelta(minutes=120).to_pytimedelta(),
+                        np.timedelta64(120, 'm')])
+def two_hours(request):
+    """
+    Several timedelta-like and DateOffset objects that each represent
+    a 2-hour timedelta
     """
     return request.param
 

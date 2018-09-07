@@ -30,14 +30,6 @@ from pandas import (
 # ------------------------------------------------------------------
 # Fixtures
 
-@pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
-                        np.timedelta64(2, 'h'), Timedelta(hours=2)],
-                ids=str)
-def delta(request):
-    # Several ways of representing two hours
-    return request.param
-
-
 @pytest.fixture(
     params=[
         datetime(2011, 1, 1),
@@ -1113,40 +1105,40 @@ class TestDatetimeIndexArithmetic(object):
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
 
-    def test_dti_add_timedeltalike(self, tz_naive_fixture, delta, box):
+    def test_dti_add_timedeltalike(self, tz_naive_fixture, two_hours, box):
         # GH#22005, GH#22163 check DataFrame doesn't raise TypeError
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         rng = tm.box_expected(rng, box)
 
-        result = rng + delta
+        result = rng + two_hours
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
         expected = tm.box_expected(expected, box)
         tm.assert_equal(result, expected)
 
-    def test_dti_iadd_timedeltalike(self, tz_naive_fixture, delta):
+    def test_dti_iadd_timedeltalike(self, tz_naive_fixture, two_hours):
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('2000-01-01 02:00',
                                  '2000-02-01 02:00', tz=tz)
-        rng += delta
+        rng += two_hours
         tm.assert_index_equal(rng, expected)
 
-    def test_dti_sub_timedeltalike(self, tz_naive_fixture, delta):
+    def test_dti_sub_timedeltalike(self, tz_naive_fixture, two_hours):
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
-        result = rng - delta
+        result = rng - two_hours
         tm.assert_index_equal(result, expected)
 
-    def test_dti_isub_timedeltalike(self, tz_naive_fixture, delta):
+    def test_dti_isub_timedeltalike(self, tz_naive_fixture, two_hours):
         tz = tz_naive_fixture
         rng = pd.date_range('2000-01-01', '2000-02-01', tz=tz)
         expected = pd.date_range('1999-12-31 22:00',
                                  '2000-01-31 22:00', tz=tz)
-        rng -= delta
+        rng -= two_hours
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
@@ -1255,8 +1247,8 @@ class TestDatetimeIndexArithmetic(object):
     def test_add_datetimelike_and_dti(self, addend):
         # GH#9631
         dti = DatetimeIndex(['2011-01-01', '2011-01-02'])
-        msg = 'cannot add DatetimeIndex and {0}'.format(
-            type(addend).__name__)
+        msg = ('cannot add DatetimeIndex and {typ}'
+               .format(typ=type(addend).__name__))
         with tm.assert_raises_regex(TypeError, msg):
             dti + addend
         with tm.assert_raises_regex(TypeError, msg):
@@ -1266,8 +1258,8 @@ class TestDatetimeIndexArithmetic(object):
         # GH#9631
         dti_tz = DatetimeIndex(['2011-01-01',
                                 '2011-01-02']).tz_localize('US/Eastern')
-        msg = 'cannot add DatetimeIndex and {0}'.format(
-            type(addend).__name__)
+        msg = ('cannot add DatetimeIndex and {typ}'
+               .format(typ=type(addend).__name__))
         with tm.assert_raises_regex(TypeError, msg):
             dti_tz + addend
         with tm.assert_raises_regex(TypeError, msg):

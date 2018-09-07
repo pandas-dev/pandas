@@ -3,7 +3,6 @@
 # behave identically.
 # Specifically for Period dtype
 import operator
-from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -17,78 +16,8 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.core.indexes.period as period
 from pandas.core import ops
 from pandas import (
-    Period, PeriodIndex, period_range, Timedelta, Series,
+    Period, PeriodIndex, period_range, Series, NaT,
     _np_version_under1p10)
-
-
-# ------------------------------------------------------------------
-# Fixtures
-
-_common_mismatch = [pd.offsets.YearBegin(2),
-                    pd.offsets.MonthBegin(1),
-                    pd.offsets.Minute()]
-
-
-@pytest.fixture(params=[timedelta(minutes=30),
-                        np.timedelta64(30, 's'),
-                        Timedelta(seconds=30)] + _common_mismatch)
-def not_hourly(request):
-    """
-    Several timedelta-like and DateOffset instances that are _not_
-    compatible with Hourly frequencies.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[np.timedelta64(4, 'h'),
-                        timedelta(hours=23),
-                        Timedelta('23:00:00')] + _common_mismatch)
-def not_daily(request):
-    """
-    Several timedelta-like and DateOffset instances that are _not_
-    compatible with Daily frequencies.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[np.timedelta64(365, 'D'),
-                        timedelta(365),
-                        Timedelta(days=365)] + _common_mismatch)
-def mismatched(request):
-    """
-    Several timedelta-like and DateOffset instances that are _not_
-    compatible with Monthly or Annual frequencies.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.offsets.Day(3),
-                        timedelta(days=3),
-                        np.timedelta64(3, 'D'),
-                        pd.offsets.Hour(72),
-                        timedelta(minutes=60 * 24 * 3),
-                        np.timedelta64(72, 'h'),
-                        Timedelta('72:00:00')])
-def three_days(request):
-    """
-    Several timedelta-like and DateOffset objects that each represent
-    a 3-day timedelta
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.offsets.Hour(2),
-                        timedelta(hours=2),
-                        np.timedelta64(2, 'h'),
-                        pd.offsets.Minute(120),
-                        timedelta(minutes=120),
-                        np.timedelta64(120, 'm')])
-def two_hours(request):
-    """
-    Several timedelta-like and DateOffset objects that each represent
-    a 2-hour timedelta
-    """
-    return request.param
 
 
 # ------------------------------------------------------------------
@@ -373,6 +302,98 @@ class TestPeriodSeriesComparisons(object):
 
         exp = Series([True, False, True, True])
         tm.assert_series_equal(base <= ser, exp)
+
+
+# TODO: Needs cleanup & parametrizing over box
+class TestPeriodIndexSeriesComparisons(object):
+    """ Test PeriodIndex and Period Series Ops consistency """
+
+    def _check(self, values, func, expected):
+        idx = pd.PeriodIndex(values)
+        result = func(idx)
+        if isinstance(expected, pd.Index):
+            tm.assert_index_equal(result, expected)
+        else:
+            # comp op results in bool
+            tm.assert_numpy_array_equal(result, expected)
+
+        s = pd.Series(values)
+        result = func(s)
+
+        exp = pd.Series(expected, name=values.name)
+        tm.assert_series_equal(result, exp)
+
+    def test_pi_comp_period(self):
+        idx = PeriodIndex(['2011-01', '2011-02', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        f = lambda x: x == pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.Period('2011-03', freq='M')
+        exp = np.array([True, True, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') != x
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, True, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x > pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, True, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+    def test_pi_comp_period_nat(self):
+        idx = PeriodIndex(['2011-01', 'NaT', '2011-03',
+                           '2011-04'], freq='M', name='idx')
+
+        f = lambda x: x == pd.Period('2011-03', freq='M')
+        exp = np.array([False, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x == NaT
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: NaT == x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != pd.Period('2011-03', freq='M')
+        exp = np.array([True, True, False, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: pd.Period('2011-03', freq='M') != x
+        self._check(idx, f, exp)
+
+        f = lambda x: x != NaT
+        exp = np.array([True, True, True, True], dtype=np.bool)
+        self._check(idx, f, exp)
+        f = lambda x: NaT != x
+        self._check(idx, f, exp)
+
+        f = lambda x: pd.Period('2011-03', freq='M') >= x
+        exp = np.array([True, False, True, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x < pd.Period('2011-03', freq='M')
+        exp = np.array([True, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: x > NaT
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
+
+        f = lambda x: NaT >= x
+        exp = np.array([False, False, False, False], dtype=np.bool)
+        self._check(idx, f, exp)
 
 
 # ------------------------------------------------------------------
