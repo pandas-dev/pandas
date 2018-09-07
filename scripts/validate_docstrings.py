@@ -163,9 +163,11 @@ class Docstring(object):
 
     @property
     def summary(self):
-        if len(self.doc['Summary']) > 1:
-            return ''
         return ' '.join(self.doc['Summary'])
+
+    @property
+    def num_summary_lines(self):
+        return len(self.doc['Summary'])
 
     @property
     def extended_summary(self):
@@ -452,6 +454,8 @@ def validate_one(func_name):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
+        if doc.num_summary_lines > 1:
+            errs.append("Summary should fit in a single line.")
     if not doc.extended_summary:
         wrns.append('No extended summary found')
 
