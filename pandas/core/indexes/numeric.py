@@ -115,6 +115,7 @@ class NumericIndex(Index):
         """
         return False
 
+    @Appender(Index.insert.__doc__)
     def insert(self, loc, item):
         # treat NA values as nans:
         if is_scalar(item) and isna(item):
