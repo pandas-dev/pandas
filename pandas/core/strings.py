@@ -725,7 +725,7 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
- 
+
     Returns
     -------
     Series/array of boolean values
