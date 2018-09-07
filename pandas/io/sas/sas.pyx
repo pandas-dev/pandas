@@ -375,7 +375,7 @@ cdef class Parser(object):
                     if done:
                         return True
                 return False
-            elif self.current_page_type == page_data_type:
+            elif self.current_page_type & page_data_type == page_data_type:
                 self.process_byte_array_with_data(
                     bit_offset + subheader_pointers_offset +
                     self.current_row_on_page_index * self.row_length,

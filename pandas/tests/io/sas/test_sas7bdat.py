@@ -200,11 +200,19 @@ def test_compact_numerical_values(datapath):
 
 
 def test_many_columns(datapath):
+    # Test for looking for column information in more places (PR #22628)
     fname = datapath("io", "sas", "data", "many_columns.sas7bdat")
     df = pd.read_sas(fname, encoding='latin-1')
     fname = datapath("io", "sas", "data", "many_columns.csv")
     df0 = pd.read_csv(fname, encoding='latin-1')
     tm.assert_frame_equal(df, df0)
+
+
+def test_inconsistent_number_of_rows(datapath):
+    # Regression test for issue #16615. (PR #22628)
+    fname = datapath("io", "sas", "data", "load_log.sas7bdat")
+    df = pd.read_sas(fname, encoding='latin-1')
+    assert len(df) == 2097
 
 
 def test_zero_variables(datapath):

@@ -301,8 +301,10 @@ class SAS7BDATReader(BaseIterator):
         pt = [const.page_meta_type, const.page_amd_type] + const.page_mix_types
         if self._current_page_type in pt:
             self._process_page_metadata()
-        return ((self._current_page_type in [256] + const.page_mix_types) or
-                (self._current_page_data_subheader_pointers != []))
+        is_data_page = self._current_page_type & const.page_data_type
+        is_mix_page = self._current_page_type in const.page_mix_types
+        return (is_data_page or is_mix_page
+                or self._current_page_data_subheader_pointers != [])
 
     def _read_page_header(self):
         bit_offset = self._page_bit_offset
@@ -644,11 +646,13 @@ class SAS7BDATReader(BaseIterator):
                                         self._page_length))
 
         self._read_page_header()
-        if self._current_page_type == const.page_meta_type:
+        page_type = self._current_page_type
+        if page_type == const.page_meta_type:
             self._process_page_metadata()
-        pt = [const.page_meta_type, const.page_data_type]
-        pt += [const.page_mix_types]
-        if self._current_page_type not in pt:
+
+        is_data_page = page_type & const.page_data_type
+        pt = [const.page_meta_type] + const.page_mix_types
+        if not is_data_page and self._current_page_type not in pt:
             return self._read_next_page()
 
         return False
