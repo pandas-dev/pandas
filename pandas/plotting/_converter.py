@@ -583,7 +583,7 @@ def period_break(dates, period):
         Name of the period to monitor.
     """
     current = getattr(dates, period)
-    previous = getattr(dates - 1, period)
+    previous = getattr(dates - 1 * dates.freq, period)
     return np.nonzero(current - previous)[0]
 
 
@@ -669,7 +669,7 @@ def _daily_finder(vmin, vmax, freq):
 
         def _hour_finder(label_interval, force_year_start):
             _hour = dates_.hour
-            _prev_hour = (dates_ - 1).hour
+            _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
             info_maj[day_start] = True
             info_min[hour_start & (_hour % label_interval == 0)] = True
@@ -683,7 +683,7 @@ def _daily_finder(vmin, vmax, freq):
         def _minute_finder(label_interval):
             hour_start = period_break(dates_, 'hour')
             _minute = dates_.minute
-            _prev_minute = (dates_ - 1).minute
+            _prev_minute = (dates_ - 1 * dates_.freq).minute
             minute_start = (_minute - _prev_minute) != 0
             info_maj[hour_start] = True
             info_min[minute_start & (_minute % label_interval == 0)] = True
@@ -696,7 +696,7 @@ def _daily_finder(vmin, vmax, freq):
         def _second_finder(label_interval):
             minute_start = period_break(dates_, 'minute')
             _second = dates_.second
-            _prev_second = (dates_ - 1).second
+            _prev_second = (dates_ - 1 * dates_.freq).second
             second_start = (_second - _prev_second) != 0
             info['maj'][minute_start] = True
             info['min'][second_start & (_second % label_interval == 0)] = True
