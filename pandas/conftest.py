@@ -9,10 +9,10 @@ import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
-from hypothesis import settings, HealthCheck
-
-settings.suppress_health_check = (HealthCheck.too_slow,)
+import hypothesis
+hypothesis.settings.suppress_health_check = (hypothesis.HealthCheck.too_slow,)
 # HealthCheck.all() to disable all health checks
+# https://hypothesis.readthedocs.io/en/latest/healthchecks.html
 
 
 def pytest_addoption(parser):
