@@ -639,7 +639,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         # No conversion since timestamps are all UTC to begin with
         return self._shallow_copy(tz=tz)
 
-    def tz_localize(self, tz, ambiguous='raise', nonexisitent='raise',
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors='raise'):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
@@ -668,7 +668,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexisitent : str {'NaT', 'raise'}
+        nonexistent : str {'NaT', 'raise'}
 
             - 'infer' will shift the non-existent time to a real local time
             - 'NaT' will return NaT where there are ambiguous times
@@ -735,7 +735,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # Convert to UTC
 
             new_dates = conversion.tz_localize_to_utc(
-                self.asi8, tz, ambiguous=ambiguous, nonexisitent=nonexisitent,
+                self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
                 errors=errors
             )
         new_dates = new_dates.view(_NS_DTYPE)

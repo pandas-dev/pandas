@@ -861,7 +861,7 @@ class Timestamp(_Timestamp):
     def is_leap_year(self):
         return bool(ccalendar.is_leapyear(self.year))
 
-    def tz_localize(self, tz, ambiguous='raise', nonexisitent='raise',
+    def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
                     errors='raise'):
         """
         Convert naive Timestamp to local time zone, or remove
@@ -879,7 +879,7 @@ class Timestamp(_Timestamp):
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-        nonexisitent : str {'NaT', 'raise'}
+        nonexistent : str {'NaT', 'raise'}
 
             - 'infer' will shift the non-existent time to a real local time
             - 'NaT' will return NaT where there are ambiguous times
@@ -914,7 +914,7 @@ class Timestamp(_Timestamp):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,
-                                       nonexisitent=nonexisitent,
+                                       nonexistent=nonexistent,
                                        errors=errors)[0]
             return Timestamp(value, tz=tz)
         else:

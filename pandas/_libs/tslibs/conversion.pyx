@@ -31,7 +31,6 @@ from util cimport (is_string_object,
                    is_integer_object, is_float_object, is_array)
 
 from timedeltas cimport cast_from_unit
-from timestamps import Timestamp
 from timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                         treat_tz_as_dateutil, treat_tz_as_pytz,
                         get_utcoffset, get_dst_info,
@@ -1002,7 +1001,10 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
             if infer_nonexisit:
                 # Infer the timestamp; based on pytz's DstTzInfo.normalize
                 val = vals[i]
-                utc_offset = get_utcoffset(tz, Timestamp(val))
+                dt64_to_dtstruct(val, &dts)
+                dt = datetime(dts.year, dts.month, dts.day, dts.hour,
+                              dts.min, dts.sec, dts.us, tz)
+                utc_offset = get_utcoffset(tz, dt)
                 utc_offset = int(utc_offset.total_seconds()) * 1000000000
                 utc_val = vals[i] - utc_offset
                 local_val = tz_convert_single(utc_val, 'UTC', tz)
