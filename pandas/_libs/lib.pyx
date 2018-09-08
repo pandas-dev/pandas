@@ -2,14 +2,10 @@
 from decimal import Decimal
 import sys
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
-                      PyList_Check,
-                      PyString_Check,
-                      PyBytes_Check,
-                      PyUnicode_Check,
                       PyTuple_New,
                       Py_EQ,
                       PyObject_RichCompareBool)
@@ -91,12 +87,12 @@ def values_from_object(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(object[:] arr):
+def memory_usage_of_objects(object[:] arr) -> int64_t:
     """ return the memory usage of an object array in bytes,
     does not include the actual bytes of the pointers """
-    cdef:
-        Py_ssize_t i, n
-        int64_t size = 0
+    i: Py_ssize_t
+    n: Py_ssize_t
+    size: int64_t
 
     n = len(arr)
     for i in range(n):
@@ -127,7 +123,7 @@ def is_scalar(val: object) -> bint:
 
     return (cnp.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or PyBytes_Check(val)
+            or isinstance(val, bytes)
             # We differ from numpy (as of 1.10), which claims that None is
             # not scalar in np.isscalar().
             or val is None
@@ -140,7 +136,7 @@ def is_scalar(val: object) -> bint:
             or util.is_offset_object(val))
 
 
-def item_from_zerodim(object val):
+def item_from_zerodim(val: object) -> object:
     """
     If the value is a zerodim array, return the item it contains.
 
@@ -359,7 +355,7 @@ def get_reverse_indexer(ndarray[int64_t] indexer, Py_ssize_t length):
     return rev_indexer
 
 
-def has_infs_f4(ndarray[float32_t] arr):
+def has_infs_f4(ndarray[float32_t] arr) -> bint:
     cdef:
         Py_ssize_t i, n = len(arr)
         float32_t inf, neginf, val
@@ -374,7 +370,7 @@ def has_infs_f4(ndarray[float32_t] arr):
     return False
 
 
-def has_infs_f8(ndarray[float64_t] arr):
+def has_infs_f8(ndarray[float64_t] arr) -> bint:
     cdef:
         Py_ssize_t i, n = len(arr)
         float64_t inf, neginf, val
@@ -530,7 +526,8 @@ def clean_index_list(list obj):
 
     for i in range(n):
         v = obj[i]
-        if not (PyList_Check(v) or util.is_array(v) or hasattr(v, '_data')):
+        if not (isinstance(v, list) or
+                util.is_array(v) or hasattr(v, '_data')):
             all_arrays = 0
             break
 
@@ -1120,7 +1117,7 @@ def infer_dtype(object value, bint skipna=False):
                              .format(typ=type(value)))
 
     else:
-        if not PyList_Check(value):
+        if not isinstance(value, list):
             value = list(value)
         from pandas.core.dtypes.cast import (
             construct_1d_object_array_from_listlike)
@@ -1209,15 +1206,15 @@ def infer_dtype(object value, bint skipna=False):
         if is_bool_array(values, skipna=skipna):
             return 'boolean'
 
-    elif PyString_Check(val):
+    elif isinstance(val, str):
         if is_string_array(values, skipna=skipna):
             return 'string'
 
-    elif PyUnicode_Check(val):
+    elif isinstance(val, unicode):
         if is_unicode_array(values, skipna=skipna):
             return 'unicode'
 
-    elif PyBytes_Check(val):
+    elif isinstance(val, bytes):
         if is_bytes_array(values, skipna=skipna):
             return 'bytes'
 
@@ -1474,7 +1471,7 @@ cpdef bint is_float_array(ndarray values):
 
 cdef class StringValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return PyString_Check(value)
+        return isinstance(value, str)
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.str_)
@@ -1490,7 +1487,7 @@ cpdef bint is_string_array(ndarray values, bint skipna=False):
 
 cdef class UnicodeValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return PyUnicode_Check(value)
+        return isinstance(value, unicode)
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.unicode_)
@@ -1506,7 +1503,7 @@ cdef bint is_unicode_array(ndarray values, bint skipna=False):
 
 cdef class BytesValidator(Validator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return PyBytes_Check(value)
+        return isinstance(value, bytes)
 
     cdef inline bint is_array_typed(self) except -1:
         return issubclass(self.dtype.type, np.bytes_)
