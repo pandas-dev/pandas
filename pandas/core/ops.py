@@ -1627,7 +1627,7 @@ def _flex_method_SERIES(cls, op, special):
 # -----------------------------------------------------------------------------
 # DataFrame
 
-def dispatch_to_series(left, right, func):
+def dispatch_to_series(left, right, func, str_rep=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
     column-by-column, dispatching to the Series implementation.
@@ -1637,6 +1637,7 @@ def dispatch_to_series(left, right, func):
     left : DataFrame
     right : scalar or DataFrame
     func : arithmetic or comparison operator
+    str_rep : str or None, default None
 
     Returns
     -------
@@ -1644,16 +1645,34 @@ def dispatch_to_series(left, right, func):
     """
     # Note: we use iloc to access columns for compat with cases
     #       with non-unique columns.
+    import pandas.core.computation.expressions as expressions
+
+    right = lib.item_from_zerodim(right)
     if lib.is_scalar(right):
-        new_data = {i: func(left.iloc[:, i], right)
-                    for i in range(len(left.columns))}
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
     elif isinstance(right, ABCDataFrame):
         assert right._indexed_same(left)
-        new_data = {i: func(left.iloc[:, i], right.iloc[:, i])
-                    for i in range(len(left.columns))}
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCSeries):
+        assert right.index.equals(left.index)  # Handle other cases later
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b)
+                    for i in range(len(a.columns))}
+
     else:
         # Remaining cases have less-obvious dispatch rules
-        raise NotImplementedError
+        raise NotImplementedError(right)
+
+    new_data = expressions.evaluate(column_op, str_rep, left, right)
 
     result = left._constructor(new_data, index=left.index, copy=False)
     # Pin columns instead of passing to constructor for compat with
@@ -1823,7 +1842,7 @@ def _flex_comp_method_FRAME(cls, op, special):
             if not self._indexed_same(other):
                 self, other = self.align(other, 'outer',
                                          level=level, copy=False)
-            return self._compare_frame(other, na_op, str_rep)
+            return dispatch_to_series(self, other, na_op, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
@@ -1848,7 +1867,7 @@ def _comp_method_FRAME(cls, func, special):
             if not self._indexed_same(other):
                 raise ValueError('Can only compare identically-labeled '
                                  'DataFrame objects')
-            return self._compare_frame(other, func, str_rep)
+            return dispatch_to_series(self, other, func, str_rep)
 
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, func,

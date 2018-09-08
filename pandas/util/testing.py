@@ -673,7 +673,7 @@ def capture_stderr(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stderr = StringIO()
@@ -2394,7 +2394,7 @@ def network(t, url="http://www.google.com",
                 raise
             else:
                 skip("Skipping test due to lack of connectivity"
-                     " and error {error}".format(e))
+                     " and error {error}".format(error=e))
 
     return wrapper
 
