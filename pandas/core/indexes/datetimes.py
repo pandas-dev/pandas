@@ -2,7 +2,7 @@
 from __future__ import division
 import operator
 import warnings
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 
 import numpy as np
 from pytz import utc
@@ -730,6 +730,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         """
         from pandas.core.indexes.period import PeriodIndex
 
+        if self.tz is not None:
+            warnings.warn("Converting to PeriodIndex representation will "
+                          "drop timezone information.", UserWarning)
+
         if freq is None:
             freq = self.freqstr or self.inferred_freq
 
@@ -740,7 +744,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
             freq = get_period_alias(freq)
 
-        return PeriodIndex(self.values, name=self.name, freq=freq, tz=self.tz)
+        return PeriodIndex(self.values, name=self.name, freq=freq)
 
     def snap(self, freq='S'):
         """
@@ -1203,6 +1207,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             # needed to localize naive datetimes
             key = Timestamp(key, tz=self.tz)
             return Index.get_loc(self, key, method, tolerance)
+
+        elif isinstance(key, timedelta):
+            # GH#20464
+            raise TypeError("Cannot index {cls} with {other}"
+                            .format(cls=type(self).__name__,
+                                    other=type(key).__name__))
 
         if isinstance(key, time):
             if method is not None:

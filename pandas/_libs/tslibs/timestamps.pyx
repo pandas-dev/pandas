@@ -737,6 +737,12 @@ class Timestamp(_Timestamp):
         """
         from pandas import Period
 
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn("Converting to Period representation will "
+                          "drop timezone information.",
+                          UserWarning)
+
         if freq is None:
             freq = self.freq
 
