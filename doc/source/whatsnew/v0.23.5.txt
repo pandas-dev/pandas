@@ -20,6 +20,9 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
+- Calling :meth:`DataFrameGroupBy.rank` and :meth:`SeriesGroupBy.rank` with empty groups
+  and ``pct=True`` was raising a ``ZeroDivisionError`` due to `c1068d9
+  <https://github.com/pandas-dev/pandas/commit/c1068d9d242c22cb2199156f6fb82eb5759178ae>`_ (:issue:`22519`)
 -
 -
 
