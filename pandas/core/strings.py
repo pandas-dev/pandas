@@ -712,7 +712,7 @@ def str_repeat(arr, repeats):
         return result
 
 
-def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
+def str_match(arr, pat, case=True, flags=0, na=np.nan):
     """
     Determine if each string matches a regular expression.
 
@@ -725,8 +725,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
     flags : int, default 0 (no flags)
         re module flags, e.g. re.IGNORECASE
     na : default NaN, fill value for missing values.
-    as_indexer
-        .. deprecated:: 0.21.0
 
     Returns
     -------
@@ -743,17 +741,6 @@ def str_match(arr, pat, case=True, flags=0, na=np.nan, as_indexer=None):
         flags |= re.IGNORECASE
 
     regex = re.compile(pat, flags=flags)
-
-    if (as_indexer is False) and (regex.groups > 0):
-        raise ValueError("as_indexer=False with a pattern with groups is no "
-                         "longer supported. Use '.str.extract(pat)' instead")
-    elif as_indexer is not None:
-        # Previously, this keyword was used for changing the default but
-        # deprecated behaviour. This keyword is now no longer needed.
-        warnings.warn("'as_indexer' keyword was specified but is ignored "
-                      "(match now returns a boolean indexer by default), "
-                      "and will be removed in a future version.",
-                      FutureWarning, stacklevel=3)
 
     dtype = bool
     f = lambda x: bool(regex.match(x))
@@ -857,8 +844,9 @@ def str_extract(arr, pat, flags=0, expand=True):
     pat : string
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        ``re`` module flags, e.g. ``re.IGNORECASE``.
-        See :mod:`re`
+        Flags from the ``re`` module, e.g. ``re.IGNORECASE``, that
+        modify regular expression matching for things like case,
+        spaces, etc. For more details, see :mod:`re`.
     expand : bool, default True
         If True, return DataFrame with one column per capture group.
         If False, return a Series/Index if there is one capture group
@@ -868,13 +856,15 @@ def str_extract(arr, pat, flags=0, expand=True):
 
     Returns
     -------
-    DataFrame with one row for each subject string, and one column for
-    each group. Any capture group names in regular expression pat will
-    be used for column names; otherwise capture group numbers will be
-    used. The dtype of each result column is always object, even when
-    no match is found. If expand=False and pat has only one capture group,
-    then return a Series (if subject is a Series) or Index (if subject
-    is an Index).
+    DataFrame or Series or Index
+        A DataFrame with one row for each subject string, and one
+        column for each group. Any capture group names in regular
+        expression pat will be used for column names; otherwise
+        capture group numbers will be used. The dtype of each result
+        column is always object, even when no match is found. If
+        ``expand=False`` and pat has only one capture group, then
+        return a Series (if subject is a Series) or Index (if subject
+        is an Index).
 
     See Also
     --------
@@ -2487,9 +2477,8 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_match)
-    def match(self, pat, case=True, flags=0, na=np.nan, as_indexer=None):
-        result = str_match(self._parent, pat, case=case, flags=flags, na=na,
-                           as_indexer=as_indexer)
+    def match(self, pat, case=True, flags=0, na=np.nan):
+        result = str_match(self._parent, pat, case=case, flags=flags, na=na)
         return self._wrap_result(result)
 
     @copy(str_replace)

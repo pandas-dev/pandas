@@ -285,6 +285,46 @@ that the dates have been converted to UTC
 .. ipython:: python
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
+.. _whatsnew_0240.api_breaking.calendarday:
+
+CalendarDay Offset
+^^^^^^^^^^^^^^^^^^
+
+:class:`Day` and associated frequency alias ``'D'`` were documented to represent
+a calendar day; however, arithmetic and operations with :class:`Day` sometimes
+respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Timedelta(days=n)``).
+
+*Previous Behavior*:
+
+.. code-block:: ipython
+
+
+    In [2]: ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+
+    # Respects calendar arithmetic
+    In [3]: pd.date_range(start=ts, freq='D', periods=3)
+    Out[3]:
+    DatetimeIndex(['2016-10-30 00:00:00+03:00', '2016-10-31 00:00:00+02:00',
+                   '2016-11-01 00:00:00+02:00'],
+                  dtype='datetime64[ns, Europe/Helsinki]', freq='D')
+
+    # Respects absolute arithmetic
+    In [4]: ts + pd.tseries.frequencies.to_offset('D')
+    Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
+
+:class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
+and respect calendar day arithmetic while :class:`Day` and frequency alias ``'D'``
+will now respect absolute time (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
+See the :ref:`documentation here <timeseries.dayvscalendarday>` for more information.
+
+Addition with :class:`CalendarDay` across a daylight savings time transition:
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
+
 .. _whatsnew_0240.api_breaking.period_end_time:
 
 Time values in ``dt.end_time`` and ``to_timestamp(how='end')``
@@ -485,6 +525,7 @@ Datetimelike API Changes
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
+- :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
 
 .. _whatsnew_0240.api.other:
 
@@ -527,7 +568,8 @@ Removal of prior version deprecations/changes
 - Several private functions were removed from the (non-public) module ``pandas.core.common`` (:issue:`22001`)
 - Removal of the previously deprecated module ``pandas.core.datetools`` (:issue:`14105`, :issue:`14094`)
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
--
+- :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats``(:issue:`14645`)
+- Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`,:issue:`6581`)
 
 .. _whatsnew_0240.performance:
 
@@ -585,6 +627,8 @@ Datetimelike
 - Bug in :class:`DataFrame` with mixed dtypes including ``datetime64[ns]`` incorrectly raising ``TypeError`` on equality comparisons (:issue:`13128`,:issue:`22163`)
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`,:issue:`22163`)
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise `OverflowError` (:issue:`22492`, :issue:`22508`)
+- Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -593,7 +637,7 @@ Timedelta
 - Bug in multiplying a :class:`Series` with numeric dtype against a ``timedelta`` object (:issue:`22390`)
 - Bug in :class:`Series` with numeric dtype when adding or subtracting an an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
--
+- Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 -
 -
 
@@ -668,6 +712,7 @@ Indexing
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
 - Bug where mixed indexes wouldn't allow integers for ``.at`` (:issue:`19860`)
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
+- Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
 
 Missing
 ^^^^^^^
@@ -707,6 +752,8 @@ Groupby/Resample/Rolling
 - Multiple bugs in :func:`pandas.core.Rolling.min` with ``closed='left'` and a
   datetime-like index leading to incorrect results and also segfault. (:issue:`21704`)
 - Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
+- Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to `loffset` kwarg (:issue:`7687`).
+- Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 
 Sparse
 ^^^^^^
