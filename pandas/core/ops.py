@@ -1621,7 +1621,7 @@ def _flex_method_SERIES(cls, op, special):
 # -----------------------------------------------------------------------------
 # DataFrame
 
-def dispatch_to_series(left, right, func, str_rep=None):
+def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     """
     Evaluate the frame operation func(left, right) by evaluating
     column-by-column, dispatching to the Series implementation.
@@ -1632,6 +1632,7 @@ def dispatch_to_series(left, right, func, str_rep=None):
     right : scalar or DataFrame
     func : arithmetic or comparison operator
     str_rep : str or None, default None
+    axis : {None, "index", "columns"}
 
     Returns
     -------
@@ -1653,6 +1654,13 @@ def dispatch_to_series(left, right, func, str_rep=None):
 
         def column_op(a, b):
             return {i: func(a.iloc[:, i], b.iloc[:, i])
+                    for i in range(len(a.columns))}
+
+    elif isinstance(right, ABCSeries) and axis == "columns":
+        assert right.index.equals(left.columns)
+
+        def column_op(a, b):
+            return {i: func(a.iloc[:, i], b.iloc[i])
                     for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries):

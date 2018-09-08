@@ -4856,16 +4856,7 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-
-        # Note: we use iloc instead of loc for compat with
-        # case with non-unique columns; same reason why we pin columns
-        # to result below instead of passing it to the constructor.
-        new_data = {n: func(left.iloc[:, n], right.iloc[n])
-                    for n in range(len(left.columns))}
-
-        result = self._constructor(new_data, index=left.index, copy=False)
-        result.columns = left.columns
-        return result
+        return ops.dispatch_to_series(left, right, func, axis="columns")
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:
