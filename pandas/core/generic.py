@@ -63,6 +63,10 @@ from pandas.core import config
 _shared_docs = dict()
 _shared_doc_kwargs = dict(
     axes='keywords for axes', klass='NDFrame',
+    axis="""
+    axis : {0 or 'index', 1 or 'columns'}, default 0
+        - 0 or 'index': apply function to each column.
+        - 1 or 'columns': apply function to each row.""",
     axes_single_arg='int or labels for object',
     args_transpose='axes to permute (int or label for object)',
     optional_by="""
@@ -4545,17 +4549,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, dictionary, or list of string/functions
+    func : function, string, list of string/functions or dictionary
         Function to use for aggregating the data. If a function, must either
-        work when passed a %(klass)s or when passed to %(klass)s.apply. For
-        a DataFrame, can pass a dict, if the keys are DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
 
         Accepted combinations are:
 
-        - string function name.
-        - function.
-        - list of functions.
-        - dict of column names -> functions (or list of functions).
+        - string function name
+        - function
+        - list of functions and/or function names
+        - dict of axis labels -> functions, function names and/or list of such
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -4581,15 +4584,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : callable, string, dictionary, or list of string/callables
-        To apply to column
+    func : function, string, list of string/functions or dictionary
+        Function to use for transforming the data. If a function, must either
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
+        The function (or each function in a list/dict) must return an
+        object with the same length for the provided axis as the
+        calling %(klass)s.
 
-        Accepted Combinations are:
+        Accepted combinations are:
 
         - string function name
         - function
-        - list of functions
-        - dict of column names -> functions (or list of functions)
+        - list of functions and/or function names
+        - dict of axis labels -> functions, function names and/or list of such
+    %(axis)s
+    *args
+        Positional arguments to pass to `func`.
+    **kwargs
+        Keyword arguments to pass to `func`.
 
     Returns
     -------
