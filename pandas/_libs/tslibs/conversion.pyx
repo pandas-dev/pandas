@@ -857,8 +857,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
-        bint is_coerce = errors == 'coerce'
-        bint is_raise = errors == 'raise'
+        bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
 
     # Vectorized version of DstTzInfo.localize
 
@@ -1007,6 +1006,8 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         else:
             # Handle nonexistent times
             if shift:
+                # Shift the nonexistent time forward to the closest existing
+                # time
                 remaining_minutes = val % HOURS_NS
                 new_local = val + (HOURS_NS - remaining_minutes)
                 delta_idx = trans.searchsorted(new_local, side='right') - 1
