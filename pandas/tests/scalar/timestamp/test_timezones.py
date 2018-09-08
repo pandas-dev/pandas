@@ -307,3 +307,15 @@ class TestTimestampTZOperations(object):
         expected = _datetime.timetz()
 
         assert result == expected
+
+    @pytest.mark.parametrize('tz', ['US/Pacific', 'dateutil/US/Pacific'])
+    def test_timestamp_is_dst(self, tz):
+        ts_naive = Timestamp('2018-11-04')
+        assert ts_naive.is_dst() is False
+
+        ts_aware = ts_naive.tz_localize(tz)
+        assert ts_aware.is_dst() is True
+
+        # DST transition at 2am
+        ts_aware = Timestamp('2018-11-04 04:00').tz_localize(tz)
+        assert ts_aware.is_dst() is False

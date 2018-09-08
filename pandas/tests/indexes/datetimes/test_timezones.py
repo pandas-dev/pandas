@@ -1012,6 +1012,22 @@ class TestDatetimeIndexTimezones(object):
         for i, ts in enumerate(index):
             assert ts == index[i]
 
+    @pytest.mark.parametrize('arg, expected_arg', [
+        [[], []],
+        [date_range('2018-11-04', periods=4, freq='H', tz='US/Pacific'),
+         [True, True, False, False]],
+        [date_range('2018-11-04', periods=4, freq='H'),
+         [False] * 4],
+        [date_range('2018-11-04', periods=4, freq='H', tz=pytz.FixedOffset(3)),
+         [False] * 4],
+        [[pd.NaT], [False]]
+    ])
+    def test_is_dst(self, arg, expected_arg):
+        dti = DatetimeIndex(arg)
+        result = dti.is_dst()
+        expected = Index(expected_arg)
+        tm.assert_index_equal(result, expected)
+
 
 class TestDateRange(object):
     """Tests for date_range with timezones"""

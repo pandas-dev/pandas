@@ -330,3 +330,7 @@ def test_nat_arithmetic_td64_vector(box, assert_func):
 def test_nat_pinned_docstrings():
     # GH17327
     assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+
+
+def test_is_dst():
+    assert NaT.is_dst() is False

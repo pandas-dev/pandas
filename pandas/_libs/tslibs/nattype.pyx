@@ -260,6 +260,20 @@ class NaTType(_NaT):
     def is_year_end(self):
         return False
 
+    def is_dst(self):
+        """
+        Returns a boolean indicating if the Timestamp is in daylight savings
+        time. Naive timestamps are considered not to be in daylight savings
+        time.
+
+        Returns
+        -------
+        Boolean
+            True if the Timestamp is in daylight savings time
+            False if the Timestamp is naive or not in daylight savings time
+        """
+        return False
+
     def __rdiv__(self, other):
         return _nat_rdivide_op(self, other)
 

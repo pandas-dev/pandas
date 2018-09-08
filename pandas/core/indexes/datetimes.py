@@ -266,7 +266,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _datetimelike_methods = ['to_period', 'tz_localize',
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
-                             'ceil', 'month_name', 'day_name']
+                             'ceil', 'month_name', 'day_name', 'is_dst']
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
@@ -445,6 +445,36 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         # GH 3746: Prevent localizing or converting the index by setting tz
         raise AttributeError("Cannot directly set timezone. Use tz_localize() "
                              "or tz_convert() as appropriate")
+
+    def is_dst(self):
+        """
+        Returns an Index of booleans indicating if each corresponding timestamp
+        is in daylight savings time.
+
+        If the DatetimeIndex does not have a timezone, returns an Index
+        who's values are all False.
+
+        Returns
+        -------
+        Index
+            True if the timestamp is in daylight savings time else False
+
+        Example
+        -------
+        >>> dti = pd.date_range('2018-11-04', periods=4, freq='H',
+                                tz='US/Pacific')
+
+        >>> dti
+        DatetimeIndex(['2018-11-04 00:00:00-07:00',
+                       '2018-11-04 01:00:00-07:00',
+                       '2018-11-04 01:00:00-08:00',
+                       '2018-11-04 02:00:00-08:00'],
+                      dtype='datetime64[ns, US/Pacific]', freq='H')
+
+        >>> dti.is_dst()
+        Index([True, True, False, False], dtype='object')
+        """
+        return Index(timezones.is_dst(self.asi8, self.tz))
 
     @property
     def size(self):

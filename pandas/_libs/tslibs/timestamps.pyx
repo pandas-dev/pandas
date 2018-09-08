@@ -722,6 +722,20 @@ class Timestamp(_Timestamp):
         raise AttributeError("Cannot directly set timezone. Use tz_localize() "
                              "or tz_convert() as appropriate")
 
+    def is_dst(self):
+        """
+        Returns a boolean indicating if the Timestamp is in daylight savings
+        time. Naive timestamps are considered not to be in daylight savings
+        time.
+
+        Returns
+        -------
+        Boolean
+            True if the Timestamp is in daylight savings time
+            False if the Timestamp is naive or not in daylight savings time
+        """
+        return bool(self.dst())
+
     def __setstate__(self, state):
         self.value = state[0]
         self.freq = state[1]

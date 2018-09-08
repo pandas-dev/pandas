@@ -146,7 +146,7 @@ def ints_to_pydatetime(int64_t[:] arr, tz=None, freq=None, box="datetime"):
                 dt64_to_dtstruct(local_value, &dts)
                 result[i] = func_create(value, dts, tz, freq)
     else:
-        trans, deltas, typ = get_dst_info(tz)
+        trans, deltas, typ = get_dst_info(tz, False)
 
         if typ not in ['pytz', 'dateutil']:
             # static/fixed; in this case we know that len(delta) == 1

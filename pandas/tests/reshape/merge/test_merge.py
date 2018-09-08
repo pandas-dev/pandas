@@ -601,6 +601,30 @@ class TestMerge(object):
         assert result['value_x'].dtype == 'datetime64[ns, US/Eastern]'
         assert result['value_y'].dtype == 'datetime64[ns, US/Eastern]'
 
+    def test_merge_datetime64tz_with_dst_transition(self):
+        # GH 18885
+        df1 = pd.DataFrame(pd.date_range(
+            '2017-10-29 01:00', periods=4, freq='H', tz='Europe/Madrid'),
+            columns=['date'])
+        df1['value'] = 1
+        df2 = pd.DataFrame([
+            pd.to_datetime('2017-10-29 03:00:00'),
+            pd.to_datetime('2017-10-29 04:00:00'),
+            pd.to_datetime('2017-10-29 05:00:00')
+        ],
+            columns=['date'])
+        df2['date'] = df2['date'].dt.tz_localize('UTC').dt.tz_convert(
+            'Europe/Madrid')
+        df2['value'] = 2
+        result = pd.merge(df1, df2, how='outer', on='date')
+        expected = pd.DataFrame({
+            'date': pd.date_range(
+                '2017-10-29 01:00', periods=7, freq='H', tz='Europe/Madrid'),
+            'value_x': [1] * 4 + [np.nan] * 3,
+            'value_y': [np.nan] * 4 + [2] * 3
+        })
+        assert_frame_equal(result, expected)
+
     def test_merge_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range('2016-01-01', periods=16, freq='M')
