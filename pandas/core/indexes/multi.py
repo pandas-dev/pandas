@@ -1150,7 +1150,7 @@ class MultiIndex(Index):
         if name is not None:
             if len(name) != len(self.levels):
                 raise ValueError("'name' should have same lenght as "
-                                     "number of levels on index")
+                                 "number of levels on index")
             idx_names = name
         else:
             idx_names = self.names
