@@ -599,14 +599,16 @@ class TestDataFrameSortIndexKinds(TestData):
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
 
-
     def test_sort_index_na_position_with_categories(self):
         # GH 22556
         # Positioning missing value properly when column is Categorical.
-        df_category_with_nan = pd.DataFrame({'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
-                                                                 categories=['A', 'B', 'C'],
-                                                                 ordered=True)})
-        result = df_category_with_nan.sort_values(by='c', ascending=True, na_position='first')
+        df_category_with_nan = pd.DataFrame({
+            'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
+                                categories=['A', 'B', 'C'],
+                                ordered=True)})
+        result = df_category_with_nan.sort_values(by='c',
+                                                  ascending=True,
+                                                  na_position='first')
         expected = DataFrame({
             'c': Categorical([np.nan, np.nan, 'A', 'B', 'C'],
                              categories=['A', 'B', 'C'],
@@ -614,7 +616,9 @@ class TestDataFrameSortIndexKinds(TestData):
 
         assert_frame_equal(result, expected)
 
-        result = df_category_with_nan.sort_values(by='c', ascending=True, na_position='last')
+        result = df_category_with_nan.sort_values(by='c',
+                                                  ascending=True,
+                                                  na_position='last')
         expected = DataFrame({
             'c': Categorical(['A', 'B', 'C', np.nan, np.nan],
                              categories=['A', 'B', 'C'],
@@ -622,7 +626,9 @@ class TestDataFrameSortIndexKinds(TestData):
 
         assert_frame_equal(result, expected)
 
-        result = df_category_with_nan.sort_values(by='c', ascending=False, na_position='first')
+        result = df_category_with_nan.sort_values(by='c',
+                                                  ascending=False,
+                                                  na_position='first')
         expected = DataFrame({
             'c': Categorical([np.nan, np.nan, 'C', 'B', 'A'],
                              categories=['A', 'B', 'C'],
@@ -630,7 +636,9 @@ class TestDataFrameSortIndexKinds(TestData):
 
         assert_frame_equal(result, expected)
 
-        result = df_category_with_nan.sort_values(by='c', ascending=False, na_position='last')
+        result = df_category_with_nan.sort_values(by='c',
+                                                  ascending=False,
+                                                  na_position='last')
         expected = DataFrame({
             'c': Categorical(['C', 'B', 'A', np.nan, np.nan],
                              categories=['A', 'B', 'C'],
