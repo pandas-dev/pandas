@@ -3098,6 +3098,39 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     agg = aggregate
 
+    _transform_doc = dedent("""
+    Examples
+    --------
+    >>> s = pd.Series(range(5))
+    >>> s.transform(lambda x: (x - x.mean()) / x.std())
+    0   -1.264911
+    1   -0.632456
+    2    0.000000
+    3    0.632456
+    4    1.264911
+    dtype: float64
+
+    >>> s.transform([np.sqrt, np.exp])
+           sqrt        exp
+    0  0.000000   1.000000
+    1  1.000000   2.718282
+    2  1.414214   7.389056
+    3  1.732051  20.085537
+    4  2.000000  54.598150
+
+    See also
+    --------
+    pandas.Series.aggregate
+    pandas.Series.apply
+    """)
+
+    @Appender(_transform_doc)
+    @Appender(generic._shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, axis=0, *args, **kwargs):
+        # Validate the axis parameter
+        self._get_axis_number(axis)
+        return super(Series, self).transform(func, *args, **kwargs)
+
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
         Invoke function on values of Series. Can be ufunc (a NumPy function

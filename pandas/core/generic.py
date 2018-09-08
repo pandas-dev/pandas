@@ -4545,17 +4545,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, dictionary, or list of string/functions
+    func : function, string, list of string/functions or dictionary
         Function to use for aggregating the data. If a function, must either
-        work when passed a %(klass)s or when passed to %(klass)s.apply. For
-        a DataFrame, can pass a dict, if the keys are DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
 
         Accepted combinations are:
 
-        - string function name.
-        - function.
-        - list of functions.
-        - dict of column names -> functions (or list of functions).
+        - string function name
+        - function
+        - list of functions and/or function names
+        - dict of axis labels -> functions, function names or list of such
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -4581,43 +4580,32 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : callable, string, dictionary, or list of string/callables
-        To apply to column
+    func : function, string, list of string/functions or dictionary
+        Function to use for transforming the data. If a function, must either
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
+        The function (or each function in a list/dict) must return an
+        object with the same length for the provided axis as the
+        calling %(klass)s.
 
-        Accepted Combinations are:
+        Accepted combinations are:
 
         - string function name
         - function
-        - list of functions
-        - dict of column names -> functions (or list of functions)
+        - list of functions and/or function names
+        - dict of axis labels -> functions, function names or list of such
+    %(axis)s
+    *args
+        Positional arguments to pass to `func`.
+    **kwargs
+        Keyword arguments to pass to `func`.
 
     Returns
     -------
     transformed : %(klass)s
 
-    Examples
-    --------
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    df.iloc[3:7] = np.nan
-
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                       A         B         C
-    2000-01-01  0.579457  1.236184  0.123424
-    2000-01-02  0.370357 -0.605875 -1.231325
-    2000-01-03  1.455756 -0.277446  0.288967
-    2000-01-04       NaN       NaN       NaN
-    2000-01-05       NaN       NaN       NaN
-    2000-01-06       NaN       NaN       NaN
-    2000-01-07       NaN       NaN       NaN
-    2000-01-08 -0.498658  1.274522  1.642524
-    2000-01-09 -0.540524 -1.012676 -0.828968
-    2000-01-10 -1.366388 -0.614710  0.005378
-
-    See also
-    --------
-    pandas.%(klass)s.aggregate
-    pandas.%(klass)s.apply
+    Raises
+    ------
+    ValueError: if the returned %(klass)s has a different length than self.
     """)
 
     # ----------------------------------------------------------------------
@@ -9401,7 +9389,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ewm = ewm
 
-    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    @Appender(_shared_docs['transform'] % dict(axis="", **_shared_doc_kwargs))
     def transform(self, func, *args, **kwargs):
         result = self.agg(func, *args, **kwargs)
         if is_scalar(result) or len(result) != len(self):
