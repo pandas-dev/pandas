@@ -10,7 +10,7 @@ import pandas as pd
 from pandas.compat import lrange
 from pandas.api.types import CategoricalDtype
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
-                    date_range, NaT, IntervalIndex)
+                    date_range, NaT, IntervalIndex, Categorical)
 
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 
@@ -598,3 +598,24 @@ class TestDataFrameSortIndexKinds(TestData):
             closed='right')
         result = result.columns.levels[1].categories
         tm.assert_index_equal(result, expected)
+
+
+    def test_sort_index_na_position_with_categories(self):
+        df_category_with_nan = pd.DataFrame({'c': pd.Categorical(['A', np.nan, 'B'],
+                                                                 categories=['A', 'B'],
+                                                                 ordered=True)})
+        result = df_category_with_nan.sort_values(by='c', na_position='first')
+        expected = DataFrame({
+            'c': Categorical([np.nan, 'A', 'B'],
+                             categories=['A', 'B'],
+                             ordered=True)}, index=[1, 0, 2])
+
+        assert_frame_equal(result, expected)
+
+        result = df_category_with_nan.sort_values(by='c', na_position='last')
+        expected = DataFrame({
+            'c': Categorical(['A', 'B', np.nan],
+                             categories=['A', 'B'],
+                             ordered=True)}, index=[0, 2, 1])
+
+        assert_frame_equal(result, expected)
