@@ -328,7 +328,7 @@ Addition with :class:`CalendarDay`:
    ts + pd.offsets.Day(1)
    ts + pd.offsets.CalendarDay(1)
 
-Creating a :class:`date_range`:
+Creating a :func:`date_range`:
 
 .. ipython:: python
 
@@ -340,6 +340,7 @@ Resampling a timeseries:
 
 .. ipython:: python
 
+   idx = pd.date_range("2016-10-30", freq='H', periods=4*24, tz='Europe/Helsinki')
    s = pd.Series(range(len(idx)), index=idx)
    s.resample('D').count()
    s.resample('CD').count()

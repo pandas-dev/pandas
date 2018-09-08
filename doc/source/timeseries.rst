@@ -920,6 +920,7 @@ Resampling a timeseries:
 
 .. ipython:: python
 
+   idx = pd.date_range("2016-10-30", freq='H', periods=4*24, tz='Europe/Helsinki')
    s = pd.Series(range(len(idx)), index=idx)
    s.resample('D').count()
    s.resample('CD').count()
