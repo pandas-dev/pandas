@@ -997,7 +997,7 @@ class TestStata(object):
         parsed = read_stata(getattr(self, file))
 
         # Sort based on codes, not strings
-        parsed = parsed.sort_values("srh")
+        parsed = parsed.sort_values("srh", na_position='first')
 
         # Don't sort index
         parsed.index = np.arange(parsed.shape[0])

@@ -241,19 +241,23 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
-        mask = items._codes == -1
-        idx = np.arange(len(items))
-        null_idx = np.nonzero(mask)[0]
-        sorted_idx = items[~mask].argsort(ascending=ascending, kind=kind)
+        mask = isna(items)
+        null_idx = np.where(mask)[0]
+        sorted_idx = items.argsort(ascending=ascending, kind=kind)
+        if ascending:
+            # NaN is coded as -1 and is listed in front after sorting
+            non_null_sorted_idx = sorted_idx[len(null_idx):]
+            null_sorted_idx = sorted_idx[:len(null_idx)]
+        else:
+            # NaN is coded as -1 and is listed in the end after sorting
+            non_null_sorted_idx = sorted_idx[:-len(null_idx)]
+            null_sorted_idx = sorted_idx[-len(null_idx):]
         if na_position == 'first':
-            idx[~mask] = sorted_idx+len(null_idx)
-            idx[mask] = np.arange(len(null_idx))
+            return np.concatenate([null_sorted_idx, non_null_sorted_idx])
         elif na_position == 'last':
-            idx[~mask] = sorted_idx
-            idx[mask] = np.arange(len(null_idx)) + len(sorted_idx)
+            return np.concatenate([non_null_sorted_idx, null_sorted_idx])
         else:
             raise ValueError('invalid na_position: {!r}'.format(na_position))
-        return idx
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
