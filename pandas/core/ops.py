@@ -1585,6 +1585,8 @@ def _bool_method_SERIES(cls, op, special):
             ovalues = other
             finalizer = lambda x: x.__finalize__(self)
 
+        # For int vs int `^`, `|`, `&` are bitwise operators and return
+        #   integer dtypes.  Otherwise these are boolean ops
         filler = (fill_int if is_self_int_dtype and is_other_int_dtype
                   else fill_bool)
         res_values = na_op(self.values, ovalues)

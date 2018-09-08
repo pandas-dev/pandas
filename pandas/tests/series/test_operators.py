@@ -14,6 +14,7 @@ from pandas import (Index, Series, DataFrame, isna, bdate_range,
                     NaT, date_range, timedelta_range, Categorical)
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.core.nanops as nanops
+from pandas.core import ops
 
 from pandas.compat import range
 from pandas import compat
@@ -603,18 +604,28 @@ class TestSeriesOperators(TestData):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
-    def test_bool_ops_with_index(self):
+    @pytest.mark.parametrize('op', [
+        operator.and_,
+        operator.or_,
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=ValueError, strict=True))
+    ])
+    def test_bool_ops_with_index(self, op):
         # GH#19792
-        # TODO: reversed ops still raises, GH#22092
         ser = Series([True, False, True])
         idx = pd.Index([False, True, True])
 
-        result = ser & idx
-        expected = Series([False, False, True])
-        assert_series_equal(result, expected)
+        expected = Series([op(ser[n], idx[n]) for n in range(len(ser))])
 
-        result = ser | idx
-        expected = Series([True, True, True])
+        result = op(ser, idx)
         assert_series_equal(result, expected)
 
     def test_operators_bitwise(self):
