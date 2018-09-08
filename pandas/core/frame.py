@@ -4837,21 +4837,23 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_index(self, other, func, level=None):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         assert left.index.equals(right.index)
 
         if left._is_mixed_type or right._is_mixed_type:
-            # Operate column-wise to avoid expensive copy/cast
+            # operate column-wise; avoid costly object-casting in `.values`
             return ops.dispatch_to_series(left, right, func)
         else:
-            # Fastpath; operate directly on data
+            # fastpath --> operate directly on values
             new_data = func(left.values.T, right.values).T
             return self._constructor(new_data,
                                      index=left.index, columns=self.columns,
                                      copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
@@ -4869,21 +4871,6 @@ class DataFrame(NDFrame):
                                    errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
-
-    def _compare_frame(self, other, func, str_rep):
-        # compare_frame assumes self._indexed_same(other)
-
-        import pandas.core.computation.expressions as expressions
-
-        def _compare(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-        result = self._constructor(data=new_data, index=self.index,
-                                   copy=False)
-        result.columns = self.columns
-        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """

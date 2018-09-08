@@ -176,19 +176,10 @@ class BlockManager(PandasObject):
         axis : int
         copy : boolean, default True
         level : int, default None
-
         """
         obj = self.copy(deep=copy)
         obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
         return obj
-
-    def add_prefix(self, prefix):
-        f = partial('{prefix}{}'.format, prefix=prefix)
-        return self.rename_axis(f, axis=0)
-
-    def add_suffix(self, suffix):
-        f = partial('{}{suffix}'.format, suffix=suffix)
-        return self.rename_axis(f, axis=0)
 
     @property
     def _is_single_block(self):
@@ -222,11 +213,9 @@ class BlockManager(PandasObject):
         self._blknos = new_blknos
         self._blklocs = new_blklocs
 
-    # make items read only for now
-    def _get_items(self):
+    @property
+    def items(self):
         return self.axes[0]
-
-    items = property(fget=_get_items)
 
     def _get_counts(self, f):
         """ return a dict of the counts of the function in BlockManager """
