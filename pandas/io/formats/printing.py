@@ -287,6 +287,8 @@ def format_object_summary(obj, formatter, is_justify=True, name=None,
         If False, only break lines when the a line of values gets wider
         than the display width
 
+        .. versionadded:: 0.24.0
+
     Returns
     -------
     summary string
