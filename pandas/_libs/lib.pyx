@@ -107,7 +107,7 @@ def memory_usage_of_objects(object[:] arr):
 # ----------------------------------------------------------------------
 
 
-cpdef bint is_scalar(object val):
+def is_scalar(val: object) -> bint:
     """
     Return True if given value is scalar.
 
@@ -137,7 +137,7 @@ cpdef bint is_scalar(object val):
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
-            or is_offset(val))
+            or util.is_offset_object(val))
 
 
 def item_from_zerodim(object val):
@@ -457,7 +457,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef bint array_equivalent_object(object[:] left, object[:] right):
+def array_equivalent_object(left: object[:], right: object[:]) -> bint:
     """ perform an element by element comparion on 1-d object arrays
         taking into account nan positions """
     cdef:
@@ -492,35 +492,29 @@ def astype_intsafe(ndarray[object] arr, new_dtype):
         if is_datelike and checknull(v):
             result[i] = NPY_NAT
         else:
-            # we can use the unsafe version because we know `result` is mutable
-            # since it was created from `np.empty`
-            util.set_value_at_unsafe(result, i, v)
+            result[i] = v
 
     return result
 
 
-cpdef ndarray[object] astype_unicode(ndarray arr):
+def astype_unicode(arr: ndarray) -> ndarray[object]:
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        # we can use the unsafe version because we know `result` is mutable
-        # since it was created from `np.empty`
-        util.set_value_at_unsafe(result, i, unicode(arr[i]))
+        result[i] = unicode(arr[i])
 
     return result
 
 
-cpdef ndarray[object] astype_str(ndarray arr):
+def astype_str(arr: ndarray) -> ndarray[object]:
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
 
     for i in range(n):
-        # we can use the unsafe version because we know `result` is mutable
-        # since it was created from `np.empty`
-        util.set_value_at_unsafe(result, i, str(arr[i]))
+        result[i] = str(arr[i])
 
     return result
 
@@ -797,19 +791,19 @@ def indices_fast(object index, ndarray[int64_t] labels, list keys,
 
 # core.common import for fast inference checks
 
-cpdef bint is_float(object obj):
+def is_float(obj: object) -> bint:
     return util.is_float_object(obj)
 
 
-cpdef bint is_integer(object obj):
+def is_integer(obj: object) -> bint:
     return util.is_integer_object(obj)
 
 
-cpdef bint is_bool(object obj):
+def is_bool(obj: object) -> bint:
     return util.is_bool_object(obj)
 
 
-cpdef bint is_complex(object obj):
+def is_complex(obj: object) -> bint:
     return util.is_complex_object(obj)
 
 
@@ -821,13 +815,9 @@ cpdef bint is_interval(object obj):
     return getattr(obj, '_typ', '_typ') == 'interval'
 
 
-cpdef bint is_period(object val):
+def is_period(val: object) -> bint:
     """ Return a boolean if this is a Period object """
     return util.is_period_object(val)
-
-
-cdef inline bint is_offset(object val):
-    return getattr(val, '_typ', '_typ') == 'dateoffset'
 
 
 _TYPE_MAP = {
@@ -1153,7 +1143,7 @@ def infer_dtype(object value, bint skipna=False):
 
     # try to use a valid value
     for i in range(n):
-        val = util.get_value_1d(values, i)
+        val = values[i]
 
         # do not use is_nul_datetimelike to keep
         # np.datetime64('nat') and np.timedelta64('nat')
@@ -1231,7 +1221,7 @@ def infer_dtype(object value, bint skipna=False):
         if is_bytes_array(values, skipna=skipna):
             return 'bytes'
 
-    elif is_period(val):
+    elif util.is_period_object(val):
         if is_period_array(values):
             return 'period'
 
@@ -1240,7 +1230,7 @@ def infer_dtype(object value, bint skipna=False):
             return 'interval'
 
     for i in range(n):
-        val = util.get_value_1d(values, i)
+        val = values[i]
         if (util.is_integer_object(val) and
                 not util.is_timedelta64_object(val) and
                 not util.is_datetime64_object(val)):
@@ -1249,7 +1239,7 @@ def infer_dtype(object value, bint skipna=False):
     return 'mixed'
 
 
-cpdef object infer_datetimelike_array(object arr):
+def infer_datetimelike_array(arr: object) -> object:
     """
     infer if we have a datetime or timedelta array
     - date: we have *only* date and maybe strings, nulls
@@ -1586,7 +1576,7 @@ cpdef bint is_datetime64_array(ndarray values):
     return validator.validate(values)
 
 
-cpdef bint is_datetime_with_singletz_array(ndarray values):
+def is_datetime_with_singletz_array(values: ndarray) -> bint:
     """
     Check values have the same tzinfo attribute.
     Doesn't check values are datetime-like types.
@@ -1622,7 +1612,8 @@ cdef class TimedeltaValidator(TemporalValidator):
         return is_null_timedelta64(value)
 
 
-cpdef bint is_timedelta_array(ndarray values):
+# TODO: Not used outside of tests; remove?
+def is_timedelta_array(values: ndarray) -> bint:
     cdef:
         TimedeltaValidator validator = TimedeltaValidator(len(values),
                                                           skipna=True)
@@ -1634,7 +1625,8 @@ cdef class Timedelta64Validator(TimedeltaValidator):
         return util.is_timedelta64_object(value)
 
 
-cpdef bint is_timedelta64_array(ndarray values):
+# TODO: Not used outside of tests; remove?
+def is_timedelta64_array(values: ndarray) -> bint:
     cdef:
         Timedelta64Validator validator = Timedelta64Validator(len(values),
                                                               skipna=True)
@@ -1678,7 +1670,7 @@ cpdef bint is_time_array(ndarray values, bint skipna=False):
 
 cdef class PeriodValidator(TemporalValidator):
     cdef inline bint is_value_typed(self, object value) except -1:
-        return is_period(value)
+        return util.is_period_object(value)
 
     cdef inline bint is_valid_null(self, object value) except -1:
         return is_null_period(value)
@@ -2255,7 +2247,7 @@ def fast_multiget(dict mapping, ndarray keys, default=np.nan):
     keys = getattr(keys, 'values', keys)
 
     for i in range(n):
-        val = util.get_value_1d(keys, i)
+        val = keys[i]
         if val in mapping:
             output[i] = mapping[val]
         else:

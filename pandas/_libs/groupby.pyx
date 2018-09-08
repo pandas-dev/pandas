@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -28,9 +27,10 @@ cdef double nan = NaN
 
 
 cdef inline float64_t median_linear(float64_t* a, int n) nogil:
-    cdef int i, j, na_count = 0
-    cdef float64_t result
-    cdef float64_t* tmp
+    cdef:
+        int i, j, na_count = 0
+        float64_t result
+        float64_t* tmp
 
     if n == 0:
         return NaN
@@ -67,6 +67,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
+# TODO: Is this redundant with algos.kth_smallest?
 cdef inline float64_t kth_smallest_c(float64_t* a,
                                      Py_ssize_t k,
                                      Py_ssize_t n) nogil:
@@ -319,7 +320,7 @@ def group_fillna_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
 
             # If we move to the next group, reset
             # the fill_idx and counter
-            if i == N - 1 or labels[idx] != labels[sorted_labels[i+1]]:
+            if i == N - 1 or labels[idx] != labels[sorted_labels[i + 1]]:
                 curr_fill_idx = -1
                 filled_vals = 0
 

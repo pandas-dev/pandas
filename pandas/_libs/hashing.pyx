@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
@@ -48,9 +48,8 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     k = <bytes>key.encode(encoding)
     kb = <uint8_t *>k
     if len(k) != 16:
-        raise ValueError(
-            'key should be a 16-byte string encoded, got {!r} (len {})'.format(
-                k, len(k)))
+        raise ValueError("key should be a 16-byte string encoded, "
+                         "got {key} (len {klen})".format(key=k, klen=len(k)))
 
     n = len(arr)
 
@@ -70,8 +69,9 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
             data = <bytes>str(val).encode(encoding)
 
         else:
-            raise TypeError("{} of type {} is not a valid type for hashing, "
-                            "must be string or null".format(val, type(val)))
+            raise TypeError("{val} of type {typ} is not a valid type "
+                            "for hashing, must be string or null"
+                            .format(val=val, typ=type(val)))
 
         l = len(data)
         lens[i] = l
@@ -132,11 +132,12 @@ cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
     v2[0] = _rotl(v2[0], 32)
 
 
+# TODO: This appears unused; remove?
 cpdef uint64_t siphash(bytes data, bytes key) except? 0:
     if len(key) != 16:
-        raise ValueError(
-            'key should be a 16-byte bytestring, got {!r} (len {})'.format(
-                key, len(key)))
+        raise ValueError("key should be a 16-byte bytestring, "
+                         "got {key} (len {klen})"
+                         .format(key=key, klen=len(key)))
     return low_level_siphash(data, len(data), key)
 
 

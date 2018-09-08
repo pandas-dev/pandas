@@ -2,7 +2,6 @@
 # Arithmetc tests for DataFrame/Series/Index/Array classes that should
 # behave identically.
 # Specifically for numeric dtypes
-from datetime import timedelta
 from decimal import Decimal
 import operator
 from collections import Iterable
@@ -43,11 +42,89 @@ class TestNumericComparisons(object):
         expected = 0.0 > pd.Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
+    def test_df_numeric_cmp_dt64_raises(self):
+        # GH#8932, GH#22163
+        ts = pd.Timestamp.now()
+        df = pd.DataFrame({'x': range(5)})
+        with pytest.raises(TypeError):
+            df > ts
+        with pytest.raises(TypeError):
+            df < ts
+        with pytest.raises(TypeError):
+            ts < df
+        with pytest.raises(TypeError):
+            ts > df
+
+        assert not (df == ts).any().any()
+        assert (df != ts).all().all()
+
+    def test_compare_invalid(self):
+        # GH#8058
+        # ops testing
+        a = pd.Series(np.random.randn(5), name=0)
+        b = pd.Series(np.random.randn(5))
+        b.name = pd.Timestamp('2000-01-01')
+        tm.assert_series_equal(a / b, 1 / (b / a))
+
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Timedelta Scalar
 
-class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
+class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
+
+    # TODO: also check name retentention
+    @pytest.mark.parametrize('box_cls', [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize('left', [
+        pd.RangeIndex(10, 40, 10)] + [cls([10, 20, 30], dtype=dtype)
+                                      for dtype in ['i1', 'i2', 'i4', 'i8',
+                                                    'u1', 'u2', 'u4', 'u8',
+                                                    'f2', 'f4', 'f8']
+                                      for cls in [pd.Series, pd.Index]],
+        ids=lambda x: type(x).__name__ + str(x.dtype))
+    def test_mul_td64arr(self, left, box_cls):
+        # GH#22390
+        right = np.array([1, 2, 3], dtype='m8[s]')
+        right = box_cls(right)
+
+        expected = pd.TimedeltaIndex(['10s', '40s', '90s'])
+        if isinstance(left, pd.Series) or box_cls is pd.Series:
+            expected = pd.Series(expected)
+
+        result = left * right
+        tm.assert_equal(result, expected)
+
+        result = right * left
+        tm.assert_equal(result, expected)
+
+    # TODO: also check name retentention
+    @pytest.mark.parametrize('box_cls', [np.array, pd.Index, pd.Series])
+    @pytest.mark.parametrize('left', [
+        pd.RangeIndex(10, 40, 10)] + [cls([10, 20, 30], dtype=dtype)
+                                      for dtype in ['i1', 'i2', 'i4', 'i8',
+                                                    'u1', 'u2', 'u4', 'u8',
+                                                    'f2', 'f4', 'f8']
+                                      for cls in [pd.Series, pd.Index]],
+        ids=lambda x: type(x).__name__ + str(x.dtype))
+    def test_div_td64arr(self, left, box_cls):
+        # GH#22390
+        right = np.array([10, 40, 90], dtype='m8[s]')
+        right = box_cls(right)
+
+        expected = pd.TimedeltaIndex(['1s', '2s', '3s'])
+        if isinstance(left, pd.Series) or box_cls is pd.Series:
+            expected = pd.Series(expected)
+
+        result = right / left
+        tm.assert_equal(result, expected)
+
+        result = right // left
+        tm.assert_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            left / right
+
+        with pytest.raises(TypeError):
+            left // right
 
     # TODO: de-duplicate with test_numeric_arr_mul_tdscalar
     def test_ops_series(self):
@@ -58,13 +135,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         tm.assert_series_equal(expected, td * other)
         tm.assert_series_equal(expected, other * td)
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="block.eval incorrect",
-                                             strict=True))
-    ])
     @pytest.mark.parametrize('index', [
         pd.Int64Index(range(1, 11)),
         pd.UInt64Index(range(1, 11)),
@@ -78,11 +148,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         ids=lambda x: type(x).__name__)
     def test_numeric_arr_mul_tdscalar(self, scalar_td, index, box):
         # GH#19333
-
-        if (box is Series and
-                type(scalar_td) is timedelta and index.dtype == 'f8'):
-            raise pytest.xfail(reason="Cannot multiply timedelta by float")
-
         expected = pd.timedelta_range('1 days', '10 days')
 
         index = tm.box_expected(index, box)
@@ -106,12 +171,6 @@ class TestNumericArraylikeArithmeticWithTimedeltaScalar(object):
         Timedelta(days=1).to_pytimedelta()],
         ids=lambda x: type(x).__name__)
     def test_numeric_arr_rdiv_tdscalar(self, scalar_td, index, box):
-
-        if box is Series and type(scalar_td) is timedelta:
-            raise pytest.xfail(reason="TODO: Figure out why this case fails")
-        if box is pd.DataFrame and isinstance(scalar_td, timedelta):
-            raise pytest.xfail(reason="TODO: Figure out why this case fails")
-
         expected = TimedeltaIndex(['1 Day', '12 Hours'])
 
         index = tm.box_expected(index, box)
@@ -717,6 +776,51 @@ class TestAdditionSubtraction(object):
         check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
+
+
+class TestUFuncCompat(object):
+    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
+                                        pd.Float64Index, pd.Series])
+    def test_ufunc_coercions(self, holder):
+        idx = holder([1, 2, 3, 4, 5], name='x')
+        box = pd.Series if holder is pd.Series else pd.Index
+
+        result = np.sqrt(idx)
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = np.divide(idx, 2.)
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        # _evaluate_numeric_binop
+        result = idx + 2.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([3., 4., 5., 6., 7.], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = idx - 2.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([-1., 0., 1., 2., 3.], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = idx * 1.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([1., 2., 3., 4., 5.], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = idx / 2.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
 
 
 class TestObjectDtypeEquivalence(object):

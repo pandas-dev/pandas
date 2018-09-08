@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cython cimport Py_ssize_t
 
@@ -150,7 +149,7 @@ cdef inline object tz_cache_key(object tz):
 # UTC Offsets
 
 
-cpdef get_utcoffset(tzinfo, obj):
+cdef get_utcoffset(tzinfo, obj):
     try:
         return tzinfo._utcoffset
     except AttributeError:
@@ -187,7 +186,7 @@ cdef object get_utc_trans_times_from_dateutil_tz(object tz):
     return new_trans
 
 
-cpdef int64_t[:] unbox_utcoffsets(object transinfo):
+cdef int64_t[:] unbox_utcoffsets(object transinfo):
     cdef:
         Py_ssize_t i, sz
         int64_t[:] arr

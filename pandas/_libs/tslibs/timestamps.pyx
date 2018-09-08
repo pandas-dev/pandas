@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -737,6 +736,12 @@ class Timestamp(_Timestamp):
         Return an period of which this timestamp is an observation.
         """
         from pandas import Period
+
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn("Converting to Period representation will "
+                          "drop timezone information.",
+                          UserWarning)
 
         if freq is None:
             freq = self.freq
