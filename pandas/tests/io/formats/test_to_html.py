@@ -1844,15 +1844,18 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    def test_to_html_pivot_table_max_cols(self):
-        # GH https://github.com/pandas-dev/pandas/issues/6131
-        df = DataFrame([
-            {'a': 'aa', 'b': 'ba', 'c': 'ca', 'd': 1},
-            {'a': 'ab', 'b': 'bb', 'c': 'cc', 'd': 2},
-            {'a': 'ac', 'b': 'bc', 'c': 'cc', 'd': 3}
-        ])
-        result = df.pivot_table(
-            columns=['a'], index=['b', 'c']).to_html(max_cols=2)
+    def test_to_html_multiindex_max_cols(self):
+        # GH 6131
+        index = MultiIndex(levels=[['ba', 'bb', 'bc'], ['ca', 'cb', 'cc']],
+                           labels=[[0, 1, 2], [0, 1, 2]],
+                           names=['b', 'c'])
+        columns = MultiIndex(levels=[['d'], ['aa', 'ab', 'ac']],
+                             labels=[[0, 0, 0], [0, 1, 2]],
+                             names=[None, 'a'])
+        data = np.array(
+            [[1., np.nan, np.nan], [np.nan, 2., np.nan], [np.nan, np.nan, 3.]])
+        df = DataFrame(data, index, columns)
+        result = df.to_html(max_cols=2)
         expected = dedent("""\
         <table border="1" class="dataframe">
           <thead>
@@ -1886,7 +1889,7 @@ class TestToHTML(object):
             </tr>
             <tr>
               <th>bb</th>
-              <th>cc</th>
+              <th>cb</th>
               <td>NaN</td>
               <td>...</td>
               <td>NaN</td>
