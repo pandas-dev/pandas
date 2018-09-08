@@ -1491,7 +1491,7 @@ class _LocationIndexer(_NDFrameIndexer):
             try:
                 if self._is_scalar_access(key):
                     return self._getitem_scalar(key)
-            except (KeyError, IndexError):
+            except (KeyError, IndexError, AttributeError):
                 pass
             return self._getitem_tuple(key)
         else:
