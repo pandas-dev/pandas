@@ -48,22 +48,6 @@ class TestFrameComparisons(object):
         result = df != other
         assert result.all().all()
 
-    def test_df_numeric_cmp_dt64_raises(self):
-        # GH#8932, GH#22163
-        ts = pd.Timestamp.now()
-        df = pd.DataFrame({'x': range(5)})
-        with pytest.raises(TypeError):
-            df > ts
-        with pytest.raises(TypeError):
-            df < ts
-        with pytest.raises(TypeError):
-            ts < df
-        with pytest.raises(TypeError):
-            ts > df
-
-        assert not (df == ts).any().any()
-        assert (df != ts).all().all()
-
     def test_df_boolean_comparison_error(self):
         # GH#4576
         # boolean comparisons with a tuple/list give unexpected results
