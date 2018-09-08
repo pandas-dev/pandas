@@ -45,7 +45,7 @@ def get_dispatch(dtypes):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef map_indices_{{name}}(ndarray[{{c_type}}] index):
+def map_indices_{{name}}(ndarray[{{c_type}}] index):
     """
     Produce a dict mapping the values of the input array to their respective
     locations.
@@ -542,7 +542,7 @@ def put2d_{{name}}_{{dest_type}}(ndarray[{{c_type}}, ndim=2, cast=True] values,
 cdef int PLATFORM_INT = (<ndarray> np.arange(0, dtype=np.intp)).descr.type_num
 
 
-cpdef ensure_platform_int(object arr):
+def ensure_platform_int(object arr):
     # GH3033, GH1392
     # platform int is the size of the int pointer, e.g. np.intp
     if util.is_array(arr):
@@ -554,7 +554,7 @@ cpdef ensure_platform_int(object arr):
         return np.array(arr, dtype=np.intp)
 
 
-cpdef ensure_object(object arr):
+def ensure_object(object arr):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_OBJECT:
             return arr
@@ -587,7 +587,7 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
-cpdef ensure_{{name}}(object arr, copy=True):
+def ensure_{{name}}(object arr, copy=True):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_{{c_type}}:
             return arr

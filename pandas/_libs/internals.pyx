@@ -184,7 +184,7 @@ cdef class BlockPlacement:
         return self._as_slice
 
 
-cpdef slice_canonize(slice s):
+cdef slice_canonize(slice s):
     """
     Convert slice to canonical bounded form.
     """
@@ -255,7 +255,7 @@ cpdef Py_ssize_t slice_len(
     return length
 
 
-cpdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
+cdef slice_get_indices_ex(slice slc, Py_ssize_t objlen=PY_SSIZE_T_MAX):
     """
     Get (start, stop, step, length) tuple for a slice.
 

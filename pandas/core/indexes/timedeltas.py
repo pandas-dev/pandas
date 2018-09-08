@@ -1,5 +1,6 @@
 """ implement the TimedeltaIndex """
 import operator
+from datetime import datetime
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -487,7 +488,11 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         -------
         loc : int
         """
-        if is_list_like(key):
+        if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):
+            # GH#20464 datetime check here is to ensure we don't allow
+            #   datetime objects to be incorrectly treated as timedelta
+            #   objects; NaT is a special case because it plays a double role
+            #   as Not-A-Timedelta
             raise TypeError
 
         if isna(key):

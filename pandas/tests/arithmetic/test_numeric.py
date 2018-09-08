@@ -42,6 +42,30 @@ class TestNumericComparisons(object):
         expected = 0.0 > pd.Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
+    def test_df_numeric_cmp_dt64_raises(self):
+        # GH#8932, GH#22163
+        ts = pd.Timestamp.now()
+        df = pd.DataFrame({'x': range(5)})
+        with pytest.raises(TypeError):
+            df > ts
+        with pytest.raises(TypeError):
+            df < ts
+        with pytest.raises(TypeError):
+            ts < df
+        with pytest.raises(TypeError):
+            ts > df
+
+        assert not (df == ts).any().any()
+        assert (df != ts).all().all()
+
+    def test_compare_invalid(self):
+        # GH#8058
+        # ops testing
+        a = pd.Series(np.random.randn(5), name=0)
+        b = pd.Series(np.random.randn(5))
+        b.name = pd.Timestamp('2000-01-01')
+        tm.assert_series_equal(a / b, 1 / (b / a))
+
 
 # ------------------------------------------------------------------
 # Numeric dtypes Arithmetic with Timedelta Scalar
@@ -752,6 +776,51 @@ class TestAdditionSubtraction(object):
         check(tser, tser * 0)
         check(tser, tser[::2])
         check(tser, 5)
+
+
+class TestUFuncCompat(object):
+    @pytest.mark.parametrize('holder', [pd.Int64Index, pd.UInt64Index,
+                                        pd.Float64Index, pd.Series])
+    def test_ufunc_coercions(self, holder):
+        idx = holder([1, 2, 3, 4, 5], name='x')
+        box = pd.Series if holder is pd.Series else pd.Index
+
+        result = np.sqrt(idx)
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = np.divide(idx, 2.)
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        # _evaluate_numeric_binop
+        result = idx + 2.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([3., 4., 5., 6., 7.], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = idx - 2.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([-1., 0., 1., 2., 3.], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = idx * 1.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([1., 2., 3., 4., 5.], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
+
+        result = idx / 2.
+        assert result.dtype == 'f8' and isinstance(result, box)
+        exp = pd.Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
+        exp = tm.box_expected(exp, box)
+        tm.assert_equal(result, exp)
 
 
 class TestObjectDtypeEquivalence(object):

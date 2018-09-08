@@ -525,6 +525,7 @@ Datetimelike API Changes
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
+- :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
 
 .. _whatsnew_0240.api.other:
 
@@ -626,6 +627,8 @@ Datetimelike
 - Bug in :class:`DataFrame` with mixed dtypes including ``datetime64[ns]`` incorrectly raising ``TypeError`` on equality comparisons (:issue:`13128`,:issue:`22163`)
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`,:issue:`22163`)
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise `OverflowError` (:issue:`22492`, :issue:`22508`)
+- Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
+-
 
 Timedelta
 ^^^^^^^^^
@@ -634,7 +637,7 @@ Timedelta
 - Bug in multiplying a :class:`Series` with numeric dtype against a ``timedelta`` object (:issue:`22390`)
 - Bug in :class:`Series` with numeric dtype when adding or subtracting an an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
--
+- Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 -
 -
 
@@ -709,6 +712,7 @@ Indexing
 - Bug where indexing with a Numpy array containing negative values would mutate the indexer (:issue:`21867`)
 - Bug where mixed indexes wouldn't allow integers for ``.at`` (:issue:`19860`)
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
+- Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
 
 Missing
 ^^^^^^^
