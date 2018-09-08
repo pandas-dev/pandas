@@ -8614,12 +8614,12 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        nonexistent : str {'NaT', 'raise'}
-
-            - 'infer' will shift the non-existent time to a real local time
-            - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an NonExistentTimeError if there are ambiguous
-              times
+        nonexistent : 'shift', 'NaT', default 'raise'
+            - 'shift' will shift the nonexistent times forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
 
         Returns
         -------

@@ -633,8 +633,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
-        ambiguous : str {'infer', 'NaT', 'raise'} or bool array,
-            default 'raise'
+        ambiguous : 'infer', 'NaT', bool array, default 'raise'
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -645,12 +644,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
 
-        nonexistent : str {'NaT', 'raise'}
-
-            - 'infer' will shift the non-existent time to a real local time
-            - 'NaT' will return NaT where there are ambiguous times
-            - 'raise' will raise an NonExistentTimeError if there are ambiguous
-              times
+        nonexistent : 'shift', 'NaT' default 'raise'
+            - 'shift' will shift the nonexistent times forward to the closest
+              existing time
+            - 'NaT' will return NaT where there are nonexistent times
+            - 'raise' will raise an NonExistentTimeError if there are
+              nonexistent times
 
         errors : {'raise', 'coerce'}, default 'raise'
 
