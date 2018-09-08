@@ -908,7 +908,7 @@ Addition with :class:`CalendarDay`:
    ts + pd.offsets.Day(1)
    ts + pd.offsets.CalendarDay(1)
 
-Creating a :class:`date_range`:
+Creating a :func:`date_range`:
 
 .. ipython:: python
 
