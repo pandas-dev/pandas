@@ -3,8 +3,7 @@
 cimport cython
 from cython cimport Py_ssize_t
 
-from cpython cimport (PyString_Check, PyBytes_Check, PyUnicode_Check,
-                      PyBytes_GET_SIZE, PyUnicode_GET_SIZE)
+from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_SIZE
 
 try:
     from cpython cimport PyString_GET_SIZE
@@ -124,7 +123,7 @@ def convert_json_to_lines(object arr):
 # stata, pytables
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef Py_ssize_t max_len_string_array(pandas_string[:] arr):
+def max_len_string_array(pandas_string[:] arr) -> Py_ssize_t:
     """ return the maximum size of elements in a 1-dim string array """
     cdef:
         Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
@@ -132,11 +131,11 @@ cpdef Py_ssize_t max_len_string_array(pandas_string[:] arr):
 
     for i in range(length):
         v = arr[i]
-        if PyString_Check(v):
+        if isinstance(v, str):
             l = PyString_GET_SIZE(v)
-        elif PyBytes_Check(v):
+        elif isinstance(v, bytes):
             l = PyBytes_GET_SIZE(v)
-        elif PyUnicode_Check(v):
+        elif isinstance(v, unicode):
             l = PyUnicode_GET_SIZE(v)
 
         if l > m:
