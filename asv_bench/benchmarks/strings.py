@@ -1,7 +1,7 @@
 import warnings
 
 import numpy as np
-from pandas import Series
+from pandas import Series, DataFrame
 import pandas.util.testing as tm
 
 
@@ -11,9 +11,6 @@ class Methods(object):
 
     def setup(self):
         self.s = Series(tm.makeStringIndex(10**5))
-
-    def time_cat(self):
-        self.s.str.cat(sep=',')
 
     def time_center(self):
         self.s.str.center(100)
@@ -85,6 +82,24 @@ class Repeat(object):
 
     def time_repeat(self, repeats):
         self.s.str.repeat(self.repeat)
+
+
+class Cat(object):
+
+    goal_time = 0.2
+    params = ([None, 5], [None, ','], [None, '-'])
+    param_names = ['others', 'sep', 'na_rep']
+
+    def setup(self, others, sep, na_rep):
+        N = int(5e5)
+        mask_gen = lambda: np.random.choice([True, False], N, p=[0.9, 0.1])
+        self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
+        self.others = (DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
+                                  for i in range(others)})
+                       if others is not None else None)
+
+    def time_cat(self, others, sep, na_rep):
+        self.s.str.cat(self.others, sep=sep, na_rep=na_rep)
 
 
 class Contains(object):
