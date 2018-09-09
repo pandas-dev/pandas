@@ -366,7 +366,8 @@ one pass, you can do
         """
 
         needs_offset = (
-            isinstance(self.loffset, (DateOffset, timedelta)) and
+            isinstance(self.loffset, (DateOffset, timedelta,
+                                      np.timedelta64)) and
             isinstance(result.index, DatetimeIndex) and
             len(result.index) > 0
         )
@@ -962,7 +963,10 @@ class DatetimeIndexResampler(Resampler):
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
-        """ adjust our binner when upsampling """
+        """
+        Adjust our binner when upsampling.
+        The range of a new index should not be outside specified range
+        """
         if self.closed == 'right':
             binner = binner[1:]
         else:
@@ -1155,17 +1159,11 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return self.groupby._get_time_delta_bins(self.ax)
 
     def _adjust_binner_for_upsample(self, binner):
-        """ adjust our binner when upsampling """
-        ax = self.ax
-
-        if is_subperiod(ax.freq, self.freq):
-            # We are actually downsampling
-            # but are in the asfreq path
-            # GH 12926
-            if self.closed == 'right':
-                binner = binner[1:]
-            else:
-                binner = binner[:-1]
+        """
+        Adjust our binner when upsampling.
+        The range of a new index is allowed to be greater than original range
+        so we don't need to change the length of a binner, GH 13022
+        """
         return binner
 
 
