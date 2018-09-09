@@ -99,6 +99,16 @@ class TimelikeOps(object):
             frequency like 'S' (second) not 'ME' (month end). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
+        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+            - 'infer' will attempt to infer fall dst-transition hours based on
+              order
+            - bool-ndarray where True signifies a DST time, False designates
+              a non-DST time (note that this flag is only applicable for
+              ambiguous times)
+            - 'NaT' will return NaT where there are ambiguous times
+            - 'raise' will raise an AmbiguousTimeError if there are ambiguous
+              times
+            Only relevant for DatetimeIndex
 
         Returns
         -------
@@ -168,7 +178,7 @@ class TimelikeOps(object):
         """
     )
 
-    def _round(self, freq, rounder):
+    def _round(self, freq, rounder, ambiguous):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
         result = round_ns(values, rounder, freq)
@@ -180,19 +190,20 @@ class TimelikeOps(object):
         if 'tz' in attribs:
             attribs['tz'] = None
         return self._ensure_localized(
-            self._shallow_copy(result, **attribs))
+            self._shallow_copy(result, **attribs), ambiguous
+        )
 
     @Appender((_round_doc + _round_example).format(op="round"))
-    def round(self, freq, *args, **kwargs):
-        return self._round(freq, np.round)
+    def round(self, freq, ambiguous='raise'):
+        return self._round(freq, np.round, ambiguous)
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
-    def floor(self, freq):
-        return self._round(freq, np.floor)
+    def floor(self, freq, ambiguous='raise'):
+        return self._round(freq, np.floor, ambiguous)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
-    def ceil(self, freq):
-        return self._round(freq, np.ceil)
+    def ceil(self, freq, ambiguous='raise'):
+        return self._round(freq, np.ceil, ambiguous)
 
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
@@ -264,7 +275,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except TypeError:
             return result
 
-    def _ensure_localized(self, result):
+    def _ensure_localized(self, result, ambiguous='raise'):
         """
         ensure that we are re-localized
 
@@ -274,6 +285,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Parameters
         ----------
         result : DatetimeIndex / i8 ndarray
+        ambiguous : str, bool, or bool-ndarray
+            default 'raise'
 
         Returns
         -------
@@ -284,7 +297,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         if getattr(self, 'tz', None) is not None:
             if not isinstance(result, ABCIndexClass):
                 result = self._simple_new(result)
-            result = result.tz_localize(self.tz)
+            result = result.tz_localize(self.tz, ambiguous=ambiguous)
         return result
 
     def _box_values_as_index(self):
