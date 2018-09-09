@@ -259,7 +259,7 @@ cdef class _Timestamp(datetime):
                              tz=self.tzinfo, freq=self.freq)
 
         elif is_integer_object(other):
-            if self.freq is None:
+            if self.freq is not None:
                 warnings.warn("Addition of integers to {cls} is "
                               "deprecated, will be removed in a future "
                               "version.  Instead of adding `n`, add "
