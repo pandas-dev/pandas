@@ -2047,10 +2047,7 @@ class Index(IndexOpsMixin, PandasObject):
         promote = self._shallow_copy
 
         if is_scalar(key):
-            if is_float(key) and key == int(key):
-                # avoid numpy(?) DeprecationWarning about non-integer
-                # number passed
-                key = int(key)
+            key = com.cast_scalar_indexer(key)
             return getitem(key)
 
         if isinstance(key, slice):
