@@ -144,71 +144,50 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             strings.str_cat(one, 'three')
 
-    @pytest.mark.parametrize('container', [Series, Index])
+    @pytest.mark.parametrize('box', [Series, Index])
     @pytest.mark.parametrize('other', [None, Series, Index])
-    def test_str_cat_name(self, container, other):
-        # https://github.com/pandas-dev/pandas/issues/21053
+    def test_str_cat_name(self, box, other):
+        # GH 21053
         values = ['a', 'b']
         if other:
             other = other(values)
         else:
             other = values
-        result = container(values, name='name').str.cat(other, sep=',',
-                                                        join='left')
+        result = box(values, name='name').str.cat(other, sep=',', join='left')
         assert result.name == 'name'
 
-    @pytest.mark.parametrize('series_or_index', ['series', 'index'])
-    def test_str_cat(self, series_or_index):
-        # test_cat above tests "str_cat" from ndarray to ndarray;
-        # here testing "str.cat" from Series/Index to Series/Index/ndarray/list
-        s = Index(['a', 'a', 'b', 'b', 'c', np.nan])
-        if series_or_index == 'series':
-            s = Series(s)
-        t = Index(['a', np.nan, 'b', 'd', 'foo', np.nan])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_str_cat(self, box):
+        # test_cat above tests "str_cat" from ndarray;
+        # here testing "str.cat" from Series/Indext to ndarray/list
+        s = box(['a', 'a', 'b', 'b', 'c', np.nan])
 
         # single array
         result = s.str.cat()
-        exp = 'aabbc'
-        assert result == exp
+        expected = 'aabbc'
+        assert result == expected
 
         result = s.str.cat(na_rep='-')
-        exp = 'aabbc-'
-        assert result == exp
+        expected = 'aabbc-'
+        assert result == expected
 
         result = s.str.cat(sep='_', na_rep='NA')
-        exp = 'a_a_b_b_c_NA'
-        assert result == exp
+        expected = 'a_a_b_b_c_NA'
+        assert result == expected
 
-        # Series/Index with Index
-        exp = Index(['aa', 'a-', 'bb', 'bd', 'cfoo', '--'])
-        if series_or_index == 'series':
-            exp = Series(exp)
-        # s.index / s is different from t (as Index) -> warning
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat(t, na_rep='-'), exp)
-
-        # Series/Index with Series
-        t = Series(t)
-        # s as Series has same index as t -> no warning
-        # s as Index is different from t.index -> warning (tested below)
-        if series_or_index == 'series':
-            assert_series_equal(s.str.cat(t, na_rep='-'), exp)
-
-        # Series/Index with Series: warning if different indexes
-        t.index = t.index + 1
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat(t, na_rep='-'), exp)
+        t = np.array(['a', np.nan, 'b', 'd', 'foo', np.nan], dtype=object)
+        expected = box(['aa', 'a-', 'bb', 'bd', 'cfoo', '--'])
 
         # Series/Index with array
-        assert_series_or_index_equal(s.str.cat(t.values, na_rep='-'), exp)
+        result = s.str.cat(t, na_rep='-')
+        assert_series_or_index_equal(result, expected)
 
         # Series/Index with list
-        assert_series_or_index_equal(s.str.cat(list(t), na_rep='-'), exp)
+        result = s.str.cat(list(t), na_rep='-')
+        assert_series_or_index_equal(result, expected)
 
         # errors for incorrect lengths
-        rgx = 'All arrays must be same length, except.*'
+        rgx = 'All arrays must be same length, except those having an index.*'
         z = Series(['1', '2', '3'])
 
         with tm.assert_raises_regex(ValueError, rgx):
@@ -220,122 +199,111 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             s.str.cat(list(z))
 
-    @pytest.mark.parametrize('series_or_index', ['series', 'index'])
-    def test_str_cat_raises_intuitive_error(self, series_or_index):
-        # https://github.com/pandas-dev/pandas/issues/11334
-        s = Index(['a', 'b', 'c', 'd'])
-        if series_or_index == 'series':
-            s = Series(s)
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_str_cat_raises_intuitive_error(self, box):
+        # GH 11334
+        s = box(['a', 'b', 'c', 'd'])
         message = "Did you mean to supply a `sep` keyword?"
         with tm.assert_raises_regex(ValueError, message):
             s.str.cat('|')
         with tm.assert_raises_regex(ValueError, message):
             s.str.cat('    ')
 
-    @pytest.mark.parametrize('series_or_index, dtype_caller, dtype_target', [
-        ('series', 'object', 'object'),
-        ('series', 'object', 'category'),
-        ('series', 'category', 'object'),
-        ('series', 'category', 'category'),
-        ('index', 'object', 'object'),
-        ('index', 'object', 'category'),
-        ('index', 'category', 'object'),
-        ('index', 'category', 'category')
-    ])
-    def test_str_cat_categorical(self, series_or_index,
-                                 dtype_caller, dtype_target):
+    @pytest.mark.parametrize('dtype_target', ['object', 'category'])
+    @pytest.mark.parametrize('dtype_caller', ['object', 'category'])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_str_cat_categorical(self, box, dtype_caller, dtype_target):
         s = Index(['a', 'a', 'b', 'a'], dtype=dtype_caller)
-        if series_or_index == 'series':
-            s = Series(s)
+        s = s if box == Index else Series(s, index=s)
         t = Index(['b', 'a', 'b', 'c'], dtype=dtype_target)
 
-        exp = Index(['ab', 'aa', 'bb', 'ac'])
-        if series_or_index == 'series':
-            exp = Series(exp)
+        expected = Index(['ab', 'aa', 'bb', 'ac'])
+        expected = expected if box == Index else Series(expected, index=s)
 
-        # Series/Index with Index
-        # s.index / s is different from t (as Index) -> warning
+        # Series/Index with unaligned Index
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat(t), exp)
+            result = s.str.cat(t)
+            assert_series_or_index_equal(result, expected)
 
-        # Series/Index with Series
-        t = Series(t)
-        # s as Series has same index as t -> no warning
-        # s as Index is different from t.index -> warning (tested below)
-        if series_or_index == 'series':
-            assert_series_equal(s.str.cat(t), exp)
+        # Series/Index with Series having matching Index
+        t = Series(t, index=s)
+        result = s.str.cat(t)
+        assert_series_or_index_equal(result, expected)
 
-        # Series/Index with Series: warning if different indexes
-        t.index = t.index + 1
+        # Series/Index with Series.values
+        result = s.str.cat(t.values)
+        assert_series_or_index_equal(result, expected)
+
+        # Series/Index with Series having different Index
+        t = Series(t.values, index=t)
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat(t, na_rep='-'), exp)
+            result = s.str.cat(t)
+            assert_series_or_index_equal(result, expected)
 
-    @pytest.mark.parametrize('series_or_index', ['series', 'index'])
-    def test_str_cat_mixed_inputs(self, series_or_index):
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_str_cat_mixed_inputs(self, box):
         s = Index(['a', 'b', 'c', 'd'])
-        if series_or_index == 'series':
-            s = Series(s)
-        t = Series(['A', 'B', 'C', 'D'])
-        d = concat([t, Series(s)], axis=1)
+        s = s if box == Index else Series(s, index=s)
 
-        exp = Index(['aAa', 'bBb', 'cCc', 'dDd'])
-        if series_or_index == 'series':
-            exp = Series(exp)
+        t = Series(['A', 'B', 'C', 'D'], index=s.values)
+        d = concat([t, Series(s, index=s)], axis=1)
+
+        expected = Index(['aAa', 'bBb', 'cCc', 'dDd'])
+        expected = expected if box == Index else Series(expected.values,
+                                                        index=s.values)
 
         # Series/Index with DataFrame
-        # s as Series has same index as d -> no warning
-        # s as Index is different from d.index -> warning (tested below)
-        if series_or_index == 'series':
-            assert_series_equal(s.str.cat(d), exp)
-
-        # Series/Index with DataFrame: warning if different indexes
-        d.index = d.index + 1
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat(d), exp)
+        result = s.str.cat(d)
+        assert_series_or_index_equal(result, expected)
 
         # Series/Index with two-dimensional ndarray
-        assert_series_or_index_equal(s.str.cat(d.values), exp)
+        result = s.str.cat(d.values)
+        assert_series_or_index_equal(result, expected)
 
         # Series/Index with list of Series
-        # s as Series has same index as t, s -> no warning
-        # s as Index is different from t.index -> warning (tested below)
-        if series_or_index == 'series':
-            assert_series_equal(s.str.cat([t, s]), exp)
+        result = s.str.cat([t, s])
+        assert_series_or_index_equal(result, expected)
 
-        # Series/Index with list of Series: warning if different indexes
-        tt = t.copy()
-        tt.index = tt.index + 1
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat([tt, s]), exp)
+        # Series/Index with mixed list of Series/array
+        result = s.str.cat([t, s.values])
+        assert_series_or_index_equal(result, expected)
 
         # Series/Index with list of list-likes
         with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # nested lists will be deprecated
-            assert_series_or_index_equal(s.str.cat([t.values, list(s)]), exp)
+            # nested list-likes will be deprecated
+            result = s.str.cat([t.values, list(s)])
+            assert_series_or_index_equal(result, expected)
 
-        # Series/Index with mixed list of Series/list-like
-        # s as Series has same index as t -> no warning
-        # s as Index is different from t.index -> warning (tested below)
-        if series_or_index == 'series':
-            assert_series_equal(s.str.cat([t, s.values]), exp)
-
-        # Series/Index with mixed list: warning if different indexes
+        # Series/Index with list of Series; different indexes
+        t.index = ['b', 'c', 'd', 'a']
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
-            assert_series_or_index_equal(s.str.cat([tt, s.values]), exp)
+            result = s.str.cat([t, s])
+            assert_series_or_index_equal(result, expected)
+
+        # Series/Index with mixed list; different indexes
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            # FutureWarning to switch to alignment by default
+            result = s.str.cat([t, s.values])
+            assert_series_or_index_equal(result, expected)
+
+        # Series/Index with DataFrame; different indexes
+        d.index = ['b', 'c', 'd', 'a']
+        with tm.assert_produces_warning(expected_warning=FutureWarning):
+            # FutureWarning to switch to alignment by default
+            result = s.str.cat(d)
+            assert_series_or_index_equal(result, expected)
 
         # Series/Index with iterator of list-likes
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # nested list-likes will be deprecated
-            assert_series_or_index_equal(s.str.cat(iter([t.values, list(s)])),
-                                         exp)
+            result = s.str.cat(iter([t.values, list(s)]))
+            assert_series_or_index_equal(result, expected)
 
         # errors for incorrect lengths
-        rgx = 'All arrays must be same length, except.*'
+        rgx = 'All arrays must be same length, except those having an index.*'
         z = Series(['1', '2', '3'])
         e = concat([z, z], axis=1)
 
@@ -357,7 +325,7 @@ class TestStringMethods(object):
 
         # mixed list of Series/list-like
         with tm.assert_raises_regex(ValueError, rgx):
-            s.str.cat([z, s.values])
+            s.str.cat([z.values, s])
 
         # errors for incorrect arguments in list-like
         rgx = 'others must be Series, Index, DataFrame,.*'
@@ -384,26 +352,23 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(TypeError, rgx):
             s.str.cat(1)
 
-    @pytest.mark.parametrize('series_or_index, join', [
-        ('series', 'left'), ('series', 'outer'),
-        ('series', 'inner'), ('series', 'right'),
-        ('index', 'left'), ('index', 'outer'),
-        ('index', 'inner'), ('index', 'right')
-    ])
-    def test_str_cat_align_indexed(self, series_or_index, join):
+    @pytest.mark.parametrize('join', ['left', 'outer', 'inner', 'right'])
+    @pytest.mark.parametrize('box', [Series, Index])
+    def test_str_cat_align_indexed(self, box, join):
         # https://github.com/pandas-dev/pandas/issues/18657
         s = Series(['a', 'b', 'c', 'd'], index=['a', 'b', 'c', 'd'])
         t = Series(['D', 'A', 'E', 'B'], index=['d', 'a', 'e', 'b'])
         sa, ta = s.align(t, join=join)
         # result after manual alignment of inputs
-        exp = sa.str.cat(ta, na_rep='-')
+        expected = sa.str.cat(ta, na_rep='-')
 
-        if series_or_index == 'index':
+        if box == Index:
             s = Index(s)
             sa = Index(sa)
-            exp = Index(exp)
+            expected = Index(expected)
 
-        assert_series_or_index_equal(s.str.cat(t, join=join, na_rep='-'), exp)
+        result = s.str.cat(t, join=join, na_rep='-')
+        assert_series_or_index_equal(result, expected)
 
     @pytest.mark.parametrize('join', ['left', 'outer', 'inner', 'right'])
     def test_str_cat_align_mixed_inputs(self, join):
@@ -411,31 +376,34 @@ class TestStringMethods(object):
         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])
         d = concat([t, t], axis=1)
 
-        exp_outer = Series(['aaa', 'bbb', 'c--', 'ddd', '-ee'])
-        sa, ta = s.align(t, join=join)
-        exp = exp_outer.loc[ta.index]
+        expected_outer = Series(['aaa', 'bbb', 'c--', 'ddd', '-ee'])
+        expected = expected_outer.loc[s.index.join(t.index, how=join)]
 
         # list of Series
-        tm.assert_series_equal(s.str.cat([t, t], join=join, na_rep='-'), exp)
+        result = s.str.cat([t, t], join=join, na_rep='-')
+        tm.assert_series_equal(result, expected)
 
         # DataFrame
-        tm.assert_series_equal(s.str.cat(d, join=join, na_rep='-'), exp)
+        result = s.str.cat(d, join=join, na_rep='-')
+        tm.assert_series_equal(result, expected)
 
         # mixed list of indexed/unindexed
-        u = ['A', 'B', 'C', 'D']
-        exp_outer = Series(['aaA', 'bbB', 'c-C', 'ddD', '-e-'])
-        # u will be forced have index of s -> use s here as placeholder
-        e = concat([t, s], axis=1, join=(join if join == 'inner' else 'outer'))
-        sa, ea = s.align(e, join=join)
-        exp = exp_outer.loc[ea.index]
+        u = np.array(['A', 'B', 'C', 'D'])
+        expected_outer = Series(['aaA', 'bbB', 'c-C', 'ddD', '-e-'])
+        # joint index of rhs [t, u]; u will be forced have index of s
+        rhs_idx = t.index & s.index if join == 'inner' else t.index | s.index
+
+        expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
+        result = s.str.cat([t, u], join=join, na_rep='-')
+        tm.assert_series_equal(result, expected)
 
         with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # nested lists will be deprecated
-            tm.assert_series_equal(s.str.cat([t, u], join=join, na_rep='-'),
-                                   exp)
+            # nested list-likes will be deprecated
+            result = s.str.cat([t, list(u)], join=join, na_rep='-')
+            tm.assert_series_equal(result, expected)
 
         # errors for incorrect lengths
-        rgx = 'If `others` contains arrays or lists.*'
+        rgx = r'If `others` contains arrays or lists \(or other list-likes.*'
         z = Series(['1', '2', '3']).values
 
         # unindexed object of wrong length
@@ -451,14 +419,14 @@ class TestStringMethods(object):
         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])
 
         # iterator of elements with different types
-        exp = Series(['aaa', 'bbb', 'c-c', 'ddd', '-e-'])
-        tm.assert_series_equal(s.str.cat(iter([t, s.values]),
-                                         join='outer', na_rep='-'), exp)
+        expected = Series(['aaa', 'bbb', 'c-c', 'ddd', '-e-'])
+        result = s.str.cat(iter([t, s.values]), join='outer', na_rep='-')
+        tm.assert_series_equal(result, expected)
 
         # right-align with different indexes in others
-        exp = Series(['aa-', 'd-d'], index=[0, 3])
-        tm.assert_series_equal(s.str.cat([t.loc[[0]], t.loc[[3]]],
-                                         join='right', na_rep='-'), exp)
+        expected = Series(['aa-', 'd-d'], index=[0, 3])
+        result = s.str.cat([t.loc[[0]], t.loc[[3]]], join='right', na_rep='-')
+        tm.assert_series_equal(result, expected)
 
     def test_cat_on_filtered_index(self):
         df = DataFrame(index=MultiIndex.from_product(
@@ -469,12 +437,11 @@ class TestStringMethods(object):
 
         str_year = df.year.astype('str')
         str_month = df.month.astype('str')
-        str_both = str_year.str.cat(str_month, sep=' ', join='left')
+        str_both = str_year.str.cat(str_month, sep=' ')
 
         assert str_both.loc[1] == '2011 2'
 
-        str_multiple = str_year.str.cat([str_month, str_month],
-                                        sep=' ', join='left')
+        str_multiple = str_year.str.cat([str_month, str_month], sep=' ')
 
         assert str_multiple.loc[1] == '2011 2 2'
 
@@ -1601,7 +1568,7 @@ class TestStringMethods(object):
         # GH7241
         # (extract) on empty series
 
-        tm.assert_series_equal(empty_str, empty.str.cat(empty, join='left'))
+        tm.assert_series_equal(empty_str, empty.str.cat(empty))
         assert '' == empty.str.cat()
         tm.assert_series_equal(empty_str, empty.str.title())
         tm.assert_series_equal(empty_int, empty.str.count('a'))
@@ -3169,9 +3136,9 @@ class TestStringMethods(object):
         lhs = Series(np.array(list('abc'), 'S1').astype(object))
         rhs = Series(np.array(list('def'), 'S1').astype(object))
         if compat.PY3:
-            pytest.raises(TypeError, lhs.str.cat, rhs, join='left')
+            pytest.raises(TypeError, lhs.str.cat, rhs)
         else:
-            result = lhs.str.cat(rhs, join='left')
+            result = lhs.str.cat(rhs)
             expected = Series(np.array(
                 ['ad', 'be', 'cf'], 'S2').astype(object))
             tm.assert_series_equal(result, expected)

@@ -584,7 +584,12 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
 
         if pct:
             for i in range(N):
-                out[i, 0] = out[i, 0] / grp_sizes[i, 0]
+                # We don't include NaN values in percentage
+                # rankings, so we assign them percentages of NaN.
+                if out[i, 0] != out[i, 0] or out[i, 0] == NAN:
+                    out[i, 0] = NAN
+                else:
+                    out[i, 0] = out[i, 0] / grp_sizes[i, 0]
 {{endif}}
 {{endfor}}
 
