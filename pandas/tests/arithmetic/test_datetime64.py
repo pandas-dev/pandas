@@ -674,23 +674,20 @@ class TestTimestampSeriesArithmetic(object):
     # TODO: This next block of tests came from tests.series.test_operators,
     # needs to be de-duplicated and parametrized over `box` classes
 
-    @pytest.mark.parametrize(
-        'box, assert_func',
-        [(Series, tm.assert_series_equal),
-         (pd.Index, tm.assert_index_equal)])
-    def test_sub_datetime64_not_ns(self, box, assert_func):
+    @pytest.mark.parametrize('klass', [Series, pd.Index])
+    def test_sub_datetime64_not_ns(self, klass):
         # GH#7996
         dt64 = np.datetime64('2013-01-01')
         assert dt64.dtype == 'datetime64[D]'
 
-        obj = box(date_range('20130101', periods=3))
+        obj = klass(date_range('20130101', periods=3))
         res = obj - dt64
-        expected = box([Timedelta(days=0), Timedelta(days=1),
-                        Timedelta(days=2)])
-        assert_func(res, expected)
+        expected = klass([Timedelta(days=0), Timedelta(days=1),
+                          Timedelta(days=2)])
+        tm.assert_equal(res, expected)
 
         res = dt64 - obj
-        assert_func(res, -expected)
+        tm.assert_equal(res, -expected)
 
     def test_sub_single_tz(self):
         # GH12290
@@ -1721,10 +1718,8 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_equal(offset, expected)
 
 
-@pytest.mark.parametrize('klass,assert_func', [
-    (Series, tm.assert_series_equal),
-    (DatetimeIndex, tm.assert_index_equal)])
-def test_dt64_with_offset_array(klass, assert_func):
+@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+def test_dt64_with_offset_array(klass):
     # GH#10699
     # array of offsets
     box = Series if klass is Series else pd.Index
@@ -1733,19 +1728,17 @@ def test_dt64_with_offset_array(klass, assert_func):
         result = s + box([pd.offsets.DateOffset(years=1),
                           pd.offsets.MonthEnd()])
         exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
-        assert_func(result, exp)
+        tm.assert_equal(result, exp)
 
         # same offset
         result = s + box([pd.offsets.DateOffset(years=1),
                           pd.offsets.DateOffset(years=1)])
         exp = klass([Timestamp('2001-1-1'), Timestamp('2001-2-1')])
-        assert_func(result, exp)
+        tm.assert_equal(result, exp)
 
 
-@pytest.mark.parametrize('klass,assert_func', [
-    (Series, tm.assert_series_equal),
-    (DatetimeIndex, tm.assert_index_equal)])
-def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
+@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+def test_dt64_with_DateOffsets_relativedelta(klass):
     # GH#10699
     vec = klass([Timestamp('2000-01-05 00:15:00'),
                  Timestamp('2000-01-31 00:23:00'),
@@ -1762,11 +1755,11 @@ def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
                        ('microseconds', 5)]
     for i, kwd in enumerate(relative_kwargs):
         op = pd.DateOffset(**dict([kwd]))
-        assert_func(klass([x + op for x in vec]), vec + op)
-        assert_func(klass([x - op for x in vec]), vec - op)
+        tm.assert_equal(klass([x + op for x in vec]), vec + op)
+        tm.assert_equal(klass([x - op for x in vec]), vec - op)
         op = pd.DateOffset(**dict(relative_kwargs[:i + 1]))
-        assert_func(klass([x + op for x in vec]), vec + op)
-        assert_func(klass([x - op for x in vec]), vec - op)
+        tm.assert_equal(klass([x + op for x in vec]), vec + op)
+        tm.assert_equal(klass([x - op for x in vec]), vec - op)
 
 
 @pytest.mark.parametrize('cls_and_kwargs', [
@@ -1789,10 +1782,8 @@ def test_dt64_with_DateOffsets_relativedelta(klass, assert_func):
     'Easter', ('DateOffset', {'day': 4}),
     ('DateOffset', {'month': 5})])
 @pytest.mark.parametrize('normalize', [True, False])
-@pytest.mark.parametrize('klass,assert_func', [
-    (Series, tm.assert_series_equal),
-    (DatetimeIndex, tm.assert_index_equal)])
-def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_and_kwargs):
+@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+def test_dt64_with_DateOffsets(klass, normalize, cls_and_kwargs):
     # GH#10699
     # assert these are equal on a piecewise basis
     vec = klass([Timestamp('2000-01-05 00:15:00'),
@@ -1822,26 +1813,24 @@ def test_dt64_with_DateOffsets(klass, assert_func, normalize, cls_and_kwargs):
                 continue
 
             offset = offset_cls(n, normalize=normalize, **kwargs)
-            assert_func(klass([x + offset for x in vec]), vec + offset)
-            assert_func(klass([x - offset for x in vec]), vec - offset)
-            assert_func(klass([offset + x for x in vec]), offset + vec)
+            tm.assert_equal(klass([x + offset for x in vec]), vec + offset)
+            tm.assert_equal(klass([x - offset for x in vec]), vec - offset)
+            tm.assert_equal(klass([offset + x for x in vec]), offset + vec)
 
 
-@pytest.mark.parametrize('klass,assert_func', zip([Series, DatetimeIndex],
-                                                  [tm.assert_series_equal,
-                                                   tm.assert_index_equal]))
-def test_datetime64_with_DateOffset(klass, assert_func):
+@pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+def test_datetime64_with_DateOffset(klass):
     # GH#10699
     s = klass(date_range('2000-01-01', '2000-01-31'), name='a')
     result = s + pd.DateOffset(years=1)
     result2 = pd.DateOffset(years=1) + s
     exp = klass(date_range('2001-01-01', '2001-01-31'), name='a')
-    assert_func(result, exp)
-    assert_func(result2, exp)
+    tm.assert_equal(result, exp)
+    tm.assert_equal(result2, exp)
 
     result = s - pd.DateOffset(years=1)
     exp = klass(date_range('1999-01-01', '1999-01-31'), name='a')
-    assert_func(result, exp)
+    tm.assert_equal(result, exp)
 
     s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                pd.Timestamp('2000-02-15', tz='US/Central')], name='a')
@@ -1849,8 +1838,8 @@ def test_datetime64_with_DateOffset(klass, assert_func):
     result2 = pd.offsets.Day() + s
     exp = klass([Timestamp('2000-01-16 00:15:00', tz='US/Central'),
                  Timestamp('2000-02-16', tz='US/Central')], name='a')
-    assert_func(result, exp)
-    assert_func(result2, exp)
+    tm.assert_equal(result, exp)
+    tm.assert_equal(result2, exp)
 
     s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                pd.Timestamp('2000-02-15', tz='US/Central')], name='a')
@@ -1858,8 +1847,8 @@ def test_datetime64_with_DateOffset(klass, assert_func):
     result2 = pd.offsets.MonthEnd() + s
     exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
                  Timestamp('2000-02-29', tz='US/Central')], name='a')
-    assert_func(result, exp)
-    assert_func(result2, exp)
+    tm.assert_equal(result, exp)
+    tm.assert_equal(result2, exp)
 
 
 @pytest.mark.parametrize('years', [-1, 0, 1])
