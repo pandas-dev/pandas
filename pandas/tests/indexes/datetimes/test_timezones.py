@@ -574,6 +574,23 @@ class TestDatetimeIndexTimezones(object):
         localized = dr.tz_localize(pytz.utc)
         tm.assert_index_equal(dr_utc, localized)
 
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    @pytest.mark.parametrize('method, exp', [
+        ['shift', '2015-03-29 03:00:00'],
+        ['NaT', pd.NaT],
+        ['raise', None]
+    ])
+    def test_dti_tz_localize_nonexsistent(self, tz, method, exp):
+        n = 60
+        dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
+        if method == 'raise':
+            with pytest.raises(pytz.NonExistentTimeError):
+                dti.tz_localize(tz, nonexistent=method)
+        else:
+            result = dti.tz_localize(tz, nonexistent=method)
+            expected = DatetimeIndex([exp] * n, tz=tz)
+            tm.assert_index_equal(result, expected)
+
     # -------------------------------------------------------------
     # DatetimeIndex.normalize
 
