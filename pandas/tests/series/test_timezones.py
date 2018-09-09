@@ -13,7 +13,7 @@ import pandas.util.testing as tm
 from pandas._libs.tslibs import timezones, conversion
 from pandas.compat import lrange
 from pandas.core.indexes.datetimes import date_range
-from pandas import Series, Timestamp, DatetimeIndex, Index
+from pandas import Series, Timestamp, DatetimeIndex, Index, NaT
 
 
 class TestSeriesTimezones(object):
@@ -59,6 +59,25 @@ class TestSeriesTimezones(object):
 
         result = ser.dt.tz_localize('US/Central', ambiguous=[False])
         tm.assert_series_equal(result, expected1)
+
+    @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
+    @pytest.mark.parametrize('method, exp', [
+        ['shift', '2015-03-29 03:00:00'],
+        ['NaT', NaT],
+        ['raise', None]
+    ])
+    def test_series_tz_localize_nonexistent(self, tz, method, exp):
+        # GH 8917
+        n = 60
+        dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
+        s = Series(1, dti)
+        if method == 'raise':
+            with pytest.raises(pytz.NonExistentTimeError):
+                s.tz_localize(tz, nonexistent=method)
+        else:
+            result = s.tz_localize(tz, nonexistent=method)
+            expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz))
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
     def test_series_tz_localize_empty(self, tzstr):

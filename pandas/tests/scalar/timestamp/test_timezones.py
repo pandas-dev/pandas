@@ -160,6 +160,7 @@ class TestTimestampTZOperations(object):
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     def test_timestamp_tz_localize_nonexistent_shift(self, tz):
+        # GH 8917
         ts = Timestamp('2015-03-29 02:20:00')
         result = ts.tz_localize(tz, nonexistent='shift')
         expected = Timestamp('2015-03-29 03:00:00').tz_localize(tz)
@@ -167,12 +168,14 @@ class TestTimestampTZOperations(object):
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     def test_timestamp_tz_localize_nonexistent_NaT(self, tz):
+        # GH 8917
         ts = Timestamp('2015-03-29 02:20:00')
         result = ts.tz_localize(tz, nonexistent='NaT')
         assert result is NaT
 
     @pytest.mark.parametrize('tz', ['Europe/Warsaw', 'dateutil/Europe/Warsaw'])
     def test_timestamp_tz_localize_nonexistent_raise(self, tz):
+        # GH 8917
         ts = Timestamp('2015-03-29 02:20:00')
         with pytest.raises(pytz.NonExistentTimeError):
             ts.tz_localize(tz, nonexistent='raise')

@@ -580,7 +580,8 @@ class TestDatetimeIndexTimezones(object):
         ['NaT', pd.NaT],
         ['raise', None]
     ])
-    def test_dti_tz_localize_nonexsistent(self, tz, method, exp):
+    def test_dti_tz_localize_nonexistent(self, tz, method, exp):
+        # GH 8917
         n = 60
         dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
         if method == 'raise':
