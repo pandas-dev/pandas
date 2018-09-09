@@ -241,23 +241,17 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
 
     # specially handle Categorical
     if is_categorical_dtype(items):
+        if na_position not in ['first', 'last']:
+            raise ValueError('invalid na_position: {!r}'.format(na_position))
         mask = isna(items)
-        null_idx = np.where(mask)[0]
+        cnt_null = mask.sum()
         sorted_idx = items.argsort(ascending=ascending, kind=kind)
         if ascending:
             # NaN is coded as -1 and is listed in front after sorting
-            non_null_sorted_idx = sorted_idx[len(null_idx):]
-            null_sorted_idx = sorted_idx[:len(null_idx)]
+            return sorted_idx if na_position == 'first' else np.roll(sorted_idx, -cnt_null)
         else:
             # NaN is coded as -1 and is listed in the end after sorting
-            non_null_sorted_idx = sorted_idx[:-len(null_idx)]
-            null_sorted_idx = sorted_idx[-len(null_idx):]
-        if na_position == 'first':
-            return np.concatenate([null_sorted_idx, non_null_sorted_idx])
-        elif na_position == 'last':
-            return np.concatenate([non_null_sorted_idx, null_sorted_idx])
-        else:
-            raise ValueError('invalid na_position: {!r}'.format(na_position))
+            return sorted_idx if na_position == 'last' else np.roll(sorted_idx, cnt_null)
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))

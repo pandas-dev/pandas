@@ -645,3 +645,8 @@ class TestDataFrameSortIndexKinds(TestData):
                              ordered=True)}, index=[4, 2, 0, 3, 1])
 
         assert_frame_equal(result, expected)
+
+        with pytest.raises(ValueError) as err:
+            df_category_with_nan.sort_values(by='c',
+                                             ascending=False,
+                                             na_position='bad_position')
