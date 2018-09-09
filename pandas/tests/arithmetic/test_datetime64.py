@@ -1361,21 +1361,14 @@ class TestDatetimeIndexArithmetic(object):
         with pytest.raises(TypeError):
             p - idx
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        pd.Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="Tries to broadcast "
-                                                    "incorrectly",
-                                             strict=True,
-                                             raises=ValueError))
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('op', [operator.add, ops.radd,
                                     operator.sub, ops.rsub])
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('dti_freq', [None, 'D'])
-    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box):
+    def test_dti_sub_pi(self, dti_freq, pi_freq, op, box_df_broadcast_failure):
         # GH#20049 subtracting PeriodIndex should raise TypeError
+        box = box_df_broadcast_failure
+
         dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
         pi = dti.to_period(pi_freq)
 
@@ -1723,8 +1716,11 @@ def test_dt64_with_offset_array(klass):
     # GH#10699
     # array of offsets
     box = Series if klass is Series else pd.Index
+    dti = DatetimeIndex([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
+
+    s = klass(dti)
+
     with tm.assert_produces_warning(PerformanceWarning):
-        s = klass([Timestamp('2000-1-1'), Timestamp('2000-2-1')])
         result = s + box([pd.offsets.DateOffset(years=1),
                           pd.offsets.MonthEnd()])
         exp = klass([Timestamp('2001-1-1'), Timestamp('2000-2-29')])
