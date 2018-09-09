@@ -87,7 +87,7 @@ def values_from_object(object obj):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def memory_usage_of_objects(object[:] arr) -> int64_t:
+def memory_usage_of_objects(object[:] arr):
     """ return the memory usage of an object array in bytes,
     does not include the actual bytes of the pointers """
     i: Py_ssize_t
