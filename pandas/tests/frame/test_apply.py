@@ -11,6 +11,8 @@ from itertools import chain
 
 import warnings
 import numpy as np
+from hypothesis import given
+from hypothesis.strategies import composite, dates, integers, sampled_from
 
 from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
@@ -1155,3 +1157,34 @@ class TestDataFrameAggregate(TestData):
         # GH21224
         with pytest.raises(expected):
             df.agg(func, axis=axis)
+
+    @composite
+    def indices(draw, max_length=5):
+        date = draw(
+            dates(
+                min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
+                max_value=Timestamp.max.floor("D").to_pydatetime().date(),
+            ).map(Timestamp)
+        )
+        periods = draw(integers(0, max_length))
+        freq = draw(sampled_from(list("BDHTS")))
+        dr = date_range(date, periods=periods, freq=freq)
+        return pd.DatetimeIndex(list(dr))
+
+    @given(index=indices(5), num_columns=integers(0, 5))
+    def test_frequency_is_original(self, index, num_columns):
+        # GH22150
+        original = index.copy()
+        df = DataFrame(True, index=index, columns=range(num_columns))
+        df.apply(lambda x: x)
+        assert index.freq == original.freq
+
+    def test_frequency_is_original_example(self):
+        # GH22150
+        index = pd.DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05'],
+                                 dtype='datetime64[ns]')
+        num_columns = 2
+        original = index.copy()
+        df = DataFrame(True, index=index, columns=range(num_columns))
+        df.apply(lambda x: x)
+        assert index.freq == original.freq
