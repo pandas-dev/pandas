@@ -230,9 +230,19 @@ class TestSeries(Generic):
 
     @pytest.mark.parametrize("s", [
         Series([np.arange(5)]),
-        pd.date_range('1/1/2011', periods=24, freq='H')
+        pd.date_range('1/1/2011', periods=24, freq='H'),
+        pd.Series(range(5), index=pd.date_range("2017", periods=5))
     ])
     @pytest.mark.parametrize("shift_size", [0, 1, 2])
     def test_shift_always_copy(self, s, shift_size):
         # GH22397
         assert s.shift(shift_size) is not s
+
+    @pytest.mark.parametrize("move_by_freq", [
+        pd.Timedelta('1D'),
+        pd.Timedelta('1M'),
+    ])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH22397
+        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
+        assert s.shift(freq=move_by_freq) is not s
