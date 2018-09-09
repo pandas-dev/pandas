@@ -841,14 +841,12 @@ class SQLTable(PandasObject):
 
         from sqlalchemy.types import (BigInteger, Integer, Float,
                                       Text, Boolean,
-                                      DateTime, Date, Time)
+                                      DateTime, Date, Time, TIMESTAMP)
 
         if col_type == 'datetime64' or col_type == 'datetime':
-            try:
-                tz = col.tzinfo  # noqa
-                return DateTime(timezone=True)
-            except:
-                return DateTime
+            if col.dt.tz is not None:
+                return TIMESTAMP(timezone=True)
+            return DateTime
         if col_type == 'timedelta64':
             warnings.warn("the 'timedelta' type is not supported, and will be "
                           "written as integer values (ns frequency) to the "
