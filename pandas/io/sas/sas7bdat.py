@@ -298,12 +298,12 @@ class SAS7BDATReader(BaseIterator):
 
     def _process_page_meta(self):
         self._read_page_header()
-        pt = [const.page_meta_type, const.page_amd_type] + const.page_mix_types
-        if self._current_page_type in pt:
+        pt = [const.page_meta_type, const.page_amd_type, const.page_mix_type]
+        page_type = self._current_page_type
+        if page_type & const.page_type_mask in pt:
             self._process_page_metadata()
-        is_data_page = self._current_page_type & const.page_data_type
-        is_mix_page = self._current_page_type in const.page_mix_types
-        return (is_data_page or is_mix_page
+        pt = [const.page_mix_type, const.page_data_type]
+        return (page_type & const.page_type_mask in pt
                 or self._current_page_data_subheader_pointers != [])
 
     def _read_page_header(self):
@@ -313,6 +313,12 @@ class SAS7BDATReader(BaseIterator):
         tx = const.block_count_offset + bit_offset
         self._current_page_block_count = self._read_int(
             tx, const.block_count_length)
+        if self._current_page_type & const.page_has_deleted_rows_bitmap:
+            tx = const.page_deleted_rows_bitmap_offset * self._int_length
+            self._current_page_deleted_rows_bitmap_offset = self._read_int(
+                tx, self._int_length)
+        else:
+            self._current_page_deleted_rows_bitmap_offset = None
         tx = const.subheader_count_offset + bit_offset
         self._current_page_subheaders_count = (
             self._read_int(tx, const.subheader_count_length))
@@ -420,6 +426,9 @@ class SAS7BDATReader(BaseIterator):
             offset + const.row_length_offset_multiplier * int_len, int_len)
         self.row_count = self._read_int(
             offset + const.row_count_offset_multiplier * int_len, int_len)
+        self.rows_deleted_count = self._read_int(
+            offset + const.rows_deleted_count_offset_multiplier * int_len,
+            int_len)
         self.col_count_p1 = self._read_int(
             offset + const.col_count_p1_multiplier * int_len, int_len)
         self.col_count_p2 = self._read_int(
@@ -601,19 +610,20 @@ class SAS7BDATReader(BaseIterator):
 
     def read(self, nrows=None):
 
+        row_count = self.row_count - self.rows_deleted_count
         if (nrows is None) and (self.chunksize is not None):
             nrows = self.chunksize
         elif nrows is None:
-            nrows = self.row_count
+            nrows = row_count
 
         if len(self._column_types) == 0:
             self.close()
             raise EmptyDataError("No columns to parse from file")
 
-        if self._current_row_in_file_index >= self.row_count:
+        if self._current_row_in_file_index >= row_count:
             return None
 
-        m = self.row_count - self._current_row_in_file_index
+        m = row_count - self._current_row_in_file_index
         if nrows > m:
             nrows = m
 
@@ -647,12 +657,11 @@ class SAS7BDATReader(BaseIterator):
 
         self._read_page_header()
         page_type = self._current_page_type
-        if page_type == const.page_meta_type:
+        if page_type & const.page_type_mask == const.page_meta_type:
             self._process_page_metadata()
 
-        is_data_page = page_type & const.page_data_type
-        pt = [const.page_meta_type] + const.page_mix_types
-        if not is_data_page and self._current_page_type not in pt:
+        pt = [const.page_meta_type, const.page_mix_type, const.page_data_type]
+        if page_type & const.page_type_mask not in pt:
             return self._read_next_page()
 
         return False

@@ -214,7 +214,23 @@ def test_inconsistent_number_of_rows(datapath):
     # Regression test for issue #16615. (PR #22628)
     fname = datapath("io", "sas", "data", "load_log.sas7bdat")
     df = pd.read_sas(fname, encoding='latin-1')
-    assert len(df) == 2097
+    assert len(df) == 2088
+
+
+def test_deleted_rows(datapath):
+    # Regression test for issue #15963. (PR #22650)
+    TESTS = [['deleted_rows', {}],
+             ['datetime_deleted_rows', {
+                 'parse_dates': ['Date1', 'Date2', 'DateTime',
+                                 'DateTimeHi', 'Taiw']
+             }]]
+    for fn, csv_kwargs in TESTS:
+        fname = datapath("io", "sas", "data", "{}.sas7bdat".format(
+            fn))
+        df = pd.read_sas(fname, encoding='latin-1')
+        fname = datapath("io", "sas", "data", "{}.csv".format(fn))
+        df0 = pd.read_csv(fname, **csv_kwargs)
+        tm.assert_frame_equal(df, df0)
 
 
 def test_zero_variables(datapath):

@@ -204,9 +204,9 @@ cdef enum ColumnTypes:
 
 # type the page_data types
 cdef int page_meta_type = const.page_meta_type
-cdef int page_mix_types_0 = const.page_mix_types[0]
-cdef int page_mix_types_1 = const.page_mix_types[1]
 cdef int page_data_type = const.page_data_type
+cdef int page_mix_type = const.page_mix_type
+cdef int page_type_mask = const.page_type_mask
 cdef int subheader_pointers_offset = const.subheader_pointers_offset
 
 
@@ -219,7 +219,7 @@ cdef class Parser(object):
         int64_t[:] column_types
         uint8_t[:, :] byte_chunk
         object[:, :] string_chunk
-        char *cached_page
+        uint8_t *cached_page
         int current_row_on_page_index
         int current_page_block_count
         int current_page_data_subheader_pointers_len
@@ -231,6 +231,7 @@ cdef class Parser(object):
         int bit_offset
         int subheader_pointer_length
         int current_page_type
+        int current_page_deleted_rows_bitmap_offset
         bint is_little_endian
         const uint8_t[:] (*decompress)(int result_length,
                                        const uint8_t[:] inbuff)
@@ -253,6 +254,7 @@ cdef class Parser(object):
         self.subheader_pointer_length = self.parser._subheader_pointer_length
         self.is_little_endian = parser.byte_order == "<"
         self.column_types = np.empty(self.column_count, dtype='int64')
+        self.current_page_deleted_rows_bitmap_offset = -1
 
         # page indicators
         self.update_next_page()
@@ -309,10 +311,55 @@ cdef class Parser(object):
             self.update_next_page()
         return done
 
+    cdef int calculate_deleted_rows_bitmap_offset(self):
+        """Calculate where the deleted rows bitmap is located
+        in the page. It is _current_page_deleted_rows_bitmap_offset's
+        bytes away from the end of the row values"""
+
+        cdef:
+            int deleted_rows_bitmap_offset, page_type
+            int subheader_pointers_length, align_correction
+            int row_count
+
+        if self.parser._current_page_deleted_rows_bitmap_offset is None:
+            return -1
+
+        deleted_rows_bitmap_offset = \
+            self.parser._current_page_deleted_rows_bitmap_offset
+
+        page_type = self.current_page_type
+        subheader_pointers_length = \
+            self.subheader_pointer_length * self.current_page_subheaders_count
+
+        if page_type & page_type_mask == page_data_type:
+            return (
+                self.bit_offset +
+                subheader_pointers_offset +
+                self.row_length * self.current_page_block_count +
+                deleted_rows_bitmap_offset)
+        elif page_type & page_type_mask == page_mix_type:
+            align_correction = (
+                self.bit_offset +
+                subheader_pointers_offset +
+                subheader_pointers_length
+            ) % 8
+            row_count = min(self.parser._mix_page_row_count,
+                            self.parser.row_count)
+            return (
+                self.bit_offset +
+                subheader_pointers_offset +
+                subheader_pointers_length +
+                align_correction +
+                self.row_length * row_count +
+                deleted_rows_bitmap_offset)
+        else:
+            # I have never seen this case.
+            return -1
+
     cdef update_next_page(self):
         # update data for the current page
 
-        self.cached_page = <char *>self.parser._cached_page
+        self.cached_page = <uint8_t * >self.parser._cached_page
         self.current_row_on_page_index = 0
         self.current_page_type = self.parser._current_page_type
         self.current_page_block_count = self.parser._current_page_block_count
@@ -321,11 +368,29 @@ cdef class Parser(object):
         self.current_page_subheaders_count =\
             self.parser._current_page_subheaders_count
 
+        self.current_page_deleted_rows_bitmap_offset =\
+            self.calculate_deleted_rows_bitmap_offset()
+
+    cdef bint is_row_deleted(self, int row_number):
+        cdef:
+            int row_disk
+            unsigned char byte, row_bit
+        if self.current_page_deleted_rows_bitmap_offset == -1:
+            return 0
+        row_idx = (row_number + 1) // 8
+        row_bit = 1 << (7 - (row_number % 8))
+
+        byte = self.cached_page[
+            self.current_page_deleted_rows_bitmap_offset + row_idx]
+
+        return byte & row_bit
+
     cdef readline(self):
 
         cdef:
             int offset, bit_offset, align_correction
             int subheader_pointer_length, mn
+            int block_count
             bint done, flag
 
         bit_offset = self.bit_offset
@@ -340,7 +405,7 @@ cdef class Parser(object):
 
         # Loop until a data row is read
         while True:
-            if self.current_page_type == page_meta_type:
+            if self.current_page_type & page_type_mask == page_meta_type:
                 flag = self.current_row_on_page_index >=\
                     self.current_page_data_subheader_pointers_len
                 if flag:
@@ -355,8 +420,7 @@ cdef class Parser(object):
                     current_subheader_pointer.offset,
                     current_subheader_pointer.length)
                 return False
-            elif (self.current_page_type == page_mix_types_0 or
-                    self.current_page_type == page_mix_types_1):
+            elif self.current_page_type & page_type_mask == page_mix_type:
                 align_correction = (bit_offset + subheader_pointers_offset +
                                     self.current_page_subheaders_count *
                                     subheader_pointer_length)
@@ -365,21 +429,35 @@ cdef class Parser(object):
                 offset += subheader_pointers_offset
                 offset += (self.current_page_subheaders_count *
                            subheader_pointer_length)
-                offset += self.current_row_on_page_index * self.row_length
-                self.process_byte_array_with_data(offset,
-                                                  self.row_length)
+
+                # Skip past rows marked as deleted
                 mn = min(self.parser.row_count,
                          self.parser._mix_page_row_count)
+                while (self.is_row_deleted(self.current_row_on_page_index) and
+                       self.current_row_on_page_index < mn):
+                    self.current_row_on_page_index += 1
+
+                if self.current_row_on_page_index < mn:
+                    offset += self.current_row_on_page_index * self.row_length
+                    self.process_byte_array_with_data(offset, self.row_length)
                 if self.current_row_on_page_index == mn:
                     done = self.read_next_page()
                     if done:
                         return True
                 return False
-            elif self.current_page_type & page_data_type == page_data_type:
-                self.process_byte_array_with_data(
-                    bit_offset + subheader_pointers_offset +
-                    self.current_row_on_page_index * self.row_length,
-                    self.row_length)
+            elif self.current_page_type & page_type_mask == page_data_type:
+                block_count = self.current_page_block_count
+
+                # Skip past rows marked as deleted
+                while (self.is_row_deleted(self.current_row_on_page_index) and
+                       self.current_row_on_page_index != block_count):
+                    self.current_row_on_page_index += 1
+
+                if self.current_row_on_page_index < block_count:
+                    self.process_byte_array_with_data(
+                        bit_offset + subheader_pointers_offset +
+                        self.current_row_on_page_index * self.row_length,
+                        self.row_length)
                 flag = (self.current_row_on_page_index ==
                         self.current_page_block_count)
                 if flag:
