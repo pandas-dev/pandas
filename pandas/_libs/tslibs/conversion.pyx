@@ -852,7 +852,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ndarray ambiguous_array
         Py_ssize_t i, idx, pos, ntrans, n = len(vals)
         int64_t *tdata
-        int64_t v, left, right
+        int64_t v, left, right, val, v_left, v_right
         ndarray[int64_t] result, result_a, result_b, dst_hours
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
@@ -1012,7 +1012,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 new_local = val + (HOURS_NS - remaining_minutes)
                 delta_idx = trans.searchsorted(new_local, side='right') - 1
                 result[i] = new_local - deltas[delta_idx]
-            elif fill_nonexist:
+            elif fill_nonexist or is_coerce:
                 result[i] = NPY_NAT
             else:
                 stamp = _render_tstamp(val)
