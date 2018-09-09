@@ -248,10 +248,12 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
         sorted_idx = items.argsort(ascending=ascending, kind=kind)
         if ascending:
             # NaN is coded as -1 and is listed in front after sorting
-            return sorted_idx if na_position == 'first' else np.roll(sorted_idx, -cnt_null)
+            return sorted_idx if na_position == 'first' \
+                else np.roll(sorted_idx, -cnt_null)
         else:
             # NaN is coded as -1 and is listed in the end after sorting
-            return sorted_idx if na_position == 'last' else np.roll(sorted_idx, cnt_null)
+            return sorted_idx if na_position == 'last' else \
+                np.roll(sorted_idx, cnt_null)
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
