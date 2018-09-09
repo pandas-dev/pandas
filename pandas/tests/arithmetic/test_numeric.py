@@ -126,20 +126,18 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         tm.assert_series_equal(expected, td * other)
         tm.assert_series_equal(expected, other * td)
 
-    @pytest.mark.parametrize('index', [
-        pd.Int64Index(range(1, 11)),
-        pd.UInt64Index(range(1, 11)),
-        pd.Float64Index(range(1, 11)),
-        pd.RangeIndex(1, 11)],
-        ids=lambda x: type(x).__name__)
+    # TODO: also test non-nanosecond timedelta64 and Tick objects;
+    #  see test_numeric_arr_rdiv_tdscalar for note on these failing
     @pytest.mark.parametrize('scalar_td', [
         Timedelta(days=1),
         Timedelta(days=1).to_timedelta64(),
         Timedelta(days=1).to_pytimedelta()],
         ids=lambda x: type(x).__name__)
-    def test_numeric_arr_mul_tdscalar(self, scalar_td, index, box):
+    def test_numeric_arr_mul_tdscalar(self, scalar_td, numeric_idx, box):
         # GH#19333
-        expected = pd.timedelta_range('1 days', '10 days')
+        index = numeric_idx
+
+        expected = pd.timedelta_range('0 days', '4 days')
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
@@ -150,28 +148,27 @@ class TestNumericArraylikeArithmeticWithTimedeltaLike(object):
         commute = scalar_td * index
         tm.assert_equal(commute, expected)
 
-    @pytest.mark.parametrize('index', [
-        pd.Int64Index(range(1, 3)),
-        pd.UInt64Index(range(1, 3)),
-        pd.Float64Index(range(1, 3)),
-        pd.RangeIndex(1, 3)],
-        ids=lambda x: type(x).__name__)
-    @pytest.mark.parametrize('scalar_td', [
-        Timedelta(days=1),
-        Timedelta(days=1).to_timedelta64(),
-        Timedelta(days=1).to_pytimedelta()],
-        ids=lambda x: type(x).__name__)
-    def test_numeric_arr_rdiv_tdscalar(self, scalar_td, index, box):
-        expected = TimedeltaIndex(['1 Day', '12 Hours'])
+    def test_numeric_arr_rdiv_tdscalar(self, three_days, numeric_idx, box):
+        index = numeric_idx[1:3]
+
+        broken = (isinstance(three_days, np.timedelta64) and
+                  three_days.dtype != 'm8[ns]')
+        broken = broken or isinstance(three_days, pd.offsets.Tick)
+        if box is not pd.Index and broken:
+            # np.timedelta64(3, 'D') / 2 == np.timedelta64(1, 'D')
+            raise pytest.xfail("timedelta64 not converted to nanos; "
+                               "Tick division not imlpemented")
+
+        expected = TimedeltaIndex(['3 Days', '36 Hours'])
 
         index = tm.box_expected(index, box)
         expected = tm.box_expected(expected, box)
 
-        result = scalar_td / index
+        result = three_days / index
         tm.assert_equal(result, expected)
 
         with pytest.raises(TypeError):
-            index / scalar_td
+            index / three_days
 
 
 # ------------------------------------------------------------------

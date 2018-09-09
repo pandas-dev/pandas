@@ -1301,14 +1301,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
         result = tdser / two
         tm.assert_equal(result, expected)
 
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="broadcasts along "
-                                                    "wrong axis",
-                                             strict=True))
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
                                        'uint64', 'uint32', 'uint16', 'uint8',
                                        'float64', 'float32', 'float16'])
@@ -1317,9 +1309,11 @@ class TestTimedeltaArraylikeMulDivOps(object):
                                         Series([20, 30, 40])],
                              ids=lambda x: type(x).__name__)
     @pytest.mark.parametrize('op', [operator.mul, ops.rmul])
-    def test_td64arr_rmul_numeric_array(self, op, box, vector, dtype, tdser):
+    def test_td64arr_rmul_numeric_array(self, op, box_df_fail,
+                                        vector, dtype, tdser):
         # GH#4521
         # divide/multiply by integers
+        box = box_df_fail  # broadcasts incorrectly but doesn't raise
         vector = vector.astype(dtype)
 
         expected = Series(['1180 Days', '1770 Days', 'NaT'],
@@ -1365,22 +1359,15 @@ class TestTimedeltaArraylikeMulDivOps(object):
         with pytest.raises(TypeError):
             vector / tdser
 
-    # TODO: Should we be parametrizing over types for `ser` too?
-    @pytest.mark.parametrize('box', [
-        pd.Index,
-        Series,
-        pytest.param(pd.DataFrame,
-                     marks=pytest.mark.xfail(reason="broadcasts along "
-                                                    "wrong axis",
-                                             strict=True))
-    ], ids=lambda x: x.__name__)
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('Egon', 'Venkman', None),
                                        ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_td64arr_mul_int_series(self, box, names):
+    def test_td64arr_mul_int_series(self, box_df_fail, names):
         # GH#19042 test for correct name attachment
+        box = box_df_fail  # broadcasts along wrong axis, but doesn't raise
         tdi = TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
                              name=names[0])
+        # TODO: Should we be parametrizing over types for `ser` too?
         ser = Series([0, 1, 2, 3, 4], dtype=np.int64, name=names[1])
 
         expected = Series(['0days', '1day', '4days', '9days', '16days'],
@@ -1428,10 +1415,6 @@ class TestTimedeltaArraylikeMulDivOps(object):
 
 class TestTimedeltaArraylikeInvalidArithmeticOps(object):
 
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
     def test_td64arr_pow_invalid(self, scalar_td, box):
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
         td1.iloc[2] = np.nan
