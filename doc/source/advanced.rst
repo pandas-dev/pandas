@@ -15,7 +15,7 @@
 MultiIndex / Advanced Indexing
 ******************************
 
-This section covers indexing with a ``MultiIndex`` and more advanced indexing features.
+This section covers indexing with a ``MultiIndex`` and :ref:`more advanced indexing features <indexing.index_types>`.
 
 See the :ref:`Indexing and Selecting Data <indexing>` for general indexing documentation.
 
@@ -51,13 +51,13 @@ See the :ref:`cookbook<cookbook.multi_index>` for some advanced strategies.
 Creating a MultiIndex (hierarchical index) object
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``MultiIndex`` object is the hierarchical analogue of the standard
-``Index`` object which typically stores the axis labels in pandas objects. You
+The :class:`MultiIndex` object is the hierarchical analogue of the standard
+:class:`Index` object which typically stores the axis labels in pandas objects. You
 can think of ``MultiIndex`` as an array of tuples where each tuple is unique. A
 ``MultiIndex`` can be created from a list of arrays (using
-``MultiIndex.from_arrays``), an array of tuples (using
-``MultiIndex.from_tuples``), or a crossed set of iterables (using
-``MultiIndex.from_product``).  The ``Index`` constructor will attempt to return
+:meth:`MultiIndex.from_arrays`), an array of tuples (using
+:meth:`MultiIndex.from_tuples`), or a crossed set of iterables (using
+:meth:`MultiIndex.from_product`).  The ``Index`` constructor will attempt to return
 a ``MultiIndex`` when it is passed a list of tuples.  The following examples
 demonstrate different ways to initialize MultiIndexes.
 
@@ -76,7 +76,7 @@ demonstrate different ways to initialize MultiIndexes.
    s
 
 When you want every pairing of the elements in two iterables, it can be easier
-to use the ``MultiIndex.from_product`` function:
+to use the :meth:`MultiIndex.from_product` method:
 
 .. ipython:: python
 
@@ -84,7 +84,7 @@ to use the ``MultiIndex.from_product`` function:
    pd.MultiIndex.from_product(iterables, names=['first', 'second'])
 
 As a convenience, you can pass a list of arrays directly into Series or
-DataFrame to construct a MultiIndex automatically:
+DataFrame to construct a ``MultiIndex`` automatically:
 
 .. ipython:: python
 
@@ -140,7 +140,7 @@ may wish to generate your own ``MultiIndex`` when preparing the data set.
 Reconstructing the level labels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The method ``get_level_values`` will return a vector of the labels for each
+The method :meth:`~MultiIndex.get_level_values` will return a vector of the labels for each
 location at a particular level:
 
 .. ipython:: python
@@ -183,7 +183,7 @@ For example:
 
 This is done to avoid a recomputation of the levels in order to make slicing
 highly performant. If you want to see only the used levels, you can use the
-:func:`MultiIndex.get_level_values` method.
+:meth:`~MultiIndex.get_level_values` method.
 
 .. ipython:: python
 
@@ -193,7 +193,7 @@ highly performant. If you want to see only the used levels, you can use the
    df[['foo','qux']].columns.get_level_values(0)
 
 To reconstruct the ``MultiIndex`` with only the used levels, the
-``remove_unused_levels`` method may be used.
+:meth:`~MultiIndex.remove_unused_levels` method may be used.
 
 .. versionadded:: 0.20.0
 
@@ -400,8 +400,8 @@ You can use a right-hand-side of an alignable object as well.
 Cross-section
 ~~~~~~~~~~~~~
 
-The ``xs`` method of ``DataFrame`` additionally takes a level argument to make
-selecting data at a particular level of a MultiIndex easier.
+The :meth:`~DataFrame.xs` method of ``DataFrame`` additionally takes a level argument to make
+selecting data at a particular level of a ``MultiIndex`` easier.
 
 .. ipython:: python
 
@@ -519,7 +519,7 @@ to be sorted. As with any index, you can use ``sort_index``.
 
 .. _advanced.sortlevel_byname:
 
-You may also pass a level name to ``sort_index`` if the MultiIndex levels
+You may also pass a level name to ``sort_index`` if the ``MultiIndex`` levels
 are named.
 
 .. ipython:: python
@@ -566,7 +566,8 @@ Furthermore, if you try to index something that is not fully lexsorted, this can
     In [5]: dfm.loc[(0,'y'):(1, 'z')]
     UnsortedIndexError: 'Key length (2) was greater than MultiIndex lexsort depth (1)'
 
-The ``is_lexsorted()`` method on an ``Index`` show if the index is sorted, and the ``lexsort_depth`` property returns the sort depth:
+The :meth:`~MultiIndex.is_lexsorted` method on a ``MultiIndex`` shows if the
+index is sorted, and the ``lexsort_depth`` property returns the sort depth:
 
 .. ipython:: python
 
@@ -591,8 +592,8 @@ Take Methods
 
 .. _advanced.take:
 
-Similar to NumPy ndarrays, pandas Index, Series, and DataFrame also provides
-the ``take`` method that retrieves elements along a given axis at the given
+Similar to NumPy ndarrays, pandas ``Index``, ``Series``, and ``DataFrame`` also provides
+the :meth:`~DataFrame.take` method that retrieves elements along a given axis at the given
 indices. The given indices must be either a list or an ndarray of integer
 index positions. ``take`` will also accept negative integers as relative positions to the end of the object.
 
@@ -668,8 +669,8 @@ In the following sub-sections we will highlight some other index types.
 CategoricalIndex
 ~~~~~~~~~~~~~~~~
 
-``CategoricalIndex`` is a type of index that is useful for supporting
-indexing with duplicates. This is a container around a ``Categorical``
+:class:`CategoricalIndex` is a type of index that is useful for supporting
+indexing with duplicates. This is a container around a :class:`Categorical`
 and allows efficient indexing and storage of an index with a large number of duplicated elements.
 
 .. ipython:: python
@@ -758,11 +759,11 @@ Int64Index and RangeIndex
 
    Indexing on an integer-based Index with floats has been clarified in 0.18.0, for a summary of the changes, see :ref:`here <whatsnew_0180.float_indexers>`.
 
-``Int64Index`` is a fundamental basic index in pandas.
-This is an Immutable array implementing an ordered, sliceable set.
+:class:`Int64Index` is a fundamental basic index in pandas.
+This is an immutable array implementing an ordered, sliceable set.
 Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``NDFrame`` objects.
 
-``RangeIndex`` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
+:class:`RangeIndex` is a sub-class of ``Int64Index`` added in version 0.18.0, now providing the default index for all ``NDFrame`` objects.
 ``RangeIndex`` is an optimized version of ``Int64Index`` that can represent a monotonic ordered set. These are analogous to Python `range types <https://docs.python.org/3/library/stdtypes.html#typesseq-range>`__.
 
 .. _indexing.float64index:
@@ -770,7 +771,7 @@ Prior to 0.18.0, the ``Int64Index`` would provide the default index for all ``ND
 Float64Index
 ~~~~~~~~~~~~
 
-By default a ``Float64Index`` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
+By default a :class:`Float64Index` will be automatically created when passing floating, or mixed-integer-floating values in index creation.
 This enables a pure label-based slicing paradigm that makes ``[],ix,loc`` for scalar indexing and slicing work exactly the
 same.
 
@@ -875,9 +876,9 @@ IntervalIndex
 
 .. versionadded:: 0.20.0
 
-:class:`IntervalIndex` together with its own dtype, ``interval`` as well as the
-:class:`Interval` scalar type,  allow first-class support in pandas for interval
-notation.
+:class:`IntervalIndex` together with its own dtype, :class:`~pandas.api.types.IntervalDtype`
+as well as the :class:`Interval` scalar type,  allow first-class support in pandas
+for interval notation.
 
 The ``IntervalIndex`` allows some unique indexing and is also used as a
 return type for the categories in :func:`cut` and :func:`qcut`.
