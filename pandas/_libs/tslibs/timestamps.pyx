@@ -656,7 +656,7 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
-    def _round(self, freq, rounder):
+    def _round(self, freq, rounder, ambiguous='raise'):
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -668,10 +668,10 @@ class Timestamp(_Timestamp):
         r = round_ns(value, rounder, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
-            result = result.tz_localize(self.tz)
+            result = result.tz_localize(self.tz, ambiguous=ambiguous)
         return result
 
-    def round(self, freq):
+    def round(self, freq, ambiguous='raise'):
         """
         Round the Timestamp to the specified resolution
 
@@ -682,32 +682,55 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.round)
+        return self._round(freq, np.round, ambiguous)
 
-    def floor(self, freq):
+    def floor(self, freq, ambiguous='raise'):
         """
         return a new Timestamp floored to this resolution
 
         Parameters
         ----------
         freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-    def ceil(self, freq):
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+        return self._round(freq, np.floor, ambiguous)
+
+    def ceil(self, freq, ambiguous='raise'):
         """
         return a new Timestamp ceiled to this resolution
 
         Parameters
         ----------
         freq : a freq string indicating the ceiling resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.ceil)
+        return self._round(freq, np.ceil, ambiguous)
 
     @property
     def tz(self):
