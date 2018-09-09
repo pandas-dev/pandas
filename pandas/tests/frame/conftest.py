@@ -7,46 +7,32 @@ import pandas.util.testing as tm
 from pandas import DataFrame, date_range, NaT
 
 
-# This module is the start of transitioning from attributes of
-# pandas/tests/frame/common.TestData towards fixtures (GH22471).
-# Until all modules have been transitioned, it is advised not to change
-# the (admittedly suboptimal) names of these fixtures.
-
 @pytest.fixture
-def frame():
+def float_frame():
     """
     Fixture for DataFrame of floats with index of unique strings
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: float_frame_string_index
-
-    Columns are ['A', 'B', 'C', 'D'], see pandas.util.testing.getSeriesData
+    Columns are ['A', 'B', 'C', 'D'].
     """
     return DataFrame(tm.getSeriesData())
 
 
 @pytest.fixture
-def frame2():
+def float_frame2():
     """
     Fixture for DataFrame of floats with index of unique strings
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: float_frame_string_index2
-
-    Columns are ['D', 'C', 'B', 'A']. See pandas.util.testing.getSeriesData
+    Columns are ['D', 'C', 'B', 'A']
     """
     return DataFrame(tm.getSeriesData(), columns=['D', 'C', 'B', 'A'])
 
 
 @pytest.fixture
-def intframe():
+def int_frame():
     """
     Fixture for DataFrame of ints with index of unique strings
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: int_frame
-
-    Columns are ['A', 'B', 'C', 'D']. See pandas.util.testing.getSeriesData
+    Columns are ['A', 'B', 'C', 'D']
     """
     df = DataFrame({k: v.astype(int)
                    for k, v in compat.iteritems(tm.getSeriesData())})
@@ -55,28 +41,21 @@ def intframe():
 
 
 @pytest.fixture
-def tsframe():
+def datetime_frame():
     """
     Fixture for DataFrame of floats with DatetimeIndex
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: float_frame_datetime_index
-
-    Columns are ['A', 'B', 'C', 'D']. See pandas.util.testing.getTimeSeriesData
+    Columns are ['A', 'B', 'C', 'D']
     """
     return DataFrame(tm.getTimeSeriesData())
 
 
 @pytest.fixture
-def mixed_frame():
+def float_string_frame():
     """
-    Fixture for DataFrame of floats and strings with string index
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: float_string_frame
+    Fixture for DataFrame of floats and strings with index of unique strings
 
     Columns are ['A', 'B', 'C', 'D', 'foo'].
-    See pandas.util.testing.getSeriesData
     """
     df = DataFrame(tm.getSeriesData())
     df['foo'] = 'bar'
@@ -84,14 +63,11 @@ def mixed_frame():
 
 
 @pytest.fixture
-def mixed_float():
+def mixed_float_frame():
     """
-    Fixture for DataFrame of different float types with string index
+    Fixture for DataFrame of different float types with index of unique strings
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: mixed_float_frame
-
-    Columns are ['A', 'B', 'C', 'D']. See pandas.util.testing.getSeriesData
+    Columns are ['A', 'B', 'C', 'D'].
     """
     df = DataFrame(tm.getSeriesData())
     df.A = df.A.astype('float16')
@@ -101,14 +77,11 @@ def mixed_float():
 
 
 @pytest.fixture
-def mixed_float2():
+def mixed_float_frame2():
     """
-    Fixture for DataFrame of different float types with string index
+    Fixture for DataFrame of different float types with index of unique strings
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: mixed_float_frame2
-
-    Columns are ['A', 'B', 'C', 'D']. See pandas.util.testing.getSeriesData
+    Columns are ['A', 'B', 'C', 'D'].
     """
     df = DataFrame(tm.getSeriesData())
     df.D = df.D.astype('float16')
@@ -118,14 +91,11 @@ def mixed_float2():
 
 
 @pytest.fixture
-def mixed_int():
+def mixed_int_frame():
     """
-    Fixture for DataFrame of different int types with string index
+    Fixture for DataFrame of different int types with index of unique strings
 
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: mixed_int_frame
-
-    Columns are ['A', 'B', 'C', 'D']. See pandas.util.testing.getSeriesData
+    Columns are ['A', 'B', 'C', 'D'].
     """
     df = DataFrame({k: v.astype(int)
                    for k, v in compat.iteritems(tm.getSeriesData())})
@@ -137,12 +107,9 @@ def mixed_int():
 
 
 @pytest.fixture
-def all_mixed():
+def mixed_type_frame():
     """
-    Fixture for DataFrame of float/int/string columns
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: float_int_string_frame
+    Fixture for DataFrame of float/int/string columns with RangeIndex
 
     Columns are ['a', 'b', 'c', 'float32', 'int32'].
     """
@@ -153,12 +120,9 @@ def all_mixed():
 
 
 @pytest.fixture
-def tzframe():
+def timezone_frame():
     """
-    Fixture for DataFrame of date_range Series with different timezones
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: timezone_frame
+    Fixture for DataFrame of date_range Series with different time zones
 
     Columns are ['A', 'B', 'C']; some entries are missing
     """
@@ -173,49 +137,33 @@ def tzframe():
 
 
 @pytest.fixture
-def empty():
+def empty_frame():
     """
     Fixture for empty DataFrame
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: empty_frame
     """
     return DataFrame({})
 
 
 @pytest.fixture
-def ts1():
+def datetime_series():
     """
     Fixture for Series of floats with DatetimeIndex
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: datetime_series
-
-    See pandas.util.testing.makeTimeSeries
     """
     return tm.makeTimeSeries(nper=30)
 
 
 @pytest.fixture
-def ts2():
+def datetime_series_short():
     """
     Fixture for Series of floats with DatetimeIndex
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: datetime_series_short
-
-    See pandas.util.testing.makeTimeSeries
     """
     return tm.makeTimeSeries(nper=30)[5:]
 
 
 @pytest.fixture
-def simple():
+def simple_frame():
     """
     Fixture for simple 3x3 DataFrame
-
-    After completing the fixturization of the frame tests (GH 22471), this
-    fixture will be renamed to: simple_frame
 
     Columns are ['one', 'two', 'three'], index is ['a', 'b', 'c'].
     """
@@ -232,8 +180,8 @@ def frame_of_index_cols():
     """
     Fixture for DataFrame of columns that can be used for indexing
 
-    Columns are ['A', 'B', 'C', 'D', 'E']; 'A' & 'B' contain duplicates,
-    the rest are unique.
+    Columns are ['A', 'B', 'C', 'D', 'E']; 'A' & 'B' contain duplicates (but
+    are jointly unique), the rest are unique.
     """
     df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
                     'B': ['one', 'two', 'three', 'one', 'two'],
