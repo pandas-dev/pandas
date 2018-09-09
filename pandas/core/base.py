@@ -23,7 +23,7 @@ from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
-from pandas.compat import PYPY
+from pandas.compat import PYPY, OrderedDict
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
 
@@ -179,28 +179,28 @@ class SelectionMixin(object):
     _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
-    _builtin_table = {
-        builtins.sum: np.sum,
-        builtins.max: np.max,
-        builtins.min: np.min
-    }
-    _cython_table = {
-        builtins.sum: 'sum',
-        builtins.max: 'max',
-        builtins.min: 'min',
-        np.all: 'all',
-        np.any: 'any',
-        np.sum: 'sum',
-        np.mean: 'mean',
-        np.prod: 'prod',
-        np.std: 'std',
-        np.var: 'var',
-        np.median: 'median',
-        np.max: 'max',
-        np.min: 'min',
-        np.cumprod: 'cumprod',
-        np.cumsum: 'cumsum'
-    }
+    _builtin_table = OrderedDict((
+        (builtins.sum, np.sum),
+        (builtins.max, np.max),
+        (builtins.min, np.min),
+    ))
+    _cython_table = OrderedDict((
+        (builtins.sum, 'sum'),
+        (builtins.max, 'max'),
+        (builtins.min, 'min'),
+        (np.all, 'all'),
+        (np.any, 'any'),
+        (np.sum, 'sum'),
+        (np.mean, 'mean'),
+        (np.prod, 'prod'),
+        (np.std, 'std'),
+        (np.var, 'var'),
+        (np.median, 'median'),
+        (np.max, 'max'),
+        (np.min, 'min'),
+        (np.cumprod, 'cumprod'),
+        (np.cumsum, 'cumsum'),
+    ))
 
     @property
     def _selection_name(self):
@@ -581,7 +581,7 @@ class SelectionMixin(object):
                     results.append(colg.aggregate(a))
 
                     # make sure we find a good name
-                    name = com._get_callable_name(a) or a
+                    name = com.get_callable_name(a) or a
                     keys.append(name)
                 except (TypeError, DataError):
                     pass
@@ -856,7 +856,7 @@ class IndexOpsMixin(object):
         numpy.ndarray.tolist
         """
         if is_datetimelike(self._values):
-            return [com._maybe_box_datetimelike(x) for x in self._values]
+            return [com.maybe_box_datetimelike(x) for x in self._values]
         elif is_extension_array_dtype(self._values):
             return list(self._values)
         else:

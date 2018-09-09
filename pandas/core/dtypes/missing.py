@@ -16,7 +16,7 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_string_like_dtype, is_bool_dtype,
                      is_integer_dtype, is_dtype_equal,
                      is_extension_array_dtype,
-                     needs_i8_conversion, _ensure_object,
+                     needs_i8_conversion, ensure_object,
                      pandas_dtype,
                      is_scalar,
                      is_object_dtype,
@@ -413,7 +413,7 @@ def array_equivalent(left, right, strict_nan=False):
         if not strict_nan:
             # isna considers NaN and None to be equivalent.
             return lib.array_equivalent_object(
-                _ensure_object(left.ravel()), _ensure_object(right.ravel()))
+                ensure_object(left.ravel()), ensure_object(right.ravel()))
 
         for left_value, right_value in zip(left, right):
             if left_value is NaT and right_value is not NaT:
@@ -470,7 +470,7 @@ def _infer_fill_value(val):
     if is_datetimelike(val):
         return np.array('NaT', dtype=val.dtype)
     elif is_object_dtype(val.dtype):
-        dtype = lib.infer_dtype(_ensure_object(val))
+        dtype = lib.infer_dtype(ensure_object(val))
         if dtype in ['datetime', 'datetime64']:
             return np.array('NaT', dtype=_NS_DTYPE)
         elif dtype in ['timedelta', 'timedelta64']:

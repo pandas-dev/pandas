@@ -19,13 +19,13 @@ from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
                                         ABCSeries, ABCIntervalIndex,
                                         ABCInterval)
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.indexes.base import Index, _ensure_index
+from pandas.core.indexes.base import Index, ensure_index
 from pandas.util._decorators import Appender
 from pandas.util._doctools import _WritableDoc
 
 from . import ExtensionArray, Categorical
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
@@ -145,8 +145,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         result = IntervalMixin.__new__(cls)
 
         closed = closed or 'right'
-        left = _ensure_index(left, copy=copy)
-        right = _ensure_index(right, copy=copy)
+        left = ensure_index(left, copy=copy)
+        right = ensure_index(right, copy=copy)
 
         if dtype is not None:
             # GH 19262: dtype must be an IntervalDtype to override inferred
@@ -191,8 +191,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return result
 
     @classmethod
-    def _from_sequence(cls, scalars):
-        return cls(scalars)
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -401,7 +401,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     msg = ('{name}.from_tuples received an invalid '
                            'item, {tpl}').format(name=name, tpl=d)
                     raise TypeError(msg)
-                lhs, rhs = d
             left.append(lhs)
             right.append(rhs)
 
@@ -601,7 +600,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         -------
         IntervalArray
         """
-        closed = set(interval.closed for interval in to_concat)
+        closed = {interval.closed for interval in to_concat}
         if len(closed) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed.pop()
@@ -688,10 +687,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @property
     def shape(self):
         return self.left.shape
-
-    @property
-    def itemsize(self):
-        return self.left.itemsize + self.right.itemsize
 
     def take(self, indices, allow_fill=False, fill_value=None, axis=None,
              **kwargs):
@@ -815,7 +810,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 
@@ -984,7 +978,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         examples='',
     ))
     def to_tuples(self, na_tuple=True):
-        tuples = com._asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com.asarray_tuplesafe(zip(self.left, self.right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)

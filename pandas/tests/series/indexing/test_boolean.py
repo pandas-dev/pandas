@@ -617,6 +617,13 @@ def test_mask():
     expected = Series([1, 2, np.nan, np.nan])
     assert_series_equal(result, expected)
 
+    # see gh-21891
+    s = Series([1, 2])
+    res = s.mask([True, False])
+
+    exp = Series([np.nan, 2])
+    tm.assert_series_equal(res, exp)
+
 
 def test_mask_inplace():
     s = Series(np.random.randn(5))

@@ -5,7 +5,7 @@ import pytest
 from numpy import nan
 import numpy as np
 
-from pandas.core.dtypes.common import _ensure_int64
+from pandas.core.dtypes.common import ensure_int64
 from pandas import Index, isna
 from pandas.core.groupby.ops import generate_bins_generic
 from pandas.util.testing import assert_almost_equal
@@ -90,8 +90,8 @@ def test_group_ohlc():
         bins = np.array([6, 12, 20])
         out = np.zeros((3, 4), dtype)
         counts = np.zeros(len(out), dtype=np.int64)
-        labels = _ensure_int64(np.repeat(np.arange(3),
-                                         np.diff(np.r_[0, bins])))
+        labels = ensure_int64(np.repeat(np.arange(3),
+                                        np.diff(np.r_[0, bins])))
 
         func = getattr(groupby, 'group_ohlc_%s' % dtype)
         func(out, counts, obj[:, None], labels)

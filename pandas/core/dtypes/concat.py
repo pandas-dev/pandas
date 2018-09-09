@@ -188,8 +188,8 @@ def _concat_compat(to_concat, axis=0):
         typs = get_dtype_kinds(to_concat)
         if len(typs) != 1:
 
-            if (not len(typs - set(['i', 'u', 'f'])) or
-                    not len(typs - set(['bool', 'i', 'u']))):
+            if (not len(typs - {'i', 'u', 'f'}) or
+                    not len(typs - {'bool', 'i', 'u'})):
                 # let numpy coerce
                 pass
             else:
@@ -534,6 +534,7 @@ def _concat_index_asobject(to_concat, name=None):
 
     to_concat = [x._values if isinstance(x, Index) else x
                  for x in to_concat]
+
     return self._shallow_copy_with_infer(np.concatenate(to_concat), **attribs)
 
 
@@ -599,7 +600,7 @@ def _concat_sparse(to_concat, axis=0, typs=None):
     to_concat = [convert_sparse(x, axis) for x in to_concat]
     result = np.concatenate(to_concat, axis=axis)
 
-    if not len(typs - set(['sparse', 'f', 'i'])):
+    if not len(typs - {'sparse', 'f', 'i'}):
         # sparsify if inputs are sparse and dense numerics
         # first sparse input's fill_value and SparseIndex is used
         result = SparseArray(result.ravel(), fill_value=fill_values[0],

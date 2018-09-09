@@ -369,7 +369,7 @@ class TestHDFStore(Base):
                 store['d'] = tm.makePanel()
                 store['foo/bar'] = tm.makePanel()
             assert len(store) == 5
-            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            expected = {'/a', '/b', '/c', '/d', '/foo/bar'}
             assert set(store.keys()) == expected
             assert set(store) == expected
 
@@ -2104,9 +2104,9 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict((c, Series(np.random.randint(5), dtype=c))
-                                 for c in ['float32', 'float64', 'int32',
-                                           'int64', 'int16', 'int8']))
+            df1 = DataFrame({c: Series(np.random.randint(5), dtype=c)
+                             for c in ['float32', 'float64', 'int32',
+                                       'int64', 'int16', 'int8']})
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')
@@ -2191,6 +2191,10 @@ class TestHDFStore(Base):
             # this fails because we have a date in the object block......
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
+    @pytest.mark.skipif(
+        LooseVersion(np.__version__) == LooseVersion('1.15.0'),
+        reason=("Skipping  pytables test when numpy version is "
+                "exactly equal to 1.15.0: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591

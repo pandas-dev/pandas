@@ -156,10 +156,27 @@ class TestSeriesConstructors(TestData):
 
         assert_series_equal(s2, s1.sort_index())
 
-    def test_constructor_iterator(self):
+    def test_constructor_iterable(self):
+        # GH 21987
+        class Iter():
+            def __iter__(self):
+                for i in range(10):
+                    yield i
 
         expected = Series(list(range(10)), dtype='int64')
+        result = Series(Iter(), dtype='int64')
+        assert_series_equal(result, expected)
+
+    def test_constructor_sequence(self):
+        # GH 21987
+        expected = Series(list(range(10)), dtype='int64')
         result = Series(range(10), dtype='int64')
+        assert_series_equal(result, expected)
+
+    def test_constructor_single_str(self):
+        # GH 21987
+        expected = Series(['abc'])
+        result = Series('abc')
         assert_series_equal(result, expected)
 
     def test_constructor_list_like(self):
@@ -226,10 +243,13 @@ class TestSeriesConstructors(TestData):
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
+        # can cast to a new dtype
+        result = Series(pd.Categorical([1, 2, 3]),
+                        dtype='int64')
+        expected = pd.Series([1, 2, 3], dtype='int64')
+        tm.assert_series_equal(result, expected)
+
         # GH12574
-        pytest.raises(
-            ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
-                                       dtype='int64'))
         cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
@@ -932,7 +952,7 @@ class TestSeriesConstructors(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_constructor_set(self):
-        values = set([1, 2, 3, 4, 5])
+        values = {1, 2, 3, 4, 5}
         pytest.raises(TypeError, Series, values)
         values = frozenset(values)
         pytest.raises(TypeError, Series, values)

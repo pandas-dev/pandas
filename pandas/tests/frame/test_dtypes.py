@@ -9,7 +9,7 @@ from datetime import timedelta
 import numpy as np
 from pandas import (DataFrame, Series, date_range, Timedelta, Timestamp,
                     Categorical, compat, concat, option_context)
-from pandas.compat import u, PY2
+from pandas.compat import u
 from pandas import _np_version_under1p14
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype, CategoricalDtype
@@ -356,9 +356,10 @@ class TestDataFrameDataTypes(TestData):
         expected = df3.reindex(columns=[])
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype", [str, "str", np.string_, "S1",
-                  "unicode", np.unicode_, "U1"] + ([unicode] if PY2 else []))
+    @pytest.mark.parametrize("dtype", [
+        str, "str", np.string_, "S1", "unicode", np.unicode_, "U1",
+        compat.text_type
+    ])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame({"a": list("abc"),
@@ -396,8 +397,8 @@ class TestDataFrameDataTypes(TestData):
     def test_dtypes_gh8722(self):
         self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
         result = self.mixed_frame.dtypes
-        expected = Series(dict((k, v.dtype)
-                               for k, v in compat.iteritems(self.mixed_frame)),
+        expected = Series({k: v.dtype
+                           for k, v in compat.iteritems(self.mixed_frame)},
                           index=result.index)
         assert_series_equal(result, expected)
 
@@ -438,8 +439,8 @@ class TestDataFrameDataTypes(TestData):
 
         # mixed casting
         def _check_cast(df, v):
-            assert (list(set(s.dtype.name for
-                             _, s in compat.iteritems(df)))[0] == v)
+            assert (list({s.dtype.name for
+                          _, s in compat.iteritems(df)})[0] == v)
 
         mn = self.all_mixed._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')

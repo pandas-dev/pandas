@@ -41,7 +41,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-           'DateOffset']
+           'DateOffset', 'CalendarDay']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to
 # pass thru
@@ -158,6 +158,54 @@ class DateOffset(BaseOffset):
     date + BDay(0) == BDay.rollforward(date)
 
     Since 0 is a bit weird, we suggest avoiding its use.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of time periods the offset represents.
+    normalize : bool, default False
+        Whether to round the result of a DateOffset addition down to the
+        previous midnight.
+    **kwds
+        Temporal parameter that add to or replace the offset value.
+
+        Parameters that **add** to the offset (like Timedelta):
+
+        - years
+        - months
+        - weeks
+        - days
+        - hours
+        - minutes
+        - seconds
+        - microseconds
+        - nanoseconds
+
+        Parameters that **replace** the offset value:
+
+        - year
+        - month
+        - day
+        - weekday
+        - hour
+        - minute
+        - second
+        - microsecond
+        - nanosecond
+
+    See Also
+    --------
+    dateutil.relativedelta.relativedelta
+
+    Examples
+    --------
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(months=3)
+    Timestamp('2017-04-01 09:10:11')
+
+    >>> ts = pd.Timestamp('2017-01-01 09:10:11')
+    >>> ts + DateOffset(month=3)
+    Timestamp('2017-03-01 09:10:11')
     """
     _params = cache_readonly(BaseOffset._params.fget)
     _use_relativedelta = False
@@ -226,9 +274,8 @@ class DateOffset(BaseOffset):
                                       "implementation".format(
                                           name=self.__class__.__name__))
         kwds = self.kwds
-        relativedelta_fast = set(['years', 'months', 'weeks',
-                                  'days', 'hours', 'minutes',
-                                  'seconds', 'microseconds'])
+        relativedelta_fast = {'years', 'months', 'weeks', 'days', 'hours',
+                              'minutes', 'seconds', 'microseconds'}
         # relativedelta/_offset path only valid for base DateOffset
         if (self._use_relativedelta and
                 set(kwds).issubset(relativedelta_fast)):
@@ -270,7 +317,7 @@ class DateOffset(BaseOffset):
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
     def _repr_attrs(self):
-        exclude = set(['n', 'inc', 'normalize'])
+        exclude = {'n', 'inc', 'normalize'}
         attrs = []
         for attr in sorted(self.__dict__):
             if attr.startswith('_') or attr == 'kwds':
@@ -1273,7 +1320,7 @@ class Week(DateOffset):
             roll = self.n
 
         base = (base_period + roll).to_timestamp(how='end')
-        return base + off
+        return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -2076,6 +2123,54 @@ class Easter(DateOffset):
             return False
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
+
+class CalendarDay(SingleConstructorOffset):
+    """
+    Calendar day offset. Respects calendar arithmetic as opposed to Day which
+    respects absolute time.
+    """
+    _adjust_dst = True
+    _inc = Timedelta(days=1)
+    _prefix = 'CD'
+    _attributes = frozenset(['n', 'normalize'])
+
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n, normalize)
+
+    @apply_wraps
+    def apply(self, other):
+        """
+        Apply scalar arithmetic with CalendarDay offset. Incoming datetime
+        objects can be tz-aware or naive.
+        """
+        if type(other) == type(self):
+            # Add other CalendarDays
+            return type(self)(self.n + other.n, normalize=self.normalize)
+        tzinfo = getattr(other, 'tzinfo', None)
+        if tzinfo is not None:
+            other = other.replace(tzinfo=None)
+
+        other = other + self.n * self._inc
+
+        if tzinfo is not None:
+            # This can raise a AmbiguousTimeError or NonExistentTimeError
+            other = conversion.localize_pydatetime(other, tzinfo)
+
+        try:
+            return as_timestamp(other)
+        except TypeError:
+            raise TypeError("Cannot perform arithmetic between {other} and "
+                            "CalendarDay".format(other=type(other)))
+
+    @apply_index_wraps
+    def apply_index(self, i):
+        """
+        Apply the CalendarDay offset to a DatetimeIndex. Incoming DatetimeIndex
+        objects are assumed to be tz_naive
+        """
+        return i + self.n * self._inc
+
+
 # ---------------------------------------------------------------------
 # Ticks
 
@@ -2263,7 +2358,8 @@ def generate_range(start=None, end=None, periods=None,
     ----------
     start : datetime (default None)
     end : datetime (default None)
-    periods : int, optional
+    periods : int, (default None)
+    offset : DateOffset, (default BDay())
     time_rule : (legacy) name of DateOffset object to be used, optional
         Corresponds with names expected by tseries.frequencies.get_offset
 
@@ -2327,7 +2423,7 @@ def generate_range(start=None, end=None, periods=None,
             cur = next_date
 
 
-prefix_mapping = dict((offset._prefix, offset) for offset in [
+prefix_mapping = {offset._prefix: offset for offset in [
     YearBegin,                 # 'AS'
     YearEnd,                   # 'A'
     BYearBegin,                # 'BAS'
@@ -2359,4 +2455,5 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
-])
+    CalendarDay                # 'CD'
+]}

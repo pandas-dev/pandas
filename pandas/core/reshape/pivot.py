@@ -10,7 +10,7 @@ from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
 from pandas.core.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
-from pandas.core.index import Index, _get_objs_combined_axis
+from pandas.core.index import Index, MultiIndex, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
 from pandas import compat
 import pandas.core.common as com
@@ -369,6 +369,30 @@ def _convert_by(by):
     return by
 
 
+@Substitution('\ndata : DataFrame')
+@Appender(_shared_docs['pivot'], indents=1)
+def pivot(data, index=None, columns=None, values=None):
+    if values is None:
+        cols = [columns] if index is None else [index, columns]
+        append = index is None
+        indexed = data.set_index(cols, append=append)
+    else:
+        if index is None:
+            index = data.index
+        else:
+            index = data[index]
+        index = MultiIndex.from_arrays([index, data[columns]])
+
+        if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
+            indexed = data._constructor(data[values].values, index=index,
+                                        columns=values)
+        else:
+            indexed = data._constructor_sliced(data[values].values,
+                                               index=index)
+    return indexed.unstack(columns)
+
+
 def crosstab(index, columns, values=None, rownames=None, colnames=None,
              aggfunc=None, margins=False, margins_name='All', dropna=True,
              normalize=False):
@@ -470,8 +494,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     crosstab : DataFrame
     """
 
-    index = com._maybe_make_list(index)
-    columns = com._maybe_make_list(columns)
+    index = com.maybe_make_list(index)
+    columns = com.maybe_make_list(columns)
 
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')

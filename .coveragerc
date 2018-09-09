@@ -2,6 +2,7 @@
 [run]
 branch = False
 omit = */tests/*
+plugins = Cython.Coverage
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -16,12 +17,14 @@ exclude_lines =
     # Don't complain if tests don't hit defensive assertion code:
     raise AssertionError
     raise NotImplementedError
+    AbstractMethodError
 
     # Don't complain if non-runnable code isn't run:
     if 0:
     if __name__ == .__main__.:
 
 ignore_errors = False
+show_missing = True
 
 [html]
 directory = coverage_html_report

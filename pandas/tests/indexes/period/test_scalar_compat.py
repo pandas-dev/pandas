@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for PeriodIndex behaving like a vectorized Period scalar"""
 
-from pandas import PeriodIndex, date_range
+from pandas import PeriodIndex, date_range, Timedelta
 import pandas.util.testing as tm
 
 
@@ -14,4 +14,5 @@ class TestPeriodIndexOps(object):
     def test_end_time(self):
         index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
         expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
+        expected_index += Timedelta(1, 'D') - Timedelta(1, 'ns')
         tm.assert_index_equal(index.end_time, expected_index)

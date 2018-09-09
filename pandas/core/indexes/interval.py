@@ -8,7 +8,7 @@ from pandas.compat import add_metaclass
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import find_common_type, maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
@@ -21,7 +21,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_integer)
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
+    Index, ensure_index,
     default_pprint, _index_shared_docs)
 
 from pandas._libs import Timestamp, Timedelta
@@ -44,7 +44,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.arrays.interval import (IntervalArray,
                                          _interval_shared_docs)
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
@@ -369,8 +369,14 @@ class IntervalIndex(IntervalMixin, Index):
 
     @property
     def itemsize(self):
-        # Avoid materializing ndarray[Interval]
-        return self._data.itemsize
+        msg = ('IntervalIndex.itemsize is deprecated and will be removed in '
+               'a future version')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        # supress the warning from the underlying left/right itemsize
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            return self.left.itemsize + self.right.itemsize
 
     def __len__(self):
         return len(self.left)
@@ -700,7 +706,7 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
         target = self._maybe_cast_indexed(target)
 
         if self.equals(target):
@@ -724,7 +730,7 @@ class IntervalIndex(IntervalMixin, Index):
         else:
             indexer = np.concatenate([self.get_loc(i) for i in target])
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     def _get_reindexer(self, target):
         """
@@ -799,7 +805,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = self._maybe_cast_indexed(_ensure_index(target))
+        target = self._maybe_cast_indexed(ensure_index(target))
         return super(IntervalIndex, self).get_indexer_non_unique(target)
 
     @Appender(_index_shared_docs['where'])
@@ -855,7 +861,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _as_like_interval_index(self, other):
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
+        other = ensure_index(other)
         if not isinstance(other, IntervalIndex):
             msg = ('the other index needs to be an IntervalIndex too, but '
                    'was type {}').format(other.__class__.__name__)
@@ -939,7 +945,6 @@ class IntervalIndex(IntervalMixin, Index):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 
@@ -1047,7 +1052,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     freq : numeric, string, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
-        for numeric and 'D' (calendar daily) for datetime-like.
+        for numeric and 'D' for datetime-like.
     name : string, default None
         Name of the resulting IntervalIndex
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
@@ -1120,14 +1125,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    start = com._maybe_box_datetimelike(start)
-    end = com._maybe_box_datetimelike(end)
+    start = com.maybe_box_datetimelike(start)
+    end = com.maybe_box_datetimelike(end)
     endpoint = start if start is not None else end
 
     if freq is None and com._any_none(periods, start, end):
         freq = 1 if is_number(endpoint) else 'D'
 
-    if com._count_not_none(start, end, periods, freq) != 3:
+    if com.count_not_none(start, end, periods, freq) != 3:
         raise ValueError('Of the four parameters: start, end, periods, and '
                          'freq, exactly three must be specified')
 

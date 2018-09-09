@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -7,7 +6,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t
 cnp.import_array()
 
 from datetime import time as datetime_time
@@ -17,8 +16,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array,
-                   INT64_MAX)
+                   is_integer_object, is_string_object, is_array)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
@@ -342,7 +340,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            ndarray out
+            int8_t out[1]
             int month_kw
 
         freq = self.freq
@@ -362,7 +360,7 @@ cdef class _Timestamp(datetime):
     cpdef _get_date_name_field(self, object field, object locale):
         cdef:
             int64_t val
-            ndarray out
+            object[:] out
 
         val = self._maybe_convert_value_to_local()
         out = get_date_name_field(np.array([val], dtype=np.int64),
@@ -739,6 +737,12 @@ class Timestamp(_Timestamp):
         """
         from pandas import Period
 
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn("Converting to Period representation will "
+                          "drop timezone information.",
+                          UserWarning)
+
         if freq is None:
             freq = self.freq
 
@@ -1103,7 +1107,7 @@ class Timestamp(_Timestamp):
 
 
 # Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 # the smallest value we could actually represent is
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution
