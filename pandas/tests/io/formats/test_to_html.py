@@ -1905,6 +1905,35 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
+    def test_to_html_multi_indices_index_false(self):
+        # GH 22579
+        index = pd.MultiIndex.from_product([['a'], ['b', 'c']])
+        df = pd.DataFrame(np.zeros((2, 2), dtype=int), index, index)
+        result = df.to_html(index=False)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th colspan="2" halign="left">a</th>
+            </tr>
+            <tr>
+              <th>b</th>
+              <th>c</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)

@@ -195,31 +195,12 @@ class HTMLFormatter(TableFormatter):
         buffer_put_lines(buf, self.elements)
 
     def _write_header(self, indent):
-        truncate_h = self.fmt.truncate_h
-        row_levels = self.frame.index.nlevels
         if not self.fmt.header:
             # write nothing
             return indent
 
-        def _column_header():
-            if self.fmt.index:
-                row = [''] * (self.frame.index.nlevels - 1)
-            else:
-                row = []
-
-            if isinstance(self.columns, ABCMultiIndex):
-                if self.fmt.has_column_names and self.fmt.index:
-                    row.append(single_column_table(self.columns.names))
-                else:
-                    row.append('')
-                style = "text-align: {just};".format(just=self.fmt.justify)
-                row.extend([single_column_table(c, self.fmt.justify, style)
-                            for c in self.columns])
-            else:
-                if self.fmt.index:
-                    row.append(self.columns.name or '')
-                row.extend(self.columns)
-            return row
+        truncate_h = self.fmt.truncate_h
+        row_levels = self.frame.index.nlevels
 
         self.write('<thead>', indent)
 
@@ -282,11 +263,11 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                name = self.columns.names[lnum]
-                row = [''] * (row_levels - 1) + ['' if name is None else
-                                                 pprint_thing(name)]
-
-                if row == [""] and self.fmt.index is False:
+                if self.fmt.index:
+                    name = self.columns.names[lnum]
+                    row = [''] * (row_levels - 1) + ['' if name is None else
+                                                     pprint_thing(name)]
+                else:
                     row = []
 
                 tags = {}
@@ -302,14 +283,19 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
-            col_row = _column_header()
+            if self.fmt.index:
+                row = [''] * (row_levels - 1) + [self.columns.name or '']
+            else:
+                row = []
+            row.extend(self.columns)
+
             align = self.fmt.justify
 
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
-                col_row.insert(ins_col, '...')
+                row.insert(ins_col, '...')
 
-            self.write_tr(col_row, indent, self.indent_delta, header=True,
+            self.write_tr(row, indent, self.indent_delta, header=True,
                           align=align)
 
         if all((self.fmt.has_index_names,
