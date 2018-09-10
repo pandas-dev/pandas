@@ -741,8 +741,9 @@ class SQLTable(PandasObject):
     def _create_table_setup(self):
         from sqlalchemy import Table, Column, PrimaryKeyConstraint
 
-        column_names_and_types = \
-            self._get_column_names_and_types(self._sqlalchemy_type)
+        column_names_and_types = self._get_column_names_and_types(
+            self._sqlalchemy_type
+        )
 
         columns = [Column(name, typ, index=is_index)
                    for name, typ, is_index in column_names_and_types]
@@ -844,6 +845,8 @@ class SQLTable(PandasObject):
                                       DateTime, Date, Time, TIMESTAMP)
 
         if col_type == 'datetime64' or col_type == 'datetime':
+            # GH 9086: TIMESTAMP is the suggested type if the column contains
+            # timezone information
             if col.dt.tz is not None:
                 return TIMESTAMP(timezone=True)
             return DateTime
@@ -1273,8 +1276,9 @@ class SQLiteTable(SQLTable):
         structure of a DataFrame.  The first entry will be a CREATE TABLE
         statement while the rest will be CREATE INDEX statements.
         """
-        column_names_and_types = \
-            self._get_column_names_and_types(self._sql_type_name)
+        column_names_and_types = self._get_column_names_and_types(
+            self._sql_type_name
+        )
 
         pat = re.compile(r'\s+')
         column_names = [col_name for col_name, _, _ in column_names_and_types]

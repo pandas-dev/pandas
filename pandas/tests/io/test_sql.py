@@ -954,7 +954,8 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
                                             utc=True)})
         db = sql.SQLDatabase(self.conn)
         table = sql.SQLTable("test_type", db, frame=df)
-        assert isinstance(table.table.c['time'].type, sqltypes.DateTime)
+        # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
+        assert isinstance(table.table.c['time'].type, sqltypes.TIMESTAMP)
 
     def test_database_uri_string(self):
 
@@ -1359,7 +1360,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_datetime_with_timezone_writing(self):
         # GH 9086
         df = DataFrame({'A': date_range(
-            '2013-01-01 09:00:00', periods=3, tz='US/Pacific')})
+            '2013-01-01 09:00:00', periods=3, tz='US/Pacific'
+        )})
         df.to_sql('test_datetime_tz', self.conn)
 
         # with read_table -> type information from schema used
