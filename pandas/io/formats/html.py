@@ -201,7 +201,7 @@ class HTMLFormatter(TableFormatter):
 
         truncate_h = self.fmt.truncate_h
         row_levels = self.frame.index.nlevels
-        has_column_names = any(name for name in self.columns.names)
+        has_column_names = self.fmt.has_column_names
         show_index_names = self.fmt.show_index_names
 
         self.write('<thead>', indent)
@@ -326,7 +326,7 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
-        has_column_names = any(name for name in self.columns.names)
+        has_column_names = self.fmt.has_column_names
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
