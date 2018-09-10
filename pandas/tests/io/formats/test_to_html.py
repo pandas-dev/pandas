@@ -1907,8 +1907,8 @@ class TestToHTML(object):
 
     def test_to_html_multi_indices_index_false(self):
         # GH 22579
-        index = pd.MultiIndex.from_product([['a'], ['b', 'c']])
-        df = pd.DataFrame(np.zeros((2, 2), dtype=int), index, index)
+        multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
+        df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
         result = df.to_html(index=False)
         expected = dedent("""\
         <table border="1" class="dataframe">
@@ -1927,6 +1927,99 @@ class TestToHTML(object):
               <td>0</td>
             </tr>
             <tr>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
+    def test_to_html_index_name_single_index(self):
+        df = DataFrame(np.zeros((2, 2), dtype=int))
+        df.index.name = 'index.name'
+        df.columns.name = 'columns.name'
+        result = df.to_html()
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th>columns.name</th>
+              <th>0</th>
+              <th>1</th>
+            </tr>
+            <tr>
+              <th>index.name</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
+        df = DataFrame(np.zeros((2, 2), dtype=int))
+        df.columns.name = 'columns.name'
+        result = df.to_html()
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th>columns.name</th>
+              <th>0</th>
+              <th>1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
+        df = DataFrame(np.zeros((2, 2), dtype=int))
+        df.index.name = 'index.name'
+        result = df.to_html()
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr style="text-align: right;">
+              <th></th>
+              <th>0</th>
+              <th>1</th>
+            </tr>
+            <tr>
+              <th>index.name</th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <th>1</th>
               <td>0</td>
               <td>0</td>
             </tr>
