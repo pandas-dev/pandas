@@ -87,18 +87,19 @@ class Repeat(object):
 class Cat(object):
 
     goal_time = 0.2
-    params = ([None, 5], [None, ','], [None, '-'])
-    param_names = ['others', 'sep', 'na_rep']
+    params = ([None, 5], [None, ','], [None, '-'], [0.0, 1e-4, 0.1])
+    param_names = ['others', 'sep', 'na_rep', 'na_frac']
 
-    def setup(self, others, sep, na_rep):
+    def setup(self, others, sep, na_rep, na_frac):
         N = int(5e5)
-        mask_gen = lambda: np.random.choice([True, False], N, p=[0.9, 0.1])
+        mask_gen = lambda: np.random.choice([True, False], N,
+                                            p=[1 - na_frac, na_frac])
         self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
         self.others = (DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
                                   for i in range(others)})
                        if others is not None else None)
 
-    def time_cat(self, others, sep, na_rep):
+    def time_cat(self, others, sep, na_rep, na_frac):
         self.s.str.cat(self.others, sep=sep, na_rep=na_rep)
 
 
