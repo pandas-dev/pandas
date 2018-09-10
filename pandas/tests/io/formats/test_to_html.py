@@ -2067,9 +2067,38 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-        # df = DataFrame(np.zeros((2, 2), dtype=int), columns=multi_index)
-        # df.columns.name = 'columns.name'
-        # result = df.to_html()
+        columns_multi_index = MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       columns=columns_multi_index)
+        result = df.to_html()
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th>columns.name.0</th>
+              <th colspan="2" halign="left">a</th>
+            </tr>
+            <tr>
+              <th>columns.name.1</th>
+              <th>b</th>
+              <th>c</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>0</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <th>1</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
 
         multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
         df = DataFrame(np.zeros((2, 2), dtype=int), columns=multi_index)
