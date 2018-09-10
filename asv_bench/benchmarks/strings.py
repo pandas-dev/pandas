@@ -100,6 +100,10 @@ class Cat(object):
                        if others is not None else None)
 
     def time_cat(self, others, sep, na_rep, na_frac):
+        # before the concatenation (one caller + others columns), the total
+        # expected fraction of rows containing any NaN is:
+        #     reduce(lambda t, _: t + (1 - t) * na_frac, range(others + 1), 0)
+        # for others=5 and na_frac=0.1, this works out to ~47%
         self.s.str.cat(self.others, sep=sep, na_rep=na_rep)
 
 
