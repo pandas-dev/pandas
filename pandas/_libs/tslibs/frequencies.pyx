@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import re
-
-cimport cython
 
 cimport numpy as cnp
 cnp.import_array()
@@ -126,7 +123,7 @@ _lite_rule_alias = {
     'us': 'U',
     'ns': 'N'}
 
-_dont_uppercase = set(('MS', 'ms'))
+_dont_uppercase = {'MS', 'ms'}
 
 # ----------------------------------------------------------------------
 

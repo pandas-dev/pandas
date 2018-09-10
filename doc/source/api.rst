@@ -545,6 +545,7 @@ These can be accessed like ``Series.dt.<property>``.
 
    Series.dt.date
    Series.dt.time
+   Series.dt.timetz
    Series.dt.year
    Series.dt.month
    Series.dt.day
@@ -1739,6 +1740,7 @@ Time/Date Components
    DatetimeIndex.nanosecond
    DatetimeIndex.date
    DatetimeIndex.time
+   DatetimeIndex.timetz
    DatetimeIndex.dayofyear
    DatetimeIndex.weekofyear
    DatetimeIndex.week
@@ -2350,6 +2352,7 @@ Computations / Descriptive Stats
    Resampler.std
    Resampler.sum
    Resampler.var
+   Resampler.quantile
 
 Style
 -----

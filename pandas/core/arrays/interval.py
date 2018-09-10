@@ -25,7 +25,7 @@ from pandas.util._doctools import _WritableDoc
 
 from . import ExtensionArray, Categorical
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _interval_shared_docs = {}
 _shared_docs_kwargs = dict(
     klass='IntervalArray',
@@ -688,10 +688,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def shape(self):
         return self.left.shape
 
-    @property
-    def itemsize(self):
-        return self.left.itemsize + self.right.itemsize
-
     def take(self, indices, allow_fill=False, fill_value=None, axis=None,
              **kwargs):
         """
@@ -814,7 +810,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 summary = '[{head} ... {tail}]'.format(
                     head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
                 summary = '[{tail}]'.format(tail=', '.join(tail))
 

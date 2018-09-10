@@ -331,6 +331,10 @@ Read CSV (comma-separated) file into DataFrame
 """ % (_parser_params % (_sep_doc.format(default="','"), _engine_doc))
 
 _read_table_doc = """
+
+.. deprecated:: 0.24.0
+   Use :func:`pandas.read_csv` instead, passing ``sep='\t'`` if necessary.
+
 Read general delimited file into DataFrame
 
 %s
@@ -540,9 +544,13 @@ _deprecated_args = {
 }
 
 
-def _make_parser_function(name, sep=','):
+def _make_parser_function(name, default_sep=','):
 
-    default_sep = sep
+    # prepare read_table deprecation
+    if name == "read_table":
+        sep = False
+    else:
+        sep = default_sep
 
     def parser_f(filepath_or_buffer,
                  sep=sep,
@@ -611,11 +619,24 @@ def _make_parser_function(name, sep=','):
                  memory_map=False,
                  float_precision=None):
 
+        # deprecate read_table GH21948
+        if name == "read_table":
+            if sep is False and delimiter is None:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead, passing sep='\\t'.",
+                              FutureWarning, stacklevel=2)
+            else:
+                warnings.warn("read_table is deprecated, use read_csv "
+                              "instead.",
+                              FutureWarning, stacklevel=2)
+            if sep is False:
+                sep = default_sep
+
         # Alias sep -> delimiter.
         if delimiter is None:
             delimiter = sep
 
-        if delim_whitespace and delimiter is not default_sep:
+        if delim_whitespace and delimiter != default_sep:
             raise ValueError("Specified a delimiter with both sep and"
                              " delim_whitespace=True; you can only"
                              " specify one.")
@@ -687,10 +708,10 @@ def _make_parser_function(name, sep=','):
     return parser_f
 
 
-read_csv = _make_parser_function('read_csv', sep=',')
+read_csv = _make_parser_function('read_csv', default_sep=',')
 read_csv = Appender(_read_csv_doc)(read_csv)
 
-read_table = _make_parser_function('read_table', sep='\t')
+read_table = _make_parser_function('read_table', default_sep='\t')
 read_table = Appender(_read_table_doc)(read_table)
 
 
@@ -1599,7 +1620,6 @@ class ParserBase(object):
         converted : ndarray
         na_count : int
         """
-
         na_count = 0
         if issubclass(values.dtype.type, (np.number, np.bool_)):
             mask = algorithms.isin(values, list(na_values))
@@ -1617,15 +1637,15 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = parsers.sanitize_objects(result, na_values,
-                                                        False)
+                    na_count = parsers.sanitize_objects(result,
+                                                        na_values, False)
         else:
             result = values
             if values.dtype == np.object_:
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = libops.maybe_convert_bool(values,
+            result = libops.maybe_convert_bool(np.asarray(values),
                                                true_values=self.true_values,
                                                false_values=self.false_values)
 

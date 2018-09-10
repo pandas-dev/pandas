@@ -44,7 +44,7 @@ import pandas.core.indexes.base as ibase
 from pandas.core.arrays.interval import (IntervalArray,
                                          _interval_shared_docs)
 
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
@@ -369,8 +369,14 @@ class IntervalIndex(IntervalMixin, Index):
 
     @property
     def itemsize(self):
-        # Avoid materializing ndarray[Interval]
-        return self._data.itemsize
+        msg = ('IntervalIndex.itemsize is deprecated and will be removed in '
+               'a future version')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        # supress the warning from the underlying left/right itemsize
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            return self.left.itemsize + self.right.itemsize
 
     def __len__(self):
         return len(self.left)
@@ -1046,7 +1052,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     freq : numeric, string, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
-        for numeric and 'D' (calendar daily) for datetime-like.
+        for numeric and 'D' for datetime-like.
     name : string, default None
         Name of the resulting IntervalIndex
     closed : {'left', 'right', 'both', 'neither'}, default 'right'

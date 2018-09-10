@@ -3,6 +3,7 @@ from collections import defaultdict
 from functools import partial
 import itertools
 import operator
+import re
 
 import numpy as np
 
@@ -23,7 +24,8 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.cast import (
     maybe_promote,
     infer_dtype_from_scalar,
-    find_common_type)
+    find_common_type,
+    maybe_convert_objects)
 from pandas.core.dtypes.missing import isna
 import pandas.core.dtypes.concat as _concat
 from pandas.core.dtypes.generic import ABCSeries, ABCExtensionArray
@@ -174,19 +176,10 @@ class BlockManager(PandasObject):
         axis : int
         copy : boolean, default True
         level : int, default None
-
         """
         obj = self.copy(deep=copy)
         obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
         return obj
-
-    def add_prefix(self, prefix):
-        f = partial('{prefix}{}'.format, prefix=prefix)
-        return self.rename_axis(f, axis=0)
-
-    def add_suffix(self, suffix):
-        f = partial('{}{suffix}'.format, suffix=suffix)
-        return self.rename_axis(f, axis=0)
 
     @property
     def _is_single_block(self):
@@ -220,11 +213,9 @@ class BlockManager(PandasObject):
         self._blknos = new_blknos
         self._blklocs = new_blklocs
 
-    # make items read only for now
-    def _get_items(self):
+    @property
+    def items(self):
         return self.axes[0]
-
-    items = property(fget=_get_items)
 
     def _get_counts(self, f):
         """ return a dict of the counts of the function in BlockManager """
@@ -571,12 +562,19 @@ class BlockManager(PandasObject):
         # figure out our mask a-priori to avoid repeated replacements
         values = self.as_array()
 
-        def comp(s):
+        def comp(s, regex=False):
+            """
+            Generate a bool array by perform an equality check, or perform
+            an element-wise regular expression matching
+            """
             if isna(s):
                 return isna(values)
-            return _maybe_compare(values, getattr(s, 'asm8', s), operator.eq)
+            if hasattr(s, 'asm8'):
+                return _compare_or_regex_match(maybe_convert_objects(values),
+                                               getattr(s, 'asm8'), regex)
+            return _compare_or_regex_match(values, s, regex)
 
-        masks = [comp(s) for i, s in enumerate(src_list)]
+        masks = [comp(s, regex) for i, s in enumerate(src_list)]
 
         result_blocks = []
         src_len = len(src_list) - 1
@@ -588,20 +586,16 @@ class BlockManager(PandasObject):
             for i, (s, d) in enumerate(zip(src_list, dest_list)):
                 new_rb = []
                 for b in rb:
-                    if b.dtype == np.object_:
-                        convert = i == src_len
-                        result = b.replace(s, d, inplace=inplace, regex=regex,
-                                           mgr=mgr, convert=convert)
+                    m = masks[i][b.mgr_locs.indexer]
+                    convert = i == src_len
+                    result = b._replace_coerce(mask=m, to_replace=s, value=d,
+                                               inplace=inplace,
+                                               convert=convert, regex=regex,
+                                               mgr=mgr)
+                    if m.any():
                         new_rb = _extend_blocks(result, new_rb)
                     else:
-                        # get our mask for this element, sized to this
-                        # particular block
-                        m = masks[i][b.mgr_locs.indexer]
-                        if m.any():
-                            b = b.coerce_to_target_dtype(d)
-                            new_rb.extend(b.putmask(m, d, inplace=True))
-                        else:
-                            new_rb.append(b)
+                        new_rb.append(b)
                 rb = new_rb
             result_blocks.extend(rb)
 
@@ -1890,7 +1884,28 @@ def _consolidate(blocks):
     return new_blocks
 
 
-def _maybe_compare(a, b, op):
+def _compare_or_regex_match(a, b, regex=False):
+    """
+    Compare two array_like inputs of the same shape or two scalar values
+
+    Calls operator.eq or re.match, depending on regex argument. If regex is
+    True, perform an element-wise regex matching.
+
+    Parameters
+    ----------
+    a : array_like or scalar
+    b : array_like or scalar
+    regex : bool, default False
+
+    Returns
+    -------
+    mask : array_like of bool
+    """
+    if not regex:
+        op = lambda x: operator.eq(x, b)
+    else:
+        op = np.vectorize(lambda x: bool(re.match(b, x)) if isinstance(x, str)
+                          else False)
 
     is_a_array = isinstance(a, np.ndarray)
     is_b_array = isinstance(b, np.ndarray)
@@ -1902,9 +1917,8 @@ def _maybe_compare(a, b, op):
     # numpy deprecation warning if comparing numeric vs string-like
     elif is_numeric_v_string_like(a, b):
         result = False
-
     else:
-        result = op(a, b)
+        result = op(a)
 
     if is_scalar(result) and (is_a_array or is_b_array):
         type_names = [type(a).__name__, type(b).__name__]

@@ -1,4 +1,4 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 
 cimport cython
 from cython cimport Py_ssize_t
@@ -45,7 +45,7 @@ tiebreakers = {
 }
 
 
-cdef inline are_diff(object left, object right):
+cdef inline bint are_diff(object left, object right):
     try:
         return fabs(left - right) > FP_ERR
     except TypeError:
@@ -129,7 +129,7 @@ def is_lexsorted(list list_of_arrays):
     for i in range(nlevels):
         arr = list_of_arrays[i]
         assert arr.dtype.name == 'int64'
-        vecs[i] = <int64_t*> arr.data
+        vecs[i] = <int64_t*> cnp.PyArray_DATA(arr)
 
     # Assume uniqueness??
     with nogil:

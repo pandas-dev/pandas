@@ -1,18 +1,19 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
 
-from pandas.tests.extension import base
-from pandas.api.types import (
-    is_integer, is_scalar, is_float, is_float_dtype)
+from pandas.api.types import is_integer, is_float, is_float_dtype, is_scalar
 from pandas.core.dtypes.generic import ABCIndexClass
 
 from pandas.core.arrays import (
-    to_integer_array, IntegerArray)
+    integer_array, IntegerArray)
 from pandas.core.arrays.integer import (
     Int8Dtype, Int16Dtype, Int32Dtype, Int64Dtype,
     UInt8Dtype, UInt16Dtype, UInt32Dtype, UInt64Dtype)
+
+from pandas.tests.extension.base import BaseOpsUtil
 
 
 def make_data():
@@ -31,50 +32,21 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return IntegerArray(make_data(), dtype=dtype)
+    return integer_array(make_data(), dtype=dtype)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return IntegerArray([np.nan, 1], dtype=dtype)
+    return integer_array([np.nan, 1], dtype=dtype)
 
 
-@pytest.fixture
-def data_repeated(data):
-    def gen(count):
-        for _ in range(count):
-            yield data
-    yield gen
-
-
-@pytest.fixture
-def data_for_sorting(dtype):
-    return IntegerArray([1, 2, 0], dtype=dtype)
-
-
-@pytest.fixture
-def data_missing_for_sorting(dtype):
-    return IntegerArray([1, np.nan, 0], dtype=dtype)
-
-
-@pytest.fixture
-def na_cmp():
-    # we are np.nan
-    return lambda x, y: np.isnan(x) and np.isnan(y)
-
-
-@pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
-def data_for_grouping(dtype):
-    b = 1
-    a = 0
-    c = 2
-    na = np.nan
-    return IntegerArray([b, b, na, na, a, a, b, c], dtype=dtype)
+@pytest.fixture(params=['data', 'data_missing'])
+def all_data(request, data, data_missing):
+    """Parametrized fixture giving 'data' and 'data_missing'"""
+    if request.param == 'data':
+        return data
+    elif request.param == 'data_missing':
+        return data_missing
 
 
 def test_dtypes(dtype):
@@ -87,61 +59,50 @@ def test_dtypes(dtype):
     assert dtype.name is not None
 
 
-class BaseInteger(object):
+class TestInterface(object):
 
-    def assert_index_equal(self, left, right, *args, **kwargs):
+    def test_repr_array(self, data):
+        result = repr(data)
 
-        left_na = left.isna()
-        right_na = right.isna()
+        # not long
+        assert '...' not in result
 
-        tm.assert_numpy_array_equal(left_na, right_na)
-        return tm.assert_index_equal(left[~left_na],
-                                     right[~right_na],
-                                     *args, **kwargs)
+        assert 'dtype=' in result
+        assert 'IntegerArray' in result
 
-    def assert_series_equal(self, left, right, *args, **kwargs):
+    def test_repr_array_long(self, data):
+        # some arrays may be able to assert a ... in the repr
+        with pd.option_context('display.max_seq_items', 1):
+            result = repr(data)
 
-        left_na = left.isna()
-        right_na = right.isna()
-
-        tm.assert_series_equal(left_na, right_na)
-        return tm.assert_series_equal(left[~left_na],
-                                      right[~right_na],
-                                      *args, **kwargs)
-
-    def assert_frame_equal(self, left, right, *args, **kwargs):
-        # TODO(EA): select_dtypes
-        tm.assert_index_equal(
-            left.columns, right.columns,
-            exact=kwargs.get('check_column_type', 'equiv'),
-            check_names=kwargs.get('check_names', True),
-            check_exact=kwargs.get('check_exact', False),
-            check_categorical=kwargs.get('check_categorical', True),
-            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
-
-        integers = (left.dtypes == 'integer').index
-
-        for col in integers:
-            self.assert_series_equal(left[col], right[col],
-                                     *args, **kwargs)
-
-        left = left.drop(columns=integers)
-        right = right.drop(columns=integers)
-        tm.assert_frame_equal(left, right, *args, **kwargs)
+            assert '...' in result
+            assert 'length' in result
 
 
-class TestDtype(BaseInteger, base.BaseDtypeTests):
+class TestConstructors(object):
 
-    @pytest.mark.skip(reason="using multiple dtypes")
-    def test_is_dtype_unboxes_dtype(self):
-        # we have multiple dtypes, so skip
-        pass
+    def test_from_dtype_from_float(self, data):
+        # construct from our dtype & string dtype
+        dtype = data.dtype
 
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is IntegerArray
+        # from float
+        expected = pd.Series(data)
+        result = pd.Series(np.array(data).astype('float'), dtype=str(dtype))
+        tm.assert_series_equal(result, expected)
+
+        # from int / list
+        expected = pd.Series(data)
+        result = pd.Series(np.array(data).tolist(), dtype=str(dtype))
+        tm.assert_series_equal(result, expected)
+
+        # from int / array
+        expected = pd.Series(data).dropna().reset_index(drop=True)
+        dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
+        result = pd.Series(dropped, dtype=str(dtype))
+        tm.assert_series_equal(result, expected)
 
 
-class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
+class TestArithmeticOps(BaseOpsUtil):
 
     def _check_divmod_op(self, s, op, other, exc=None):
         super(TestArithmeticOps, self)._check_divmod_op(s, op, other, None)
@@ -178,7 +139,7 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
         # check comparisions that are resulting in float dtypes
 
         expected[mask] = np.nan
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def _check_op_integer(self, result, expected, mask, s, op_name, other):
         # check comparisions that are resulting in integer dtypes
@@ -231,10 +192,10 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
 
             original = original.astype('float')
             original[mask] = np.nan
-            self.assert_series_equal(original, expected.astype('float'))
+            tm.assert_series_equal(original, expected.astype('float'))
 
         # assert our expected result
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_arith_integer_array(self, data, all_arithmetic_operators):
         # we operate with a rhs of an integer array
@@ -319,7 +280,7 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
 
-class TestComparisonOps(BaseInteger, base.BaseComparisonOpsTests):
+class TestComparisonOps(BaseOpsUtil):
 
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
@@ -345,143 +306,20 @@ class TestComparisonOps(BaseInteger, base.BaseComparisonOpsTests):
 
         tm.assert_series_equal(result, expected)
 
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0)
 
-class TestInterface(BaseInteger, base.BaseInterfaceTests):
-
-    def test_repr_array(self, data):
-        result = repr(data)
-
-        # not long
-        assert '...' not in result
-
-        assert 'dtype=' in result
-        assert 'IntegerArray' in result
-
-    def test_repr_array_long(self, data):
-        # some arrays may be able to assert a ... in the repr
-        with pd.option_context('display.max_seq_items', 1):
-            result = repr(data)
-
-            assert '...' in result
-            assert 'length' in result
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        other = pd.Series([0] * len(data))
+        self._compare_other(s, data, op_name, other)
 
 
-class TestConstructors(BaseInteger, base.BaseConstructorsTests):
-
-    def test_from_dtype_from_float(self, data):
-        # construct from our dtype & string dtype
-        dtype = data.dtype
-
-        # from float
-        expected = pd.Series(data)
-        result = pd.Series(np.array(data).astype('float'), dtype=str(dtype))
-        self.assert_series_equal(result, expected)
-
-        # from int / list
-        expected = pd.Series(data)
-        result = pd.Series(np.array(data).tolist(), dtype=str(dtype))
-        self.assert_series_equal(result, expected)
-
-        # from int / array
-        expected = pd.Series(data).dropna().reset_index(drop=True)
-        dropped = np.array(data.dropna()).astype(np.dtype((dtype.type)))
-        result = pd.Series(dropped, dtype=str(dtype))
-        self.assert_series_equal(result, expected)
-
-
-class TestReshaping(BaseInteger, base.BaseReshapingTests):
-
-    def test_concat_mixed_dtypes(self, data):
-        # https://github.com/pandas-dev/pandas/issues/20762
-        df1 = pd.DataFrame({'A': data[:3]})
-        df2 = pd.DataFrame({"A": [1, 2, 3]})
-        df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
-        df4 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
-        dfs = [df1, df2, df3, df4]
-
-        # dataframes
-        result = pd.concat(dfs)
-        expected = pd.concat([x.astype(object) for x in dfs])
-        self.assert_frame_equal(result, expected)
-
-        # series
-        result = pd.concat([x['A'] for x in dfs])
-        expected = pd.concat([x['A'].astype(object) for x in dfs])
-        self.assert_series_equal(result, expected)
-
-        result = pd.concat([df1, df2])
-        expected = pd.concat([df1.astype('object'), df2.astype('object')])
-        self.assert_frame_equal(result, expected)
-
-        # concat of an Integer and Int coerces to object dtype
-        # TODO(jreback) once integrated this would
-        # be a result of Integer
-        result = pd.concat([df1['A'], df2['A']])
-        expected = pd.concat([df1['A'].astype('object'),
-                              df2['A'].astype('object')])
-        self.assert_series_equal(result, expected)
-
-
-class TestGetitem(BaseInteger, base.BaseGetitemTests):
+class TestCasting(object):
     pass
-
-
-class TestMissing(BaseInteger, base.BaseMissingTests):
-    pass
-
-
-class TestMethods(BaseInteger, base.BaseMethodsTests):
-
-    @pytest.mark.parametrize('dropna', [True, False])
-    def test_value_counts(self, all_data, dropna):
-        all_data = all_data[:10]
-        if dropna:
-            other = np.array(all_data[~all_data.isna()])
-        else:
-            other = all_data
-
-        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(
-            dropna=dropna).sort_index()
-        expected.index = expected.index.astype(all_data.dtype)
-
-        self.assert_series_equal(result, expected)
-
-    def test_combine_add(self, data_repeated):
-        # GH 20825
-        orig_data1, orig_data2 = data_repeated(2)
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
-
-        # fundamentally this is not a great operation
-        # as overflow / underflow can easily happen here
-        # e.g. int8 + int8
-        def scalar_add(a, b):
-
-            # TODO; should really be a type specific NA
-            if pd.isna(a) or pd.isna(b):
-                return np.nan
-            if is_integer(a):
-                a = int(a)
-            elif is_integer(b):
-                b = int(b)
-            return a + b
-
-        result = s1.combine(s2, scalar_add)
-        expected = pd.Series(
-            orig_data1._from_sequence([scalar_add(a, b) for (a, b) in
-                                       zip(orig_data1,
-                                           orig_data2)]))
-        self.assert_series_equal(result, expected)
-
-        val = s1.iloc[0]
-        result = s1.combine(val, lambda x1, x2: x1 + x2)
-        expected = pd.Series(
-            orig_data1._from_sequence([a + val for a in list(orig_data1)]))
-        self.assert_series_equal(result, expected)
-
-
-class TestCasting(BaseInteger, base.BaseCastingTests):
 
     @pytest.mark.parametrize('dropna', [True, False])
     def test_construct_index(self, all_data, dropna):
@@ -494,11 +332,10 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         else:
             other = all_data
 
-        result = pd.Index(IntegerArray(other,
-                                       dtype=all_data.dtype))
+        result = pd.Index(integer_array(other, dtype=all_data.dtype))
         expected = pd.Index(other, dtype=object)
 
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('dropna', [True, False])
     def test_astype_index(self, all_data, dropna):
@@ -516,7 +353,7 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
 
         result = idx.astype(dtype)
         expected = idx.astype(object).astype(dtype)
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
     def test_astype(self, all_data):
         all_data = all_data[:10]
@@ -529,13 +366,13 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         s = pd.Series(ints)
         result = s.astype(all_data.dtype)
         expected = pd.Series(ints)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same other - ints
         s = pd.Series(ints)
         result = s.astype(dtype)
         expected = pd.Series(ints, dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same numpy_dtype - ints
         s = pd.Series(ints)
@@ -548,13 +385,13 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         s = pd.Series(mixed)
         result = s.astype(all_data.dtype)
         expected = pd.Series(mixed)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same other - mixed
         s = pd.Series(mixed)
         result = s.astype(dtype)
         expected = pd.Series(mixed, dtype=dtype)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         # coerce to same numpy_dtype - mixed
         s = pd.Series(mixed)
@@ -567,48 +404,35 @@ class TestCasting(BaseInteger, base.BaseCastingTests):
         expected = pd.Series(np.asarray(mixed))
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('dtype', [Int8Dtype(), 'Int8'])
+    @pytest.mark.parametrize('dtype', [Int8Dtype(), 'Int8',
+                                       UInt32Dtype(), 'UInt32'])
     def test_astype_specific_casting(self, dtype):
         s = pd.Series([1, 2, 3], dtype='Int64')
         result = s.astype(dtype)
-        expected = pd.Series([1, 2, 3], dtype='Int8')
-        self.assert_series_equal(result, expected)
+        expected = pd.Series([1, 2, 3], dtype=dtype)
+        tm.assert_series_equal(result, expected)
 
         s = pd.Series([1, 2, 3, None], dtype='Int64')
         result = s.astype(dtype)
-        expected = pd.Series([1, 2, 3, None], dtype='Int8')
-        self.assert_series_equal(result, expected)
+        expected = pd.Series([1, 2, 3, None], dtype=dtype)
+        tm.assert_series_equal(result, expected)
 
     def test_construct_cast_invalid(self, dtype):
 
         msg = "cannot safely"
         arr = [1.2, 2.3, 3.7]
         with tm.assert_raises_regex(TypeError, msg):
-            IntegerArray(arr, dtype=dtype)
+            integer_array(arr, dtype=dtype)
 
         with tm.assert_raises_regex(TypeError, msg):
             pd.Series(arr).astype(dtype)
 
         arr = [1.2, 2.3, 3.7, np.nan]
         with tm.assert_raises_regex(TypeError, msg):
-            IntegerArray(arr, dtype=dtype)
+            integer_array(arr, dtype=dtype)
 
         with tm.assert_raises_regex(TypeError, msg):
             pd.Series(arr).astype(dtype)
-
-
-class TestGroupby(BaseInteger, base.BaseGroupbyTests):
-
-    @pytest.mark.xfail(reason="groupby not working")
-    def test_groupby_extension_no_sort(self, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_no_sort(
-            data_for_grouping)
-
-    @pytest.mark.xfail(reason="groupby not working")
-    @pytest.mark.parametrize('as_index', [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        super(TestGroupby, self).test_groupby_extension_agg(
-            as_index, data_for_grouping)
 
 
 def test_frame_repr(data_missing):
@@ -646,10 +470,45 @@ def test_conversions(data_missing):
             assert type(r) == type(e)
 
 
+def test_integer_array_constructor():
+    values = np.array([1, 2, 3, 4], dtype='int64')
+    mask = np.array([False, False, False, True], dtype='bool')
+
+    result = IntegerArray(values, mask)
+    expected = integer_array([1, 2, 3, np.nan], dtype='int64')
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError):
+        IntegerArray(values.tolist(), mask)
+
+    with pytest.raises(TypeError):
+        IntegerArray(values, mask.tolist())
+
+    with pytest.raises(TypeError):
+        IntegerArray(values.astype(float), mask)
+
+    with pytest.raises(TypeError):
+        IntegerArray(values)
+
+
+def test_integer_array_constructor_copy():
+    values = np.array([1, 2, 3, 4], dtype='int64')
+    mask = np.array([False, False, False, True], dtype='bool')
+
+    result = IntegerArray(values, mask)
+    assert result._data is values
+    assert result._mask is mask
+
+    result = IntegerArray(values, mask, copy=True)
+    assert result._data is not values
+    assert result._mask is not mask
+
+
 @pytest.mark.parametrize(
     'values',
     [
         ['foo', 'bar'],
+        ['1', '2'],
         'foo',
         1,
         1.0,
@@ -658,7 +517,41 @@ def test_conversions(data_missing):
 def test_to_integer_array_error(values):
     # error in converting existing arrays to IntegerArrays
     with pytest.raises(TypeError):
-        to_integer_array(values)
+        integer_array(values)
+
+
+def test_to_integer_array_inferred_dtype():
+    # if values has dtype -> respect it
+    result = integer_array(np.array([1, 2], dtype='int8'))
+    assert result.dtype == Int8Dtype()
+    result = integer_array(np.array([1, 2], dtype='int32'))
+    assert result.dtype == Int32Dtype()
+
+    # if values have no dtype -> always int64
+    result = integer_array([1, 2])
+    assert result.dtype == Int64Dtype()
+
+
+def test_to_integer_array_dtype_keyword():
+    result = integer_array([1, 2], dtype='int8')
+    assert result.dtype == Int8Dtype()
+
+    # if values has dtype -> override it
+    result = integer_array(np.array([1, 2], dtype='int8'), dtype='int32')
+    assert result.dtype == Int32Dtype()
+
+
+def test_to_integer_array_float():
+    result = integer_array([1., 2.])
+    expected = integer_array([1, 2])
+    tm.assert_extension_array_equal(result, expected)
+
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        integer_array([1.5, 2.])
+
+    # for float dtypes, the itemsize is not preserved
+    result = integer_array(np.array([1., 2.], dtype='float32'))
+    assert result.dtype == Int64Dtype()
 
 
 @pytest.mark.parametrize(
@@ -669,8 +562,9 @@ def test_to_integer_array_error(values):
         (np.array([1, np.nan]), 'int8', Int8Dtype)])
 def test_to_integer_array(values, to_dtype, result_dtype):
     # convert existing arrays to IntegerArrays
-    result = to_integer_array(values, dtype=to_dtype)
-    expected = IntegerArray(values, dtype=result_dtype())
+    result = integer_array(values, dtype=to_dtype)
+    assert result.dtype == result_dtype()
+    expected = integer_array(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -691,6 +585,31 @@ def test_cross_type_arithmetic():
     result = df.A + df.B
     expected = pd.Series([2, np.nan, np.nan], dtype='Int64')
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_mean_included():
+    df = pd.DataFrame({
+        "A": ['a', 'b', 'b'],
+        "B": [1, None, 3],
+        "C": integer_array([1, None, 3], dtype='Int64'),
+    })
+
+    result = df.groupby("A").sum()
+    # TODO(#22346): preserve Int64 dtype
+    expected = pd.DataFrame({
+        "B": np.array([1.0, 3.0]),
+        "C": np.array([1, 3], dtype="int64")
+    }, index=pd.Index(['a', 'b'], name='A'))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_astype_nansafe():
+    # https://github.com/pandas-dev/pandas/pull/22343
+    arr = integer_array([np.nan, 1, 2], dtype="Int8")
+
+    with tm.assert_raises_regex(
+            ValueError, 'cannot convert float NaN to integer'):
+        arr.astype('uint32')
 
 
 # TODO(jreback) - these need testing / are broken

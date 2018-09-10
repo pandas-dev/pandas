@@ -6,7 +6,7 @@ import numpy as np
 import warnings
 
 from pandas._libs import tslib, lib, tslibs
-from pandas._libs.tslibs import iNaT
+from pandas._libs.tslibs import iNaT, OutOfBoundsDatetime
 from pandas.compat import string_types, text_type, PY3
 from .common import (ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
@@ -647,7 +647,16 @@ def coerce_to_dtypes(result, dtypes):
 
 def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
-        need to be very careful as the result shape could change! """
+        need to be very careful as the result shape could change!
+
+    Parameters
+    ----------
+    arr : ndarray
+    dtype : np.dtype
+    copy : bool, default True
+        If False, a view will be attempted but may fail, if
+        e.g. the itemsizes don't align.
+    """
 
     # dispatch on extension dtype if needed
     if is_extension_array_dtype(dtype):
@@ -733,8 +742,10 @@ def astype_nansafe(arr, dtype, copy=True):
                       FutureWarning, stacklevel=5)
         dtype = np.dtype(dtype.name + "[ns]")
 
-    if copy:
+    if copy or is_object_dtype(arr) or is_object_dtype(dtype):
+        # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
+
     return arr.view(dtype)
 
 
@@ -838,7 +849,13 @@ def soft_convert_objects(values, datetime=True, numeric=True, timedelta=True,
 
     # Soft conversions
     if datetime:
-        values = lib.maybe_convert_objects(values, convert_datetime=datetime)
+        # GH 20380, when datetime is beyond year 2262, hence outside
+        # bound of nanosecond-resolution 64-bit integers.
+        try:
+            values = lib.maybe_convert_objects(values,
+                                               convert_datetime=datetime)
+        except OutOfBoundsDatetime:
+            pass
 
     if timedelta and is_object_dtype(values.dtype):
         # Object check to ensure only run if previous did not convert
@@ -918,7 +935,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
             # GH19671
             v = tslib.array_to_datetime(v,
                                         require_iso8601=True,
-                                        errors='raise')
+                                        errors='raise')[0]
         except ValueError:
 
             # we might have a sequence of the same-datetimes with tz's

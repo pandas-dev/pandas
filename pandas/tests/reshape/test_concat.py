@@ -2324,7 +2324,7 @@ bar2,12,13,14,15
                                  '2011-01-01 01:00:00+01:00',
                                  '2011-01-01 02:00:00+01:00'],
                                 freq='H'
-                                ).tz_localize('UTC').tz_convert('Europe/Paris')
+                                ).tz_convert('UTC').tz_convert('Europe/Paris')
 
         expected = pd.DataFrame([[1, 1], [2, 2], [3, 3]],
                                 index=exp_idx, columns=['a', 'b'])
@@ -2342,7 +2342,7 @@ bar2,12,13,14,15
                                  '2010-12-31 23:00:00+00:00',
                                  '2011-01-01 00:00:00+00:00',
                                  '2011-01-01 01:00:00+00:00']
-                                ).tz_localize('UTC')
+                                )
 
         expected = pd.DataFrame([[np.nan, 1], [np.nan, 2], [np.nan, 3],
                                  [1, np.nan], [2, np.nan], [3, np.nan]],

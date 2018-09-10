@@ -5,7 +5,7 @@ import warnings
 import numpy as np
 from pytz import utc
 
-from pandas._libs import tslib
+from pandas._libs import lib, tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import (
     normalize_date,
@@ -18,7 +18,7 @@ from pandas import compat
 
 from pandas.core.dtypes.common import (
     _NS_DTYPE,
-    is_datetimelike,
+    is_object_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -29,9 +29,10 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCSeries
 
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core import ops
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import Tick, Day, generate_range
+from pandas.tseries.offsets import Tick, generate_range
 
 from pandas.core.arrays import datetimelike as dtl
 
@@ -99,31 +100,40 @@ def _dt_array_cmp(cls, op):
         meth = getattr(dtl.DatetimeLikeArrayMixin, opname)
 
         if isinstance(other, (datetime, np.datetime64, compat.string_types)):
-            if isinstance(other, datetime):
+            if isinstance(other, (datetime, np.datetime64)):
                 # GH#18435 strings get a pass from tzawareness compat
                 self._assert_tzawareness_compat(other)
 
-            other = _to_m8(other, tz=self.tz)
+            try:
+                other = _to_m8(other, tz=self.tz)
+            except ValueError:
+                # string that cannot be parsed to Timestamp
+                return ops.invalid_comparison(self, other, op)
+
             result = meth(self, other)
             if isna(other):
                 result.fill(nat_result)
+        elif lib.is_scalar(other):
+            return ops.invalid_comparison(self, other, op)
         else:
             if isinstance(other, list):
+                # FIXME: This can break for object-dtype with mixed types
                 other = type(self)(other)
             elif not isinstance(other, (np.ndarray, ABCIndexClass, ABCSeries)):
                 # Following Timestamp convention, __eq__ is all-False
                 # and __ne__ is all True, others raise TypeError.
-                if opname == '__eq__':
-                    return np.zeros(shape=self.shape, dtype=bool)
-                elif opname == '__ne__':
-                    return np.ones(shape=self.shape, dtype=bool)
-                raise TypeError('%s type object %s' %
-                                (type(other), str(other)))
+                return ops.invalid_comparison(self, other, op)
 
-            if is_datetimelike(other):
+            if is_object_dtype(other):
+                result = op(self.astype('O'), np.array(other))
+            elif not (is_datetime64_dtype(other) or
+                      is_datetime64tz_dtype(other)):
+                # e.g. is_timedelta64_dtype(other)
+                return ops.invalid_comparison(self, other, op)
+            else:
                 self._assert_tzawareness_compat(other)
+                result = meth(self, np.asarray(other))
 
-            result = meth(self, np.asarray(other))
             result = com.values_from_object(result)
 
             # Make sure to pass an array to result[...]; indexing with
@@ -151,6 +161,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
                  'is_year_end', 'is_leap_year']
     _object_ops = ['weekday_name', 'freq', 'tz']
+
+    # dummy attribute so that datetime.__eq__(DatetimeArray) defers
+    # by returning NotImplemented
+    timetuple = None
 
     # -----------------------------------------------------------------
     # Constructors
@@ -225,55 +239,32 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         start, end, _normalized = _maybe_normalize_endpoints(start, end,
                                                              normalize)
 
-        tz, inferred_tz = _infer_tz_from_endpoints(start, end, tz)
+        tz, _ = _infer_tz_from_endpoints(start, end, tz)
 
-        if hasattr(freq, 'delta') and freq != Day():
-            # sub-Day Tick
-            if inferred_tz is None and tz is not None:
-                # naive dates
-                if start is not None and start.tz is None:
-                    start = start.tz_localize(tz, ambiguous=False)
-
-                if end is not None and end.tz is None:
-                    end = end.tz_localize(tz, ambiguous=False)
-
-            if start and end:
-                if start.tz is None and end.tz is not None:
-                    start = start.tz_localize(end.tz, ambiguous=False)
-
-                if end.tz is None and start.tz is not None:
-                    end = end.tz_localize(start.tz, ambiguous=False)
-
+        if tz is not None:
+            # Localize the start and end arguments
+            start = _maybe_localize_point(
+                start, getattr(start, 'tz', None), start, freq, tz
+            )
+            end = _maybe_localize_point(
+                end, getattr(end, 'tz', None), end, freq, tz
+            )
+        if start and end:
+            # Make sure start and end have the same tz
+            start = _maybe_localize_point(
+                start, start.tz, end.tz, freq, tz
+            )
+            end = _maybe_localize_point(
+                end, end.tz, start.tz, freq, tz
+            )
+        if freq is not None:
             if cls._use_cached_range(freq, _normalized, start, end):
+                # Currently always False; never hit
+                # Should be reimplemented as apart of GH 17914
                 index = cls._cached_range(start, end, periods=periods,
                                           freq=freq)
             else:
                 index = _generate_regular_range(cls, start, end, periods, freq)
-
-        else:
-
-            if tz is not None:
-                # naive dates
-                if start is not None and start.tz is not None:
-                    start = start.replace(tzinfo=None)
-
-                if end is not None and end.tz is not None:
-                    end = end.replace(tzinfo=None)
-
-            if start and end:
-                if start.tz is None and end.tz is not None:
-                    end = end.replace(tzinfo=None)
-
-                if end.tz is None and start.tz is not None:
-                    start = start.replace(tzinfo=None)
-
-            if freq is not None:
-                if cls._use_cached_range(freq, _normalized, start, end):
-                    index = cls._cached_range(start, end, periods=periods,
-                                              freq=freq)
-                else:
-                    index = _generate_regular_range(cls, start, end,
-                                                    periods, freq)
 
                 if tz is not None and getattr(index, 'tz', None) is None:
                     arr = conversion.tz_localize_to_utc(
@@ -288,12 +279,12 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                         start = start.tz_localize(tz).asm8
                     if end is not None:
                         end = end.tz_localize(tz).asm8
-            else:
-                # Create a linearly spaced date_range in local time
-                start = start.tz_localize(tz)
-                end = end.tz_localize(tz)
-                arr = np.linspace(start.value, end.value, periods)
-                index = cls._simple_new(arr.astype('M8[ns]'), freq=None, tz=tz)
+        else:
+            # Create a linearly spaced date_range in local time
+            arr = np.linspace(start.value, end.value, periods)
+            index = cls._simple_new(
+                arr.astype('M8[ns]', copy=False), freq=None, tz=tz
+            )
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -445,7 +436,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
         self_i8 = self.asi8
         other_i8 = other.asi8
-        new_values = self_i8 - other_i8
+        new_values = checked_add_with_arr(self_i8, -other_i8,
+                                          arr_mask=self._isnan)
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
@@ -779,17 +771,27 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         Return the month names of the DateTimeIndex with specified locale.
 
+        .. versionadded:: 0.23.0
+
         Parameters
         ----------
-        locale : string, default None (English locale)
-            locale determining the language in which to return the month name
+        locale : str, optional
+            Locale determining the language in which to return the month name.
+            Default is English locale.
 
         Returns
         -------
-        month_names : Index
-            Index of month names
+        Index
+            Index of month names.
 
-        .. versionadded:: 0.23.0
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(start='2018-01', freq='M', periods=3)
+        >>> idx
+        DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
+                      dtype='datetime64[ns]', freq='M')
+        >>> idx.month_name()
+        Index(['January', 'February', 'March'], dtype='object')
         """
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
@@ -805,17 +807,27 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         Return the day names of the DateTimeIndex with specified locale.
 
+        .. versionadded:: 0.23.0
+
         Parameters
         ----------
-        locale : string, default None (English locale)
-            locale determining the language in which to return the day name
+        locale : str, optional
+            Locale determining the language in which to return the day name.
+            Default is English locale.
 
         Returns
         -------
-        month_names : Index
-            Index of day names
+        Index
+            Index of day names.
 
-        .. versionadded:: 0.23.0
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(start='2018-01-01', freq='D', periods=3)
+        >>> idx
+        DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.day_name()
+        Index(['Monday', 'Tuesday', 'Wednesday'], dtype='object')
         """
         if self.tz is not None and self.tz is not utc:
             values = self._local_timestamps()
@@ -841,6 +853,14 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             timestamps = self.asi8
 
         return tslib.ints_to_pydatetime(timestamps, box="time")
+
+    @property
+    def timetz(self):
+        """
+        Returns numpy array of datetime.time also containing timezone
+        information. The time part of the Timestamps.
+        """
+        return tslib.ints_to_pydatetime(self.asi8, self.tz, box="time")
 
     @property
     def date(self):
@@ -1233,13 +1253,11 @@ def _generate_regular_range(cls, start, end, periods, freq):
         data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
     else:
         tz = None
+        # start and end should have the same timezone by this point
         if isinstance(start, Timestamp):
             tz = start.tz
-            start = start.to_pydatetime()
-
-        if isinstance(end, Timestamp):
+        elif isinstance(end, Timestamp):
             tz = end.tz
-            end = end.to_pydatetime()
 
         xdr = generate_range(start=start, end=end,
                              periods=periods, offset=freq)
@@ -1309,3 +1327,32 @@ def _maybe_normalize_endpoints(start, end, normalize):
             _normalized = _normalized and end.time() == _midnight
 
     return start, end, _normalized
+
+
+def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
+    """
+    Localize a start or end Timestamp to the timezone of the corresponding
+    start or end Timestamp
+
+    Parameters
+    ----------
+    ts : start or end Timestamp to potentially localize
+    is_none : argument that should be None
+    is_not_none : argument that should not be None
+    freq : Tick, DateOffset, or None
+    tz : str, timezone object or None
+
+    Returns
+    -------
+    ts : Timestamp
+    """
+    # Make sure start and end are timezone localized if:
+    # 1) freq = a Timedelta-like frequency (Tick)
+    # 2) freq = None i.e. generating a linspaced range
+    if isinstance(freq, Tick) or freq is None:
+        localize_args = {'tz': tz, 'ambiguous': False}
+    else:
+        localize_args = {'tz': None}
+    if is_none is None and is_not_none is not None:
+        ts = ts.tz_localize(**localize_args)
+    return ts

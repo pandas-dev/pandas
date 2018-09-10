@@ -637,22 +637,25 @@ class Block(PandasObject):
             # force the copy here
             if values is None:
 
-                if issubclass(dtype.type,
-                              (compat.text_type, compat.string_types)):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
+                if self.is_extension:
+                    values = self.values.astype(dtype)
                 else:
-                    values = self.get_values(dtype=dtype)
+                    if issubclass(dtype.type,
+                                  (compat.text_type, compat.string_types)):
 
-                # _astype_nansafe works fine with 1-d only
-                values = astype_nansafe(values.ravel(), dtype, copy=True)
+                        # use native type formatting for datetime/tz/timedelta
+                        if self.is_datelike:
+                            values = self.to_native_types()
+
+                        # astype formatting
+                        else:
+                            values = self.get_values()
+
+                    else:
+                        values = self.get_values(dtype=dtype)
+
+                    # _astype_nansafe works fine with 1-d only
+                    values = astype_nansafe(values.ravel(), dtype, copy=True)
 
                 # TODO(extension)
                 # should we make this attribute?
@@ -662,7 +665,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass)
+                              klass=klass, ndim=self.ndim)
         except:
             if errors == 'raise':
                 raise
@@ -777,10 +780,9 @@ class Block(PandasObject):
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
-        """ replace the to_replace value with value, possible to create new
+        """replace the to_replace value with value, possible to create new
         blocks here this is just a call to putmask. regex is not used here.
-        It is used in ObjectBlocks.  It is here for API
-        compatibility.
+        It is used in ObjectBlocks.  It is here for API compatibility.
         """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -802,12 +804,19 @@ class Block(PandasObject):
                                     copy=not inplace) for b in blocks]
             return blocks
         except (TypeError, ValueError):
+            # GH 22083, TypeError or ValueError occurred within error handling
+            # causes infinite loop. Cast and retry only if not objectblock.
+            if is_object_dtype(self):
+                raise
 
             # try again with a compatible block
             block = self.astype(object)
-            return block.replace(
-                to_replace=original_to_replace, value=value, inplace=inplace,
-                filter=filter, regex=regex, convert=convert)
+            return block.replace(to_replace=original_to_replace,
+                                 value=value,
+                                 inplace=inplace,
+                                 filter=filter,
+                                 regex=regex,
+                                 convert=convert)
 
     def _replace_single(self, *args, **kwargs):
         """ no-op on a non-ObjectBlock """
@@ -1689,6 +1698,45 @@ class Block(PandasObject):
                               placement=np.arange(len(result)),
                               ndim=ndim)
 
+    def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
+                        convert=False, mgr=None, mask=None):
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+        convert : bool, default True
+            If true, try to coerce any object types to better types.
+        mgr : BlockManager, optional
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
+
+        Returns
+        -------
+        A new block if there is anything to replace or the original block.
+        """
+
+        if mask.any():
+            if not regex:
+                self = self.coerce_to_target_dtype(value)
+                return self.putmask(mask, value, inplace=inplace)
+            else:
+                return self._replace_single(to_replace, value, inplace=inplace,
+                                            regex=regex,
+                                            convert=convert,
+                                            mask=mask,
+                                            mgr=mgr)
+        return self
+
 
 class ScalarBlock(Block):
     """
@@ -1902,6 +1950,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         """Extension arrays are never treated as views."""
         return False
 
+    @property
+    def is_numeric(self):
+        return self.values.dtype._is_numeric
+
     def setitem(self, indexer, value, mgr=None):
         """Set the value inplace, returning a same-typed block.
 
@@ -2015,6 +2067,18 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values=values.fillna(value=fill_value, method=method,
                                  limit=limit),
             placement=self.mgr_locs)
+
+    def shift(self, periods, axis=0, mgr=None):
+        """
+        Shift the block by `periods`.
+
+        Dispatches to underlying ExtensionArray and re-boxes in an
+        ExtensionBlock.
+        """
+        # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
+        return [self.make_block_same_class(self.values.shift(periods=periods),
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
 
 
 class NumericBlock(Block):
@@ -2464,8 +2528,31 @@ class ObjectBlock(Block):
                                     regex=regex, mgr=mgr)
 
     def _replace_single(self, to_replace, value, inplace=False, filter=None,
-                        regex=False, convert=True, mgr=None):
+                        regex=False, convert=True, mgr=None, mask=None):
+        """
+        Replace elements by the given value.
 
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        filter : list, optional
+        regex : bool, default False
+            If true, perform regular expression substitution.
+        convert : bool, default True
+            If true, try to coerce any object types to better types.
+        mgr : BlockManager, optional
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
+
+        Returns
+        -------
+        a new block, the result after replacing
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         # to_replace is regex compilable
@@ -2531,14 +2618,52 @@ class ObjectBlock(Block):
         else:
             filt = self.mgr_locs.isin(filter).nonzero()[0]
 
-        new_values[filt] = f(new_values[filt])
+        if mask is None:
+            new_values[filt] = f(new_values[filt])
+        else:
+            new_values[filt][mask] = f(new_values[filt][mask])
 
         # convert
         block = self.make_block(new_values)
         if convert:
             block = block.convert(by_item=True, numeric=False)
-
         return block
+
+    def _replace_coerce(self, to_replace, value, inplace=True, regex=False,
+                        convert=False, mgr=None, mask=None):
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        to_replace : object or pattern
+            Scalar to replace or regular expression to match.
+        value : object
+            Replacement object.
+        inplace : bool, default False
+            Perform inplace modification.
+        regex : bool, default False
+            If true, perform regular expression substitution.
+        convert : bool, default True
+            If true, try to coerce any object types to better types.
+        mgr : BlockManager, optional
+        mask : array-like of bool, optional
+            True indicate corresponding element is ignored.
+
+        Returns
+        -------
+        A new block if there is anything to replace or the original block.
+        """
+        if mask.any():
+            block = super(ObjectBlock, self)._replace_coerce(
+                to_replace=to_replace, value=value, inplace=inplace,
+                regex=regex, convert=convert, mgr=mgr, mask=mask)
+            if convert:
+                block = [b.convert(by_item=True, numeric=False, copy=True)
+                         for b in block]
+            return block
+        return self
 
 
 class CategoricalBlock(ExtensionBlock):
@@ -2577,10 +2702,6 @@ class CategoricalBlock(ExtensionBlock):
             result = _block_shape(result, ndim=self.ndim)
 
         return result
-
-    def shift(self, periods, axis=0, mgr=None):
-        return self.make_block_same_class(values=self.values.shift(periods),
-                                          placement=self.mgr_locs)
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime

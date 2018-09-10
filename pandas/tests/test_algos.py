@@ -330,9 +330,9 @@ class TestUnique(object):
              '2015-01-01T00:00:00.000000000+0000'],
             dtype='M8[ns]')
 
-        dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000+0000',
-                                   '2015-01-01T00:00:00.000000000+0000',
-                                   '2015-01-01T00:00:00.000000000+0000'])
+        dt_index = pd.to_datetime(['2015-01-03T00:00:00.000000000',
+                                   '2015-01-01T00:00:00.000000000',
+                                   '2015-01-01T00:00:00.000000000'])
         result = algos.unique(dt_index)
         tm.assert_numpy_array_equal(result, expected)
         assert result.dtype == expected.dtype
@@ -547,7 +547,7 @@ class TestIsin(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(Series([1, 2]), set([1]))
+        result = algos.isin(Series([1, 2]), {1})
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -559,7 +559,7 @@ class TestIsin(object):
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
-        result = algos.isin(Series(['a', 'b']), set(['a']))
+        result = algos.isin(Series(['a', 'b']), {'a'})
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
 
@@ -614,6 +614,68 @@ class TestIsin(object):
         result = algos.isin(Sd, St)
         tm.assert_numpy_array_equal(expected, result)
 
+    def test_same_nan_is_in(self):
+        # GH 22160
+        # nan is special, because from " a is b" doesn't follow "a == b"
+        # at least, isin() should follow python's "np.nan in [nan] == True"
+        # casting to -> np.float64 -> another float-object somewher on
+        # the way could lead jepardize this behavior
+        comps = [np.nan]  # could be casted to float64
+        values = [np.nan]
+        expected = np.array([True])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_same_object_is_in(self):
+        # GH 22160
+        # there could be special treatment for nans
+        # the user however could define a custom class
+        # with similar behavior, then we at least should
+        # fall back to usual python's behavior: "a in [a] == True"
+        class LikeNan(object):
+            def __eq__(self):
+                return False
+
+            def __hash__(self):
+                return 0
+
+        a, b = LikeNan(), LikeNan()
+        # same object -> True
+        tm.assert_numpy_array_equal(algos.isin([a], [a]), np.array([True]))
+        # different objects -> False
+        tm.assert_numpy_array_equal(algos.isin([a], [b]), np.array([False]))
+
+    def test_different_nans(self):
+        # GH 22160
+        # all nans are handled as equivalent
+
+        comps = [float('nan')]
+        values = [float('nan')]
+        assert comps[0] is not values[0]  # different nan-objects
+
+        # as list of python-objects:
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+        # as object-array:
+        result = algos.isin(np.asarray(comps, dtype=np.object),
+                            np.asarray(values, dtype=np.object))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+        # as float64-array:
+        result = algos.isin(np.asarray(comps, dtype=np.float64),
+                            np.asarray(values, dtype=np.float64))
+        tm.assert_numpy_array_equal(np.array([True]), result)
+
+    def test_no_cast(self):
+        # GH 22160
+        # ensure 42 is not casted to a string
+        comps = ['ss', 42]
+        values = ['42']
+        expected = np.array([False, False])
+        result = algos.isin(comps, values)
+        tm.assert_numpy_array_equal(expected, result)
+
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_empty(self, empty):
         # see gh-16991
@@ -622,6 +684,36 @@ class TestIsin(object):
 
         result = algos.isin(vals, empty)
         tm.assert_numpy_array_equal(expected, result)
+
+    def test_different_nan_objects(self):
+        # GH 22119
+        comps = np.array(['nan', np.nan * 1j, float('nan')], dtype=np.object)
+        vals = np.array([float('nan')], dtype=np.object)
+        expected = np.array([False, False, True])
+        result = algos.isin(comps, vals)
+        tm.assert_numpy_array_equal(expected, result)
+
+    def test_different_nans_as_float64(self):
+        # GH 21866
+        # create different nans from bit-patterns,
+        # these nans will land in different buckets in the hash-table
+        # if no special care is taken
+        NAN1 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000000))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", 0x7ff8000000000001))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+
+        # check that NAN1 and NAN2 are equivalent:
+        arr = np.array([NAN1, NAN2], dtype=np.float64)
+        lookup1 = np.array([NAN1], dtype=np.float64)
+        result = algos.isin(arr, lookup1)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
+        lookup2 = np.array([NAN2], dtype=np.float64)
+        result = algos.isin(arr, lookup2)
+        expected = np.array([True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestValueCounts(object):
@@ -857,10 +949,8 @@ class TestDuplicated(object):
                   2, 4, 1, 5, 6]),
         np.array([1.1, 2.2, 1.1, np.nan, 3.3,
                   2.2, 4.4, 1.1, np.nan, 6.6]),
-        pytest.param(np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
-                               2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
-                     marks=pytest.mark.xfail(reason="Complex bug. GH 16399")
-                     ),
+        np.array([1 + 1j, 2 + 2j, 1 + 1j, 5 + 5j, 3 + 3j,
+                  2 + 2j, 4 + 4j, 1 + 1j, 5 + 5j, 6 + 6j]),
         np.array(['a', 'b', 'a', 'e', 'c',
                   'b', 'd', 'a', 'e', 'f'], dtype=object),
         np.array([1, 2**63, 1, 3**5, 10, 2**63, 39, 1, 3**5, 7],

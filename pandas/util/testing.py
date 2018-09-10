@@ -504,23 +504,19 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
 
     try:
         locale.setlocale(lc_var, new_locale)
-
-        try:
-            normalized_locale = locale.getlocale()
-        except ValueError:
-            yield new_locale
+        normalized_locale = locale.getlocale()
+        if com._all_not_none(*normalized_locale):
+            yield '.'.join(normalized_locale)
         else:
-            if com._all_not_none(*normalized_locale):
-                yield '.'.join(normalized_locale)
-            else:
-                yield new_locale
+            yield new_locale
     finally:
         locale.setlocale(lc_var, current_locale)
 
 
 def can_set_locale(lc, lc_var=locale.LC_ALL):
     """
-    Check to see if we can set a locale without raising an Exception.
+    Check to see if we can set a locale, and subsequently get the locale,
+    without raising an Exception.
 
     Parameters
     ----------
@@ -538,7 +534,8 @@ def can_set_locale(lc, lc_var=locale.LC_ALL):
     try:
         with set_locale(lc, lc_var=lc_var):
             pass
-    except locale.Error:  # horrible name for a Exception subclass
+    except (ValueError,
+            locale.Error):  # horrible name for a Exception subclass
         return False
     else:
         return True
@@ -594,7 +591,7 @@ def set_defaultencoding(encoding):
 
 
 def capture_stdout(f):
-    """
+    r"""
     Decorator to capture stdout in a buffer so that it can be checked
     (or suppressed) during testing.
 
@@ -612,7 +609,6 @@ def capture_stdout(f):
     --------
 
     >>> from pandas.util.testing import capture_stdout
-    >>>
     >>> import sys
     >>>
     >>> @capture_stdout
@@ -642,7 +638,7 @@ def capture_stdout(f):
 
 
 def capture_stderr(f):
-    """
+    r"""
     Decorator to capture stderr in a buffer so that it can be checked
     (or suppressed) during testing.
 
@@ -660,7 +656,6 @@ def capture_stderr(f):
     --------
 
     >>> from pandas.util.testing import capture_stderr
-    >>>
     >>> import sys
     >>>
     >>> @capture_stderr
@@ -678,7 +673,7 @@ def capture_stderr(f):
     AssertionError: assert 'foo\n' == 'bar\n'
     """
 
-    @wraps(f)
+    @compat.wraps(f)
     def wrapper(*args, **kwargs):
         try:
             sys.stderr = StringIO()
@@ -909,8 +904,8 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
     if exact == 'equiv':
         if type(left) != type(right):
             # allow equivalence of Int64Index/RangeIndex
-            types = set([type(left).__name__, type(right).__name__])
-            if len(types - set(['Int64Index', 'RangeIndex'])):
+            types = {type(left).__name__, type(right).__name__}
+            if len(types - {'Int64Index', 'RangeIndex'}):
                 msg = '{obj} classes are not equivalent'.format(obj=obj)
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
@@ -1311,33 +1306,40 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_categorical=True,
                        check_like=False,
                        obj='DataFrame'):
-    """Check that left and right DataFrame are equal.
+    """
+    Check that left and right DataFrame are equal.
+
+    This function is intended to compare two DataFrames and output any
+    differences. Is is mostly intended for use in unit tests.
+    Additional parameters allow varying the strictness of the
+    equality checks performed.
 
     Parameters
     ----------
     left : DataFrame
+        First DataFrame to compare.
     right : DataFrame
+        Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : bool / string {'equiv'}, default False
+    check_index_type : {'equiv'} or bool, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : bool / string {'equiv'}, default False
+    check_column_type : {'equiv'} or bool, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
         are identical.
-    check_frame_type : bool, default False
+    check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when check_exact is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
     check_names : bool, default True
         Whether to check that the `names` attribute for both the `index`
         and `column` attributes of the DataFrame is identical, i.e.
 
         * left.index.names == right.index.names
         * left.columns.names == right.columns.names
-
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
@@ -1348,10 +1350,41 @@ def assert_frame_equal(left, right, check_dtype=True,
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
-        If true, ignore the order of rows & columns
+        If True, ignore the order of index & columns.
+        Note: index labels must match their respective rows
+        (same as in columns) - same labels must be with the same data.
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
-        assertion message
+        assertion message.
+
+    See Also
+    --------
+    assert_series_equal : Equivalent method for asserting Series equality.
+    DataFrame.equals : Check DataFrame equality.
+
+    Examples
+    --------
+    This example shows comparing two DataFrames that are equal
+    but with columns of differing dtypes.
+
+    >>> from pandas.util.testing import assert_frame_equal
+    >>> df1 = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    >>> df2 = pd.DataFrame({'a': [1, 2], 'b': [3.0, 4.0]})
+
+    df1 equals itself.
+    >>> assert_frame_equal(df1, df1)
+
+    df1 differs from df2 as column 'b' is of a different type.
+    >>> assert_frame_equal(df1, df2)
+    Traceback (most recent call last):
+    AssertionError: Attributes are different
+
+    Attribute "dtype" are different
+    [left]:  int64
+    [right]: float64
+
+    Ignore differing dtypes in columns with check_dtype.
+    >>> assert_frame_equal(df1, df2, check_dtype=False)
     """
 
     # instance validation
@@ -2361,7 +2394,7 @@ def network(t, url="http://www.google.com",
                 raise
             else:
                 skip("Skipping test due to lack of connectivity"
-                     " and error {error}".format(e))
+                     " and error {error}".format(error=e))
 
     return wrapper
 
@@ -2371,7 +2404,7 @@ with_connectivity_check = network
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
-    r"""
+    """
     Check that the specified Exception is raised and that the error message
     matches a given regular expression pattern. This may be a regular
     expression object or a string containing a regular expression suitable
@@ -2397,6 +2430,7 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
     AssertionError: "pear" does not match "'apple'"
 
     You can also use this in a with statement.
+
     >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
     ...     1 + {}
     >>> with assert_raises_regex(TypeError, 'banana'):

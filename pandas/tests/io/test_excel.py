@@ -586,6 +586,7 @@ class TestXlrdReader(ReadingTestsBase):
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_no('s3fs')
+    @td.skip_if_not_us_locale
     def test_read_from_s3_url(self, ext):
         boto3 = pytest.importorskip('boto3')
         moto = pytest.importorskip('moto')
@@ -2227,7 +2228,8 @@ class TestExcelWriterEngineTests(object):
     pytest.param('xlwt',
                  marks=pytest.mark.xfail(reason='xlwt does not support '
                                                 'openpyxl-compatible '
-                                                'style dicts')),
+                                                'style dicts',
+                                         strict=True)),
     'xlsxwriter',
     'openpyxl',
 ])
