@@ -201,6 +201,7 @@ class HTMLFormatter(TableFormatter):
 
         truncate_h = self.fmt.truncate_h
         row_levels = self.frame.index.nlevels
+        has_column_names = any(name for name in self.columns.names)
 
         self.write('<thead>', indent)
 
@@ -263,7 +264,7 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                if self.fmt.index:
+                if self.fmt.index or has_column_names:
                     name = self.columns.names[lnum]
                     row = [''] * (row_levels - 1) + ['' if name is None else
                                                      pprint_thing(name)]
@@ -323,6 +324,7 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
+        has_column_names = any(name for name in self.columns.names)
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
@@ -330,7 +332,12 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
+                if has_column_names:
+                    row = ['']
+                else:
+                    row = []
+                row = row + [fmt_values[j][i]
+                             for j in range(len(self.columns))]
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
         indent -= self.indent_delta
