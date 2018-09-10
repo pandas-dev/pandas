@@ -202,6 +202,7 @@ class HTMLFormatter(TableFormatter):
         truncate_h = self.fmt.truncate_h
         row_levels = self.frame.index.nlevels
         has_column_names = any(name for name in self.columns.names)
+        show_index_names = self.fmt.show_index_names
 
         self.write('<thead>', indent)
 
@@ -264,7 +265,8 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                if self.fmt.index or has_column_names:
+                show_column_names = has_column_names and show_index_names
+                if self.fmt.index or show_column_names:
                     name = self.columns.names[lnum]
                     row = [''] * (row_levels - 1) + ['' if name is None else
                                                      pprint_thing(name)]
@@ -332,7 +334,7 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
-                if has_column_names:
+                if has_column_names and self.fmt.show_index_names:
                     row = ['']
                 else:
                     row = []
