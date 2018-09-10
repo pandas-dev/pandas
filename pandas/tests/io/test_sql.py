@@ -1355,8 +1355,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = sql.read_sql_table("types_test_data", self.conn)
         check(df.DateColWithTz)
 
-    @pytest.mark.skipif(flavor != 'postgresql',
-                        reason="postgresql only supports timezones")
+    # @pytest.mark.skipif(flavor != 'postgresql',
+    #                     reason="postgresql only supports timezones")
     def test_datetime_with_timezone_writing(self):
         # GH 9086
         df = DataFrame({'A': date_range(
@@ -1375,7 +1375,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         )
         result = result.drop('index', axis=1)
         tm.assert_frame_equal(result, df)
-
 
     def test_date_parsing(self):
         # No Parsing
