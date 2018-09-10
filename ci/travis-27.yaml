@@ -27,6 +27,7 @@ dependencies:
   - PyCrypto
   - pymysql=0.6.3
   - pytables
+  - blosc=1.14.3
   - python-blosc
   - python-dateutil=2.5.0
   - python=2.7*
