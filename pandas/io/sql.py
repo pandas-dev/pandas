@@ -597,7 +597,11 @@ class SQLTable(PandasObject):
             if b.is_datetime:
                 # convert to microsecond resolution so this yields
                 # datetime.datetime
-                d = b.values.astype('M8[us]').astype(object)
+                if b.is_datetimetz:
+                    # GH 9086: Ensure we return datetimes with timezone info
+                    d = b.values.to_pydatetime()
+                else:
+                    d = b.values.astype('M8[us]').astype(object)
             else:
                 d = np.array(b.get_values(), dtype=object)
 
