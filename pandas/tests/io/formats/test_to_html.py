@@ -2287,11 +2287,42 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-        # multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
-
-        # df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
-        # df.columns.name = 'columns.name'
-        # result = df.to_html()
+        multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
+        columns_multi_index = MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       index=multi_index, columns=columns_multi_index)
+        result = df.to_html()
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th></th>
+              <th>columns.name.0</th>
+              <th colspan="2" halign="left">a</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th>columns.name.1</th>
+              <th>b</th>
+              <th>c</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th rowspan="2" valign="top">a</th>
+              <th>b</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <th>c</th>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
 
         # df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
         # df.index.name = 'index.name'
