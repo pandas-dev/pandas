@@ -2209,6 +2209,21 @@ class TestToHTML(object):
         assert result == expected
 
     def test_to_html_index_name_multi_index_both_index_false(self):
+        # multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
+
+        # df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
+        # df.index.name = 'index.name'
+        # df.columns.name = 'columns.name'
+        # result = df.to_html(index=False)
+
+        # df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
+        # df.columns.name = 'columns.name'
+        # result = df.to_html(index=False)
+
+        # df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
+        # df.index.name = 'index.name'
+        # result = df.to_html(index=False)
+
         pass
 
     def test_to_html_notebook_has_style(self):
