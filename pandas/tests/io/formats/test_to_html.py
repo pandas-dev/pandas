@@ -2440,6 +2440,28 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
+    def test_to_html_multi_idx_column_idx_f_named_idx_both_header_f(self):
+        columns_multi_index = MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       columns=columns_multi_index)
+        df.index.name = 'index.name'
+        result = df.to_html(index=False, header=False)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <tbody>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
     def test_to_html_multi_index_column_index_false_named_columns_index(self):
         pass
 
