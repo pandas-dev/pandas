@@ -2027,6 +2027,24 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
+    def test_to_html_index_name_multi_index_column(self):
+        pass
+
+    def test_to_html_index_name_multi_index_index(self):
+        pass
+
+    def test_to_html_index_name_multi_index_both(self):
+        pass
+
+    def test_to_html_index_name_multi_index_column_index_false(self):
+        pass
+
+    def test_to_html_index_name_multi_index_index_index_false(self):
+        pass
+
+    def test_to_html_index_name_multi_index_both_index_false(self):
+        pass
+
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
