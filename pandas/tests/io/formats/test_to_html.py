@@ -22,6 +22,228 @@ except (ImportError, AttributeError):
     pass
 
 
+@pytest.fixture
+def index_named_single_columns_named_single():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th>columns.name</th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+        <tr>
+          <th>index.name</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_unnamed_single_columns_named_single():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th>columns.name</th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_named_single_columns_unnamed_single():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+        <tr>
+          <th>index.name</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_named_single_columns_named_multi():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th>columns.name.0</th>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th>columns.name.1</th>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+        <tr>
+          <th>index.name</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_unnamed_single_columns_named_multi():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th>columns.name.0</th>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th>columns.name.1</th>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_named_single_columns_unnamed_multi():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th></th>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th></th>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+        <tr>
+          <th>index.name</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_named_multi_columns_named_multi():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>columns.name</th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+        <tr>
+          <th>index.name.0</th>
+          <th>index.name.1</th>
+          <th></th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th rowspan="2" valign="top">a</th>
+          <th>b</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>c</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
 class TestToHTML(object):
 
     def test_to_html_with_col_space(self):
@@ -1936,214 +2158,20 @@ class TestToHTML(object):
 
     @pytest.mark.parametrize("""index_multi_index, columns_multi_index,
      named_index, named_columns, index, header, index_names, expected""", [
-        (False, False, True, True, True, True, True,\
-         # test_to_html_single_index_named_index_both
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th>columns.name</th>
-              <th>0</th>
-              <th>1</th>
-            </tr>
-            <tr>
-              <th>index.name</th>
-              <th></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""),
-        (False, False, False, True, True, True, True,\
-         # test_to_html_single_index_named_columns_index
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th>columns.name</th>
-              <th>0</th>
-              <th>1</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""),
-        (False, False, True, False, True, True, True,\
-         # test_to_html_single_index_named_index_index
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th></th>
-              <th>0</th>
-              <th>1</th>
-            </tr>
-            <tr>
-              <th>index.name</th>
-              <th></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""),
-        (False, True, True, True, True, True, True,\
-         # test_to_html_multi_index_column_named_index_both
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th>columns.name.0</th>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>columns.name.1</th>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-            <tr>
-              <th>index.name</th>
-              <th></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""),
-        (False, True, False, True, True, True, True,\
-         # test_to_html_multi_index_column_named_columns_index
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th>columns.name.0</th>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>columns.name.1</th>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""),
-        (False, True, True, False, True, True, True,\
-         # test_to_html_multi_index_column_named_index_index
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th></th>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th></th>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-            <tr>
-              <th>index.name</th>
-              <th></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th>0</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>1</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""),
-        (True, False, True, True, True, True, True,\
-         # test_to_html_multi_index_index_named_index_both
-         """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th></th>
-              <th>columns.name</th>
-              <th>0</th>
-              <th>1</th>
-            </tr>
-            <tr>
-              <th>index.name.0</th>
-              <th>index.name.1</th>
-              <th></th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th rowspan="2" valign="top">a</th>
-              <th>b</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <th>c</th>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
+        (False, False, True, True, True, True, True,
+         index_named_single_columns_named_single),
+        (False, False, False, True, True, True, True,
+         index_unnamed_single_columns_named_single),
+        (False, False, True, False, True, True, True,
+         index_named_single_columns_unnamed_single),
+        (False, True, True, True, True, True, True,
+         index_named_single_columns_named_multi),
+        (False, True, False, True, True, True, True,
+         index_unnamed_single_columns_named_multi),
+        (False, True, True, False, True, True, True,
+         index_named_single_columns_unnamed_multi),
+        (True, False, True, True, True, True, True,
+         index_named_multi_columns_named_multi)
     ])
     def test_to_html_index_names(self, index_multi_index, columns_multi_index,
                                  named_index, named_columns, index, header,
@@ -2169,8 +2197,9 @@ class TestToHTML(object):
             else:
                 df.columns.name = 'columns.name'
 
-        result = df.to_html()
-        assert result == dedent(expected)
+        result = df.to_html(index=index, header=header,
+                            index_names=index_names)
+        assert result == dedent(expected())
 
     def test_to_html_multi_index_index_named_columns_index(self):
         multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
