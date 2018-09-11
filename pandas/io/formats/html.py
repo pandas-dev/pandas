@@ -219,7 +219,7 @@ class HTMLFormatter(TableFormatter):
                 row.extend([single_column_table(c, self.fmt.justify, style)
                             for c in self.columns])
             else:
-                if self.fmt.index:
+                if self.fmt.index or self.show_col_idx_names:
                     row.append(self.columns.name or '')
                 row.extend(self.columns)
             return row
