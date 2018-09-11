@@ -1146,10 +1146,11 @@ class MultiIndex(Index):
         """
 
         from pandas import DataFrame
-        if not is_list_like(name):
-            raise TypeError("'name' must be a list / sequence of array-likes.")
-
         if name is not None:
+            if not is_list_like(name):
+                raise TypeError("'name' must be a list / sequence "
+                                "of array-likes.")
+
             if len(name) != len(self.levels):
                 raise ValueError("'name' should have same length as "
                                  "number of levels on index")
