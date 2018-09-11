@@ -77,9 +77,7 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is Categorical
+    pass
 
 
 class TestInterface(base.BaseInterfaceTests):

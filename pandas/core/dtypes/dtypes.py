@@ -8,6 +8,24 @@ from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 from .base import ExtensionDtype, _DtypeOpsMixin
 
 
+def register_extension_dtype(cls):
+    """Class decorator to register an ExtensionType with pandas.
+
+    This enables operations like ``.astype(name)`` for the name
+    of the ExtensionDtype.
+
+    Examples
+    --------
+    >>> from pandas.api.extensions import register_extension_dtype
+    >>> from pandas.api.extensions import ExtensionDtype
+    >>> @register_extension_dtype
+    ... class MyExtensionDtype(ExtensionDtype):
+    ...     pass
+    """
+    registry.register(cls)
+    return cls
+
+
 class Registry(object):
     """
     Registry for dtype inference
@@ -17,10 +35,6 @@ class Registry(object):
 
     Multiple extension types can be registered.
     These are tried in order.
-
-    Examples
-    --------
-    registry.register(MyExtensionDtype)
     """
     def __init__(self):
         self.dtypes = []
