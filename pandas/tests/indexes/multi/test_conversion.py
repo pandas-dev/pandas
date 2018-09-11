@@ -49,7 +49,11 @@ def test_to_frame():
     expected.columns = ['first', 'second']
     tm.assert_frame_equal(result, expected)
 
-    msg = "'name' should have same lenght as number of levels on index"
+    msg = "'name' must be a list / sequence of array-likes."
+    with tm.assert_raises_regex(TypeError, msg):
+        index.to_frame(name='first')
+
+    msg = "'name' should have same length as number of levels on index"
     with tm.assert_raises_regex(ValueError, msg):
         index.to_frame(name=['first'])
 

@@ -1127,7 +1127,7 @@ class Index(IndexOpsMixin, PandasObject):
             Set the index of the returned DataFrame as the original Index.
 
         name : object, default None
-            The passed name should substitute for the series name (if it has
+            The passed name should substitute for the index name (if it has
             one).
 
         Returns
@@ -1157,6 +1157,8 @@ class Index(IndexOpsMixin, PandasObject):
         0   Ant
         1  Bear
         2   Cow
+
+        To override the name of the resulting column, specify `name`:
 
         >>> idx.to_frame(index=False, name='zoo')
             zoo
