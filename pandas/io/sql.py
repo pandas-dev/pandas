@@ -592,15 +592,16 @@ class SQLTable(PandasObject):
         data_list = [None] * ncols
         blocks = temp._data.blocks
 
-        for i in range(len(blocks)):
-            b = blocks[i]
+        for b in blocks:
             if b.is_datetime:
-                # convert to microsecond resolution so this yields
-                # datetime.datetime
+                # return datetime.datetime objects
                 if b.is_datetimetz:
                     # GH 9086: Ensure we return datetimes with timezone info
+                    # Need to return 2-D data; DatetimeIndex is 1D
                     d = b.values.to_pydatetime()
+                    d = np.expand_dims(d, axis=0)
                 else:
+                    # convert to microsecond resolution for datetime.datetime
                     d = b.values.astype('M8[us]').astype(object)
             else:
                 d = np.array(b.get_values(), dtype=object)
