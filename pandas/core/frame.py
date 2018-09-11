@@ -4382,12 +4382,11 @@ class DataFrame(NDFrame):
             - False : Mark all duplicates as ``True``. This option is not
               compatible with ``return_inverse``.
         return_inverse : boolean, default False
-            If True, also return the selection from the index from the
-            DataFrame of unique values (created e.g. by selecting the boolean
-            complement of the first output, or by using `.drop_duplicates` with
-            the same `keep`-parameter) and how they relate to the index of the
-            current DataFrame. This allows to reconstruct the original
-            DataFrame from the subset of unique values, see example below.
+            If True, also return a Series mapping the index of the current
+            DataFrame to the index after deduplication (created e.g. by using
+            `.drop_duplicates` or by selecting everything that is not
+            duplicate). This allows to reconstruct the original DataFrame from
+            the subset of deduplicated (=unique) values, see example below.
 
             .. versionadded:: 0.24.0
 
