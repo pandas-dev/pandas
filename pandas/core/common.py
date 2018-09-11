@@ -15,7 +15,9 @@ from pandas._libs import lib, tslibs
 from pandas import compat
 from pandas.compat import iteritems, PY36, OrderedDict
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
-from pandas.core.dtypes.common import is_integer
+from pandas.core.dtypes.common import (
+    is_integer, is_bool_dtype, is_extension_array_dtype, is_array_like
+)
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
@@ -100,7 +102,8 @@ values_from_object = lib.values_from_object
 
 
 def is_bool_indexer(key):
-    if isinstance(key, (ABCSeries, np.ndarray, ABCIndex)):
+    if (isinstance(key, (ABCSeries, np.ndarray, ABCIndex)) or
+            (is_array_like(key) and is_extension_array_dtype(key.dtype))):
         if key.dtype == np.object_:
             key = np.asarray(values_from_object(key))
 
@@ -110,7 +113,7 @@ def is_bool_indexer(key):
                                      'NA / NaN values')
                 return False
             return True
-        elif key.dtype == np.bool_:
+        elif is_bool_dtype(key.dtype):
             return True
     elif isinstance(key, list):
         try:
