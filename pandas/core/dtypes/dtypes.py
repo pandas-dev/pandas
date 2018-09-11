@@ -11,6 +11,8 @@ from .base import ExtensionDtype, _DtypeOpsMixin
 def register_extension_dtype(cls):
     """Class decorator to register an ExtensionType with pandas.
 
+    .. versionadded:: 0.24.0
+
     This enables operations like ``.astype(name)`` for the name
     of the ExtensionDtype.
 
