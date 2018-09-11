@@ -138,12 +138,11 @@ _numeric_only_doc = """numeric_only : boolean, default None
 """
 
 _merge_doc = """
-Merge DataFrame or named Series objects by performing a database-style join
-operation by columns or indexes.
+Merge DataFrame or named Series objects with a database-style join.
 
-If joining columns on columns, the DataFrame indexes *will be
-ignored*. Otherwise if joining indexes on indexes or indexes on a column or
-columns, the index will be passed on.
+The join is done on columns or indexes. If joining columns on
+columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
+on indexes or indexes on a column or columns, the index will be passed on.
 
 Parameters
 ----------%s
@@ -153,13 +152,13 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
-      preserve key order
+      preserve key order.
     * right: use only keys from right frame, similar to a SQL right outer join;
-      preserve key order
+      preserve key order.
     * outer: use union of keys from both frames, similar to a SQL full outer
-      join; sort keys lexicographically
+      join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
-      join; preserve the order of the left keys
+      join; preserve the order of the left keys.
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -172,22 +171,23 @@ right_on : label or list, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
-left_index : boolean, default False
+left_index : bool, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
     or a number of columns) must match the number of levels.
-right_index : boolean, default False
+right_index : bool, default False
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index.
-sort : boolean, default False
+sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
-suffixes : 2-length sequence (tuple, list, ...)
+suffixes : tuple of (str, str), default ('_x', '_y')
     Suffix to apply to overlapping column names in the left and right
-    side, respectively.
-copy : boolean, default True
+    side, respectively. To raise an exception on overlapping columns use
+    (False, False).
+copy : bool, default True
     If False, avoid copy if possible.
-indicator : boolean or string, default False
+indicator : bool or str, default False
     If True, adds a column to output DataFrame called "_merge" with
     information on the source of each row.
     If string, column with information on source of each row will be added to
@@ -197,7 +197,7 @@ indicator : boolean or string, default False
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
 
-validate : string, default None
+validate : str, optional
     If specified, checks if merge is of specified type.
 
     * "one_to_one" or "1:1": check if merge keys are unique in both
@@ -213,6 +213,7 @@ validate : string, default None
 Returns
 -------
 DataFrame
+    A DataFrame of the two merged objects.
 
 Notes
 -----
@@ -229,24 +230,27 @@ DataFrame.join : similar method using indices.
 Examples
 --------
 
->>> A = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-...                   'value': [1, 2, 3, 5]})
->>> B = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-...                   'value': [5, 6, 7, 8]})
->>> A
+>>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
+...                     'value': [1, 2, 3, 5]})
+>>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
+...                     'value': [5, 6, 7, 8]})
+>>> df1
     lkey value
 0   foo      1
 1   bar      2
 2   baz      3
 3   foo      5
->>> B
+>>> df2
     rkey value
 0   foo      5
 1   bar      6
 2   baz      7
 3   foo      8
 
->>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
+Merge df1 and df2 on the lkey and rkey columns. The value columns have
+the default suffixes, _x and _y, appended.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey')
   lkey  value_x rkey  value_y
 0  foo        1  foo        5
 1  foo        1  foo        8
@@ -254,6 +258,28 @@ Examples
 3  foo        5  foo        8
 4  bar        2  bar        6
 5  baz        3  baz        7
+
+Merge DataFrames df1 and df2 with specified left and right suffixes
+appended to any overlapping columns.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey',
+...           suffixes=('_left', '_right'))
+  lkey  value_left rkey  value_right
+0  foo           1  foo            5
+1  foo           1  foo            8
+2  foo           5  foo            5
+3  foo           5  foo            8
+4  bar           2  bar            6
+5  baz           3  baz            7
+
+Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
+any overlapping columns.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
+Traceback (most recent call last):
+...
+ValueError: columns overlap but no suffix specified:
+    Index(['value'], dtype='object')
 """
 
 # -----------------------------------------------------------------------
@@ -4957,21 +4983,31 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
-
-        return self._constructor(result, index=new_index, columns=new_columns,
-                                 copy=False)
+            return self._constructor(result,
+                                     index=new_index, columns=new_columns,
+                                     copy=False)
 
     def _combine_match_index(self, other, func, level=None):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        new_data = func(left.values.T, right.values).T
-        return self._constructor(new_data,
-                                 index=left.index, columns=self.columns,
-                                 copy=False)
+        assert left.index.equals(right.index)
+
+        if left._is_mixed_type or right._is_mixed_type:
+            # operate column-wise; avoid costly object-casting in `.values`
+            return ops.dispatch_to_series(left, right, func)
+        else:
+            # fastpath --> operate directly on values
+            new_data = func(left.values.T, right.values).T
+            return self._constructor(new_data,
+                                     index=left.index, columns=self.columns,
+                                     copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
+        assert left.columns.equals(right.index)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
@@ -4980,32 +5016,12 @@ class DataFrame(NDFrame):
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:
-            new_data = {i: func(self.iloc[:, i], other)
-                        for i, col in enumerate(self.columns)}
-
-            result = self._constructor(new_data, index=self.index, copy=False)
-            result.columns = self.columns
-            return result
+            return ops.dispatch_to_series(self, other, func)
 
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
-
-    def _compare_frame(self, other, func, str_rep):
-        # compare_frame assumes self._indexed_same(other)
-
-        import pandas.core.computation.expressions as expressions
-
-        def _compare(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-        result = self._constructor(data=new_data, index=self.index,
-                                   copy=False)
-        result.columns = self.columns
-        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
