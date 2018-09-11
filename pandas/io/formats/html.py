@@ -195,14 +195,31 @@ class HTMLFormatter(TableFormatter):
         buffer_put_lines(buf, self.elements)
 
     def _write_header(self, indent):
+        truncate_h = self.fmt.truncate_h
+        row_levels = self.frame.index.nlevels
         if not self.fmt.header:
             # write nothing
             return indent
 
-        truncate_h = self.fmt.truncate_h
-        row_levels = self.frame.index.nlevels
-        has_column_names = self.fmt.has_column_names
-        show_index_names = self.fmt.show_index_names
+        def _column_header():
+            if self.fmt.index:
+                row = [''] * (self.frame.index.nlevels - 1)
+            else:
+                row = []
+
+            if isinstance(self.columns, ABCMultiIndex):
+                if self.fmt.has_column_names and self.fmt.index:
+                    row.append(single_column_table(self.columns.names))
+                else:
+                    row.append('')
+                style = "text-align: {just};".format(just=self.fmt.justify)
+                row.extend([single_column_table(c, self.fmt.justify, style)
+                            for c in self.columns])
+            else:
+                if self.fmt.index:
+                    row.append(self.columns.name or '')
+                row.extend(self.columns)
+            return row
 
         self.write('<thead>', indent)
 
@@ -265,12 +282,11 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                show_column_names = has_column_names and show_index_names
-                if self.fmt.index or show_column_names:
-                    name = self.columns.names[lnum]
-                    row = [''] * (row_levels - 1) + ['' if name is None else
-                                                     pprint_thing(name)]
-                else:
+                name = self.columns.names[lnum]
+                row = [''] * (row_levels - 1) + ['' if name is None else
+                                                 pprint_thing(name)]
+
+                if row == [""] and self.fmt.index is False:
                     row = []
 
                 tags = {}
@@ -286,19 +302,14 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
-            if self.fmt.index:
-                row = [''] * (row_levels - 1) + [self.columns.name or '']
-            else:
-                row = []
-            row.extend(self.columns)
-
+            col_row = _column_header()
             align = self.fmt.justify
 
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
-                row.insert(ins_col, '...')
+                col_row.insert(ins_col, '...')
 
-            self.write_tr(row, indent, self.indent_delta, header=True,
+            self.write_tr(col_row, indent, self.indent_delta, header=True,
                           align=align)
 
         if all((self.fmt.has_index_names,
@@ -326,8 +337,6 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
-        has_column_names = self.fmt.has_column_names
-        show_index_names = self.fmt.show_index_names
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
@@ -335,12 +344,7 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
-                if has_column_names and show_index_names and self.fmt.header:
-                    row = ['']
-                else:
-                    row = []
-                row = row + [fmt_values[j][i]
-                             for j in range(len(self.columns))]
+                row = [fmt_values[j][i] for j in range(len(self.columns))]
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
         indent -= self.indent_delta
