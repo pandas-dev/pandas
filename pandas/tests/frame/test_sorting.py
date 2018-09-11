@@ -602,51 +602,61 @@ class TestDataFrameSortIndexKinds(TestData):
     def test_sort_index_na_position_with_categories(self):
         # GH 22556
         # Positioning missing value properly when column is Categorical.
-        df_category_with_nan = pd.DataFrame({
+        df = pd.DataFrame({
             'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
                                 categories=['A', 'B', 'C'],
                                 ordered=True)})
-        result = df_category_with_nan.sort_values(by='c',
-                                                  ascending=True,
-                                                  na_position='first')
-        expected = DataFrame({
+        result_ascending_na_first = df.sort_values(by='c',
+                                                   ascending=True,
+                                                   na_position='first')
+        expected_ascending_na_first = DataFrame({
             'c': Categorical([np.nan, np.nan, 'A', 'B', 'C'],
                              categories=['A', 'B', 'C'],
                              ordered=True)}, index=[1, 3, 0, 2, 4])
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result_ascending_na_first,
+                           expected_ascending_na_first)
 
-        result = df_category_with_nan.sort_values(by='c',
+        result_ascending_na_last = df.sort_values(by='c',
                                                   ascending=True,
                                                   na_position='last')
-        expected = DataFrame({
+        expected_ascending_na_last = DataFrame({
             'c': Categorical(['A', 'B', 'C', np.nan, np.nan],
                              categories=['A', 'B', 'C'],
                              ordered=True)}, index=[0, 2, 4, 1, 3])
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result_ascending_na_last,
+                           expected_ascending_na_last)
 
-        result = df_category_with_nan.sort_values(by='c',
-                                                  ascending=False,
-                                                  na_position='first')
-        expected = DataFrame({
+        result_descending_na_first = df.sort_values(by='c',
+                                                    ascending=False,
+                                                    na_position='first')
+        expected_descending_na_first = DataFrame({
             'c': Categorical([np.nan, np.nan, 'C', 'B', 'A'],
                              categories=['A', 'B', 'C'],
                              ordered=True)}, index=[3, 1, 4, 2, 0])
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result_descending_na_first,
+                           expected_descending_na_first)
 
-        result = df_category_with_nan.sort_values(by='c',
-                                                  ascending=False,
-                                                  na_position='last')
-        expected = DataFrame({
+        result_descending_na_last = df.sort_values(by='c',
+                                                   ascending=False,
+                                                   na_position='last')
+        expected_descending_na_last = DataFrame({
             'c': Categorical(['C', 'B', 'A', np.nan, np.nan],
                              categories=['A', 'B', 'C'],
                              ordered=True)}, index=[4, 2, 0, 3, 1])
 
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result_descending_na_last,
+                           expected_descending_na_last)
+
+    def test_sort_index_na_position_with_categories_raises(self):
+        df = pd.DataFrame({
+            'c': pd.Categorical(['A', np.nan, 'B', np.nan, 'C'],
+                                categories=['A', 'B', 'C'],
+                                ordered=True)})
 
         with pytest.raises(ValueError):
-            df_category_with_nan.sort_values(by='c',
-                                             ascending=False,
-                                             na_position='bad_position')
+            df.sort_values(by='c',
+                           ascending=False,
+                           na_position='bad_position')

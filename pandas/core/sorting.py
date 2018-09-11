@@ -246,14 +246,13 @@ def nargsort(items, kind='quicksort', ascending=True, na_position='last'):
         mask = isna(items)
         cnt_null = mask.sum()
         sorted_idx = items.argsort(ascending=ascending, kind=kind)
-        if ascending:
+        if ascending and na_position == 'last':
             # NaN is coded as -1 and is listed in front after sorting
-            return sorted_idx if na_position == 'first' \
-                else np.roll(sorted_idx, -cnt_null)
-        else:
+            sorted_idx = np.roll(sorted_idx, -cnt_null)
+        elif not ascending and na_position == 'first':
             # NaN is coded as -1 and is listed in the end after sorting
-            return sorted_idx if na_position == 'last' else \
-                np.roll(sorted_idx, cnt_null)
+            sorted_idx = np.roll(sorted_idx, cnt_null)
+        return sorted_idx
 
     items = np.asanyarray(items)
     idx = np.arange(len(items))
