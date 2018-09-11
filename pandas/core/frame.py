@@ -726,7 +726,7 @@ class DataFrame(NDFrame):
 
     def iteritems(self):
         """
-        Iterate over DataFrame columns as (column name, Series) pairs.
+        Iterator over (column name, Series) pairs.
 
         See also
         --------
@@ -737,7 +737,7 @@ class DataFrame(NDFrame):
         --------
 
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
-                             index=['a', 'b'])
+        ...                   index=['a', 'b'])
         >>> df
            col1 col2
         a     1  0.1
