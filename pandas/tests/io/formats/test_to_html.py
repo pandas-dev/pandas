@@ -2156,46 +2156,51 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    @pytest.mark.parametrize("""index_multi_index, columns_multi_index,
-     named_index, named_columns, index, header, index_names, expected""", [
-        (False, False, True, True, True, True, True,
+    @pytest.mark.parametrize("""idx_type, col_idx_type, index, header,
+                               index_names, expected""", [
+        ('named_single', 'named_single', True, True, True,
          index_named_single_columns_named_single),
-        (False, False, False, True, True, True, True,
+        ('unnamed_single', 'named_single', True, True, True,
          index_unnamed_single_columns_named_single),
-        (False, False, True, False, True, True, True,
+        ('named_single', 'unnamed_single', True, True, True,
          index_named_single_columns_unnamed_single),
-        (False, True, True, True, True, True, True,
+        ('named_single', 'named_multi', True, True, True,
          index_named_single_columns_named_multi),
-        (False, True, False, True, True, True, True,
+        ('unnamed_single', 'named_multi', True, True, True,
          index_unnamed_single_columns_named_multi),
-        (False, True, True, False, True, True, True,
+        ('named_single', 'unnamed_multi', True, True, True,
          index_named_single_columns_unnamed_multi),
-        (True, False, True, True, True, True, True,
+        ('named_multi', 'named_single', True, True, True,
          index_named_multi_columns_named_single)
     ])
-    def test_to_html_index_names(self, index_multi_index, columns_multi_index,
-                                 named_index, named_columns, index, header,
+    def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
                                  index_names, expected):
 
         df = DataFrame(np.zeros((2, 2), dtype=int))
 
-        if index_multi_index:
+        if idx_type == 'named_single':
+            df.index.name = 'index.name'
+        elif idx_type == 'unnamed_single':
+            pass
+        elif idx_type == 'named_multi':
+            df.index = MultiIndex.from_product([['a'], ['b', 'c']], names=[
+                                               'index.name.0', 'index.name.1'])
+        elif idx_type == 'unnamed_multi':
             df.index = MultiIndex.from_product([['a'], ['b', 'c']])
-        if named_index:
-            if index_multi_index:
-                df.index.rename(
-                    ['index.name.0', 'index.name.1'], inplace=True)
-            else:
-                df.index.name = 'index.name'
+        else:
+            raise ValueError
 
-        if columns_multi_index:
+        if col_idx_type == 'named_single':
+            df.columns.name = 'columns.name'
+        elif col_idx_type == 'unnamed_single':
+            pass
+        elif col_idx_type == 'named_multi':
+            df.columns = MultiIndex.from_product([['a'], ['b', 'c']], names=[
+                'columns.name.0', 'columns.name.1'])
+        elif col_idx_type == 'unnamed_multi':
             df.columns = MultiIndex.from_product([['a'], ['b', 'c']])
-        if named_columns:
-            if columns_multi_index:
-                df.columns.rename(
-                    ['columns.name.0', 'columns.name.1'], inplace=True)
-            else:
-                df.columns.name = 'columns.name'
+        else:
+            raise ValueError
 
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
