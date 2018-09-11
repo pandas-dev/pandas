@@ -2,6 +2,7 @@ import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import assert_frame_equal, assert_raises_regex
 
 
@@ -31,6 +32,7 @@ def test_read_zipped_json(datapath):
     assert_frame_equal(uncompressed_df, compressed_df)
 
 
+@td.skip_if_not_us_locale
 def test_with_s3_url(compression):
     boto3 = pytest.importorskip('boto3')
     pytest.importorskip('s3fs')

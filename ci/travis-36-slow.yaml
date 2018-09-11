@@ -10,7 +10,7 @@ dependencies:
   - matplotlib
   - numexpr
   - numpy
-  - openpyxl
+  - openpyxl=2.5.5
   - patsy
   - psycopg2
   - pymysql

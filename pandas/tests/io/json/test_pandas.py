@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
                                  ensure_clean, assert_index_equal)
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 _seriesd = tm.getSeriesData()
 _tsd = tm.getTimeSeriesData()
@@ -1040,6 +1041,7 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         expected = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
         assert_frame_equal(result, expected)
 
+    @td.skip_if_not_us_locale
     def test_read_s3_jsonl(self, s3_resource):
         # GH17200
 

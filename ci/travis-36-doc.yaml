@@ -21,7 +21,7 @@ dependencies:
   - notebook
   - numexpr
   - numpy=1.13*
-  - openpyxl
+  - openpyxl=2.5.5
   - pandoc
   - pyqt
   - pytables
