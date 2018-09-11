@@ -201,6 +201,9 @@ class HTMLFormatter(TableFormatter):
             # write nothing
             return indent
 
+        has_column_names = self.fmt.has_column_names
+        show_index_names = self.fmt.show_index_names
+
         def _column_header():
             if self.fmt.index:
                 row = [''] * (self.frame.index.nlevels - 1)
@@ -282,11 +285,12 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                name = self.columns.names[lnum]
-                row = [''] * (row_levels - 1) + ['' if name is None else
-                                                 pprint_thing(name)]
-
-                if row == [""] and self.fmt.index is False:
+                show_column_names = has_column_names and show_index_names
+                if self.fmt.index or show_column_names:
+                    name = self.columns.names[lnum]
+                    row = [''] * (row_levels - 1) + ['' if name is None else
+                                                     pprint_thing(name)]
+                else:
                     row = []
 
                 tags = {}
@@ -337,6 +341,8 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
+        has_column_names = self.fmt.has_column_names
+        show_index_names = self.fmt.show_index_names
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
@@ -344,7 +350,12 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
+                if has_column_names and show_index_names and self.fmt.header:
+                    row = ['']
+                else:
+                    row = []
+                row = row + [fmt_values[j][i]
+                             for j in range(len(self.columns))]
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
         indent -= self.indent_delta
