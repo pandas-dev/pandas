@@ -47,9 +47,9 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
-        self.show_col_idx_names = (self.fmt.has_column_names and
-                                   self.fmt.show_index_names and
-                                   self.fmt.header)
+        self.show_col_idx_names = all((self.fmt.has_column_names,
+                                      self.fmt.show_index_names,
+                                      self.fmt.header))
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
