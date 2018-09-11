@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas.util.testing as tm
 from pandas import Categorical, Index, CategoricalIndex, PeriodIndex, Series
-from pandas.core.common import is_bool_indexer
+import pandas.core.common as com
 from pandas.tests.arrays.categorical.common import TestCategorical
 
 
@@ -127,7 +127,7 @@ class TestCategoricalIndexing(object):
 def test_mask_with_boolean():
     s = Series(range(3))
     idx = CategoricalIndex([True, False, True])
-    assert is_bool_indexer(idx)
+    assert com.is_bool_indexer(idx)
     result = s[idx]
     expected = s[idx.astype('object')]
     tm.assert_series_equal(result, expected)
