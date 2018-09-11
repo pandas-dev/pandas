@@ -87,24 +87,24 @@ class Repeat(object):
 class Cat(object):
 
     goal_time = 0.2
-    params = ([None, 5], [None, ','], [None, '-'], [0.0, 1e-4, 0.1])
-    param_names = ['others', 'sep', 'na_rep', 'na_frac']
+    params = ([0, 3], [None, ','], [None, '-'], [0.0, 0.001, 0.15])
+    param_names = ['other_cols', 'sep', 'na_rep', 'na_frac']
 
-    def setup(self, others, sep, na_rep, na_frac):
-        N = int(5e5)
+    def setup(self, other_cols, sep, na_rep, na_frac):
+        N = 10 ** 5
         mask_gen = lambda: np.random.choice([True, False], N,
                                             p=[1 - na_frac, na_frac])
         self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
         self.others = (DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
-                                  for i in range(others)})
-                       if others is not None else None)
+                                  for i in range(other_cols)})
+                       if other_cols > 0 else None)
 
-    def time_cat(self, others, sep, na_rep, na_frac):
-        # before the concatenation (one caller + others columns), the total
+    def time_cat(self, other_cols, sep, na_rep, na_frac):
+        # before the concatenation (one caller + other_cols columns), the total
         # expected fraction of rows containing any NaN is:
-        #     reduce(lambda t, _: t + (1 - t) * na_frac, range(others + 1), 0)
-        # for others=5 and na_frac=0.1, this works out to ~47%
-        self.s.str.cat(self.others, sep=sep, na_rep=na_rep)
+        # reduce(lambda t, _: t + (1 - t) * na_frac, range(other_cols + 1), 0)
+        # for other_cols=3 and na_frac=0.15, this works out to ~48%
+        self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
 
 
 class Contains(object):
