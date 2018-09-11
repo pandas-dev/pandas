@@ -2463,7 +2463,38 @@ class TestToHTML(object):
         assert result == expected
 
     def test_to_html_multi_index_column_index_false_named_columns_index(self):
-        pass
+        columns_multi_index = MultiIndex.from_product(
+            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       columns=columns_multi_index)
+        result = df.to_html(index=False)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th>columns.name.0</th>
+              <th colspan="2" halign="left">a</th>
+            </tr>
+            <tr>
+              <th>columns.name.1</th>
+              <th>b</th>
+              <th>c</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td></td>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td>0</td>
+              <td>0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
 
     def test_to_html_multi_index_column_index_false_named_index_index(self):
         multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
