@@ -47,6 +47,9 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        self.show_col_idx_names = (self.fmt.has_column_names and
+                                   self.fmt.show_index_names and
+                                   self.fmt.header)
 
     def write(self, s, indent=0):
         rs = pprint_thing(s)
@@ -201,9 +204,6 @@ class HTMLFormatter(TableFormatter):
             # write nothing
             return indent
 
-        show_column_names = (self.fmt.has_column_names and
-                             self.fmt.show_index_names)
-
         def _column_header():
             if self.fmt.index:
                 row = [''] * (self.frame.index.nlevels - 1)
@@ -289,7 +289,7 @@ class HTMLFormatter(TableFormatter):
                 row = [''] * (row_levels - 1) + ['' if name is None else
                                                  pprint_thing(name)]
 
-                if not (show_column_names or self.fmt.index):
+                if not (self.show_col_idx_names or self.fmt.index):
                     row = []
 
                 tags = {}
@@ -340,9 +340,6 @@ class HTMLFormatter(TableFormatter):
             fmt_values[i] = self.fmt._format_col(i)
 
         # write values
-        show_column_names = (self.fmt.has_column_names and
-                             self.fmt.show_index_names and self.fmt.header)
-
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
@@ -350,7 +347,7 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
-                if show_column_names:
+                if self.show_col_idx_names:
                     row = ['']
                 else:
                     row = []
