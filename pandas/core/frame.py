@@ -3220,7 +3220,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        **kwargs : dict of {str: callable or series}
+        **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
@@ -3264,7 +3264,7 @@ class DataFrame(NDFrame):
         Berkeley    25.0    77.0
 
         Alternatively, the same behavior can be achieved by directly
-        referencing an existing Series or list-like:
+        referencing an existing Series or sequence:
         >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
                   temp_c  temp_f
         Portland    17.0    62.6
