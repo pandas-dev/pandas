@@ -1355,26 +1355,30 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = sql.read_sql_table("types_test_data", self.conn)
         check(df.DateColWithTz)
 
-    # @pytest.mark.skipif(flavor != 'postgresql',
-    #                     reason="postgresql only supports timezones")
     def test_datetime_with_timezone_writing(self):
         # GH 9086
+        if self.flavor != 'postgresql':
+            msg = "{} does not support datetime with time zone"
+            pytest.skip(msg.format(self.flavor))
+
         df = DataFrame({'A': date_range(
             '2013-01-01 09:00:00', periods=3, tz='US/Pacific'
         )})
         df.to_sql('test_datetime_tz', self.conn)
 
+        expected = df.copy()
+        expected['A'] = expected['A'].dt.tz_convert('UTC')
         # with read_table -> type information from schema used
         result = sql.read_sql_table('test_datetime_tz', self.conn)
         result = result.drop('index', axis=1)
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, expected)
 
         # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query(
             'SELECT * FROM test_datetime_tz', self.conn
         )
         result = result.drop('index', axis=1)
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, expected)
 
     def test_date_parsing(self):
         # No Parsing
