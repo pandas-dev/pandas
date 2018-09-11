@@ -327,6 +327,7 @@ class HTMLFormatter(TableFormatter):
 
         # write values
         has_column_names = self.fmt.has_column_names
+        show_index_names = self.fmt.show_index_names
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
                 self._write_hierarchical_rows(fmt_values, indent)
@@ -334,7 +335,7 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
-                if has_column_names and self.fmt.show_index_names:
+                if has_column_names and show_index_names and self.fmt.header:
                     row = ['']
                 else:
                     row = []
