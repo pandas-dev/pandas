@@ -346,10 +346,10 @@ class HTMLFormatter(TableFormatter):
             else:
                 self._write_regular_rows(fmt_values, indent)
         else:
-            row_init = [''] if self.show_col_idx_names else []
             for i in range(min(len(self.frame), self.max_rows)):
-                row = row_init + [fmt_values[j][i]
-                                  for j in range(len(self.columns))]
+                row = [fmt_values[j][i] for j in range(len(self.columns))]
+                if self.show_col_idx_names:
+                    row.insert(0, '')
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
         indent -= self.indent_delta
