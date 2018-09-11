@@ -211,7 +211,7 @@ def index_named_single_columns_unnamed_multi():
 
 
 @pytest.fixture
-def index_named_multi_columns_named_multi():
+def index_named_multi_columns_named_single():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -2171,7 +2171,7 @@ class TestToHTML(object):
         (False, True, True, False, True, True, True,
          index_named_single_columns_unnamed_multi),
         (True, False, True, True, True, True, True,
-         index_named_multi_columns_named_multi)
+         index_named_multi_columns_named_single)
     ])
     def test_to_html_index_names(self, index_multi_index, columns_multi_index,
                                  named_index, named_columns, index, header,
