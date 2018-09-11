@@ -285,12 +285,12 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
+                name = self.columns.names[lnum]
+                row = [''] * (row_levels - 1) + ['' if name is None else
+                                                 pprint_thing(name)]
+
                 show_column_names = has_column_names and show_index_names
-                if self.fmt.index or show_column_names:
-                    name = self.columns.names[lnum]
-                    row = [''] * (row_levels - 1) + ['' if name is None else
-                                                     pprint_thing(name)]
-                else:
+                if not (show_column_names or self.fmt.index):
                     row = []
 
                 tags = {}
