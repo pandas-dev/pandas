@@ -1130,6 +1130,9 @@ class MultiIndex(Index):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
+        Column ordering is determined by the DataFrame constructor with data as
+        a dict.
+
         .. versionadded:: 0.20.0
 
         Parameters
@@ -1140,6 +1143,10 @@ class MultiIndex(Index):
         Returns
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
+
+        See also
+        --------
+        DataFrame
         """
 
         from pandas import DataFrame
