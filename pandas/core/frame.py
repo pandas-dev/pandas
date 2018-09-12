@@ -728,6 +728,8 @@ class DataFrame(NDFrame):
         """
         Iterator over (column name, Series) pairs.
 
+        Iterates over columns as key, value dict-like pairs with columns name as keys and Series as values.
+
         Returns
         -------
         it : generator
