@@ -3,7 +3,6 @@
 # behave identically.
 # Specifically for Period dtype
 import operator
-from datetime import timedelta
 
 import numpy as np
 import pytest
@@ -17,78 +16,8 @@ from pandas._libs.tslibs.period import IncompatibleFrequency
 import pandas.core.indexes.period as period
 from pandas.core import ops
 from pandas import (
-    Period, PeriodIndex, period_range, Timedelta, Series,
+    Period, PeriodIndex, period_range, Series,
     _np_version_under1p10)
-
-
-# ------------------------------------------------------------------
-# Fixtures
-
-_common_mismatch = [pd.offsets.YearBegin(2),
-                    pd.offsets.MonthBegin(1),
-                    pd.offsets.Minute()]
-
-
-@pytest.fixture(params=[timedelta(minutes=30),
-                        np.timedelta64(30, 's'),
-                        Timedelta(seconds=30)] + _common_mismatch)
-def not_hourly(request):
-    """
-    Several timedelta-like and DateOffset instances that are _not_
-    compatible with Hourly frequencies.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[np.timedelta64(4, 'h'),
-                        timedelta(hours=23),
-                        Timedelta('23:00:00')] + _common_mismatch)
-def not_daily(request):
-    """
-    Several timedelta-like and DateOffset instances that are _not_
-    compatible with Daily frequencies.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[np.timedelta64(365, 'D'),
-                        timedelta(365),
-                        Timedelta(days=365)] + _common_mismatch)
-def mismatched(request):
-    """
-    Several timedelta-like and DateOffset instances that are _not_
-    compatible with Monthly or Annual frequencies.
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.offsets.Day(3),
-                        timedelta(days=3),
-                        np.timedelta64(3, 'D'),
-                        pd.offsets.Hour(72),
-                        timedelta(minutes=60 * 24 * 3),
-                        np.timedelta64(72, 'h'),
-                        Timedelta('72:00:00')])
-def three_days(request):
-    """
-    Several timedelta-like and DateOffset objects that each represent
-    a 3-day timedelta
-    """
-    return request.param
-
-
-@pytest.fixture(params=[pd.offsets.Hour(2),
-                        timedelta(hours=2),
-                        np.timedelta64(2, 'h'),
-                        pd.offsets.Minute(120),
-                        timedelta(minutes=120),
-                        np.timedelta64(120, 'm')])
-def two_hours(request):
-    """
-    Several timedelta-like and DateOffset objects that each represent
-    a 2-hour timedelta
-    """
-    return request.param
 
 
 # ------------------------------------------------------------------
@@ -752,8 +681,9 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.YearEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_annual(self, mismatched):
-        other = mismatched
+    def test_pi_add_iadd_timedeltalike_freq_mismatch_annual(self,
+                                                            mismatched_freq):
+        other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
                'from PeriodIndex\\(freq=A-DEC\\)')
@@ -762,8 +692,9 @@ class TestPeriodIndexArithmetic(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
 
-    def test_pi_sub_isub_timedeltalike_freq_mismatch_annual(self, mismatched):
-        other = mismatched
+    def test_pi_sub_isub_timedeltalike_freq_mismatch_annual(self,
+                                                            mismatched_freq):
+        other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
                'from PeriodIndex\\(freq=A-DEC\\)')
@@ -782,8 +713,9 @@ class TestPeriodIndexArithmetic(object):
         rng += pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
 
-    def test_pi_add_iadd_timedeltalike_freq_mismatch_monthly(self, mismatched):
-        other = mismatched
+    def test_pi_add_iadd_timedeltalike_freq_mismatch_monthly(self,
+                                                             mismatched_freq):
+        other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -791,8 +723,9 @@ class TestPeriodIndexArithmetic(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng += other
 
-    def test_pi_sub_isub_timedeltalike_freq_mismatch_monthly(self, mismatched):
-        other = mismatched
+    def test_pi_sub_isub_timedeltalike_freq_mismatch_monthly(self,
+                                                             mismatched_freq):
+        other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
         msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
