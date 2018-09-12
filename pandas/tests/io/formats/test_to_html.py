@@ -420,31 +420,123 @@ def index_named_multi_columns_unnamed_multi():
 @pytest.fixture
 def index_none_columns_named_multi():
     return """\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th>columns.name.0</th>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>columns.name.1</th>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td></td>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td></td>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>"""
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th>columns.name.0</th>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th>columns.name.1</th>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td></td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_none_columns_unnamed_multi():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_none_columns_none():
+    return """\
+    <table border="1" class="dataframe">
+      <tbody>
+        <tr>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_none_columns_named_single():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th>columns.name</th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td></td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
+
+
+@pytest.fixture
+def index_none_columns_unnamed_single():
+    return """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th>0</th>
+          <th>1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>"""
 
 
 class TestToHTML(object):
@@ -2386,7 +2478,21 @@ class TestToHTML(object):
         ('named_multi', 'unnamed_multi', True, True, True,
          index_named_multi_columns_unnamed_multi),
         ('named_single', 'named_multi', False, True, True,
-         index_none_columns_named_multi)
+         index_none_columns_named_multi),
+        ('named_single', 'named_multi', False, True, False,
+         index_none_columns_unnamed_multi),
+        ('named_single', 'named_multi', False, False, True,
+         index_none_columns_none),
+        ('unnamed_single', 'named_multi', False, True, True,
+         index_none_columns_named_multi),
+        ('named_single', 'unnamed_multi', False, True, True,
+         index_none_columns_unnamed_multi),
+        ('named_multi', 'named_single', False, True, True,
+         index_none_columns_named_single),
+        ('unnamed_multi', 'named_single', False, True, True,
+         index_none_columns_named_single),
+        ('named_multi', 'unnamed_single', False, True, True,
+         index_none_columns_unnamed_single)
     ])
     def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
                                  index_names, expected):
@@ -2420,181 +2526,6 @@ class TestToHTML(object):
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
         assert result == dedent(expected())
-
-    def test_to_html_multi_idx_column_idx_f_named_idx_both_idx_names_f(self):
-        columns_multi_index = MultiIndex.from_product(
-            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
-        df = DataFrame(np.zeros((2, 2), dtype=int),
-                       columns=columns_multi_index)
-        df.index.name = 'index.name'
-        result = df.to_html(index=False, index_names=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
-
-    def test_to_html_multi_idx_column_idx_f_named_idx_both_header_f(self):
-        columns_multi_index = MultiIndex.from_product(
-            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
-        df = DataFrame(np.zeros((2, 2), dtype=int),
-                       columns=columns_multi_index)
-        df.index.name = 'index.name'
-        result = df.to_html(index=False, header=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <tbody>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
-
-    def test_to_html_multi_index_column_index_false_named_columns_index(self):
-        columns_multi_index = MultiIndex.from_product(
-            [['a'], ['b', 'c']], names=['columns.name.0', 'columns.name.1'])
-        df = DataFrame(np.zeros((2, 2), dtype=int),
-                       columns=columns_multi_index)
-        result = df.to_html(index=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th>columns.name.0</th>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>columns.name.1</th>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td></td>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td></td>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
-
-    def test_to_html_multi_index_column_index_false_named_index_index(self):
-        multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
-        df = DataFrame(np.zeros((2, 2), dtype=int), columns=multi_index)
-        df.index.name = 'index.name'
-        result = df.to_html(index=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
-
-    def test_to_html_multi_index_index_index_false_named_index_both(self):
-        index_multi_index = MultiIndex.from_product(
-            [['a'], ['b', 'c']], names=['index.name.0', 'index.name.1'])
-        df = DataFrame(np.zeros((2, 2), dtype=int), index=index_multi_index)
-        df.columns.name = 'columns.name'
-        result = df.to_html(index=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th>columns.name</th>
-              <th>0</th>
-              <th>1</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td></td>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td></td>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
-
-    def test_to_html_multi_index_index_index_false_named_columns_index(self):
-        pass
-
-    def test_to_html_multi_index_index_index_false_named_index_index(self):
-        multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
-        df = DataFrame(np.zeros((2, 2), dtype=int), index=multi_index)
-        df.index.name = 'index.name'
-        result = df.to_html(index=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr style="text-align: right;">
-              <th>0</th>
-              <th>1</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
 
     def test_to_html_multi_index_both_index_false_named_index_both(self):
         pass
