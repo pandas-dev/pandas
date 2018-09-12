@@ -2492,7 +2492,13 @@ class TestToHTML(object):
         ('unnamed_multi', 'named_single', False, True, True,
          index_none_columns_named_single),
         ('named_multi', 'unnamed_single', False, True, True,
-         index_none_columns_unnamed_single)
+         index_none_columns_unnamed_single),
+        ('named_multi', 'named_multi', False, True, True,
+         index_none_columns_named_multi),
+        # ('unnamed_multi', 'named_multi', False, True, True,
+        #  index_none_columns_named_multi),
+        ('named_multi', 'unnamed_multi', False, True, True,
+         index_none_columns_unnamed_multi)
     ])
     def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
                                  index_names, expected):
@@ -2526,15 +2532,6 @@ class TestToHTML(object):
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
         assert result == dedent(expected())
-
-    def test_to_html_multi_index_both_index_false_named_index_both(self):
-        pass
-
-    def test_to_html_multi_index_both_index_false_named_columns_index(self):
-        pass
-
-    def test_to_html_multi_index_both_index_false_named_index_index(self):
-        pass
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
