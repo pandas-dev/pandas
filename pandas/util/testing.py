@@ -2431,7 +2431,7 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
 
     You can also use this in a with statement.
 
-    >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
+    >>> with assert_raises_regex(TypeError, r'unsupported operand type\(s\)'):
     ...     1 + {}
     >>> with assert_raises_regex(TypeError, 'banana'):
     ...     'apple'[0] = 'b'
