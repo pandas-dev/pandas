@@ -728,6 +728,11 @@ class DataFrame(NDFrame):
         """
         Iterator over (column name, Series) pairs.
 
+        Returns
+        -------
+        it : generator
+            A generator that iterates over the columns of the frame.
+
         See also
         --------
         iterrows : Iterate over DataFrame rows as (index, Series) pairs.
@@ -735,7 +740,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
         ...                   index=['a', 'b'])
         >>> df
@@ -751,7 +755,6 @@ class DataFrame(NDFrame):
         ('col2', a   0.1
         b   0.2
         Name: col2, dtype: float64)
-
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
