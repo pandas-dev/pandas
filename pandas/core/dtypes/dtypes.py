@@ -81,9 +81,6 @@ class Registry(object):
 
 
 registry = Registry()
-# TODO(Extension): remove the second registry once all internal extension
-# dtypes are real extension dtypes.
-_pandas_registry = Registry()
 
 
 class PandasExtensionDtype(_DtypeOpsMixin):
@@ -161,6 +158,7 @@ class CategoricalDtypeType(type):
     pass
 
 
+@register_extension_dtype
 class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness
@@ -708,6 +706,7 @@ class IntervalDtypeType(type):
     pass
 
 
+@register_extension_dtype
 class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
@@ -840,8 +839,9 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
         return super(IntervalDtype, cls).is_dtype(dtype)
 
 
-# register the dtypes in search order
-registry.register(IntervalDtype)
-registry.register(CategoricalDtype)
+# TODO(Extension): remove the second registry once all internal extension
+# dtypes are real extension dtypes.
+_pandas_registry = Registry()
+
 _pandas_registry.register(DatetimeTZDtype)
 _pandas_registry.register(PeriodDtype)
