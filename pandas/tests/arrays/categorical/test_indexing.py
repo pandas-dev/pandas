@@ -124,10 +124,25 @@ class TestCategoricalIndexing(object):
             tm.assert_numpy_array_equal(exp_miss, res_miss)
 
 
-def test_mask_with_boolean():
+@pytest.mark.parametrize("index", [True, False])
+def test_mask_with_boolean(index):
     s = Series(range(3))
-    idx = CategoricalIndex([True, False, True])
+    idx = Categorical([True, False, True])
+    if index:
+        idx = CategoricalIndex(idx)
+
     assert com.is_bool_indexer(idx)
     result = s[idx]
     expected = s[idx.astype('object')]
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("index", [True, False])
+def test_mask_with_boolean_raises(index):
+    s = Series(range(3))
+    idx = Categorical([True, False, None])
+    if index:
+        idx = CategoricalIndex(idx)
+
+    with tm.assert_raises_regex(ValueError, 'NA / NaN'):
+        s[idx]
