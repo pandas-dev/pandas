@@ -923,9 +923,9 @@ class TestTimedeltaArraylikeAddSubOps(object):
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
                                        ('foo', 'foo', 'foo')])
-    def test_td64arr_with_offset_series(self, names, box_df_broadcast_failure):
+    def test_td64arr_with_offset_series(self, names, box_df_fail):
         # GH#18849
-        box = box_df_broadcast_failure
+        box = box_df_fail
         box2 = Series if box is pd.Index else box
 
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],

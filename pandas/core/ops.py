@@ -1632,7 +1632,7 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
     right : scalar or DataFrame
     func : arithmetic or comparison operator
     str_rep : str or None, default None
-    axis : {None, "index", "columns"}
+    axis : {None, 0, 1, "index", "columns"}
 
     Returns
     -------
