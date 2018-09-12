@@ -1033,10 +1033,14 @@ class Styler(object):
         def css(x):
             if pd.isna(x):
                 return ''
+
+            # avoid deprecated indexing `colors[x > zero]`
+            color = colors[1] if x > zero else colors[0]
+
             if align == 'left':
-                return css_bar(0, x, colors[x > zero])
+                return css_bar(0, x, color)
             else:
-                return css_bar(min(x, zero), max(x, zero), colors[x > zero])
+                return css_bar(min(x, zero), max(x, zero), color)
 
         if s.ndim == 1:
             return [css(x) for x in normed]
