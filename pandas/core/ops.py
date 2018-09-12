@@ -1805,7 +1805,10 @@ def _arith_method_FRAME(cls, op, special):
         if isinstance(other, ABCDataFrame):  # Another DataFrame
             return self._combine_frame(other, na_op, fill_value, level)
         elif isinstance(other, ABCSeries):
-            return _combine_series_frame(self, other, na_op,
+            # For these values of `axis`, we end up dispatching to Series op,
+            # so do not want the masked op.
+            pass_op = op if axis in [0, "columns", None] else na_op
+            return _combine_series_frame(self, other, pass_op,
                                          fill_value=fill_value, axis=axis,
                                          level=level, try_cast=True)
         else:
