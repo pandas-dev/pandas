@@ -184,7 +184,7 @@ Other Enhancements
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :ref:`Series.resample` and :ref:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
-- :meth:Both Index and MultiIndex now support overriding column name(s) when using `to_frame` method (:issue:`22580`).
+- :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 
 .. _whatsnew_0240.api_breaking:
 
