@@ -35,7 +35,7 @@ if [ "$DOCTEST" ]; then
     fi
 
     pytest --doctest-modules -v pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -to_xarray -transform -transpose -values -xs"
+        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -transform -transpose -values -xs"
 
     if [ $? -ne "0" ]; then
         RET=1
