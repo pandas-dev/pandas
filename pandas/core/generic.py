@@ -2492,10 +2492,6 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return an xarray object from the pandas object.
 
-        Return the xarray equivalent of the pandas object. `xarray
-        <http://xarray.pydata.org/en/stable/>`__ is a
-        Python package that allows to handle N-dimensional data.
-
         Returns
         -------
         a DataArray for a Series
