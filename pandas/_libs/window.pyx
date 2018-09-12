@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free

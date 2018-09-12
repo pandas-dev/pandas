@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from cpython cimport PyBytes_GET_SIZE, PyUnicode_GET_SIZE
 
@@ -36,9 +36,10 @@ def write_csv_rows(list data, ndarray data_index,
     cols : ndarray
     writer : object
     """
-    cdef int N, j, i, ncols
-    cdef list rows
-    cdef object val
+    cdef:
+        int N, j, i, ncols
+        list rows
+        object val
 
     # In crude testing, N>100 yields little marginal improvement
     N = 100
@@ -157,8 +158,9 @@ def string_array_replace_from_nan_rep(
     Replace the values in the array with 'replacement' if
     they are 'nan_rep'. Return the same array.
     """
+    cdef:
+        int length = arr.shape[0], i = 0
 
-    cdef int length = arr.shape[0], i = 0
     if replace is None:
         replace = np.nan
 

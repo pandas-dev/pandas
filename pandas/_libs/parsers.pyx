@@ -10,12 +10,12 @@ from csv import QUOTE_MINIMAL, QUOTE_NONNUMERIC, QUOTE_NONE
 from libc.stdlib cimport free
 from libc.string cimport strncpy, strlen, strcasecmp
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from cpython cimport (PyObject, PyBytes_FromString,
-                      PyBytes_AsString, PyBytes_Check,
-                      PyUnicode_Check, PyUnicode_AsUTF8String,
+                      PyBytes_AsString,
+                      PyUnicode_AsUTF8String,
                       PyErr_Occurred, PyErr_Fetch)
 from cpython.ref cimport Py_XDECREF
 
@@ -1341,9 +1341,9 @@ cdef object _false_values = [b'False', b'FALSE', b'false']
 def _ensure_encoded(list lst):
     cdef list result = []
     for x in lst:
-        if PyUnicode_Check(x):
+        if isinstance(x, unicode):
             x = PyUnicode_AsUTF8String(x)
-        elif not PyBytes_Check(x):
+        elif not isinstance(x, bytes):
             x = asbytes(x)
 
         result.append(x)
@@ -2046,7 +2046,7 @@ cdef kh_str_t* kset_from_list(list values) except NULL:
         val = values[i]
 
         # None creeps in sometimes, which isn't possible here
-        if not PyBytes_Check(val):
+        if not isinstance(val, bytes):
             raise ValueError('Must be all encoded bytes')
 
         k = kh_put_str(table, PyBytes_AsString(val), &ret)
