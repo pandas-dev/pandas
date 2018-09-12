@@ -179,6 +179,7 @@ Other Enhancements
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
 - :func:`~DataFrame.to_csv`, :func:`~Series.to_csv`, :func:`~DataFrame.to_json`, and :func:`~Series.to_json` now support ``compression='infer'`` to infer compression based on filename extension (:issue:`15008`).
   The default compression for ``to_csv``, ``to_json``, and ``to_pickle`` methods has been updated to ``'infer'`` (:issue:`22004`).
+- :func:`to_sql` now supports writing ``TIMESTAMP WITH TIME ZONE`` columns (:issue:`9086`)
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)

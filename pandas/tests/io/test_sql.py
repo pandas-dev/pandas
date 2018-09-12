@@ -1368,12 +1368,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         expected = df.copy()
         expected['A'] = expected['A'].dt.tz_convert('UTC')
-        # with read_table -> type information from schema used
+
         result = sql.read_sql_table('test_datetime_tz', self.conn)
         result = result.drop('index', axis=1)
         tm.assert_frame_equal(result, expected)
 
-        # with read_sql -> no type information -> sqlite has no native
         result = sql.read_sql_query(
             'SELECT * FROM test_datetime_tz', self.conn
         )
