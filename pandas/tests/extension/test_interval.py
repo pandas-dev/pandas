@@ -84,9 +84,7 @@ class BaseInterval(object):
 
 
 class TestDtype(BaseInterval, base.BaseDtypeTests):
-
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is IntervalArray
+    pass
 
 
 class TestCasting(BaseInterval, base.BaseCastingTests):

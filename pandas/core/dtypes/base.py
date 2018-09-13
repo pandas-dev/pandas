@@ -127,7 +127,8 @@ class ExtensionDtype(_DtypeOpsMixin):
     * _is_numeric
 
     Optionally one can override construct_array_type for construction
-    with the name of this dtype via the Registry
+    with the name of this dtype via the Registry. See
+    :meth:`pandas.api.extensions.register_extension_dtype`.
 
     * construct_array_type
 
@@ -138,6 +139,11 @@ class ExtensionDtype(_DtypeOpsMixin):
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
+
+    See Also
+    --------
+    pandas.api.extensions.register_extension_dtype
+    pandas.api.extensions.ExtensionArray
     """
 
     def __str__(self):
