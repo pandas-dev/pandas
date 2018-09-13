@@ -288,9 +288,10 @@ class HTMLFormatter(TableFormatter):
                 name = self.columns.names[lnum]
                 row = [''] * (row_levels - 1) + ['' if name is None else
                                                  pprint_thing(name)]
+
                 if not self.fmt.index:
                     if self.show_col_idx_names:
-                        row = [row[-1]]
+                        row = row[-1:]
                     else:
                         row = []
 
