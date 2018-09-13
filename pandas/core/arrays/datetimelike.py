@@ -521,24 +521,36 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
 
-    def shift(self, n, freq=None):
+    def shift(self, periods, freq=None):
         """
-        Specialized shift which produces a Datetime/Timedelta Array/Index
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
-        freq : DateOffset or timedelta-like, optional
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
 
         Returns
         -------
-        shifted : same type as self
+        pandas.DatetimeIndex
+            Shifted index.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
-            offset = n * freq
+            offset = periods * freq
             result = self + offset
 
             if hasattr(self, 'tz'):
@@ -546,15 +558,15 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
             return result
 
-        if n == 0:
+        if periods == 0:
             # immutable so OK
             return self
 
         if self.freq is None:
             raise NullFrequencyError("Cannot shift with no freq")
 
-        start = self[0] + n * self.freq
-        end = self[-1] + n * self.freq
+        start = self[0] + periods * self.freq
+        end = self[-1] + periods * self.freq
         attribs = self._get_attributes_dict()
         return self._generate_range(start=start, end=end, periods=None,
                                     **attribs)

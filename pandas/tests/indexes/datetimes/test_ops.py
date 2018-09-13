@@ -540,6 +540,12 @@ class TestCustomDatetimeIndex(object):
             shifted = rng.shift(1, freq=CDay())
             assert shifted[0] == rng[0] + CDay()
 
+    def test_shift_periods(self):
+        # GH #22458 :
+        idx = pd.DatetimeIndex(start=START, end=END,
+                               periods=3)
+        tm.assert_index_equal(idx.shift(periods=0), idx)
+
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
         assert unpickled.freq is not None
