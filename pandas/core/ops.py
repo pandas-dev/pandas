@@ -1794,8 +1794,9 @@ def _arith_method_FRAME(cls, op, special):
 
         other = _align_method_FRAME(self, other, axis)
 
-        if isinstance(other, ABCDataFrame):  # Another DataFrame
-            return self._combine_frame(other, na_op, fill_value, level)
+        if isinstance(other, ABCDataFrame):
+            # Another DataFrame
+            return self._combine_frame(other, op, fill_value, level)
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
                                          fill_value=fill_value, axis=axis,

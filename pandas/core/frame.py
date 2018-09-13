@@ -4827,14 +4827,7 @@ class DataFrame(NDFrame):
             left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
-        if this._is_mixed_type or other._is_mixed_type:
-            # iterate over columns
-            return ops.dispatch_to_series(this, other, _arith_op)
-        else:
-            result = _arith_op(this.values, other.values)
-            return self._constructor(result,
-                                     index=new_index, columns=new_columns,
-                                     copy=False)
+        return ops.dispatch_to_series(this, other, _arith_op)
 
     def _combine_match_index(self, other, func, level=None):
         assert isinstance(other, Series)
