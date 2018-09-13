@@ -22,6 +22,17 @@ except (ImportError, AttributeError):
     pass
 
 
+@pytest.fixture
+def read_file(datapath):
+
+    def _read_file(filename):
+        filepath = datapath('io', 'formats', 'data', filename)
+        with open(filepath) as f:
+            contents = f.read()
+        return contents
+    return _read_file
+
+
 def _test_helper_dataframe_index_names(idx_type, col_idx_type):
     df = DataFrame(np.zeros((2, 2), dtype=int))
 
@@ -2496,6 +2507,20 @@ class TestToHTML(object):
         result = df.to_html(index=False)
         assert result == dedent(
             _EXPECTED_BASIC_ALIGNMENT['index_none_columns_unnamed_multi'])
+
+    @pytest.mark.parametrize(
+        'idx_type, col_idx_type, index, header, index_names',
+        [('named_standard', 'named_standard', True, True, True)])
+    def test_to_html_WIP(self, read_file, idx_type, col_idx_type, index,
+                         header, index_names):
+        df = _test_helper_dataframe_index_names(idx_type, col_idx_type)
+        result = df.to_html(index=index, header=header,
+                            index_names=index_names)
+
+        expected = read_file(
+            'index_named_standard_columns_named_standard.html')
+
+        assert result == expected
 
     @pytest.mark.parametrize('index_names', [True, False])
     @pytest.mark.parametrize('header', [True])
