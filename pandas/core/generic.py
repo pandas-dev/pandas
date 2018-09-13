@@ -4583,9 +4583,6 @@ class NDFrame(PandasObject, SelectionMixin):
     func : function, string, list of string/functions or dictionary
         Function to use for transforming the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply.
-        The function (or each function in a list/dict) must return an
-        object with the same length for the provided axis as the
-        calling %(klass)s.
 
         Accepted combinations are:
 
@@ -4606,6 +4603,43 @@ class NDFrame(PandasObject, SelectionMixin):
     Raises
     ------
     ValueError: if the returned %(klass)s has a different length than self.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({'A': range(10), 'B': range(10, 0, -1)},
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    >>> df.iloc[3:7] = np.nan
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+                       A         B
+    2000-01-01 -1.143001  1.143001
+    2000-01-02 -0.889001  0.889001
+    2000-01-03 -0.635001  0.635001
+    2000-01-04       NaN       NaN
+    2000-01-05       NaN       NaN
+    2000-01-06       NaN       NaN
+    2000-01-07       NaN       NaN
+    2000-01-08  0.635001 -0.635001
+    2000-01-09  0.889001 -0.889001
+    2000-01-10  1.143001 -1.143001
+
+    It is only required for the axis specified in the ``axis`` parameter
+    to have the same length for output and for self. The other axis may have a
+    different length:
+
+    >>> s = pd.Series(range(5))
+    >>> s.transform([np.sqrt, np.exp])
+           sqrt        exp
+    0  0.000000   1.000000
+    1  1.000000   2.718282
+    2  1.414214   7.389056
+    3  1.732051  20.085537
+    4  2.000000  54.598150
+
+    See also
+    --------
+    pandas.%(klass)s.aggregate
+    pandas.%(klass)s.apply
     """)
 
     # ----------------------------------------------------------------------

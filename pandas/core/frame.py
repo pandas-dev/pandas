@@ -5995,33 +5995,6 @@ class DataFrame(NDFrame):
 
     agg = aggregate
 
-    _transform_doc = dedent("""
-    Examples
-    --------
-    >>> df = pd.DataFrame(np.random.randn(10, 2), columns=['A', 'B'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    >>> df.iloc[3:7] = np.nan
-
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                       A         B
-    2000-01-01  0.579457  1.236184
-    2000-01-02  0.370357 -0.605875
-    2000-01-03  1.455756 -0.277446
-    2000-01-04       NaN       NaN
-    2000-01-05       NaN       NaN
-    2000-01-06       NaN       NaN
-    2000-01-07       NaN       NaN
-    2000-01-08 -0.498658  1.274522
-    2000-01-09 -0.540524 -1.012676
-    2000-01-10 -1.366388 -0.614710
-
-    See also
-    --------
-    pandas.DataFrame.aggregate
-    pandas.DataFrame.apply
-    """)
-
-    @Appender(_transform_doc)
     @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
     def transform(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
