@@ -6362,8 +6362,6 @@ class DataFrame(NDFrame):
                               index=index,
                               columns=combined_columns)
             other = other._convert(datetime=True, timedelta=True)
-            if not self.columns.equals(combined_columns):
-                self = self.reindex(columns=combined_columns)
         elif isinstance(other, list) and not isinstance(other[0], DataFrame):
             other = DataFrame(other)
             if (self.columns.get_indexer(other.columns) >= 0).all():
