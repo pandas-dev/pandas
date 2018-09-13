@@ -6,7 +6,8 @@ import pandas.util.testing as tm
 from pandas import DataFrame, MultiIndex, date_range
 
 
-def test_partial_string_timestamp_multiindex():
+@pytest.mark.parametrize('freq', ['D', 'CD'])
+def test_partial_string_timestamp_multiindex(freq):
     # GH10331
     dr = pd.date_range('2016-01-01', '2016-01-03', freq='12H')
     abc = ['a', 'b', 'c']
@@ -89,7 +90,7 @@ def test_partial_string_timestamp_multiindex():
         df_swap.loc['2016-01-01']
 
     # GH12685 (partial string with daily resolution or below)
-    dr = date_range('2013-01-01', periods=100, freq='D')
+    dr = date_range('2013-01-01', periods=100, freq=freq)
     ix = MultiIndex.from_product([dr, ['a', 'b']])
     df = DataFrame(np.random.randn(200, 1), columns=['A'], index=ix)
 

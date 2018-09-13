@@ -2497,11 +2497,12 @@ class TestDatetime64Formatter(object):
         result = fmt.Datetime64Formatter(x).get_result()
         assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
-    def test_dates_display(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_dates_display(self, freq):
 
         # 10170
         # make sure that we are consistently display date formatting
-        x = Series(date_range('20130101 09:00:00', periods=5, freq='D'))
+        x = Series(date_range('20130101 09:00:00', periods=5, freq=freq))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00"
