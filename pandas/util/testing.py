@@ -2560,7 +2560,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         the ``__warningsregistry__`` to ensure that no warning messages are
         suppressed by this context manager. If ``None`` is specified,
         the ``__warningsregistry__`` keeps track of which warnings have been
-         shown, and does not show them again.
+        shown, and does not show them again.
     check_stacklevel : bool, default True
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
@@ -2589,7 +2589,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
     with warnings.catch_warnings(record=True) as w:
 
         if clear is not None:
-            # make sure that we are clearning these warnings
+            # make sure that we are clearing these warnings
             # if they have happened before
             # to guarantee that we will catch them
             if not is_list_like(clear):
