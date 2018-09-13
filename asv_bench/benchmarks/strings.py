@@ -95,9 +95,12 @@ class Cat(object):
         mask_gen = lambda: np.random.choice([True, False], N,
                                             p=[1 - na_frac, na_frac])
         self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
-        self.others = (DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
-                                  for i in range(other_cols)})
-                       if other_cols > 0 else None)
+        if other_cols == 0:
+            # str.cat self-concatenates only for others=None
+            self.others = None
+        else:
+            self.others = DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
+                                     for i in range(other_cols)})
 
     def time_cat(self, other_cols, sep, na_rep, na_frac):
         # before the concatenation (one caller + other_cols columns), the total
