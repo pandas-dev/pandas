@@ -220,7 +220,10 @@ class HTMLFormatter(TableFormatter):
                             for c in self.columns])
             else:
                 if self.fmt.index or self.show_col_idx_names:
-                    row.append(self.columns.name or '')
+                    if self.show_col_idx_names:
+                        row.append(self.columns.name or '')
+                    else:
+                        row.append('')
                 row.extend(self.columns)
             return row
 
@@ -289,6 +292,8 @@ class HTMLFormatter(TableFormatter):
                 row = [''] * (row_levels - 1) + ['' if name is None else
                                                  pprint_thing(name)]
 
+                if not self.show_col_idx_names:
+                    row[-1] = ''
                 if not self.fmt.index:
                     if self.show_col_idx_names:
                         row = row[-1:]
