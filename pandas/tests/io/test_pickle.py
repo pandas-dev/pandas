@@ -14,7 +14,7 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 """
 import glob
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 import os
 from distutils.version import LooseVersion
@@ -202,6 +202,7 @@ def test_pickles(current_pickle_data, legacy_pickle):
 
     version = os.path.basename(os.path.dirname(legacy_pickle))
     with catch_warnings(record=True):
+        simplefilter("ignore")
         compare(current_pickle_data, legacy_pickle, version)
 
 

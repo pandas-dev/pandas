@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=W0612,E1101
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 import operator
 import pytest
@@ -30,6 +30,7 @@ import pandas.util._test_decorators as td
 
 def make_test_panel():
     with catch_warnings(record=True):
+        simplefilter("ignore", FutureWarning)
         _panel = tm.makePanel()
         tm.add_nans(_panel)
         _panel = _panel.copy()
@@ -896,6 +897,7 @@ class CheckIndexing(object):
                 self.panel.set_value('a')
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
 
