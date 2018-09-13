@@ -501,6 +501,107 @@ _EXPECTED_BASIC_ALIGNMENT = {
           <td>0</td>
         </tr>
       </tbody>
+    </table>""",
+    'index_unnamed_standard_columns_unnamed_standard': """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>""",
+    'index_unnamed_standard_columns_unnamed_multi': """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th></th>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th></th>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>0</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>1</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>""",
+    'index_unnamed_multi_columns_unnamed_standard': """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr style="text-align: right;">
+          <th></th>
+          <th></th>
+          <th>0</th>
+          <th>1</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th rowspan="2" valign="top">a</th>
+          <th>b</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>c</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
+    </table>""",
+    'index_unnamed_multi_columns_unnamed_multi': """\
+    <table border="1" class="dataframe">
+      <thead>
+        <tr>
+          <th></th>
+          <th></th>
+          <th colspan="2" halign="left">a</th>
+        </tr>
+        <tr>
+          <th></th>
+          <th></th>
+          <th>b</th>
+          <th>c</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th rowspan="2" valign="top">a</th>
+          <th>b</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>c</th>
+          <td>0</td>
+          <td>0</td>
+        </tr>
+      </tbody>
     </table>"""
 }
 
@@ -2396,32 +2497,17 @@ class TestToHTML(object):
         assert result == dedent(
             _EXPECTED_BASIC_ALIGNMENT['index_none_columns_unnamed_multi'])
 
-    @pytest.mark.parametrize(
-        'idx_type, col_idx_type, index, header, index_names', [
-            ('named_standard', 'named_standard', True, True, True),
-            ('unnamed_standard', 'named_standard', True, True, True),
-            ('named_standard', 'unnamed_standard', True, True, True),
-            ('named_standard', 'named_multi', True, True, True),
-            ('unnamed_standard', 'named_multi', True, True, True),
-            ('named_standard', 'unnamed_multi', True, True, True),
-            ('named_multi', 'named_standard', True, True, True),
-            ('unnamed_multi', 'named_standard', True, True, True),
-            ('named_multi', 'unnamed_standard', True, True, True),
-            ('named_multi', 'named_multi', True, True, True),
-            ('unnamed_multi', 'named_multi', True, True, True),
-            ('named_multi', 'unnamed_multi', True, True, True),
-            ('named_standard', 'named_multi', False, True, True),
-            ('named_standard', 'named_multi', False, True, False),
-            ('named_standard', 'named_multi', False, False, True),
-            ('unnamed_standard', 'named_multi', False, True, True),
-            ('named_standard', 'unnamed_multi', False, True, True),
-            ('named_multi', 'named_standard', False, True, True),
-            ('unnamed_multi', 'named_standard', False, True, True),
-            ('named_multi', 'unnamed_standard', False, True, True),
-            ('named_multi', 'named_multi', False, True, True),
-            ('unnamed_multi', 'named_multi', False, True, True),
-            ('named_multi', 'unnamed_multi', False, True, True)
-        ])
+    @pytest.mark.parametrize('index_names', [True, False])
+    @pytest.mark.parametrize('header', [True])
+    @pytest.mark.parametrize('index', [True, False])
+    @pytest.mark.parametrize('col_idx_type', ['unnamed_standard',
+                                              'named_standard',
+                                              'unnamed_multi',
+                                              'named_multi'])
+    @pytest.mark.parametrize('idx_type', ['unnamed_standard',
+                                          'named_standard',
+                                          'unnamed_multi',
+                                          'named_multi'])
     def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
                                  index_names):
         df = _test_helper_dataframe_index_names(idx_type, col_idx_type)
@@ -2431,7 +2517,7 @@ class TestToHTML(object):
         def _expected(idx_type, index, index_names):
             if index is False:
                 return 'none'
-            if index_names is False:
+            if idx_type.startswith('named') and index_names is False:
                 return idx_type.replace('named', 'unnamed')
             return idx_type
 
