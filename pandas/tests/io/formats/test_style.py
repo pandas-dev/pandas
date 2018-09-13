@@ -1269,11 +1269,3 @@ def test_from_custom_template(tmpdir):
     assert result.template is not Styler.template
     styler = result(pd.DataFrame({"A": [1, 2]}))
     assert styler.render()
-
-
-def test_shim():
-    # https://github.com/pandas-dev/pandas/pull/16059
-    # Remove in 0.21
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
-        from pandas.formats.style import Styler as _styler  # noqa
