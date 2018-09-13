@@ -2428,22 +2428,18 @@ class TestToHTML(object):
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
 
-        if index is False:
-            e1 = 'none'
-        elif index_names is False:
-            e1 = idx_type.replace('named', 'unnamed')
-        else:
-            e1 = idx_type
+        def _expected(idx_type, index, index_names):
+            if index is False:
+                return 'none'
+            if index_names is False:
+                return idx_type.replace('named', 'unnamed')
+            return idx_type
 
-        if header is False:
-            e2 = 'none'
-        elif index_names is False:
-            e2 = col_idx_type.replace('named', 'unnamed')
-        else:
-            e2 = col_idx_type
-        e = 'index_' + e1 + '_columns_' + e2
+        expected = _EXPECTED_BASIC_ALIGNMENT[
+            'index_' + _expected(idx_type, index, index_names) +
+            '_columns_' + _expected(col_idx_type, header, index_names)
+        ]
 
-        expected = _EXPECTED_BASIC_ALIGNMENT[e]
         assert result == dedent(expected)
 
     def test_to_html_notebook_has_style(self):
