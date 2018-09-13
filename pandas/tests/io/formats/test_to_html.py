@@ -26,9 +26,9 @@ except (ImportError, AttributeError):
 def dataframe_index_names(idx_type, col_idx_type):
     df = DataFrame(np.zeros((2, 2), dtype=int))
 
-    if idx_type == 'named_single':
+    if idx_type == 'named_standard':
         df.index.name = 'index.name'
-    elif idx_type == 'unnamed_single':
+    elif idx_type == 'unnamed_standard':
         pass
     elif idx_type == 'named_multi':
         df.index = MultiIndex.from_product([['a'], ['b', 'c']], names=[
@@ -38,9 +38,9 @@ def dataframe_index_names(idx_type, col_idx_type):
     else:
         raise ValueError
 
-    if col_idx_type == 'named_single':
+    if col_idx_type == 'named_standard':
         df.columns.name = 'columns.name'
-    elif col_idx_type == 'unnamed_single':
+    elif col_idx_type == 'unnamed_standard':
         pass
     elif col_idx_type == 'named_multi':
         df.columns = MultiIndex.from_product([['a'], ['b', 'c']], names=[
@@ -54,7 +54,7 @@ def dataframe_index_names(idx_type, col_idx_type):
 
 
 @pytest.fixture
-def index_named_single_columns_named_single():
+def index_named_standard_columns_named_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -85,7 +85,7 @@ def index_named_single_columns_named_single():
 
 
 @pytest.fixture
-def index_unnamed_single_columns_named_single():
+def index_unnamed_standard_columns_named_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -111,7 +111,7 @@ def index_unnamed_single_columns_named_single():
 
 
 @pytest.fixture
-def index_named_single_columns_unnamed_single():
+def index_named_standard_columns_unnamed_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -142,7 +142,7 @@ def index_named_single_columns_unnamed_single():
 
 
 @pytest.fixture
-def index_named_single_columns_named_multi():
+def index_named_standard_columns_named_multi():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -177,7 +177,7 @@ def index_named_single_columns_named_multi():
 
 
 @pytest.fixture
-def index_unnamed_single_columns_named_multi():
+def index_unnamed_standard_columns_named_multi():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -207,7 +207,7 @@ def index_unnamed_single_columns_named_multi():
 
 
 @pytest.fixture
-def index_named_single_columns_unnamed_multi():
+def index_named_standard_columns_unnamed_multi():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -242,7 +242,7 @@ def index_named_single_columns_unnamed_multi():
 
 
 @pytest.fixture
-def index_named_multi_columns_named_single():
+def index_named_multi_columns_named_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -276,7 +276,7 @@ def index_named_multi_columns_named_single():
 
 
 @pytest.fixture
-def index_unnamed_multi_columns_named_single():
+def index_unnamed_multi_columns_named_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -304,7 +304,7 @@ def index_unnamed_multi_columns_named_single():
 
 
 @pytest.fixture
-def index_named_multi_columns_unnamed_single():
+def index_named_multi_columns_unnamed_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -522,7 +522,7 @@ def index_none_columns_none():
 
 
 @pytest.fixture
-def index_none_columns_named_single():
+def index_none_columns_named_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -548,7 +548,7 @@ def index_none_columns_named_single():
 
 
 @pytest.fixture
-def index_none_columns_unnamed_single():
+def index_none_columns_unnamed_standard():
     return """\
     <table border="1" class="dataframe">
       <thead>
@@ -2461,46 +2461,46 @@ class TestToHTML(object):
 
     @pytest.mark.parametrize("""idx_type, col_idx_type, index, header,
                                index_names, expected""", [
-        ('named_single', 'named_single', True, True, True,
-         index_named_single_columns_named_single),
-        ('unnamed_single', 'named_single', True, True, True,
-         index_unnamed_single_columns_named_single),
-        ('named_single', 'unnamed_single', True, True, True,
-         index_named_single_columns_unnamed_single),
-        ('named_single', 'named_multi', True, True, True,
-         index_named_single_columns_named_multi),
-        ('unnamed_single', 'named_multi', True, True, True,
-         index_unnamed_single_columns_named_multi),
-        ('named_single', 'unnamed_multi', True, True, True,
-         index_named_single_columns_unnamed_multi),
-        ('named_multi', 'named_single', True, True, True,
-         index_named_multi_columns_named_single),
-        ('unnamed_multi', 'named_single', True, True, True,
-         index_unnamed_multi_columns_named_single),
-        ('named_multi', 'unnamed_single', True, True, True,
-         index_named_multi_columns_unnamed_single),
+        ('named_standard', 'named_standard', True, True, True,
+         index_named_standard_columns_named_standard),
+        ('unnamed_standard', 'named_standard', True, True, True,
+         index_unnamed_standard_columns_named_standard),
+        ('named_standard', 'unnamed_standard', True, True, True,
+         index_named_standard_columns_unnamed_standard),
+        ('named_standard', 'named_multi', True, True, True,
+         index_named_standard_columns_named_multi),
+        ('unnamed_standard', 'named_multi', True, True, True,
+         index_unnamed_standard_columns_named_multi),
+        ('named_standard', 'unnamed_multi', True, True, True,
+         index_named_standard_columns_unnamed_multi),
+        ('named_multi', 'named_standard', True, True, True,
+         index_named_multi_columns_named_standard),
+        ('unnamed_multi', 'named_standard', True, True, True,
+         index_unnamed_multi_columns_named_standard),
+        ('named_multi', 'unnamed_standard', True, True, True,
+         index_named_multi_columns_unnamed_standard),
         ('named_multi', 'named_multi', True, True, True,
          index_named_multi_columns_named_multi),
         ('unnamed_multi', 'named_multi', True, True, True,
          index_unnamed_multi_columns_named_multi),
         ('named_multi', 'unnamed_multi', True, True, True,
          index_named_multi_columns_unnamed_multi),
-        ('named_single', 'named_multi', False, True, True,
+        ('named_standard', 'named_multi', False, True, True,
          index_none_columns_named_multi),
-        ('named_single', 'named_multi', False, True, False,
+        ('named_standard', 'named_multi', False, True, False,
          index_none_columns_unnamed_multi),
-        ('named_single', 'named_multi', False, False, True,
+        ('named_standard', 'named_multi', False, False, True,
          index_none_columns_none),
-        ('unnamed_single', 'named_multi', False, True, True,
+        ('unnamed_standard', 'named_multi', False, True, True,
          index_none_columns_named_multi),
-        ('named_single', 'unnamed_multi', False, True, True,
+        ('named_standard', 'unnamed_multi', False, True, True,
          index_none_columns_unnamed_multi),
-        ('named_multi', 'named_single', False, True, True,
-         index_none_columns_named_single),
-        ('unnamed_multi', 'named_single', False, True, True,
-         index_none_columns_named_single),
-        ('named_multi', 'unnamed_single', False, True, True,
-         index_none_columns_unnamed_single),
+        ('named_multi', 'named_standard', False, True, True,
+         index_none_columns_named_standard),
+        ('unnamed_multi', 'named_standard', False, True, True,
+         index_none_columns_named_standard),
+        ('named_multi', 'unnamed_standard', False, True, True,
+         index_none_columns_unnamed_standard),
         ('named_multi', 'named_multi', False, True, True,
          index_none_columns_named_multi),
         ('unnamed_multi', 'named_multi', False, True, True,
