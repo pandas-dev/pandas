@@ -23,6 +23,37 @@ except (ImportError, AttributeError):
 
 
 @pytest.fixture
+def dataframe_index_names(idx_type, col_idx_type):
+    df = DataFrame(np.zeros((2, 2), dtype=int))
+
+    if idx_type == 'named_single':
+        df.index.name = 'index.name'
+    elif idx_type == 'unnamed_single':
+        pass
+    elif idx_type == 'named_multi':
+        df.index = MultiIndex.from_product([['a'], ['b', 'c']], names=[
+            'index.name.0', 'index.name.1'])
+    elif idx_type == 'unnamed_multi':
+        df.index = MultiIndex.from_product([['a'], ['b', 'c']])
+    else:
+        raise ValueError
+
+    if col_idx_type == 'named_single':
+        df.columns.name = 'columns.name'
+    elif col_idx_type == 'unnamed_single':
+        pass
+    elif col_idx_type == 'named_multi':
+        df.columns = MultiIndex.from_product([['a'], ['b', 'c']], names=[
+            'columns.name.0', 'columns.name.1'])
+    elif col_idx_type == 'unnamed_multi':
+        df.columns = MultiIndex.from_product([['a'], ['b', 'c']])
+    else:
+        raise ValueError
+
+    return df
+
+
+@pytest.fixture
 def index_named_single_columns_named_single():
     return """\
     <table border="1" class="dataframe">
@@ -2424,32 +2455,9 @@ class TestToHTML(object):
 
     def test_to_html_multi_indices_index_false(self):
         # GH 22579
-        multi_index = MultiIndex.from_product([['a'], ['b', 'c']])
-        df = DataFrame(np.zeros((2, 2), dtype=int), multi_index, multi_index)
+        df = dataframe_index_names('unnamed_multi', 'unnamed_multi')
         result = df.to_html(index=False)
-        expected = dedent("""\
-        <table border="1" class="dataframe">
-          <thead>
-            <tr>
-              <th colspan="2" halign="left">a</th>
-            </tr>
-            <tr>
-              <th>b</th>
-              <th>c</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-            <tr>
-              <td>0</td>
-              <td>0</td>
-            </tr>
-          </tbody>
-        </table>""")
-        assert result == expected
+        assert result == dedent(index_none_columns_unnamed_multi())
 
     @pytest.mark.parametrize("""idx_type, col_idx_type, index, header,
                                index_names, expected""", [
@@ -2502,33 +2510,7 @@ class TestToHTML(object):
     ])
     def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
                                  index_names, expected):
-
-        df = DataFrame(np.zeros((2, 2), dtype=int))
-
-        if idx_type == 'named_single':
-            df.index.name = 'index.name'
-        elif idx_type == 'unnamed_single':
-            pass
-        elif idx_type == 'named_multi':
-            df.index = MultiIndex.from_product([['a'], ['b', 'c']], names=[
-                                               'index.name.0', 'index.name.1'])
-        elif idx_type == 'unnamed_multi':
-            df.index = MultiIndex.from_product([['a'], ['b', 'c']])
-        else:
-            raise ValueError
-
-        if col_idx_type == 'named_single':
-            df.columns.name = 'columns.name'
-        elif col_idx_type == 'unnamed_single':
-            pass
-        elif col_idx_type == 'named_multi':
-            df.columns = MultiIndex.from_product([['a'], ['b', 'c']], names=[
-                'columns.name.0', 'columns.name.1'])
-        elif col_idx_type == 'unnamed_multi':
-            df.columns = MultiIndex.from_product([['a'], ['b', 'c']])
-        else:
-            raise ValueError
-
+        df = dataframe_index_names(idx_type, col_idx_type)
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
         assert result == dedent(expected())
