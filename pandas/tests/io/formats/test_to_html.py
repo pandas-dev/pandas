@@ -22,7 +22,6 @@ except (ImportError, AttributeError):
     pass
 
 
-@pytest.fixture
 def dataframe_index_names(idx_type, col_idx_type):
     df = DataFrame(np.zeros((2, 2), dtype=int))
 
@@ -53,9 +52,7 @@ def dataframe_index_names(idx_type, col_idx_type):
     return df
 
 
-@pytest.fixture
-def index_named_standard_columns_named_standard():
-    return """\
+index_named_standard_columns_named_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -84,9 +81,7 @@ def index_named_standard_columns_named_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_unnamed_standard_columns_named_standard():
-    return """\
+index_unnamed_standard_columns_named_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -110,9 +105,7 @@ def index_unnamed_standard_columns_named_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_named_standard_columns_unnamed_standard():
-    return """\
+index_named_standard_columns_unnamed_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -141,9 +134,7 @@ def index_named_standard_columns_unnamed_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_named_standard_columns_named_multi():
-    return """\
+index_named_standard_columns_named_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -176,9 +167,7 @@ def index_named_standard_columns_named_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_unnamed_standard_columns_named_multi():
-    return """\
+index_unnamed_standard_columns_named_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -206,9 +195,7 @@ def index_unnamed_standard_columns_named_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_named_standard_columns_unnamed_multi():
-    return """\
+index_named_standard_columns_unnamed_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -241,9 +228,7 @@ def index_named_standard_columns_unnamed_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_named_multi_columns_named_standard():
-    return """\
+index_named_multi_columns_named_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -275,9 +260,7 @@ def index_named_multi_columns_named_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_unnamed_multi_columns_named_standard():
-    return """\
+index_unnamed_multi_columns_named_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -303,9 +286,7 @@ def index_unnamed_multi_columns_named_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_named_multi_columns_unnamed_standard():
-    return """\
+index_named_multi_columns_unnamed_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -337,9 +318,7 @@ def index_named_multi_columns_unnamed_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_named_multi_columns_named_multi():
-    return """\
+index_named_multi_columns_named_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -376,9 +355,7 @@ def index_named_multi_columns_named_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_unnamed_multi_columns_named_multi():
-    return """\
+index_unnamed_multi_columns_named_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -409,9 +386,7 @@ def index_unnamed_multi_columns_named_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_named_multi_columns_unnamed_multi():
-    return """\
+index_named_multi_columns_unnamed_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -448,9 +423,7 @@ def index_named_multi_columns_unnamed_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_none_columns_named_multi():
-    return """\
+index_none_columns_named_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -478,9 +451,7 @@ def index_none_columns_named_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_none_columns_unnamed_multi():
-    return """\
+index_none_columns_unnamed_multi = """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -504,9 +475,7 @@ def index_none_columns_unnamed_multi():
     </table>"""
 
 
-@pytest.fixture
-def index_none_columns_none():
-    return """\
+index_none_columns_none = """\
     <table border="1" class="dataframe">
       <tbody>
         <tr>
@@ -520,10 +489,7 @@ def index_none_columns_none():
       </tbody>
     </table>"""
 
-
-@pytest.fixture
-def index_none_columns_named_standard():
-    return """\
+index_none_columns_named_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -547,9 +513,7 @@ def index_none_columns_named_standard():
     </table>"""
 
 
-@pytest.fixture
-def index_none_columns_unnamed_standard():
-    return """\
+index_none_columns_unnamed_standard = """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -2457,63 +2421,57 @@ class TestToHTML(object):
         # GH 22579
         df = dataframe_index_names('unnamed_multi', 'unnamed_multi')
         result = df.to_html(index=False)
-        assert result == dedent(index_none_columns_unnamed_multi())
+        assert result == dedent(index_none_columns_unnamed_multi)
 
-    @pytest.mark.parametrize("""idx_type, col_idx_type, index, header,
-                               index_names, expected""", [
-        ('named_standard', 'named_standard', True, True, True,
-         index_named_standard_columns_named_standard),
-        ('unnamed_standard', 'named_standard', True, True, True,
-         index_unnamed_standard_columns_named_standard),
-        ('named_standard', 'unnamed_standard', True, True, True,
-         index_named_standard_columns_unnamed_standard),
-        ('named_standard', 'named_multi', True, True, True,
-         index_named_standard_columns_named_multi),
-        ('unnamed_standard', 'named_multi', True, True, True,
-         index_unnamed_standard_columns_named_multi),
-        ('named_standard', 'unnamed_multi', True, True, True,
-         index_named_standard_columns_unnamed_multi),
-        ('named_multi', 'named_standard', True, True, True,
-         index_named_multi_columns_named_standard),
-        ('unnamed_multi', 'named_standard', True, True, True,
-         index_unnamed_multi_columns_named_standard),
-        ('named_multi', 'unnamed_standard', True, True, True,
-         index_named_multi_columns_unnamed_standard),
-        ('named_multi', 'named_multi', True, True, True,
-         index_named_multi_columns_named_multi),
-        ('unnamed_multi', 'named_multi', True, True, True,
-         index_unnamed_multi_columns_named_multi),
-        ('named_multi', 'unnamed_multi', True, True, True,
-         index_named_multi_columns_unnamed_multi),
-        ('named_standard', 'named_multi', False, True, True,
-         index_none_columns_named_multi),
-        ('named_standard', 'named_multi', False, True, False,
-         index_none_columns_unnamed_multi),
-        ('named_standard', 'named_multi', False, False, True,
-         index_none_columns_none),
-        ('unnamed_standard', 'named_multi', False, True, True,
-         index_none_columns_named_multi),
-        ('named_standard', 'unnamed_multi', False, True, True,
-         index_none_columns_unnamed_multi),
-        ('named_multi', 'named_standard', False, True, True,
-         index_none_columns_named_standard),
-        ('unnamed_multi', 'named_standard', False, True, True,
-         index_none_columns_named_standard),
-        ('named_multi', 'unnamed_standard', False, True, True,
-         index_none_columns_unnamed_standard),
-        ('named_multi', 'named_multi', False, True, True,
-         index_none_columns_named_multi),
-        ('unnamed_multi', 'named_multi', False, True, True,
-         index_none_columns_named_multi),
-        ('named_multi', 'unnamed_multi', False, True, True,
-         index_none_columns_unnamed_multi)
-    ])
+    @pytest.mark.parametrize(
+        'idx_type, col_idx_type, index, header, index_names', [
+            ('named_standard', 'named_standard', True, True, True),
+            ('unnamed_standard', 'named_standard', True, True, True),
+            ('named_standard', 'unnamed_standard', True, True, True),
+            ('named_standard', 'named_multi', True, True, True),
+            ('unnamed_standard', 'named_multi', True, True, True),
+            ('named_standard', 'unnamed_multi', True, True, True),
+            ('named_multi', 'named_standard', True, True, True),
+            ('unnamed_multi', 'named_standard', True, True, True),
+            ('named_multi', 'unnamed_standard', True, True, True),
+            ('named_multi', 'named_multi', True, True, True),
+            ('unnamed_multi', 'named_multi', True, True, True),
+            ('named_multi', 'unnamed_multi', True, True, True),
+            ('named_standard', 'named_multi', False, True, True),
+            ('named_standard', 'named_multi', False, True, False),
+            ('named_standard', 'named_multi', False, False, True),
+            ('unnamed_standard', 'named_multi', False, True, True),
+            ('named_standard', 'unnamed_multi', False, True, True),
+            ('named_multi', 'named_standard', False, True, True),
+            ('unnamed_multi', 'named_standard', False, True, True),
+            ('named_multi', 'unnamed_standard', False, True, True),
+            ('named_multi', 'named_multi', False, True, True),
+            ('unnamed_multi', 'named_multi', False, True, True),
+            ('named_multi', 'unnamed_multi', False, True, True)
+        ])
     def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
-                                 index_names, expected):
+                                 index_names):
         df = dataframe_index_names(idx_type, col_idx_type)
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
-        assert result == dedent(expected())
+
+        if index is False:
+            e1 = 'none'
+        elif index_names is False:
+            e1 = idx_type.replace('named', 'unnamed')
+        else:
+            e1 = idx_type
+
+        if header is False:
+            e2 = 'none'
+        elif index_names is False:
+            e2 = col_idx_type.replace('named', 'unnamed')
+        else:
+            e2 = col_idx_type
+        e = 'index_' + e1 + '_columns_' + e2
+
+        expected = globals()[e]
+        assert result == dedent(expected)
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
