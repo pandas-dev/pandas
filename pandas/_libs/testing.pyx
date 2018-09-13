@@ -22,23 +22,29 @@ cdef NUMERIC_TYPES = (
     np.float64,
 )
 
+
 cdef bint is_comparable_as_number(obj):
     return isinstance(obj, NUMERIC_TYPES)
+
 
 cdef bint isiterable(obj):
     return hasattr(obj, '__iter__')
 
+
 cdef bint has_length(obj):
     return hasattr(obj, '__len__')
 
+
 cdef bint is_dictlike(obj):
     return hasattr(obj, 'keys') and hasattr(obj, '__getitem__')
+
 
 cdef bint decimal_almost_equal(double desired, double actual, int decimal):
     # Code from
     # http://docs.scipy.org/doc/numpy/reference/generated
     # /numpy.testing.assert_almost_equal.html
     return abs(desired - actual) < (0.5 * 10.0 ** -decimal)
+
 
 cpdef assert_dict_equal(a, b, bint compare_keys=True):
     assert is_dictlike(a) and is_dictlike(b), (
@@ -55,6 +61,7 @@ cpdef assert_dict_equal(a, b, bint compare_keys=True):
         assert_almost_equal(a[k], b[k])
 
     return True
+
 
 cpdef assert_almost_equal(a, b,
                           check_less_precise=False,

@@ -4,8 +4,8 @@ Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
