@@ -1149,11 +1149,11 @@ class MultiIndex(Index):
         if name is not None:
             if not is_list_like(name):
                 raise TypeError("'name' must be a list / sequence "
-                                "of array-likes.")
+                                "of column names.")
 
             if len(name) != len(self.levels):
                 raise ValueError("'name' should have same length as "
-                                 "number of levels on index")
+                                 "number of levels on index.")
             idx_names = name
         else:
             idx_names = self.names
