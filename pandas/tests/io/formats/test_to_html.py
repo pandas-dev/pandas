@@ -22,7 +22,7 @@ except (ImportError, AttributeError):
     pass
 
 
-def dataframe_index_names(idx_type, col_idx_type):
+def _test_helper_dataframe_index_names(idx_type, col_idx_type):
     df = DataFrame(np.zeros((2, 2), dtype=int))
 
     if idx_type == 'named_standard':
@@ -52,7 +52,8 @@ def dataframe_index_names(idx_type, col_idx_type):
     return df
 
 
-index_named_standard_columns_named_standard = """\
+_EXPECTED_BASIC_ALIGNMENT = {
+    'index_named_standard_columns_named_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -78,10 +79,8 @@ index_named_standard_columns_named_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_unnamed_standard_columns_named_standard = """\
+    </table>""",
+    'index_unnamed_standard_columns_named_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -102,10 +101,8 @@ index_unnamed_standard_columns_named_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_standard_columns_unnamed_standard = """\
+    </table>""",
+    'index_named_standard_columns_unnamed_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -131,10 +128,8 @@ index_named_standard_columns_unnamed_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_standard_columns_named_multi = """\
+    </table>""",
+    'index_named_standard_columns_named_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -164,10 +159,8 @@ index_named_standard_columns_named_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_unnamed_standard_columns_named_multi = """\
+    </table>""",
+    'index_unnamed_standard_columns_named_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -192,10 +185,8 @@ index_unnamed_standard_columns_named_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_standard_columns_unnamed_multi = """\
+    </table>""",
+    'index_named_standard_columns_unnamed_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -225,10 +216,8 @@ index_named_standard_columns_unnamed_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_multi_columns_named_standard = """\
+    </table>""",
+    'index_named_multi_columns_named_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -257,10 +246,8 @@ index_named_multi_columns_named_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_unnamed_multi_columns_named_standard = """\
+    </table>""",
+    'index_unnamed_multi_columns_named_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -283,10 +270,8 @@ index_unnamed_multi_columns_named_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_multi_columns_unnamed_standard = """\
+    </table>""",
+    'index_named_multi_columns_unnamed_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -315,10 +300,8 @@ index_named_multi_columns_unnamed_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_multi_columns_named_multi = """\
+    </table>""",
+    'index_named_multi_columns_named_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -352,10 +335,8 @@ index_named_multi_columns_named_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_unnamed_multi_columns_named_multi = """\
+    </table>""",
+    'index_unnamed_multi_columns_named_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -383,10 +364,8 @@ index_unnamed_multi_columns_named_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_named_multi_columns_unnamed_multi = """\
+    </table>""",
+    'index_named_multi_columns_unnamed_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -420,10 +399,8 @@ index_named_multi_columns_unnamed_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_none_columns_named_multi = """\
+    </table>""",
+    'index_none_columns_named_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -448,10 +425,8 @@ index_none_columns_named_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_none_columns_unnamed_multi = """\
+    </table>""",
+    'index_none_columns_unnamed_multi': """\
     <table border="1" class="dataframe">
       <thead>
         <tr>
@@ -472,10 +447,8 @@ index_none_columns_unnamed_multi = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_none_columns_none = """\
+    </table>""",
+    'index_none_columns_none': """\
     <table border="1" class="dataframe">
       <tbody>
         <tr>
@@ -487,9 +460,8 @@ index_none_columns_none = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-index_none_columns_named_standard = """\
+    </table>""",
+    'index_none_columns_named_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -510,10 +482,8 @@ index_none_columns_named_standard = """\
           <td>0</td>
         </tr>
       </tbody>
-    </table>"""
-
-
-index_none_columns_unnamed_standard = """\
+    </table>""",
+    'index_none_columns_unnamed_standard': """\
     <table border="1" class="dataframe">
       <thead>
         <tr style="text-align: right;">
@@ -532,6 +502,7 @@ index_none_columns_unnamed_standard = """\
         </tr>
       </tbody>
     </table>"""
+}
 
 
 class TestToHTML(object):
@@ -2419,9 +2390,11 @@ class TestToHTML(object):
 
     def test_to_html_multi_indices_index_false(self):
         # GH 22579
-        df = dataframe_index_names('unnamed_multi', 'unnamed_multi')
+        df = _test_helper_dataframe_index_names(
+            'unnamed_multi', 'unnamed_multi')
         result = df.to_html(index=False)
-        assert result == dedent(index_none_columns_unnamed_multi)
+        assert result == dedent(
+            _EXPECTED_BASIC_ALIGNMENT['index_none_columns_unnamed_multi'])
 
     @pytest.mark.parametrize(
         'idx_type, col_idx_type, index, header, index_names', [
@@ -2451,7 +2424,7 @@ class TestToHTML(object):
         ])
     def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
                                  index_names):
-        df = dataframe_index_names(idx_type, col_idx_type)
+        df = _test_helper_dataframe_index_names(idx_type, col_idx_type)
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
 
@@ -2470,7 +2443,7 @@ class TestToHTML(object):
             e2 = col_idx_type
         e = 'index_' + e1 + '_columns_' + e2
 
-        expected = globals()[e]
+        expected = _EXPECTED_BASIC_ALIGNMENT[e]
         assert result == dedent(expected)
 
     def test_to_html_notebook_has_style(self):
