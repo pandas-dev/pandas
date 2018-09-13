@@ -164,7 +164,7 @@ This is the same behavior as ``Series.values`` for categorical data. See
 The `duplicated`-method has gained the `return_inverse` kwarg
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``duplicated``-method for ``Series``, ``DataFrame`` and all flavors of ``Index`` has gained a ``return_inverse`` keyword,
+The :meth:`~DataFrame.duplicated`-method for ``Series``, ``DataFrame`` and all flavors of ``Index`` has gained a ``return_inverse`` keyword,
 which is ``False`` by default. Specifying ``return_inverse=True`` will add an object to the output (which therefore becomes a tuple)
 that allows reconstructing the original object from the deduplicated, unique subset (:issue:`21357`).
 
