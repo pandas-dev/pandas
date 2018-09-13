@@ -169,6 +169,9 @@ class ExtensionDtype(_DtypeOpsMixin):
         the extension type cannot be represented as a built-in NumPy
         type.
 
+        This affect whether the ExtensionArray can be used as a boolean
+        mask. ExtensionArrays with ``kind == 'b'`` can be boolean masks.
+
         See Also
         --------
         numpy.dtype.kind

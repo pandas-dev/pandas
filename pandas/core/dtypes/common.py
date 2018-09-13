@@ -1592,6 +1592,11 @@ def is_bool_dtype(arr_or_dtype):
     -------
     boolean : Whether or not the array or dtype is of a boolean dtype.
 
+    Notes
+    -----
+    An ExtensionArray is considered boolean when the ``.kind`` of the
+    dtype is ``'b'``.
+
     Examples
     --------
     >>> is_bool_dtype(str)

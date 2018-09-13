@@ -112,7 +112,7 @@ def is_bool_indexer(key):
         Only list-likes may be considered boolean indexers.
         All other types are not considered a boolean indexer.
         For array-like input, boolean ndarrays or ExtensionArrays
-        with a boolean type are considered boolean indexers.
+        with a boolean kind are considered boolean indexers.
 
     Returns
     -------
