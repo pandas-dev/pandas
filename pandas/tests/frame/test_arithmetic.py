@@ -100,6 +100,16 @@ class TestFrameComparisons(object):
 # Arithmetic
 
 class TestFrameFlexArithmetic(object):
+    def test_df_add_td64_columnwise(self):
+        # GH#22534 Check that column-wise addition broadcasts correctly
+        dti = pd.date_range('2016-01-01', periods=10)
+        tdi = pd.timedelta_range('1', periods=10)
+        tser = pd.Series(tdi)
+        result = pd.DataFrame({0: dti, 1: tdi})
+        expected = pd.DataFrame({0: dti + tdi,
+                                 1: tdi + tdi})
+        tm.assert_frame_equal(result, expected)
+
     def test_df_add_flex_filled_mixed_dtypes(self):
         # GH#19611
         dti = pd.date_range('2016-01-01', periods=3)
