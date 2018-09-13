@@ -571,7 +571,7 @@ Removal of prior version deprecations/changes
 - Strings passed into :meth:`DataFrame.groupby` that refer to both column and index levels will raise a ``ValueError`` (:issue:`14432`)
 - :meth:`Index.repeat` and :meth:`MultiIndex.repeat` have renamed the ``n`` argument to ``repeats`` (:issue:`14645`)
 - Removal of the previously deprecated ``as_indexer`` keyword completely from ``str.match()`` (:issue:`22356`, :issue:`6581`)
-- Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler`` (:issue:`16059`)
+- Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler` (:issue:`16059`)
 
 .. _whatsnew_0240.performance:
 
