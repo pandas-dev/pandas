@@ -198,6 +198,15 @@ class TestDataFrameConcatCommon(TestData):
         expected = DataFrame({'bar': Series([Timestamp('20130101'), 1])})
         assert_frame_equal(result, expected)
 
+        # GH 22621
+        # when appending a Series to an empty DataFrame
+        # the result must maintain the Series dtype
+
+        df = DataFrame()
+        series = Series({'A': 1}, name='foobar', dtype='int64')
+        assert df.append(series).dtypes['A'] == 'int64'
+        assert df.append([series]).dtypes['A'] == 'int64'
+
     def test_update(self):
         df = DataFrame([[1.5, nan, 3.],
                         [1.5, nan, 3.],
