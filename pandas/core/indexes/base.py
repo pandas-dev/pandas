@@ -2060,6 +2060,7 @@ class Index(IndexOpsMixin, PandasObject):
         promote = self._shallow_copy
 
         if is_scalar(key):
+            key = com.cast_scalar_indexer(key)
             return getitem(key)
 
         if isinstance(key, slice):

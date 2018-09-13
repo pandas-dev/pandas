@@ -1130,6 +1130,9 @@ class MultiIndex(Index):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
+        Column ordering is determined by the DataFrame constructor with data as
+        a dict.
+
         .. versionadded:: 0.24.0
 
         Parameters
@@ -1143,6 +1146,10 @@ class MultiIndex(Index):
         Returns
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
+
+        See also
+        --------
+        DataFrame
         """
 
         from pandas import DataFrame
@@ -1566,6 +1573,8 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
+            key = com.cast_scalar_indexer(key)
+
             retval = []
             for lev, lab in zip(self.levels, self.labels):
                 if lab[key] == -1:
