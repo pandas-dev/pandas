@@ -28,7 +28,7 @@ class TestSeriesCombine(TestData):
             elif idx in self.objSeries.index:
                 assert value == self.objSeries[idx]
             else:
-                self.fail("orphaned index!")
+                raise AssertionError("orphaned index!")
 
         pytest.raises(ValueError, self.ts.append, self.ts,
                       verify_integrity=True)
