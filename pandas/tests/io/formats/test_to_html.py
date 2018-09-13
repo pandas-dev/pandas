@@ -2495,8 +2495,8 @@ class TestToHTML(object):
          index_none_columns_unnamed_single),
         ('named_multi', 'named_multi', False, True, True,
          index_none_columns_named_multi),
-        # ('unnamed_multi', 'named_multi', False, True, True,
-        #  index_none_columns_named_multi),
+        ('unnamed_multi', 'named_multi', False, True, True,
+         index_none_columns_named_multi),
         ('named_multi', 'unnamed_multi', False, True, True,
          index_none_columns_unnamed_multi)
     ])
