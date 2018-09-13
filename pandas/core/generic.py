@@ -2494,81 +2494,90 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        a DataArray for a Series
-        a Dataset for a DataFrame
-        a DataArray for higher dims
+        xarray.DataArray or xarray.Dataset
+            Data in the pandas structure converted to Dataset if the object is
+            a DataFrame, or a DataArray if the object is a Series.
 
-        See also
+        See Also
         --------
-        DataFrame.to_csv : Write out to a csv file.
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-        ...                    'B' : ['foo', 'bar', 'foo'],
-        ...                    'C' : np.arange(4.,7)})
+        >>> df = pd.DataFrame([('falcon', 'bird',  389.0, 2),
+        ...                    ('parrot', 'bird', 24.0, 2),
+        ...                    ('lion',   'mammal', 80.5, 4),
+        ...                    ('monkey', 'mammal', np.nan, 4)],
+        ...                    columns=['name', 'class', 'max_speed',
+        ...                     'num_legs'],
+        ...                    index=[0, 2, 3, 1])
         >>> df
-           A    B    C
-        0  1  foo  4.0
-        1  1  bar  5.0
-        2  2  foo  6.0
+                     name   class  max_speed  num_legs
+        0  falcon    bird      389.0         2
+        2  parrot    bird       24.0         2
+        3    lion  mammal       80.5         4
+        1  monkey  mammal        NaN         4
 
         >>> df.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (index: 3)
+        Dimensions:    (index: 4)
         Coordinates:
-          * index    (index) int64 0 1 2
+          * index      (index) int64 0 2 3 1
         Data variables:
-            A        (index) int64 1 1 2
-            B        (index) object 'foo' 'bar' 'foo'
-            C        (index) float64 4.0 5.0 6.0
+            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 389.0 24.0 80.5 nan
+            num_legs   (index) int64 2 2 4 4
 
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-        ...                    'B' : ['foo', 'bar', 'foo'],
-        ...                    'C' : np.arange(4.,7)}
-        ...                   ).set_index(['B','A'])
-        >>> df
-                 C
-        B   A
-        foo 1  4.0
-        bar 1  5.0
-        foo 2  6.0
+        >>> df_multiindex = df.set_index(['class', 'name'])
+        >>> df_multiindex
+                       max_speed  num_legs
+        class  name
+        bird   falcon      389.0         2
+               parrot       24.0         2
+        mammal lion         80.5         4
+               monkey        NaN         4
 
-        >>> df.to_xarray()
+        >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (A: 2, B: 2)
+        Dimensions:    (class: 2, name: 4)
         Coordinates:
-          * B        (B) object 'bar' 'foo'
-          * A        (A) int64 1 2
+          * class      (class) object 'bird' 'mammal'
+          * name       (name) object 'falcon' 'lion' 'monkey' 'parrot'
         Data variables:
-            C        (B, A) float64 5.0 nan 4.0 6.0
+            max_speed  (class, name) float64 389.0 nan nan 24.0 nan 80.5 nan nan
+            num_legs   (class, name) float64 2.0 nan nan 2.0 nan 4.0 4.0 nan
 
-        >>> index = pd.MultiIndex(levels=[['bar', 'baz', 'foo', 'qux'],
+        >>> index = pd.MultiIndex(levels=[[pd.to_datetime("2018-01-01"),
+        ... pd.to_datetime("2015-05-23"), pd.to_datetime("2015-06-06"),
+        ... pd.to_datetime("2011-02-13"), pd.to_datetime("2014-07-06")],
         ...    ['one', 'two']],
         ...   labels=[[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]],
         ...   names=['first', 'second'])
 
         >>> s = pd.Series(np.arange(8), index=index)
         >>> s
-        first  second
-        bar    one       0
-               two       1
-        baz    one       2
-               two       3
-        foo    one       4
-               two       5
-        qux    one       6
-               two       7
+        first       second
+        2018-01-01  one       0
+                    two       1
+        2015-05-23  one       2
+                    two       3
+        2015-06-06  one       4
+                    two       5
+        2011-02-13  one       6
+                    two       7
         dtype: int64
 
         >>> s.to_xarray()
-        <xarray.DataArray (first: 4, second: 2)>
-        array([[0, 1],
-               [2, 3],
-               [4, 5],
-               [6, 7]])
+        <xarray.DataArray (first: 5, second: 2)>
+        array([[ 0.,  1.],
+               [ 2.,  3.],
+               [ 4.,  5.],
+               [ 6.,  7.],
+               [nan, nan]])
         Coordinates:
-          * first    (first) object 'bar' 'baz' 'foo' 'qux'
+          * first    (first) datetime64[ns] 2018-01-01 2015-05-23 2015-06-06 ...
           * second   (second) object 'one' 'two'
 
         Notes
