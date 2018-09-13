@@ -1293,7 +1293,8 @@ class DataFrame(NDFrame):
 
         if isinstance(data, dict):
             if columns is None:
-                columns = arr_columns = ensure_index(sorted(data))
+                columns = arr_columns = ensure_index(
+                    com.dict_keys_to_ordered_list(data))
                 arrays = [data[k] for k in columns]
             else:
                 arrays = []
