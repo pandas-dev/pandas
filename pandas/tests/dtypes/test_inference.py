@@ -5,7 +5,7 @@ These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
 
 """
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import collections
 import re
 from datetime import datetime, date, timedelta, time
@@ -1158,6 +1158,7 @@ class TestIsScalar(object):
             assert not is_scalar(zerodim)
             assert is_scalar(lib.item_from_zerodim(zerodim))
 
+    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
     def test_is_scalar_numpy_arrays(self):
         assert not is_scalar(np.array([]))
         assert not is_scalar(np.array([[]]))
@@ -1176,6 +1177,7 @@ class TestIsScalar(object):
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             assert not is_scalar(Panel())
             assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
@@ -1210,6 +1212,7 @@ def test_nan_to_nat_conversions():
 
 
 @td.skip_if_no_scipy
+@pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 def test_is_scipy_sparse(spmatrix):  # noqa: F811
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))

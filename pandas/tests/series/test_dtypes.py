@@ -428,8 +428,10 @@ class TestSeriesDtypes(TestData):
 
         if dtype not in ('S', 'V'):  # poor support (if any) currently
             with warnings.catch_warnings(record=True):
-                # Generic timestamp dtypes ('M' and 'm') are deprecated,
-                # but we test that already in series/test_constructors.py
+                if dtype in ('M', 'm'):
+                    # Generic timestamp dtypes ('M' and 'm') are deprecated,
+                    # but we test that already in series/test_constructors.py
+                    warnings.simplefilter("ignore", FutureWarning)
 
                 init_empty = Series([], dtype=dtype)
                 as_type_empty = Series([]).astype(dtype)

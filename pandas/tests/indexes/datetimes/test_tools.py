@@ -1175,6 +1175,8 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
+    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
+    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
@@ -1587,12 +1589,15 @@ def units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=[epoch_1960(),
-                        epoch_1960().to_pydatetime(),
-                        epoch_1960().to_datetime64(),
-                        str(epoch_1960())])
-def epochs(request):
-    return request.param
+@pytest.fixture(params=['timestamp', 'pydatetime', 'datetime64'])
+def epochs(epoch_1960, request):
+    assert request.param in {'timestamp', 'pydatetime', 'datetime64'}
+    if request.param == 'timestamp':
+        return epoch_1960
+    elif request.param == 'pydatetime':
+        return epoch_1960.to_pydatetime()
+    else:
+        return epoch_1960.to_datetime64()
 
 
 @pytest.fixture

@@ -3,7 +3,6 @@
 import operator
 
 import pytest
-from warnings import catch_warnings
 from numpy import nan
 import numpy as np
 import pandas as pd
@@ -981,26 +980,25 @@ class TestSparseDataFrame(SharedWithSparse):
 
         self._check_all(_check)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_stack_sparse_frame(self):
-        with catch_warnings(record=True):
+        def _check(frame):
+            dense_frame = frame.to_dense()  # noqa
 
-            def _check(frame):
-                dense_frame = frame.to_dense()  # noqa
+            wp = Panel.from_dict({'foo': frame})
+            from_dense_lp = wp.to_frame()
 
-                wp = Panel.from_dict({'foo': frame})
-                from_dense_lp = wp.to_frame()
+            from_sparse_lp = spf.stack_sparse_frame(frame)
 
-                from_sparse_lp = spf.stack_sparse_frame(frame)
+            tm.assert_numpy_array_equal(from_dense_lp.values,
+                                        from_sparse_lp.values)
 
-                tm.assert_numpy_array_equal(from_dense_lp.values,
-                                            from_sparse_lp.values)
+        _check(self.frame)
+        _check(self.iframe)
 
-            _check(self.frame)
-            _check(self.iframe)
-
-            # for now
-            pytest.raises(Exception, _check, self.zframe)
-            pytest.raises(Exception, _check, self.fill_frame)
+        # for now
+        pytest.raises(Exception, _check, self.zframe)
+        pytest.raises(Exception, _check, self.fill_frame)
 
     def test_transpose(self):
 

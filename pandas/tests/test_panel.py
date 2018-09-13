@@ -2685,8 +2685,8 @@ def test_panel_index():
     tm.assert_index_equal(index, expected)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_panel_np_all():
-    with catch_warnings(record=True):
-        wp = Panel({"A": DataFrame({'b': [1, 2]})})
+    wp = Panel({"A": DataFrame({'b': [1, 2]})})
     result = np.all(wp)
     assert result == np.bool_(True)

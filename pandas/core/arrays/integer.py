@@ -5,7 +5,7 @@ import numpy as np
 
 from pandas._libs.lib import infer_dtype
 from pandas.util._decorators import cache_readonly
-from pandas.compat import u, range
+from pandas.compat import u, range, string_types
 from pandas.compat import set_function_name
 
 from pandas.core.dtypes.cast import astype_nansafe
@@ -147,6 +147,11 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
             dtype = values.dtype
 
     if dtype is not None:
+        if (isinstance(dtype, string_types) and
+                (dtype.startswith("Int") or dtype.startswith("UInt"))):
+            # Avoid DeprecationWarning from NumPy about np.dtype("Int64")
+            # https://github.com/numpy/numpy/pull/7476
+            dtype = dtype.lower()
         if not issubclass(type(dtype), _IntegerDtype):
             try:
                 dtype = _dtypes[str(np.dtype(dtype))]

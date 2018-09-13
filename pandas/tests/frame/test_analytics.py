@@ -116,8 +116,8 @@ class TestDataFrameAnalytics(TestData):
                              'a', 'b'], columns=['a', 'b'])
         for meth in ['pearson', 'kendall', 'spearman']:
 
-            # RuntimeWarning
             with warnings.catch_warnings(record=True):
+                warnings.simplefilter("ignore", RuntimeWarning)
                 result = df.corr(meth)
             tm.assert_frame_equal(result, expected)
 
@@ -559,6 +559,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_min(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self._check_stat_op('min', np.min, check_dates=True)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
@@ -610,6 +611,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_max(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self._check_stat_op('max', np.max, check_dates=True)
         self._check_stat_op('max', np.max, frame=self.intframe)
 

@@ -2,8 +2,6 @@
 
 import pytest
 
-from warnings import catch_warnings
-
 import pandas
 from pandas.api import types
 from pandas.util import testing as tm
@@ -60,6 +58,6 @@ class TestTypes(Base):
 
 def test_moved_infer_dtype():
 
-    with catch_warnings(record=True):
+    with tm.assert_produces_warning(FutureWarning):
         e = pandas.lib.infer_dtype('foo')
         assert e is not None

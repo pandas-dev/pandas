@@ -859,6 +859,32 @@ preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
 
+.. _warnings:
+
+Warnings
+~~~~~~~~
+
+By default, pandas test suite will fail if any unhandled warnings are emitted.
+
+If your change involves checking that a warning is actually emitted, use
+``tm.assert_produces_warning(ExpectedWarning)``. We prefer this to pytest's
+``pytest.warns`` context manager because ours checks that the warning's stacklevel
+is set correctly.
+
+If you have a test that would emit a warning, but you aren't actually testing the
+warning it self (say because it's going to be removed in the future, or because we're
+matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
+ignore the error.
+
+```
+@pytest.mark.filterwarnings("ignore:msg:category")
+def test_thing(self):
+    ...
+```
+
+If the test generates a warning of class ``category`` whose message starts
+with ``msg``, the warning will be ignored and the test will pass.
+
 
 Running the test suite
 ----------------------

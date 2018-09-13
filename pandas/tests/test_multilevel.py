@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101,W0141
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import datetime
 import itertools
 import pytest
@@ -193,6 +193,7 @@ class TestMultiLevel(Base):
         tm.assert_frame_equal(reindexed, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             reindexed = self.frame.ix[[('foo', 'one'), ('bar', 'one')]]
         tm.assert_frame_equal(reindexed, expected)
 
@@ -205,6 +206,7 @@ class TestMultiLevel(Base):
         assert chunk.index is new_index
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             chunk = self.ymd.ix[new_index]
         assert chunk.index is new_index
 
@@ -268,6 +270,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = s.ix[[(2000, 3, 10), (2000, 3, 13)]]
         tm.assert_series_equal(result, expected)
 
@@ -347,6 +350,7 @@ class TestMultiLevel(Base):
         tm.assert_series_equal(df['value'], result)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[:, 'value']
         tm.assert_series_equal(df['value'], result)
 
@@ -422,6 +426,7 @@ class TestMultiLevel(Base):
         expected = idf.loc[0, 0]
         expected2 = idf.xs((0, 0))
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             expected3 = idf.ix[0, 0]
 
         tm.assert_series_equal(result, expected)
@@ -675,6 +680,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         assert df.loc[('bar', 'two'), 1] == 7
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             df = self.frame.copy()
             df.columns = lrange(3)
             df.ix[('bar', 'two'), 1] = 7
@@ -704,6 +710,7 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", DeprecationWarning)
             result = df.ix[('a', 'y'), [1, 0]]
         tm.assert_frame_equal(result, expected)
 
@@ -1285,6 +1292,7 @@ Thur,Lunch,Yes,51.51,17"""
 
     def test_swaplevel_panel(self):
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel({'ItemA': self.frame, 'ItemB': self.frame * 2})
             expected = panel.copy()
             expected.major_axis = expected.major_axis.swaplevel(0, 1)
