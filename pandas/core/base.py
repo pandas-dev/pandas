@@ -24,8 +24,7 @@ import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY, OrderedDict
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate_kwarg, Substitution)
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -1228,7 +1227,6 @@ class IndexOpsMixin(object):
 
     @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)

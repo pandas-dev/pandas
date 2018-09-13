@@ -118,11 +118,6 @@ class TestCategoricalAnalytics(object):
         pytest.raises(ValueError, lambda: c2.searchsorted('apple'))
         pytest.raises(ValueError, lambda: s2.searchsorted('apple'))
 
-        with tm.assert_produces_warning(FutureWarning):
-            res = c1.searchsorted(v=['bread'])
-            exp = np.array([3], dtype=np.intp)
-            tm.assert_numpy_array_equal(res, exp)
-
     def test_unique(self):
         # categories are reordered based on value when ordered=False
         cat = Categorical(["a", "b"])

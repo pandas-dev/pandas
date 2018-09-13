@@ -36,8 +36,7 @@ from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, ensure_index
 
 from pandas import compat
-from pandas.util._decorators import (Appender, Substitution, cache_readonly,
-                                     deprecate_kwarg)
+from pandas.util._decorators import Appender, Substitution, cache_readonly
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -426,7 +425,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if isinstance(value, Period):
             if value.freq != self.freq:
