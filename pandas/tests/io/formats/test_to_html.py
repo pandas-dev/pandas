@@ -38,7 +38,6 @@ def _index_init_params(index):
 
 @pytest.fixture
 def read_file(datapath):
-
     def _read_file(filename):
         filepath = datapath('io', 'formats', 'data', filename)
         with open(filepath) as f:
@@ -49,7 +48,6 @@ def read_file(datapath):
 
 @pytest.fixture
 def expected_html(read_file):
-
     def _expected_html(name):
         filename = '.'.join([name, 'html'])
         html = read_file(filename)
@@ -57,21 +55,22 @@ def expected_html(read_file):
     return _expected_html
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False], ids=['index_true', 'index_false'])
 def index(request):
     # to_html() parameter values for index
     # whether to print index (row) labels, default True
     return request.param
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False], ids=['header_true', 'header_false'])
 def header(request):
     # to_html() parameter values for header
     # whether to print column labels, default True
     return request.param
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=[True, False], ids=['index_names_true',
+                                           'index_names_false'])
 def index_names(request):
     # to_html() parameter values for index_names
     # prints the names of the indexes, default True
@@ -111,6 +110,35 @@ def col_idx_type(request):
     # standard and multiIndex columns index, named and unnamed
     # used for basic table alignment tests
     return request.param
+
+
+@pytest.fixture
+def expected_output(expected_html):
+    def _expected_output(idx_type, col_idx_type,
+                         index=True, header=True, index_names=True):
+
+        def _expected_output_name(idx_type, index, index_names):
+            is_multi, is_named = _index_init_params(idx_type)
+            if index is False:
+                return 'none'
+
+            idx_type_ids = {
+                (False, False): 'unnamed_standard',
+                (True, False): 'named_standard',
+                (False, True): 'unnamed_multi',
+                (True, True): 'named_multi'}
+
+            return idx_type_ids[(is_named and index_names, is_multi)]
+
+        return expected_html(
+            '_'.join([
+                'index',
+                _expected_output_name(idx_type, index, index_names),
+                'columns',
+                _expected_output_name(col_idx_type, header, index_names)
+            ])
+        )
+    return _expected_output
 
 
 class TestToHTML(object):
@@ -2004,38 +2032,41 @@ class TestToHTML(object):
     #     result = df.to_html(index=False)
     #     assert result == expected_html('index_none_columns_unnamed_multi')
 
-    @pytest.mark.parametrize('header', [True])
-    def test_to_html_index_names(self, expected_html,
-                                 idx_type, col_idx_type, index, header,
-                                 index_names):
+    # @pytest.mark.parametrize('header', [False])
+    # def test_to_html_index_names(self, expected_output,
+    #                              idx_type, col_idx_type, index, header,
+    #                              index_names):
+    #     df = DataFrame(np.zeros((2, 2), dtype=int),
+    #                    index=idx_type, columns=col_idx_type)
+    #     result = df.to_html(index=index, header=header,
+    #                         index_names=index_names)
+    #     assert result == expected_output(idx_type, col_idx_type,
+    #                                      index=index, header=header,
+    #                                      index_names=index_names)
+
+    def test_to_html_index_names_with_defaults(self, expected_output,
+                                               idx_type, col_idx_type):
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=idx_type, columns=col_idx_type)
-        result = df.to_html(index=index, header=header,
-                            index_names=index_names)
+        result = df.to_html()
+        assert result == expected_output(idx_type, col_idx_type)
 
-        def _expected(idx_type, index, index_names):
-            is_multi, is_named = _index_init_params(idx_type)
-            if index is False:
-                return 'none'
+    def test_to_html_index_names_false(self, expected_output,
+                                       idx_type, col_idx_type):
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       index=idx_type, columns=col_idx_type)
+        result = df.to_html(index_names=False)
+        assert result == expected_output(
+            idx_type, col_idx_type, index_names=False)
 
-            idx_type_ids = {
-                (False, False): 'unnamed_standard',
-                (True, False): 'named_standard',
-                (False, True): 'unnamed_multi',
-                (True, True): 'named_multi'}
-
-            return idx_type_ids[(is_named and index_names, is_multi)]
-
-        expected = expected_html(
-            '_'.join([
-                'index',
-                _expected(idx_type, index, index_names),
-                'columns',
-                _expected(col_idx_type, header, index_names)
-            ])
-        )
-
-        assert result == expected
+    def test_to_html_index_names_index_false(self, expected_output,
+                                             idx_type, col_idx_type,
+                                             index_names):
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       index=idx_type, columns=col_idx_type)
+        result = df.to_html(index=False, index_names=index_names)
+        assert result == expected_output(idx_type, col_idx_type,
+                                         index=False, index_names=index_names)
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
