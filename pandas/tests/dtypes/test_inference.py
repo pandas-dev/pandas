@@ -226,7 +226,7 @@ def test_is_hashable():
             pass
 
         c = OldStyleClass()
-        assert not isinstance(c, collections.Hashable)
+        assert not isinstance(c, compat.Hashable)
         assert inference.is_hashable(c)
         hash(c)  # this will not raise
 

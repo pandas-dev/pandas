@@ -918,7 +918,7 @@ class TestDataFrameConstructors(TestData):
         # collections.Squence like
         import collections
 
-        class DummyContainer(collections.Sequence):
+        class DummyContainer(compat.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst

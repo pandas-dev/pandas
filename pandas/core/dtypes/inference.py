@@ -5,6 +5,7 @@ import re
 import numpy as np
 from collections import Iterable
 from numbers import Number
+from pandas import compat
 from pandas.compat import (PY2, string_types, text_type,
                            string_and_binary_types, re_type)
 from pandas._libs import lib
@@ -112,7 +113,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return (isinstance(obj, collections.Iterable) and
+    return (isinstance(obj, compat.Iterable) and
             not isinstance(obj, string_types))
 
 

@@ -112,7 +112,7 @@ class TestDataFrameConvertTo(TestData):
         from email.parser import Parser
         import collections
 
-        collections.Mapping.register(email.message.Message)
+        compat.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'
