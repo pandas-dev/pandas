@@ -465,7 +465,7 @@ class TestSeriesConstructors(TestData):
         # test that construction of a Series with an index of different length
         # raises an error
         msg = 'Length of passed values is 3, index implies 4'
-        with pytest.raises(ValueError, message=msg):
+        with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
     def test_constructor_numpy_scalar(self):
