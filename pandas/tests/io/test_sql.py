@@ -1378,7 +1378,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             expected['A'] = expected['A'].dt.tz_convert('UTC')
         else:
             # Otherwise, timestamps are returned as local, naive
-            expected['A'] = expected['A'].dt.localize(None)
+            expected['A'] = expected['A'].dt.tz_localize(None)
 
         result = sql.read_sql_table('test_datetime_tz', self.conn)
         result = result.drop('index', axis=1)
