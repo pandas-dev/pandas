@@ -1031,6 +1031,8 @@ def test_groupby_mixed_type_columns():
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Ensure warning isn't emitted in the first place
+@pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)

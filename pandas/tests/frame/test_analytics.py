@@ -549,6 +549,8 @@ class TestDataFrameAnalytics(TestData):
     def test_product(self):
         self._check_stat_op('product', np.prod)
 
+    # TODO: Ensure warning isn't emitted in the first place
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
     def test_median(self):
         def wrapper(x):
             if isna(x).any():
@@ -1125,6 +1127,8 @@ class TestDataFrameAnalytics(TestData):
         self.mixed_frame.mean(1)
         self.mixed_frame.skew(1)
 
+    # TODO: Ensure warning isn't emitted in the first place
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
     def test_median_corner(self):
         def wrapper(x):
             if isna(x).any():
