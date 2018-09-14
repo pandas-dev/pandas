@@ -1326,6 +1326,7 @@ Timedelta
 - Bug in :class:`Timedelta` and :func:`to_timedelta()` have inconsistencies in supported unit string (:issue:`21762`)
 - Bug in :class:`TimedeltaIndex` division where dividing by another :class:`TimedeltaIndex` raised ``TypeError`` instead of returning a :class:`Float64Index` (:issue:`23829`, :issue:`22631`)
 - Bug in :class:`TimedeltaIndex` comparison operations where comparing against non-``Timedelta``-like objects would raise ``TypeError`` instead of returning all-``False`` for ``__eq__`` and all-``True`` for ``__ne__`` (:issue:`24056`)
+- Bug when intersecting a decreasing TimedeltaIndex (:issue:`17391`)
 
 Timezones
 ^^^^^^^^^
