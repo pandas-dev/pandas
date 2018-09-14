@@ -194,7 +194,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
         # make sure kwargs to hist are handled
-        if _mpl_ge_2_2_0:
+        if _mpl_ge_2_2_0():
             kwargs = {"density": True}
         else:
             kwargs = {"normed": True}
@@ -285,7 +285,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         xf, yf = 20, 18
         xrot, yrot = 30, 40
 
-        if _mpl_ge_2_2_0:
+        if _mpl_ge_2_2_0():
             kwargs = {"density": True}
         else:
             kwargs = {"normed": True}

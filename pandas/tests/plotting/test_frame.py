@@ -1575,7 +1575,7 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=40, yrot=0)
         tm.close()
 
-        if plotting._compat._mpl_ge_2_2_0:
+        if plotting._compat._mpl_ge_2_2_0():
             kwargs = {"density": True}
         else:
             kwargs = {"normed": True}
