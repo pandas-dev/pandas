@@ -1374,9 +1374,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         expected.to_sql('test_datetime_tz', self.conn)
 
         if self.flavor == 'postgresql':
+            # SQLalchemy "timezones" (i.e. offsets) are coerced to UTC
             expected['A'] = expected['A'].dt.tz_convert('UTC')
         else:
-            expected['A'] = expected['A'].dt.tz_convert(None)
+            # Otherwise, timestamps are returned as local, naive
+            expected['A'] = expected['A'].dt.localize(None)
 
         result = sql.read_sql_table('test_datetime_tz', self.conn)
         result = result.drop('index', axis=1)
