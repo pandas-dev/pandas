@@ -1180,7 +1180,6 @@ def test_groupby_nat_exclude():
         pytest.raises(KeyError, grouped.get_group, pd.NaT)
 
 
-
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_sparse_friendly(df):
     sdf = df[['C', 'D']].to_sparse()
@@ -1199,7 +1198,6 @@ def test_sparse_friendly(df):
 
     # do this someday
     # _check_work(panel.groupby(lambda x: x.month, axis=1))
-
 
 
 @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")

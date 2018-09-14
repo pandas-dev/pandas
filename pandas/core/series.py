@@ -6,7 +6,6 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import collections
 import warnings
 from textwrap import dedent
 

@@ -916,7 +916,6 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
-        import collections
 
         class DummyContainer(compat.Sequence):
 

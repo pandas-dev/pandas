@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from warnings import catch_warnings
 from pandas.util import testing as tm
 from pandas import SparseDataFrame, SparseSeries
 from distutils.version import LooseVersion

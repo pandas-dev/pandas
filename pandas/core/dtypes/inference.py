@@ -1,6 +1,5 @@
 """ basic inference routines """
 
-import collections
 import re
 import numpy as np
 from numbers import Number

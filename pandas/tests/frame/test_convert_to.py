@@ -110,7 +110,6 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_Mapping_type(self):
         import email
         from email.parser import Parser
-        import collections
 
         compat.Mapping.register(email.message.Message)
 
