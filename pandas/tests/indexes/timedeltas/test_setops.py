@@ -168,3 +168,25 @@ def test_intersection_different_lengths(index1, index2, expected):
               index2.sort_values(ascending=False),
               expected.sort_values(ascending=False)
               )
+
+
+@pytest.mark.parametrize("index1, index2, expected", [
+    (pd.to_timedelta((2, 4, 5, 6), unit='s'),
+     pd.to_timedelta((2, 3, 4, 6), unit='s'),
+     pd.to_timedelta((2, 4, 6), unit='s')),
+    (pd.to_timedelta((2, 4, 5), unit='s'),
+     pd.to_timedelta((3, 4, 5, 6), unit='s'),
+     pd.to_timedelta((4, 5), unit='s')),
+])
+def test_intersection_not_a_subset(index1, index2, expected):
+    def intersect(idx1, idx2, expected):
+        result = idx1.intersection(idx2)
+        tm.assert_index_equal(result, expected)
+        result = idx2.intersection(idx1)
+        tm.assert_index_equal(result, expected)
+
+    intersect(index1, index2, expected)
+    intersect(index1.sort_values(ascending=False),
+              index2.sort_values(ascending=False),
+              expected.sort_values(ascending=False)
+              )
