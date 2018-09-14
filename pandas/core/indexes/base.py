@@ -1115,16 +1115,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         return Series(self._to_embed(), index=index, name=name)
 
-    def to_frame(self, index=True):
+    def to_frame(self, index=True, name=None):
         """
         Create a DataFrame with a column containing the Index.
 
-        .. versionadded:: 0.21.0
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------
         index : boolean, default True
             Set the index of the returned DataFrame as the original Index.
+
+        name : object, default None
+            The passed name should substitute for the index name (if it has
+            one).
 
         Returns
         -------
@@ -1153,10 +1157,19 @@ class Index(IndexOpsMixin, PandasObject):
         0   Ant
         1  Bear
         2   Cow
+
+        To override the name of the resulting column, specify `name`:
+
+        >>> idx.to_frame(index=False, name='zoo')
+            zoo
+        0   Ant
+        1  Bear
+        2   Cow
         """
 
         from pandas import DataFrame
-        name = self.name or 0
+        if name is None:
+            name = self.name or 0
         result = DataFrame({name: self.values.copy()})
 
         if index:

@@ -66,19 +66,24 @@ class Base(object):
         assert s.index is not idx
         assert s.name != idx.name
 
-    def test_to_frame(self):
-        # see gh-15230
+    @pytest.mark.parametrize("name", [None, "new_name"])
+    def test_to_frame(self, name):
+        # see GH-15230, GH-22580
         idx = self.create_index()
-        name = idx.name or 0
 
-        df = idx.to_frame()
+        if name:
+            idx_name = name
+        else:
+            idx_name = idx.name or 0
+
+        df = idx.to_frame(name=idx_name)
 
         assert df.index is idx
         assert len(df.columns) == 1
-        assert df.columns[0] == name
-        assert df[name].values is not idx.values
+        assert df.columns[0] == idx_name
+        assert df[idx_name].values is not idx.values
 
-        df = idx.to_frame(index=False)
+        df = idx.to_frame(index=False, name=idx_name)
         assert df.index is not idx
 
     def test_shift(self):
