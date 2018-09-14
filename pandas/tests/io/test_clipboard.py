@@ -76,6 +76,7 @@ def df(request):
         raise ValueError
 
 
+@pytest.mark.clipboard
 @pytest.mark.single
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
