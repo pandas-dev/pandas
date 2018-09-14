@@ -1313,7 +1313,7 @@ class Week(DateOffset):
         base_period = dtindex.to_period(base)
         if self.n > 0:
             # when adding, dates on end roll to next
-            normed = dtindex - off
+            normed = dtindex - off + Timedelta(1, 'D') - Timedelta(1, 'ns')
             roll = np.where(base_period.to_timestamp(how='end') == normed,
                             self.n, self.n - 1)
         else:
