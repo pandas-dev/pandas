@@ -1,4 +1,5 @@
 import os
+import sys
 import importlib
 
 import pytest
@@ -29,6 +30,16 @@ def pytest_addoption(parser):
                      help="run only slow tests")
     parser.addoption("--strict-data-files", action="store_true",
                      help="Fail if a test is skipped for missing data file.")
+
+
+def pytest_collection_modifyitems(items):
+    # Make unhandled ResourceWarnings fail early to track down
+    # https://github.com/pandas-dev/pandas/issues/22675
+    if PY3:
+        for item in items:
+            item.add_marker(
+                pytest.mark.filterwarnings("error::ResourceWarning")
+            )
 
 
 def pytest_runtest_setup(item):
