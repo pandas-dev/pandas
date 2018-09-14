@@ -629,7 +629,6 @@ Datetimelike
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`, :issue:`22163`)
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
-- Bug in :class:`DatetimeIndex` where addition of Week offset with weekday=6 had no effect (:issue:`22465`)
 
 Timedelta
 ^^^^^^^^^
