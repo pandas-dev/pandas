@@ -154,25 +154,15 @@ cdef class IndexEngine:
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
             ndarray[uint8_t, ndim=1, cast=True] indexer
-            ndarray[object,  ndim=1, cast=True] indexerObj
             ndarray[intp_t, ndim=1] found
             int count
 
-        try:
-            indexer = self._get_index_values() == val
-            found = np.where(indexer)[0]
-            count = len(found)
+        indexer = np.array(self._get_index_values() == val, dtype = bool, copy = False)
+        found = np.where(indexer)[0]
+        count = len(found)
 
-            if count > 1:
-                return indexer
-
-        except ValueError:
-            indexerObj = self._get_index_values() == val
-            found = np.where(indexerObj)[0]
-            count = len(found)
-
-            if count > 1:
-                return indexerObj
+        if count > 1:
+            return indexer
 
         if count == 1:
             return int(found[0])
