@@ -92,6 +92,7 @@ class SafeForLongAndSparse(object):
     def test_prod(self):
         self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
+    @pytest.mark.filterwarnings("ignore:Invalid value:RuntimeWarning")
     def test_median(self):
         def wrapper(x):
             if isna(x).any():
@@ -104,6 +105,7 @@ class SafeForLongAndSparse(object):
         with catch_warnings(record=True):
             self._check_stat_op('min', np.min)
 
+    @pytest.mark.filterwarnings("ignore:Invalid value:RuntimeWarning")
     def test_max(self):
         with catch_warnings(record=True):
             self._check_stat_op('max', np.max)
