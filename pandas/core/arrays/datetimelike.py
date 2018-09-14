@@ -521,7 +521,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
 
-    def shift(self, periods, freq=None):
+    def shift(self, *args, **kwargs):
         """
         Shift index by desired number of time frequency increments.
 
@@ -547,6 +547,18 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         --------
         Index.shift : Shift values of Index.
         """
+        if 'n' in kwargs.keys():
+            warnings.warn("n argument is deprecated, use periods instead. ",
+            DeprecationWarning)
+            periods = kwargs['n']
+        elif 'periods' in kwargs.keys():
+            periods = kwargs['periods']
+        elif 'periods' not in kwargs.keys() and len(args) != 0:
+            periods = args[0]
+        if 'freq' not in kwargs.keys():
+            freq = None
+        else:
+            freq = kwargs['freq']
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
