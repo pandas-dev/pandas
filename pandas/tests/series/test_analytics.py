@@ -1368,10 +1368,6 @@ class TestSeriesAnalytics(TestData):
         idx = s.searchsorted(1, side='right')
         tm.assert_numpy_array_equal(idx, np.array([1], dtype=np.intp))
 
-        with tm.assert_produces_warning(FutureWarning):
-            idx = s.searchsorted(v=1, side='left')
-            tm.assert_numpy_array_equal(idx, np.array([0], dtype=np.intp))
-
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])
         r = s.searchsorted(30)
