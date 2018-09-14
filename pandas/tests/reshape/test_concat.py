@@ -1,5 +1,6 @@
 from warnings import catch_warnings, simplefilter
 from itertools import combinations
+from collections import deque
 
 import datetime as dt
 import dateutil
@@ -13,6 +14,7 @@ from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
                     Index, Panel, MultiIndex, Timestamp,
                     DatetimeIndex, Categorical)
+from pandas.compat import Iterable
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
@@ -1725,8 +1727,6 @@ class TestConcatenate(ConcatenateBase):
         tm.assert_index_equal(result.columns, expected)
 
     def test_concat_iterables(self):
-        from collections import deque, Iterable
-
         # GH8645 check concat works with tuples, list, generators, and weird
         # stuff like deque and custom iterables
         df1 = DataFrame([1, 2, 3])

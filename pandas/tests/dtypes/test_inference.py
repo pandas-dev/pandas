@@ -20,6 +20,7 @@ from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna, Interval,
                     DateOffset)
+from pandas import compat
 from pandas.compat import u, PY2, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
