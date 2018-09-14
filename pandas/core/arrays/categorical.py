@@ -34,7 +34,7 @@ from pandas.core.dtypes.common import (
     is_dict_like)
 
 from pandas.core.algorithms import factorize, take_1d, unique1d, take
-from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
 import pandas.core.common as com
@@ -1335,7 +1335,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     @Substitution(klass='Categorical')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if not self.ordered:
             raise ValueError("Categorical not ordered\nyou can use "
@@ -2365,6 +2364,15 @@ class Categorical(ExtensionArray, PandasObject):
 # The Series.cat accessor
 
 
+@delegate_names(delegate=Categorical,
+                accessors=["categories", "ordered"],
+                typ="property")
+@delegate_names(delegate=Categorical,
+                accessors=["rename_categories", "reorder_categories",
+                           "add_categories", "remove_categories",
+                           "remove_unused_categories", "set_categories",
+                           "as_ordered", "as_unordered"],
+                typ="method")
 class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
     """
     Accessor object for categorical properties of the Series values.
@@ -2423,15 +2431,6 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if res is not None:
             return Series(res, index=self.index, name=self.name)
 
-
-CategoricalAccessor._add_delegate_accessors(delegate=Categorical,
-                                            accessors=["categories",
-                                                       "ordered"],
-                                            typ='property')
-CategoricalAccessor._add_delegate_accessors(delegate=Categorical, accessors=[
-    "rename_categories", "reorder_categories", "add_categories",
-    "remove_categories", "remove_unused_categories", "set_categories",
-    "as_ordered", "as_unordered"], typ='method')
 
 # utility routines
 
