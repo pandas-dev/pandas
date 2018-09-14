@@ -12,6 +12,8 @@ from pandas import compat, DataFrame, MultiIndex, option_context, Index
 from pandas.compat import u, lrange, StringIO
 from pandas.util import testing as tm
 import pandas.io.formats.format as fmt
+import pandas.core.common as com
+from pandas.core.dtypes.generic import ABCMultiIndex
 
 div_style = ''
 try:
@@ -20,6 +22,18 @@ try:
         div_style = ' style="max-width:1500px;overflow:auto;"'
 except (ImportError, AttributeError):
     pass
+
+
+def _has_names(index):
+    if isinstance(index, ABCMultiIndex):
+        return com._any_not_none(*index.names)
+    else:
+        return index.name is not None
+
+
+def _index_init_params(index):
+    return (isinstance(index, ABCMultiIndex),
+            _has_names(index))
 
 
 @pytest.fixture
@@ -43,34 +57,60 @@ def expected_html(read_file):
     return _expected_html
 
 
-def _test_helper_dataframe_index_names(idx_type, col_idx_type):
-    df = DataFrame(np.zeros((2, 2), dtype=int))
+@pytest.fixture(params=[True, False])
+def index(request):
+    # to_html() parameter values for index
+    # whether to print index (row) labels, default True
+    return request.param
 
-    if idx_type == 'named_standard':
-        df.index.name = 'index.name'
-    elif idx_type == 'unnamed_standard':
-        pass
-    elif idx_type == 'named_multi':
-        df.index = MultiIndex.from_product([['a'], ['b', 'c']], names=[
-            'index.name.0', 'index.name.1'])
-    elif idx_type == 'unnamed_multi':
-        df.index = MultiIndex.from_product([['a'], ['b', 'c']])
-    else:
-        raise ValueError
 
-    if col_idx_type == 'named_standard':
-        df.columns.name = 'columns.name'
-    elif col_idx_type == 'unnamed_standard':
-        pass
-    elif col_idx_type == 'named_multi':
-        df.columns = MultiIndex.from_product([['a'], ['b', 'c']], names=[
+@pytest.fixture(params=[True, False])
+def header(request):
+    # to_html() parameter values for header
+    # whether to print column labels, default True
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def index_names(request):
+    # to_html() parameter values for index_names
+    # prints the names of the indexes, default True
+    return request.param
+
+
+@pytest.fixture(params=[
+    Index([0, 1]),
+    Index([0, 1], name='index.name'),
+    MultiIndex.from_product([['a'], ['b', 'c']]),
+    MultiIndex.from_product([['a'], ['b', 'c']], names=[
+        'index.name.0', 'index.name.1'])
+],
+    ids=['index_unnamed_standard',
+         'index_named_standard',
+         'index_unnamed_multi',
+         'index_named_multi'])
+def idx_type(request):
+    # standard and multiIndex index, named and unnamed
+    # used for basic table alignment tests
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        Index([0, 1]),
+        Index([0, 1], name='columns.name'),
+        MultiIndex.from_product([['a'], ['b', 'c']]),
+        MultiIndex.from_product([['a'], ['b', 'c']], names=[
             'columns.name.0', 'columns.name.1'])
-    elif col_idx_type == 'unnamed_multi':
-        df.columns = MultiIndex.from_product([['a'], ['b', 'c']])
-    else:
-        raise ValueError
-
-    return df
+    ],
+    ids=['columns_unnamed_standard',
+         'columns_named_standard',
+         'columns_unnamed_multi',
+         'columns_named_multi'])
+def col_idx_type(request):
+    # standard and multiIndex columns index, named and unnamed
+    # used for basic table alignment tests
+    return request.param
 
 
 class TestToHTML(object):
@@ -1956,37 +1996,35 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    def test_to_html_multi_indices_index_false(self, expected_html):
-        # GH 22579
-        df = _test_helper_dataframe_index_names(
-            'unnamed_multi', 'unnamed_multi')
-        result = df.to_html(index=False)
-        assert result == expected_html('index_none_columns_unnamed_multi')
+    # def test_to_html_multi_indices_index_false(self, idx_type, col_idx_type,
+    #                                            expected_html):
+    #     # GH 22579
+    #     df = DataFrame(np.zeros((2, 2), dtype=int),
+    #                    index=idx_type, columns=col_idx_type)
+    #     result = df.to_html(index=False)
+    #     assert result == expected_html('index_none_columns_unnamed_multi')
 
-    @pytest.mark.parametrize('index_names', [True, False])
     @pytest.mark.parametrize('header', [True])
-    @pytest.mark.parametrize('index', [True, False])
-    @pytest.mark.parametrize('col_idx_type', ['unnamed_standard',
-                                              'named_standard',
-                                              'unnamed_multi',
-                                              'named_multi'])
-    @pytest.mark.parametrize('idx_type', ['unnamed_standard',
-                                          'named_standard',
-                                          'unnamed_multi',
-                                          'named_multi'])
-    def test_to_html_index_names(self, expected_html, idx_type, col_idx_type,
-                                 index, header, index_names):
-        df = _test_helper_dataframe_index_names(idx_type, col_idx_type)
-
+    def test_to_html_index_names(self, expected_html,
+                                 idx_type, col_idx_type, index, header,
+                                 index_names):
+        df = DataFrame(np.zeros((2, 2), dtype=int),
+                       index=idx_type, columns=col_idx_type)
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
 
         def _expected(idx_type, index, index_names):
+            is_multi, is_named = _index_init_params(idx_type)
             if index is False:
                 return 'none'
-            if idx_type.startswith('named') and index_names is False:
-                return idx_type.replace('named', 'unnamed')
-            return idx_type
+
+            idx_type_ids = {
+                (False, False): 'unnamed_standard',
+                (True, False): 'named_standard',
+                (False, True): 'unnamed_multi',
+                (True, True): 'named_multi'}
+
+            return idx_type_ids[(is_named and index_names, is_multi)]
 
         expected = expected_html(
             '_'.join([
