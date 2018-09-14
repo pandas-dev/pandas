@@ -3,7 +3,6 @@
 import collections
 import re
 import numpy as np
-from collections import Iterable
 from numbers import Number
 from pandas import compat
 from pandas.compat import (PY2, string_types, text_type,
@@ -285,7 +284,7 @@ def is_list_like(obj):
     False
     """
 
-    return (isinstance(obj, Iterable) and
+    return (isinstance(obj, compat.Iterable) and
             # we do not count strings/unicode/bytes as list-like
             not isinstance(obj, string_and_binary_types) and
             # exclude zero-dimensional numpy arrays, effectively scalars
