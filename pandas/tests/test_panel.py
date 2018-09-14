@@ -90,6 +90,7 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('prod', np.prod, skipna_alternative=np.nanprod)
 
     @pytest.mark.filterwarnings("ignore:Invalid value:RuntimeWarning")
+    @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
     def test_median(self):
         def wrapper(x):
             if isna(x).any():
