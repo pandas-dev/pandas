@@ -36,6 +36,7 @@ else
 
 fi
 
+# Try to work around regular clipboard failures on travis
 echo pytest -s -m "clipboard" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
 pytest      -s -m "clipboard" -r xXs --strict $TEST_ARGS pandas/tests/io/test_clipboard.py
 
