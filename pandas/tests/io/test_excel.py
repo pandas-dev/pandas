@@ -611,6 +611,8 @@ class TestXlrdReader(ReadingTestsBase):
             tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
+    # ignore warning from old xlrd
+    @pytest.mark.filterwarnings("ignore:This metho:PendingDeprecationWarning")
     def test_read_from_file_url(self, ext):
 
         # FILE

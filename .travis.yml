@@ -64,7 +64,7 @@ matrix:
     # In allow_failures
     - dist: trusty
       env:
-        - JOB="3.6, NumPy dev" ENV_FILE="ci/travis-36-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
+        - JOB="3.7, NumPy dev" ENV_FILE="ci/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
       addons:
         apt:
           packages:
@@ -79,7 +79,7 @@ matrix:
           - JOB="3.6, slow" ENV_FILE="ci/travis-36-slow.yaml" SLOW=true
       - dist: trusty
         env:
-          - JOB="3.6, NumPy dev" ENV_FILE="ci/travis-36-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
+          - JOB="3.7, NumPy dev" ENV_FILE="ci/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
         addons:
           apt:
             packages:
