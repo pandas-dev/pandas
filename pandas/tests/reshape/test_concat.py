@@ -904,7 +904,7 @@ class TestAppend(ConcatenateBase):
         ser_index = index[:2]
         ser = pd.Series([7, 8], index=ser_index, name=2)
         result = df.append(ser)
-        expected = pd.DataFrame([[1., 2., 3.], [4, 5, 6], [7, 8, np.nan]],
+        expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, np.nan]],
                                 index=[0, 1, 2],
                                 columns=index)
         assert_frame_equal(result, expected)
@@ -1009,21 +1009,22 @@ class TestAppend(ConcatenateBase):
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
 
-    def test_append_series_no_unecessary_upcast(self):
+    def test_append_series_no_unecessary_upcast(self, sort):
         # case 1
         # append to DataFrame with no rows
         # columns from the Series should preserve the Series dtype
 
         df = pd.DataFrame()
         series = pd.Series([1, 2, 3], name=0)
-        result = df.append(series)
+        result = df.append(series, sort=sort)
         expected = pd.DataFrame([[1, 2, 3]])
         assert_frame_equal(result, expected)
 
         df = pd.DataFrame(columns=[0])
         series = pd.Series([1, 2, 3], index=[1, 2, 3], name=0)
-        result = df.append(series)
+        result = df.append(series, sort=sort)
         expected = pd.DataFrame([[np.nan, 1, 2, 3]], columns=[0, 1, 2, 3])
+        expected[0] = expected[0].astype(object)  # original dtype of df
         assert_frame_equal(result, expected)
 
         # case 2
@@ -1032,7 +1033,7 @@ class TestAppend(ConcatenateBase):
 
         df = pd.DataFrame([[1, 2, 3, 4]])
         series = pd.Series([1, 2, 3], name=1)
-        result = df.append(series)
+        result = df.append(series, sort=sort)
         expected = pd.DataFrame([[1, 2, 3, 4.], [1, 2, 3, np.nan]])
         assert_frame_equal(result, expected)
 
