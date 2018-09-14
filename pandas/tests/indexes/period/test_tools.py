@@ -220,9 +220,6 @@ class TestPeriodIndex(object):
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             pidx.searchsorted(pd.Period('2014-01-01', freq='5D'))
 
-        with tm.assert_produces_warning(FutureWarning):
-            pidx.searchsorted(key=p2)
-
 
 class TestPeriodIndexConversion(object):
     def test_tolist(self):

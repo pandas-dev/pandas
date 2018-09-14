@@ -369,7 +369,7 @@ In practice this becomes very cumbersome because we often need a very long
 index with a large number of timestamps. If we need timestamps on a regular
 frequency, we can use the :func:`date_range` and :func:`bdate_range` functions
 to create a ``DatetimeIndex``. The default frequency for ``date_range`` is a
-**calendar day** while the default for ``bdate_range`` is a **business day**:
+**day** while the default for ``bdate_range`` is a **business day**:
 
 .. ipython:: python
 
@@ -886,6 +886,27 @@ normalized after the function is applied.
    hour.apply(pd.Timestamp('2014-01-01 23:00'))
 
 
+.. _timeseries.dayvscalendarday:
+
+Day vs. CalendarDay
+~~~~~~~~~~~~~~~~~~~
+
+:class:`Day` (``'D'``) is a timedelta-like offset that respects absolute time
+arithmetic and is an alias for 24 :class:`Hour`. This offset is the default
+argument to many pandas time related function like :func:`date_range` and :func:`timedelta_range`.
+
+:class:`CalendarDay` (``'CD'``) is a relativedelta-like offset that respects
+calendar time arithmetic. :class:`CalendarDay` is useful preserving calendar day
+semantics with date times with have day light savings transitions, i.e. :class:`CalendarDay`
+will preserve the hour before the day light savings transition.
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
+
+
 Parametric Offsets
 ~~~~~~~~~~~~~~~~~~
 
@@ -1176,7 +1197,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
     "B", "business day frequency"
     "C", "custom business day frequency"
-    "D", "calendar day frequency"
+    "D", "day frequency"
+    "CD", "calendar day frequency"
     "W", "weekly frequency"
     "M", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
@@ -2228,7 +2250,7 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
    didx.tz_convert(None)
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
-   didx.tz_convert('UCT').tz_localize(None)
+   didx.tz_convert('UTC').tz_localize(None)
 
 .. _timeseries.timezone_ambiguous:
 
