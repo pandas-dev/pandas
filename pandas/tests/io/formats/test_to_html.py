@@ -33,6 +33,16 @@ def read_file(datapath):
     return _read_file
 
 
+@pytest.fixture
+def expected_html(read_file):
+
+    def _expected_html(name):
+        filename = '.'.join([name, 'html'])
+        html = read_file(filename)
+        return html.rstrip()
+    return _expected_html
+
+
 def _test_helper_dataframe_index_names(idx_type, col_idx_type):
     df = DataFrame(np.zeros((2, 2), dtype=int))
 
@@ -2508,20 +2518,6 @@ class TestToHTML(object):
         assert result == dedent(
             _EXPECTED_BASIC_ALIGNMENT['index_none_columns_unnamed_multi'])
 
-    @pytest.mark.parametrize(
-        'idx_type, col_idx_type, index, header, index_names',
-        [('named_standard', 'named_standard', True, True, True)])
-    def test_to_html_WIP(self, read_file, idx_type, col_idx_type, index,
-                         header, index_names):
-        df = _test_helper_dataframe_index_names(idx_type, col_idx_type)
-        result = df.to_html(index=index, header=header,
-                            index_names=index_names)
-
-        expected = read_file(
-            'index_named_standard_columns_named_standard.html')
-
-        assert result == expected
-
     @pytest.mark.parametrize('index_names', [True, False])
     @pytest.mark.parametrize('header', [True])
     @pytest.mark.parametrize('index', [True, False])
@@ -2533,9 +2529,10 @@ class TestToHTML(object):
                                           'named_standard',
                                           'unnamed_multi',
                                           'named_multi'])
-    def test_to_html_index_names(self, idx_type, col_idx_type, index, header,
-                                 index_names):
+    def test_to_html_index_names(self, expected_html, idx_type, col_idx_type,
+                                 index, header, index_names):
         df = _test_helper_dataframe_index_names(idx_type, col_idx_type)
+
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
 
@@ -2546,12 +2543,16 @@ class TestToHTML(object):
                 return idx_type.replace('named', 'unnamed')
             return idx_type
 
-        expected = _EXPECTED_BASIC_ALIGNMENT[
-            'index_' + _expected(idx_type, index, index_names) +
-            '_columns_' + _expected(col_idx_type, header, index_names)
-        ]
+        expected = expected_html(
+            '_'.join([
+                'index',
+                _expected(idx_type, index, index_names),
+                'columns',
+                _expected(col_idx_type, header, index_names)
+            ])
+        )
 
-        assert result == dedent(expected)
+        assert result == expected
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
