@@ -6338,45 +6338,59 @@ class DataFrame(NDFrame):
         3  3
         4  4
         """
-        if isinstance(other, (Series, dict)):
-            if isinstance(other, dict):
-                other = Series(other)
-            if other.name is None and not ignore_index:
-                raise TypeError('Can only append a Series if ignore_index=True'
-                                ' or if the Series has a name')
+        kwargs = {
+            'ignore_index': ignore_index,
+            'verify_integrity': verify_integrity,
+            'sort': sort,
+        }
 
-            if other.name is None:
-                index = None
-            else:
-                # other must have the same index name as self, otherwise
-                # index name will be reset
-                index = Index([other.name], name=self.index.name)
-
-            idx_diff = other.index.difference(self.columns)
+        obj_type = type(other)
+        if issubclass(obj_type, dict):
+            return self._append_dict(other, **kwargs)
+        elif issubclass(obj_type, Series):
+            return self._append_series(other, **kwargs)
+        elif issubclass(obj_type, DataFrame):
+            return self._append_frame(other, **kwargs)
+        elif issubclass(obj_type, list):
             try:
-                combined_columns = self.columns.append(idx_diff)
-            except TypeError:
-                combined_columns = self.columns.astype(object).append(idx_diff)
-            other = other.reindex(combined_columns, copy=False)
-            other = DataFrame(other.values.reshape((1, len(other))),
-                              index=index,
-                              columns=combined_columns)
-            other = other._convert(datetime=True, timedelta=True)
-            if not self.columns.equals(combined_columns):
-                self = self.reindex(columns=combined_columns)
-        elif isinstance(other, list) and not isinstance(other[0], DataFrame):
-            other = DataFrame(other)
-            if (self.columns.get_indexer(other.columns) >= 0).all():
-                other = other.loc[:, self.columns]
+                item_type = type(other[0])
+            except IndexError:  # empty list!
+                return self._append_list_of_frames(other, **kwargs)
 
-        from pandas.core.reshape.concat import concat
-        if isinstance(other, (list, tuple)):
-            to_concat = [self] + other
+            if issubclass(item_type, dict):
+                return self._append_list_of_dicts(other, **kwargs)
+            elif issubclass(item_type, Series):
+                return self._append_list_of_series(other, **kwargs)
+            elif issubclass(item_type, DataFrame):
+                return self._append_list_of_frames(other, **kwargs)
+            else:
+                raise TypeError  # TODO
         else:
-            to_concat = [self, other]
-        return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=verify_integrity,
-                      sort=sort)
+            raise TypeError  # TODO
+
+    def _append_dict(self, other, *args, **kwargs):
+        return self._append_list_of_dicts(Series(other), *args, **kwargs)
+
+    def _append_series(self, other, *args, **kwargs):
+        return self._append_list_of_series([other], *args, **kwargs)
+
+    def _append_frame(self, other, *args, **kwargs):
+        return self._append_list_of_frames([other], *args, **kwargs)
+
+    def _append_list_of_dicts(self, other, *args, **kwargs):
+        return self._append_frame(DataFrame(other), *args, **kwargs)
+
+    def _append_list_of_series(self, other, *args, **kwargs):
+        return self._append_frame(DataFrame(other), *args, **kwargs)
+
+    def _append_list_of_frames(self, other, *args, **kwargs):
+        from pandas.core.reshape.concat import concat
+        to_concat = [self] + other
+        return concat(to_concat, **kwargs)
+        # return concat(to_concat, ignore_index=ignore_index,
+        #               verify_integrity=verify_integrity,
+        #               sort=sort)
+        # TODO: ignore bad arguments
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
