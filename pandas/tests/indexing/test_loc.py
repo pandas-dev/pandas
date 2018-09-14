@@ -3,7 +3,7 @@
 import itertools
 import pytest
 
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings
 import numpy as np
 
 import pandas as pd
@@ -699,6 +699,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == 'index_name'
 
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", FutureWarning)
             result = df.ix[[0, 1]].index.name
         assert result == 'index_name'
 
