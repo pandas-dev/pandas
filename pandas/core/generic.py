@@ -2510,75 +2510,54 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    ('lion',   'mammal', 80.5, 4),
         ...                    ('monkey', 'mammal', np.nan, 4)],
         ...                    columns=['name', 'class', 'max_speed',
-        ...                     'num_legs'],
-        ...                    index=[0, 2, 3, 1])
+        ...                             'num_legs'])
         >>> df
-                     name   class  max_speed  num_legs
+             name   class  max_speed  num_legs
         0  falcon    bird      389.0         2
-        2  parrot    bird       24.0         2
-        3    lion  mammal       80.5         4
-        1  monkey  mammal        NaN         4
+        1  parrot    bird       24.0         2
+        2    lion  mammal       80.5         4
+        3  monkey  mammal        NaN         4
 
         >>> df.to_xarray()
         <xarray.Dataset>
         Dimensions:    (index: 4)
         Coordinates:
-          * index      (index) int64 0 2 3 1
+          * index      (index) int64 0 1 2 3
         Data variables:
             name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
             class      (index) object 'bird' 'bird' 'mammal' 'mammal'
             max_speed  (index) float64 389.0 24.0 80.5 nan
             num_legs   (index) int64 2 2 4 4
 
-        >>> df_multiindex = df.set_index(['class', 'name'])
+        >>> df['max_speed'].to_xarray()
+        <xarray.DataArray 'max_speed' (index: 4)>
+        array([389. ,  24. ,  80.5,   nan])
+        Coordinates:
+          * index    (index) int64 0 1 2 3
+
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-01',
+        ...                         '2018-01-02', '2018-01-02'])
+        >>> df_multiindex = pd.DataFrame({'date': dates,
+        ...                    'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
+        ...                                                    'animal'])
         >>> df_multiindex
-                       max_speed  num_legs
-        class  name
-        bird   falcon      389.0         2
-               parrot       24.0         2
-        mammal lion         80.5         4
-               monkey        NaN         4
+                           speed
+        date       animal
+        2018-01-01 falcon    350
+                   parrot     18
+        2018-01-02 falcon    361
+                   parrot     15
 
         >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:    (class: 2, name: 4)
+        Dimensions:  (animal: 2, date: 2)
         Coordinates:
-          * class      (class) object 'bird' 'mammal'
-          * name       (name) object 'falcon' 'lion' 'monkey' 'parrot'
+          * date     (date) datetime64[ns] 2018-01-01 2018-01-02
+          * animal   (animal) object 'falcon' 'parrot'
         Data variables:
-            max_speed  (class, name) float64 389.0 nan nan 24.0 nan 80.5 nan nan
-            num_legs   (class, name) float64 2.0 nan nan 2.0 nan 4.0 4.0 nan
-
-        >>> index = pd.MultiIndex(levels=[[pd.to_datetime("2018-01-01"),
-        ... pd.to_datetime("2015-05-23"), pd.to_datetime("2015-06-06"),
-        ... pd.to_datetime("2011-02-13"), pd.to_datetime("2014-07-06")],
-        ...    ['one', 'two']],
-        ...   labels=[[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]],
-        ...   names=['first', 'second'])
-
-        >>> s = pd.Series(np.arange(8), index=index)
-        >>> s
-        first       second
-        2018-01-01  one       0
-                    two       1
-        2015-05-23  one       2
-                    two       3
-        2015-06-06  one       4
-                    two       5
-        2011-02-13  one       6
-                    two       7
-        dtype: int64
-
-        >>> s.to_xarray()
-        <xarray.DataArray (first: 5, second: 2)>
-        array([[ 0.,  1.],
-               [ 2.,  3.],
-               [ 4.,  5.],
-               [ 6.,  7.],
-               [nan, nan]])
-        Coordinates:
-          * first    (first) datetime64[ns] 2018-01-01 2015-05-23 2015-06-06 ...
-          * second   (second) object 'one' 'two'
+            speed    (date, animal) int64 350 18 361 15
 
         Notes
         -----
