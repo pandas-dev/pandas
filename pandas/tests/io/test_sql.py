@@ -1363,19 +1363,20 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = sql.read_sql_table("types_test_data", self.conn)
         check(df.DateColWithTz)
 
-    def test_datetime_with_timezone_writing(self):
+    def test_datetime_with_timezone_roundtrip(self):
         # GH 9086
-        if self.flavor != 'postgresql':
-            msg = "{} does not support datetime with time zone"
-            pytest.skip(msg.format(self.flavor))
-
-        df = DataFrame({'A': date_range(
+        # Write datetimetz data to a db and read it back
+        # For dbs that support timestamps with timezones, should get back UTC
+        # otherwise naive data should be returned
+        expected = DataFrame({'A': date_range(
             '2013-01-01 09:00:00', periods=3, tz='US/Pacific'
         )})
-        df.to_sql('test_datetime_tz', self.conn)
+        expected.to_sql('test_datetime_tz', self.conn)
 
-        expected = df.copy()
-        expected['A'] = expected['A'].dt.tz_convert('UTC')
+        if self.flavor == 'postgresql':
+            expected['A'] = expected['A'].dt.tz_convert('UTC')
+        else:
+            expected['A'] = expected['A'].dt.tz_convert(None)
 
         result = sql.read_sql_table('test_datetime_tz', self.conn)
         result = result.drop('index', axis=1)
@@ -1389,6 +1390,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_date_parsing(self):
         # No Parsing
+        df = sql.read_sql_table("types_test_data", self.conn)
+        expected_type = object if self.flavor == 'sqlite' else np.datetime64
+        assert issubclass(df.DateCol.dtype.type, expected_type)
 
         df = sql.read_sql_table("types_test_data", self.conn,
                                 parse_dates=['DateCol'])
