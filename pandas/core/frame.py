@@ -6369,9 +6369,11 @@ class DataFrame(NDFrame):
             raise TypeError  # TODO
 
     def _append_dict(self, other, *args, **kwargs):
+        kwargs['nosort_flag'] = True
         return self._append_list_of_dicts(Series(other), *args, **kwargs)
 
     def _append_series(self, other, *args, **kwargs):
+        kwargs['nosort_flag'] = True
         return self._append_list_of_series([other], *args, **kwargs)
 
     def _append_frame(self, other, *args, **kwargs):
@@ -6384,13 +6386,40 @@ class DataFrame(NDFrame):
         return self._append_frame(DataFrame(other), *args, **kwargs)
 
     def _append_list_of_frames(self, other, *args, **kwargs):
+        ignore_index = kwargs['ignore_index']
+        verify_integrity = kwargs['verify_integrity']
+        sort = kwargs['sort']
+        nosort_flag = kwargs.get('nosort_flag', False)  # do not sort if sort is None
+
+        import pandas.core.common as com
         from pandas.core.reshape.concat import concat
+
         to_concat = [self] + other
-        return concat(to_concat, **kwargs)
-        # return concat(to_concat, ignore_index=ignore_index,
-        #               verify_integrity=verify_integrity,
-        #               sort=sort)
-        # TODO: ignore bad arguments
+        result = concat(to_concat, ignore_index=ignore_index,
+                        verify_integrity=verify_integrity, sort=sort)
+
+        if sort is None:
+            # The sorting behaviour for None was weird.
+            # It is getting deprecated.
+            #
+            # By now, fix tests by only sorting when the
+            # original 'other' was a series or a dict.
+            sort = not nosort_flag
+
+        if not sort:
+            # Concat sorts the column indexes if they are 'special'.
+            # We don't want this behaviour if sort is False.
+            result_idx = self.columns
+            for frame in other:
+                column_idx = frame.columns
+                idx_diff = column_idx.difference(result_idx)
+                try:
+                    result_idx = result_idx.append(idx_diff)
+                except TypeError:
+                    result_idx = result_idx.astype(object).append(idx_diff)
+            result = result.reindex(columns=result_idx, copy=False)
+
+        return result
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
