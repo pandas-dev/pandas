@@ -271,7 +271,7 @@ cdef class Interval(IntervalMixin):
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(self, other, op: int):
         if hasattr(other, 'ndim'):
             # let numpy (or IntervalIndex) handle vectorization
             return NotImplemented

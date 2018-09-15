@@ -71,12 +71,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
-        try:
+        with pytest.raises(KeyError):
             df[['baf']]
-        except KeyError:
-            pass
-        else:
-            self.fail("Dataframe failed to raise KeyError")
 
     def test_get(self):
         b = self.frame.get('B')
