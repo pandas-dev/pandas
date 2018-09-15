@@ -1379,7 +1379,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         else:
             # Otherwise, timestamps are returned as local, naive
             expected['A'] = expected['A'].dt.tz_localize(None)
-            if self.flavor = 'sqlite':
+            if self.flavor == 'sqlite':
                 # sqlite doesn't support date types
                 expected['A'] = expected['A'].astype(object)
 
