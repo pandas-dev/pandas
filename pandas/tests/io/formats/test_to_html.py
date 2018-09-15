@@ -2024,13 +2024,15 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    # def test_to_html_multi_indices_index_false(self, idx_type, col_idx_type,
-    #                                            expected_html):
-    #     # GH 22579
-    #     df = DataFrame(np.zeros((2, 2), dtype=int),
-    #                    index=idx_type, columns=col_idx_type)
-    #     result = df.to_html(index=False)
-    #     assert result == expected_html('index_none_columns_unnamed_multi')
+    def test_to_html_multi_indexes_index_false(self, expected_html):
+        # GH 22579
+        df = pd.DataFrame({'a': range(10), 'b': range(
+            10, 20), 'c': range(10, 20), 'd': range(10, 20)})
+        df.columns = pd.MultiIndex.from_product([['a', 'b'], ['c', 'd']])
+        df.index = pd.MultiIndex.from_product(
+            [['a', 'b'], ['c', 'd', 'e', 'f', 'g']])
+        result = df.to_html(index=False)
+        assert result == expected_html('gh22579_expected_output')
 
     # @pytest.mark.parametrize('header', [False])
     # def test_to_html_index_names(self, expected_output,
