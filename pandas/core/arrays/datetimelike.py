@@ -40,6 +40,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from .base import ExtensionOpsMixin
 from pandas.util._decorators import deprecate_kwarg
 
+
 def _make_comparison_op(op, cls):
     # TODO: share code with indexes.base version?  Main difference is that
     # the block for MultiIndex was removed here.
