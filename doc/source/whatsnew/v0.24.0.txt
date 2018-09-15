@@ -185,6 +185,7 @@ Other Enhancements
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
+- :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 
 .. _whatsnew_0240.api_breaking:
 
@@ -544,6 +545,7 @@ Other API Changes
 - :class:`Index` subtraction will attempt to operate element-wise instead of raising ``TypeError`` (:issue:`19369`)
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
+- :meth:`shift` will now always return a copy, instead of the previous behaviour of returning self when shifting by 0 (:issue:`22397`)
 
 .. _whatsnew_0240.deprecations:
 
@@ -559,6 +561,7 @@ Deprecations
 - :func:`pandas.read_table` is deprecated. Instead, use :func:`pandas.read_csv` passing ``sep='\t'`` if necessary (:issue:`21948`)
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
+- :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -739,7 +742,7 @@ I/O
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 - :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
--
+- :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
 
 Plotting
 ^^^^^^^^

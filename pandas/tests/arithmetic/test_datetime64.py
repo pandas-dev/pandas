@@ -1764,6 +1764,7 @@ def test_dt64_with_DateOffsets_relativedelta(klass):
     'MonthBegin', 'MonthEnd',
     'SemiMonthEnd', 'SemiMonthBegin',
     'Week', ('Week', {'weekday': 3}),
+    'Week', ('Week', {'weekday': 6}),
     'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
     'CustomBusinessDay', 'CDay', 'CBMonthEnd',
     'CBMonthBegin', 'BMonthBegin', 'BMonthEnd',
