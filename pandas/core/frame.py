@@ -6419,6 +6419,20 @@ class DataFrame(NDFrame):
                     result_idx = result_idx.astype(object).append(idx_diff)
             result = result.reindex(columns=result_idx, copy=False)
 
+        if result.shape[0] == 1:
+            # If we got only one row of result, this means that
+            # the resulting dtypes can match the dframe where
+            # they come from.
+            #
+            # Concat achieves this behaviour when concatenating
+            # an empty DataFrame, but not if it has some columns.
+            #
+            # This is a hack for retrieving the dtypes back.
+            base_frame = [frame for frame in to_concat if frame.shape[0] == 1][0]
+            base_columns = base_frame.columns
+            base_dtypes = base_frame.dtypes
+            result[base_columns] = result[base_columns].astype(base_dtypes)
+
         return result
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
