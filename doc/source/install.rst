@@ -270,7 +270,7 @@ Optional Dependencies
 * For Excel I/O:
 
     * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-    * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+    * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
       for writing .xlsx files (xlrd >= 0.9.0)
     * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
 
