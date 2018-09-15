@@ -149,15 +149,15 @@ class TestClipboard(object):
     # delimited and excel="True"
     @pytest.mark.parametrize('sep', ['\t', None, 'default'])
     @pytest.mark.parametrize('excel', [True, None, 'default'])
-    def test_clipboard_copy_tabs_default(self, sep, excel, df):
+    def test_clipboard_copy_tabs_default(self, sep, excel, df, request):
         kwargs = build_kwargs(sep, excel)
         df.to_clipboard(**kwargs)
         if PY2:
             # to_clipboard copies unicode, to_csv produces bytes. This is
             # expected behavior
-            assert clipboard_get().encode('utf-8') == df.to_csv(sep='\t')
+            assert _mock_data[request.node.name].encode('utf-8') == df.to_csv(sep='\t')
         else:
-            assert clipboard_get() == df.to_csv(sep='\t')
+            assert _mock_data[request.node.name] == df.to_csv(sep='\t')
 
     # Tests reading of white space separated tables
     @pytest.mark.parametrize('sep', [None, 'default'])
@@ -169,7 +169,7 @@ class TestClipboard(object):
         assert result.to_string() == df.to_string()
         assert df.shape == result.shape
 
-    def test_read_clipboard_infer_excel(self):
+    def test_read_clipboard_infer_excel(self, request):
         # gh-19010: avoid warnings
         clip_kwargs = dict(engine="python")
 
@@ -178,7 +178,7 @@ class TestClipboard(object):
             1	2
             4	Harry Carney
             """.strip())
-        clipboard_set(text)
+        _mock_data[request.node.name] = text
         df = pd.read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
@@ -190,7 +190,7 @@ class TestClipboard(object):
             1  2
             3  4
             """.strip())
-        clipboard_set(text)
+        _mock_data[request.node.name] = text
         res = pd.read_clipboard(**clip_kwargs)
 
         text = dedent("""
@@ -198,7 +198,7 @@ class TestClipboard(object):
             1  2
             3  4
             """.strip())
-        clipboard_set(text)
+        _mock_data[request.node.name] = text
         exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
