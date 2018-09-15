@@ -528,7 +528,7 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
-- :func:`shift` now accepts ``periods`` argument instead of ``n`` for consistency with `Index.shift` (:issue:`22458`)
+- :func:`shift` now accepts ``periods`` argument instead of ``n`` for consistency with `Index.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
 
 .. _whatsnew_0240.api.other:
 

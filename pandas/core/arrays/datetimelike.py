@@ -547,9 +547,10 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         --------
         Index.shift : Shift values of Index.
         """
+        # GH #22458 :
         if 'n' in kwargs.keys():
             warnings.warn("n argument is deprecated, use periods instead. ",
-            DeprecationWarning)
+                          DeprecationWarning, stacklevel=2)
             periods = kwargs['n']
         elif 'periods' in kwargs.keys():
             periods = kwargs['periods']
@@ -559,16 +560,16 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             freq = None
         else:
             freq = kwargs['freq']
-        if freq is not None and freq != self.freq:
-            if isinstance(freq, compat.string_types):
-                freq = frequencies.to_offset(freq)
-            offset = periods * freq
-            result = self + offset
+            if freq is not None and freq != self.freq:
+                if isinstance(freq, compat.string_types):
+                    freq = frequencies.to_offset(freq)
+                offset = periods * freq
+                result = self + offset
 
-            if hasattr(self, 'tz'):
-                result._tz = self.tz
+                if hasattr(self, 'tz'):
+                    result._tz = self.tz
 
-            return result
+                return result
 
         if periods == 0:
             # immutable so OK
