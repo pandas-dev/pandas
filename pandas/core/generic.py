@@ -8282,7 +8282,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
         if periods == 0:
-            return self
+            return self.copy()
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:
