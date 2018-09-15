@@ -765,10 +765,9 @@ A,B,C
             result = self.read_table(buf, encoding='utf-16')
             assert len(result) == 50
 
-    def test_unicode_encoding(self, datapath):
-        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
-
-        result = self.read_csv(pth, header=None, encoding='latin-1')
+    def test_unicode_encoding(self, unicode_series_file):
+        result = self.read_csv(unicode_series_file,
+                               header=None, encoding='latin-1')
         result = result.set_index(0)
 
         got = result[1][1632]

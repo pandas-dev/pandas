@@ -15,6 +15,12 @@ def jsonl_file(datapath):
 
 
 @pytest.fixture
+def unicode_series_file(datapath):
+    """Path to unicode_series dataset"""
+    return datapath('io', 'data', 'unicode_series.csv')
+
+
+@pytest.fixture
 def salaries_table(datapath):
     """DataFrame with the salaries dataset"""
     return read_csv(datapath('io', 'parser', 'data', 'salaries.csv'), sep='\t')

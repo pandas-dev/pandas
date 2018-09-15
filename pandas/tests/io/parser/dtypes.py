@@ -125,13 +125,14 @@ one,two
             np.sort(actual.a.cat.categories), ordered=True)
         tm.assert_frame_equal(actual, expected)
 
-    def test_categorical_dtype_encoding(self, datapath):
+    def test_categorical_dtype_encoding(self, datapath, unicode_series_file):
         # GH 10153
-        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
         encoding = 'latin-1'
-        expected = self.read_csv(pth, header=None, encoding=encoding)
+        expected = self.read_csv(unicode_series_file,
+                                 header=None, encoding=encoding)
         expected[1] = Categorical(expected[1])
-        actual = self.read_csv(pth, header=None, encoding=encoding,
+        actual = self.read_csv(unicode_series_file,
+                               header=None, encoding=encoding,
                                dtype={1: 'category'})
         tm.assert_frame_equal(actual, expected)
 
