@@ -38,7 +38,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 from .base import ExtensionOpsMixin
-
+from pandas.util._decorators import deprecate_kwarg
 
 def _make_comparison_op(op, cls):
     # TODO: share code with indexes.base version?  Main difference is that
@@ -521,7 +521,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             kwargs['freq'] = 'infer'
         return type(self)(res_values, **kwargs)
 
-    def shift(self, *args, **kwargs):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods, freq=None):
         """
         Shift index by desired number of time frequency increments.
 
@@ -547,29 +548,14 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         --------
         Index.shift : Shift values of Index.
         """
-        # GH #22458 :
-        if 'n' in kwargs.keys():
-            warnings.warn("n argument is deprecated, use periods instead. ",
-                          DeprecationWarning, stacklevel=2)
-            periods = kwargs['n']
-        elif 'periods' in kwargs.keys():
-            periods = kwargs['periods']
-        elif 'periods' not in kwargs.keys() and len(args) != 0:
-            periods = args[0]
-        if 'freq' not in kwargs.keys():
-            freq = None
-        else:
-            freq = kwargs['freq']
-            if freq is not None and freq != self.freq:
-                if isinstance(freq, compat.string_types):
-                    freq = frequencies.to_offset(freq)
-                offset = periods * freq
-                result = self + offset
-
-                if hasattr(self, 'tz'):
-                    result._tz = self.tz
-
-                return result
+        if freq is not None and freq != self.freq:
+            if isinstance(freq, compat.string_types):
+                freq = frequencies.to_offset(freq)
+            offset = periods * freq
+            result = self + offset
+            if hasattr(self, 'tz'):
+                result._tz = self.tz
+            return result
 
         if periods == 0:
             # immutable so OK

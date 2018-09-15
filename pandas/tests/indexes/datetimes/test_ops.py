@@ -546,7 +546,7 @@ class TestCustomDatetimeIndex(object):
                                periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
-        with tm.assert_produces_warning(DeprecationWarning, 
+        with tm.assert_produces_warning(FutureWarning, 
                                         check_stacklevel=False):
             tm.assert_index_equal(idx.shift(n=0), idx)
 
