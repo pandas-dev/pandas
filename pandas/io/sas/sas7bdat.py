@@ -614,7 +614,7 @@ class SAS7BDATReader(BaseIterator):
         ns = (self.column_types == b's').sum()
 
         self._string_chunk = np.empty((ns, nrows), dtype=np.object)
-        self._byte_chunk = np.empty((nd, 8 * nrows), dtype=np.uint8)
+        self._byte_chunk = np.zeros((nd, 8 * nrows), dtype=np.uint8)
 
         self._current_row_in_chunk_index = 0
         p = Parser(self)
