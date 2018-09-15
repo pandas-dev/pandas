@@ -6380,9 +6380,15 @@ class DataFrame(NDFrame):
         return self._append_list_of_frames([other], *args, **kwargs)
 
     def _append_list_of_dicts(self, other, *args, **kwargs):
+        if not kwargs['ignore_index']:
+            raise TypeError('Can only append a dict if ignore_index=True')
         return self._append_frame(DataFrame(other), *args, **kwargs)
 
     def _append_list_of_series(self, other, *args, **kwargs):
+        if not kwargs['ignore_index']:
+            if any(series.name is None for series in other):
+                raise TypeError('Can only append a Series if ignore_index=True'
+                                'or if the Series has a name')
         return self._append_frame(DataFrame(other), *args, **kwargs)
 
     def _append_list_of_frames(self, other, *args, **kwargs):
