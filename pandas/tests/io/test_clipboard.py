@@ -76,11 +76,41 @@ def df(request):
         raise ValueError
 
 
-@pytest.mark.clipboard
+# our local clipboard for tests
+_mock_data = {}
+
+
+@pytest.fixture
+def mock_clipboard(mock, request):
+    def _mock_set(data):
+        _mock_data[request.node.name] = data
+
+    def _mock_get():
+        return _mock_data[request.node.name]
+
+    mock_set = mock.patch("pandas.io.clipboard.clipboard_set",
+                          side_effect=_mock_set)
+    mock_get = mock.patch("pandas.io.clipboard.clipboard_get",
+                          side_effect=_mock_get)
+    with mock_get, mock_set:
+        yield
+
+
 @pytest.mark.single
+@pytest.mark.clipboard
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
+@pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard(object):
+
+    @pytest.mark.clipboard
+    def test_mock_clipboard(self):
+        import pandas.io.clipboard
+        pandas.io.clipboard.clipboard_set("abc")
+        assert "abc" in set(_mock_data.values())
+        result = pandas.io.clipboard.clipboard_get()
+        assert result == "abc"
+
     def check_round_trip_frame(self, data, excel=None, sep=None,
                                encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
