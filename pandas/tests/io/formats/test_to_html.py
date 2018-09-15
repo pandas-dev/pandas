@@ -36,16 +36,6 @@ def _index_init_params(index):
 
 
 @pytest.fixture
-def read_file(datapath):
-    def _read_file(filename):
-        filepath = datapath('io', 'formats', 'data', filename)
-        with open(filepath) as f:
-            contents = f.read()
-        return contents
-    return _read_file
-
-
-@pytest.fixture
 def expected_html(read_file):
     def _expected_html(name):
         filename = '.'.join([name, 'html'])
