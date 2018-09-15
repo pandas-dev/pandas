@@ -559,7 +559,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
 
         if periods == 0:
             # immutable so OK
-            return self
+            return self.copy()
 
         if self.freq is None:
             raise NullFrequencyError("Cannot shift with no freq")
