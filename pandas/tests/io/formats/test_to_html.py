@@ -13,7 +13,6 @@ from pandas.compat import u, lrange, StringIO
 from pandas.util import testing as tm
 import pandas.io.formats.format as fmt
 import pandas.core.common as com
-from pandas.core.dtypes.generic import ABCMultiIndex
 
 div_style = ''
 try:
@@ -25,14 +24,14 @@ except (ImportError, AttributeError):
 
 
 def _has_names(index):
-    if isinstance(index, ABCMultiIndex):
+    if index.nlevels > 1:
         return com._any_not_none(*index.names)
     else:
         return index.name is not None
 
 
 def _index_init_params(index):
-    return (isinstance(index, ABCMultiIndex),
+    return (index.nlevels > 1,
             _has_names(index))
 
 
@@ -2034,41 +2033,17 @@ class TestToHTML(object):
         result = df.to_html(index=False)
         assert result == expected_html('gh22579_expected_output')
 
-    # @pytest.mark.parametrize('header', [False])
-    # def test_to_html_index_names(self, expected_output,
-    #                              idx_type, col_idx_type, index, header,
-    #                              index_names):
-    #     df = DataFrame(np.zeros((2, 2), dtype=int),
-    #                    index=idx_type, columns=col_idx_type)
-    #     result = df.to_html(index=index, header=header,
-    #                         index_names=index_names)
-    #     assert result == expected_output(idx_type, col_idx_type,
-    #                                      index=index, header=header,
-    #                                      index_names=index_names)
-
-    def test_to_html_index_names_with_defaults(self, expected_output,
-                                               idx_type, col_idx_type):
+    @pytest.mark.parametrize('header', [True])
+    def test_to_html_index_names(self, expected_output,
+                                 idx_type, col_idx_type, index, header,
+                                 index_names):
         df = DataFrame(np.zeros((2, 2), dtype=int),
                        index=idx_type, columns=col_idx_type)
-        result = df.to_html()
-        assert result == expected_output(idx_type, col_idx_type)
-
-    def test_to_html_index_names_false(self, expected_output,
-                                       idx_type, col_idx_type):
-        df = DataFrame(np.zeros((2, 2), dtype=int),
-                       index=idx_type, columns=col_idx_type)
-        result = df.to_html(index_names=False)
-        assert result == expected_output(
-            idx_type, col_idx_type, index_names=False)
-
-    def test_to_html_index_names_index_false(self, expected_output,
-                                             idx_type, col_idx_type,
-                                             index_names):
-        df = DataFrame(np.zeros((2, 2), dtype=int),
-                       index=idx_type, columns=col_idx_type)
-        result = df.to_html(index=False, index_names=index_names)
+        result = df.to_html(index=index, header=header,
+                            index_names=index_names)
         assert result == expected_output(idx_type, col_idx_type,
-                                         index=False, index_names=index_names)
+                                         index=index, header=header,
+                                         index_names=index_names)
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
