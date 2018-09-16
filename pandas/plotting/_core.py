@@ -3589,13 +3589,17 @@ class FramePlotMethods(BasePlotMethods):
         s : int, str, scalar or array_like, optional
             The size of each point. Possible values are:
 
-            - The column name to be used as bubble size for each point.
-
             - A single scalar so all points have the same size.
 
             - A sequence of scalars, which will be used for each point's size
               recursively. For instance, when passing [2,14] all points size
               will be either 2 or 14, alternatively.
+
+            - .. versionadded:: 0.24.0
+                s can now be the name of a column containing numeric or
+                ordered categorical data that will be represented by the size
+                of each point. This turns the scatter plot into a bubble plot.
+
 
         c : str, int or array_like, optional
             The color of each point. Possible values are:
@@ -3613,6 +3617,9 @@ class FramePlotMethods(BasePlotMethods):
 
         size_factor : scalar, optional
             A multiplication factor to change the size of bubbles
+
+            .. versionadded:: 0.24.0
+
 
         **kwds
             Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
