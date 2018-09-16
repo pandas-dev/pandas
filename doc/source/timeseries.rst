@@ -119,7 +119,7 @@ data when the time data is used as data itself. The ``Period`` and ``DateOffset`
    pd.Series(pd.date_range('1/1/2011', freq='M', periods=3))
 
 Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
-useful for representing missing or null date like values and behaves similar
+is useful for representing missing or null date like values and behaves similar
 as ``np.nan`` does for float data.
 
 .. ipython:: python
