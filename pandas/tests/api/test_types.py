@@ -2,7 +2,6 @@
 import sys
 import pytest
 
-import pandas
 from pandas.api import types
 from pandas.util import testing as tm
 
