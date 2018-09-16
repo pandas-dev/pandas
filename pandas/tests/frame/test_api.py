@@ -24,8 +24,6 @@ from pandas.util.testing import (assert_almost_equal,
 
 import pandas.util.testing as tm
 
-from pandas.tests.frame.common import TestData
-
 
 class SharedWithSparse(object):
     """
@@ -43,57 +41,57 @@ class SharedWithSparse(object):
         """Dispatch to series class dependent assertion"""
         raise NotImplementedError
 
-    def test_copy_index_name_checking(self):
+    def test_copy_index_name_checking(self, float_frame):
         # don't want to be able to modify the index stored elsewhere after
         # making a copy
         for attr in ('index', 'columns'):
-            ind = getattr(self.frame, attr)
+            ind = getattr(float_frame, attr)
             ind.name = None
-            cp = self.frame.copy()
+            cp = float_frame.copy()
             getattr(cp, attr).name = 'foo'
-            assert getattr(self.frame, attr).name is None
+            assert getattr(float_frame, attr).name is None
 
-    def test_getitem_pop_assign_name(self):
-        s = self.frame['A']
+    def test_getitem_pop_assign_name(self, float_frame):
+        s = float_frame['A']
         assert s.name == 'A'
 
-        s = self.frame.pop('A')
+        s = float_frame.pop('A')
         assert s.name == 'A'
 
-        s = self.frame.loc[:, 'B']
+        s = float_frame.loc[:, 'B']
         assert s.name == 'B'
 
         s2 = s.loc[:]
         assert s2.name == 'B'
 
-    def test_get_value(self):
-        for idx in self.frame.index:
-            for col in self.frame.columns:
+    def test_get_value(self, float_frame):
+        for idx in float_frame.index:
+            for col in float_frame.columns:
                 with tm.assert_produces_warning(FutureWarning,
                                                 check_stacklevel=False):
-                    result = self.frame.get_value(idx, col)
-                expected = self.frame[col][idx]
+                    result = float_frame.get_value(idx, col)
+                expected = float_frame[col][idx]
                 tm.assert_almost_equal(result, expected)
 
-    def test_add_prefix_suffix(self):
-        with_prefix = self.frame.add_prefix('foo#')
-        expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
+    def test_add_prefix_suffix(self, float_frame):
+        with_prefix = float_frame.add_prefix('foo#')
+        expected = pd.Index(['foo#%s' % c for c in float_frame.columns])
         tm.assert_index_equal(with_prefix.columns, expected)
 
-        with_suffix = self.frame.add_suffix('#foo')
-        expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
+        with_suffix = float_frame.add_suffix('#foo')
+        expected = pd.Index(['%s#foo' % c for c in float_frame.columns])
         tm.assert_index_equal(with_suffix.columns, expected)
 
-        with_pct_prefix = self.frame.add_prefix('%')
-        expected = pd.Index(['%{}'.format(c) for c in self.frame.columns])
+        with_pct_prefix = float_frame.add_prefix('%')
+        expected = pd.Index(['%{}'.format(c) for c in float_frame.columns])
         tm.assert_index_equal(with_pct_prefix.columns, expected)
 
-        with_pct_suffix = self.frame.add_suffix('%')
-        expected = pd.Index(['{}%'.format(c) for c in self.frame.columns])
+        with_pct_suffix = float_frame.add_suffix('%')
+        expected = pd.Index(['{}%'.format(c) for c in float_frame.columns])
         tm.assert_index_equal(with_pct_suffix.columns, expected)
 
-    def test_get_axis(self):
-        f = self.frame
+    def test_get_axis(self, float_frame):
+        f = float_frame
         assert f._get_axis_number(0) == 0
         assert f._get_axis_number(1) == 1
         assert f._get_axis_number('index') == 0
@@ -118,13 +116,13 @@ class SharedWithSparse(object):
         tm.assert_raises_regex(ValueError, 'No axis named',
                                f._get_axis_number, None)
 
-    def test_keys(self):
-        getkeys = self.frame.keys
-        assert getkeys() is self.frame.columns
+    def test_keys(self, float_frame):
+        getkeys = float_frame.keys
+        assert getkeys() is float_frame.columns
 
-    def test_column_contains_typeerror(self):
+    def test_column_contains_typeerror(self, float_frame):
         try:
-            self.frame.columns in self.frame
+            float_frame.columns in float_frame
         except TypeError:
             pass
 
@@ -146,10 +144,10 @@ class SharedWithSparse(object):
             assert key not in dir(df)
         assert isinstance(df.__getitem__('A'), pd.DataFrame)
 
-    def test_not_hashable(self):
+    def test_not_hashable(self, empty_frame):
         df = self.klass([1])
         pytest.raises(TypeError, hash, df)
-        pytest.raises(TypeError, hash, self.empty)
+        pytest.raises(TypeError, hash, empty_frame)
 
     def test_new_empty_index(self):
         df1 = self.klass(randn(0, 3))
@@ -157,29 +155,29 @@ class SharedWithSparse(object):
         df1.index.name = 'foo'
         assert df2.index.name is None
 
-    def test_array_interface(self):
+    def test_array_interface(self, float_frame):
         with np.errstate(all='ignore'):
-            result = np.sqrt(self.frame)
-        assert isinstance(result, type(self.frame))
-        assert result.index is self.frame.index
-        assert result.columns is self.frame.columns
+            result = np.sqrt(float_frame)
+        assert isinstance(result, type(float_frame))
+        assert result.index is float_frame.index
+        assert result.columns is float_frame.columns
 
-        self._assert_frame_equal(result, self.frame.apply(np.sqrt))
+        self._assert_frame_equal(result, float_frame.apply(np.sqrt))
 
-    def test_get_agg_axis(self):
-        cols = self.frame._get_agg_axis(0)
-        assert cols is self.frame.columns
+    def test_get_agg_axis(self, float_frame):
+        cols = float_frame._get_agg_axis(0)
+        assert cols is float_frame.columns
 
-        idx = self.frame._get_agg_axis(1)
-        assert idx is self.frame.index
+        idx = float_frame._get_agg_axis(1)
+        assert idx is float_frame.index
 
-        pytest.raises(ValueError, self.frame._get_agg_axis, 2)
+        pytest.raises(ValueError, float_frame._get_agg_axis, 2)
 
-    def test_nonzero(self):
-        assert self.empty.empty
+    def test_nonzero(self, float_frame, float_string_frame, empty_frame):
+        assert empty_frame.empty
 
-        assert not self.frame.empty
-        assert not self.mixed_frame.empty
+        assert not float_frame.empty
+        assert not float_string_frame.empty
 
         # corner case
         df = DataFrame({'A': [1., 2., 3.],
@@ -202,16 +200,16 @@ class SharedWithSparse(object):
             assert isinstance(v, Series)
             assert (df[k] == v).all()
 
-    def test_iter(self):
-        assert tm.equalContents(list(self.frame), self.frame.columns)
+    def test_iter(self, float_frame):
+        assert tm.equalContents(list(float_frame), float_frame.columns)
 
-    def test_iterrows(self):
-        for k, v in self.frame.iterrows():
-            exp = self.frame.loc[k]
+    def test_iterrows(self, float_frame, float_string_frame):
+        for k, v in float_frame.iterrows():
+            exp = float_frame.loc[k]
             self._assert_series_equal(v, exp)
 
-        for k, v in self.mixed_frame.iterrows():
-            exp = self.mixed_frame.loc[k]
+        for k, v in float_string_frame.iterrows():
+            exp = float_string_frame.loc[k]
             self._assert_series_equal(v, exp)
 
     def test_iterrows_iso8601(self):
@@ -226,11 +224,11 @@ class SharedWithSparse(object):
             exp = s.loc[k]
             self._assert_series_equal(v, exp)
 
-    def test_itertuples(self):
-        for i, tup in enumerate(self.frame.itertuples()):
+    def test_itertuples(self, float_frame):
+        for i, tup in enumerate(float_frame.itertuples()):
             s = self.klass._constructor_sliced(tup[1:])
             s.name = tup[0]
-            expected = self.frame.iloc[i, :].reset_index(drop=True)
+            expected = float_frame.iloc[i, :].reset_index(drop=True)
             self._assert_series_equal(s, expected)
 
         df = self.klass({'floats': np.random.randn(5),
@@ -289,11 +287,11 @@ class SharedWithSparse(object):
         for c, col in df.iteritems():
             str(s)
 
-    def test_len(self):
-        assert len(self.frame) == len(self.frame.index)
+    def test_len(self, float_frame):
+        assert len(float_frame) == len(float_frame.index)
 
-    def test_values(self):
-        frame = self.frame
+    def test_values(self, float_frame, float_string_frame):
+        frame = float_frame
         arr = frame.values
 
         frame_cols = frame.columns
@@ -306,7 +304,7 @@ class SharedWithSparse(object):
                     assert value == frame[col][i]
 
         # mixed type
-        arr = self.mixed_frame[['foo', 'A']].values
+        arr = float_string_frame[['foo', 'A']].values
         assert arr[0, 0] == 'bar'
 
         df = self.klass({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
@@ -314,12 +312,12 @@ class SharedWithSparse(object):
         assert arr[0, 0] == 1j
 
         # single block corner case
-        arr = self.frame[['A', 'B']].values
-        expected = self.frame.reindex(columns=['A', 'B']).values
+        arr = float_frame[['A', 'B']].values
+        expected = float_frame.reindex(columns=['A', 'B']).values
         assert_almost_equal(arr, expected)
 
-    def test_transpose(self):
-        frame = self.frame
+    def test_transpose(self, float_frame):
+        frame = float_frame
         dft = frame.T
         for idx, series in compat.iteritems(dft):
             for col, value in compat.iteritems(series):
@@ -343,8 +341,8 @@ class SharedWithSparse(object):
         self._assert_frame_equal(df, df.swapaxes(0, 0))
         pytest.raises(ValueError, df.swapaxes, 2, 5)
 
-    def test_axis_aliases(self):
-        f = self.frame
+    def test_axis_aliases(self, float_frame):
+        f = float_frame
 
         # reg name
         expected = f.sum(axis=0)
@@ -361,23 +359,23 @@ class SharedWithSparse(object):
         assert pydoc.getdoc(DataFrame.index)
         assert pydoc.getdoc(DataFrame.columns)
 
-    def test_more_values(self):
-        values = self.mixed_frame.values
-        assert values.shape[1] == len(self.mixed_frame.columns)
+    def test_more_values(self, float_string_frame):
+        values = float_string_frame.values
+        assert values.shape[1] == len(float_string_frame.columns)
 
-    def test_repr_with_mi_nat(self):
+    def test_repr_with_mi_nat(self, float_string_frame):
         df = self.klass({'X': [1, 2]},
                         index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
         res = repr(df)
         exp = '              X\nNaT        a  1\n2013-01-01 b  2'
         assert res == exp
 
-    def test_iteritems_names(self):
-        for k, v in compat.iteritems(self.mixed_frame):
+    def test_iteritems_names(self, float_string_frame):
+        for k, v in compat.iteritems(float_string_frame):
             assert v.name == k
 
-    def test_series_put_names(self):
-        series = self.mixed_frame._series
+    def test_series_put_names(self, float_string_frame):
+        series = float_string_frame._series
         for k, v in compat.iteritems(series):
             assert v.name == k
 
@@ -408,36 +406,37 @@ class SharedWithSparse(object):
         tm.assert_series_equal(result, expected)
 
 
-class TestDataFrameMisc(SharedWithSparse, TestData):
+class TestDataFrameMisc(SharedWithSparse):
 
     klass = DataFrame
     # SharedWithSparse tests use generic, klass-agnostic assertion
     _assert_frame_equal = staticmethod(assert_frame_equal)
     _assert_series_equal = staticmethod(assert_series_equal)
 
-    def test_values(self):
-        self.frame.values[:, 0] = 5.
-        assert (self.frame.values[:, 0] == 5).all()
+    def test_values(self, float_frame):
+        float_frame.values[:, 0] = 5.
+        assert (float_frame.values[:, 0] == 5).all()
 
-    def test_as_matrix_deprecated(self):
+    def test_as_matrix_deprecated(self, float_frame):
         # GH18458
         with tm.assert_produces_warning(FutureWarning):
-            result = self.frame.as_matrix(columns=self.frame.columns.tolist())
-        expected = self.frame.values
+            cols = float_frame.columns.tolist()
+            result = float_frame.as_matrix(columns=cols)
+        expected = float_frame.values
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_deepcopy(self):
-        cp = deepcopy(self.frame)
+    def test_deepcopy(self, float_frame):
+        cp = deepcopy(float_frame)
         series = cp['A']
         series[:] = 10
         for idx, value in compat.iteritems(series):
-            assert self.frame['A'][idx] != value
+            assert float_frame['A'][idx] != value
 
-    def test_transpose_get_view(self):
-        dft = self.frame.T
+    def test_transpose_get_view(self, float_frame):
+        dft = float_frame.T
         dft.values[:, 5:10] = 5
 
-        assert (self.frame.values[5:10] == 5).all()
+        assert (float_frame.values[5:10] == 5).all()
 
     def test_inplace_return_self(self):
         # re #1893
