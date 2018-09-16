@@ -60,9 +60,10 @@ def test_moved_infer_dtype():
     # del from sys.modules to ensure we try to freshly load.
     # if this was imported from another test previously, we would
     # not see the warning, since the import is otherwise cached.
-
     sys.modules.pop("pandas.lib", None)
 
     with tm.assert_produces_warning(FutureWarning):
+        import pandas.lib
+
         e = pandas.lib.infer_dtype('foo')
         assert e is not None
