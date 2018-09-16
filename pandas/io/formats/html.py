@@ -47,23 +47,32 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        self.indent = 0
 
-    def write(self, s, indent=0):
+    def write(self, s):
+        if any((s.startswith(i)
+                for i in ['<thead', '<tr', '<th>', '<th ', '<td>'])):
+            self.indent += self.indent_delta
+
         rs = pprint_thing(s)
-        self.elements.append(' ' * indent + rs)
+        self.elements.append(' ' * self.indent + rs)
 
-    def write_th(self, s, indent=0, tags=None):
+        if any((s.startswith(i)
+                for i in ['<th>', '<th ', '<td>', '</tr', '</tbody'])):
+            self.indent -= self.indent_delta
+
+    def write_th(self, s, tags=None):
         if self.fmt.col_space is not None and self.fmt.col_space > 0:
             tags = (tags or "")
             tags += ('style="min-width: {colspace};"'
                      .format(colspace=self.fmt.col_space))
 
-        return self._write_cell(s, kind='th', indent=indent, tags=tags)
+        return self._write_cell(s, kind='th', tags=tags)
 
-    def write_td(self, s, indent=0, tags=None):
-        return self._write_cell(s, kind='td', indent=indent, tags=tags)
+    def write_td(self, s, tags=None):
+        return self._write_cell(s, kind='td', tags=tags)
 
-    def _write_cell(self, s, kind='td', indent=0, tags=None):
+    def _write_cell(self, s, kind='td', tags=None):
         if tags is not None:
             start_tag = '<{kind} {tags}>'.format(kind=kind, tags=tags)
         else:
@@ -77,29 +86,27 @@ class HTMLFormatter(TableFormatter):
             esc = {}
         rs = pprint_thing(s, escape_chars=esc).strip()
         self.write(u'{start}{rs}</{kind}>'
-                   .format(start=start_tag, rs=rs, kind=kind), indent)
+                   .format(start=start_tag, rs=rs, kind=kind))
 
-    def write_tr(self, line, indent=0, indent_delta=4, header=False,
+    def write_tr(self, line, header=False,
                  align=None, tags=None, nindex_levels=0):
         if tags is None:
             tags = {}
 
         if align is None:
-            self.write('<tr>', indent)
+            self.write('<tr>')
         else:
             self.write('<tr style="text-align: {align};">'
-                       .format(align=align), indent)
-        indent += indent_delta
+                       .format(align=align))
 
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
             if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent, tags=val_tag)
+                self.write_th(s, tags=val_tag)
             else:
-                self.write_td(s, indent, tags=val_tag)
+                self.write_td(s, tags=val_tag)
 
-        indent -= indent_delta
-        self.write('</tr>', indent)
+        self.write('</tr>')
 
     def write_style(self):
         # We use the "scoped" attribute here so that the desired
@@ -142,7 +149,6 @@ class HTMLFormatter(TableFormatter):
             self.write(template)
 
     def write_result(self, buf):
-        indent = 0
         id_section = ""
         frame = self.frame
 
@@ -175,13 +181,12 @@ class HTMLFormatter(TableFormatter):
             id_section = ' id="{table_id}"'.format(table_id=self.table_id)
         self.write('<table border="{border}" class="{cls}"{id_section}>'
                    .format(border=self.border, cls=' '.join(_classes),
-                           id_section=id_section), indent)
+                           id_section=id_section))
 
-        indent += self.indent_delta
-        indent = self._write_header(indent)
-        indent = self._write_body(indent)
+        self._write_header()
+        self._write_body()
 
-        self.write('</table>', indent)
+        self.write('</table>')
         if self.should_show_dimensions:
             by = chr(215) if compat.PY3 else unichr(215)  # ×
             self.write(u('<p>{rows} rows {by} {cols} columns</p>')
@@ -194,12 +199,12 @@ class HTMLFormatter(TableFormatter):
 
         buffer_put_lines(buf, self.elements)
 
-    def _write_header(self, indent):
+    def _write_header(self):
         truncate_h = self.fmt.truncate_h
         row_levels = self.frame.index.nlevels
         if not self.fmt.header:
             # write nothing
-            return indent
+            return
 
         def _column_header():
             if self.fmt.index:
@@ -221,9 +226,7 @@ class HTMLFormatter(TableFormatter):
                 row.extend(self.columns)
             return row
 
-        self.write('<thead>', indent)
-
-        indent += self.indent_delta
+        self.write('<thead>')
 
         if isinstance(self.columns, ABCMultiIndex):
             template = 'colspan="{span:d}" halign="left"'
@@ -287,7 +290,7 @@ class HTMLFormatter(TableFormatter):
                                                  pprint_thing(name)]
 
                 if row == [""] and self.fmt.index is False:
-                    row = []
+                        row = []
 
                 tags = {}
                 j = len(row)
@@ -299,7 +302,7 @@ class HTMLFormatter(TableFormatter):
                         continue
                     j += 1
                     row.append(v)
-                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                self.write_tr(row, tags=tags,
                               header=True)
         else:
             col_row = _column_header()
@@ -309,7 +312,7 @@ class HTMLFormatter(TableFormatter):
                 ins_col = row_levels + self.fmt.tr_col_num
                 col_row.insert(ins_col, '...')
 
-            self.write_tr(col_row, indent, self.indent_delta, header=True,
+            self.write_tr(col_row, header=True,
                           align=align)
 
         if all((self.fmt.has_index_names,
@@ -321,16 +324,14 @@ class HTMLFormatter(TableFormatter):
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, '')
-            self.write_tr(row, indent, self.indent_delta, header=True)
+            self.write_tr(row, header=True)
 
-        indent -= self.indent_delta
-        self.write('</thead>', indent)
+        self.write('</thead>')
 
-        return indent
+        return
 
-    def _write_body(self, indent):
-        self.write('<tbody>', indent)
-        indent += self.indent_delta
+    def _write_body(self):
+        self.write('<tbody>')
 
         fmt_values = {}
         for i in range(min(len(self.columns), self.max_cols)):
@@ -339,21 +340,19 @@ class HTMLFormatter(TableFormatter):
         # write values
         if self.fmt.index:
             if isinstance(self.frame.index, ABCMultiIndex):
-                self._write_hierarchical_rows(fmt_values, indent)
+                self._write_hierarchical_rows(fmt_values)
             else:
-                self._write_regular_rows(fmt_values, indent)
+                self._write_regular_rows(fmt_values)
         else:
             for i in range(min(len(self.frame), self.max_rows)):
                 row = [fmt_values[j][i] for j in range(len(self.columns))]
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+                self.write_tr(row, tags=None)
 
-        indent -= self.indent_delta
-        self.write('</tbody>', indent)
-        indent -= self.indent_delta
+        self.write('</tbody>')
 
-        return indent
+        return
 
-    def _write_regular_rows(self, fmt_values, indent):
+    def _write_regular_rows(self, fmt_values):
         truncate_h = self.fmt.truncate_h
         truncate_v = self.fmt.truncate_v
 
@@ -370,7 +369,7 @@ class HTMLFormatter(TableFormatter):
 
             if truncate_v and i == (self.fmt.tr_row_num):
                 str_sep_row = ['...'] * len(row)
-                self.write_tr(str_sep_row, indent, self.indent_delta,
+                self.write_tr(str_sep_row,
                               tags=None, nindex_levels=1)
 
             row = []
@@ -380,10 +379,10 @@ class HTMLFormatter(TableFormatter):
             if truncate_h:
                 dot_col_ix = self.fmt.tr_col_num + 1
                 row.insert(dot_col_ix, '...')
-            self.write_tr(row, indent, self.indent_delta, tags=None,
+            self.write_tr(row, tags=None,
                           nindex_levels=1)
 
-    def _write_hierarchical_rows(self, fmt_values, indent):
+    def _write_hierarchical_rows(self, fmt_values):
         template = 'rowspan="{span}" valign="top"'
 
         truncate_h = self.fmt.truncate_h
@@ -471,7 +470,7 @@ class HTMLFormatter(TableFormatter):
                 if truncate_h:
                     row.insert(row_levels - sparse_offset +
                                self.fmt.tr_col_num, '...')
-                self.write_tr(row, indent, self.indent_delta, tags=tags,
+                self.write_tr(row, tags=tags,
                               nindex_levels=len(levels) - sparse_offset)
         else:
             for i in range(len(frame)):
@@ -482,7 +481,7 @@ class HTMLFormatter(TableFormatter):
                 row.extend(fmt_values[j][i] for j in range(ncols))
                 if truncate_h:
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
-                self.write_tr(row, indent, self.indent_delta, tags=None,
+                self.write_tr(row, tags=None,
                               nindex_levels=frame.index.nlevels)
 
 
