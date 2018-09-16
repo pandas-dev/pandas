@@ -29,7 +29,7 @@ import pandas.util.testing as tm
                  # ignore mean of empty slice
                  # and all-NaN
                  marks=[pytest.mark.filterwarnings(
-                     "ignore:RuntimeWarning"
+                     "ignore::RuntimeWarning"
                  )]),
     'prod',
     'min',
