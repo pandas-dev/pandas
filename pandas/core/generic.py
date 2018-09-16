@@ -4545,7 +4545,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, list of string/functions or dictionary
+    func : function, string, list of functions and/or strings or dict
         Function to use for aggregating the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply.
 
@@ -4563,7 +4563,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    aggregated : %(klass)s
+    pandas.%(klass)s
 
     Notes
     -----
@@ -4573,14 +4573,14 @@ class NDFrame(PandasObject, SelectionMixin):
     """)
 
     _shared_docs['transform'] = ("""
-    Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values
+    Call ``func`` on self producing a %(klass)s with transformed values
+    and that has the same axis length as self.
 
     .. versionadded:: 0.20.0
 
     Parameters
     ----------
-    func : function, string, list of string/functions or dictionary
+    func : function, string, list of functions and/or strings or dict
         Function to use for transforming the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply.
 
@@ -4589,7 +4589,7 @@ class NDFrame(PandasObject, SelectionMixin):
         - string function name
         - function
         - list of functions and/or function names
-        - dict of axis labels -> functions, function names or list of such
+        - dict of axis labels -> functions, function names or list of such.
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -4598,48 +4598,36 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    transformed : %(klass)s
+    pandas.%(klass)s
+        A %(klass)s that must have the same length as self.
 
     Raises
     ------
-    ValueError: if the returned %(klass)s has a different length than self.
+    ValueError : if the returned %(klass)s has a different length than self.
+
+    See Also
+    --------
+    pandas.%(klass)s.agg : only perform aggregating type operations
+    pandas.%(klass)s.apply : Invoke function on a Series
 
     Examples
     --------
-    >>> df = pd.DataFrame({'A': range(10), 'B': range(10, 0, -1)},
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    >>> df.iloc[3:7] = np.nan
+    >>> df = pd.DataFrame({'A': range(3), 'B': range(1, 4)})
+    >>> df.transform(lambda x: x + 1)
+       A  B
+    0  1  2
+    1  2  3
+    2  3  4
 
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                       A         B
-    2000-01-01 -1.143001  1.143001
-    2000-01-02 -0.889001  0.889001
-    2000-01-03 -0.635001  0.635001
-    2000-01-04       NaN       NaN
-    2000-01-05       NaN       NaN
-    2000-01-06       NaN       NaN
-    2000-01-07       NaN       NaN
-    2000-01-08  0.635001 -0.635001
-    2000-01-09  0.889001 -0.889001
-    2000-01-10  1.143001 -1.143001
+    Even though the resulting %(klass)s must have the length as the input
+    %(klass)s, it is possible to provide several input functions:
 
-    It is only required for the axis specified in the ``axis`` parameter
-    to have the same length for output and for self. The other axis may have a
-    different length:
-
-    >>> s = pd.Series(range(5))
+    >>> s = pd.Series(range(3))
     >>> s.transform([np.sqrt, np.exp])
            sqrt        exp
     0  0.000000   1.000000
     1  1.000000   2.718282
     2  1.414214   7.389056
-    3  1.732051  20.085537
-    4  2.000000  54.598150
-
-    See also
-    --------
-    pandas.%(klass)s.aggregate
-    pandas.%(klass)s.apply
     """)
 
     # ----------------------------------------------------------------------
