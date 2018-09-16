@@ -182,7 +182,7 @@ on a deeper level.
 Defined Levels
 ~~~~~~~~~~~~~~
 
-The ``MultiIndex`` keeps all the defined levels of an index, even
+The :class:`MultiIndex` keeps all the defined levels of an index, even
 if they are not actually used. When slicing an index, you may notice this.
 For example:
 
