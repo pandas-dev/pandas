@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
-from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
+from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
@@ -1126,27 +1126,49 @@ class MultiIndex(Index):
         """ convert to object if we are a categorical """
         return self.set_levels([i._to_safe_for_reshape() for i in self.levels])
 
-    def to_frame(self, index=True):
+    def to_frame(self, index=True, name=None):
         """
         Create a DataFrame with the levels of the MultiIndex as columns.
 
-        .. versionadded:: 0.20.0
+        Column ordering is determined by the DataFrame constructor with data as
+        a dict.
+
+        .. versionadded:: 0.24.0
 
         Parameters
         ----------
         index : boolean, default True
             Set the index of the returned DataFrame as the original MultiIndex.
 
+        name : list / sequence of strings, optional
+            The passed names should substitute index level names.
+
         Returns
         -------
         DataFrame : a DataFrame containing the original MultiIndex data.
+
+        See also
+        --------
+        DataFrame
         """
 
         from pandas import DataFrame
+        if name is not None:
+            if not is_list_like(name):
+                raise TypeError("'name' must be a list / sequence "
+                                "of column names.")
+
+            if len(name) != len(self.levels):
+                raise ValueError("'name' should have same length as "
+                                 "number of levels on index.")
+            idx_names = name
+        else:
+            idx_names = self.names
+
         result = DataFrame({(name or level):
                             self._get_level_values(level)
                             for name, level in
-                            zip(self.names, range(len(self.levels)))},
+                            zip(idx_names, range(len(self.levels)))},
                            copy=False)
         if index:
             result.index = self
@@ -1551,6 +1573,8 @@ class MultiIndex(Index):
 
     def __getitem__(self, key):
         if is_scalar(key):
+            key = com.cast_scalar_indexer(key)
+
             retval = []
             for lev, lab in zip(self.levels, self.labels):
                 if lab[key] == -1:
@@ -1646,7 +1670,6 @@ class MultiIndex(Index):
     def argsort(self, *args, **kwargs):
         return self.values.argsort(*args, **kwargs)
 
-    @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         nv.validate_repeat(args, kwargs)
         return MultiIndex(levels=self.levels,

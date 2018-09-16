@@ -8,6 +8,14 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
+import hypothesis
+
+
+hypothesis.settings.register_profile(
+    "ci",
+    suppress_health_check=(hypothesis.HealthCheck.too_slow,)
+)
+hypothesis.settings.load_profile("ci")
 
 
 def pytest_addoption(parser):
