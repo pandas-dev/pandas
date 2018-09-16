@@ -1388,6 +1388,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             'SELECT * FROM test_datetime_tz', self.conn
         )
         result = result.drop('index', axis=1)
+        if self.flavor == 'sqlite':
+            # read_sql_query does not return datetime type like read_sql_table
+            assert isinstance(result.loc[0, 'A'], string_types)
+            result['A'] = to_datetime(result['A'])
         tm.assert_frame_equal(result, expected)
 
     def test_date_parsing(self):
