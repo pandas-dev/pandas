@@ -1335,7 +1335,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     @Substitution(klass='Categorical')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if not self.ordered:
             raise ValueError("Categorical not ordered\nyou can use "
