@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from cython cimport Py_ssize_t
-
-from cpython cimport PyFloat_Check, PyUnicode_Check
+from cython import Py_ssize_t
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
@@ -46,8 +44,7 @@ from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
 from tslibs.offsets cimport to_offset
 
-from tslibs.timestamps cimport (create_timestamp_from_ts,
-                                _NS_UPPER_BOUND, _NS_LOWER_BOUND)
+from tslibs.timestamps cimport create_timestamp_from_ts
 from tslibs.timestamps import Timestamp
 
 
@@ -301,7 +298,7 @@ def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
     return result
 
 
-cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
+def array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
     if errors:
@@ -350,8 +347,8 @@ cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
         # check the bounds
         if not need_to_iterate:
 
-            if ((fvalues < _NS_LOWER_BOUND).any()
-                    or (fvalues > _NS_UPPER_BOUND).any()):
+            if ((fvalues < Timestamp.min.value).any()
+                    or (fvalues > Timestamp.max.value).any()):
                 raise OutOfBoundsDatetime("cannot convert input with unit "
                                           "'{unit}'".format(unit=unit))
             result = (iresult * m).astype('M8[ns]')
@@ -602,7 +599,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-                if PyUnicode_Check(val) and PY2:
+                if isinstance(val, unicode) and PY2:
                     val = val.encode('utf-8')
 
                 try:
@@ -741,7 +738,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             # set as nan except if its a NaT
             if checknull_with_nat(val):
-                if PyFloat_Check(val):
+                if isinstance(val, float):
                     oresult[i] = np.nan
                 else:
                     oresult[i] = NaT

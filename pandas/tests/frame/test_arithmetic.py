@@ -48,22 +48,6 @@ class TestFrameComparisons(object):
         result = df != other
         assert result.all().all()
 
-    def test_df_numeric_cmp_dt64_raises(self):
-        # GH#8932, GH#22163
-        ts = pd.Timestamp.now()
-        df = pd.DataFrame({'x': range(5)})
-        with pytest.raises(TypeError):
-            df > ts
-        with pytest.raises(TypeError):
-            df < ts
-        with pytest.raises(TypeError):
-            ts < df
-        with pytest.raises(TypeError):
-            ts > df
-
-        assert not (df == ts).any().any()
-        assert (df != ts).all().all()
-
     def test_df_boolean_comparison_error(self):
         # GH#4576
         # boolean comparisons with a tuple/list give unexpected results
@@ -116,6 +100,18 @@ class TestFrameComparisons(object):
 # Arithmetic
 
 class TestFrameFlexArithmetic(object):
+    def test_df_add_td64_columnwise(self):
+        # GH#22534 Check that column-wise addition broadcasts correctly
+        dti = pd.date_range('2016-01-01', periods=10)
+        tdi = pd.timedelta_range('1', periods=10)
+        tser = pd.Series(tdi)
+        df = pd.DataFrame({0: dti, 1: tdi})
+
+        result = df.add(tser, axis=0)
+        expected = pd.DataFrame({0: dti + tdi,
+                                 1: tdi + tdi})
+        tm.assert_frame_equal(result, expected)
+
     def test_df_add_flex_filled_mixed_dtypes(self):
         # GH#19611
         dti = pd.date_range('2016-01-01', periods=3)

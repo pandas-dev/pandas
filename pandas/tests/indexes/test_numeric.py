@@ -289,6 +289,8 @@ class TestFloat64Index(Numeric):
         pytest.raises(KeyError, idx.get_loc, 1.5)
         pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
                       tolerance=0.1)
+        pytest.raises(KeyError, idx.get_loc, True)
+        pytest.raises(KeyError, idx.get_loc, False)
 
         with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
@@ -562,40 +564,6 @@ class NumericInt(Numeric):
     def test_slice_keep_name(self):
         idx = self._holder([1, 2], name='asdf')
         assert idx.name == idx[1:].name
-
-    def test_ufunc_coercions(self):
-        idx = self._holder([1, 2, 3, 4, 5], name='x')
-
-        result = np.sqrt(idx)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = np.divide(idx, 2.)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
-        # _evaluate_numeric_binop
-        result = idx + 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([3., 4., 5., 6., 7.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx - 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([-1., 0., 1., 2., 3.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx * 1.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([1., 2., 3., 4., 5.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx / 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
 
 
 class TestInt64Index(NumericInt):

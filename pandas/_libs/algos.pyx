@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
@@ -114,7 +114,7 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def is_lexsorted(list list_of_arrays):
+def is_lexsorted(list_of_arrays: list) -> bint:
     cdef:
         Py_ssize_t i
         Py_ssize_t n, nlevels

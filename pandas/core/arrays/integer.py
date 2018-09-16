@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     is_list_like)
 from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import registry
+from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.io.formats.printing import (
@@ -409,8 +409,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
-            result = self._data.astype(dtype.numpy_dtype,
-                                       casting='same_kind', copy=False)
+            result = self._data.astype(dtype.numpy_dtype, copy=False)
             return type(self)(result, mask=self._mask, copy=False)
 
         # coerce
@@ -615,9 +614,9 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     classname = "{}Dtype".format(name)
     attributes_dict = {'type': getattr(np, dtype),
                        'name': name}
-    dtype_type = type(classname, (_IntegerDtype, ), attributes_dict)
+    dtype_type = register_extension_dtype(
+        type(classname, (_IntegerDtype, ), attributes_dict)
+    )
     setattr(module, classname, dtype_type)
 
-    # register
-    registry.register(dtype_type)
     _dtypes[dtype] = dtype_type()

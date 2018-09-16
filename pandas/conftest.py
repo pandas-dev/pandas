@@ -8,6 +8,14 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
+import hypothesis
+
+
+hypothesis.settings.register_profile(
+    "ci",
+    suppress_health_check=(hypothesis.HealthCheck.too_slow,)
+)
+hypothesis.settings.load_profile("ci")
 
 
 def pytest_addoption(parser):
@@ -450,3 +458,37 @@ def mock():
         return importlib.import_module("unittest.mock")
     else:
         return pytest.importorskip("mock")
+
+
+# ----------------------------------------------------------------
+# Global setup for tests using Hypothesis
+
+from hypothesis import strategies as st
+
+# Registering these strategies makes them globally available via st.from_type,
+# which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
+for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-99, 99),
+        normalize=st.booleans(),
+    ))
+
+for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-5, 5),
+        normalize=st.booleans(),
+        month=st.integers(min_value=1, max_value=12),
+    ))
+
+for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-24, 24),
+        normalize=st.booleans(),
+        startingMonth=st.integers(min_value=1, max_value=12)
+    ))
