@@ -636,7 +636,6 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
 - Bug in :class:`DatetimeIndex` where frequency was being set if original frequency was 'None' (:issue:`22150`)
--
 
 Timedelta
 ^^^^^^^^^
