@@ -6370,7 +6370,7 @@ class DataFrame(NDFrame):
 
     def _append_dict(self, other, *args, **kwargs):
         kwargs['nosort_flag'] = True
-        return self._append_list_of_dicts(Series(other), *args, **kwargs)
+        return self._append_list_of_dicts([other], *args, **kwargs)
 
     def _append_series(self, other, *args, **kwargs):
         kwargs['nosort_flag'] = True
