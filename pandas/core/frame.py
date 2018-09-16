@@ -6389,7 +6389,25 @@ class DataFrame(NDFrame):
             if any(series.name is None for series in other):
                 raise TypeError('Can only append a Series if ignore_index=True'
                                 'or if the Series has a name')
-        return self._append_frame(DataFrame(other), *args, **kwargs)
+
+        if len(other) == 1:
+            # manually create DF for performance
+            ser = other[0]
+
+            if ser.name is not None:
+                # other must have the same index name as self,
+                # otherwise index name will be reset
+                index = Index([ser.name], name=self.index.name)
+            else:
+                index = None
+            columns = ser.index
+
+            df = DataFrame(ser.values.reshape(1, ser.shape[0]),
+                           index=index, columns=columns)
+        else:
+            df = DataFrame(other)
+
+        return self._append_frame(df, *args, **kwargs)
 
     def _append_list_of_frames(self, other, *args, **kwargs):
         ignore_index = kwargs['ignore_index']
