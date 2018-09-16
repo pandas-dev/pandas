@@ -6345,6 +6345,7 @@ class DataFrame(NDFrame):
         }
 
         obj_type = type(other)
+        kwargs['_obj_type'] = obj_type
         if issubclass(obj_type, dict):
             return self._append_dict(other, **kwargs)
         elif issubclass(obj_type, Series):
@@ -6356,6 +6357,7 @@ class DataFrame(NDFrame):
                 item_type = type(other[0])
             except IndexError:  # empty list!
                 return self._append_list_of_frames(other, **kwargs)
+            kwargs['_item_type'] = item_type
 
             if issubclass(item_type, dict):
                 return self._append_list_of_dicts(other, **kwargs)
@@ -6369,11 +6371,9 @@ class DataFrame(NDFrame):
             raise TypeError  # TODO
 
     def _append_dict(self, other, *args, **kwargs):
-        kwargs['nosort_flag'] = True
         return self._append_list_of_dicts([other], *args, **kwargs)
 
     def _append_series(self, other, *args, **kwargs):
-        kwargs['nosort_flag'] = True
         return self._append_list_of_series([other], *args, **kwargs)
 
     def _append_frame(self, other, *args, **kwargs):
@@ -6395,9 +6395,9 @@ class DataFrame(NDFrame):
         ignore_index = kwargs['ignore_index']
         verify_integrity = kwargs['verify_integrity']
         sort = kwargs['sort']
-        nosort_flag = kwargs.get('nosort_flag', False)  # do not sort if sort is None
+        _obj_type = kwargs['_obj_type']
+        _item_type = kwargs.get('_item_type')
 
-        import pandas.core.common as com
         from pandas.core.reshape.concat import concat
 
         to_concat = [self] + other
@@ -6410,7 +6410,25 @@ class DataFrame(NDFrame):
             #
             # By now, fix tests by only sorting when the
             # original 'other' was a series or a dict.
-            sort = not nosort_flag
+            if _obj_type in (dict, Series):
+                sort = False
+            elif _item_type in (dict, Series):
+                # A list of dicts/Series had a different behaviour
+                # when sorting is None.
+                #
+                # We do not sort if the 'other' columns are all
+                # contained in self.columns. Otherwise we do
+                # sort.
+                #
+                # TODO: as per documentation, this seems like the original
+                # behaviour intended for append. Should I implement this
+                # for any inputs that come?
+                self_idx = self.columns
+                other_idx = other[0].columns
+                idx_diff = other_idx.difference(self_idx)
+                sort = len(idx_diff) > 0
+            else:
+                sort = True
 
         if not sort:
             # Concat sorts the column indexes if they are 'special'.
