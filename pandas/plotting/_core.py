@@ -879,13 +879,14 @@ class ScatterPlot(PlanePlot):
                     size_data_codes = size_data.cat.codes + 1
                     self.labels = list(size_data.cat.categories)[::-1]
                     n_categories = len(self.labels)
-                    self.legend_bubbles_sizes = \
-                        (np.array(range(n_categories)) + 1)**2 * \
-                        self.bubble_points * size_factor / \
-                        size_data_codes.max()**2
+                    self.legend_bubbles_sizes = (
+                            (np.array(range(n_categories)) + 1)**2 *
+                            self.bubble_points * size_factor /
+                            size_data_codes.max() ** 2)
+
                     self.legend_bubbles_sizes = self.legend_bubbles_sizes[::-1]
-                    s = self.bubble_points * size_factor * \
-                        size_data_codes**2 / size_data_codes.max()**2
+                    s = (self.bubble_points * size_factor *
+                         size_data_codes**2 / size_data_codes.max()**2)
                 else:
                     raise TypeError(
                         "'s' must be numeric or ordered categorical dtype")
@@ -894,8 +895,8 @@ class ScatterPlot(PlanePlot):
                 self.size_title = s
                 self.s_data_max = size_data.max()
                 self.size_factor = size_factor
-                s = self.bubble_points * size_factor * size_data / \
-                    self.s_data_max
+                s = (self.bubble_points * size_factor * size_data /
+                     self.s_data_max)
             else:
                 raise TypeError("'s' must be numeric or "
                                 "ordered categorical dtype")
