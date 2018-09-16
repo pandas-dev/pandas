@@ -934,8 +934,8 @@ class ScatterPlot(PlanePlot):
             if size_data.cat.ordered:
                 size_data_codes = size_data.cat.codes + 1
                 s_data_max = size_data_codes.max()
-                s = (self.bubble_points * self.size_factor *
-                     size_data_codes**2 / s_data_max**2)
+                s = (self.bubble_points * self.size_factor
+                     * size_data_codes**2 / s_data_max**2)
             else:
                 raise TypeError(
                     "'s' must be numeric or ordered categorical dtype")
@@ -975,9 +975,9 @@ class ScatterPlot(PlanePlot):
                 size_data_codes = size_data.cat.codes + 1
                 labels = list(size_data.cat.categories)[::-1]
                 n_categories = len(labels)
-                sizes = ((np.array(range(n_categories)) + 1)**2 *
-                         self.bubble_points * self.size_factor /
-                         size_data_codes.max()**2)
+                sizes = ((np.array(range(n_categories)) + 1)**2
+                         * self.bubble_points * self.size_factor
+                         / size_data_codes.max()**2)
                 sizes = sizes[::-1]
             else:
                 raise TypeError(
@@ -999,8 +999,8 @@ class ScatterPlot(PlanePlot):
                 if (coef >= lower_bound) and (coef < upper_bound):
                     labels = 10**expnt * np.array(labels_catalog[lower_bound,
                                                                  upper_bound])
-                    sizes = list(self.bubble_points * self.size_factor *
-                                 labels / s_data_max)
+                    sizes = list(self.bubble_points * self.size_factor
+                                 * labels / s_data_max)
                     labels = ['{:g}'.format(l) for l in labels]
 
         else:
