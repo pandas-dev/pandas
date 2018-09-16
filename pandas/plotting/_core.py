@@ -870,36 +870,13 @@ class ScatterPlot(PlanePlot):
         elif is_hashable(s) and s in data.columns:
             # Handle the case where s is a label of a column of the df.
             # The data is normalized to 200 * size_factor.
-            size_data = data[s]
+            self.size_title = s
             self.bubble_points = 200
-            if is_categorical_dtype(size_data):
-                if size_data.cat.ordered:
-                    self.size_title = s
-                    self.bubble_dtype = 'categorical'
-                    size_data_codes = size_data.cat.codes + 1
-                    self.labels = list(size_data.cat.categories)[::-1]
-                    n_categories = len(self.labels)
-                    self.legend_bubbles_sizes = (
-                            (np.array(range(n_categories)) + 1)**2 *
-                            self.bubble_points * size_factor /
-                            size_data_codes.max() ** 2)
-
-                    self.legend_bubbles_sizes = self.legend_bubbles_sizes[::-1]
-                    s = (self.bubble_points * size_factor *
-                         size_data_codes**2 / size_data_codes.max()**2)
-                else:
-                    raise TypeError(
-                        "'s' must be numeric or ordered categorical dtype")
-            elif is_numeric_dtype(size_data):
-                self.bubble_dtype = 'numeric'
-                self.size_title = s
-                self.s_data_max = size_data.max()
-                self.size_factor = size_factor
-                s = (self.bubble_points * size_factor * size_data /
-                     self.s_data_max)
-            else:
-                raise TypeError("'s' must be numeric or "
-                                "ordered categorical dtype")
+            self.size_factor = size_factor
+            size_data = data[s]
+            s = self._get_plot_bubbles(size_data)
+            self.bubble_legend_sizes, self.bubble_legend_labels = (
+                self._get_legend_bubbles(size_data))
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -952,6 +929,23 @@ class ScatterPlot(PlanePlot):
             ax.errorbar(data[x].values, data[y].values,
                         linestyle='none', **err_kwds)
 
+    def _get_plot_bubbles(self, size_data):
+        if is_categorical_dtype(size_data):
+            if size_data.cat.ordered:
+                size_data_codes = size_data.cat.codes + 1
+                s_data_max = size_data_codes.max()
+                s = (self.bubble_points * self.size_factor *
+                     size_data_codes ** 2 / s_data_max ** 2)
+            else:
+                raise TypeError(
+                    "'s' must be numeric or ordered categorical dtype")
+        elif is_numeric_dtype(size_data):
+            s_data_max = size_data.max()
+            s = (self.bubble_points * self.size_factor * size_data / s_data_max)
+        else:
+            raise TypeError("'s' must be numeric or ordered categorical dtype")
+        return s
+
     def _sci_notation(self, num):
         """
         Returns mantissa and exponent of the number passed in argument.
@@ -964,10 +958,10 @@ class ScatterPlot(PlanePlot):
         mantis, expnt = regexp.search(scientific_notation).groups()
         return float(mantis), float(expnt)
 
-    def _legend_bubbles(self):
+    def _get_legend_bubbles(self, size_data):
         """
         Computes and returns appropriate bubble sizes and labels for the
-        legend of a  bubble plot.
+        legend of a bubble plot.
 
         If bubble size represents numerical data, creates 4 bubbles with
         round values for the labels, the largest of which is close to the
@@ -976,10 +970,21 @@ class ScatterPlot(PlanePlot):
         If bubble size represents ordered categorical data, creates one bubble
         per category in the data. Sizes are determined by category codes.
         """
-        if self.bubble_dtype == 'categorical':
-            return self.legend_bubbles_sizes, self.labels
-        if self.bubble_dtype == 'numeric':
-            coef, expnt = self._sci_notation(self.s_data_max)
+        if is_categorical_dtype(size_data):
+            if size_data.cat.ordered:
+                size_data_codes = size_data.cat.codes + 1
+                labels = list(size_data.cat.categories)[::-1]
+                n_categories = len(labels)
+                sizes = ((np.array(range(n_categories)) + 1) ** 2 *
+                         self.bubble_points * self.size_factor /
+                         size_data_codes.max() ** 2)
+                sizes = sizes[::-1]
+            else:
+                raise TypeError(
+                    "'s' must be numeric or ordered categorical dtype")
+        elif is_numeric_dtype(size_data):
+            s_data_max = size_data.max()
+            coef, expnt = self._sci_notation(s_data_max)
             labels_catalog = {
                 (9, 10): [10, 5, 2.5, 1],
                 (7, 9): [8, 4, 2, 0.5],
@@ -995,16 +1000,19 @@ class ScatterPlot(PlanePlot):
                     labels = 10**expnt * np.array(labels_catalog[lower_bound,
                                                                  upper_bound])
                     sizes = list(self.bubble_points * self.size_factor *
-                                 labels / self.s_data_max)
+                                 labels / s_data_max)
                     labels = ['{:g}'.format(l) for l in labels]
-                    return (sizes, labels)
+
+        else:
+            raise TypeError("'s' must be numeric or ordered categorical dtype")
+        return (sizes, labels)
 
     def _make_legend(self):
         if hasattr(self, "size_title"):
             ax = self.axes[0]
             import matplotlib.legend as legend
             from matplotlib.collections import CircleCollection
-            sizes, labels = self._legend_bubbles()
+            sizes, labels = self.bubble_legend_sizes, self.bubble_legend_labels
             color = self.plt.rcParams['axes.facecolor'],
             edgecolor = self.plt.rcParams['axes.edgecolor']
             bubbles = []
