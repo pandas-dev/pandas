@@ -54,21 +54,22 @@ Resampling or converting a time series to a particular frequency
 
 .. ipython:: python
 
-   idx = pd.date_range('2018-01-01', periods=72, freq='H')
-   ts = pd.Series(np.random.randn(len(idx)), index=idx)
-   ts.resample('D').mean()
+   idx = pd.date_range('2018-01-01', periods=5, freq='H')
+   ts = pd.Series(range(len(idx)), index=idx)
+   ts
+   ts.resample('2H').mean()
 
 Performing date and time arithmetic with absolute or relative time increments
 
 .. ipython:: python
 
-    ts = pd.Timestamp('2018-01-05')
-    ts.day_name()
+    friday = pd.Timestamp('2018-01-05')
+    friday.day_name()
     # Add 1 day
-    saturday = ts + pd.Timedelta('1 day')
+    saturday = friday + pd.Timedelta('1 day')
     saturday.day_name()
     # Add 1 business day (Friday --> Monday)
-    monday = ts + pd.tseries.offsets.BDay()
+    monday = friday + pd.tseries.offsets.BDay()
     monday.day_name()
 
 pandas provides a relatively compact and self-contained set of tools for
@@ -110,11 +111,12 @@ However, :class:`Series` and :class:`DataFrame` can directly also support the ti
    pd.Series(pd.date_range('2000', freq='D', periods=3))
 
 :class:`Series` and :class:`DataFrame` have extended data type support and functionality for ``datetime`` and ``timedelta``
-data when the time data is used as data itself. The other time related concepts will be stored as ``object`` data.
+data when the time data is used as data itself. The ``Period`` and ``DateOffset`` data will be stored as ``object`` data.
 
 .. ipython:: python
 
    pd.Series(pd.period_range('1/1/2011', freq='M', periods=3))
+   pd.Series(pd.date_range('1/1/2011', freq='M', periods=3))
 
 Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
 useful for representing missing or null date like values and behaves similar
@@ -1486,7 +1488,7 @@ time. The method for this is :meth:`~Series.shift`, which is available on all of
 the pandas objects.
 
 .. ipython:: python
-   ts = pd.Series(np.random.randn(len(rng)), index=rng)
+   ts = pd.Series(range(len(rng)), index=rng)
    ts = ts[:5]
    ts.shift(1)
 
