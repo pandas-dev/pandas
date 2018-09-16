@@ -934,8 +934,8 @@ class ScatterPlot(PlanePlot):
             if size_data.cat.ordered:
                 size_data_codes = size_data.cat.codes + 1
                 s_data_max = size_data_codes.max()
-                s = self.bubble_points * self.size_factor * \
-                    size_data_codes**2 / s_data_max**2
+                s = (self.bubble_points * self.size_factor *
+                     size_data_codes**2 / s_data_max**2)
             else:
                 raise TypeError(
                     "'s' must be numeric or ordered categorical dtype")
