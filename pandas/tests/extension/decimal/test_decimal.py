@@ -105,9 +105,7 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is DecimalArray
+    pass
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
@@ -203,6 +201,27 @@ def test_dataframe_constructor_with_dtype():
     result = pd.DataFrame({"A": arr}, dtype='int64')
     expected = pd.DataFrame({"A": [10]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("frame", [True, False])
+def test_astype_dispatches(frame):
+    # This is a dtype-specific test that ensures Series[decimal].astype
+    # gets all the way through to ExtensionArray.astype
+    # Designing a reliable smoke test that works for arbitrary data types
+    # is difficult.
+    data = pd.Series(DecimalArray([decimal.Decimal(2)]), name='a')
+    ctx = decimal.Context()
+    ctx.prec = 5
+
+    if frame:
+        data = data.to_frame()
+
+    result = data.astype(DecimalDtype(ctx))
+
+    if frame:
+        result = result['a']
+
+    assert result.dtype.context.prec == ctx.prec
 
 
 class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):

@@ -595,15 +595,17 @@ class TestSeriesAnalytics(TestData):
                    index=list('abcde'), name='foo')
         expected = Series(s.values.compress(cond),
                           index=list('ac'), name='foo')
-        tm.assert_series_equal(np.compress(cond, s), expected)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            tm.assert_series_equal(np.compress(cond, s), expected)
 
-        msg = "the 'axis' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.compress,
-                               cond, s, axis=1)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            msg = "the 'axis' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.compress,
+                                   cond, s, axis=1)
 
-        msg = "the 'out' parameter is not supported"
-        tm.assert_raises_regex(ValueError, msg, np.compress,
-                               cond, s, out=s)
+            msg = "the 'out' parameter is not supported"
+            tm.assert_raises_regex(ValueError, msg, np.compress,
+                                   cond, s, out=s)
 
     def test_round(self):
         self.ts.index.name = "index_name"
@@ -777,6 +779,15 @@ class TestSeriesAnalytics(TestData):
         sexp = 0.5853767
         tm.assert_almost_equal(A.corr(B, method='kendall'), kexp)
         tm.assert_almost_equal(A.corr(B, method='spearman'), sexp)
+
+    def test_corr_invalid_method(self):
+        # GH PR #22298
+        s1 = pd.Series(np.random.randn(10))
+        s2 = pd.Series(np.random.randn(10))
+        msg = ("method must be either 'pearson', 'spearman', "
+               "or 'kendall'")
+        with tm.assert_raises_regex(ValueError, msg):
+            s1.corr(s2, method="____")
 
     def test_cov(self):
         # full overlap
@@ -1333,10 +1344,6 @@ class TestSeriesAnalytics(TestData):
         exp = Series(s.values.repeat(5), index=s.index.values.repeat(5))
         assert_series_equal(reps, exp)
 
-        with tm.assert_produces_warning(FutureWarning):
-            result = s.repeat(reps=5)
-            assert_series_equal(result, exp)
-
         to_rep = [2, 3, 4]
         reps = s.repeat(to_rep)
         exp = Series(s.values.repeat(to_rep),
@@ -1360,10 +1367,6 @@ class TestSeriesAnalytics(TestData):
 
         idx = s.searchsorted(1, side='right')
         tm.assert_numpy_array_equal(idx, np.array([1], dtype=np.intp))
-
-        with tm.assert_produces_warning(FutureWarning):
-            idx = s.searchsorted(v=1, side='left')
-            tm.assert_numpy_array_equal(idx, np.array([0], dtype=np.intp))
 
     def test_searchsorted_numeric_dtypes_scalar(self):
         s = Series([1, 2, 90, 1000, 3e9])

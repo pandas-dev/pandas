@@ -2,7 +2,7 @@
 from __future__ import division
 import operator
 import warnings
-from datetime import time, datetime
+from datetime import time, datetime, timedelta
 
 import numpy as np
 from pytz import utc
@@ -43,8 +43,7 @@ from pandas.tseries.offsets import (
     generate_range, CDay, prefix_mapping)
 
 from pandas.core.tools.timedeltas import to_timedelta
-from pandas.util._decorators import (
-    Appender, cache_readonly, deprecate_kwarg, Substitution)
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
@@ -385,7 +384,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     @classmethod
     def _use_cached_range(cls, freq, _normalized, start, end):
-        return _use_cached_range(freq, _normalized, start, end)
+        # Note: This always returns False
+        return (freq._should_cache() and
+                not (freq._normalize_cache and not _normalized) and
+                _naive_in_cache_range(start, end))
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -727,6 +729,10 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         """
         from pandas.core.indexes.period import PeriodIndex
 
+        if self.tz is not None:
+            warnings.warn("Converting to PeriodIndex representation will "
+                          "drop timezone information.", UserWarning)
+
         if freq is None:
             freq = self.freqstr or self.inferred_freq
 
@@ -737,7 +743,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
             freq = get_period_alias(freq)
 
-        return PeriodIndex(self.values, name=self.name, freq=freq, tz=self.tz)
+        return PeriodIndex(self.values, name=self.name, freq=freq)
 
     def snap(self, freq='S'):
         """
@@ -1201,6 +1207,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             key = Timestamp(key, tz=self.tz)
             return Index.get_loc(self, key, method, tolerance)
 
+        elif isinstance(key, timedelta):
+            # GH#20464
+            raise TypeError("Cannot index {cls} with {other}"
+                            .format(cls=type(self).__name__,
+                                    other=type(key).__name__))
+
         if isinstance(key, time):
             if method is not None:
                 raise NotImplementedError('cannot yet lookup inexact labels '
@@ -1362,7 +1374,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if isinstance(value, (np.ndarray, Index)):
             value = np.array(value, dtype=_NS_DTYPE, copy=False)
@@ -1580,7 +1591,7 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
         Right bound for generating dates.
     periods : integer, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D' (calendar daily)
+    freq : str or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
@@ -1861,17 +1872,7 @@ def _naive_in_cache_range(start, end):
     else:
         if start.tzinfo is not None or end.tzinfo is not None:
             return False
-        return _in_range(start, end, _CACHE_START, _CACHE_END)
-
-
-def _in_range(start, end, rng_start, rng_end):
-    return start > rng_start and end < rng_end
-
-
-def _use_cached_range(freq, _normalized, start, end):
-    return (freq._should_cache() and
-            not (freq._normalize_cache and not _normalized) and
-            _naive_in_cache_range(start, end))
+        return start > _CACHE_START and end < _CACHE_END
 
 
 def _time_to_micros(time):

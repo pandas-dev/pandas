@@ -289,10 +289,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 for i, a in cls._AXIS_NAMES.items():
                     set_axis(a, i)
 
-        # addtl parms
-        if isinstance(ns, dict):
-            for k, v in ns.items():
-                setattr(cls, k, v)
+        assert not isinstance(ns, dict)
 
     def _construct_axes_dict(self, axes=None, **kwargs):
         """Return an axes dictionary for myself."""
@@ -738,14 +735,14 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df = pd.DataFrame([
-        ...:     [1, 2, 3, 4],
-        ...:     [5, 6, 7, 8],
-        ...:     [9, 10, 11, 12]
-        ...: ]).set_index([0, 1]).rename_axis(['a', 'b'])
+        ...     [1, 2, 3, 4],
+        ...     [5, 6, 7, 8],
+        ...     [9, 10, 11, 12]
+        ... ]).set_index([0, 1]).rename_axis(['a', 'b'])
 
         >>> df.columns = pd.MultiIndex.from_tuples([
-        ...:    ('c', 'e'), ('d', 'f')
-        ...:], names=['level_1', 'level_2'])
+        ...    ('c', 'e'), ('d', 'f')
+        ... ], names=['level_1', 'level_2'])
 
         >>> df
         level_1   c   d
@@ -1303,8 +1300,85 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def equals(self, other):
         """
-        Determines if two NDFrame objects contain the same elements. NaNs in
-        the same location are considered equal.
+        Test whether two objects contain the same elements.
+
+        This function allows two Series or DataFrames to be compared against
+        each other to see if they have the same shape and elements. NaNs in
+        the same location are considered equal. The column headers do not
+        need to have the same type, but the elements within the columns must
+        be the same dtype.
+
+        Parameters
+        ----------
+        other : Series or DataFrame
+            The other Series or DataFrame to be compared with the first.
+
+        Returns
+        -------
+        bool
+            True if all elements are the same in both objects, False
+            otherwise.
+
+        See Also
+        --------
+        Series.eq : Compare two Series objects of the same length
+            and return a Series where each element is True if the element
+            in each Series is equal, False otherwise.
+        DataFrame.eq : Compare two DataFrame objects of the same shape and
+            return a DataFrame where each element is True if the respective
+            element in each DataFrame is equal, False otherwise.
+        assert_series_equal : Return True if left and right Series are equal,
+            False otherwise.
+        assert_frame_equal : Return True if left and right DataFrames are
+            equal, False otherwise.
+        numpy.array_equal : Return True if two arrays have the same shape
+            and elements, False otherwise.
+
+        Notes
+        -----
+        This function requires that the elements have the same dtype as their
+        respective elements in the other Series or DataFrame. However, the
+        column labels do not need to have the same type, as long as they are
+        still considered equal.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({1: [10], 2: [20]})
+        >>> df
+            1   2
+        0  10  20
+
+        DataFrames df and exactly_equal have the same types and values for
+        their elements and column labels, which will return True.
+
+        >>> exactly_equal = pd.DataFrame({1: [10], 2: [20]})
+        >>> exactly_equal
+            1   2
+        0  10  20
+        >>> df.equals(exactly_equal)
+        True
+
+        DataFrames df and different_column_type have the same element
+        types and values, but have different types for the column labels,
+        which will still return True.
+
+        >>> different_column_type = pd.DataFrame({1.0: [10], 2.0: [20]})
+        >>> different_column_type
+           1.0  2.0
+        0   10   20
+        >>> df.equals(different_column_type)
+        True
+
+        DataFrames df and different_data_type have different types for the
+        same values for their elements, and will return False even though
+        their column labels are the same values and types.
+
+        >>> different_data_type = pd.DataFrame({1: [10.0], 2: [20.0]})
+        >>> different_data_type
+              1     2
+        0  10.0  20.0
+        >>> df.equals(different_data_type)
+        False
         """
         if not isinstance(other, self._constructor):
             return False
@@ -1412,14 +1486,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return (self._is_level_reference(key, axis=axis) or
                 self._is_label_reference(key, axis=axis))
 
-    def _check_label_or_level_ambiguity(self, key, axis=0, stacklevel=1):
+    def _check_label_or_level_ambiguity(self, key, axis=0):
         """
-        Check whether `key` matches both a level of the input `axis` and a
-        label of the other axis and raise a ``FutureWarning`` if this is the
-        case.
+        Check whether `key` is ambiguous.
 
-        Note: This method will be altered to raise an ambiguity exception in
-        a future version.
+        By ambiguous, we mean that it matches both a level of the input
+        `axis` and a label of the other axis.
 
         Parameters
         ----------
@@ -1427,18 +1499,10 @@ class NDFrame(PandasObject, SelectionMixin):
             label or level name
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
-
-        Returns
-        -------
-        ambiguous: bool
 
         Raises
         ------
-        FutureWarning
-            if `key` is ambiguous. This will become an ambiguity error in a
-            future version
+        ValueError: `key` is ambiguous
         """
 
         axis = self._get_axis_number(axis)
@@ -1464,21 +1528,15 @@ class NDFrame(PandasObject, SelectionMixin):
                                          ('an', 'index'))
 
             msg = ("'{key}' is both {level_article} {level_type} level and "
-                   "{label_article} {label_type} label.\n"
-                   "Defaulting to {label_type}, but this will raise an "
-                   "ambiguity error in a future version"
+                   "{label_article} {label_type} label, which is ambiguous."
                    ).format(key=key,
                             level_article=level_article,
                             level_type=level_type,
                             label_article=label_article,
                             label_type=label_type)
+            raise ValueError(msg)
 
-            warnings.warn(msg, FutureWarning, stacklevel=stacklevel + 1)
-            return True
-        else:
-            return False
-
-    def _get_label_or_level_values(self, key, axis=0, stacklevel=1):
+    def _get_label_or_level_values(self, key, axis=0):
         """
         Return a 1-D array of values associated with `key`, a label or level
         from the given `axis`.
@@ -1497,8 +1555,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Label or level name.
         axis: int, default 0
             Axis that levels are associated with (0 for index, 1 for columns)
-        stacklevel: int, default 1
-            Stack level used when a FutureWarning is raised (see below).
 
         Returns
         -------
@@ -1524,8 +1580,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 .format(type=type(self)))
 
         if self._is_label_reference(key, axis=axis):
-            self._check_label_or_level_ambiguity(key, axis=axis,
-                                                 stacklevel=stacklevel + 1)
+            self._check_label_or_level_ambiguity(key, axis=axis)
             values = self.xs(key, axis=other_axes[0])._values
         elif self._is_level_reference(key, axis=axis):
             values = self.axes[axis].get_level_values(key)._values
@@ -2540,69 +2595,107 @@ class NDFrame(PandasObject, SelectionMixin):
                                 coords=coords,
                                 )
 
-    _shared_docs['to_latex'] = r"""
-        Render an object to a tabular environment table. You can splice
-        this into a LaTeX document. Requires \\usepackage{booktabs}.
-
-        .. versionchanged:: 0.20.2
-           Added to Series
-
-        `to_latex`-specific options:
-
-        bold_rows : boolean, default False
-            Make the row labels bold in the output
-        column_format : str, default None
-            The columns format as specified in `LaTeX table format
-            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g 'rcl' for 3
-            columns
-        longtable : boolean, default will be read from the pandas config module
-            Default: False.
-            Use a longtable environment instead of tabular. Requires adding
-            a \\usepackage{longtable} to your LaTeX preamble.
-        escape : boolean, default will be read from the pandas config module
-            Default: True.
-            When set to False prevents from escaping latex special
-            characters in column names.
-        encoding : str, default None
-            A string representing the encoding to use in the output file,
-            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        decimal : string, default '.'
-            Character recognized as decimal separator, e.g. ',' in Europe.
-
-            .. versionadded:: 0.18.0
-
-        multicolumn : boolean, default True
-            Use \multicolumn to enhance MultiIndex columns.
-            The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
-
-        multicolumn_format : str, default 'l'
-            The alignment for multicolumns, similar to `column_format`
-            The default will be read from the config module.
-
-            .. versionadded:: 0.20.0
-
-        multirow : boolean, default False
-            Use \multirow to enhance MultiIndex rows.
-            Requires adding a \\usepackage{multirow} to your LaTeX preamble.
-            Will print centered labels (instead of top-aligned)
-            across the contained rows, separating groups via clines.
-            The default will be read from the pandas config module.
-
-            .. versionadded:: 0.20.0
-            """
-
-    @Substitution(header='Write out the column names. If a list of strings '
-                         'is given, it is assumed to be aliases for the '
-                         'column names.')
-    @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
     def to_latex(self, buf=None, columns=None, col_space=None, header=True,
                  index=True, na_rep='NaN', formatters=None, float_format=None,
                  sparsify=None, index_names=True, bold_rows=False,
                  column_format=None, longtable=None, escape=None,
                  encoding=None, decimal='.', multicolumn=None,
                  multicolumn_format=None, multirow=None):
+        r"""
+        Render an object to a LaTeX tabular environment table.
+
+        Render an object to a tabular environment table. You can splice
+        this into a LaTeX document. Requires \usepackage{booktabs}.
+
+        .. versionchanged:: 0.20.2
+           Added to Series
+
+        Parameters
+        ----------
+        buf : file descriptor or None
+            Buffer to write to. If None, the output is returned as a string.
+        columns : list of label, optional
+            The subset of columns to write. Writes all columns by default.
+        col_space : int, optional
+            The minimum width of each column.
+        header : bool or list of str, default True
+            Write out the column names. If a list of strings is given,
+            it is assumed to be aliases for the column names.
+        index : bool, default True
+            Write row names (index).
+        na_rep : str, default 'NaN'
+            Missing data representation.
+        formatters : list of functions or dict of {str: function}, optional
+            Formatter functions to apply to columns' elements by position or
+            name. The result of each function must be a unicode string.
+            List must be of length equal to the number of columns.
+        float_format : str, optional
+            Format string for floating point numbers.
+        sparsify : bool, optional
+            Set to False for a DataFrame with a hierarchical index to print
+            every multiindex key at each row. By default, the value will be
+            read from the config module.
+        index_names : bool, default True
+            Prints the names of the indexes.
+        bold_rows : bool, default False
+            Make the row labels bold in the output.
+        column_format : str, optional
+            The columns format as specified in `LaTeX table format
+            <https://en.wikibooks.org/wiki/LaTeX/Tables>`__ e.g. 'rcl' for 3
+            columns. By default, 'l' will be used for all columns except
+            columns of numbers, which default to 'r'.
+        longtable : bool, optional
+            By default, the value will be read from the pandas config
+            module. Use a longtable environment instead of tabular. Requires
+            adding a \usepackage{longtable} to your LaTeX preamble.
+        escape : bool, optional
+            By default, the value will be read from the pandas config
+            module. When set to False prevents from escaping latex special
+            characters in column names.
+        encoding : str, optional
+            A string representing the encoding to use in the output file,
+            defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
+        decimal : str, default '.'
+            Character recognized as decimal separator, e.g. ',' in Europe.
+            .. versionadded:: 0.18.0
+        multicolumn : bool, default True
+            Use \multicolumn to enhance MultiIndex columns.
+            The default will be read from the config module.
+            .. versionadded:: 0.20.0
+        multicolumn_format : str, default 'l'
+            The alignment for multicolumns, similar to `column_format`
+            The default will be read from the config module.
+            .. versionadded:: 0.20.0
+        multirow : bool, default False
+            Use \multirow to enhance MultiIndex rows. Requires adding a
+            \usepackage{multirow} to your LaTeX preamble. Will print
+            centered labels (instead of top-aligned) across the contained
+            rows, separating groups via clines. The default will be read
+            from the pandas config module.
+            .. versionadded:: 0.20.0
+
+        Returns
+        -------
+        str or None
+            If buf is None, returns the resulting LateX format as a
+            string. Otherwise returns None.
+
+        See Also
+        --------
+        DataFrame.to_string : Render a DataFrame to a console-friendly
+            tabular output.
+        DataFrame.to_html : Render a DataFrame as an HTML table.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']})
+        >>> df.to_latex(index=False) # doctest: +NORMALIZE_WHITESPACE
+        '\\begin{tabular}{lll}\n\\toprule\n      name &    mask &    weapon
+        \\\\\n\\midrule\n   Raphael &     red &       sai \\\\\n Donatello &
+         purple &  bo staff \\\\\n\\bottomrule\n\\end{tabular}\n'
+        """
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
@@ -3425,8 +3518,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2       3       5
         3       4       6
         """
-        new_data = self._data.add_prefix(prefix)
-        return self._constructor(new_data).__finalize__(self)
+        f = functools.partial('{prefix}{}'.format, prefix=prefix)
+
+        mapper = {self._info_axis_name: f}
+        return self.rename(**mapper)
 
     def add_suffix(self, suffix):
         """
@@ -3482,8 +3577,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2       3       5
         3       4       6
         """
-        new_data = self._data.add_suffix(suffix)
-        return self._constructor(new_data).__finalize__(self)
+        f = functools.partial('{}{suffix}'.format, suffix=suffix)
+
+        mapper = {self._info_axis_name: f}
+        return self.rename(**mapper)
 
     _shared_docs['sort_values'] = """
         Sort by the values along either axis
@@ -3999,6 +4096,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self._constructor(new_data).__finalize__(self)
 
+    # TODO: unused; remove?
     def _reindex_axis(self, new_index, fill_method, axis, copy):
         new_data = self._data.reindex_axis(new_index, axis=axis,
                                            method=fill_method, copy=copy)
@@ -4458,7 +4556,6 @@ class NDFrame(PandasObject, SelectionMixin):
         - function.
         - list of functions.
         - dict of column names -> functions (or list of functions).
-
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -6081,89 +6178,191 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['interpolate'] = """
         Please note that only ``method='linear'`` is supported for
-        DataFrames/Series with a MultiIndex.
+        DataFrame/Series with a MultiIndex.
 
         Parameters
         ----------
-        method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
-                  'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
-                  'polynomial', 'spline', 'piecewise_polynomial',
-                  'from_derivatives', 'pchip', 'akima'}
+        method : str, default 'linear'
+            Interpolation technique to use. One of:
 
-            * 'linear': ignore the index and treat the values as equally
+            * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
-              default
-            * 'time': interpolation works on daily and higher resolution
-              data to interpolate given length of interval
-            * 'index', 'values': use the actual numerical values of the index
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-              'barycentric', 'polynomial' is passed to
-              :class:`scipy.interpolate.interp1d`. Both 'polynomial' and
-              'spline' require that you also specify an `order` (int),
+            * 'time': Works on daily and higher resolution data to interpolate
+              given length of interval.
+            * 'index', 'values': use the actual numerical values of the index.
+            * 'pad': Fill in NaNs using existing values.
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
+              'barycentric', 'polynomial': Passed to
+              `scipy.interpolate.interp1d`. Both 'polynomial' and 'spline'
+              require that you also specify an `order` (int),
               e.g. ``df.interpolate(method='polynomial', order=4)``.
-              These use the actual numerical values of the index.
-            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
-              are all wrappers around the scipy interpolation methods of
-              similar names. These use the actual numerical values of the
-              index. For more information on their behavior, see the
-              `scipy documentation
-              <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-              and `tutorial documentation
-              <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__
-            * 'from_derivatives' refers to
-              :meth:`scipy.interpolate.BPoly.from_derivatives` which
+              These use the numerical values of the index.
+            * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
+              Wrappers around the SciPy interpolation methods of similar
+              names. See `Notes`.
+            * 'from_derivatives': Refers to
+              `scipy.interpolate.BPoly.from_derivatives` which
               replaces 'piecewise_polynomial' interpolation method in
-              scipy 0.18
+              scipy 0.18.
 
             .. versionadded:: 0.18.1
 
                Added support for the 'akima' method.
                Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in scipy 0.18; backwards-compatible with
-               scipy < 0.18
+               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
+               SciPy < 0.18
 
-        axis : {0, 1}, default 0
-            * 0: fill column-by-column
-            * 1: fill row-by-row
-        limit : int, default None.
-            Maximum number of consecutive NaNs to fill. Must be greater than 0.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
+            Axis to interpolate along.
+        limit : int, optional
+            Maximum number of consecutive NaNs to fill. Must be greater than
+            0.
+        inplace : bool, default False
+            Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-        limit_area : {'inside', 'outside'}, default None
-            * None: (default) no fill restriction
-            * 'inside' Only fill NaNs surrounded by valid values (interpolate).
-            * 'outside' Only fill NaNs outside valid values (extrapolate).
-
             If limit is specified, consecutive NaNs will be filled in this
             direction.
+        limit_area : {`None`, 'inside', 'outside'}, default None
+            If limit is specified, consecutive NaNs will be filled with this
+            restriction.
+
+            * ``None``: No fill restriction.
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
 
             .. versionadded:: 0.21.0
-        inplace : bool, default False
-            Update the NDFrame in place if possible.
+
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
-        kwargs : keyword arguments to pass on to the interpolating function.
+        **kwargs
+            Keyword arguments to pass on to the interpolating function.
 
         Returns
         -------
-        Series or DataFrame of same shape interpolated at the NaNs
+        Series or DataFrame
+            Returns the same object type as the caller, interpolated at
+            some or all ``NaN`` values
 
         See Also
         --------
-        reindex, replace, fillna
+        fillna : Fill missing values using different methods.
+        scipy.interpolate.Akima1DInterpolator : Piecewise cubic polynomials
+            (Akima interpolator).
+        scipy.interpolate.BPoly.from_derivatives : Piecewise polynomial in the
+            Bernstein basis.
+        scipy.interpolate.interp1d : Interpolate a 1-D function.
+        scipy.interpolate.KroghInterpolator : Interpolate polynomial (Krogh
+            interpolator).
+        scipy.interpolate.PchipInterpolator : PCHIP 1-d monotonic cubic
+            interpolation.
+        scipy.interpolate.CubicSpline : Cubic spline data interpolator.
+
+        Notes
+        -----
+        The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+        methods are wrappers around the respective SciPy implementations of
+        similar names. These use the actual numerical values of the index.
+        For more information on their behavior, see the
+        `SciPy documentation
+        <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+        and `SciPy tutorial
+        <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
 
         Examples
         --------
-
-        Filling in NaNs
+        Filling in ``NaN`` in a :class:`~pandas.Series` via linear
+        interpolation.
 
         >>> s = pd.Series([0, 1, np.nan, 3])
+        >>> s
+        0    0.0
+        1    1.0
+        2    NaN
+        3    3.0
+        dtype: float64
         >>> s.interpolate()
-        0    0
-        1    1
-        2    2
-        3    3
+        0    0.0
+        1    1.0
+        2    2.0
+        3    3.0
         dtype: float64
 
+        Filling in ``NaN`` in a Series by padding, but filling at most two
+        consecutive ``NaN`` at a time.
+
+        >>> s = pd.Series([np.nan, "single_one", np.nan,
+        ...                "fill_two_more", np.nan, np.nan, np.nan,
+        ...                4.71, np.nan])
+        >>> s
+        0              NaN
+        1       single_one
+        2              NaN
+        3    fill_two_more
+        4              NaN
+        5              NaN
+        6              NaN
+        7             4.71
+        8              NaN
+        dtype: object
+        >>> s.interpolate(method='pad', limit=2)
+        0              NaN
+        1       single_one
+        2       single_one
+        3    fill_two_more
+        4    fill_two_more
+        5    fill_two_more
+        6              NaN
+        7             4.71
+        8             4.71
+        dtype: object
+
+        Filling in ``NaN`` in a Series via polynomial interpolation or splines:
+        Both 'polynomial' and 'spline' methods require that you also specify
+        an ``order`` (int).
+
+        >>> s = pd.Series([0, 2, np.nan, 8])
+        >>> s.interpolate(method='polynomial', order=2)
+        0    0.000000
+        1    2.000000
+        2    4.666667
+        3    8.000000
+        dtype: float64
+
+        Fill the DataFrame forward (that is, going down) along each column
+        using linear interpolation.
+
+        Note how the last entry in column 'a' is interpolated differently,
+        because there is no entry after it to use for interpolation.
+        Note how the first entry in column 'b' remains ``NaN``, because there
+        is no entry befofe it to use for interpolation.
+
+        >>> df = pd.DataFrame([(0.0,  np.nan, -1.0, 1.0),
+        ...                    (np.nan, 2.0, np.nan, np.nan),
+        ...                    (2.0, 3.0, np.nan, 9.0),
+        ...                    (np.nan, 4.0, -4.0, 16.0)],
+        ...                   columns=list('abcd'))
+        >>> df
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  NaN  2.0  NaN   NaN
+        2  2.0  3.0  NaN   9.0
+        3  NaN  4.0 -4.0  16.0
+        >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  1.0  2.0 -2.0   5.0
+        2  2.0  3.0 -3.0   9.0
+        3  2.0  4.0 -4.0  16.0
+
+        Using polynomial interpolation.
+
+        >>> df['d'].interpolate(method='polynomial', order=2)
+        0     1.0
+        1     4.0
+        2     9.0
+        3    16.0
+        Name: d, dtype: float64
         """
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
@@ -8063,7 +8262,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative
+            Number of periods to move, can be positive or negative.
         freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from the tseries module or time rule (e.g. 'EOM').
             See Notes.
@@ -8083,7 +8282,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
         if periods == 0:
-            return self
+            return self.copy()
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:

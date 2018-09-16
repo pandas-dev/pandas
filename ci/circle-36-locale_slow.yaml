@@ -14,7 +14,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl
+  - openpyxl=2.5.5
   - psycopg2
   - pymysql
   - pytables
@@ -32,3 +32,5 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - pip:
+    - hypothesis>=3.58.0

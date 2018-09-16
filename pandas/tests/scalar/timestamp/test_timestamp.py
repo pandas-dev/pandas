@@ -5,6 +5,7 @@ import pytest
 import dateutil
 import calendar
 import locale
+import unicodedata
 import numpy as np
 
 from dateutil.tz import tzutc
@@ -20,7 +21,7 @@ from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 
 from pandas.errors import OutOfBoundsDatetime
-from pandas.compat import long, PY3
+from pandas.compat import long, PY3, PY2
 from pandas.compat.numpy import np_datetime64_compat
 from pandas import Timestamp, Period, Timedelta, NaT
 
@@ -116,8 +117,21 @@ class TestTimestampProperties(object):
                 expected_day = calendar.day_name[0].capitalize()
                 expected_month = calendar.month_name[8].capitalize()
 
-        assert data.day_name(time_locale) == expected_day
-        assert data.month_name(time_locale) == expected_month
+        result_day = data.day_name(time_locale)
+        result_month = data.month_name(time_locale)
+
+        # Work around https://github.com/pandas-dev/pandas/issues/22342
+        # different normalizations
+
+        if not PY2:
+            expected_day = unicodedata.normalize("NFD", expected_day)
+            expected_month = unicodedata.normalize("NFD", expected_month)
+
+            result_day = unicodedata.normalize("NFD", result_day,)
+            result_month = unicodedata.normalize("NFD", result_month)
+
+        assert result_day == expected_day
+        assert result_month == expected_month
 
         # Test NaT
         nan_ts = Timestamp(NaT)
@@ -915,3 +929,11 @@ class TestTimestampConversion(object):
         with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
             assert (Timestamp(Timestamp.min.to_pydatetime()).value / 1000 ==
                     Timestamp.min.value / 1000)
+
+    def test_to_period_tz_warning(self):
+        # GH#21333 make sure a warning is issued when timezone
+        # info is lost
+        ts = Timestamp('2009-04-15 16:17:18', tz='US/Eastern')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            ts.to_period('D')

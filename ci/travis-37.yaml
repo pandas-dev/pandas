@@ -12,3 +12,4 @@ dependencies:
   - pytz
   - pytest
   - pytest-xdist
+  - hypothesis>=3.58.0

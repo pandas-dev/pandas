@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import collections
 import textwrap
 import warnings
@@ -7,9 +6,9 @@ import warnings
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 
-from cpython cimport PyUnicode_Check, Py_NE, Py_EQ, PyObject_RichCompare
+from cpython cimport Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
 cimport numpy as cnp
@@ -282,7 +281,7 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
 
 cdef inline _decode_if_necessary(object ts):
     # decode ts if necessary
-    if not PyUnicode_Check(ts) and not PY3:
+    if not isinstance(ts, unicode) and not PY3:
         ts = str(ts).decode('utf-8')
 
     return ts

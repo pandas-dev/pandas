@@ -2352,6 +2352,7 @@ Computations / Descriptive Stats
    Resampler.std
    Resampler.sum
    Resampler.var
+   Resampler.quantile
 
 Style
 -----
@@ -2558,6 +2559,7 @@ objects.
 .. autosummary::
    :toctree: generated/
 
+   api.extensions.register_extension_dtype
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor

@@ -71,12 +71,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
-        try:
+        with pytest.raises(KeyError):
             df[['baf']]
-        except KeyError:
-            pass
-        else:
-            self.fail("Dataframe failed to raise KeyError")
 
     def test_get(self):
         b = self.frame.get('B')
@@ -273,6 +269,8 @@ class TestDataFrameIndexing(TestData):
         # test df[df > 0]
         for df in [self.tsframe, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
+            if compat.PY3 and df is self.mixed_frame:
+                continue
 
             data = df._get_numeric_data()
             bif = df[df > 0]
@@ -2468,8 +2466,11 @@ class TestDataFrameIndexing(TestData):
         assert_frame_equal(df2, expected)
 
         df['foo'] = 'test'
-        with tm.assert_raises_regex(TypeError, 'boolean setting '
-                                    'on mixed-type'):
+        msg = ("boolean setting on mixed-type|"
+               "not supported between|"
+               "unorderable types")
+        with tm.assert_raises_regex(TypeError, msg):
+            # TODO: This message should be the same in PY2/PY3
             df[df > 0.3] = 1
 
     def test_where(self):
@@ -2502,6 +2503,10 @@ class TestDataFrameIndexing(TestData):
         # check getting
         for df in [default_frame, self.mixed_frame,
                    self.mixed_float, self.mixed_int]:
+            if compat.PY3 and df is self.mixed_frame:
+                with pytest.raises(TypeError):
+                    df > 0
+                continue
             cond = df > 0
             _check_get(df, cond)
 
@@ -2549,6 +2554,10 @@ class TestDataFrameIndexing(TestData):
                 assert (rs.dtypes == df.dtypes).all()
 
         for df in [self.mixed_frame, self.mixed_float, self.mixed_int]:
+            if compat.PY3 and df is self.mixed_frame:
+                with pytest.raises(TypeError):
+                    df > 0
+                continue
 
             # other is a frame
             cond = (df > 0)[1:]
@@ -2594,6 +2603,10 @@ class TestDataFrameIndexing(TestData):
 
         for df in [default_frame, self.mixed_frame, self.mixed_float,
                    self.mixed_int]:
+            if compat.PY3 and df is self.mixed_frame:
+                with pytest.raises(TypeError):
+                    df > 0
+                continue
 
             cond = df > 0
             _check_set(df, cond)
@@ -2759,9 +2772,14 @@ class TestDataFrameIndexing(TestData):
                             C=np.random.randn(5)))
 
         stamp = datetime(2013, 1, 3)
-        result = df[df > stamp]
+        with pytest.raises(TypeError):
+            df > stamp
+
+        result = df[df.iloc[:, :-1] > stamp]
+
         expected = df.copy()
         expected.loc[[0, 1], 'A'] = np.nan
+        expected.loc[:, 'C'] = np.nan
         assert_frame_equal(result, expected)
 
     def test_where_none(self):
@@ -3075,6 +3093,28 @@ class TestDataFrameIndexing(TestData):
         expected = Series([1, 3], index=index, name=name)
 
         result = dg['x', 0]
+        assert_series_equal(result, expected)
+
+    def test_interval_index(self):
+        # GH 19977
+        index = pd.interval_range(start=0, periods=3)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                          index=index,
+                          columns=['A', 'B', 'C'])
+
+        expected = 1
+        result = df.loc[0.5, 'A']
+        assert_almost_equal(result, expected)
+
+        index = pd.interval_range(start=0, periods=3, closed='both')
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                          index=index,
+                          columns=['A', 'B', 'C'])
+
+        index_exp = pd.interval_range(start=0, periods=2,
+                                      freq=1, closed='both')
+        expected = pd.Series([1, 4], index=index_exp, name='A')
+        result = df.loc[1, 'A']
         assert_series_equal(result, expected)
 
 
