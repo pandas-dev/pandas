@@ -1178,13 +1178,3 @@ class TestDataFrameAggregate(TestData):
         df = DataFrame(True, index=index, columns=range(num_columns))
         df.apply(lambda x: x)
         assert index.freq == original.freq
-
-    def test_frequency_is_original_example(self):
-        # GH22150
-        index = pd.DatetimeIndex(['2000-01-03', '2000-01-04', '2000-01-05'],
-                                 dtype='datetime64[ns]')
-        num_columns = 2
-        original = index.copy()
-        df = DataFrame(True, index=index, columns=range(num_columns))
-        df.apply(lambda x: x)
-        assert index.freq == original.freq
