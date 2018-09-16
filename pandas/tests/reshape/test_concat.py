@@ -958,13 +958,13 @@ class TestAppend(ConcatenateBase):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=index_can_append)
         ser = pd.Series([7, 8, 9], index=index_cannot_append_with_other,
                         name=2)
-        with pytest.raises(TypeError):
+        with pytest.raises((AttributeError, ValueError, TypeError)):
             df.append(ser)
 
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]],
                           columns=index_cannot_append_with_other)
         ser = pd.Series([7, 8, 9], index=index_can_append, name=2)
-        with pytest.raises(TypeError):
+        with pytest.raises((AttributeError, ValueError, TypeError)):
             df.append(ser)
 
     def test_append_dtype_coerce(self, sort):
