@@ -6388,7 +6388,7 @@ class DataFrame(NDFrame):
         if not kwargs['ignore_index']:
             if any(series.name is None for series in other):
                 raise TypeError('Can only append a Series if ignore_index=True'
-                                'or if the Series has a name')
+                                ' or if the Series has a name')
 
         if len(other) == 1:
             # manually create DF for performance
