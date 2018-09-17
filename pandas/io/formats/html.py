@@ -287,12 +287,13 @@ class HTMLFormatter(TableFormatter):
                         values = (values[:ins_col] + [u('...')] +
                                   values[ins_col:])
 
-                name = self.columns.names[lnum]
+                if self.show_col_idx_names:
+                    name = self.columns.names[lnum]
+                else:
+                    name = None
                 row = [''] * (row_levels - 1) + ['' if name is None else
                                                  pprint_thing(name)]
 
-                if self.show_col_idx_names is False:
-                    row[-1] = ''
                 if self.fmt.index is False:
                     if self.show_col_idx_names:
                         row = row[-1:]
