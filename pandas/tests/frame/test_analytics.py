@@ -23,54 +23,47 @@ import pandas.core.algorithms as algorithms
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameAnalytics(TestData):
+class TestDataFrameAnalytics():
 
     # ---------------------------------------------------------------------=
     # Correlation and covariance
 
     @td.skip_if_no_scipy
-    def test_corr_pearson(self):
-        self.frame['A'][:5] = nan
-        self.frame['B'][5:10] = nan
+    def test_corr_pearson(self, float_frame):
+        float_frame['A'][:5] = nan
+        float_frame['B'][5:10] = nan
 
-        self._check_method('pearson')
-
-    @td.skip_if_no_scipy
-    def test_corr_kendall(self):
-        self.frame['A'][:5] = nan
-        self.frame['B'][5:10] = nan
-
-        self._check_method('kendall')
+        self._check_method(float_frame, 'pearson')
 
     @td.skip_if_no_scipy
-    def test_corr_spearman(self):
-        self.frame['A'][:5] = nan
-        self.frame['B'][5:10] = nan
+    def test_corr_kendall(self, float_frame):
+        float_frame['A'][:5] = nan
+        float_frame['B'][5:10] = nan
 
-        self._check_method('spearman')
-
-    def _check_method(self, method='pearson', check_minp=False):
-        if not check_minp:
-            correls = self.frame.corr(method=method)
-            exp = self.frame['A'].corr(self.frame['C'], method=method)
-            tm.assert_almost_equal(correls['A']['C'], exp)
-        else:
-            result = self.frame.corr(min_periods=len(self.frame) - 8)
-            expected = self.frame.corr()
-            expected.loc['A', 'B'] = expected.loc['B', 'A'] = nan
-            tm.assert_frame_equal(result, expected)
+        self._check_method(float_frame, 'kendall')
 
     @td.skip_if_no_scipy
-    def test_corr_non_numeric(self):
-        self.frame['A'][:5] = nan
-        self.frame['B'][5:10] = nan
+    def test_corr_spearman(self, float_frame):
+        float_frame['A'][:5] = nan
+        float_frame['B'][5:10] = nan
+
+        self._check_method(float_frame, 'spearman')
+
+    def _check_method(self, frame, method='pearson'):
+        correls = frame.corr(method=method)
+        exp = frame['A'].corr(frame['C'], method=method)
+        tm.assert_almost_equal(correls['A']['C'], exp)
+
+    @td.skip_if_no_scipy
+    def test_corr_non_numeric(self, float_frame, float_string_frame):
+        float_frame['A'][:5] = nan
+        float_frame['B'][5:10] = nan
 
         # exclude non-numeric types
-        result = self.mixed_frame.corr()
-        expected = self.mixed_frame.loc[:, ['A', 'B', 'C', 'D']].corr()
+        result = float_string_frame.corr()
+        expected = float_string_frame.loc[:, ['A', 'B', 'C', 'D']].corr()
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
@@ -138,36 +131,36 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             df.corr(method="____")
 
-    def test_cov(self):
+    def test_cov(self, float_frame, float_string_frame):
         # min_periods no NAs (corner case)
-        expected = self.frame.cov()
-        result = self.frame.cov(min_periods=len(self.frame))
+        expected = float_frame.cov()
+        result = float_frame.cov(min_periods=len(float_frame))
 
         tm.assert_frame_equal(expected, result)
 
-        result = self.frame.cov(min_periods=len(self.frame) + 1)
+        result = float_frame.cov(min_periods=len(float_frame) + 1)
         assert isna(result.values).all()
 
         # with NAs
-        frame = self.frame.copy()
+        frame = float_frame.copy()
         frame['A'][:5] = nan
         frame['B'][5:10] = nan
-        result = self.frame.cov(min_periods=len(self.frame) - 8)
-        expected = self.frame.cov()
+        result = float_frame.cov(min_periods=len(float_frame) - 8)
+        expected = float_frame.cov()
         expected.loc['A', 'B'] = np.nan
         expected.loc['B', 'A'] = np.nan
 
         # regular
-        self.frame['A'][:5] = nan
-        self.frame['B'][:10] = nan
-        cov = self.frame.cov()
+        float_frame['A'][:5] = nan
+        float_frame['B'][:10] = nan
+        cov = float_frame.cov()
 
         tm.assert_almost_equal(cov['A']['C'],
-                               self.frame['A'].cov(self.frame['C']))
+                               float_frame['A'].cov(float_frame['C']))
 
         # exclude non-numeric types
-        result = self.mixed_frame.cov()
-        expected = self.mixed_frame.loc[:, ['A', 'B', 'C', 'D']].cov()
+        result = float_string_frame.cov()
+        expected = float_string_frame.loc[:, ['A', 'B', 'C', 'D']].cov()
         tm.assert_frame_equal(result, expected)
 
         # Single column frame
@@ -182,11 +175,11 @@ class TestDataFrameAnalytics(TestData):
                              index=df.columns, columns=df.columns)
         tm.assert_frame_equal(result, expected)
 
-    def test_corrwith(self):
-        a = self.tsframe
+    def test_corrwith(self, datetime_frame):
+        a = datetime_frame
         noise = Series(randn(len(a)), index=a.index)
 
-        b = self.tsframe.add(noise, axis=0)
+        b = datetime_frame.add(noise, axis=0)
 
         # make sure order does not matter
         b = b.reindex(columns=b.columns[::-1], index=b.index[::-1][10:])
@@ -231,9 +224,9 @@ class TestDataFrameAnalytics(TestData):
         expected = df1.loc[:, cols].corrwith(df2.loc[:, cols], axis=1)
         tm.assert_series_equal(result, expected)
 
-    def test_corrwith_series(self):
-        result = self.tsframe.corrwith(self.tsframe['A'])
-        expected = self.tsframe.apply(self.tsframe['A'].corr)
+    def test_corrwith_series(self, datetime_frame):
+        result = datetime_frame.corrwith(datetime_frame['A'])
+        expected = datetime_frame.apply(datetime_frame['A'].corr)
 
         tm.assert_series_equal(result, expected)
 
@@ -460,12 +453,11 @@ class TestDataFrameAnalytics(TestData):
                                     np.array([2, 150, 'abcde'], dtype=object))
         tm.assert_series_equal(test, df.T.sum(axis=1))
 
-    def test_count(self):
+    def test_count(self, float_frame_with_na, float_frame, float_string_frame):
         f = lambda s: notna(s).sum()
-        self._check_stat_op('count', f,
-                            has_skipna=False,
-                            has_numeric_only=True,
-                            check_dtype=False,
+        self._check_stat_op('count', f, float_frame_with_na, float_frame,
+                            float_string_frame, has_skipna=False,
+                            has_numeric_only=True, check_dtype=False,
                             check_dates=True)
 
         # corner case
@@ -492,9 +484,11 @@ class TestDataFrameAnalytics(TestData):
         expected = Series(0, index=[])
         tm.assert_series_equal(result, expected)
 
-    def test_nunique(self):
+    def test_nunique(self, float_frame_with_na, float_frame,
+                     float_string_frame):
         f = lambda s: len(algorithms.unique1d(s.dropna()))
-        self._check_stat_op('nunique', f, has_skipna=False,
+        self._check_stat_op('nunique', f, float_frame_with_na,
+                            float_frame, float_string_frame, has_skipna=False,
                             check_dtype=False, check_dates=True)
 
         df = DataFrame({'A': [1, 1, 1],
@@ -507,19 +501,20 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_series_equal(df.nunique(axis=1, dropna=False),
                                Series({0: 1, 1: 3, 2: 2}))
 
-    def test_sum(self):
-        self._check_stat_op('sum', np.sum, has_numeric_only=True,
+    def test_sum(self, float_frame_with_na, mixed_float_frame,
+                 float_frame, float_string_frame):
+        self._check_stat_op('sum', np.sum, float_frame_with_na, float_frame,
+                            float_string_frame, has_numeric_only=True,
                             skipna_alternative=np.nansum)
 
         # mixed types (with upcasting happening)
         self._check_stat_op('sum', np.sum,
-                            frame=self.mixed_float.astype('float32'),
-                            has_numeric_only=True, check_dtype=False,
-                            check_less_precise=True)
+                            mixed_float_frame.astype('float32'), float_frame,
+                            float_string_frame, has_numeric_only=True,
+                            check_dtype=False, check_less_precise=True)
 
-    @pytest.mark.parametrize(
-        "method", ['sum', 'mean', 'prod', 'var',
-                   'std', 'skew', 'min', 'max'])
+    @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
+                                        'std', 'skew', 'min', 'max'])
     def test_stat_operators_attempt_obj_array(self, method):
         # GH #676
         data = {
@@ -529,8 +524,7 @@ class TestDataFrameAnalytics(TestData):
             'c': [0.00031111847529610595, 0.0014902627951905339,
                   -0.00094099200035979691]
         }
-        df1 = DataFrame(data, index=['foo', 'bar', 'baz'],
-                        dtype='O')
+        df1 = DataFrame(data, index=['foo', 'bar', 'baz'], dtype='O')
 
         df2 = DataFrame({0: [np.nan, 2], 1: [np.nan, 3],
                          2: [np.nan, 4]}, dtype=object)
@@ -543,41 +537,50 @@ class TestDataFrameAnalytics(TestData):
             if method in ['sum', 'prod']:
                 tm.assert_series_equal(result, expected)
 
-    def test_mean(self):
-        self._check_stat_op('mean', np.mean, check_dates=True)
+    def test_mean(self, float_frame_with_na, float_frame, float_string_frame):
+        self._check_stat_op('mean', np.mean, float_frame_with_na,
+                            float_frame, float_string_frame, check_dates=True)
 
-    def test_product(self):
-        self._check_stat_op('product', np.prod)
+    def test_product(self, float_frame_with_na, float_frame,
+                     float_string_frame):
+        self._check_stat_op('product', np.prod, float_frame_with_na,
+                            float_frame, float_string_frame)
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median(self):
+    def test_median(self, float_frame_with_na, float_frame,
+                    float_string_frame):
         def wrapper(x):
             if isna(x).any():
                 return np.nan
             return np.median(x)
 
-        self._check_stat_op('median', wrapper, check_dates=True)
+        self._check_stat_op('median', wrapper, float_frame_with_na,
+                            float_frame, float_string_frame, check_dates=True)
 
-    def test_min(self):
+    def test_min(self, float_frame_with_na, int_frame,
+                 float_frame, float_string_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
-            self._check_stat_op('min', np.min, check_dates=True)
-        self._check_stat_op('min', np.min, frame=self.intframe)
+            self._check_stat_op('min', np.min, float_frame_with_na,
+                                float_frame, float_string_frame,
+                                check_dates=True)
+        self._check_stat_op('min', np.min, int_frame, float_frame,
+                            float_string_frame)
 
-    def test_cummin(self):
-        self.tsframe.loc[5:10, 0] = nan
-        self.tsframe.loc[10:15, 1] = nan
-        self.tsframe.loc[15:, 2] = nan
+    def test_cummin(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = nan
+        datetime_frame.loc[10:15, 1] = nan
+        datetime_frame.loc[15:, 2] = nan
 
         # axis = 0
-        cummin = self.tsframe.cummin()
-        expected = self.tsframe.apply(Series.cummin)
+        cummin = datetime_frame.cummin()
+        expected = datetime_frame.apply(Series.cummin)
         tm.assert_frame_equal(cummin, expected)
 
         # axis = 1
-        cummin = self.tsframe.cummin(axis=1)
-        expected = self.tsframe.apply(Series.cummin, axis=1)
+        cummin = datetime_frame.cummin(axis=1)
+        expected = datetime_frame.apply(Series.cummin, axis=1)
         tm.assert_frame_equal(cummin, expected)
 
         # it works
@@ -585,22 +588,22 @@ class TestDataFrameAnalytics(TestData):
         result = df.cummin()  # noqa
 
         # fix issue
-        cummin_xs = self.tsframe.cummin(axis=1)
-        assert np.shape(cummin_xs) == np.shape(self.tsframe)
+        cummin_xs = datetime_frame.cummin(axis=1)
+        assert np.shape(cummin_xs) == np.shape(datetime_frame)
 
-    def test_cummax(self):
-        self.tsframe.loc[5:10, 0] = nan
-        self.tsframe.loc[10:15, 1] = nan
-        self.tsframe.loc[15:, 2] = nan
+    def test_cummax(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = nan
+        datetime_frame.loc[10:15, 1] = nan
+        datetime_frame.loc[15:, 2] = nan
 
         # axis = 0
-        cummax = self.tsframe.cummax()
-        expected = self.tsframe.apply(Series.cummax)
+        cummax = datetime_frame.cummax()
+        expected = datetime_frame.apply(Series.cummax)
         tm.assert_frame_equal(cummax, expected)
 
         # axis = 1
-        cummax = self.tsframe.cummax(axis=1)
-        expected = self.tsframe.apply(Series.cummax, axis=1)
+        cummax = datetime_frame.cummax(axis=1)
+        expected = datetime_frame.apply(Series.cummax, axis=1)
         tm.assert_frame_equal(cummax, expected)
 
         # it works
@@ -608,32 +611,40 @@ class TestDataFrameAnalytics(TestData):
         result = df.cummax()  # noqa
 
         # fix issue
-        cummax_xs = self.tsframe.cummax(axis=1)
-        assert np.shape(cummax_xs) == np.shape(self.tsframe)
+        cummax_xs = datetime_frame.cummax(axis=1)
+        assert np.shape(cummax_xs) == np.shape(datetime_frame)
 
-    def test_max(self):
+    def test_max(self, float_frame_with_na, int_frame,
+                 float_frame, float_string_frame):
         with warnings.catch_warnings(record=True):
             warnings.simplefilter("ignore", RuntimeWarning)
-            self._check_stat_op('max', np.max, check_dates=True)
-        self._check_stat_op('max', np.max, frame=self.intframe)
+            self._check_stat_op('max', np.max, float_frame_with_na,
+                                float_frame, float_string_frame,
+                                check_dates=True)
+        self._check_stat_op('max', np.max, int_frame, float_frame,
+                            float_string_frame)
 
-    def test_mad(self):
+    def test_mad(self, float_frame_with_na, float_frame, float_string_frame):
         f = lambda x: np.abs(x - x.mean()).mean()
-        self._check_stat_op('mad', f)
+        self._check_stat_op('mad', f, float_frame_with_na, float_frame,
+                            float_string_frame)
 
-    def test_var_std(self):
+    def test_var_std(self, float_frame_with_na, datetime_frame, float_frame,
+                     float_string_frame):
         alt = lambda x: np.var(x, ddof=1)
-        self._check_stat_op('var', alt)
+        self._check_stat_op('var', alt, float_frame_with_na, float_frame,
+                            float_string_frame)
 
         alt = lambda x: np.std(x, ddof=1)
-        self._check_stat_op('std', alt)
+        self._check_stat_op('std', alt, float_frame_with_na, float_frame,
+                            float_string_frame)
 
-        result = self.tsframe.std(ddof=4)
-        expected = self.tsframe.apply(lambda x: x.std(ddof=4))
+        result = datetime_frame.std(ddof=4)
+        expected = datetime_frame.apply(lambda x: x.std(ddof=4))
         tm.assert_almost_equal(result, expected)
 
-        result = self.tsframe.var(ddof=4)
-        expected = self.tsframe.apply(lambda x: x.var(ddof=4))
+        result = datetime_frame.var(ddof=4)
+        expected = datetime_frame.apply(lambda x: x.var(ddof=4))
         tm.assert_almost_equal(result, expected)
 
         arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
@@ -685,19 +696,19 @@ class TestDataFrameAnalytics(TestData):
             result = getattr(df, op)()
             assert len(result) == 2
 
-    def test_cumsum(self):
-        self.tsframe.loc[5:10, 0] = nan
-        self.tsframe.loc[10:15, 1] = nan
-        self.tsframe.loc[15:, 2] = nan
+    def test_cumsum(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = nan
+        datetime_frame.loc[10:15, 1] = nan
+        datetime_frame.loc[15:, 2] = nan
 
         # axis = 0
-        cumsum = self.tsframe.cumsum()
-        expected = self.tsframe.apply(Series.cumsum)
+        cumsum = datetime_frame.cumsum()
+        expected = datetime_frame.apply(Series.cumsum)
         tm.assert_frame_equal(cumsum, expected)
 
         # axis = 1
-        cumsum = self.tsframe.cumsum(axis=1)
-        expected = self.tsframe.apply(Series.cumsum, axis=1)
+        cumsum = datetime_frame.cumsum(axis=1)
+        expected = datetime_frame.apply(Series.cumsum, axis=1)
         tm.assert_frame_equal(cumsum, expected)
 
         # works
@@ -705,44 +716,46 @@ class TestDataFrameAnalytics(TestData):
         result = df.cumsum()  # noqa
 
         # fix issue
-        cumsum_xs = self.tsframe.cumsum(axis=1)
-        assert np.shape(cumsum_xs) == np.shape(self.tsframe)
+        cumsum_xs = datetime_frame.cumsum(axis=1)
+        assert np.shape(cumsum_xs) == np.shape(datetime_frame)
 
-    def test_cumprod(self):
-        self.tsframe.loc[5:10, 0] = nan
-        self.tsframe.loc[10:15, 1] = nan
-        self.tsframe.loc[15:, 2] = nan
+    def test_cumprod(self, datetime_frame):
+        datetime_frame.loc[5:10, 0] = nan
+        datetime_frame.loc[10:15, 1] = nan
+        datetime_frame.loc[15:, 2] = nan
 
         # axis = 0
-        cumprod = self.tsframe.cumprod()
-        expected = self.tsframe.apply(Series.cumprod)
+        cumprod = datetime_frame.cumprod()
+        expected = datetime_frame.apply(Series.cumprod)
         tm.assert_frame_equal(cumprod, expected)
 
         # axis = 1
-        cumprod = self.tsframe.cumprod(axis=1)
-        expected = self.tsframe.apply(Series.cumprod, axis=1)
+        cumprod = datetime_frame.cumprod(axis=1)
+        expected = datetime_frame.apply(Series.cumprod, axis=1)
         tm.assert_frame_equal(cumprod, expected)
 
         # fix issue
-        cumprod_xs = self.tsframe.cumprod(axis=1)
-        assert np.shape(cumprod_xs) == np.shape(self.tsframe)
+        cumprod_xs = datetime_frame.cumprod(axis=1)
+        assert np.shape(cumprod_xs) == np.shape(datetime_frame)
 
         # ints
-        df = self.tsframe.fillna(0).astype(int)
+        df = datetime_frame.fillna(0).astype(int)
         df.cumprod(0)
         df.cumprod(1)
 
         # ints32
-        df = self.tsframe.fillna(0).astype(np.int32)
+        df = datetime_frame.fillna(0).astype(np.int32)
         df.cumprod(0)
         df.cumprod(1)
 
-    def test_sem(self):
+    def test_sem(self, float_frame_with_na, datetime_frame,
+                 float_frame, float_string_frame):
         alt = lambda x: np.std(x, ddof=1) / np.sqrt(len(x))
-        self._check_stat_op('sem', alt)
+        self._check_stat_op('sem', alt, float_frame_with_na,
+                            float_frame, float_string_frame)
 
-        result = self.tsframe.sem(ddof=4)
-        expected = self.tsframe.apply(
+        result = datetime_frame.sem(ddof=4)
+        expected = datetime_frame.apply(
             lambda x: x.std(ddof=4) / np.sqrt(len(x)))
         tm.assert_almost_equal(result, expected)
 
@@ -755,7 +768,7 @@ class TestDataFrameAnalytics(TestData):
             assert not (result < 0).any()
 
     @td.skip_if_no_scipy
-    def test_skew(self):
+    def test_skew(self, float_frame_with_na, float_frame, float_string_frame):
         from scipy.stats import skew
 
         def alt(x):
@@ -763,10 +776,11 @@ class TestDataFrameAnalytics(TestData):
                 return np.nan
             return skew(x, bias=False)
 
-        self._check_stat_op('skew', alt)
+        self._check_stat_op('skew', alt, float_frame_with_na,
+                            float_frame, float_string_frame)
 
     @td.skip_if_no_scipy
-    def test_kurt(self):
+    def test_kurt(self, float_frame_with_na, float_frame, float_string_frame):
         from scipy.stats import kurtosis
 
         def alt(x):
@@ -774,7 +788,8 @@ class TestDataFrameAnalytics(TestData):
                 return np.nan
             return kurtosis(x, bias=False)
 
-        self._check_stat_op('kurt', alt)
+        self._check_stat_op('kurt', alt, float_frame_with_na,
+                            float_frame, float_string_frame)
 
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            labels=[[0, 0, 0, 0, 0, 0],
@@ -788,17 +803,13 @@ class TestDataFrameAnalytics(TestData):
         assert kurt.name is None
         assert kurt2.name == 'bar'
 
-    def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
+    def _check_stat_op(self, name, alternative, main_frame, float_frame,
+                       float_string_frame, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
                        check_dates=False, check_less_precise=False,
                        skipna_alternative=None):
-        if frame is None:
-            frame = self.frame
-            # set some NAs
-            frame.loc[5:10] = np.nan
-            frame.loc[15:20, -2:] = np.nan
 
-        f = getattr(frame, name)
+        f = getattr(main_frame, name)
 
         if check_dates:
             df = DataFrame({'b': date_range('1/1/2001', periods=2)})
@@ -819,52 +830,47 @@ class TestDataFrameAnalytics(TestData):
                                                      skipna_alternative)
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
-            tm.assert_series_equal(result0, frame.apply(wrapper),
+            tm.assert_series_equal(result0, main_frame.apply(wrapper),
                                    check_dtype=check_dtype,
                                    check_less_precise=check_less_precise)
             # HACK: win32
-            tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
+            tm.assert_series_equal(result1, main_frame.apply(wrapper, axis=1),
                                    check_dtype=False,
                                    check_less_precise=check_less_precise)
         else:
             skipna_wrapper = alternative
-            wrapper = alternative
 
         result0 = f(axis=0)
         result1 = f(axis=1)
-        tm.assert_series_equal(result0, frame.apply(skipna_wrapper),
+        tm.assert_series_equal(result0, main_frame.apply(skipna_wrapper),
                                check_dtype=check_dtype,
                                check_less_precise=check_less_precise)
         if name in ['sum', 'prod']:
-            exp = frame.apply(skipna_wrapper, axis=1)
+            exp = main_frame.apply(skipna_wrapper, axis=1)
             tm.assert_series_equal(result1, exp, check_dtype=False,
                                    check_less_precise=check_less_precise)
 
         # check dtypes
         if check_dtype:
-            lcd_dtype = frame.values.dtype
+            lcd_dtype = main_frame.values.dtype
             assert lcd_dtype == result0.dtype
             assert lcd_dtype == result1.dtype
-
-        # result = f(axis=1)
-        # comp = frame.apply(alternative, axis=1).reindex(result.index)
-        # assert_series_equal(result, comp)
 
         # bad axis
         tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
         # make sure works on mixed-type frame
-        getattr(self.mixed_frame, name)(axis=0)
-        getattr(self.mixed_frame, name)(axis=1)
+        getattr(float_string_frame, name)(axis=0)
+        getattr(float_string_frame, name)(axis=1)
 
         if has_numeric_only:
-            getattr(self.mixed_frame, name)(axis=0, numeric_only=True)
-            getattr(self.mixed_frame, name)(axis=1, numeric_only=True)
-            getattr(self.frame, name)(axis=0, numeric_only=False)
-            getattr(self.frame, name)(axis=1, numeric_only=False)
+            getattr(float_string_frame, name)(axis=0, numeric_only=True)
+            getattr(float_string_frame, name)(axis=1, numeric_only=True)
+            getattr(float_frame, name)(axis=0, numeric_only=False)
+            getattr(float_frame, name)(axis=1, numeric_only=False)
 
         # all NA case
         if has_skipna:
-            all_na = self.frame * np.NaN
+            all_na = float_frame * np.NaN
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name in ['sum', 'prod']:
@@ -1022,9 +1028,9 @@ class TestDataFrameAnalytics(TestData):
         assert df['off1'].dtype == 'timedelta64[ns]'
         assert df['off2'].dtype == 'timedelta64[ns]'
 
-    def test_sum_corner(self):
-        axis0 = self.empty.sum(0)
-        axis1 = self.empty.sum(1)
+    def test_sum_corner(self, empty_frame):
+        axis0 = empty_frame.sum(0)
+        axis1 = empty_frame.sum(1)
         assert isinstance(axis0, Series)
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
@@ -1090,59 +1096,60 @@ class TestDataFrameAnalytics(TestData):
         expected = pd.Series([0, 0, np.nan], dtype='m8[ns]', index=idx)
         tm.assert_series_equal(result, expected)
 
-    def test_sum_object(self):
-        values = self.frame.values.astype(int)
-        frame = DataFrame(values, index=self.frame.index,
-                          columns=self.frame.columns)
+    def test_sum_object(self, float_frame):
+        values = float_frame.values.astype(int)
+        frame = DataFrame(values, index=float_frame.index,
+                          columns=float_frame.columns)
         deltas = frame * timedelta(1)
         deltas.sum()
 
-    def test_sum_bool(self):
+    def test_sum_bool(self, float_frame):
         # ensure this works, bug report
-        bools = np.isnan(self.frame)
+        bools = np.isnan(float_frame)
         bools.sum(1)
         bools.sum(0)
 
-    def test_mean_corner(self):
+    def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        the_mean = self.mixed_frame.mean(axis=0)
-        the_sum = self.mixed_frame.sum(axis=0, numeric_only=True)
+        the_mean = float_string_frame.mean(axis=0)
+        the_sum = float_string_frame.sum(axis=0, numeric_only=True)
         tm.assert_index_equal(the_sum.index, the_mean.index)
-        assert len(the_mean.index) < len(self.mixed_frame.columns)
+        assert len(the_mean.index) < len(float_string_frame.columns)
 
         # xs sum mixed type, just want to know it works...
-        the_mean = self.mixed_frame.mean(axis=1)
-        the_sum = self.mixed_frame.sum(axis=1, numeric_only=True)
+        the_mean = float_string_frame.mean(axis=1)
+        the_sum = float_string_frame.sum(axis=1, numeric_only=True)
         tm.assert_index_equal(the_sum.index, the_mean.index)
 
         # take mean of boolean column
-        self.frame['bool'] = self.frame['A'] > 0
-        means = self.frame.mean(0)
-        assert means['bool'] == self.frame['bool'].values.mean()
+        float_frame['bool'] = float_frame['A'] > 0
+        means = float_frame.mean(0)
+        assert means['bool'] == float_frame['bool'].values.mean()
 
-    def test_stats_mixed_type(self):
+    def test_stats_mixed_type(self, float_string_frame):
         # don't blow up
-        self.mixed_frame.std(1)
-        self.mixed_frame.var(1)
-        self.mixed_frame.mean(1)
-        self.mixed_frame.skew(1)
+        float_string_frame.std(1)
+        float_string_frame.var(1)
+        float_string_frame.mean(1)
+        float_string_frame.skew(1)
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
-    def test_median_corner(self):
+    def test_median_corner(self, int_frame, float_frame, float_string_frame):
         def wrapper(x):
             if isna(x).any():
                 return np.nan
             return np.median(x)
 
-        self._check_stat_op('median', wrapper, frame=self.intframe,
-                            check_dtype=False, check_dates=True)
+        self._check_stat_op('median', wrapper, int_frame, float_frame,
+                            float_string_frame, check_dtype=False,
+                            check_dates=True)
 
     # Miscellanea
 
-    def test_count_objects(self):
-        dm = DataFrame(self.mixed_frame._series)
-        df = DataFrame(self.mixed_frame._series)
+    def test_count_objects(self, float_string_frame):
+        dm = DataFrame(float_string_frame._series)
+        df = DataFrame(float_string_frame._series)
 
         tm.assert_series_equal(dm.count(), df.count())
         tm.assert_series_equal(dm.count(1), df.count(1))
@@ -1160,13 +1167,13 @@ class TestDataFrameAnalytics(TestData):
 
     # Index of max / min
 
-    def test_idxmin(self):
-        frame = self.frame
+    def test_idxmin(self, float_frame, int_frame):
+        frame = float_frame
         frame.loc[5:10] = np.nan
         frame.loc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
-                for df in [frame, self.intframe]:
+                for df in [frame, int_frame]:
                     result = df.idxmin(axis=axis, skipna=skipna)
                     expected = df.apply(Series.idxmin, axis=axis,
                                         skipna=skipna)
@@ -1174,13 +1181,13 @@ class TestDataFrameAnalytics(TestData):
 
         pytest.raises(ValueError, frame.idxmin, axis=2)
 
-    def test_idxmax(self):
-        frame = self.frame
+    def test_idxmax(self, float_frame, int_frame):
+        frame = float_frame
         frame.loc[5:10] = np.nan
         frame.loc[15:20, -2:] = np.nan
         for skipna in [True, False]:
             for axis in [0, 1]:
-                for df in [frame, self.intframe]:
+                for df in [frame, int_frame]:
                     result = df.idxmax(axis=axis, skipna=skipna)
                     expected = df.apply(Series.idxmax, axis=axis,
                                         skipna=skipna)
@@ -1191,9 +1198,13 @@ class TestDataFrameAnalytics(TestData):
     # ----------------------------------------------------------------------
     # Logical reductions
 
-    def test_any_all(self):
-        self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
-        self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
+    def test_any_all(self, bool_frame_with_na, float_string_frame):
+        self._check_bool_op('any', np.any, bool_frame_with_na,
+                            float_string_frame, has_skipna=True,
+                            has_bool_only=True)
+        self._check_bool_op('all', np.all, bool_frame_with_na,
+                            float_string_frame, has_skipna=True,
+                            has_bool_only=True)
 
     def test_any_all_extra(self):
         df = DataFrame({
@@ -1325,15 +1336,8 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, xpr):
             getattr(df, method)(axis=None, level='out')
 
-    def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
-                       has_bool_only=False):
-        if frame is None:
-            frame = self.frame > 0
-            # set some NAs
-            frame = DataFrame(frame.values.astype(object), frame.index,
-                              frame.columns)
-            frame.loc[5:10] = np.nan
-            frame.loc[15:20, -2:] = np.nan
+    def _check_bool_op(self, name, alternative, frame, float_string_frame,
+                       has_skipna=True, has_bool_only=False):
 
         f = getattr(frame, name)
 
@@ -1360,15 +1364,11 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
                                check_dtype=False)
 
-        # result = f(axis=1)
-        # comp = frame.apply(alternative, axis=1).reindex(result.index)
-        # assert_series_equal(result, comp)
-
         # bad axis
         pytest.raises(ValueError, f, axis=2)
 
         # make sure works on mixed-type frame
-        mixed = self.mixed_frame
+        mixed = float_string_frame
         mixed['_bool_'] = np.random.randn(len(mixed)) > 0
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
@@ -1746,34 +1746,34 @@ class TestDataFrameAnalytics(TestData):
 
     # Clip
 
-    def test_clip(self):
-        median = self.frame.median().median()
-        original = self.frame.copy()
+    def test_clip(self, float_frame):
+        median = float_frame.median().median()
+        original = float_frame.copy()
 
-        capped = self.frame.clip_upper(median)
+        capped = float_frame.clip_upper(median)
         assert not (capped.values > median).any()
 
-        floored = self.frame.clip_lower(median)
+        floored = float_frame.clip_lower(median)
         assert not (floored.values < median).any()
 
-        double = self.frame.clip(upper=median, lower=median)
+        double = float_frame.clip(upper=median, lower=median)
         assert not (double.values != median).any()
 
-        # Verify that self.frame was not changed inplace
-        assert (self.frame.values == original.values).all()
+        # Verify that float_frame was not changed inplace
+        assert (float_frame.values == original.values).all()
 
-    def test_inplace_clip(self):
+    def test_inplace_clip(self, float_frame):
         # GH #15388
-        median = self.frame.median().median()
-        frame_copy = self.frame.copy()
+        median = float_frame.median().median()
+        frame_copy = float_frame.copy()
 
         frame_copy.clip_upper(median, inplace=True)
         assert not (frame_copy.values > median).any()
-        frame_copy = self.frame.copy()
+        frame_copy = float_frame.copy()
 
         frame_copy.clip_lower(median, inplace=True)
         assert not (frame_copy.values < median).any()
-        frame_copy = self.frame.copy()
+        frame_copy = float_frame.copy()
 
         frame_copy.clip(upper=median, lower=median, inplace=True)
         assert not (frame_copy.values != median).any()
@@ -1839,9 +1839,10 @@ class TestDataFrameAnalytics(TestData):
         (0, [[2., 2., 3.], [4., 5., 6.], [7., 7., 7.]]),
         (1, [[2., 3., 4.], [4., 5., 6.], [5., 6., 7.]])
     ])
-    def test_clip_against_list_like(self, inplace, lower, axis, res):
+    def test_clip_against_list_like(self, simple_frame,
+                                    inplace, lower, axis, res):
         # GH #15390
-        original = self.simple.copy(deep=True)
+        original = simple_frame.copy(deep=True)
 
         result = original.clip(lower=lower, upper=[5, 6, 7],
                                axis=axis, inplace=inplace)
@@ -1869,12 +1870,12 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_frame_equal(clipped_df[ub_mask], ub[ub_mask])
         tm.assert_frame_equal(clipped_df[mask], df[mask])
 
-    def test_clip_with_na_args(self):
+    def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """
         # GH # 17276
-        tm.assert_frame_equal(self.frame.clip(np.nan), self.frame)
-        tm.assert_frame_equal(self.frame.clip(upper=np.nan, lower=np.nan),
-                              self.frame)
+        tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
+        tm.assert_frame_equal(float_frame.clip(upper=np.nan, lower=np.nan),
+                              float_frame)
 
         # GH #19992
         df = DataFrame({'col_0': [1, 2, 3], 'col_1': [4, 5, 6],
@@ -2084,9 +2085,6 @@ class TestNLargestNSmallest(object):
         col = columns[1]
         error_msg = self.dtype_error_msg_template.format(
             column=col, method=nselect_method, dtype=df[col].dtype)
-        # escape some characters that may be in the repr
-        error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
-                              .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
             getattr(df, nselect_method)(2, columns)
 
