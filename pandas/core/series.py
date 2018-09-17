@@ -2788,6 +2788,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
+        The n largest elements where n=5 by default.
+
         >>> s.nlargest()
         France      65000000
         Italy       59000000
@@ -2796,17 +2798,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Brunei        434000
         dtype: int64
 
+        The n largest elements where n=3. Default keep value is 'first' so
+        Malta will
+        be kept.
+
         >>> s.nlargest(3)
         France    65000000
         Italy     59000000
         Malta       434000
         dtype: int64
 
+        The n largest elements where n=3 and keeping the last duplicates.
+        Brunei will be kept since it is the last with value 434000 based on
+        the index order.
+
         >>> s.nlargest(3, keep='last')
         France      65000000
         Italy       59000000
         Brunei        434000
         dtype: int64
+
+        The n largest elements where n=3 with all duplicates kept. Note that the
+        returned Series has five elements due to the three duplicates.
 
         >>> s.nlargest(3, keep='all')
         France      65000000
@@ -2869,6 +2882,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Monserat        5200
         dtype: int64
 
+        The n largest elements where n=5 by default.
+
         >>> s.nsmallest()
         Monserat      5200
         Nauru        11300
@@ -2877,17 +2892,27 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Iceland     337000
         dtype: int64
 
+        The n smallest elements where n=3. Default keep value is 'first' so
+        Nauru and Tuvalu will be kept.
+
         >>> s.nsmallest(3)
         Monserat     5200
         Nauru       11300
         Tuvalu      11300
         dtype: int64
 
+        The n smallest elements where n=3 and keeping the last duplicates.
+        Anguilla and Tuvalu will be kept since they are the last with value
+        11300 based on the index order.
+
         >>> s.nsmallest(3, keep='last')
         Monserat     5200
         Anguilla    11300
         Tuvalu      11300
         dtype: int64
+
+        The n smallest elements where n=3 with all duplicates kept. Note
+        that the returned Series has four elements due to the three duplicates.
 
         >>> s.nsmallest(3, keep='all')
         Monserat     5200
