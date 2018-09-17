@@ -4545,16 +4545,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, list of functions and/or strings or dict
+    func : function, str, list or dict
         Function to use for aggregating the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply.
 
         Accepted combinations are:
 
-        - string function name
         - function
-        - list of functions and/or function names
-        - dict of axis labels -> functions, function names or list of such
+        - string function name
+        - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+        - dict of axis labels -> functions, function names or list of such.
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -4563,7 +4563,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    pandas.%(klass)s
+    DataFrame, Series or scalar
+        if DataFrame.agg is called with a single function, returns a Series
+        if DataFrame.agg is called with several functions, returns a DataFrame
+        if Series.agg is called with single function, returns a scalar
+        if Series.agg is called with several functions, returns a Series
 
     Notes
     -----
@@ -4580,15 +4584,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, list of functions and/or strings or dict
+    func : function, str, list or dict
         Function to use for transforming the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply.
 
         Accepted combinations are:
 
-        - string function name
         - function
-        - list of functions and/or function names
+        - string function name
+        - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
         - dict of axis labels -> functions, function names or list of such.
     %(axis)s
     *args
@@ -4598,31 +4602,41 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    pandas.%(klass)s
+    %(klass)s
         A %(klass)s that must have the same length as self.
 
     Raises
     ------
-    ValueError : if the returned %(klass)s has a different length than self.
+    ValueError : If the returned %(klass)s has a different length than self.
 
     See Also
     --------
-    pandas.%(klass)s.agg : only perform aggregating type operations
-    pandas.%(klass)s.apply : Invoke function on a Series
+    %(klass)s.agg : Only perform aggregating type operations.
+    %(klass)s.apply : Invoke function on a %(klass)s.
 
     Examples
     --------
     >>> df = pd.DataFrame({'A': range(3), 'B': range(1, 4)})
+    >>> df
+       A  B
+    0  0  1
+    1  1  2
+    2  2  3
     >>> df.transform(lambda x: x + 1)
        A  B
     0  1  2
     1  2  3
     2  3  4
 
-    Even though the resulting %(klass)s must have the length as the input
-    %(klass)s, it is possible to provide several input functions:
+    Even though the resulting %(klass)s must have the same length as the
+    input %(klass)s, it is possible to provide several input functions:
 
     >>> s = pd.Series(range(3))
+    >>> s
+    0    0
+    1    1
+    2    2
+    dtype: int64
     >>> s.transform([np.sqrt, np.exp])
            sqrt        exp
     0  0.000000   1.000000
