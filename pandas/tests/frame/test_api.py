@@ -307,7 +307,7 @@ class SharedWithSparse(object):
         arr = float_string_frame[['foo', 'A']].values
         assert arr[0, 0] == 'bar'
 
-        df = self.klass({'real': [1, 2, 3], 'complex': [1j, 2j, 3j]})
+        df = self.klass({'complex': [1j, 2j, 3j], 'real': [1, 2, 3]})
         arr = df.values
         assert arr[0, 0] == 1j
 
