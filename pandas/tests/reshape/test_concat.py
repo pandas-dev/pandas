@@ -1037,6 +1037,16 @@ class TestAppend(ConcatenateBase):
         expected = pd.DataFrame([[1, 2, 3, 4.], [1, 2, 3, np.nan]])
         assert_frame_equal(result, expected)
 
+        # case 3
+        # append to DataFrame smaller than Series
+        # columns that come from both should preserve the dtype
+
+        df = pd.DataFrame([[1, 2, 3]])
+        series = pd.Series([1, 2, 3, 4], name=1)
+        result = df.append(series, sort=sort)
+        expected = pd.DataFrame([[1, 2, 3, np.nan], [1, 2, 3, 4.]])
+        assert_frame_equal(result, expected)
+
 
 class TestConcatenate(ConcatenateBase):
 
