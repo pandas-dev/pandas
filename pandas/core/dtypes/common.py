@@ -1594,8 +1594,8 @@ def is_bool_dtype(arr_or_dtype):
 
     Notes
     -----
-    An ExtensionArray is considered boolean when the ``.kind`` of the
-    dtype is ``'b'``.
+    An ExtensionArray is considered boolean when the ``_is_boolean``
+    attribute is set to True.
 
     Examples
     --------
@@ -1642,7 +1642,7 @@ def is_bool_dtype(arr_or_dtype):
                 arr_or_dtype.inferred_type == 'boolean')
     elif is_extension_array_dtype(arr_or_dtype):
         dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
-        return dtype.kind == 'b'
+        return dtype._is_boolean
 
     return issubclass(tipo, np.bool_)
 

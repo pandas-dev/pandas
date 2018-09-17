@@ -29,6 +29,9 @@ class ArrowBoolDtype(ExtensionDtype):
     def construct_array_type(cls):
         return ArrowBoolArray
 
+    def _is_boolean(self):
+        return True
+
 
 class ArrowBoolArray(ExtensionArray):
     def __init__(self, values):
