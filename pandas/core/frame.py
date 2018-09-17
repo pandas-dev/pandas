@@ -6406,17 +6406,8 @@ class DataFrame(NDFrame):
         if len(other) == 1:
             # manually create DF for performance
             ser = other[0]
-
-            if ser.name is not None:
-                # other must have the same index name as self,
-                # otherwise index name will be reset
-                index = Index([ser.name], name=self.index.name)
-            else:
-                index = None
-            columns = ser.index
-
             df = DataFrame(ser.values.reshape(1, ser.shape[0]),
-                           index=index, columns=columns)
+                           index=[ser.name], columns=ser.index)
         else:
             df = DataFrame(other)
 
@@ -6487,6 +6478,11 @@ class DataFrame(NDFrame):
             base_columns = base_frame.columns
             base_dtypes = base_frame.dtypes
             result[base_columns] = result[base_columns].astype(base_dtypes)
+
+        if not ignore_index:
+            # We want to keep the index name of the original dframe (self).
+            # Rename the index after concat erases it.
+            result.index.name = self.index.name
 
         return result
 
