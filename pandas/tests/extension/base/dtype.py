@@ -69,11 +69,10 @@ class BaseDtypeTests(BaseExtensionTests):
             expected = pd.Series([True, True, False, False],
                                  index=list('ABCD'))
 
-        with warnings.catch_warnings():
             # XXX: This should probably be *fixed* not ignored.
             # See libops.scalar_compare
-            warnings.simplefilter("ignore", DeprecationWarning)
-            result = df.dtypes == str(dtype)
+            # warnings.simplefilter("ignore", DeprecationWarning)
+        result = df.dtypes == str(dtype)
         self.assert_series_equal(result, expected)
 
         expected = pd.Series([True, True, False, False],
