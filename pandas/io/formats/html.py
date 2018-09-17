@@ -475,24 +475,3 @@ class HTMLFormatter(TableFormatter):
                     row.insert(row_levels + self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None,
                               nindex_levels=frame.index.nlevels)
-
-
-def single_column_table(column, align=None, style=None):
-    table = '<table'
-    if align is not None:
-        table += (' align="{align}"'.format(align=align))
-    if style is not None:
-        table += (' style="{style}"'.format(style=style))
-    table += '><tbody>'
-    for i in column:
-        table += ('<tr><td>{i!s}</td></tr>'.format(i=i))
-    table += '</tbody></table>'
-    return table
-
-
-def single_row_table(row):  # pragma: no cover
-    table = '<table><tbody><tr>'
-    for i in row:
-        table += ('<td>{i!s}</td>'.format(i=i))
-    table += '</tr></tbody></table>'
-    return table
