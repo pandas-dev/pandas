@@ -2886,7 +2886,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         order : list of int representing new level order.
                (reference level by number or key)
-        axis : where to reorder levels
 
         Returns
         -------
