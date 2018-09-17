@@ -632,6 +632,14 @@ Otherwise, you need to do it manually:
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
         new_func()
 
+You'll also need to
+
+1. write a new test that asserts a warning is issued when calling with the deprecated argument
+2. Update all of pandas existing tests and code to use the new argument
+
+See :ref:`contributing.warnings` for more.
+
+
 .. _contributing.ci:
 
 Testing With Continuous Integration
@@ -859,20 +867,30 @@ preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
 
-.. _warnings:
+.. _contributing.warnings:
 
-Warnings
-~~~~~~~~
+Testing Warnings
+~~~~~~~~~~~~~~~~
 
-By default, pandas test suite will fail if any unhandled warnings are emitted.
+By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
 
 If your change involves checking that a warning is actually emitted, use
-``tm.assert_produces_warning(ExpectedWarning)``. We prefer this to pytest's
-``pytest.warns`` context manager because ours checks that the warning's stacklevel
-is set correctly.
+``tm.assert_produces_warning(ExpectedWarning)``.
+
+
+.. code-block:: python
+
+   with tm.assert_prodcues_warning(FutureWarning):
+       df.some_operation()
+
+We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
+stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
+is printed in the warning, rather than something internal to pandas. It represents the nubmer of
+function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
+the warning.
 
 If you have a test that would emit a warning, but you aren't actually testing the
-warning it self (say because it's going to be removed in the future, or because we're
+warning itself (say because it's going to be removed in the future, or because we're
 matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
 ignore the error.
 
