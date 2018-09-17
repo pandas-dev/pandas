@@ -6353,10 +6353,14 @@ class DataFrame(NDFrame):
         elif issubclass(obj_type, DataFrame):
             return self._append_frame(other, **kwargs)
         elif issubclass(obj_type, list):
+
             try:
                 item_type = type(other[0])
             except IndexError:  # empty list!
                 return self._append_list_of_frames(other, **kwargs)
+            if not all(isinstance(i, item_type) for i in other[1:]):
+                raise TypeError("When other is a list, its elements must"
+                                " be all of the same type")
             kwargs['_item_type'] = item_type
 
             if issubclass(item_type, dict):
@@ -6366,9 +6370,13 @@ class DataFrame(NDFrame):
             elif issubclass(item_type, DataFrame):
                 return self._append_list_of_frames(other, **kwargs)
             else:
-                raise TypeError  # TODO
+                raise TypeError("The value of other must be a"
+                                " DataFrame or Series/dict-like object,"
+                                " or list of these")
         else:
-            raise TypeError  # TODO
+            raise TypeError("The value of other must be a"
+                            " DataFrame or Series/dict-like object,"
+                            " or list of these")
 
     def _append_dict(self, other, *args, **kwargs):
         return self._append_list_of_dicts([other], *args, **kwargs)
