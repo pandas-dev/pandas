@@ -207,18 +207,9 @@ class HTMLFormatter(TableFormatter):
             else:
                 row = []
 
-            if isinstance(self.columns, ABCMultiIndex):
-                if self.fmt.has_column_names and self.fmt.index:
-                    row.append(single_column_table(self.columns.names))
-                else:
-                    row.append('')
-                style = "text-align: {just};".format(just=self.fmt.justify)
-                row.extend([single_column_table(c, self.fmt.justify, style)
-                            for c in self.columns])
-            else:
-                if self.fmt.index:
-                    row.append(self.columns.name or '')
-                row.extend(self.columns)
+            if self.fmt.index:
+                row.append(self.columns.name or '')
+            row.extend(self.columns)
             return row
 
         self.write('<thead>', indent)
