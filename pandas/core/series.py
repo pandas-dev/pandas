@@ -2874,7 +2874,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Nauru        11300
         Tuvalu       11300
         Anguilla     11300
-        Iceland     337780
+        Iceland     337000
         dtype: int64
 
         >>> s.nsmallest(3)
