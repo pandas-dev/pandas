@@ -205,8 +205,12 @@ def decompress_file(path, compression):
         msg = 'Unrecognized compression type: {}'.format(compression)
         raise ValueError(msg)
 
-    yield f
-    f.close()
+    try:
+        yield f
+    finally:
+        f.close()
+        if compression == "zip":
+            zip_file.close()
 
 
 def assert_almost_equal(left, right, check_dtype="equiv",

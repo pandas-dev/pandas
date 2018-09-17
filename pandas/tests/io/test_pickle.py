@@ -333,9 +333,9 @@ class TestCompression(object):
             f = bz2.BZ2File(dest_path, "w")
         elif compression == 'zip':
             import zipfile
-            f = zipfile.ZipFile(dest_path, "w",
-                                compression=zipfile.ZIP_DEFLATED)
-            f.write(src_path, os.path.basename(src_path))
+            with zipfile.ZipFile(dest_path, "w",
+                                 compression=zipfile.ZIP_DEFLATED) as f:
+                f.write(src_path, os.path.basename(src_path))
         elif compression == 'xz':
             lzma = pandas.compat.import_lzma()
             f = lzma.LZMAFile(dest_path, "w")
@@ -344,9 +344,8 @@ class TestCompression(object):
             raise ValueError(msg)
 
         if compression != "zip":
-            with open(src_path, "rb") as fh:
+            with open(src_path, "rb") as fh, f:
                 f.write(fh.read())
-        f.close()
 
     def test_write_explicit(self, compression, get_random_path):
         base = get_random_path

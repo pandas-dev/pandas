@@ -31,16 +31,6 @@ def pytest_addoption(parser):
                      help="Fail if a test is skipped for missing data file.")
 
 
-def pytest_collection_modifyitems(items):
-    # Make unhandled ResourceWarnings fail early to track down
-    # https://github.com/pandas-dev/pandas/issues/22675
-    if PY3:
-        for item in items:
-            item.add_marker(
-                pytest.mark.filterwarnings("error::ResourceWarning")
-            )
-
-
 def pytest_runtest_setup(item):
     if 'slow' in item.keywords and item.config.getoption("--skip-slow"):
         pytest.skip("skipping due to --skip-slow")
