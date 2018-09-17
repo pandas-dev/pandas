@@ -79,7 +79,7 @@ class HTMLFormatter(TableFormatter):
         self.write(u'{start}{rs}</{kind}>'
                    .format(start=start_tag, rs=rs, kind=kind), indent)
 
-    def write_tr(self, line, indent=0, indent_delta=4, header=False,
+    def write_tr(self, line, indent=0, indent_delta=0, header=False,
                  align=None, tags=None, nindex_levels=0):
         if tags is None:
             tags = {}
