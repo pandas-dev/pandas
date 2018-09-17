@@ -353,11 +353,14 @@ class HTMLFormatter(TableFormatter):
             else:
                 self._write_regular_rows(fmt_values, indent)
         else:
+            row_levels = 0
             for i in range(min(len(self.frame), self.max_rows)):
                 row = [fmt_values[j][i] for j in range(len(self.columns))]
                 if self.show_col_idx_names:
                     row.insert(0, '')
-                self.write_tr(row, indent, self.indent_delta, tags=None)
+                    row_levels = 1
+                self.write_tr(row, indent, self.indent_delta,
+                              tags=None, nindex_levels=row_levels)
 
         indent -= self.indent_delta
         self.write('</tbody>', indent)
