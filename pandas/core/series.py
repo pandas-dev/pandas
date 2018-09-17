@@ -75,8 +75,7 @@ import pandas.core.nanops as nanops
 import pandas.core.indexes.base as ibase
 
 import pandas.io.formats.format as fmt
-from pandas.util._decorators import (
-    Appender, deprecate, deprecate_kwarg, Substitution)
+from pandas.util._decorators import Appender, deprecate, Substitution
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslibs, lib, iNaT
@@ -2089,7 +2088,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = ensure_platform_int(sorter)
