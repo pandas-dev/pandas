@@ -32,7 +32,7 @@ jobs:
             ./ci/show_circle.sh
       - run:
           name: test
-          command: ./ci/run_circle.sh  --skip-slow --skip-network -v -s
+          command: ./ci/run_circle.sh  --skip-slow --skip-network
 
   # --------------------------------------------------------------------------
   # 1. py36_locale
@@ -66,7 +66,7 @@ jobs:
             ./ci/show_circle.sh
       - run:
           name: test
-          command: ./ci/run_circle.sh  --skip-slow --skip-network -v -s
+          command: ./ci/run_circle.sh  --skip-slow --skip-network
 
   # --------------------------------------------------------------------------
   # 2. py36_locale_slow
@@ -100,7 +100,7 @@ jobs:
             ./ci/show_circle.sh
       - run:
           name: test
-          command: ./ci/run_circle.sh  --only-slow --skip-network -v -s
+          command: ./ci/run_circle.sh  --only-slow --skip-network
 
   # --------------------------------------------------------------------------
   # 3. py35_ascii
@@ -134,7 +134,7 @@ jobs:
             ./ci/show_circle.sh
       - run:
           name: test
-          command: ./ci/run_circle.sh  --skip-slow --skip-network -v -s
+          command: ./ci/run_circle.sh  --skip-slow --skip-network
 
 
 workflows:
