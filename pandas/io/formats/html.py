@@ -204,11 +204,9 @@ class HTMLFormatter(TableFormatter):
         def _column_header():
             if self.fmt.index:
                 row = [''] * (self.frame.index.nlevels - 1)
+                row.append(self.columns.name or '')
             else:
                 row = []
-
-            if self.fmt.index:
-                row.append(self.columns.name or '')
             row.extend(self.columns)
             return row
 
