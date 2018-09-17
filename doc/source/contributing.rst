@@ -885,7 +885,7 @@ If your change involves checking that a warning is actually emitted, use
 
 We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
 stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
-is printed in the warning, rather than something internal to pandas. It represents the nubmer of
+is printed in the warning, rather than something internal to pandas. It represents the number of
 function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
 the warning.
 
