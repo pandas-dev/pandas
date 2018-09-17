@@ -201,15 +201,6 @@ class HTMLFormatter(TableFormatter):
             # write nothing
             return indent
 
-        def _column_header():
-            if self.fmt.index:
-                row = [''] * (self.frame.index.nlevels - 1)
-                row.append(self.columns.name or '')
-            else:
-                row = []
-            row.extend(self.columns)
-            return row
-
         self.write('<thead>', indent)
 
         indent += self.indent_delta
@@ -291,14 +282,19 @@ class HTMLFormatter(TableFormatter):
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
                               header=True)
         else:
-            col_row = _column_header()
+            if self.fmt.index:
+                row = [''] * (self.frame.index.nlevels - 1)
+                row.append(self.columns.name or '')
+            else:
+                row = []
+            row.extend(self.columns)
             align = self.fmt.justify
 
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
-                col_row.insert(ins_col, '...')
+                row.insert(ins_col, '...')
 
-            self.write_tr(col_row, indent, self.indent_delta, header=True,
+            self.write_tr(row, indent, self.indent_delta, header=True,
                           align=align)
 
         if all((self.fmt.has_index_names,
