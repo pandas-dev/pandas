@@ -2743,17 +2743,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        n : int
-            Return this many descending sorted values
-        keep : {'first', 'last'}, default 'first'
-            Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+        n : int, default 5
+            Return this many descending sorted values.
+        keep : str, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+            - ``first`` : take the first occurrences based on the index order
+            - ``last`` : take the last occurrences based on the index order
+            - ``all`` : keep all occurrences. This can result in a Series of
+                size larger than `n`.
 
         Returns
         -------
-        top_n : Series
-            The n largest values in the Series, in sorted order
+        Series
+            The n largest values in the Series, sorted in decreasing order.
 
         Notes
         -----
@@ -2762,23 +2765,56 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.nsmallest
+        Series.nsmallest: Get the `n` smallest elements.
 
         Examples
         --------
-        >>> s = pd.Series(np.random.randn(10**6))
-        >>> s.nlargest(10)  # only sorts up to the N requested
-        219921    4.644710
-        82124     4.608745
-        421689    4.564644
-        425277    4.447014
-        718691    4.414137
-        43154     4.403520
-        283187    4.313922
-        595519    4.273635
-        503969    4.250236
-        121637    4.240952
-        dtype: float64
+        >>> countries_population = {"Italy": 59000000, "France": 65000000,
+        ...                         "Malta": 434000, "Maldives": 434000,
+        ...                         "Brunei": 434000, "Iceland": 337000,
+        ...                         "Nauru": 11300, "Tuvalu": 11300,
+        ...                         "Anguilla": 11300, "Monserat": 5200}
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Monserat        5200
+        dtype: int64
+
+        >>> s.nlargest()
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
+
+        >>> s.nlargest(3)
+        France    65000000
+        Italy     59000000
+        Malta       434000
+        dtype: int64
+
+        >>> s.nlargest(3, keep='last')
+        France      65000000
+        Italy       59000000
+        Brunei        434000
+        dtype: int64
+
+        >>> s.nlargest(3, keep='all')
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
@@ -2789,16 +2825,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         n : int
-            Return this many ascending sorted values
-        keep : {'first', 'last'}, default 'first'
-            Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+            Return this many ascending sorted values.
+        keep : str, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+            - ``first`` : take the first occurrences based on the index order
+            - ``last`` : take the last occurrences based on the index order
+            - ``all`` : keep all occurrences. This can result in a Series of
+                size larger than `n`.
 
         Returns
         -------
-        bottom_n : Series
-            The n smallest values in the Series, in sorted order
+        Series
+            The n smallest values in the Series, sorted in increasing order.
 
         Notes
         -----
@@ -2807,23 +2846,55 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.nlargest
+        Series.nlargest: Get the `n` largest elements.
 
         Examples
         --------
-        >>> s = pd.Series(np.random.randn(10**6))
-        >>> s.nsmallest(10)  # only sorts up to the N requested
-        288532   -4.954580
-        732345   -4.835960
-        64803    -4.812550
-        446457   -4.609998
-        501225   -4.483945
-        669476   -4.472935
-        973615   -4.401699
-        621279   -4.355126
-        773916   -4.347355
-        359919   -4.331927
-        dtype: float64
+        >>> countries_population = {"Italy": 59000000, "France": 65000000,
+        ...                         "Brunei": 434000, "Malta": 434000,
+        ...                         "Maldives": 434000, "Iceland": 337000,
+        ...                         "Nauru": 11300, "Tuvalu": 11300,
+        ...                         "Anguilla": 11300, "Monserat": 5200}
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Brunei        434000
+        Malta         434000
+        Maldives      434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Monserat        5200
+        dtype: int64
+
+        >>> s.nsmallest()
+        Monserat      5200
+        Nauru        11300
+        Tuvalu       11300
+        Anguilla     11300
+        Iceland     337780
+        dtype: int64
+
+        >>> s.nsmallest(3)
+        Monserat     5200
+        Nauru       11300
+        Tuvalu      11300
+        dtype: int64
+
+        >>> s.nsmallest(3, keep='last')
+        Monserat     5200
+        Anguilla    11300
+        Tuvalu      11300
+        dtype: int64
+
+        >>> s.nsmallest(3, keep='all')
+        Monserat     5200
+        Nauru       11300
+        Tuvalu      11300
+        Anguilla    11300
+        dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
