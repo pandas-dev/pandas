@@ -78,7 +78,7 @@ class DocBuilder:
     script.
     """
     def __init__(self, num_jobs=1, include_api=True, single_doc=None,
-                 verbosity=0):
+                 verbosity=0, allow_warnings=False):
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.verbosity = verbosity
@@ -87,6 +87,7 @@ class DocBuilder:
         if single_doc is not None:
             self._process_single_doc(single_doc)
         self.exclude_patterns = self._exclude_patterns
+        self.allow_warnings = allow_warnings
 
         self._generate_index()
         if self.single_doc_type == 'docstring':
@@ -233,10 +234,10 @@ class DocBuilder:
         if kind not in ('html', 'latex', 'spelling'):
             raise ValueError('kind must be html, latex or '
                              'spelling, not {}'.format(kind))
-
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
                      '-b{}'.format(kind),
+                     '{}'.format("" if self.allow_warnings else "-W"),
                      '-{}'.format(
                          'v' * self.verbosity) if self.verbosity else '',
                      '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
@@ -355,6 +356,10 @@ def main():
     argparser.add_argument('-v', action='count', dest='verbosity', default=0,
                            help=('increase verbosity (can be repeated), '
                                  'passed to the sphinx build command'))
+    argparser.add_argument("--allow-warnings",
+                           default=False,
+                           action="store_true",
+                           help="Whether to allow warnings in the build.")
     args = argparser.parse_args()
 
     if args.command not in cmds:
@@ -374,7 +379,7 @@ def main():
     os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
-                         args.verbosity)
+                         args.verbosity, args.allow_warnings)
     getattr(builder, args.command)()
 
 
