@@ -4,7 +4,7 @@ import operator
 import pytest
 import numpy as np
 
-from pandas.compat import range, PY3
+from pandas.compat import range
 
 import pandas as pd
 import pandas.util.testing as tm
