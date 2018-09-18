@@ -15,7 +15,8 @@
 MultiIndex / Advanced Indexing
 ******************************
 
-This section covers indexing with a ``MultiIndex`` and :ref:`more advanced indexing features <indexing.index_types>`.
+This section covers :ref:`indexing with a MultiIndex <advanced.hierarchical>`
+and :ref:`other advanced indexing features <indexing.index_types>`.
 
 See the :ref:`Indexing and Selecting Data <indexing>` for general indexing documentation.
 
@@ -213,8 +214,8 @@ tuples:
    s + s[:-2]
    s + s[::2]
 
-``reindex`` can be called with another ``MultiIndex``, or even a list or array
-of tuples:
+The :meth:`~DataFrame.reindex` method of Series/DataFrames can be called with
+another ``MultiIndex``, or even a list or array of tuples:
 
 .. ipython:: python
 
@@ -413,7 +414,7 @@ selecting data at a particular level of a ``MultiIndex`` easier.
    # using the slicers
    df.loc[(slice(None),'one'),:]
 
-You can also select on the columns with :meth:`~pandas.MultiIndex.xs`, by
+You can also select on the columns with ``xs``, by
 providing the axis argument.
 
 .. ipython:: python
@@ -426,7 +427,7 @@ providing the axis argument.
    # using the slicers
    df.loc[:,(slice(None),'one')]
 
-:meth:`~pandas.MultiIndex.xs` also allows selection with multiple keys.
+``xs`` also allows selection with multiple keys.
 
 .. ipython:: python
 
@@ -437,7 +438,7 @@ providing the axis argument.
    # using the slicers
    df.loc[:,('bar','one')]
 
-You can pass ``drop_level=False`` to :meth:`~pandas.MultiIndex.xs` to retain
+You can pass ``drop_level=False`` to ``xs`` to retain
 the level that was selected.
 
 .. ipython:: python
@@ -460,9 +461,9 @@ Compare the above with the result using ``drop_level=True`` (the default value).
 Advanced reindexing and alignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The parameter ``level`` has been added to the ``reindex`` and ``align`` methods
-of pandas objects. This is useful to broadcast values across a level. For
-instance:
+Using the parameter ``level`` in the :meth:`~DataFrame.reindex` and
+:meth:`~DataFrame.align` methods of pandas objects is useful to broadcast
+values across a level. For instance:
 
 .. ipython:: python
 
@@ -480,10 +481,10 @@ instance:
    df2_aligned
 
 
-Swapping levels with :meth:`~pandas.MultiIndex.swaplevel`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Swapping levels with ``swaplevel``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``swaplevel`` function can switch the order of two levels:
+The :meth:`~MultiIndex.swaplevel` method can switch the order of two levels:
 
 .. ipython:: python
 
@@ -492,21 +493,21 @@ The ``swaplevel`` function can switch the order of two levels:
 
 .. _advanced.reorderlevels:
 
-Reordering levels with :meth:`~pandas.MultiIndex.reorder_levels`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Reordering levels with ``reorder_levels``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``reorder_levels`` function generalizes the ``swaplevel`` function,
-allowing you to permute the hierarchical index levels in one step:
+The :meth:`~MultiIndex.reorder_levels` method generalizes the ``swaplevel``
+method, allowing you to permute the hierarchical index levels in one step:
 
 .. ipython:: python
 
    df[:5].reorder_levels([1,0], axis=0)
 
-Sorting a :class:`~pandas.MultiIndex`
--------------------------------------
+Sorting a ``MultiIndex``
+------------------------
 
-For MultiIndex-ed objects to be indexed and sliced effectively, they need
-to be sorted. As with any index, you can use ``sort_index``.
+For :class:`MultiIndex`-ed objects to be indexed and sliced effectively,
+they need to be sorted. As with any index, you can use :meth:`~DataFrame.sort_index`.
 
 .. ipython:: python
 
@@ -658,9 +659,9 @@ faster than fancy indexing.
 Index Types
 -----------
 
-We have discussed ``MultiIndex`` in the previous sections pretty extensively. ``DatetimeIndex`` and ``PeriodIndex``
-are shown :ref:`here <timeseries.overview>`, and information about
-``TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltas>`.
+We have discussed ``MultiIndex`` in the previous sections pretty extensively.
+Documentation about ``DatetimeIndex`` and ``PeriodIndex`` are shown :ref:`here <timeseries.overview>`,
+and documentation about ``TimedeltaIndex`` is found :ref:`here <timedeltas.timedeltaindex>`.
 
 In the following sub-sections we will highlight some other index types.
 
@@ -1004,8 +1005,8 @@ Non-monotonic indexes require exact matches
 
 If the index of a ``Series`` or ``DataFrame`` is monotonically increasing or decreasing, then the bounds
 of a label-based slice can be outside the range of the index, much like slice indexing a
-normal Python ``list``. Monotonicity of an index can be tested with the ``is_monotonic_increasing`` and
-``is_monotonic_decreasing`` attributes.
+normal Python ``list``. Monotonicity of an index can be tested with the :meth:`~Index.is_monotonic_increasing` and
+:meth:`~Index.is_monotonic_decreasing` attributes.
 
 .. ipython:: python
 
@@ -1039,9 +1040,9 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     In [11]: df.loc[2:3, :]
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
-:meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` only check that
+``Index.is_monotonic_increasing`` and ``Index.is_monotonic_decreasing`` only check that
 an index is weakly monotonic. To check for strict monotonicity, you can combine one of those with
-:meth:`Index.is_unique`
+the :meth:`~Index.is_unique` attribute.
 
 .. ipython:: python
 
