@@ -803,6 +803,7 @@ Other
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax``. ``NaN`` values are also handled properly. (:issue:`21548`, :issue:`21526`)
+- Constructing a Series with a numpy.datetime64 value will no longer issue a DeprecationWarning (:issue:`22741`)
 -
 -
 -

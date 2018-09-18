@@ -1042,7 +1042,7 @@ def maybe_cast_to_datetime(value, dtype, errors='raise'):
                                     "dtype [{dtype}]".format(dtype=dtype))
 
             if is_scalar(value):
-                if value == iNaT or isna(value):
+                if np.asscalar(value) == iNaT or isna(value):
                     value = iNaT
             else:
                 value = np.array(value, copy=False)
