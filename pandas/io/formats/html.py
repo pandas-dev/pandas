@@ -200,6 +200,8 @@ class HTMLFormatter(TableFormatter):
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
         row_levels = self.frame.index.nlevels
+        if self.show_col_idx_names and not self.fmt.index:
+            row_levels = 1
         if not self.fmt.header:
             # write nothing
             return indent
@@ -294,11 +296,8 @@ class HTMLFormatter(TableFormatter):
                 row = [''] * (row_levels - 1) + ['' if name is None else
                                                  pprint_thing(name)]
 
-                if self.fmt.index is False:
-                    if self.show_col_idx_names:
-                        row = row[-1:]
-                    else:
-                        row = []
+                if not (self.show_col_idx_names or self.fmt.index):
+                    row = []
 
                 tags = {}
                 j = len(row)
