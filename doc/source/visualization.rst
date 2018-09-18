@@ -598,7 +598,7 @@ given to specify a multiplication factor to bubble sizes displayed on the graph:
    @savefig scatter_plot_bubble_with_size_factor.png
    df.plot.scatter(x='a', y='b', s='c', size_factor=0.2);
 
-The keyword ''s'' can also be of ordered categorical data type.
+The keyword ``s`` can also be of ordered categorical data type.
 
 .. ipython:: python
 
@@ -606,12 +606,13 @@ The keyword ''s'' can also be of ordered categorical data type.
                                80.0 + 160.0 * np.random.rand(20),
                                100.0 + 200.0 * np.random.rand(10)])
 
-   types = np.array(30*['Flat'] + 20*['House'] + 10*['Castle'])
+   types = np.array(30 * ['Flat'] + 20 * ['House'] + 10 * ['Castle'])
 
    prices = 0.01 * surf_area * (np.random.rand(60) + 1.5) / 2
-   prices *= np.array([1]*30 + [1.4]*20 + [2]*10)
+   prices *= np.array([1] * 30 + [1.4] * 20 + [2] * 10)
 
-   property_types = pd.Categorical(types, categories=['Flat', 'House', 'Castle'], ordered=True)
+   categories = ['Flat', 'House', 'Castle']
+   property_types = pd.Categorical(types, categories=categories, ordered=True)
 
    df = pd.DataFrame({
       'Surface area (sqm)': surf_area,
