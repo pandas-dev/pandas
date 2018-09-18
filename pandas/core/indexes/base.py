@@ -3110,7 +3110,6 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(key)
             except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
-
         indexer = self.get_indexer([key], method=method, tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError('get_loc requires scalar valued input')
@@ -4476,10 +4475,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        if is_scalar(item) and isna(item):
-            # GH 18295
-            item = self._na_value
-
         _self = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._ndarray_values
         idx = np.concatenate((_self[:loc], item, _self[loc:]))

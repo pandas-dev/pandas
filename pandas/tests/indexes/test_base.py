@@ -560,8 +560,9 @@ class TestIndex(Base):
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
     def test_insert_missing(self, nulls_fixture):
-        # GH 18295 (test missing)
-        expected = Index(['a', np.nan, 'b', 'c'])
+        # GH 22295
+        # test there is no mangling of NA values
+        expected = Index(['a', nulls_fixture, 'b', 'c'])
         result = Index(list('abc')).insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
@@ -1364,6 +1365,21 @@ class TestIndex(Base):
         numeric_index = pd.Index(range(4))
         result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_with_NA_values(self, unique_nulls_fixture,
+                                        unique_nulls_fixture2):
+        # GH 22332
+        # check pairwise, that no pair of na values
+        # is mangled
+        if unique_nulls_fixture is unique_nulls_fixture2:
+            return  # skip it, values are not unique
+        arr = np.array([unique_nulls_fixture,
+                        unique_nulls_fixture2], dtype=np.object)
+        index = pd.Index(arr, dtype=np.object)
+        result = index.get_indexer([unique_nulls_fixture,
+                                    unique_nulls_fixture2, 'Unknown'])
+        expected = np.array([0, 1, -1], dtype=np.int64)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
