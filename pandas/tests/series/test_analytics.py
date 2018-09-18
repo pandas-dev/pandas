@@ -25,6 +25,7 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
+
 class TestSeriesAnalytics():
 
     @pytest.mark.parametrize("use_bottleneck", [True, False])
@@ -394,7 +395,8 @@ class TestSeriesAnalytics():
 
     def test_cummin(self, datetime_series):
         tm.assert_numpy_array_equal(datetime_series.cummin().values,
-                                    np.minimum.accumulate(np.array(datetime_series)))
+                                    np.minimum.accumulate(
+                                                          np.array(datetime_series)))
         ts = datetime_series.copy()
         ts[::2] = np.NaN
         result = ts.cummin()[1::2]
@@ -404,7 +406,8 @@ class TestSeriesAnalytics():
 
     def test_cummax(self, datetime_series):
         tm.assert_numpy_array_equal(datetime_series.cummax().values,
-                                    np.maximum.accumulate(np.array(datetime_series)))
+                                    np.maximum.accumulate(
+                                                          np.array(datetime_series)))
         ts = datetime_series.copy()
         ts[::2] = np.NaN
         result = ts.cummax()[1::2]
@@ -504,8 +507,8 @@ class TestSeriesAnalytics():
         r = np.diff(s)
         assert_series_equal(Series([nan, 0, 0, 0, nan]), r)
 
-    def _check_stat_op(self, name, alternate, string_series_, check_objects=False,
-                       check_allna=False):
+    def _check_stat_op(self, name, alternate, string_series_,
+                       check_objects=False, check_allna=False):
 
         with pd.option_context('use_bottleneck', False):
             f = getattr(Series, name)
@@ -722,9 +725,11 @@ class TestSeriesAnalytics():
         tm.assert_almost_equal(datetime_series.corr(datetime_series), 1)
 
         # partial overlap
-        tm.assert_almost_equal(datetime_series[:15].corr(datetime_series[5:]), 1)
+        tm.assert_almost_equal(datetime_series[:15].corr(datetime_series[5:]),
+                               1)
 
-        assert isna(datetime_series[:15].corr(datetime_series[5:], min_periods=12))
+        assert isna(datetime_series[:15].corr(datetime_series[5:],
+                    min_periods=12))
 
         ts1 = datetime_series[:15].reindex(datetime_series.index)
         ts2 = datetime_series[5:].reindex(datetime_series.index)
@@ -789,7 +794,8 @@ class TestSeriesAnalytics():
 
     def test_cov(self, datetime_series):
         # full overlap
-        tm.assert_almost_equal(datetime_series.cov(datetime_series), datetime_series.std() ** 2)
+        tm.assert_almost_equal(datetime_series.cov(datetime_series),
+                               datetime_series.std() ** 2)
 
         # partial overlap
         tm.assert_almost_equal(datetime_series[:15].cov(datetime_series[5:]),
@@ -804,7 +810,8 @@ class TestSeriesAnalytics():
         assert isna(cp.cov(cp))
 
         # min_periods
-        assert isna(datetime_series[:15].cov(datetime_series[5:], min_periods=12))
+        assert isna(datetime_series[:15].cov(datetime_series[5:],
+                    min_periods=12))
 
         ts1 = datetime_series[:15].reindex(datetime_series.index)
         ts2 = datetime_series[5:].reindex(datetime_series.index)
