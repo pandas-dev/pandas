@@ -461,9 +461,10 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 ``Series`` behavior (:issue:`22163`)
 
 .. ipython:: python
+   :okexcept:
 
-    df = pd.DataFrame([pd.Timedelta(days=1)])
-    df - np.nan
+   df = pd.DataFrame([pd.Timedelta(days=1)])
+   df - np.nan
 
 Previous Behavior:
 
