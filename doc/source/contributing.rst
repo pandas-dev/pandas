@@ -887,7 +887,7 @@ We prefer this to the ``pytest.warns`` context manager because ours checks that 
 stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
 is printed in the warning, rather than something internal to pandas. It represents the number of
 function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
-the warning.
+the warning. Our linter will fail the build if you use ``pytest.warns`` in a test.
 
 If you have a test that would emit a warning, but you aren't actually testing the
 warning itself (say because it's going to be removed in the future, or because we're

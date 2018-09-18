@@ -1575,12 +1575,20 @@ class TestDatetimeParsingWrappers(object):
 
 @pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
 def units(request):
+    """Day and some time units.
+
+    * D
+    * s
+    * ms
+    * us
+    * ns
+    """
     return request.param
 
 
 @pytest.fixture
 def epoch_1960():
-    # for origin as 1960-01-01
+    """Timestamp at 1960-01-01."""
     return Timestamp('1960-01-01')
 
 
@@ -1591,6 +1599,13 @@ def units_from_epochs():
 
 @pytest.fixture(params=['timestamp', 'pydatetime', 'datetime64', 'str_1960'])
 def epochs(epoch_1960, request):
+    """Timestamp at 1960-01-01 in various forms.
+
+    * pd.Timestamp
+    * datetime.datetime
+    * numpy.datetime64
+    * str
+    """
     assert request.param in {'timestamp', 'pydatetime', 'datetime64',
                              "str_1960"}
     if request.param == 'timestamp':
