@@ -105,6 +105,7 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_int(self, ext):
 
         dfref = self.get_csv_refdf('test1')
@@ -122,6 +123,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
         tm.assert_frame_equal(df3, dfref, check_names=False)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_list(self, ext):
 
         dfref = self.get_csv_refdf('test1')
@@ -140,6 +142,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
         tm.assert_frame_equal(df3, dfref, check_names=False)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_str(self, ext):
 
         dfref = self.get_csv_refdf('test1')
@@ -219,6 +222,7 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_deprecated_sheetname(self, ext):
         # gh-17964
         excel = self.get_excelfile('test1', ext)
@@ -229,6 +233,7 @@ class ReadingTestsBase(SharedItems):
         with pytest.raises(TypeError):
             read_excel(excel, sheet='Sheet1')
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_excel_table_sheet_by_index(self, ext):
 
         excel = self.get_excelfile('test1', ext)
@@ -507,6 +512,7 @@ class ReadingTestsBase(SharedItems):
         result = self.get_exceldf('testdateoverflow', ext)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_sheet_name_and_sheetname(self, ext):
         # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
         # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
@@ -586,6 +592,7 @@ class TestXlrdReader(ReadingTestsBase):
         tm.assert_frame_equal(url_table, local_table)
 
     @td.skip_if_no('s3fs')
+    @td.skip_if_not_us_locale
     def test_read_from_s3_url(self, ext):
         boto3 = pytest.importorskip('boto3')
         moto = pytest.importorskip('moto')

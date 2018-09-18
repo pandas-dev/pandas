@@ -71,12 +71,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_getitem_dupe_cols(self):
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
-        try:
+        with pytest.raises(KeyError):
             df[['baf']]
-        except KeyError:
-            pass
-        else:
-            self.fail("Dataframe failed to raise KeyError")
 
     def test_get(self):
         b = self.frame.get('B')
@@ -3097,6 +3093,28 @@ class TestDataFrameIndexing(TestData):
         expected = Series([1, 3], index=index, name=name)
 
         result = dg['x', 0]
+        assert_series_equal(result, expected)
+
+    def test_interval_index(self):
+        # GH 19977
+        index = pd.interval_range(start=0, periods=3)
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                          index=index,
+                          columns=['A', 'B', 'C'])
+
+        expected = 1
+        result = df.loc[0.5, 'A']
+        assert_almost_equal(result, expected)
+
+        index = pd.interval_range(start=0, periods=3, closed='both')
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                          index=index,
+                          columns=['A', 'B', 'C'])
+
+        index_exp = pd.interval_range(start=0, periods=2,
+                                      freq=1, closed='both')
+        expected = pd.Series([1, 4], index=index_exp, name='A')
+        result = df.loc[1, 'A']
         assert_series_equal(result, expected)
 
 

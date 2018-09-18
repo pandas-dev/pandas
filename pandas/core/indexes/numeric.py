@@ -9,6 +9,7 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_bool_dtype,
     is_scalar)
+from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import algorithms
@@ -113,6 +114,13 @@ class NumericIndex(Index):
         Checks that all the labels are datetime objects
         """
         return False
+
+    @Appender(Index.insert.__doc__)
+    def insert(self, loc, item):
+        # treat NA values as nans:
+        if is_scalar(item) and isna(item):
+            item = self._na_value
+        return super(NumericIndex, self).insert(loc, item)
 
 
 _num_index_shared_docs['class_descr'] = """
@@ -403,7 +411,7 @@ class Float64Index(NumericIndex):
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
         try:
-            if np.all(np.isnan(key)):
+            if np.all(np.isnan(key)) or is_bool(key):
                 nan_idxs = self._nan_idxs
                 try:
                     return nan_idxs.item()

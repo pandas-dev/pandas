@@ -23,9 +23,8 @@ from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
-from pandas.compat import PYPY
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate_kwarg, Substitution)
+from pandas.compat import PYPY, OrderedDict
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -179,28 +178,28 @@ class SelectionMixin(object):
     _selection = None
     _internal_names = ['_cache', '__setstate__']
     _internal_names_set = set(_internal_names)
-    _builtin_table = {
-        builtins.sum: np.sum,
-        builtins.max: np.max,
-        builtins.min: np.min
-    }
-    _cython_table = {
-        builtins.sum: 'sum',
-        builtins.max: 'max',
-        builtins.min: 'min',
-        np.all: 'all',
-        np.any: 'any',
-        np.sum: 'sum',
-        np.mean: 'mean',
-        np.prod: 'prod',
-        np.std: 'std',
-        np.var: 'var',
-        np.median: 'median',
-        np.max: 'max',
-        np.min: 'min',
-        np.cumprod: 'cumprod',
-        np.cumsum: 'cumsum'
-    }
+    _builtin_table = OrderedDict((
+        (builtins.sum, np.sum),
+        (builtins.max, np.max),
+        (builtins.min, np.min),
+    ))
+    _cython_table = OrderedDict((
+        (builtins.sum, 'sum'),
+        (builtins.max, 'max'),
+        (builtins.min, 'min'),
+        (np.all, 'all'),
+        (np.any, 'any'),
+        (np.sum, 'sum'),
+        (np.mean, 'mean'),
+        (np.prod, 'prod'),
+        (np.std, 'std'),
+        (np.var, 'var'),
+        (np.median, 'median'),
+        (np.max, 'max'),
+        (np.min, 'min'),
+        (np.cumprod, 'cumprod'),
+        (np.cumsum, 'cumsum'),
+    ))
 
     @property
     def _selection_name(self):
@@ -1228,7 +1227,6 @@ class IndexOpsMixin(object):
 
     @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)

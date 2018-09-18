@@ -1,10 +1,7 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
-cimport cython
-
-from cpython cimport PyTuple_Check, PyList_Check
-from cpython.slice cimport PySlice_Check
+import cython
 
 import numpy as np
 cimport numpy as cnp
@@ -30,15 +27,15 @@ cdef int64_t iNaT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if PyTuple_Check(val):
+    if isinstance(val, tuple):
         try:
             hash(val)
         except TypeError:
             return True
 
     # we have a _data, means we are a NDFrame
-    return (PySlice_Check(val) or util.is_array(val)
-            or PyList_Check(val) or hasattr(val, '_data'))
+    return (isinstance(val, slice) or util.is_array(val)
+            or isinstance(val, list) or hasattr(val, '_data'))
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
@@ -49,24 +46,8 @@ cpdef get_value_at(ndarray arr, object loc, object tz=None):
     return util.get_value_at(arr, loc)
 
 
-cpdef object get_value_box(ndarray arr, object loc):
-    cdef:
-        Py_ssize_t i, sz
-
-    if util.is_float_object(loc):
-        casted = int(loc)
-        if casted == loc:
-            loc = casted
-    i = <Py_ssize_t> loc
-    sz = cnp.PyArray_SIZE(arr)
-
-    if i < 0 and sz > 0:
-        i += sz
-
-    if i >= sz or sz == 0 or i < 0:
-        raise IndexError('index out of bounds')
-
-    return get_value_at(arr, i, tz=None)
+def get_value_box(arr: ndarray, loc: object) -> object:
+    return get_value_at(arr, loc, tz=None)
 
 
 # Don't populate hash tables in monotonic indexes larger than this
@@ -104,7 +85,7 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
-        if PySlice_Check(loc) or util.is_array(loc):
+        if isinstance(loc, slice) or util.is_array(loc):
             return arr[loc]
         else:
             return get_value_at(arr, loc, tz=tz)
@@ -120,10 +101,7 @@ cdef class IndexEngine:
         loc = self.get_loc(key)
         value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or util.is_array(loc):
-            arr[loc] = value
-        else:
-            util.set_value_at(arr, loc, value)
+        arr[loc] = value
 
     cpdef get_loc(self, object val):
         if is_definitely_invalid_key(val):
@@ -319,15 +297,14 @@ cdef class IndexEngine:
         # form the set of the results (like ismember)
         members = np.empty(n, dtype=np.uint8)
         for i in range(n):
-            val = util.get_value_1d(values, i)
+            val = values[i]
             if val in stargets:
                 if val not in d:
                     d[val] = []
                 d[val].append(i)
 
         for i in range(n_t):
-
-            val = util.get_value_1d(targets, i)
+            val = targets[i]
 
             # found
             if val in d:
@@ -660,7 +637,7 @@ cdef class BaseMultiIndexCodesEngine:
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
             raise TypeError("'{key}' is an invalid key".format(key=key))
-        if not PyTuple_Check(key):
+        if not isinstance(key, tuple):
             raise KeyError(key)
         try:
             indices = [0 if checknull(v) else lev.get_loc(v) + 1

@@ -1,9 +1,8 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 # Translated from the reference implementation
 # at https://github.com/veorq/SipHash
 
 import cython
-from cpython cimport PyBytes_Check, PyUnicode_Check
 from libc.stdlib cimport malloc, free
 
 import numpy as np
@@ -44,13 +43,13 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
         char **vecs
         char *cdata
         object val
+        list datas = []
 
     k = <bytes>key.encode(encoding)
     kb = <uint8_t *>k
     if len(k) != 16:
-        raise ValueError(
-            'key should be a 16-byte string encoded, got {!r} (len {})'.format(
-                k, len(k)))
+        raise ValueError("key should be a 16-byte string encoded, "
+                         "got {key} (len {klen})".format(key=k, klen=len(k)))
 
     n = len(arr)
 
@@ -58,20 +57,20 @@ def hash_object_array(object[:] arr, object key, object encoding='utf8'):
     vecs = <char **> malloc(n * sizeof(char *))
     lens = <uint64_t*> malloc(n * sizeof(uint64_t))
 
-    cdef list datas = []
     for i in range(n):
         val = arr[i]
-        if PyBytes_Check(val):
+        if isinstance(val, bytes):
             data = <bytes>val
-        elif PyUnicode_Check(val):
+        elif isinstance(val, unicode):
             data = <bytes>val.encode(encoding)
         elif val is None or is_nan(val):
             # null, stringify and encode
             data = <bytes>str(val).encode(encoding)
 
         else:
-            raise TypeError("{} of type {} is not a valid type for hashing, "
-                            "must be string or null".format(val, type(val)))
+            raise TypeError("{val} of type {typ} is not a valid type "
+                            "for hashing, must be string or null"
+                            .format(val=val, typ=type(val)))
 
         l = len(data)
         lens[i] = l
@@ -130,14 +129,6 @@ cdef inline void _sipround(uint64_t* v0, uint64_t* v1,
     v1[0] = _rotl(v1[0], 17)
     v1[0] ^= v2[0]
     v2[0] = _rotl(v2[0], 32)
-
-
-cpdef uint64_t siphash(bytes data, bytes key) except? 0:
-    if len(key) != 16:
-        raise ValueError(
-            'key should be a 16-byte bytestring, got {!r} (len {})'.format(
-                key, len(key)))
-    return low_level_siphash(data, len(data), key)
 
 
 @cython.cdivision(True)
