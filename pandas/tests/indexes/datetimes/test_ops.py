@@ -541,7 +541,7 @@ class TestCustomDatetimeIndex(object):
             assert shifted[0] == rng[0] + CDay()
 
     def test_shift_periods(self):
-        # GH #22458 :
+        # GH #22458 : argument 'n' was deprecated in favor of 'periods'
         idx = pd.DatetimeIndex(start=START, end=END,
                                periods=3)
         tm.assert_index_equal(idx.shift(periods=0), idx)

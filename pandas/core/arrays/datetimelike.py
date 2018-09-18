@@ -536,6 +536,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         periods : int
             Number of periods (or increments) to shift by,
             can be positive or negative.
+
+            .. versionchanged:: 0.24.0
+
         freq : pandas.DateOffset, pandas.Timedelta or string, optional
             Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.

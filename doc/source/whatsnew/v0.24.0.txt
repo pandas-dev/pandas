@@ -528,7 +528,6 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
-- :func:`shift` now accepts ``periods`` argument instead of ``n`` for consistency with `Index.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
 
 .. _whatsnew_0240.api.other:
 
@@ -562,6 +561,7 @@ Deprecations
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
+- :func:`DatetimeIndex.shift` now accepts ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
 
 .. _whatsnew_0240.prior_deprecations:
 
