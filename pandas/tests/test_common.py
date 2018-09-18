@@ -113,6 +113,7 @@ def test_standardize_mapping():
     dd = collections.defaultdict(list)
     assert isinstance(com.standardize_mapping(dd), partial)
 
+
 def test_git_version():
     # GH 21295
     git_version = pd.__git_version__
