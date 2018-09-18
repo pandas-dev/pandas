@@ -6,7 +6,7 @@
 import pytest
 
 import weakref
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 
 from pandas.core.dtypes.common import (
@@ -419,11 +419,13 @@ class TestFancy(Base):
         # ix with a list
         df = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df.ix[1, 0] = [1, 2, 3]
             df.ix[1, 0] = [1, 2]
 
         result = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             result.ix[1, 0] = [1, 2]
 
         tm.assert_frame_equal(result, df)
@@ -447,11 +449,13 @@ class TestFancy(Base):
 
         df = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df.ix[1, 0] = TO(1)
             df.ix[1, 0] = TO(2)
 
         result = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             result.ix[1, 0] = TO(2)
 
         tm.assert_frame_equal(result, df)
@@ -459,6 +463,7 @@ class TestFancy(Base):
         # remains object dtype even after setting it back
         df = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df.ix[1, 0] = TO(1)
             df.ix[1, 0] = np.nan
         result = DataFrame(index=[0, 1], columns=[0])
@@ -629,6 +634,7 @@ class TestFancy(Base):
     def test_index_type_coercion(self):
 
         with catch_warnings(record=True):
+            simplefilter("ignore")
 
             # GH 11836
             # if we have an index type and set it with something that looks
@@ -760,16 +766,20 @@ class TestMisc(Base):
 
             left = df.copy()
             with catch_warnings(record=True):
+                # XXX: finer-filter here.
+                simplefilter("ignore")
                 left.ix[s, l] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
+                simplefilter("ignore")
                 left.ix[i, j] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
+                simplefilter("ignore")
                 left.ix[r, c] = rhs
             tm.assert_frame_equal(left, right)
 
@@ -821,6 +831,7 @@ class TestMisc(Base):
         tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
                                lambda: s.loc[::0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             tm.assert_raises_regex(ValueError,
                                    'slice step cannot be zero',
                                    lambda: s.ix[::0])
@@ -839,11 +850,13 @@ class TestMisc(Base):
         # Check that .iloc and .ix return correct dtypes GH9983
         df = DataFrame({'a': [1, 2, 3], 'b': ['b', 'b2', 'b3']})
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df2 = df.ix[[], :]
 
         assert df2.loc[:, 'a'].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, 'a'], df2.iloc[:, 0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             tm.assert_series_equal(df2.loc[:, 'a'], df2.ix[:, 0])
 
     def test_range_in_series_indexing(self):
@@ -917,6 +930,7 @@ class TestMisc(Base):
         for name in ('loc', 'iloc', 'at', 'iat'):
             getattr(df, name)
         with catch_warnings(record=True):
+            simplefilter("ignore")
             getattr(df, 'ix')
         wr = weakref.ref(df)
         del df

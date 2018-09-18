@@ -170,9 +170,9 @@ Other Enhancements
 - :meth:`Series.droplevel` and :meth:`DataFrame.droplevel` are now implemented (:issue:`20342`)
 - Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
 - :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
-  reflect changes from the `Pandas-GBQ library version 0.5.0
-  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
-  (:issue:`21627`)
+  reflect changes from the `Pandas-GBQ library version 0.6.0
+  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-6-0>`__.
+  (:issue:`21627`, :issue:`22557`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
 - :func:`read_html` copies cell data across ``colspan`` and ``rowspan``, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
 - :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep`` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
@@ -577,6 +577,7 @@ Removal of prior version deprecations/changes
 - Removed the ``pandas.formats.style`` shim for :class:`pandas.io.formats.style.Styler` (:issue:`16059`)
 - :meth:`Categorical.searchsorted` and :meth:`Series.searchsorted` have renamed the ``v`` argument to ``value`` (:issue:`14645`)
 - :meth:`TimedeltaIndex.searchsorted`, :meth:`DatetimeIndex.searchsorted`, and :meth:`PeriodIndex.searchsorted` have renamed the ``key`` argument to ``value`` (:issue:`14645`)
+- Removal of the previously deprecated module ``pandas.json`` (:issue:`19944`)
 
 .. _whatsnew_0240.performance:
 
@@ -635,7 +636,7 @@ Datetimelike
 - Bug in :meth:`DataFrame.eq` comparison against ``NaT`` incorrectly returning ``True`` or ``NaN`` (:issue:`15697`, :issue:`22163`)
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
--
+- Bug in :class:`DatetimeIndex` where frequency was being set if original frequency was ``None`` (:issue:`22150`)
 
 Timedelta
 ^^^^^^^^^
@@ -645,6 +646,7 @@ Timedelta
 - Bug in :class:`Series` with numeric dtype when adding or subtracting an an array or ``Series`` with ``timedelta64`` dtype (:issue:`22390`)
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
+- Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 -
 -
 
@@ -720,13 +722,16 @@ Indexing
 - Bug where mixed indexes wouldn't allow integers for ``.at`` (:issue:`19860`)
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
 - Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
+- :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
 
 Missing
 ^^^^^^^
 
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
-- :func:`Series.isin` now treats all nans as equal also for ``np.object``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
+- :func:`Series.isin` now treats all NaN-floats as equal also for `np.object`-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
+- :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for `np.object`-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
+
 
 MultiIndex
 ^^^^^^^^^^
@@ -742,6 +747,8 @@ I/O
 - :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 - :func:`read_csv()` will correctly parse timezone-aware datetimes (:issue:`22256`)
 - :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
+- :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
+- :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
 
 Plotting
 ^^^^^^^^
@@ -761,6 +768,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to ``loffset`` kwarg (:issue:`7687`).
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
+- Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 
 Sparse
 ^^^^^^
@@ -796,7 +804,8 @@ Other
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
-- :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax``. ``NaN`` values are also handled properly. (:issue:`21548`, :issue:`21526`)
+- :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
+- Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 -
 -
 -
