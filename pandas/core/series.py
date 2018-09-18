@@ -2745,7 +2745,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         n : int, default 5
             Return this many descending sorted values.
-        keep : str, default 'first'
+        keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
             - ``first`` : take the first occurrences based on the index order
@@ -2766,6 +2766,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.nsmallest: Get the `n` smallest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
 
         Examples
         --------
@@ -2836,9 +2838,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        n : int
+        n : int, default 5
             Return this many ascending sorted values.
-        keep : str, default 'first'
+        keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
             - ``first`` : take the first occurrences based on the index order
@@ -2859,6 +2861,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.nlargest: Get the `n` largest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
 
         Examples
         --------
