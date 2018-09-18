@@ -53,8 +53,8 @@ class TestDataFrameAnalytics():
 
     def _check_method(self, frame, method='pearson'):
         correls = frame.corr(method=method)
-        exp = frame['A'].corr(frame['C'], method=method)
-        tm.assert_almost_equal(correls['A']['C'], exp)
+        expected = frame['A'].corr(frame['C'], method=method)
+        tm.assert_almost_equal(correls['A']['C'], expected)
 
     @td.skip_if_no_scipy
     def test_corr_non_numeric(self, float_frame, float_string_frame):
@@ -803,8 +803,9 @@ class TestDataFrameAnalytics():
         assert kurt.name is None
         assert kurt2.name == 'bar'
 
-    def _check_stat_op(self, name, alternative, main_frame, float_frame,
-                       float_string_frame, has_skipna=True,
+    # underscores added to distinguish argument names from fixture names
+    def _check_stat_op(self, name, alternative, main_frame, float_frame_,
+                       float_string_frame_, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
                        check_dates=False, check_less_precise=False,
                        skipna_alternative=None):
@@ -846,8 +847,8 @@ class TestDataFrameAnalytics():
                                check_dtype=check_dtype,
                                check_less_precise=check_less_precise)
         if name in ['sum', 'prod']:
-            exp = main_frame.apply(skipna_wrapper, axis=1)
-            tm.assert_series_equal(result1, exp, check_dtype=False,
+            expected = main_frame.apply(skipna_wrapper, axis=1)
+            tm.assert_series_equal(result1, expected, check_dtype=False,
                                    check_less_precise=check_less_precise)
 
         # check dtypes
@@ -859,18 +860,18 @@ class TestDataFrameAnalytics():
         # bad axis
         tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
         # make sure works on mixed-type frame
-        getattr(float_string_frame, name)(axis=0)
-        getattr(float_string_frame, name)(axis=1)
+        getattr(float_string_frame_, name)(axis=0)
+        getattr(float_string_frame_, name)(axis=1)
 
         if has_numeric_only:
-            getattr(float_string_frame, name)(axis=0, numeric_only=True)
-            getattr(float_string_frame, name)(axis=1, numeric_only=True)
-            getattr(float_frame, name)(axis=0, numeric_only=False)
-            getattr(float_frame, name)(axis=1, numeric_only=False)
+            getattr(float_string_frame_, name)(axis=0, numeric_only=True)
+            getattr(float_string_frame_, name)(axis=1, numeric_only=True)
+            getattr(float_frame_, name)(axis=0, numeric_only=False)
+            getattr(float_frame_, name)(axis=1, numeric_only=False)
 
         # all NA case
         if has_skipna:
-            all_na = float_frame * np.NaN
+            all_na = float_frame_ * np.NaN
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name in ['sum', 'prod']:
@@ -1920,8 +1921,8 @@ class TestDataFrameAnalytics():
         row = a.iloc[0].values
 
         result = a.dot(row)
-        exp = a.dot(a.iloc[0])
-        tm.assert_series_equal(result, exp)
+        expected = a.dot(a.iloc[0])
+        tm.assert_series_equal(result, expected)
 
         with tm.assert_raises_regex(ValueError,
                                     'Dot product shape mismatch'):
@@ -2085,6 +2086,9 @@ class TestNLargestNSmallest(object):
         col = columns[1]
         error_msg = self.dtype_error_msg_template.format(
             column=col, method=nselect_method, dtype=df[col].dtype)
+        # escape some characters that may be in the repr
+        error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
+                              .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
             getattr(df, nselect_method)(2, columns)
 
