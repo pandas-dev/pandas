@@ -2745,6 +2745,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
+
             - ``first`` : take the first occurrences based on the index order
             - ``last`` : take the last occurrences based on the index order
             - ``all`` : keep all occurrences. This can result in a Series of
@@ -2840,6 +2841,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
+
             - ``first`` : take the first occurrences based on the index order
             - ``last`` : take the last occurrences based on the index order
             - ``all`` : keep all occurrences. This can result in a Series of
