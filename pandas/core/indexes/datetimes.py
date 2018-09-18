@@ -1768,6 +1768,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+    Returns
+    -------
+    DatetimeIndex
+
     Examples
     --------
     Note how the two weekend days are skipped in the result.
@@ -1776,10 +1780,6 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                '2018-01-05', '2018-01-08'],
               dtype='datetime64[ns]', freq='B')
-
-    Returns
-    -------
-    rng : DatetimeIndex
     """
     if freq is None:
         msg = 'freq must be specified for bdate_range; use date_range instead'
