@@ -15,8 +15,6 @@ import numpy as np
 cnp.import_array()
 
 import pytz
-from dateutil.tz import tzlocal, tzutc as dateutil_utc
-
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object)
