@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     ensure_float64,
     ensure_platform_int,
     ensure_int64,
+    ensure_int64_or_float64,
     ensure_object,
     needs_i8_conversion,
     is_integer_dtype,
@@ -471,7 +472,7 @@ class BaseGrouper(object):
             if (values == iNaT).any():
                 values = ensure_float64(values)
             else:
-                values = values.astype('int64', copy=False)
+                values = ensure_int64_or_float64(values)
         elif is_numeric and not is_complex_dtype(values):
             values = ensure_float64(values)
         else:

@@ -1125,3 +1125,12 @@ def test_pipe_args():
     expected = pd.Series([4, 8, 12], index=pd.Int64Index([1, 2, 3]))
 
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_mean_no_overflow():
+    # Regression test for (#22487)
+    df = pd.DataFrame({
+        "user": ["A", "A", "A", "A", "A"],
+        "connections": [4970, 4749, 4719, 4704, 18446744073699999744]
+    })
+    assert df.groupby('user')['connections'].mean()['A'] == 3689348814740003840
