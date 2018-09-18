@@ -1678,15 +1678,6 @@ def dispatch_to_series(left, right, func, str_rep=None):
             return {i: func(a.iloc[:, i], b[0, i])
                     for i in range(len(a.columns))}
 
-    elif (np.ndim(right) == 2 and
-          right.shape[1] == 1 and
-          right.shape[0] == len(left.index)):
-        # operate column-by-column
-
-        def column_op(a, b):
-            return {i: func(a.iloc[:, i], b[:, 0])
-                    for i in range(len(a.columns))}
-
     else:
         # Remaining cases have less-obvious dispatch rules
         raise NotImplementedError(right)
