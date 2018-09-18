@@ -126,18 +126,14 @@ class TestFrameFlexArithmetic(object):
              'B': ser * 2})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('op', ['add', 'sub', 'mul', 'div', 'truediv',
-                                    'pow', 'floordiv', 'mod'])
-    def test_arith_flex_frame(self, op, int_frame, mixed_int_frame,
-                              float_frame, mixed_float_frame):
+    def test_arith_flex_frame(self, all_arithmetic_operators, int_frame,
+                              mixed_int_frame, float_frame, mixed_float_frame):
 
-        if not PY3:
-            aliases = {}
-        else:
-            aliases = {'div': 'truediv'}
-        alias = aliases.get(op, op)
+        op = all_arithmetic_operators
+        if op.startswith('__r'):
+            pytest.skip('Reverse methods not available in operator library')
 
-        f = getattr(operator, alias)
+        f = getattr(operator, op)
         result = getattr(float_frame, op)(2 * float_frame)
         exp = f(float_frame, 2 * float_frame)
         tm.assert_frame_equal(result, exp)
