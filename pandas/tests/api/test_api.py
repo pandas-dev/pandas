@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-from warnings import catch_warnings
 
 import pytest
 import pandas as pd
@@ -175,23 +174,23 @@ class TestTopLevelDeprecations(object):
 
 class TestParser(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.parser.na_values
+        pd.parser.na_values
 
 
 class TestLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.lib.infer_dtype('foo')
+        pd.lib.infer_dtype('foo')
 
 
 class TestTSLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.tslib.Timestamp('20160101')
+        pd.tslib.Timestamp('20160101')
 
 
 class TestTypes(object):

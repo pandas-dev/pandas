@@ -417,9 +417,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, collections.Iterable)
+        elif (isinstance(data, compat.Iterable)
               and not isinstance(data, string_and_binary_types)):
-            if not isinstance(data, collections.Sequence):
+            if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -7640,7 +7640,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], collections.Mapping):
+    elif isinstance(data[0], compat.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], Series):
