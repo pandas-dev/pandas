@@ -21,7 +21,7 @@ if [ "$DOCTEST" ]; then
 
     # DataFrame / Series docstrings
     pytest --doctest-modules -v pandas/core/frame.py \
-        -k"-assign -axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_stata -transform"
+        -k"-assign -axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_stata"
 
     if [ $? -ne "0" ]; then
         RET=1
@@ -35,7 +35,7 @@ if [ "$DOCTEST" ]; then
     fi
 
     pytest --doctest-modules -v pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -to_xarray -transform -transpose -values -xs"
+        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -to_xarray -transpose -values -xs"
 
     if [ $? -ne "0" ]; then
         RET=1
