@@ -894,14 +894,27 @@ warning itself (say because it's going to be removed in the future, or because w
 matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
 ignore the error.
 
-```
-@pytest.mark.filterwarnings("ignore:msg:category")
-def test_thing(self):
-    ...
-```
+.. code-block:: python
+
+   @pytest.mark.filterwarnings("ignore:msg:category")
+   def test_thing(self):
+       ...
 
 If the test generates a warning of class ``category`` whose message starts
 with ``msg``, the warning will be ignored and the test will pass.
+
+If you need finer-grained control, you can use Python's usual
+`warnings module <https://docs.python.org/3/library/warnings.html>`__
+to control whether a warning is ignored / raised at different places within
+a single test.
+
+.. code-block:: python
+
+   with warch.catch_warnings():
+       warnings.simplefilter("ignore", FutureWarning)
+       # Or use warnings.filterwarnings(...)
+
+Alternatively, consider breaking up the unit test.
 
 
 Running the test suite
