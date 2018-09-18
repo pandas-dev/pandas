@@ -185,7 +185,7 @@ Other Enhancements
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
-
+- New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295` ).
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
