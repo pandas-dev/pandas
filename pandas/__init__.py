@@ -61,9 +61,6 @@ import pandas.testing
 # extension module deprecations
 from pandas.util._depr_module import _DeprecatedModule
 
-json = _DeprecatedModule(deprmod='pandas.json',
-                         moved={'dumps': 'pandas.io.json.dumps',
-                                'loads': 'pandas.io.json.loads'})
 parser = _DeprecatedModule(deprmod='pandas.parser',
                            removals=['na_values'],
                            moved={'CParserError': 'pandas.errors.ParserError'})
