@@ -153,6 +153,8 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            # using a dict with renaming
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
         expected = concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -160,6 +162,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean',
                                         'sum': 'sum'},
                                   'B': {'mean2': 'mean',
@@ -223,11 +226,13 @@ class TestApi(Base):
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
                                         'B': {'rb': ['mean', 'std']}})
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.agg({'A': {'ra': ['mean', 'std']},
                             'B': {'rb': ['mean', 'std']}})
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
@@ -278,6 +283,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
+    @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
     def test_window_with_args(self):
         # make sure that we are aggregating window functions correctly with arg
         r = Series(np.random.randn(100)).rolling(window=10, min_periods=1,
@@ -309,6 +315,7 @@ class TestApi(Base):
         assert s3.name == 'foo'
 
 
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestWindow(Base):
 
     def setup_method(self, method):
@@ -940,6 +947,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
                     "datetime64[ns, UTC] is not supported ATM")
 
 
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestMoments(Base):
 
     def setup_method(self, method):
@@ -1901,6 +1909,7 @@ class TestPairwise(object):
         for (df, result) in zip(self.df1s, results):
             if result is not None:
                 with catch_warnings(record=True):
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     # we can have int and str columns
                     expected_index = df.index.union(self.df2.index)
                     expected_columns = df.columns.union(self.df2.columns)

@@ -323,6 +323,7 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
             # to use a non-numeric indexer
             try:
                 with warnings.catch_warnings(record=True):
+                    # TODO: Filter the warnings we actually care about here.
                     target[assigner] = ret
             except (TypeError, IndexError):
                 raise ValueError("Cannot assign expression output to target")

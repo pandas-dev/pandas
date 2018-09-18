@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from __future__ import division
-from warnings import warn, catch_warnings
+from warnings import warn, catch_warnings, simplefilter
 from textwrap import dedent
 
 import numpy as np
@@ -91,7 +91,8 @@ def _ensure_data(values, dtype=None):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
-            with catch_warnings(record=True):
+            with catch_warnings():
+                simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
             return values, 'float64', 'float64'
 

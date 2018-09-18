@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=E1101,W0612
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 
 from pandas import Panel
 from pandas.util.testing import (assert_panel_equal,
@@ -21,6 +21,7 @@ class TestPanel(Generic):
         from xarray import DataArray
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             p = tm.makePanel()
 
             result = p.to_xarray()
@@ -51,6 +52,7 @@ for t in ['test_rename', 'test_get_numeric_data',
         def tester(self):
             f = getattr(super(TestPanel, self), t)
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
                 f()
         return tester
 

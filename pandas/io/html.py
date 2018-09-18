@@ -6,7 +6,6 @@ HTML IO.
 import os
 import re
 import numbers
-import collections
 
 from distutils.version import LooseVersion
 
@@ -14,6 +13,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
 from pandas.io.common import _is_url, urlopen, _validate_header_arg
 from pandas.io.parsers import TextParser
+from pandas import compat
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
@@ -859,7 +859,7 @@ def _validate_flavor(flavor):
         flavor = 'lxml', 'bs4'
     elif isinstance(flavor, string_types):
         flavor = flavor,
-    elif isinstance(flavor, collections.Iterable):
+    elif isinstance(flavor, compat.Iterable):
         if not all(isinstance(flav, string_types) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'

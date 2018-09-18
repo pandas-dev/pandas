@@ -2,7 +2,7 @@ name: pandas
 channels:
   - defaults
 dependencies:
-  - python=3.6*
+  - python=3.7*
   - pytz
   - Cython>=0.28.2
   # universal

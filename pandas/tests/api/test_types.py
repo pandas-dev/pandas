@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-
+import sys
 import pytest
 
-from warnings import catch_warnings
-
-import pandas
 from pandas.api import types
 from pandas.util import testing as tm
 
@@ -59,7 +56,13 @@ class TestTypes(Base):
 
 
 def test_moved_infer_dtype():
+    # del from sys.modules to ensure we try to freshly load.
+    # if this was imported from another test previously, we would
+    # not see the warning, since the import is otherwise cached.
+    sys.modules.pop("pandas.lib", None)
 
-    with catch_warnings(record=True):
+    with tm.assert_produces_warning(FutureWarning):
+        import pandas.lib
+
         e = pandas.lib.infer_dtype('foo')
         assert e is not None

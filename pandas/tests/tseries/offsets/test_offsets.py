@@ -1825,6 +1825,7 @@ class TestCustomBusinessDay(Base):
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
@@ -1987,6 +1988,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 30)
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
         hcal = USFederalHolidayCalendar()
@@ -2105,6 +2107,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 2)
         assert dt + 2 * bm_offset == datetime(2012, 2, 3)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         hcal = USFederalHolidayCalendar()
         cbmb = CBMonthBegin(calendar=hcal)

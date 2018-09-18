@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime, timedelta
 from functools import partial
 from textwrap import dedent
@@ -1463,6 +1463,7 @@ class TestDatetimeIndex(Base):
         n = len(rng)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel(np.random.randn(3, n, 5),
                           items=['one', 'two', 'three'],
                           major_axis=rng,
@@ -1485,6 +1486,7 @@ class TestDatetimeIndex(Base):
                                lambda x: x.resample('M', axis=1).mean())
             tm.assert_panel_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_resample_panel_numpy(self):
         rng = date_range('1/1/2000', '6/30/2000')
         n = len(rng)
@@ -3237,25 +3239,25 @@ class TestTimeGrouper(object):
         result = grouped.apply(f)
         tm.assert_index_equal(result.index, df.index)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_panel_aggregation(self):
         ind = pd.date_range('1/1/2000', periods=100)
         data = np.random.randn(2, len(ind), 4)
 
-        with catch_warnings(record=True):
-            wp = Panel(data, items=['Item1', 'Item2'], major_axis=ind,
-                       minor_axis=['A', 'B', 'C', 'D'])
+        wp = Panel(data, items=['Item1', 'Item2'], major_axis=ind,
+                   minor_axis=['A', 'B', 'C', 'D'])
 
-            tg = TimeGrouper('M', axis=1)
-            _, grouper, _ = tg._get_grouper(wp)
-            bingrouped = wp.groupby(grouper)
-            binagg = bingrouped.mean()
+        tg = TimeGrouper('M', axis=1)
+        _, grouper, _ = tg._get_grouper(wp)
+        bingrouped = wp.groupby(grouper)
+        binagg = bingrouped.mean()
 
-            def f(x):
-                assert (isinstance(x, Panel))
-                return x.mean(1)
+        def f(x):
+            assert (isinstance(x, Panel))
+            return x.mean(1)
 
-            result = bingrouped.agg(f)
-            tm.assert_panel_equal(result, binagg)
+        result = bingrouped.agg(f)
+        tm.assert_panel_equal(result, binagg)
 
     def test_fails_on_no_datetime_index(self):
         index_names = ('Int64Index', 'Index', 'Float64Index', 'MultiIndex')

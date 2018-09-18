@@ -1,6 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
+import warnings
 import pydoc
 
 import pytest
@@ -728,8 +729,12 @@ class TestCategoricalSeries(object):
                     func_defs.append(f_def)
 
             for func, args, kwargs in func_defs:
-                res = getattr(c.dt, func)(*args, **kwargs)
-                exp = getattr(s.dt, func)(*args, **kwargs)
+                with warnings.catch_warnings():
+                    if func == 'to_period':
+                        # dropping TZ
+                        warnings.simplefilter("ignore", UserWarning)
+                    res = getattr(c.dt, func)(*args, **kwargs)
+                    exp = getattr(s.dt, func)(*args, **kwargs)
 
                 if isinstance(res, DataFrame):
                     tm.assert_frame_equal(res, exp)

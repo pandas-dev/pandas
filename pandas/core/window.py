@@ -2387,11 +2387,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         X, Y = arg1.align(arg2, join='outer')
                     X = X + 0 * Y
                     Y = Y + 0 * X
 
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:

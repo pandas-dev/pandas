@@ -17,12 +17,13 @@ import sys
 
 import numpy as np
 
+from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = collections.Mapping
+    type = compat.Mapping
     name = 'json'
     try:
         na_value = collections.UserDict()
@@ -79,7 +80,7 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, collections.Iterable):
+        elif isinstance(item, compat.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -91,7 +92,7 @@ class JSONArray(ExtensionArray):
             self.data[key] = value
         else:
             if not isinstance(value, (type(self),
-                                      collections.Sequence)):
+                                      compat.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 

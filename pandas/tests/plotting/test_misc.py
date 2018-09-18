@@ -212,6 +212,8 @@ class TestDataFramePlots(TestPlotBase):
         with tm.assert_produces_warning(FutureWarning):
             parallel_coordinates(df, 'Name', colors=colors)
 
+    # not sure if this is indicative of a problem
+    @pytest.mark.filterwarnings("ignore:Attempting to set:UserWarning")
     def test_parallel_coordinates_with_sorted_labels(self):
         """ For #15908 """
         from pandas.plotting import parallel_coordinates

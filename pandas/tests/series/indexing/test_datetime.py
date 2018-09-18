@@ -383,6 +383,8 @@ def test_getitem_setitem_periodindex():
     assert_series_equal(result, ts)
 
 
+# FutureWarning from NumPy.
+@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_getitem_median_slice_bug():
     index = date_range('20090415', '20090519', freq='2B')
     s = Series(np.random.randn(13), index=index)

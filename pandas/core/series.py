@@ -6,7 +6,6 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import collections
 import warnings
 from textwrap import dedent
 
@@ -240,8 +239,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
             # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, collections.Iterable)
-                  and not isinstance(data, collections.Sized)):
+            elif (isinstance(data, compat.Iterable)
+                  and not isinstance(data, compat.Sized)):
                 data = list(data)
             else:
 

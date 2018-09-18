@@ -2,7 +2,7 @@
 
 import pytest
 
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings, simplefilter
 import numpy as np
 
 import pandas as pd
@@ -388,45 +388,53 @@ class TestiLoc(Base):
 
         result = df.iloc[2]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             exp = df.ix[4]
         tm.assert_series_equal(result, exp)
 
         result = df.iloc[2, 2]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             exp = df.ix[4, 4]
         assert result == exp
 
         # slice
         result = df.iloc[4:8]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[8:14]
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[:, 2:3]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[:, 4:5]
         tm.assert_frame_equal(result, expected)
 
         # list of integers
         result = df.iloc[[0, 1, 3]]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[[0, 2, 6]]
         tm.assert_frame_equal(result, expected)
 
         result = df.iloc[[0, 1, 3], [0, 1]]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[[0, 2, 6], [0, 2]]
         tm.assert_frame_equal(result, expected)
 
         # neg indices
         result = df.iloc[[-1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[[18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
         # dups indices
         result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[[18, 18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
@@ -434,6 +442,7 @@ class TestiLoc(Base):
         s = Series(index=lrange(1, 5))
         result = df.iloc[s.index]
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             expected = df.ix[[2, 4, 6, 8]]
         tm.assert_frame_equal(result, expected)
 
@@ -609,6 +618,7 @@ class TestiLoc(Base):
 
         # UserWarnings from reindex of a boolean mask
         with catch_warnings(record=True):
+            simplefilter("ignore", UserWarning)
             result = dict()
             for idx in [None, 'index', 'locs']:
                 mask = (df.nums > 2).values

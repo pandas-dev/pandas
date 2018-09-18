@@ -715,6 +715,8 @@ class TestIndex(Base):
         pytest.raises(IndexError, index.__getitem__, empty_farr)
 
     @pytest.mark.parametrize("itm", [101, 'no_int'])
+    # FutureWarning from non-tuple sequence of nd indexing
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, indices, itm):
         with pytest.raises(IndexError):
             indices[itm]

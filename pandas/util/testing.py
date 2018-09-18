@@ -205,8 +205,12 @@ def decompress_file(path, compression):
         msg = 'Unrecognized compression type: {}'.format(compression)
         raise ValueError(msg)
 
-    yield f
-    f.close()
+    try:
+        yield f
+    finally:
+        f.close()
+        if compression == "zip":
+            zip_file.close()
 
 
 def assert_almost_equal(left, right, check_dtype="equiv",
@@ -1897,6 +1901,7 @@ def makePeriodFrame(nper=None):
 
 def makePanel(nper=None):
     with warnings.catch_warnings(record=True):
+        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
         data = {c: makeTimeDataFrame(nper) for c in cols}
         return Panel.fromDict(data)
@@ -1904,6 +1909,7 @@ def makePanel(nper=None):
 
 def makePeriodPanel(nper=None):
     with warnings.catch_warnings(record=True):
+        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
         data = {c: makePeriodFrame(nper) for c in cols}
         return Panel.fromDict(data)

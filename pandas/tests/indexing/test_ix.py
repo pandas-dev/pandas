@@ -14,15 +14,17 @@ from pandas.util import testing as tm
 from pandas.errors import PerformanceWarning
 
 
+def test_ix_deprecation():
+    # GH 15114
+
+    df = DataFrame({'A': [1, 2, 3]})
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        df.ix[1, 'A']
+
+
+@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
 class TestIX(object):
-
-    def test_ix_deprecation(self):
-        # GH 15114
-
-        df = DataFrame({'A': [1, 2, 3]})
-        with tm.assert_produces_warning(DeprecationWarning,
-                                        check_stacklevel=False):
-            df.ix[1, 'A']
 
     def test_ix_loc_setitem_consistency(self):
 
