@@ -60,6 +60,7 @@ def _make_comparison_op(op, cls):
         # numpy will show a DeprecationWarning on invalid elementwise
         # comparisons, this will raise in the future
         with warnings.catch_warnings(record=True):
+            warnings.filterwarnings("ignore", "elementwise", FutureWarning)
             with np.errstate(all='ignore'):
                 result = op(self.values, np.asarray(other))
 

@@ -109,10 +109,9 @@ from pandas.core.config import get_option
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
-    axis="""
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        - 0 or 'index': apply function to each column.
-        - 1 or 'columns': apply function to each row.""",
+    axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.""",
     optional_by="""
         by : str or list of str
             Name or list of names to sort by.
@@ -418,9 +417,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, collections.Iterable)
+        elif (isinstance(data, compat.Iterable)
               and not isinstance(data, string_and_binary_types)):
-            if not isinstance(data, collections.Sequence):
+            if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -7655,7 +7654,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], collections.Mapping):
+    elif isinstance(data[0], compat.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], Series):
