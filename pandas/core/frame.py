@@ -4872,7 +4872,8 @@ class DataFrame(NDFrame):
             right = np.broadcast_to(other, self.shape)
             return ops.dispatch_to_series(self, right, func)
 
-        elif (np.ndim(other) == 1 and isinstance(other, (tuple,np.ndarray)) and
+        elif (np.ndim(other) == 1 and
+              isinstance(other, (tuple, np.ndarray)) and
               len(other) == len(self) != len(self.columns)):
             # tests include at least 1 tuple in this case
             right = np.array(other)[:, None]
