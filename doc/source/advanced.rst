@@ -38,7 +38,7 @@ Hierarchical / Multi-level indexing is very exciting as it opens the door to som
 quite sophisticated data analysis and manipulation, especially for working with
 higher dimensional data. In essence, it enables you to store and manipulate
 data with an arbitrary number of dimensions in lower dimensional data
-structures like Series (1d) and DataFrame (2d).
+structures like ``Series`` (1d) and ``DataFrame`` (2d).
 
 In this section, we will show what exactly we mean by "hierarchical" indexing
 and how it integrates with all of the pandas indexing functionality
@@ -84,8 +84,8 @@ to use the :meth:`MultiIndex.from_product` method:
    iterables = [['bar', 'baz', 'foo', 'qux'], ['one', 'two']]
    pd.MultiIndex.from_product(iterables, names=['first', 'second'])
 
-As a convenience, you can pass a list of arrays directly into Series or
-DataFrame to construct a ``MultiIndex`` automatically:
+As a convenience, you can pass a list of arrays directly into ``Series`` or
+``DataFrame`` to construct a ``MultiIndex`` automatically:
 
 .. ipython:: python
 
@@ -214,8 +214,8 @@ tuples:
    s + s[:-2]
    s + s[::2]
 
-The :meth:`~DataFrame.reindex` method of Series/DataFrames can be called with
-another ``MultiIndex``, or even a list or array of tuples:
+The :meth:`~DataFrame.reindex` method of ``Series``/``DataFrames`` can be
+called with another ``MultiIndex``, or even a list or array of tuples:
 
 .. ipython:: python
 
@@ -1058,7 +1058,7 @@ Compared with standard Python sequence slicing in which the slice endpoint is
 not inclusive, label-based slicing in pandas **is inclusive**. The primary
 reason for this is that it is often not possible to easily determine the
 "successor" or next element after a particular label in an index. For example,
-consider the following Series:
+consider the following ``Series``:
 
 .. ipython:: python
 
