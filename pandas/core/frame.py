@@ -4867,10 +4867,33 @@ class DataFrame(NDFrame):
         if lib.is_scalar(other) or np.ndim(other) == 0:
             return ops.dispatch_to_series(self, other, func)
 
-        new_data = self._data.eval(func=func, other=other,
-                                   errors=errors,
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+        elif (np.ndim(other) == 1 and isinstance(other, np.ndarray) and
+              len(other) == len(self.columns)):
+            right = np.broadcast_to(other, self.shape)
+            return ops.dispatch_to_series(self, right, func)
+
+        elif (np.ndim(other) == 1 and isinstance(other, (tuple,np.ndarray)) and
+              len(other) == len(self) != len(self.columns)):
+            # tests include at least 1 tuple in this case
+            right = np.array(other)[:, None]
+            right = np.broadcast_to(right, self.shape)
+            return ops.dispatch_to_series(self, right, func)
+
+        elif np.ndim(other) == 1:
+            raise ValueError("Shape incompatible")
+
+        elif np.ndim(other) == 2 and other.shape == self.shape:
+            return ops.dispatch_to_series(self, other, func)
+
+        elif (np.ndim(other) == 2 and isinstance(other, np.ndarray) and
+              other.shape[0] == 1 and other.shape[1] == len(self.columns)):
+            other = np.broadcast_to(other, self.shape)
+            return ops.dispatch_to_series(self, other, func)
+
+        elif np.ndim(other) > 2:
+            raise ValueError("Wrong number of dimensions", other.shape)
+
+        raise ValueError(getattr(other, 'shape', type(other)))
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
