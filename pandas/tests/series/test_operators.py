@@ -426,6 +426,30 @@ class TestSeriesComparisons(object):
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
+    def test_logical_ops_with_index(self):
+        # GH22092
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Series([True, False, False, False])
+        result1 = ser & idx1
+        assert_series_equal(result1, expected)
+        result2 = ser & idx2
+        assert_series_equal(result2, expected)
+
+        expected = Series([True, True, True, False])
+        result1 = ser | idx1
+        assert_series_equal(result1, expected)
+        result2 = ser | idx2
+        assert_series_equal(result2, expected)
+
+        expected = Series([False, True, True, False])
+        result1 = ser ^ idx1
+        assert_series_equal(result1, expected)
+        result2 = ser ^ idx2
+        assert_series_equal(result2, expected)
+
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
