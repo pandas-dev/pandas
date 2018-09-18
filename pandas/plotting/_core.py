@@ -871,12 +871,14 @@ class ScatterPlot(PlanePlot):
             # Handle the case where s is a label of a column of the df.
             # The data is normalized to 200 * size_factor.
             self.size_title = s
-            self.bubble_points = 200
-            self.size_factor = size_factor
+            n_bubble_points = 200
             size_data = data[s]
-            s = self._get_plot_bubbles(size_data)
-            self.bubble_legend_sizes, self.bubble_legend_labels = \
-                self._get_legend_bubbles(size_data)
+            s = self._get_plot_bubbles(size_data, n_bubble_points, size_factor)
+            self.bubble_legend_sizes, self.bubble_legend_labels = (
+                self._get_legend_bubbles(size_data,
+                                         n_bubble_points,
+                                         size_factor)
+            )
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]
@@ -929,24 +931,26 @@ class ScatterPlot(PlanePlot):
             ax.errorbar(data[x].values, data[y].values,
                         linestyle='none', **err_kwds)
 
-    def _get_plot_bubbles(self, size_data):
+    @staticmethod
+    def _get_plot_bubbles(size_data, n_bubble_points=200, size_factor=1):
         if is_categorical_dtype(size_data):
             if size_data.cat.ordered:
                 size_data_codes = size_data.cat.codes + 1
                 s_data_max = size_data_codes.max()
-                s = (self.bubble_points * self.size_factor
+                s = (n_bubble_points * size_factor
                      * size_data_codes**2 / s_data_max**2)
             else:
                 raise TypeError(
                     "'s' must be numeric or ordered categorical dtype")
         elif is_numeric_dtype(size_data):
             s_data_max = size_data.max()
-            s = self.bubble_points * self.size_factor * size_data / s_data_max
+            s = n_bubble_points * size_factor * size_data / s_data_max
         else:
             raise TypeError("'s' must be numeric or ordered categorical dtype")
         return s
 
-    def _sci_notation(self, num):
+    @classmethod
+    def _sci_notation(cls, num):
         """
         Returns mantissa and exponent of the number passed in argument.
         Example:
@@ -958,7 +962,8 @@ class ScatterPlot(PlanePlot):
         mantis, expnt = regexp.search(scientific_notation).groups()
         return float(mantis), float(expnt)
 
-    def _get_legend_bubbles(self, size_data):
+    @staticmethod
+    def _get_legend_bubbles(size_data, n_bubble_points=200, size_factor=1):
         """
         Computes and returns appropriate bubble sizes and labels for the
         legend of a bubble plot.
@@ -976,7 +981,7 @@ class ScatterPlot(PlanePlot):
                 labels = list(size_data.cat.categories)[::-1]
                 n_categories = len(labels)
                 sizes = ((np.array(range(n_categories)) + 1)**2
-                         * self.bubble_points * self.size_factor
+                         * n_bubble_points * size_factor
                          / size_data_codes.max()**2)
                 sizes = sizes[::-1]
             else:
@@ -984,7 +989,7 @@ class ScatterPlot(PlanePlot):
                     "'s' must be numeric or ordered categorical dtype")
         elif is_numeric_dtype(size_data):
             s_data_max = size_data.max()
-            coef, expnt = self._sci_notation(s_data_max)
+            coef, expnt = ScatterPlot._sci_notation(s_data_max)
             labels_catalog = {
                 (9, 10): [10, 5, 2.5, 1],
                 (7, 9): [8, 4, 2, 0.5],
@@ -999,7 +1004,7 @@ class ScatterPlot(PlanePlot):
                 if (coef >= lower_bound) and (coef < upper_bound):
                     labels = 10**expnt * np.array(labels_catalog[lower_bound,
                                                                  upper_bound])
-                    sizes = list(self.bubble_points * self.size_factor
+                    sizes = list(n_bubble_points * size_factor
                                  * labels / s_data_max)
                     labels = ['{:g}'.format(l) for l in labels]
 
