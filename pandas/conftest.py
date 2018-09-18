@@ -286,6 +286,18 @@ def nulls_fixture(request):
 nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 
 
+@pytest.fixture(params=[None, np.nan, pd.NaT])
+def unique_nulls_fixture(request):
+    """
+    Fixture for each null type in pandas, each null type exactly once
+    """
+    return request.param
+
+
+# Generate cartesian product of unique_nulls_fixture:
+unique_nulls_fixture2 = unique_nulls_fixture
+
+
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              'dateutil/Asia/Singapore']
 

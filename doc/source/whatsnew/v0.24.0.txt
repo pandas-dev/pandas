@@ -721,13 +721,16 @@ Indexing
 - Bug where mixed indexes wouldn't allow integers for ``.at`` (:issue:`19860`)
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
 - Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
+- :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
 
 Missing
 ^^^^^^^
 
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 - Bug in :func:`Series.hasnans` that could be incorrectly cached and return incorrect answers if null elements are introduced after an initial call (:issue:`19700`)
-- :func:`Series.isin` now treats all nans as equal also for ``np.object``-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
+- :func:`Series.isin` now treats all NaN-floats as equal also for `np.object`-dtype. This behavior is consistent with the behavior for float64 (:issue:`22119`)
+- :func:`unique` no longer mangles NaN-floats and the ``NaT``-object for `np.object`-dtype, i.e. ``NaT`` is no longer coerced to a NaN-value and is treated as a different entity. (:issue:`22295`)
+
 
 MultiIndex
 ^^^^^^^^^^
