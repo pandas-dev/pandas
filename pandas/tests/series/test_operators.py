@@ -426,30 +426,6 @@ class TestSeriesComparisons(object):
         exp = pd.Series([True, True, False, False], index=list('abcd'))
         assert_series_equal(left.gt(right, fill_value=0), exp)
 
-    def test_logical_ops_with_index(self):
-        # GH22092
-        ser = Series([True, True, False, False])
-        idx1 = Index([True, False, True, False])
-        idx2 = Index([1, 0, 1, 0])
-
-        expected = Series([True, False, False, False])
-        result1 = ser & idx1
-        assert_series_equal(result1, expected)
-        result2 = ser & idx2
-        assert_series_equal(result2, expected)
-
-        expected = Series([True, True, True, False])
-        result1 = ser | idx1
-        assert_series_equal(result1, expected)
-        result2 = ser | idx2
-        assert_series_equal(result2, expected)
-
-        expected = Series([False, True, True, False])
-        result1 = ser ^ idx1
-        assert_series_equal(result1, expected)
-        result2 = ser ^ idx2
-        assert_series_equal(result2, expected)
-
     def test_ne(self):
         ts = Series([3, 4, 5, 6, 7], [3, 4, 5, 6, 7], dtype=float)
         expected = [True, True, False, True, True]
@@ -631,6 +607,7 @@ class TestSeriesOperators(TestData):
     @pytest.mark.parametrize('op', [
         operator.and_,
         operator.or_,
+        operator.xor,
         pytest.param(ops.rand_,
                      marks=pytest.mark.xfail(reason="GH#22092 Index "
                                                     "implementation returns "
@@ -640,16 +617,27 @@ class TestSeriesOperators(TestData):
         pytest.param(ops.ror_,
                      marks=pytest.mark.xfail(reason="GH#22092 Index "
                                                     "implementation raises",
-                                             raises=ValueError, strict=True))
+                                             raises=ValueError, strict=True)),
+        pytest.param(ops.rxor,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=TypeError, strict=True))
     ])
     def test_bool_ops_with_index(self, op):
-        # GH#19792
-        ser = Series([True, False, True])
-        idx = pd.Index([False, True, True])
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
 
-        expected = Series([op(ser[n], idx[n]) for n in range(len(ser))])
+        expected = Series([op(ser[n], idx1[n]) for n in range(len(ser))])
 
-        result = op(ser, idx)
+        result = op(ser, idx1)
+        assert_series_equal(result, expected)
+
+        expected = Series([op(ser[n], idx2[n]) for n in range(len(ser))],
+                          dtype=bool)
+
+        result = op(ser, idx2)
         assert_series_equal(result, expected)
 
     def test_operators_bitwise(self):
