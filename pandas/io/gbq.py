@@ -1,5 +1,7 @@
 """ Google BigQuery support """
 
+import warnings
+
 
 def _try_import():
     # since pandas is a dependency of pandas-gbq
@@ -23,7 +25,7 @@ def _try_import():
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, private_key=None, auth_local_webserver=False,
-             dialect='legacy', location=None, configuration=None,
+             dialect=None, location=None, configuration=None,
              verbose=None):
     """
     Load data from Google BigQuery.
@@ -65,6 +67,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         *New in version 0.2.0 of pandas-gbq*.
     dialect : str, default 'legacy'
+        Note: The default value is changing to 'standard' in a future verion.
+
         SQL syntax dialect to use. Value can be one of:
 
         ``'legacy'``
@@ -76,6 +80,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             compliant with the SQL 2011 standard. For more information
             see `BigQuery Standard SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
+
+        .. versionchanged:: 0.24.0
     location : str, optional
         Location where the query job should run. See the `BigQuery locations
         documentation
@@ -108,6 +114,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
+
+    if dialect is None:
+        dialect = "legacy"
+        warnings.warn(
+            'The default value for dialect is changing to "standard" in a '
+            'future version of pandas-gbq. Pass in dialect="legacy" to '
+            "disable this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
     return pandas_gbq.read_gbq(
         query, project_id=project_id, index_col=index_col,
         col_order=col_order, reauth=reauth, verbose=verbose,
