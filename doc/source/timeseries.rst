@@ -753,7 +753,7 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 Iterating through groups
 ------------------------
 
-With the :ref:`Resampler` object in hand, iterating through the grouped data is very
+With the ``Resampler`` object in hand, iterating through the grouped data is very
 natural and functions similarly to :py:func:`itertools.groupby`:
 
 .. ipython:: python
@@ -764,7 +764,7 @@ natural and functions similarly to :py:func:`itertools.groupby`:
        print(name)
        print(group)
 
-See :ref:`groupby.iterating-label`.
+See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 .. _timeseries.components:
 
