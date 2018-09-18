@@ -2570,7 +2570,6 @@ objects.
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
-   api.extensions.ExtensionDtype.na_value
    api.extensions.ExtensionArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
@@ -2604,3 +2603,12 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.api.extensions.ExtensionDtype.na_value
