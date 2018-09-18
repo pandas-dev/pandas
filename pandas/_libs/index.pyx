@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, date
 
-cimport cython
-
-from cpython cimport PyTuple_Check, PyList_Check
-from cpython.slice cimport PySlice_Check
+import cython
 
 import numpy as np
 cimport numpy as cnp
@@ -30,15 +27,15 @@ cdef int64_t iNaT = util.get_nat()
 
 
 cdef inline bint is_definitely_invalid_key(object val):
-    if PyTuple_Check(val):
+    if isinstance(val, tuple):
         try:
             hash(val)
         except TypeError:
             return True
 
     # we have a _data, means we are a NDFrame
-    return (PySlice_Check(val) or util.is_array(val)
-            or PyList_Check(val) or hasattr(val, '_data'))
+    return (isinstance(val, slice) or util.is_array(val)
+            or isinstance(val, list) or hasattr(val, '_data'))
 
 
 cpdef get_value_at(ndarray arr, object loc, object tz=None):
@@ -88,7 +85,7 @@ cdef class IndexEngine:
             void* data_ptr
 
         loc = self.get_loc(key)
-        if PySlice_Check(loc) or util.is_array(loc):
+        if isinstance(loc, slice) or util.is_array(loc):
             return arr[loc]
         else:
             return get_value_at(arr, loc, tz=tz)
@@ -640,7 +637,7 @@ cdef class BaseMultiIndexCodesEngine:
     def get_loc(self, object key):
         if is_definitely_invalid_key(key):
             raise TypeError("'{key}' is an invalid key".format(key=key))
-        if not PyTuple_Check(key):
+        if not isinstance(key, tuple):
             raise KeyError(key)
         try:
             indices = [0 if checknull(v) else lev.get_loc(v) + 1
