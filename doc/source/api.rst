@@ -2570,6 +2570,7 @@ objects.
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
    api.extensions.ExtensionDtype
+   api.extensions.ExtensionDtype.na_value
    api.extensions.ExtensionArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
