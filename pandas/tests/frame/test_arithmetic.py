@@ -5,7 +5,6 @@ import pytest
 import numpy as np
 
 from pandas.compat import range, PY3
-import pandas.io.formats.printing as printing
 
 import pandas as pd
 import pandas.util.testing as tm
