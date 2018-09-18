@@ -12,7 +12,7 @@ v0.24.0 (Month XX, 2018)
 
 New features
 ~~~~~~~~~~~~
-- The ``DataFrame`` method :func:`plot.scatter()` now accepts column names as an argument ``s`` to produce bubble plots in which the data in the corresponding column is represented by bubble sizes. (:issue:`16827`)
+- :func:`DataFrame.plot.scatter` now accepts column names as an argument ``s`` to produce a plot where the marker sizes reflect the values in the column. (:issue:`16827`)
 
 - :func:`merge` now directly allows merge between objects of type ``DataFrame`` and named ``Series``, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
 
@@ -163,14 +163,14 @@ This is the same behavior as ``Series.values`` for categorical data. See
 
 .. _whatsnew_0240.enhancements.bubble_plots:
 
-Bubble plots
-^^^^^^^^^^^^
+Scatter plots with varying marker sizes reflecting data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Bubble plots can now be produced with the :func:`plot.scatter()` method of ``DataFrame`` objects by passing a column name as an argument ``s`` to provide the data for bubble sizes. Bubble sizes automatically adjust to the maximum of the data, and a legend for bubble sizes also is automatically produced. (:issue:`22441`)
+Scatter plots in which marker sizes reflect the values in a column of the ``DataFrame`` (sometimes called bubble plots) can now be produced with :func:`DataFrame.plot.scatter` by passing a column name as an argument ``s`` to provide the data for marker sizes. Marker sizes automatically adjust to the maximum of the data, and the legend also reflects the marker sizes. (:issue:`22441`)
 
 .. ipython:: python
 
-   df = pd.DataFrame(np.arange(0, 2*np.pi, np.pi/24), columns=['a'])
+   df = pd.DataFrame(np.arange(0, 2 * np.pi, np.pi/24), columns=['a'])
    df['b'] = 10 * np.cos(df['a'])
    df['size'] = df['b'].abs()
    df.head()
