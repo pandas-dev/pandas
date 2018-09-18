@@ -28,7 +28,7 @@ if [ "$DOCTEST" ]; then
     fi
 
     pytest --doctest-modules -v pandas/core/series.py \
-        -k"-nlargest -nonzero -nsmallest -reindex -searchsorted -to_dict"
+        -k"-nonzero -reindex -searchsorted -to_dict"
 
     if [ $? -ne "0" ]; then
         RET=1
