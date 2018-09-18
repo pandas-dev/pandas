@@ -34,7 +34,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['parser', 'json', 'lib', 'tslib']
+    deprecated_modules = ['parser', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -170,13 +170,6 @@ class TestTopLevelDeprecations(object):
                                             check_stacklevel=False):
                 s = pd.get_store(path)
                 s.close()
-
-
-class TestJson(object):
-
-    @pytest.mark.filterwarnings("ignore")
-    def test_deprecation_access_func(self):
-        pd.json.dumps([])
 
 
 class TestParser(object):
