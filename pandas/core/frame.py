@@ -109,10 +109,9 @@ from pandas.core.config import get_option
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
-    axis="""
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        - 0 or 'index': apply function to each column.
-        - 1 or 'columns': apply function to each row.""",
+    axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.""",
     optional_by="""
         by : str or list of str
             Name or list of names to sort by.
