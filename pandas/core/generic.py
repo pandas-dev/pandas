@@ -9513,8 +9513,11 @@ class NDFrame(PandasObject, SelectionMixin):
         path_or_buf : string or file handle, default None
             File path or object, if None is provided the result is returned as
             a string.
+
             .. versionchanged:: 0.24.0
-                Was previously named "path" for Series.
+
+               Was previously named "path" for Series.
+
         sep : character, default ','
             Field delimiter for the output file.
         na_rep : string, default ''
@@ -9526,8 +9529,11 @@ class NDFrame(PandasObject, SelectionMixin):
         header : boolean or list of string, default True
             Write out the column names. If a list of strings is given it is
             assumed to be aliases for the column names
+
             .. versionchanged:: 0.24.0
-                Previously defaulted to False for Series.
+
+               Previously defaulted to False for Series.
+
         index : boolean, default True
             Write row names (index)
         index_label : string or sequence, or False, default None
@@ -9541,14 +9547,16 @@ class NDFrame(PandasObject, SelectionMixin):
         encoding : string, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                      default 'infer'
-            If 'infer' and `path_or_buf` is path-like, then detect compression
-            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
-            (otherwise no compression).
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+
+            If 'infer' (the defualt) and `path_or_buf` is path-like, then
+            detect compression from the following extensions: '.gz', '.bz2',
+            '.zip' or '.xz' (otherwise no compression).
 
             .. versionchanged:: 0.24.0
+
                'infer' option added and set to default
+
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -9565,7 +9573,9 @@ class NDFrame(PandasObject, SelectionMixin):
         chunksize : int or None
             rows to write at a time
         tupleize_cols : boolean, default False
+
             .. deprecated:: 0.21.0
+
                This argument will be removed and will always write each row
                of the multi-index as a separate row in the CSV file.
 
@@ -9579,7 +9589,8 @@ class NDFrame(PandasObject, SelectionMixin):
             European data
 
         .. versionchanged:: 0.24.0
-            The order of arguments for Series was changed.
+
+           The order of arguments for Series was changed.
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
