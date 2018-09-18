@@ -22,8 +22,21 @@ if [ "$DOC" ]; then
     echo # Log file for the doc build  #
     echo ###############################
 
-    echo ./make.py
-    ./make.py
+    echo './make.py 2>&1 | tee doc-build.log'
+    ./make.py 2>&1 | tee doc-build.log
+
+    echo ##################
+    echo # Lint build log #
+    echo ##################
+
+    echo './make.py lint_log --logfile=doc-build.log'
+    ./make.py lint_log --logfile=doc-build.log
+
+    if [ ?$ == 1 ]
+    then
+        echo "Errors in documentation build."
+        exit 1
+    fi
 
     echo ########################
     echo # Create and send docs #

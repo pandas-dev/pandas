@@ -14,6 +14,7 @@ Usage
 import importlib
 import sys
 import os
+import textwrap
 import shutil
 # import subprocess
 import argparse
@@ -78,7 +79,7 @@ class DocBuilder:
     script.
     """
     def __init__(self, num_jobs=1, include_api=True, single_doc=None,
-                 verbosity=0, allow_warnings=False):
+                 verbosity=0, warnings_are_errors=False, log_file=None):
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.verbosity = verbosity
@@ -87,7 +88,8 @@ class DocBuilder:
         if single_doc is not None:
             self._process_single_doc(single_doc)
         self.exclude_patterns = self._exclude_patterns
-        self.allow_warnings = allow_warnings
+        self.warnings_are_errors = warnings_are_errors
+        self.log_file = log_file
 
         self._generate_index()
         if self.single_doc_type == 'docstring':
@@ -237,7 +239,7 @@ class DocBuilder:
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
                      '-b{}'.format(kind),
-                     '{}'.format("" if self.allow_warnings else "-W"),
+                     '{}'.format("W" if self.warnings_are_errors else ""),
                      '-{}'.format(
                          'v' * self.verbosity) if self.verbosity else '',
                      '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
@@ -324,6 +326,42 @@ class DocBuilder:
                     ' Check pandas/doc/build/spelling/output.txt'
                     ' for more details.')
 
+    def lint_log(self):
+        with open(self.log_file) as f:
+            log = f.readlines()
+
+        failures = self._check_log(log)
+        if failures:
+            self._report_failures(failures)
+            sys.exit(1)
+
+    @staticmethod
+    def _check_log(log):
+        # type: (List[str]) -> List[Tuple[int, str]]
+        failures = []
+        for i, line in enumerate(log):
+            if "WARNING:" in line:
+                failures.append((i, line))
+
+        return failures
+
+    @staticmethod
+    def _report_failures(failures):
+        tpl = textwrap.dedent("""\
+        {n} failure{s}
+        
+        {individual}
+        """)
+        joined = []
+        for i, (lineno, f) in enumerate(failures):
+            line = "Failure [{}]: {} (log line {})".format(i, f.strip(), lineno)
+            joined.append(line)
+        joined = '\n'.join(joined)
+
+        print(tpl.format(n=len(failures),
+                         s="s" if len(failures) != 1 else "",
+                         individual=joined))
+
 
 def main():
     cmds = [method for method in dir(DocBuilder) if not method.startswith('_')]
@@ -356,10 +394,13 @@ def main():
     argparser.add_argument('-v', action='count', dest='verbosity', default=0,
                            help=('increase verbosity (can be repeated), '
                                  'passed to the sphinx build command'))
-    argparser.add_argument("--allow-warnings",
+    argparser.add_argument("--warnings-are-errors",
                            default=False,
                            action="store_true",
-                           help="Whether to allow warnings in the build.")
+                           help="Whether to fail the build on warnings.")
+    argparser.add_argument("--log-file",
+                           default="doc-build.log",
+                           help="Log file of the build to lint for warnings.")
     args = argparser.parse_args()
 
     if args.command not in cmds:
@@ -379,7 +420,8 @@ def main():
     os.environ['MPLBACKEND'] = 'module://matplotlib.backends.backend_agg'
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
-                         args.verbosity, args.allow_warnings)
+                         args.verbosity, args.warnings_are_errors,
+                         args.log_file)
     getattr(builder, args.command)()
 
 
