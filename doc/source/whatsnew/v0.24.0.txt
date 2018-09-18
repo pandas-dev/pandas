@@ -450,7 +450,7 @@ Previous Behavior:
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
 
-.. _whatsnew_0240.api.timedelta64_subtract_nan
+.. _whatsnew_0240.api.timedelta64_subtract_nan:
 
 Addition/Subtraction of ``NaN`` from :class:`DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
