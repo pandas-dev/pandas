@@ -11,6 +11,7 @@ import pandas.util.testing as tm
 import pandas as pd
 
 from pandas import date_range, Timestamp, DatetimeIndex
+from pandas.tseries.frequencies import to_offset
 
 
 class TestDatetimeIndexOps(object):
@@ -124,7 +125,7 @@ class TestDatetimeIndexOps(object):
         expected = DatetimeIndex(['2016-10-17 12:00:00.001501030'])
         tm.assert_index_equal(result, expected)
 
-        with tm.assert_produces_warning():
+        with tm.assert_produces_warning(False):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
@@ -168,6 +169,43 @@ class TestDatetimeIndexOps(object):
         result = func(freq)
         expected = DatetimeIndex(list(expected))
         assert expected.equals(result)
+
+    @pytest.mark.parametrize('start, index_freq, periods', [
+        ('2018-01-01', '12H', 25),
+        ('2018-01-01 0:0:0.124999', '1ns', 1000),
+    ])
+    @pytest.mark.parametrize('rounding_freq', [
+        '2ns', '3ns', '4ns', '5ns', '6ns', '7ns',
+        '250ns', '500ns', '750ns',
+        '1us', '19us', '250us', '500us', '750us',
+        '1s', '2s', '3s',
+        '12H', '1D',
+    ])
+    def test_round_int64(self, start, index_freq, periods, rounding_freq):
+        dt = DatetimeIndex(start=start, freq=index_freq, periods=periods)
+        unit = to_offset(rounding_freq).nanos
+        # test floor
+        result = dt.floor(rounding_freq).asi8
+        diff = dt.asi8 - result
+        mod = result % unit
+        assert (mod == 0).all(), "floor not a %s multiple" % (rounding_freq, )
+        assert (0 <= diff).all() and (diff < unit).all(), "floor error"
+        # test ceil
+        result = dt.ceil(rounding_freq).asi8
+        diff = result - dt.asi8
+        mod = result % unit
+        assert (mod == 0).all(), "ceil not a %s multiple" % (rounding_freq, )
+        assert (0 <= diff).all() and (diff < unit).all(), "ceil error"
+        # test round
+        result = dt.round(rounding_freq).asi8
+        diff = abs(result - dt.asi8)
+        mod = result % unit
+        assert (mod == 0).all(), "round not a %s multiple" % (rounding_freq, )
+        assert (diff <= unit // 2).all(), "round error"
+        if unit % 2 == 0:
+            assert (
+                result[diff == unit // 2] % 2 == 0
+            ).all(), "round half to even error"
 
     # ----------------------------------------------------------------
     # DatetimeIndex.normalize
