@@ -973,25 +973,23 @@ class TestSparseDataFrame(SharedWithSparse):
     @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_stack_sparse_frame(self, float_frame, float_frame_int_kind,
                                 float_frame_fill0, float_frame_fill2):
-        with catch_warnings(record=True):
+        def _check(frame):
+            dense_frame = frame.to_dense()  # noqa
 
-            def _check(frame):
-                dense_frame = frame.to_dense()  # noqa
+            wp = Panel.from_dict({'foo': frame})
+            from_dense_lp = wp.to_frame()
 
-                wp = Panel.from_dict({'foo': frame})
-                from_dense_lp = wp.to_frame()
+            from_sparse_lp = spf.stack_sparse_frame(frame)
 
-                from_sparse_lp = spf.stack_sparse_frame(frame)
+            tm.assert_numpy_array_equal(from_dense_lp.values,
+                                        from_sparse_lp.values)
 
-                tm.assert_numpy_array_equal(from_dense_lp.values,
-                                            from_sparse_lp.values)
+        _check(float_frame)
+        _check(float_frame_int_kind)
 
-            _check(float_frame)
-            _check(float_frame_int_kind)
-
-            # for now
-            pytest.raises(Exception, _check, float_frame_fill0)
-            pytest.raises(Exception, _check, float_frame_fill2)
+        # for now
+        pytest.raises(Exception, _check, float_frame_fill0)
+        pytest.raises(Exception, _check, float_frame_fill2)
 
     def test_transpose(self, float_frame, float_frame_int_kind,
                        float_frame_dense,
