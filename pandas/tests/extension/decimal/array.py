@@ -134,6 +134,31 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
 
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
+        """Return a scalar result of performing the op
+
+        Parameters
+        ----------
+        op : callable
+            function to apply to the array
+        name : str
+            name of the function
+        axis : int, default 0
+            axis over which to apply, defined as 0 currently
+        skipna : bool, default True
+            if True, skip NaN values
+        numeric_only : bool, optional
+            if True, only perform numeric ops
+        filter_type : str, optional
+        kwds : dict
+
+        Returns
+        -------
+        scalar
+        """
+        return op(self.data, axis=axis, skipna=skipna)
+
 
 def to_decimal(values, context=None):
     return DecimalArray([decimal.Decimal(x) for x in values], context=context)
