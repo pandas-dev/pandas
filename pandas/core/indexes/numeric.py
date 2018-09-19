@@ -163,7 +163,25 @@ _int64_descr_args = dict(
 )
 
 
-class Int64Index(NumericIndex):
+class IntegerIndex(NumericIndex):
+    """
+    This is an abstract class for Int64Index, UInt64Index.
+    """
+
+    def __contains__(self, key):
+        """
+        Check if key is a float and has a decimal. If it has, return False.
+        """
+        hash(key)
+        try:
+            if is_float(key) and int(key) != key:
+                return False
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+
+class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
@@ -174,12 +192,6 @@ class Int64Index(NumericIndex):
     _can_hold_na = False
     _engine_type = libindex.Int64Engine
     _default_dtype = np.int64
-
-    def __contains__(self, key):
-        hash(key)
-        if is_float(key) and int(key) != key:
-            return False
-        return key in self._engine
 
     @property
     def inferred_type(self):
@@ -227,7 +239,7 @@ _uint64_descr_args = dict(
 )
 
 
-class UInt64Index(NumericIndex):
+class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
@@ -238,12 +250,6 @@ class UInt64Index(NumericIndex):
     _can_hold_na = False
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
-
-    def __contains__(self, key):
-        hash(key)
-        if is_float(key) and int(key) != key:
-            return False
-        return key in self._engine
 
     @property
     def inferred_type(self):
