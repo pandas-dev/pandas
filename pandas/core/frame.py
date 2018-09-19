@@ -6828,7 +6828,7 @@ class DataFrame(NDFrame):
                  method='pearson', min_periods=1):
         """
         Compute correlation between rows or columns of two DataFrame objects
-        or of DataFrame and Series objects.
+        or DataFrame and Series objects.
 
         Parameters
         ----------
