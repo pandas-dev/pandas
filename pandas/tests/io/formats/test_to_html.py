@@ -2021,7 +2021,8 @@ class TestToHTML(object):
         df.index = pd.MultiIndex.from_product(
             [['a', 'b'], ['c', 'd', 'e', 'f', 'g']])
         result = df.to_html(index=False)
-        assert result == expected_html('gh22579_expected_output')
+        expected = expected_html('gh22579_expected_output')
+        assert result == expected
 
     @pytest.mark.parametrize('header', [True])
     def test_to_html_index_names(self, expected_output,
@@ -2031,9 +2032,10 @@ class TestToHTML(object):
                        index=idx_type, columns=col_idx_type)
         result = df.to_html(index=index, header=header,
                             index_names=index_names)
-        assert result == expected_output(idx_type, col_idx_type,
-                                         index=index, header=header,
-                                         index_names=index_names)
+        expected = expected_output(idx_type, col_idx_type,
+                                   index=index, header=header,
+                                   index_names=index_names)
+        assert result == expected
 
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
