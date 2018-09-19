@@ -345,6 +345,11 @@ Some other important things to know about the docs:
   Every method should be included in a ``toctree`` in ``api.rst``, else Sphinx
   will emit a warning.
 
+* The pandas CI system does not allow warnings in the documentation build.
+  If you cannot discover the cause of the warning from the build output, you can
+  try elevating warnings to errors with ``python make.py --warnings-are-errors``,
+  which will immediately halt the build when a warning is encountered.
+
 .. note::
 
     The ``.rst`` files are used to automatically generate Markdown and HTML versions
