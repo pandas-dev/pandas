@@ -110,9 +110,8 @@ class TestDataFrameConvertTo(TestData):
     def test_to_records_with_Mapping_type(self):
         import email
         from email.parser import Parser
-        import collections
 
-        collections.Mapping.register(email.message.Message)
+        compat.Mapping.register(email.message.Message)
 
         headers = Parser().parsestr('From: <user@example.com>\n'
                                     'To: <someone_else@example.com>\n'

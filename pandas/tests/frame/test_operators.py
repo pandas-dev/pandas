@@ -209,6 +209,8 @@ class TestDataFrameOperators(TestData):
 
     @pytest.mark.parametrize('op,res', [('__eq__', False),
                                         ('__ne__', True)])
+    # not sure what's correct here.
+    @pytest.mark.filterwarnings("ignore:elementwise:FutureWarning")
     def test_logical_typeerror_with_non_valid(self, op, res):
         # we are comparing floats vs a string
         result = getattr(self.frame, op)('foo')
@@ -278,7 +280,9 @@ class TestDataFrameOperators(TestData):
         assert_series_equal(+df['a'], df['a'])
 
     @pytest.mark.parametrize('df', [
-        pd.DataFrame({'a': ['a', 'b']}),
+        # numpy changing behavior in the future
+        pytest.param(pd.DataFrame({'a': ['a', 'b']}),
+                     marks=[pytest.mark.filterwarnings("ignore")]),
         pd.DataFrame({'a': np.array([-1, 2], dtype=object)}),
         pd.DataFrame({'a': [Decimal('-1.0'), Decimal('2.0')]}),
     ])
