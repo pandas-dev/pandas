@@ -483,6 +483,8 @@ class NaTType(_NaT):
               that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -500,6 +502,8 @@ class NaTType(_NaT):
               that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -517,6 +521,8 @@ class NaTType(_NaT):
               that this flag is only applicable for ambiguous fall dst dates)
             - 'NaT' will return NaT for an ambiguous time
             - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+            
+            .. versionadded:: 0.24.0
 
         Raises
         ------

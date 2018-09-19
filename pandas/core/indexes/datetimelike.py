@@ -109,6 +109,8 @@ class TimelikeOps(object):
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
             Only relevant for DatetimeIndex
+            
+            .. versionadded:: 0.24.0
 
         Returns
         -------
