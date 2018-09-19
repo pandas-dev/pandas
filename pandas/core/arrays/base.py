@@ -740,9 +740,7 @@ class ExtensionOpsMixin(object):
         -------
         scalar
         """
-
-        # we dispatchh to the nanops operations
-        return op(self, axis=axis, skipna=skipna)
+        raise AbstractMethodError(self)
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):

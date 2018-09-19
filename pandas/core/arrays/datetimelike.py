@@ -343,6 +343,42 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                              .format(infer=inferred, passed=freq.freqstr))
 
     # ------------------------------------------------------------------
+    # Reduction Methods
+
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwargs):
+        """Return a scalar result of performing the op
+
+        Parameters
+        ----------
+        op : callable
+            function to apply to the array
+        name : str
+            name of the function
+        axis : int, default 0
+            axis over which to apply, defined as 0 currently
+        skipna : bool, default True
+            if True, skip NaN values
+        numeric_only : bool, optional
+            if True, only perform numeric ops
+        filter_type : str, optional
+        kwargs : dict
+
+        Returns
+        -------
+        scalar
+        """
+        # if we have a reduction op already defined, use it
+        # this is important for min/max where tz's must be preserved
+        # and nanops is not geared towards this
+        # TODO(jreback): we are ignoring skipna
+        if hasattr(self, name):
+            return getattr(self, name)()
+
+        # we dispatch to the nanops operations
+        return op(self, axis=axis, skipna=skipna)
+
+    # ------------------------------------------------------------------
     # Arithmetic Methods
 
     def _add_datelike(self, other):
