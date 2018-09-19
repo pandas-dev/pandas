@@ -47,6 +47,7 @@ class HTMLFormatter(TableFormatter):
             border = get_option('display.html.border')
         self.border = border
         self.table_id = table_id
+        # GH 22579
         self.show_col_idx_names = all((self.fmt.has_column_names,
                                       self.fmt.show_index_names,
                                       self.fmt.header))
@@ -200,6 +201,7 @@ class HTMLFormatter(TableFormatter):
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
         row_levels = self.frame.index.nlevels
+# GH 22579 TODO:additional tests for effect of changing row_levels
         if self.show_col_idx_names and not self.fmt.index:
             row_levels = 1
         if not self.fmt.header:
@@ -315,6 +317,7 @@ class HTMLFormatter(TableFormatter):
             col_row = _column_header()
             align = self.fmt.justify
 
+# GH 22579 TODO:additional tests for effect of changing row_levels
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
                 col_row.insert(ins_col, '...')
@@ -328,6 +331,7 @@ class HTMLFormatter(TableFormatter):
             row = ([x if x is not None else ''
                     for x in self.frame.index.names] +
                    [''] * min(len(self.columns), self.max_cols))
+# GH 22579 TODO:additional tests for effect of changing row_levels
             if truncate_h:
                 ins_col = row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, '')
