@@ -1,0 +1,25 @@
+# Adapted from https://github.com/numba/numba/blob/master/azure-pipelines.yml
+jobs:
+# Mac and Linux could potentially use the same template
+# except it isn't clear how to use a different build matrix
+# for each, so for now they are separate
+- template: ci/azure/macos.yml
+  parameters:
+    name: macOS
+    vmImage: xcode9-macos10.13
+- template: ci/azure/linux.yml
+  parameters:
+    name: Linux
+    vmImage: ubuntu-16.04
+
+# Windows Python 2.7 needs VC 9.0 installed, and not sure
+# how to make that a conditional task, so for now these are
+# separate templates as well
+- template: ci/azure/windows.yml
+  parameters:
+    name: Windows
+    vmImage: vs2017-win2017
+- template: ci/azure/windows-py27.yml
+  parameters:
+    name: WindowsPy27
+vmImage: vs2017-win2017
