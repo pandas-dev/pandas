@@ -349,12 +349,14 @@ class DocBuilder:
     def _report_failures(failures):
         tpl = textwrap.dedent("""\
         {n} failure{s}
-        
+
         {individual}
         """)
         joined = []
         for i, (lineno, f) in enumerate(failures):
-            line = "Failure [{}]: {} (log line {})".format(i, f.strip(), lineno)
+            line = "Failure [{}]: {} (log line {})".format(i,
+                                                           f.strip(),
+                                                           lineno)
             joined.append(line)
         joined = '\n'.join(joined)
 
