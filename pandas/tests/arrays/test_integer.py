@@ -588,6 +588,7 @@ def test_cross_type_arithmetic():
 
 
 def test_arith_extension_array_values():
+    # GH 22478
     s = pd.Series([1, 2, 3], dtype='Int64')
     result = s + s.values
     expected = pd.Series([2, 4, 6], dtype='Int64')

@@ -493,6 +493,7 @@ ExtensionType Changes
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Bug in :meth:`pandas.core.ops.dispatch_to_extension_op` where addition of ``Series`` of ``IntegerArray`` and ``IntegerArray`` values raise runtime exception (:issue `22478`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
