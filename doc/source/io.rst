@@ -4640,8 +4640,8 @@ Read only certain columns of a parquet file.
 Handling Indexes
 ''''''''''''''''
 
-Dumping a ``DataFrame`` to parquet may include the implicit index as one or more
-columns in the output file. Thus, this code:
+Serializing a ``DataFrame`` to parquet may include the implicit index as one or
+more columns in the output file. Thus, this code:
 
 .. ipython:: python
 
