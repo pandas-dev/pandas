@@ -2306,6 +2306,13 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.read_sql : read a DataFrame from a table
 
+        Notes
+        -----
+        Timezone aware datetime columns will be written as
+        ``Timestamp with timezone`` type with SQLAlchemy if supported by the
+        database. Otherwise, the datetimes will be stored as local, naive
+        timestamps.
+
         References
         ----------
         .. [1] http://docs.sqlalchemy.org
