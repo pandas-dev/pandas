@@ -541,7 +541,7 @@ class NaTType(_NaT):
             - 'NaT' will return NaT where there are nonexistent times
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
-              
+
             .. versionadded:: 0.24.0
 
         errors : 'raise', 'coerce', default 'raise'
