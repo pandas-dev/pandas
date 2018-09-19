@@ -266,7 +266,7 @@ class TestDataFrameAnalytics(TestData):
         assert c1 < 1
 
     def test_corrwith_how_all_axis1(self):
-        data1 = np.random.randn(2 ,1000)
+        data1 = np.random.randn(2, 1000)
         data2 = np.random.randn(2, 1000)
         columns = ['c' + str(i) for i in range(1000)]
         index = ['a', 'b']
