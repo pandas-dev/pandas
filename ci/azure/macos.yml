@@ -37,3 +37,7 @@ jobs:
     - script: |
         export PATH=$HOME/miniconda3/bin:$PATH
         source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '/tmp/*.xml'
+        testRunTitle: 'MacOS-35'
