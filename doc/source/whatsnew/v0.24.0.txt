@@ -185,6 +185,7 @@ Other Enhancements
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
+- :class:`ExcelFormatter` now has a `header_style` property. Was previously in global scope (:issue:`22758`).
 
 .. _whatsnew_0240.api_breaking:
 
