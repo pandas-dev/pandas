@@ -24,13 +24,12 @@ class TestSeriesComparison(object):
         tm.assert_series_equal(result, Series([1], ['bool']))
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
-    def test_ser_flex_cmp_return_dtypes_empty(self, opname):
+    def test_ser_flex_cmp_return_dtypes_empty(self, opname, empty_series):
         # GH#15115 empty Series case
         ser = Series([1, 3, 2], index=range(3))
-        empty = ser.iloc[:0]
         const = 2
 
-        result = getattr(empty, opname)(const).get_dtype_counts()
+        result = getattr(empty_series, opname)(const).get_dtype_counts()
         tm.assert_series_equal(result, Series([1], ['bool']))
 
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
