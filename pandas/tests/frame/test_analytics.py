@@ -257,7 +257,8 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_corrwith_how_all(self):
-        df = DataFrame({'a':np.random.randn(10000), 'b':np.random.randn(10000)})
+        df = DataFrame({'a': np.random.randn(10000),
+                        'b': np.random.randn(10000)})
         c1 = df.corrwith(df, how='all').loc['a', 'b']
         c2 = np.corrcoef(df['a'], df['b'])[0][1]
 
@@ -265,9 +266,9 @@ class TestDataFrameAnalytics(TestData):
         assert c1 < 1
 
     def test_corrwith_how_all_axis1(self):
-        data1 = np.random.randn(2,1000)
-        data2 = np.random.randn(2,1000)
-        columns = ['c'+str(i) for i in range(1000)]
+        data1 = np.random.randn(2 ,1000)
+        data2 = np.random.randn(2, 1000)
+        columns = ['c' + str(i) for i in range(1000)]
         index = ['a', 'b']
 
         df = DataFrame(data=data1, columns=columns, index=index)

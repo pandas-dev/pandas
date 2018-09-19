@@ -6878,22 +6878,21 @@ class DataFrame(NDFrame):
                 or isinstance(other.columns, MultiIndex):
             raise TypeError("MultiIndex is not supported")
 
-        if axis==1:
+        if axis == 1:
             this = this.transpose()
             other = other.transpose()
 
-        if how=='all':
+        if how == 'all':
             corr = np.zeros((this.shape[1], other.shape[1]))
 
             for i, col1 in enumerate(this.columns):
                 for j, col2 in enumerate(other.columns):
                     corr[i, j] = this.loc[:, col1].corr(other.loc[:, col2],
-                                                        method=method,
-                                                        min_periods=min_periods)
+                                        method=method, min_periods=min_periods)
             return DataFrame(data=corr, index=this.columns,
                              columns=other.columns)
 
-        elif how=='pairwise':
+        elif how == 'pairwise':
             index = []
             corr = []
             for col in this.columns:
