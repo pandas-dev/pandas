@@ -3986,7 +3986,7 @@ class DataFrame(NDFrame):
         Returns
         -------
         resetted : DataFrame
-        
+
         See Also
         --------
         DataFrame.set_index : opposite of reset_index

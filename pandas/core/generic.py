@@ -3333,11 +3333,11 @@ class NDFrame(PandasObject, SelectionMixin):
                      tolerance=None):
         """
         Return an object with matching indices as other object.
-        
-        Conform the object to the same index on all axes. Optional filling logic,
-        placing NA/NaN in locations having no value in the previous index.
-        A new object is produced unless the new index is equivalent to the
-        current one and copy=False.
+
+        Conform the object to the same index on all axes. Optional
+        filling logic, placing NA/NaN in locations having no value
+        in the previous index. A new object is produced unless the
+        new index is equivalent to the current one and copy=False.
 
         Parameters
         ----------
@@ -3360,7 +3360,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         Object
-            same object type as input object, but with changed indices on each axis
+            same object type as input, but with changed indices on each axis
 
         See Also
         --------
@@ -3369,19 +3369,21 @@ class NDFrame(PandasObject, SelectionMixin):
         DataFrame.reindex : change to new indices or expand indices
 
         Examples
-        --------        
+        --------
         >>> df_weather_station_1 = pd.DataFrame([[24.3, 75.7, 'high'],
         ...                                      [31, 87.8, 'high'],
         ...                                      [22, 71.6, 'medium'],
         ...                                      [35, 95, 'medium']],
         ...          columns=['temp_celsius', 'temp_fahrenheit', 'windspeed'],
-        ...          index=pd.date_range(start='2014-02-12', end='2014-02-15', freq='D'))
+        ...          index=pd.date_range(start='2014-02-12',
+        ...                              end='2014-02-15', freq='D'))
 
-        >>> df_weather_station_2 = pd.DataFrame([[28, 'low'], 
+        >>> df_weather_station_2 = pd.DataFrame([[28, 'low'],
         ...                                      [30, 'low'],
         ...                                      [35.1, 'medium']],
-        ...          columns=['temp_celsius', 'windspeed'], 
-        ...          index=pd.DatetimeIndex(['2014-02-12', '2014-02-13', '2014-02-15']))
+        ...          columns=['temp_celsius', 'windspeed'],
+        ...          index=pd.DatetimeIndex(['2014-02-12', '2014-02-13',
+        ...                                  '2014-02-15']))
 
         >>> df_weather_station_2.reindex_like(df_weather_station_1)
                     temp_celsius  temp_fahrenheit windspeed
@@ -4088,7 +4090,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        
         >>> df.reindex_axis(['A', 'B', 'C'], axis=1)
         """)
 
