@@ -6484,6 +6484,11 @@ class DataFrame(NDFrame):
             # Rename the index after concat erases it.
             result.index.name = self.index.name
 
+        # keep the same column index name as
+        # the original dframe (self)
+        # XXX: will this break anything in MultiIndex?
+        result.columns.name = self.columns.name
+
         return result
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
