@@ -25,7 +25,7 @@ def test_exceeding_unpacker_read_size():
     # double free or corruption (!prev)
 
     # 40 ok for read_size=1024, while 50 introduces errors
-    # 7000 ok for read_size=1024*1024, while 8000 leads to  glibc detected ***
+    # 7000 ok for read_size=1024*1024, while 8000 leads to glibc detected ***
     # python: double free or corruption (!prev):
 
     for idx in range(NUMBER_OF_STRINGS):

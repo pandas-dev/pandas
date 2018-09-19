@@ -5,6 +5,10 @@ Tests that the file header is properly handled or inferred
 during parsing for all of the parsers defined in parsers.py
 """
 
+from collections import namedtuple
+
+import pytest
+
 import numpy as np
 import pandas.util.testing as tm
 
@@ -17,7 +21,7 @@ class HeaderTests(object):
     def test_read_with_bad_header(self):
         errmsg = r"but only \d+ lines in file"
 
-        with tm.assertRaisesRegexp(ValueError, errmsg):
+        with tm.assert_raises_regex(ValueError, errmsg):
             s = StringIO(',,')
             self.read_csv(s, header=[10])
 
@@ -30,9 +34,9 @@ MyColumn
    a
    b"""
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 self.read_csv(StringIO(data), header=arg)
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 self.read_table(StringIO(data), header=arg)
 
     def test_no_header_prefix(self):
@@ -48,9 +52,9 @@ MyColumn
                              [11, 12, 13, 14, 15]], dtype=np.int64)
         tm.assert_almost_equal(df_pref.values, expected)
 
-        self.assert_index_equal(df_pref.columns,
-                                Index(['Field0', 'Field1', 'Field2',
-                                       'Field3', 'Field4']))
+        tm.assert_index_equal(df_pref.columns,
+                              Index(['Field0', 'Field1', 'Field2',
+                                     'Field3', 'Field4']))
 
     def test_header_with_index_col(self):
         data = """foo,1,2,3
@@ -60,7 +64,7 @@ baz,7,8,9
         names = ['A', 'B', 'C']
         df = self.read_csv(StringIO(data), names=names)
 
-        self.assertEqual(names, ['A', 'B', 'C'])
+        assert list(df.columns) == ['A', 'B', 'C']
 
         values = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         expected = DataFrame(values, index=['foo', 'bar', 'baz'],
@@ -103,41 +107,31 @@ R_l0_g3,R_l1_g3,R3C0,R3C1,R3C2
 R_l0_g4,R_l1_g4,R4C0,R4C1,R4C2
 """
 
-        df = self.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[
-            0, 1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 1, 2, 3],
+                           index_col=[0, 1])
         tm.assert_frame_equal(df, expected)
 
         # skipping lines in the header
-        df = self.read_csv(StringIO(data), header=[0, 1, 2, 3], index_col=[
-            0, 1], tupleize_cols=False)
+        df = self.read_csv(StringIO(data), header=[0, 1, 2, 3],
+                           index_col=[0, 1])
         tm.assert_frame_equal(df, expected)
 
         # INVALID OPTIONS
 
-        # no as_recarray
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            self.assertRaises(ValueError, self.read_csv,
-                              StringIO(data), header=[0, 1, 2, 3],
-                              index_col=[0, 1], as_recarray=True,
-                              tupleize_cols=False)
-
         # names
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=[0, 1], names=['foo', 'bar'],
-                          tupleize_cols=False)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(data), header=[0, 1, 2, 3],
+                      index_col=[0, 1], names=['foo', 'bar'])
 
         # usecols
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=[0, 1], usecols=['foo', 'bar'],
-                          tupleize_cols=False)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(data), header=[0, 1, 2, 3],
+                      index_col=[0, 1], usecols=['foo', 'bar'])
 
         # non-numeric index_col
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(data), header=[0, 1, 2, 3],
-                          index_col=['foo', 'bar'], tupleize_cols=False)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(data), header=[0, 1, 2, 3],
+                      index_col=['foo', 'bar'])
 
     def test_header_multiindex_common_format(self):
 
@@ -157,6 +151,22 @@ two,7,8,9,10,11,12"""
         result = self.read_csv(StringIO(data), header=[0, 1], index_col=0)
         tm.assert_frame_equal(df, result)
 
+        # to_csv, tuples
+        result = self.read_csv(StringIO(data), skiprows=3,
+                               names=[('a', 'q'), ('a', 'r'), ('a', 's'),
+                                      ('b', 't'), ('c', 'u'), ('c', 'v')],
+                               index_col=0)
+        tm.assert_frame_equal(df, result)
+
+        # to_csv, namedtuples
+        TestTuple = namedtuple('names', ['first', 'second'])
+        result = self.read_csv(
+            StringIO(data), skiprows=3, index_col=0,
+            names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
+                   TestTuple('a', 's'), TestTuple('b', 't'),
+                   TestTuple('c', 'u'), TestTuple('c', 'v')])
+        tm.assert_frame_equal(df, result)
+
         # common
         data = """,a,a,a,b,c,c
 ,q,r,s,t,u,v
@@ -166,6 +176,22 @@ two,7,8,9,10,11,12"""
         result = self.read_csv(StringIO(data), header=[0, 1], index_col=0)
         tm.assert_frame_equal(df, result)
 
+        # common, tuples
+        result = self.read_csv(StringIO(data), skiprows=2,
+                               names=[('a', 'q'), ('a', 'r'), ('a', 's'),
+                                      ('b', 't'), ('c', 'u'), ('c', 'v')],
+                               index_col=0)
+        tm.assert_frame_equal(df, result)
+
+        # common, namedtuples
+        TestTuple = namedtuple('names', ['first', 'second'])
+        result = self.read_csv(
+            StringIO(data), skiprows=2, index_col=0,
+            names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
+                   TestTuple('a', 's'), TestTuple('b', 't'),
+                   TestTuple('c', 'u'), TestTuple('c', 'v')])
+        tm.assert_frame_equal(df, result)
+
         # common, no index_col
         data = """a,a,a,b,c,c
 q,r,s,t,u,v
@@ -173,6 +199,22 @@ q,r,s,t,u,v
 7,8,9,10,11,12"""
 
         result = self.read_csv(StringIO(data), header=[0, 1], index_col=None)
+        tm.assert_frame_equal(df.reset_index(drop=True), result)
+
+        # common, no index_col, tuples
+        result = self.read_csv(StringIO(data), skiprows=2,
+                               names=[('a', 'q'), ('a', 'r'), ('a', 's'),
+                                      ('b', 't'), ('c', 'u'), ('c', 'v')],
+                               index_col=None)
+        tm.assert_frame_equal(df.reset_index(drop=True), result)
+
+        # common, no index_col, namedtuples
+        TestTuple = namedtuple('names', ['first', 'second'])
+        result = self.read_csv(
+            StringIO(data), skiprows=2, index_col=None,
+            names=[TestTuple('a', 'q'), TestTuple('a', 'r'),
+                   TestTuple('a', 's'), TestTuple('b', 't'),
+                   TestTuple('c', 'u'), TestTuple('c', 'v')])
         tm.assert_frame_equal(df.reset_index(drop=True), result)
 
         # malformed case 1
@@ -270,8 +312,51 @@ q,r,s,t,u,v
         tm.assert_almost_equal(df.values, expected)
         tm.assert_almost_equal(df.values, df2.values)
 
-        self.assert_index_equal(df_pref.columns,
-                                Index(['X0', 'X1', 'X2', 'X3', 'X4']))
-        self.assert_index_equal(df.columns, Index(lrange(5)))
+        tm.assert_index_equal(df_pref.columns,
+                              Index(['X0', 'X1', 'X2', 'X3', 'X4']))
+        tm.assert_index_equal(df.columns, Index(lrange(5)))
 
-        self.assert_index_equal(df2.columns, Index(names))
+        tm.assert_index_equal(df2.columns, Index(names))
+
+    def test_non_int_header(self):
+        # GH 16338
+        msg = 'header must be integer or list of integers'
+        data = """1,2\n3,4"""
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',', header=['a', 'b'])
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(StringIO(data), sep=',', header='string_header')
+
+    def test_singleton_header(self):
+        # See GH #7757
+        data = """a,b,c\n0,1,2\n1,2,3"""
+        df = self.read_csv(StringIO(data), header=[0])
+        expected = DataFrame({"a": [0, 1], "b": [1, 2], "c": [2, 3]})
+        tm.assert_frame_equal(df, expected)
+
+    def test_mangles_multi_index(self):
+        # See GH 18062
+        data = """A,A,A,B\none,one,one,two\n0,40,34,0.1"""
+        df = self.read_csv(StringIO(data), header=[0, 1])
+        expected = DataFrame([[0, 40, 34, 0.1]],
+                             columns=MultiIndex.from_tuples(
+                                 [('A', 'one'), ('A', 'one.1'),
+                                  ('A', 'one.2'), ('B', 'two')]))
+        tm.assert_frame_equal(df, expected)
+
+        data = """A,A,A,B\none,one,one.1,two\n0,40,34,0.1"""
+        df = self.read_csv(StringIO(data), header=[0, 1])
+        expected = DataFrame([[0, 40, 34, 0.1]],
+                             columns=MultiIndex.from_tuples(
+                                 [('A', 'one'), ('A', 'one.1'),
+                                  ('A', 'one.1.1'), ('B', 'two')]))
+        tm.assert_frame_equal(df, expected)
+
+        data = """A,A,A,B,B\none,one,one.1,two,two\n0,40,34,0.1,0.1"""
+        df = self.read_csv(StringIO(data), header=[0, 1])
+        expected = DataFrame([[0, 40, 34, 0.1, 0.1]],
+                             columns=MultiIndex.from_tuples(
+                                 [('A', 'one'), ('A', 'one.1'),
+                                  ('A', 'one.1.1'), ('B', 'two'),
+                                  ('B', 'two.1')]))
+        tm.assert_frame_equal(df, expected)

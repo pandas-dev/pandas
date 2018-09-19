@@ -6,11 +6,13 @@ import numpy as np
 import pandas as pd
 from pandas.core.api import Series, DataFrame, MultiIndex
 import pandas.util.testing as tm
+import pytest
 
 
-class TestIndexingSlow(tm.TestCase):
+class TestIndexingSlow(object):
 
-    @tm.slow
+    @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 
         with warnings.catch_warnings(record=True):
@@ -27,10 +29,10 @@ class TestIndexingSlow(tm.TestCase):
                     mask &= df.iloc[:, i] == k
 
                     if not mask.any():
-                        self.assertNotIn(key[:i + 1], mi.index)
+                        assert key[:i + 1] not in mi.index
                         continue
 
-                    self.assertIn(key[:i + 1], mi.index)
+                    assert key[:i + 1] in mi.index
                     right = df[mask].copy()
 
                     if i + 1 != len(key):  # partial key
@@ -69,7 +71,7 @@ class TestIndexingSlow(tm.TestCase):
             keys += list(map(lambda t: t[:-1], vals[::n // m]))
 
             # covers both unique index and non-unique index
-            df = pd.DataFrame(vals, columns=cols)
+            df = DataFrame(vals, columns=cols)
             a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
 
             for frame in a, b:
@@ -80,7 +82,7 @@ class TestIndexingSlow(tm.TestCase):
                     assert not mi.index.lexsort_depth < i
                     loop(mi, df, keys)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_large_dataframe_indexing(self):
         # GH10692
         result = DataFrame({'x': range(10 ** 6)}, dtype='int64')
@@ -88,7 +90,7 @@ class TestIndexingSlow(tm.TestCase):
         expected = DataFrame({'x': range(10 ** 6 + 1)}, dtype='int64')
         tm.assert_frame_equal(result, expected)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_large_mi_dataframe_indexing(self):
         # GH10645
         result = MultiIndex.from_arrays([range(10 ** 6), range(10 ** 6)])

@@ -6,14 +6,7 @@ echo "[home_dir: $home_dir]"
 echo "[ls -ltr]"
 ls -ltr
 
-echo "[Using clean Miniconda install]"
-rm -rf "$MINICONDA_DIR"
-
-# install miniconda
-wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
-bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
-
-export PATH="$MINICONDA_DIR/bin:$PATH"
+apt-get update -y && apt-get install -y build-essential postgresql-client-9.6
 
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
@@ -46,15 +39,19 @@ echo "[environmental variable file]"
 cat $ENVS_FILE
 source $ENVS_FILE
 
-export REQ_BUILD=ci/requirements-${JOB}.build
-export REQ_RUN=ci/requirements-${JOB}.run
-export REQ_PIP=ci/requirements-${JOB}.pip
-
 # edit the locale override if needed
 if [ -n "$LOCALE_OVERRIDE" ]; then
+
+    apt-get update && apt-get -y install locales locales-all
+
+    export LANG=$LOCALE_OVERRIDE
+    export LC_ALL=$LOCALE_OVERRIDE
+
+    python -c "import locale; locale.setlocale(locale.LC_ALL, \"$LOCALE_OVERRIDE\")" || exit 1;
+
     echo "[Adding locale to the first line of pandas/__init__.py]"
     rm -f pandas/__init__.pyc
-    sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, '$LOCALE_OVERRIDE')\n"
+    sedc="3iimport locale\nlocale.setlocale(locale.LC_ALL, \"$LOCALE_OVERRIDE\")\n"
     sed -i "$sedc" pandas/__init__.py
     echo "[head -4 pandas/__init__.py]"
     head -4 pandas/__init__.py
@@ -62,24 +59,23 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
 fi
 
 # create envbuild deps
-echo "[create env: ${REQ_BUILD}]"
-time conda create -n pandas -q --file=${REQ_BUILD} || exit 1
-time conda install -n pandas pytest || exit 1
+echo "[create env]"
+time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
 
 source activate pandas
+
+# remove any installed pandas package
+# w/o removing anything else
+echo
+echo "[removing installed pandas]"
+conda remove pandas -y --force
+pip uninstall -y pandas
 
 # build but don't install
 echo "[build em]"
 time python setup.py build_ext --inplace || exit 1
 
-# we may have run installations
-echo "[conda installs: ${REQ_RUN}]"
-if [ -e ${REQ_RUN} ]; then
-    time conda install -q --file=${REQ_RUN} || exit 1
-fi
+echo
+echo "[show environment]"
 
-# we may have additional pip installs
-echo "[pip installs: ${REQ_PIP}]"
-if [ -e ${REQ_PIP} ]; then
-   pip install -r $REQ_PIP
-fi
+conda list

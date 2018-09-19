@@ -46,6 +46,6 @@ The following options can be set in conf.py:
   methods and attributes. If a table of contents is made, Sphinx expects
   each entry to have a separate page.
 
-- numpydoc_edit_link: bool  (DEPRECATED -- edit your HTML template instead)
+- numpydoc_edit_link: bool (DEPRECATED -- edit your HTML template instead)
 
   Whether to insert an edit link after docstrings.

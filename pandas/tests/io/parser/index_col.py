@@ -6,6 +6,8 @@ is properly handled or inferred during parsing for all of
 the parsers defined in parsers.py
 """
 
+import pytest
+
 import pandas.util.testing as tm
 
 from pandas import DataFrame, Index, MultiIndex
@@ -29,8 +31,8 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
         xp = self.read_csv(StringIO(data), header=0).set_index('ID')
         tm.assert_frame_equal(rs, xp)
 
-        self.assertRaises(ValueError, self.read_csv, StringIO(no_header),
-                          index_col='ID')
+        pytest.raises(ValueError, self.read_csv, StringIO(no_header),
+                      index_col='ID')
 
         data = """\
 1,2,3,4,hello
@@ -43,16 +45,16 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
                        index=Index(['hello', 'world', 'foo'], name='message'))
         rs = self.read_csv(StringIO(data), names=names, index_col=['message'])
         tm.assert_frame_equal(xp, rs)
-        self.assertEqual(xp.index.name, rs.index.name)
+        assert xp.index.name == rs.index.name
 
         rs = self.read_csv(StringIO(data), names=names, index_col='message')
         tm.assert_frame_equal(xp, rs)
-        self.assertEqual(xp.index.name, rs.index.name)
+        assert xp.index.name == rs.index.name
 
     def test_index_col_is_true(self):
         # see gh-9798
-        self.assertRaises(ValueError, self.read_csv,
-                          StringIO(self.ts_data), index_col=True)
+        pytest.raises(ValueError, self.read_csv,
+                      StringIO(self.ts_data), index_col=True)
 
     def test_infer_index_col(self):
         data = """A,B,C
@@ -61,7 +63,7 @@ bar,4,5,6
 baz,7,8,9
 """
         data = self.read_csv(StringIO(data))
-        self.assertTrue(data.index.equals(Index(['foo', 'bar', 'baz'])))
+        assert data.index.equals(Index(['foo', 'bar', 'baz']))
 
     def test_empty_index_col_scenarios(self):
         data = 'x,y,z'

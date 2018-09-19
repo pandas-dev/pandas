@@ -1,4 +1,11 @@
-from collections import MutableMapping
+import sys
+
+PY3 = sys.version_info[0] >= 3
+
+if PY3:
+    from collections.abc import MutableMapping
+else:
+    from collections import MutableMapping
 
 try:
     from thread import get_ident
@@ -34,10 +41,10 @@ def recursive_repr(fillvalue='...'):
 
 class ChainMap(MutableMapping):
     """ A ChainMap groups multiple dicts (or other mappings) together
-    to create a single, updateable view.
+    to create a single, updatable view.
 
     The underlying mappings are stored in a list.  That list is public and can
-    accessed or updated using the *maps* attribute.  There is no other state.
+    be accessed / updated using the *maps* attribute.  There is no other state.
 
     Lookups search the underlying mappings successively until a key is found.
     In contrast, writes, updates, and deletions only operate on the first

@@ -1,64 +1,60 @@
-from .pandas_vb_common import *
+import warnings
+from datetime import datetime, timedelta
+
+from pandas import DataFrame, DatetimeIndex, date_range
+
+from .pandas_vb_common import Panel, setup  # noqa
 
 
-class Constructors1(object):
+class DifferentIndexes(object):
     goal_time = 0.2
 
     def setup(self):
         self.data_frames = {}
-        self.start = datetime(1990, 1, 1)
-        self.end = datetime(2012, 1, 1)
+        start = datetime(1990, 1, 1)
+        end = datetime(2012, 1, 1)
         for x in range(100):
-            self.end += timedelta(days=1)
-            self.dr = np.asarray(date_range(self.start, self.end))
-            self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
-            self.data_frames[x] = self.df
+            end += timedelta(days=1)
+            idx = date_range(start, end)
+            df = DataFrame({'a': 0, 'b': 1, 'c': 2}, index=idx)
+            self.data_frames[x] = df
 
-    def time_panel_from_dict_all_different_indexes(self):
-        Panel.from_dict(self.data_frames)
+    def time_from_dict(self):
+        with warnings.catch_warnings(record=True):
+            Panel.from_dict(self.data_frames)
 
 
-class Constructors2(object):
+class SameIndexes(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.data_frames = {}
-        for x in range(100):
-            self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq=datetools.Day(1)))
-            self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
-            self.data_frames[x] = self.df
+        idx = DatetimeIndex(start=datetime(1990, 1, 1),
+                            end=datetime(2012, 1, 1),
+                            freq='D')
+        df = DataFrame({'a': 0, 'b': 1, 'c': 2}, index=idx)
+        self.data_frames = dict(enumerate([df] * 100))
 
-    def time_panel_from_dict_equiv_indexes(self):
-        Panel.from_dict(self.data_frames)
+    def time_from_dict(self):
+        with warnings.catch_warnings(record=True):
+            Panel.from_dict(self.data_frames)
 
 
-class Constructors3(object):
+class TwoIndexes(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.dr = np.asarray(DatetimeIndex(start=datetime(1990, 1, 1), end=datetime(2012, 1, 1), freq=datetools.Day(1)))
-        self.data_frames = {}
-        for x in range(100):
-            self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
-            self.data_frames[x] = self.df
+        start = datetime(1990, 1, 1)
+        end = datetime(2012, 1, 1)
+        df1 = DataFrame({'a': 0, 'b': 1, 'c': 2},
+                        index=DatetimeIndex(start=start, end=end, freq='D'))
+        end += timedelta(days=1)
+        df2 = DataFrame({'a': 0, 'b': 1, 'c': 2},
+                        index=DatetimeIndex(start=start, end=end, freq='D'))
+        dfs = [df1] * 50 + [df2] * 50
+        self.data_frames = dict(enumerate(dfs))
 
-    def time_panel_from_dict_same_index(self):
-        Panel.from_dict(self.data_frames)
-
-
-class Constructors4(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data_frames = {}
-        self.start = datetime(1990, 1, 1)
-        self.end = datetime(2012, 1, 1)
-        for x in range(100):
-            if (x == 50):
-                self.end += timedelta(days=1)
-            self.dr = np.asarray(date_range(self.start, self.end))
-            self.df = DataFrame({'a': ([0] * len(self.dr)), 'b': ([1] * len(self.dr)), 'c': ([2] * len(self.dr)), }, index=self.dr)
-            self.data_frames[x] = self.df
-
-    def time_panel_from_dict_two_different_indexes(self):
-        Panel.from_dict(self.data_frames)
+    def time_from_dict(self):
+        with warnings.catch_warnings(record=True):
+            Panel.from_dict(self.data_frames)

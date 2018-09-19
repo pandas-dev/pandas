@@ -1,33 +1,39 @@
 # coding: utf-8
 
-import unittest
+from datetime import datetime
 from pandas.io.msgpack import packb, unpackb
+
+import pytest
+import pandas.util.testing as tm
 
 
 class DummyException(Exception):
     pass
 
 
-class TestExceptions(unittest.TestCase):
+class TestExceptions(object):
 
     def test_raise_on_find_unsupported_value(self):
-        import datetime
-        self.assertRaises(TypeError, packb, datetime.datetime.now())
+        msg = "can\'t serialize datetime"
+        with tm.assert_raises_regex(TypeError, msg):
+            packb(datetime.now())
 
     def test_raise_from_object_hook(self):
-        def hook(obj):
-            raise DummyException
+        def hook(_):
+            raise DummyException()
 
-        self.assertRaises(DummyException, unpackb, packb({}), object_hook=hook)
-        self.assertRaises(DummyException, unpackb, packb({'fizz': 'buzz'}),
-                          object_hook=hook)
-        self.assertRaises(DummyException, unpackb, packb({'fizz': 'buzz'}),
-                          object_pairs_hook=hook)
-        self.assertRaises(DummyException, unpackb,
-                          packb({'fizz': {'buzz': 'spam'}}), object_hook=hook)
-        self.assertRaises(DummyException, unpackb,
-                          packb({'fizz': {'buzz': 'spam'}}),
-                          object_pairs_hook=hook)
+        pytest.raises(DummyException, unpackb, packb({}), object_hook=hook)
+        pytest.raises(DummyException, unpackb, packb({'fizz': 'buzz'}),
+                      object_hook=hook)
+        pytest.raises(DummyException, unpackb, packb({'fizz': 'buzz'}),
+                      object_pairs_hook=hook)
+        pytest.raises(DummyException, unpackb,
+                      packb({'fizz': {'buzz': 'spam'}}), object_hook=hook)
+        pytest.raises(DummyException, unpackb,
+                      packb({'fizz': {'buzz': 'spam'}}),
+                      object_pairs_hook=hook)
 
-    def test_invalidvalue(self):
-        self.assertRaises(ValueError, unpackb, b'\xd9\x97#DL_')
+    def test_invalid_value(self):
+        msg = "Unpack failed: error"
+        with tm.assert_raises_regex(ValueError, msg):
+            unpackb(b"\xd9\x97#DL_")

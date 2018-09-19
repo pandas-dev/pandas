@@ -1,33 +1,15 @@
-# cython: profile=False
-
-from numpy cimport *
-cimport numpy as np
-import numpy as np
+# -*- coding: utf-8 -*-
 
 cimport cython
+from cython cimport Py_ssize_t
 
-import_array()
+import numpy as np
+cimport numpy as cnp
+from numpy cimport (ndarray,
+                    int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
+                    uint32_t, uint64_t, float32_t, float64_t)
+cnp.import_array()
 
-cimport util
-
-from numpy cimport NPY_INT8 as NPY_int8
-from numpy cimport NPY_INT16 as NPY_int16
-from numpy cimport NPY_INT32 as NPY_int32
-from numpy cimport NPY_INT64 as NPY_int64
-from numpy cimport NPY_FLOAT16 as NPY_float16
-from numpy cimport NPY_FLOAT32 as NPY_float32
-from numpy cimport NPY_FLOAT64 as NPY_float64
-
-from numpy cimport (int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
-                    uint32_t, uint64_t, float16_t, float32_t, float64_t)
-
-int8 = np.dtype(np.int8)
-int16 = np.dtype(np.int16)
-int32 = np.dtype(np.int32)
-int64 = np.dtype(np.int64)
-float16 = np.dtype(np.float16)
-float32 = np.dtype(np.float32)
-float64 = np.dtype(np.float64)
 
 cdef double NaN = <double> np.NaN
 cdef double nan = NaN
@@ -164,7 +146,7 @@ def left_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
 
 
 def full_outer_join(ndarray[int64_t] left, ndarray[int64_t] right,
-                          Py_ssize_t max_groups):
+                    Py_ssize_t max_groups):
     cdef:
         Py_ssize_t i, j, k, count = 0
         ndarray[int64_t] left_count, right_count, left_sorter, right_sorter
@@ -253,30 +235,6 @@ def ffill_indexer(ndarray[int64_t] indexer):
         else:
             result[i] = val
             last_obs = val
-
-    return result
-
-
-def ffill_by_group(ndarray[int64_t] indexer, ndarray[int64_t] group_ids,
-                   int64_t max_group):
-    cdef:
-        Py_ssize_t i, n = len(indexer)
-        ndarray[int64_t] result, last_obs
-        int64_t gid, val
-
-    result = np.empty(n, dtype=np.int64)
-
-    last_obs = np.empty(max_group, dtype=np.int64)
-    last_obs.fill(-1)
-
-    for i in range(n):
-        gid = group_ids[i]
-        val = indexer[i]
-        if val == -1:
-            result[i] = last_obs[gid]
-        else:
-            result[i] = val
-            last_obs[gid] = val
 
     return result
 

@@ -357,11 +357,11 @@ HDFStore API Changes
   .. ipython:: python
 
      path = 'test.h5'
-     df = DataFrame(randn(10,2))
+     df = pd.DataFrame(np.random.randn(10,2))
      df.to_hdf(path,'df_table',format='table')
      df.to_hdf(path,'df_table2',append=True)
      df.to_hdf(path,'df_fixed')
-     with get_store(path) as store:
+     with pd.HDFStore(path) as store:
         print(store)
 
   .. ipython:: python
@@ -414,7 +414,7 @@ HDFStore API Changes
 - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
   to the store (default is ``True``, ALL nan rows are NOT written), also settable
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
-- pass thru store creation arguments; can be used to support in-memory stores
+- pass through store creation arguments; can be used to support in-memory stores
 
 DataFrame repr Changes
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -443,7 +443,7 @@ Enhancements
 - Clipboard functionality now works with PySide (:issue:`4282`)
 - Added a more informative error message when plot arguments contain
   overlapping color and style arguments (:issue:`4402`)
-- ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
+- ``to_dict`` now takes ``records`` as a possible out type.  Returns an array
   of column-keyed dictionaries. (:issue:`4936`)
 
 - ``NaN`` handing in get_dummies (:issue:`4446`) with `dummy_na`
@@ -651,7 +651,7 @@ Enhancements
 
   Additionally, the ``method`` argument to ``interpolate`` has been expanded
   to include ``'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', `polynomial`, 'spline'``
+  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', 'polynomial', 'spline'``
   The new methods require scipy_. Consult the Scipy reference guide_ and documentation_ for more information
   about when the various methods are appropriate. See :ref:`the docs<missing_data.interpolate>`.
 
@@ -790,7 +790,7 @@ Experimental
   .. ipython:: python
 
      for o in pd.read_msgpack('foo.msg',iterator=True):
-        print o
+        print(o)
 
   .. ipython:: python
      :suppress:

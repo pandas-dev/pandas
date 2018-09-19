@@ -11,7 +11,7 @@
    np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    pd.options.display.max_rows = 15
 
    #### portions of this were borrowed from the
@@ -25,7 +25,7 @@
 ********************
 
 This is a short introduction to pandas, geared mainly for new users.
-You can see more complex recipes in the :ref:`Cookbook<cookbook>`
+You can see more complex recipes in the :ref:`Cookbook<cookbook>`.
 
 Customarily, we import as follows:
 
@@ -38,7 +38,7 @@ Customarily, we import as follows:
 Object Creation
 ---------------
 
-See the :ref:`Data Structure Intro section <dsintro>`
+See the :ref:`Data Structure Intro section <dsintro>`.
 
 Creating a :class:`Series` by passing a list of values, letting pandas create
 a default integer index:
@@ -48,7 +48,7 @@ a default integer index:
    s = pd.Series([1,3,5,np.nan,6,8])
    s
 
-Creating a :class:`DataFrame` by passing a numpy array, with a datetime index
+Creating a :class:`DataFrame` by passing a NumPy array, with a datetime index
 and labeled columns:
 
 .. ipython:: python
@@ -70,7 +70,8 @@ Creating a ``DataFrame`` by passing a dict of objects that can be converted to s
                         'F' : 'foo' })
    df2
 
-Having specific :ref:`dtypes <basics.dtypes>`
+The columns of the resulting ``DataFrame`` have different 
+:ref:`dtypes <basics.dtypes>`.
 
 .. ipython:: python
 
@@ -95,17 +96,7 @@ will be completed:
    df2.append             df2.combine_first
    df2.apply              df2.compound
    df2.applymap           df2.consolidate
-   df2.as_blocks          df2.convert_objects
-   df2.asfreq             df2.copy
-   df2.as_matrix          df2.corr
-   df2.astype             df2.corrwith
-   df2.at                 df2.count
-   df2.at_time            df2.cov
-   df2.axes               df2.cummax
-   df2.B                  df2.cummin
-   df2.between_time       df2.cumprod
-   df2.bfill              df2.cumsum
-   df2.blocks             df2.D
+   df2.D
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` is there as well; the rest of the attributes have been
@@ -114,16 +105,16 @@ truncated for brevity.
 Viewing Data
 ------------
 
-See the :ref:`Basics section <basics>`
+See the :ref:`Basics section <basics>`.
 
-See the top & bottom rows of the frame
+Here is how to view the top and bottom rows of the frame:
 
 .. ipython:: python
 
    df.head()
    df.tail(3)
 
-Display the index, columns, and the underlying numpy data
+Display the index, columns, and the underlying NumPy data:
 
 .. ipython:: python
 
@@ -131,25 +122,25 @@ Display the index, columns, and the underlying numpy data
    df.columns
    df.values
 
-Describe shows a quick statistic summary of your data
+:func:`~DataFrame.describe` shows a quick statistic summary of your data:
 
 .. ipython:: python
 
    df.describe()
 
-Transposing your data
+Transposing your data:
 
 .. ipython:: python
 
    df.T
 
-Sorting by an axis
+Sorting by an axis:
 
 .. ipython:: python
 
    df.sort_index(axis=1, ascending=False)
 
-Sorting by values
+Sorting by values:
 
 .. ipython:: python
 
@@ -163,15 +154,15 @@ Selection
    While standard Python / Numpy expressions for selecting and setting are
    intuitive and come in handy for interactive work, for production code, we
    recommend the optimized pandas data access methods, ``.at``, ``.iat``,
-   ``.loc``, ``.iloc`` and ``.ix``.
+   ``.loc`` and ``.iloc``.
 
-See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
+See the indexing documentation :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`.
 
 Getting
 ~~~~~~~
 
 Selecting a single column, which yields a ``Series``,
-equivalent to ``df.A``
+equivalent to ``df.A``:
 
 .. ipython:: python
 
@@ -187,39 +178,39 @@ Selecting via ``[]``, which slices the rows.
 Selection by Label
 ~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Label <indexing.label>`
+See more in :ref:`Selection by Label <indexing.label>`.
 
-For getting a cross section using a label
+For getting a cross section using a label:
 
 .. ipython:: python
 
    df.loc[dates[0]]
 
-Selecting on a multi-axis by label
+Selecting on a multi-axis by label:
 
 .. ipython:: python
 
    df.loc[:,['A','B']]
 
-Showing label slicing, both endpoints are *included*
+Showing label slicing, both endpoints are *included*:
 
 .. ipython:: python
 
    df.loc['20130102':'20130104',['A','B']]
 
-Reduction in the dimensions of the returned object
+Reduction in the dimensions of the returned object:
 
 .. ipython:: python
 
    df.loc['20130102',['A','B']]
 
-For getting a scalar value
+For getting a scalar value:
 
 .. ipython:: python
 
    df.loc[dates[0],'A']
 
-For getting fast access to a scalar (equiv to the prior method)
+For getting fast access to a scalar (equivalent to the prior method):
 
 .. ipython:: python
 
@@ -228,45 +219,45 @@ For getting fast access to a scalar (equiv to the prior method)
 Selection by Position
 ~~~~~~~~~~~~~~~~~~~~~
 
-See more in :ref:`Selection by Position <indexing.integer>`
+See more in :ref:`Selection by Position <indexing.integer>`.
 
-Select via the position of the passed integers
+Select via the position of the passed integers:
 
 .. ipython:: python
 
    df.iloc[3]
 
-By integer slices, acting similar to numpy/python
+By integer slices, acting similar to numpy/python:
 
 .. ipython:: python
 
    df.iloc[3:5,0:2]
 
-By lists of integer position locations, similar to the numpy/python style
+By lists of integer position locations, similar to the numpy/python style:
 
 .. ipython:: python
 
    df.iloc[[1,2,4],[0,2]]
 
-For slicing rows explicitly
+For slicing rows explicitly:
 
 .. ipython:: python
 
    df.iloc[1:3,:]
 
-For slicing columns explicitly
+For slicing columns explicitly:
 
 .. ipython:: python
 
    df.iloc[:,1:3]
 
-For getting a value explicitly
+For getting a value explicitly:
 
 .. ipython:: python
 
    df.iloc[1,1]
 
-For getting fast access to a scalar (equiv to the prior method)
+For getting fast access to a scalar (equivalent to the prior method):
 
 .. ipython:: python
 
@@ -300,7 +291,7 @@ Setting
 ~~~~~~~
 
 Setting a new column automatically aligns the data
-by the indexes
+by the indexes.
 
 .. ipython:: python
 
@@ -308,25 +299,25 @@ by the indexes
    s1
    df['F'] = s1
 
-Setting values by label
+Setting values by label:
 
 .. ipython:: python
 
    df.at[dates[0],'A'] = 0
 
-Setting values by position
+Setting values by position:
 
 .. ipython:: python
 
    df.iat[0,1] = 0
 
-Setting by assigning with a numpy array
+Setting by assigning with a NumPy array:
 
 .. ipython:: python
 
    df.loc[:,'D'] = np.array([5] * len(df))
 
-The result of the prior setting operations
+The result of the prior setting operations.
 
 .. ipython:: python
 
@@ -346,7 +337,7 @@ Missing Data
 
 pandas primarily uses the value ``np.nan`` to represent missing data. It is by
 default not included in computations. See the :ref:`Missing Data section
-<missing_data>`
+<missing_data>`.
 
 Reindexing allows you to change/add/delete the index on a specified axis. This
 returns a copy of the data.
@@ -363,36 +354,36 @@ To drop any rows that have missing data.
 
    df1.dropna(how='any')
 
-Filling missing data
+Filling missing data.
 
 .. ipython:: python
 
    df1.fillna(value=5)
 
-To get the boolean mask where values are ``nan``
+To get the boolean mask where values are ``nan``.
 
 .. ipython:: python
 
-   pd.isnull(df1)
+   pd.isna(df1)
 
 
 Operations
 ----------
 
-See the :ref:`Basic section on Binary Ops <basics.binop>`
+See the :ref:`Basic section on Binary Ops <basics.binop>`.
 
 Stats
 ~~~~~
 
 Operations in general *exclude* missing data.
 
-Performing a descriptive statistic
+Performing a descriptive statistic:
 
 .. ipython:: python
 
    df.mean()
 
-Same operation on the other axis
+Same operation on the other axis:
 
 .. ipython:: python
 
@@ -411,7 +402,7 @@ In addition, pandas automatically broadcasts along the specified dimension.
 Apply
 ~~~~~
 
-Applying functions to the data
+Applying functions to the data:
 
 .. ipython:: python
 
@@ -421,7 +412,7 @@ Applying functions to the data
 Histogramming
 ~~~~~~~~~~~~~
 
-See more at :ref:`Histogramming and Discretization <basics.discretization>`
+See more at :ref:`Histogramming and Discretization <basics.discretization>`.
 
 .. ipython:: python
 
@@ -435,7 +426,7 @@ String Methods
 Series is equipped with a set of string processing methods in the `str`
 attribute that make it easy to operate on each element of the array, as in the
 code snippet below. Note that pattern-matching in `str` generally uses `regular
-expressions <https://docs.python.org/2/library/re.html>`__ by default (and in
+expressions <https://docs.python.org/3/library/re.html>`__ by default (and in
 some cases always uses them). See more at :ref:`Vectorized String Methods
 <text.string_methods>`.
 
@@ -455,7 +446,7 @@ DataFrame, and Panel objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
-See the :ref:`Merging section <merging>`
+See the :ref:`Merging section <merging>`.
 
 Concatenating pandas objects together with :func:`concat`:
 
@@ -472,7 +463,7 @@ Concatenating pandas objects together with :func:`concat`:
 Join
 ~~~~
 
-SQL style merges. See the :ref:`Database style joining <merging.join>`
+SQL style merges. See the :ref:`Database style joining <merging.join>` section.
 
 .. ipython:: python
 
@@ -496,7 +487,8 @@ Another example that can be given is:
 Append
 ~~~~~~
 
-Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>`
+Append rows to a dataframe. See the :ref:`Appending <merging.concatenation>` 
+section.
 
 .. ipython:: python
 
@@ -510,13 +502,13 @@ Grouping
 --------
 
 By "group by" we are referring to a process involving one or more of the
-following steps
+following steps:
 
  - **Splitting** the data into groups based on some criteria
  - **Applying** a function to each group independently
  - **Combining** the results into a data structure
 
-See the :ref:`Grouping section <groupby>`
+See the :ref:`Grouping section <groupby>`.
 
 .. ipython:: python
 
@@ -528,14 +520,15 @@ See the :ref:`Grouping section <groupby>`
                       'D' : np.random.randn(8)})
    df
 
-Grouping and then applying a function ``sum`` to the resulting groups.
+Grouping and then applying the :meth:`~DataFrame.sum` function to the resulting 
+groups.
 
 .. ipython:: python
 
    df.groupby('A').sum()
 
-Grouping by multiple columns forms a hierarchical index, which we then apply
-the function.
+Grouping by multiple columns forms a hierarchical index, and again we can 
+apply the ``sum`` function.
 
 .. ipython:: python
 
@@ -605,7 +598,7 @@ Time Series
 pandas has simple, powerful, and efficient functionality for performing
 resampling operations during frequency conversion (e.g., converting secondly
 data into 5-minutely data). This is extremely common in, but not limited to,
-financial applications. See the :ref:`Time Series section <timeseries>`
+financial applications. See the :ref:`Time Series section <timeseries>`.
 
 .. ipython:: python
 
@@ -613,7 +606,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
    ts.resample('5Min').sum()
 
-Time zone representation
+Time zone representation:
 
 .. ipython:: python
 
@@ -623,13 +616,13 @@ Time zone representation
    ts_utc = ts.tz_localize('UTC')
    ts_utc
 
-Convert to another time zone
+Converting to another time zone:
 
 .. ipython:: python
 
    ts_utc.tz_convert('US/Eastern')
 
-Converting between time span representations
+Converting between time span representations:
 
 .. ipython:: python
 
@@ -655,7 +648,7 @@ the quarter end:
 Categoricals
 ------------
 
-Since version 0.15, pandas can include categorical data in a ``DataFrame``. For full docs, see the
+pandas can include categorical data in a ``DataFrame``. For full docs, see the
 :ref:`categorical introduction <categorical>` and the :ref:`API documentation <api.categorical>`.
 
 .. ipython:: python
@@ -669,14 +662,15 @@ Convert the raw grades to a categorical data type.
     df["grade"] = df["raw_grade"].astype("category")
     df["grade"]
 
-Rename the categories to more meaningful names (assigning to ``Series.cat.categories`` is inplace!)
+Rename the categories to more meaningful names (assigning to 
+``Series.cat.categories`` is inplace!).
 
 .. ipython:: python
 
     df["grade"].cat.categories = ["very good", "good", "very bad"]
 
 Reorder the categories and simultaneously add the missing categories (methods under ``Series
-.cat`` return a new ``Series`` per default).
+.cat`` return a new ``Series`` by default).
 
 .. ipython:: python
 
@@ -689,7 +683,7 @@ Sorting is per order in the categories, not lexical order.
 
     df.sort_values(by="grade")
 
-Grouping by a categorical column shows also empty categories.
+Grouping by a categorical column also shows empty categories.
 
 .. ipython:: python
 
@@ -699,7 +693,7 @@ Grouping by a categorical column shows also empty categories.
 Plotting
 --------
 
-:ref:`Plotting <visualization>` docs.
+See the :ref:`Plotting <visualization>` docs.
 
 .. ipython:: python
    :suppress:
@@ -715,8 +709,8 @@ Plotting
    @savefig series_plot_basic.png
    ts.plot()
 
-On DataFrame, :meth:`~DataFrame.plot` is a convenience to plot all of the
-columns with labels:
+On a DataFrame, the :meth:`~DataFrame.plot` method is a convenience to plot all 
+of the columns with labels:
 
 .. ipython:: python
 
@@ -733,13 +727,13 @@ Getting Data In/Out
 CSV
 ~~~
 
-:ref:`Writing to a csv file <io.store_in_csv>`
+:ref:`Writing to a csv file. <io.store_in_csv>`
 
 .. ipython:: python
 
    df.to_csv('foo.csv')
 
-:ref:`Reading from a csv file <io.read_csv_table>`
+:ref:`Reading from a csv file. <io.read_csv_table>`
 
 .. ipython:: python
 
@@ -753,15 +747,15 @@ CSV
 HDF5
 ~~~~
 
-Reading and writing to :ref:`HDFStores <io.hdf5>`
+Reading and writing to :ref:`HDFStores <io.hdf5>`.
 
-Writing to a HDF5 Store
+Writing to a HDF5 Store.
 
 .. ipython:: python
 
    df.to_hdf('foo.h5','df')
 
-Reading from a HDF5 Store
+Reading from a HDF5 Store.
 
 .. ipython:: python
 
@@ -775,15 +769,15 @@ Reading from a HDF5 Store
 Excel
 ~~~~~
 
-Reading and writing to :ref:`MS Excel <io.excel>`
+Reading and writing to :ref:`MS Excel <io.excel>`.
 
-Writing to an excel file
+Writing to an excel file.
 
 .. ipython:: python
 
    df.to_excel('foo.xlsx', sheet_name='Sheet1')
 
-Reading from an excel file
+Reading from an excel file.
 
 .. ipython:: python
 
@@ -797,7 +791,7 @@ Reading from an excel file
 Gotchas
 -------
 
-If you are trying an operation and you see an exception like:
+If you are attempting to perform an operation you might see an exception like:
 
 .. code-block:: python
 

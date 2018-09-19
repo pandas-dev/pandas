@@ -20,7 +20,7 @@
    pd.options.display.max_rows=15
 
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
 
    np.set_printoptions(precision=4, suppress=True)
 
@@ -41,7 +41,7 @@ above what the in-line examples offer.
 Pandas (pd) and Numpy (np) are the only two abbreviated imported modules. The rest are kept
 explicitly imported for newer users.
 
-These examples are written for python 3.4.  Minor tweaks might be necessary for earlier python
+These examples are written for Python 3.  Minor tweaks might be necessary for earlier python
 versions.
 
 Idioms
@@ -132,7 +132,7 @@ Building Criteria
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries;
+   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries
 
 ...or (with assignment modifies the DataFrame.)
 
@@ -256,12 +256,6 @@ Panels
 
    pf = pd.Panel({'df1':df1,'df2':df2,'df3':df3});pf
 
-   #Assignment using Transpose  (pandas < 0.15)
-   pf = pf.transpose(2,0,1)
-   pf['E'] = pd.DataFrame(data, rng, cols)
-   pf = pf.transpose(1,2,0);pf
-
-   #Direct assignment (pandas > 0.15)
    pf.loc[:,:,'F'] = pd.DataFrame(data, rng, cols);pf
 
 `Mask a panel by using np.where and then reconstructing the panel with the new masked values
@@ -292,7 +286,7 @@ New Columns
    df = pd.DataFrame(
         {'AAA' : [1,1,1,2,2,2,3,3], 'BBB' : [2,1,3,4,5,1,2,3]}); df
 
-Method 1 : idxmin() to get the index of the mins
+Method 1 : idxmin() to get the index of the minimums
 
 .. ipython:: python
 
@@ -313,7 +307,7 @@ MultiIndexing
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
 
-`Creating a multi-index from a labeled frame
+`Creating a MultiIndex from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
 
 .. ipython:: python
@@ -336,7 +330,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
 Arithmetic
 **********
 
-`Performing arithmetic with a multi-index that needs broadcasting
+`Performing arithmetic with a MultiIndex that needs broadcasting
 <http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
 
 .. ipython:: python
@@ -348,7 +342,7 @@ Arithmetic
 Slicing
 *******
 
-`Slicing a multi-index with xs
+`Slicing a MultiIndex with xs
 <http://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
 
 .. ipython:: python
@@ -369,7 +363,7 @@ To take the cross section of the 1st level and 1st axis the index:
 
    df.xs('six',level=1,axis=0)
 
-`Slicing a multi-index with xs, method #2
+`Slicing a MultiIndex with xs, method #2
 <http://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
 .. ipython:: python
@@ -392,13 +386,13 @@ To take the cross section of the 1st level and 1st axis the index:
    df.loc[(All,'Math'),('Exams')]
    df.loc[(All,'Math'),(All,'II')]
 
-`Setting portions of a multi-index with xs
+`Setting portions of a MultiIndex with xs
 <http://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
 
 Sorting
 *******
 
-`Sort by specific column or an ordered list of columns, with a multi-index
+`Sort by specific column or an ordered list of columns, with a MultiIndex
 <http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
 
 .. ipython:: python
@@ -416,14 +410,6 @@ Levels
 
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
-
-panelnd
-*******
-
-The :ref:`panelnd<dsintro.panelnd>` docs.
-
-`Construct a 5D panelnd
-<http://stackoverflow.com/questions/18748598/why-my-panelnd-factory-throwing-a-keyerror>`__
 
 .. _cookbook.missing_data:
 
@@ -510,7 +496,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    def Red(x):
       return functools.reduce(CumRet,x,1.0)
 
-   S.expanding().apply(Red)
+   S.expanding().apply(Red, raw=True)
 
 
 `Replacing some values with mean of the rest of a group
@@ -678,7 +664,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 `Plot pandas DataFrame with year over year data
 <http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
 
-To create year and month crosstabulation:
+To create year and month cross tabulation:
 
 .. ipython:: python
 
@@ -691,7 +677,7 @@ To create year and month crosstabulation:
 Apply
 *****
 
-`Rolling Apply to Organize - Turning embedded lists into a multi-index frame
+`Rolling Apply to Organize - Turning embedded lists into a MultiIndex frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
@@ -756,7 +742,7 @@ Timeseries
 <http://nipunbatra.github.io/2015/06/timeseries/>`__
 
 Turn a matrix with hours in columns and days in rows into a continuous row sequence in the form of a time series.
-`How to rearrange a python pandas DataFrame?
+`How to rearrange a Python pandas DataFrame?
 <http://stackoverflow.com/questions/15432659/how-to-rearrange-a-python-pandas-dataframe>`__
 
 `Dealing with duplicates when reindexing a timeseries to a specified frequency
@@ -776,11 +762,17 @@ Resampling
 
 The :ref:`Resample <timeseries.resampling>` docs.
 
-`TimeGrouping of values grouped across time
-<http://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
+`Using Grouper instead of TimeGrouper for time grouping of values
+<https://stackoverflow.com/questions/15297053/how-can-i-divide-single-values-of-a-dataframe-by-monthly-averages>`__
 
-`TimeGrouping #2
-<http://stackoverflow.com/questions/14569223/timegrouper-pandas>`__
+`Time grouping with some missing values
+<https://stackoverflow.com/questions/33637312/pandas-grouper-by-frequency-with-completeness-requirement>`__
+
+`Valid frequency arguments to Grouper
+<http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__
+
+`Grouping using a MultiIndex
+<https://stackoverflow.com/questions/41483763/pandas-timegrouper-on-multiindex>`__
 
 `Using TimeGrouper and another grouping to create subgroups, then apply a custom function
 <https://github.com/pandas-dev/pandas/issues/3791>`__
@@ -812,7 +804,7 @@ The :ref:`Concat <merging.concatenation>` docs. The :ref:`Join <merging.join>` d
    df1 = pd.DataFrame(np.random.randn(6, 3), index=rng, columns=['A', 'B', 'C'])
    df2 = df1.copy()
 
-ignore_index is needed in pandas < v0.13, and depending on df construction
+Depending on df construction, ``ignore_index`` may be needed
 
 .. ipython:: python
 
@@ -910,9 +902,6 @@ The :ref:`CSV <io.read_csv_table>` docs
 `appending to a csv
 <http://stackoverflow.com/questions/17134942/pandas-dataframe-output-end-of-csv>`__
 
-`how to read in multiple files, appending to create a single dataframe
-<http://stackoverflow.com/questions/25210819/speeding-up-data-import-function-pandas-and-appending-to-dataframe/25210900#25210900>`__
-
 `Reading a csv chunk-by-chunk
 <http://stackoverflow.com/questions/11622652/large-persistent-dataframe-in-pandas/12193309#12193309>`__
 
@@ -942,6 +931,42 @@ using that handle to read.
 
 `Write a multi-row index CSV without writing duplicates
 <http://stackoverflow.com/questions/17349574/pandas-write-multiindex-rows-with-to-csv>`__
+
+.. _cookbook.csv.multiple_files:
+
+Reading multiple files to create a single DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The best way to combine multiple files into a single DataFrame is to read the individual frames one by one, put all
+of the individual frames into a list, and then combine the frames in the list using :func:`pd.concat`:
+
+.. ipython:: python
+
+    for i in range(3):
+        data = pd.DataFrame(np.random.randn(10, 4))
+        data.to_csv('file_{}.csv'.format(i))
+
+    files = ['file_0.csv', 'file_1.csv', 'file_2.csv']
+    result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+
+You can use the same approach to read all files matching a pattern.  Here is an example using ``glob``:
+
+.. ipython:: python
+
+    import glob
+    files = glob.glob('file_*.csv')
+    result = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
+
+Finally, this strategy will work with the other ``pd.read_*(...)`` functions described in the :ref:`io docs<io>`.
+
+.. ipython:: python
+    :suppress:
+
+    for i in range(3):
+        os.remove('file_{}.csv'.format(i))
+
+Parsing date components in multi-columns
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Parsing date components in multi-columns is faster with a format
 
@@ -1004,8 +1029,8 @@ Skip row between header and data
     01.01.1990 05:00;21;11;12;13
     """
 
-Option 1: pass rows explicitly to skiprows
-""""""""""""""""""""""""""""""""""""""""""
+Option 1: pass rows explicitly to skip rows
+"""""""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python
 
@@ -1119,7 +1144,7 @@ Storing Attributes to a group node
    store = pd.HDFStore('test.h5')
    store.put('df',df)
 
-   # you can store an arbitrary python object via pickle
+   # you can store an arbitrary Python object via pickle
    store.get_storer('df').attrs.my_attribute = dict(A = 10)
    store.get_storer('df').attrs.my_attribute
 
@@ -1134,7 +1159,7 @@ Storing Attributes to a group node
 Binary Files
 ************
 
-pandas readily accepts numpy record arrays, if you need to read in a binary
+pandas readily accepts NumPy record arrays, if you need to read in a binary
 file consisting of an array of C structs. For example, given this C program
 in a file called ``main.c`` compiled with ``gcc main.c -std=gnu99`` on a
 64-bit machine,

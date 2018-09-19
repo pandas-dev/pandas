@@ -1,4 +1,4 @@
-from pandas.util.decorators import cache_readonly
+from pandas.util._decorators import cache_readonly
 import pandas.util.testing as tm
 import pandas as pd
 

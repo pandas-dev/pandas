@@ -23,7 +23,7 @@ This module supports the following requirements:
 - all options in a certain sub - namespace can be reset at once.
 - the user can set / get / reset or ask for the description of an option.
 - a developer can register and mark an option as deprecated.
-- you can register a callback to be invoked when the the option value
+- you can register a callback to be invoked when the option value
   is set or reset. Changing the stored value is considered misuse, but
   is not verboten.
 
@@ -33,8 +33,8 @@ Implementation
 - Data is stored using nested dictionaries, and should be accessed
   through the provided API.
 
-- "Registered options" and "Deprecated options" have metadata associcated
-  with them, which are stored in auxilary dictionaries keyed on the
+- "Registered options" and "Deprecated options" have metadata associated
+  with them, which are stored in auxiliary dictionaries keyed on the
   fully-qualified key, e.g. "x.y.z.option".
 
 - the config_init module is imported by the package's __init__.py file.
@@ -80,7 +80,7 @@ def _get_single_key(pat, silent):
     if len(keys) == 0:
         if not silent:
             _warn_if_deprecated(pat)
-        raise OptionError('No such keys(s): %r' % pat)
+        raise OptionError('No such keys(s): {pat!r}'.format(pat=pat))
     if len(keys) > 1:
         raise OptionError('Pattern matched multiple keys')
     key = keys[0]
@@ -112,8 +112,8 @@ def _set_option(*args, **kwargs):
     silent = kwargs.pop('silent', False)
 
     if kwargs:
-        raise TypeError('_set_option() got an unexpected keyword '
-                        'argument "{0}"'.format(list(kwargs.keys())[0]))
+        msg = '_set_option() got an unexpected keyword argument "{kwarg}"'
+        raise TypeError(msg.format(list(kwargs.keys())[0]))
 
     for k, v in zip(args[::2], args[1::2]):
         key = _get_single_key(k, silent)
@@ -196,7 +196,10 @@ class DictWrapper(object):
         if prefix:
             prefix += "."
         prefix += key
-        v = object.__getattribute__(self, "d")[key]
+        try:
+            v = object.__getattribute__(self, "d")[key]
+        except KeyError:
+            raise OptionError("No such option")
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -209,7 +212,7 @@ class DictWrapper(object):
 # in the docstring. For dev convenience we'd like to generate the docstrings
 # dynamically instead of maintaining them by hand. To this, we use the
 # class below which wraps functions inside a callable, and converts
-# __doc__ into a propery function. The doctsrings below are templates
+# __doc__ into a property function. The doctsrings below are templates
 # using the py2.6+ advanced formatting syntax to plug in a concise list
 # of options, and option descriptions.
 
@@ -381,14 +384,14 @@ class option_context(object):
     --------
 
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
-            ...
+    ...     ...
 
     """
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
             raise ValueError('Need to invoke as'
-                             'option_context(pat, val, [(pat, val), ...)).')
+                             ' option_context(pat, val, [(pat, val), ...]).')
 
         self.ops = list(zip(args[::2], args[1::2]))
 
@@ -436,9 +439,11 @@ def register_option(key, defval, doc='', validator=None, cb=None):
     key = key.lower()
 
     if key in _registered_options:
-        raise OptionError("Option '%s' has already been registered" % key)
+        msg = "Option '{key}' has already been registered"
+        raise OptionError(msg.format(key=key))
     if key in _reserved_keys:
-        raise OptionError("Option '%s' is a reserved key" % key)
+        msg = "Option '{key}' is a reserved key"
+        raise OptionError(msg.format(key=key))
 
     # the default value should be legal
     if validator:
@@ -449,22 +454,21 @@ def register_option(key, defval, doc='', validator=None, cb=None):
 
     for k in path:
         if not bool(re.match('^' + tokenize.Name + '$', k)):
-            raise ValueError("%s is not a valid identifier" % k)
+            raise ValueError("{k} is not a valid identifier".format(k=k))
         if keyword.iskeyword(k):
-            raise ValueError("%s is a python keyword" % k)
+            raise ValueError("{k} is a python keyword".format(k=k))
 
     cursor = _global_config
+    msg = "Path prefix to option '{option}' is already an option"
     for i, p in enumerate(path[:-1]):
         if not isinstance(cursor, dict):
-            raise OptionError("Path prefix to option '%s' is already an option"
-                              % '.'.join(path[:i]))
+            raise OptionError(msg.format(option='.'.join(path[:i])))
         if p not in cursor:
             cursor[p] = {}
         cursor = cursor[p]
 
     if not isinstance(cursor, dict):
-        raise OptionError("Path prefix to option '%s' is already an option" %
-                          '.'.join(path[:-1]))
+        raise OptionError(msg.format(option='.'.join(path[:-1])))
 
     cursor[path[-1]] = defval  # initialize
 
@@ -516,8 +520,8 @@ def deprecate_option(key, msg=None, rkey=None, removal_ver=None):
     key = key.lower()
 
     if key in _deprecated_options:
-        raise OptionError("Option '%s' has already been defined as deprecated."
-                          % key)
+        msg = "Option '{key}' has already been defined as deprecated."
+        raise OptionError(msg.format(key=key))
 
     _deprecated_options[key] = DeprecatedOption(key, msg, rkey, removal_ver)
 
@@ -612,17 +616,18 @@ def _warn_if_deprecated(key):
     if d:
         if d.msg:
             print(d.msg)
-            warnings.warn(d.msg, DeprecationWarning)
+            warnings.warn(d.msg, FutureWarning)
         else:
-            msg = "'%s' is deprecated" % key
+            msg = "'{key}' is deprecated".format(key=key)
             if d.removal_ver:
-                msg += ' and will be removed in %s' % d.removal_ver
+                msg += (' and will be removed in {version}'
+                        .format(version=d.removal_ver))
             if d.rkey:
-                msg += ", please use '%s' instead." % d.rkey
+                msg += ", please use '{rkey}' instead.".format(rkey=d.rkey)
             else:
                 msg += ', please refrain from using it.'
 
-            warnings.warn(msg, DeprecationWarning)
+            warnings.warn(msg, FutureWarning)
         return True
     return False
 
@@ -633,7 +638,7 @@ def _build_option_description(k):
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    s = u('%s ') % k
+    s = u('{k} ').format(k=k)
 
     if o.doc:
         s += '\n'.join(o.doc.strip().split('\n'))
@@ -641,12 +646,13 @@ def _build_option_description(k):
         s += 'No description available.'
 
     if o:
-        s += u('\n    [default: %s] [currently: %s]') % (o.defval,
-                                                         _get_option(k, True))
+        s += (u('\n    [default: {default}] [currently: {current}]')
+              .format(default=o.defval, current=_get_option(k, True)))
 
     if d:
         s += u('\n    (Deprecated')
-        s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
+        s += (u(', use `{rkey}` instead.')
+              .format(rkey=d.rkey if d.rkey else ''))
         s += u(')')
 
     s += '\n\n'
@@ -688,7 +694,7 @@ def pp_options_list(keys, width=80, _print=False):
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API  with a common prefix
+    """contextmanager for multiple invocations of API with a common prefix
 
     supported API functions: (register / get / set )__option
 
@@ -718,7 +724,7 @@ def config_prefix(prefix):
 
     def wrap(func):
         def inner(key, *args, **kwds):
-            pkey = '%s.%s' % (prefix, key)
+            pkey = '{prefix}.{key}'.format(prefix=prefix, key=key)
             return func(pkey, *args, **kwds)
 
         return inner
@@ -754,7 +760,8 @@ def is_type_factory(_type):
 
     def inner(x):
         if type(x) != _type:
-            raise ValueError("Value must have type '%s'" % str(_type))
+            msg = "Value must have type '{typ!s}'"
+            raise ValueError(msg.format(typ=_type))
 
     return inner
 
@@ -774,14 +781,15 @@ def is_instance_factory(_type):
     """
     if isinstance(_type, (tuple, list)):
         _type = tuple(_type)
-        from pandas.formats.printing import pprint_thing
+        from pandas.io.formats.printing import pprint_thing
         type_repr = "|".join(map(pprint_thing, _type))
     else:
-        type_repr = "'%s'" % _type
+        type_repr = "'{typ}'".format(typ=_type)
 
     def inner(x):
         if not isinstance(x, _type):
-            raise ValueError("Value must be an instance of %s" % type_repr)
+            msg = "Value must be an instance of {type_repr}"
+            raise ValueError(msg.format(type_repr=type_repr))
 
     return inner
 
@@ -792,15 +800,15 @@ def is_one_of_factory(legal_values):
     legal_values = [c for c in legal_values if not callable(c)]
 
     def inner(x):
-        from pandas.formats.printing import pprint_thing as pp
+        from pandas.io.formats.printing import pprint_thing as pp
         if x not in legal_values:
 
-            if not any([c(x) for c in callables]):
+            if not any(c(x) for c in callables):
                 pp_values = pp("|".join(lmap(pp, legal_values)))
-                msg = "Value must be one of {0}".format(pp_values)
+                msg = "Value must be one of {pp_values}"
                 if len(callables):
                     msg += " or a callable"
-                raise ValueError(msg)
+                raise ValueError(msg.format(pp_values=pp_values))
 
     return inner
 

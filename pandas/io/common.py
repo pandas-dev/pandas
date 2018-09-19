@@ -5,39 +5,27 @@ import csv
 import codecs
 import mmap
 from contextlib import contextmanager, closing
+import zipfile
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
-from pandas.formats.printing import pprint_thing
-from pandas.core.common import AbstractMethodError
-from pandas.types.common import is_number
+from pandas.io.formats.printing import pprint_thing
+import pandas.core.common as com
+from pandas.core.dtypes.common import is_number, is_file_like
 
-try:
-    from s3fs import S3File
-    need_text_wrapping = (BytesIO, S3File)
-except ImportError:
-    need_text_wrapping = (BytesIO,)
+# compat
+from pandas.errors import (ParserError, DtypeWarning,  # noqa
+                           EmptyDataError, ParserWarning)
+
+# gh-12665: Alias for now and remove later.
+CParserError = ParserError
 
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = set([
-    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
-    'N/A', 'NA', '#NA', 'NULL', 'NaN', '-NaN', 'nan', '-nan', ''
-])
-
-try:
-    import pathlib
-    _PATHLIB_INSTALLED = True
-except ImportError:
-    _PATHLIB_INSTALLED = False
-
-
-try:
-    from py.path import local as LocalPath
-    _PY_PATH_INSTALLED = True
-except:
-    _PY_PATH_INSTALLED = False
+_NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
+              'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan',
+              '-nan', ''}
 
 
 if compat.PY3:
@@ -69,43 +57,6 @@ _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
 _VALID_URLS.discard('')
 
 
-class ParserError(ValueError):
-    """
-    Exception that is thrown by an error is encountered in `pd.read_csv`
-    """
-    pass
-
-
-# gh-12665: Alias for now and remove later.
-CParserError = ParserError
-
-
-class DtypeWarning(Warning):
-    """
-    Warning that is raised whenever `pd.read_csv` encounters non-
-    uniform dtypes in a column(s) of a given CSV file
-    """
-    pass
-
-
-class EmptyDataError(ValueError):
-    """
-    Exception that is thrown in `pd.read_csv` (by both the C and
-    Python engines) when empty data or header is encountered
-    """
-    pass
-
-
-class ParserWarning(Warning):
-    """
-    Warning that is raised in `pd.read_csv` whenever it is necessary
-    to change parsers (generally from 'c' to 'python') contrary to the
-    one specified by the user due to lack of support or functionality for
-    parsing particular attributes of a CSV file with the requsted engine
-    """
-    pass
-
-
 class BaseIterator(object):
     """Subclass this and provide a "__next__()" method to obtain an iterator.
     Useful only when the object being iterated is non-reusable (e.g. OK for a
@@ -115,7 +66,7 @@ class BaseIterator(object):
         return self
 
     def __next__(self):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
 
 if not compat.PY3:
@@ -136,15 +87,7 @@ def _is_url(url):
     """
     try:
         return parse_url(url).scheme in _VALID_URLS
-    except:
-        return False
-
-
-def _is_s3_url(url):
-    """Check for an s3, s3n, or s3a url"""
-    try:
-        return parse_url(url).scheme in ['s3', 's3n', 's3a']
-    except:
+    except Exception:
         return False
 
 
@@ -175,8 +118,7 @@ def _validate_header_arg(header):
 
 
 def _stringify_path(filepath_or_buffer):
-    """Return the argument coerced to a string if it was a pathlib.Path
-       or a py.path.local
+    """Attempt to convert a path-like object to a string.
 
     Parameters
     ----------
@@ -184,8 +126,33 @@ def _stringify_path(filepath_or_buffer):
 
     Returns
     -------
-    str_filepath_or_buffer : a the string version of the input path
+    str_filepath_or_buffer : maybe a string version of the object
+
+    Notes
+    -----
+    Objects supporting the fspath protocol (python 3.6+) are coerced
+    according to its __fspath__ method.
+
+    For backwards compatibility with older pythons, pathlib.Path and
+    py.path objects are specially coerced.
+
+    Any other object is passed through unchanged, which includes bytes,
+    strings, buffers, or anything else that's not even path-like.
     """
+    try:
+        import pathlib
+        _PATHLIB_INSTALLED = True
+    except ImportError:
+        _PATHLIB_INSTALLED = False
+
+    try:
+        from py.path import local as LocalPath
+        _PY_PATH_INSTALLED = True
+    except ImportError:
+        _PY_PATH_INSTALLED = False
+
+    if hasattr(filepath_or_buffer, '__fspath__'):
+        return filepath_or_buffer.__fspath__()
     if _PATHLIB_INSTALLED and isinstance(filepath_or_buffer, pathlib.Path):
         return text_type(filepath_or_buffer)
     if _PY_PATH_INSTALLED and isinstance(filepath_or_buffer, LocalPath):
@@ -193,8 +160,24 @@ def _stringify_path(filepath_or_buffer):
     return filepath_or_buffer
 
 
+def is_s3_url(url):
+    """Check for an s3, s3n, or s3a url"""
+    try:
+        return parse_url(url).scheme in ['s3', 's3n', 's3a']
+    except Exception:
+        return False
+
+
+def is_gcs_url(url):
+    """Check for a gcs url"""
+    try:
+        return parse_url(url).scheme in ['gcs', 'gs']
+    except Exception:
+        return False
+
+
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, mode=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -204,31 +187,51 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer : a url, filepath (str, py.path.local or pathlib.Path),
                          or buffer
     encoding : the encoding to use to decode py3 bytes, default is 'utf-8'
+    mode : str, optional
 
     Returns
     -------
-    a filepath_or_buffer, the encoding, the compression
+    tuple of ({a filepath_ or buffer or S3File instance},
+              encoding, str,
+              compression, str,
+              should_close, bool)
     """
+    filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        url = str(filepath_or_buffer)
-        req = _urlopen(url)
+        req = _urlopen(filepath_or_buffer)
         content_encoding = req.headers.get('Content-Encoding', None)
         if content_encoding == 'gzip':
             # Override compression based on Content-Encoding header
             compression = 'gzip'
         reader = BytesIO(req.read())
-        return reader, encoding, compression
+        req.close()
+        return reader, encoding, compression, True
 
-    if _is_s3_url(filepath_or_buffer):
+    if is_s3_url(filepath_or_buffer):
         from pandas.io import s3
         return s3.get_filepath_or_buffer(filepath_or_buffer,
                                          encoding=encoding,
-                                         compression=compression)
+                                         compression=compression,
+                                         mode=mode)
 
-    # It is a pathlib.Path/py.path.local or string
-    filepath_or_buffer = _stringify_path(filepath_or_buffer)
-    return _expand_user(filepath_or_buffer), None, compression
+    if is_gcs_url(filepath_or_buffer):
+        from pandas.io import gcs
+        return gcs.get_filepath_or_buffer(filepath_or_buffer,
+                                          encoding=encoding,
+                                          compression=compression,
+                                          mode=mode)
+
+    if isinstance(filepath_or_buffer, (compat.string_types,
+                                       compat.binary_type,
+                                       mmap.mmap)):
+        return _expand_user(filepath_or_buffer), None, compression, False
+
+    if not is_file_like(filepath_or_buffer):
+        msg = "Invalid file path or buffer object type: {_type}"
+        raise ValueError(msg.format(_type=type(filepath_or_buffer)))
+
+    return filepath_or_buffer, None, compression, False
 
 
 def file_path_to_url(path):
@@ -263,10 +266,12 @@ def _infer_compression(filepath_or_buffer, compression):
 
     Parameters
     ----------
-    filepath_or_buf :
+    filepath_or_buffer :
         a path (str) or buffer
-    compression : str or None
-        the compression method including None for no compression and 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
 
     Returns
     -------
@@ -282,13 +287,15 @@ def _infer_compression(filepath_or_buffer, compression):
     if compression is None:
         return None
 
-    # Cannot infer compression of a buffer. Hence assume no compression.
-    is_path = isinstance(filepath_or_buffer, compat.string_types)
-    if compression == 'infer' and not is_path:
-        return None
-
-    # Infer compression from the filename/URL extension
+    # Infer compression
     if compression == 'infer':
+        # Convert all path types (e.g. pathlib.Path) to strings
+        filepath_or_buffer = _stringify_path(filepath_or_buffer)
+        if not isinstance(filepath_or_buffer, compat.string_types):
+            # Cannot infer compression of a buffer, assume no compression
+            return None
+
+        # Infer compression from the filename/URL extension
         for compression, extension in _compression_to_extension.items():
             if filepath_or_buffer.endswith(extension):
                 return compression
@@ -316,24 +323,38 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     mode : str
         mode to open path_or_buf with
     encoding : str or None
-    compression : str or None
-        Supported compression protocols are gzip, bz2, zip, and xz
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default None
+        If 'infer' and `filepath_or_buffer` is path-like, then detect
+        compression from the following extensions: '.gz', '.bz2', '.zip',
+        or '.xz' (otherwise no compression).
     memory_map : boolean, default False
         See parsers._parser_params for more information.
     is_text : boolean, default True
         whether file/buffer is in text format (csv, json, etc.), or in binary
         mode (pickle, etc.)
+
     Returns
     -------
     f : file-like
         A file-like object
     handles : list of file-like objects
-        A list of file-like object that were openned in this function.
+        A list of file-like object that were opened in this function.
     """
+    try:
+        from s3fs import S3File
+        need_text_wrapping = (BytesIO, S3File)
+    except ImportError:
+        need_text_wrapping = (BytesIO,)
 
     handles = list()
     f = path_or_buf
+
+    # Convert pathlib.Path/py.path.local or string
+    path_or_buf = _stringify_path(path_or_buf)
     is_path = isinstance(path_or_buf, compat.string_types)
+
+    if is_path:
+        compression = _infer_compression(path_or_buf, compression)
 
     if compression:
 
@@ -364,18 +385,22 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            import zipfile
-            zip_file = zipfile.ZipFile(path_or_buf)
-            zip_names = zip_file.namelist()
-            if len(zip_names) == 1:
-                f = zip_file.open(zip_names.pop())
-            elif len(zip_names) == 0:
-                raise ValueError('Zero files found in ZIP file {}'
-                                 .format(path_or_buf))
-            else:
-                raise ValueError('Multiple files found in ZIP file.'
-                                 ' Only one file per ZIP: {}'
-                                 .format(zip_names))
+            zf = BytesZipFile(path_or_buf, mode)
+            # Ensure the container is closed as well.
+            handles.append(zf)
+            if zf.mode == 'w':
+                f = zf
+            elif zf.mode == 'r':
+                zip_names = zf.namelist()
+                if len(zip_names) == 1:
+                    f = zf.open(zip_names.pop())
+                elif len(zip_names) == 0:
+                    raise ValueError('Zero files found in ZIP file {}'
+                                     .format(path_or_buf))
+                else:
+                    raise ValueError('Multiple files found in ZIP file.'
+                                     ' Only one file per ZIP: {}'
+                                     .format(zip_names))
 
         # XZ Compression
         elif compression == 'xz':
@@ -426,6 +451,28 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     return f, handles
 
 
+class BytesZipFile(zipfile.ZipFile, BytesIO):
+    """
+    Wrapper for standard library class ZipFile and allow the returned file-like
+    handle to accept byte strings via `write` method.
+
+    BytesIO provides attributes of file-like object and ZipFile.writestr writes
+    bytes strings into a member of the archive.
+    """
+    # GH 17778
+    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
+        if mode in ['wb', 'rb']:
+            mode = mode.replace('b', '')
+        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
+
+    def write(self, data):
+        super(BytesZipFile, self).writestr(self.filename, data)
+
+    @property
+    def closed(self):
+        return self.fp is None
+
+
 class MMapWrapper(BaseIterator):
     """
     Wrapper for the Python's mmap class so that it can be properly read in
@@ -445,6 +492,9 @@ class MMapWrapper(BaseIterator):
     def __getattr__(self, name):
         return getattr(self.mmap, name)
 
+    def __iter__(self):
+        return self
+
     def __next__(self):
         newline = self.mmap.readline()
 
@@ -460,6 +510,10 @@ class MMapWrapper(BaseIterator):
         if newline == '':
             raise StopIteration
         return newline
+
+
+if not compat.PY3:
+    MMapWrapper.next = lambda self: self.__next__()
 
 
 class UTF8Recoder(BaseIterator):
@@ -507,7 +561,7 @@ else:
             row = next(self.reader)
             return [compat.text_type(s, "utf-8") for s in row]
 
-    class UnicodeWriter:
+    class UnicodeWriter(object):
 
         """
         A CSV writer which will write rows to CSV file "f",
@@ -534,7 +588,7 @@ else:
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
+            # ... and re-encode it into the target encoding
             data = self.encoder.encode(data)
             # write to the target stream
             self.stream.write(data)
@@ -554,7 +608,7 @@ else:
             # Fetch UTF-8 output from the queue ...
             data = self.queue.getvalue()
             data = data.decode("utf-8")
-            # ... and reencode it into the target encoding
+            # ... and re-encode it into the target encoding
             data = self.encoder.encode(data)
             # write to the target stream
             self.stream.write(data)

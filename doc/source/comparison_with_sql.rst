@@ -10,7 +10,7 @@ various SQL operations would be performed using pandas.
 If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
 to familiarize yourself with the library.
 
-As is customary, we import pandas and numpy as follows:
+As is customary, we import pandas and NumPy as follows:
 
 .. ipython:: python
 
@@ -101,7 +101,7 @@ Just like SQL's OR and AND, multiple conditions can be passed to a DataFrame usi
     # tips by parties of at least 5 diners OR bill total was more than $45
     tips[(tips['size'] >= 5) | (tips['total_bill'] > 45)]
 
-NULL checking is done using the :meth:`~pandas.Series.notnull` and :meth:`~pandas.Series.isnull`
+NULL checking is done using the :meth:`~pandas.Series.notna` and :meth:`~pandas.Series.isna`
 methods.
 
 .. ipython:: python
@@ -121,9 +121,9 @@ where ``col2`` IS NULL with the following query:
 
 .. ipython:: python
 
-    frame[frame['col2'].isnull()]
+    frame[frame['col2'].isna()]
 
-Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.notnull`.
+Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.notna`.
 
 .. code-block:: sql
 
@@ -133,7 +133,7 @@ Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.
 
 .. ipython:: python
 
-    frame[frame['col1'].notnull()]
+    frame[frame['col1'].notna()]
 
 
 GROUP BY

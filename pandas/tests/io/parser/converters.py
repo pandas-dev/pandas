@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 from pandas import DataFrame, Index
 from pandas.compat import parse_date, StringIO, lmap
 
@@ -24,7 +24,7 @@ class ConverterTests(object):
         data = """index,A,B,C,D
 foo,2,3,4,5
 """
-        with tm.assertRaisesRegexp(TypeError, 'Type converters.+'):
+        with tm.assert_raises_regex(TypeError, 'Type converters.+'):
             self.read_csv(StringIO(data), converters=0)
 
     def test_converters(self):
@@ -39,7 +39,7 @@ c,4,5,01/03/2009
         expected = self.read_csv(StringIO(data))
         expected['D'] = expected['D'].map(parse_date)
 
-        tm.assertIsInstance(result['D'][0], (datetime, Timestamp))
+        assert isinstance(result['D'][0], (datetime, Timestamp))
         tm.assert_frame_equal(result, expected)
         tm.assert_frame_equal(result2, expected)
 
@@ -56,7 +56,7 @@ c,4,5,01/03/2009
         f = lambda x: x.strip()
         converter = {0: f}
         df = self.read_csv(StringIO(data), header=None, converters=converter)
-        self.assertEqual(df[0].dtype, object)
+        assert df[0].dtype == object
 
     def test_converters_euro_decimal_format(self):
         data = """Id;Number1;Number2;Text1;Text2;Number3
@@ -66,9 +66,9 @@ c,4,5,01/03/2009
         f = lambda x: float(x.replace(",", "."))
         converter = {'Number1': f, 'Number2': f, 'Number3': f}
         df2 = self.read_csv(StringIO(data), sep=';', converters=converter)
-        self.assertEqual(df2['Number1'].dtype, float)
-        self.assertEqual(df2['Number2'].dtype, float)
-        self.assertEqual(df2['Number3'].dtype, float)
+        assert df2['Number1'].dtype == float
+        assert df2['Number2'].dtype == float
+        assert df2['Number3'].dtype == float
 
     def test_converter_return_string_bug(self):
         # see gh-583
@@ -79,7 +79,7 @@ c,4,5,01/03/2009
         f = lambda x: float(x.replace(",", "."))
         converter = {'Number1': f, 'Number2': f, 'Number3': f}
         df2 = self.read_csv(StringIO(data), sep=';', converters=converter)
-        self.assertEqual(df2['Number1'].dtype, float)
+        assert df2['Number1'].dtype == float
 
     def test_converters_corner_with_nas(self):
         # skip aberration observed on Win64 Python 3.2.2
@@ -133,7 +133,7 @@ c,4,5,01/03/2009
         result = self.read_csv(fh, converters={'score': convert_score,
                                                'days': convert_days},
                                na_values=['', None])
-        self.assertTrue(pd.isnull(result['days'][1]))
+        assert pd.isna(result['days'][1])
 
         fh = StringIO(data)
         result2 = self.read_csv(fh, converters={'score': convert_score,
@@ -150,4 +150,4 @@ c,4,5,01/03/2009
 
         xp = DataFrame({'B': [2, 4]}, index=Index([1, 3], name='A'))
         tm.assert_frame_equal(rs, xp)
-        self.assertEqual(rs.index.name, xp.index.name)
+        assert rs.index.name == xp.index.name

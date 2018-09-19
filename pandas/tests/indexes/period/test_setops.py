@@ -1,8 +1,10 @@
+import pytest
+
 import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
+import pandas.core.indexes.period as period
 from pandas import period_range, PeriodIndex, Index, date_range
 
 
@@ -10,26 +12,21 @@ def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
-        pass
-
-    def test_joins(self):
+    def test_joins(self, join_type):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
-        for kind in ['inner', 'outer', 'left', 'right']:
-            joined = index.join(index[:-5], how=kind)
+        joined = index.join(index[:-5], how=join_type)
 
-            tm.assertIsInstance(joined, PeriodIndex)
-            self.assertEqual(joined.freq, index.freq)
+        assert isinstance(joined, PeriodIndex)
+        assert joined.freq == index.freq
 
-    def test_join_self(self):
+    def test_join_self(self, join_type):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
 
-        for kind in ['inner', 'outer', 'left', 'right']:
-            res = index.join(index, how=kind)
-            self.assertIs(index, res)
+        res = index.join(index, how=join_type)
+        assert index is res
 
     def test_join_does_not_recur(self):
         df = tm.makeCustomDataframe(
@@ -106,15 +103,15 @@ class TestPeriodIndex(tm.TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.union(index2)
 
         msg = 'can only call with other PeriodIndex-ed objects'
-        with tm.assertRaisesRegexp(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, msg):
             index.join(index.to_timestamp())
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.join(index3)
 
     def test_union_dataframe_index(self):
@@ -126,7 +123,7 @@ class TestPeriodIndex(tm.TestCase):
         df = pd.DataFrame({'s1': s1, 's2': s2})
 
         exp = pd.period_range('1/1/1980', '1/1/2012', freq='M')
-        self.assert_index_equal(df.index, exp)
+        tm.assert_index_equal(df.index, exp)
 
     def test_intersection(self):
         index = period_range('1/1/2000', '1/20/2000', freq='D')
@@ -143,11 +140,11 @@ class TestPeriodIndex(tm.TestCase):
         # raise if different frequencies
         index = period_range('1/1/2000', '1/20/2000', freq='D')
         index2 = period_range('1/1/2000', '1/20/2000', freq='W-WED')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.intersection(index2)
 
         index3 = period_range('1/1/2000', '1/20/2000', freq='2D')
-        with tm.assertRaises(period.IncompatibleFrequency):
+        with pytest.raises(period.IncompatibleFrequency):
             index.intersection(index3)
 
     def test_intersection_cases(self):
@@ -170,8 +167,8 @@ class TestPeriodIndex(tm.TestCase):
                                 (rng4, expected4)]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, expected.freq)
+            assert result.name == expected.name
+            assert result.freq == expected.freq
 
         # non-monotonic
         base = PeriodIndex(['2011-01-05', '2011-01-04', '2011-01-02',
@@ -196,16 +193,16 @@ class TestPeriodIndex(tm.TestCase):
                                 (rng4, expected4)]:
             result = base.intersection(rng)
             tm.assert_index_equal(result, expected)
-            self.assertEqual(result.name, expected.name)
-            self.assertEqual(result.freq, 'D')
+            assert result.name == expected.name
+            assert result.freq == 'D'
 
         # empty same freq
         rng = date_range('6/1/2000', '6/15/2000', freq='T')
         result = rng[0:0].intersection(rng)
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
         result = rng.intersection(rng[0:0])
-        self.assertEqual(len(result), 0)
+        assert len(result) == 0
 
     def test_difference(self):
         # diff

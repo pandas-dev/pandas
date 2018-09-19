@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 import pandas as pd
@@ -6,9 +8,9 @@ from pandas import (Series, period_range, DatetimeIndex, PeriodIndex,
                     DataFrame, _np_version_under1p12, Period)
 
 
-class TestPeriodIndex(tm.TestCase):
+class TestPeriodIndex(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         pass
 
     def test_slice_with_negative_step(self):
@@ -40,16 +42,16 @@ class TestPeriodIndex(tm.TestCase):
     def test_slice_with_zero_step_raises(self):
         ts = Series(np.arange(20),
                     period_range('2014-01', periods=20, freq='M'))
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.loc[::0])
-        self.assertRaisesRegexp(ValueError, 'slice step cannot be zero',
-                                lambda: ts.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts.loc[::0])
+        tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
+                               lambda: ts.loc[::0])
 
     def test_slice_keep_name(self):
         idx = period_range('20010101', periods=10, freq='D', name='bob')
-        self.assertEqual(idx.name, idx[1:].name)
+        assert idx.name == idx[1:].name
 
     def test_pindex_slice_index(self):
         pi = PeriodIndex(start='1/1/10', end='12/31/12', freq='M')
@@ -75,7 +77,7 @@ class TestPeriodIndex(tm.TestCase):
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with tm.assertRaises(exc):
+                with pytest.raises(exc):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)
@@ -87,7 +89,7 @@ class TestPeriodIndex(tm.TestCase):
 
             invalid = ['2013/02/01 9H', '2013/02/01 09:00']
             for v in invalid:
-                with tm.assertRaises(exc):
+                with pytest.raises(exc):
                     idx[v:]
 
     def test_range_slice_seconds(self):
@@ -105,7 +107,7 @@ class TestPeriodIndex(tm.TestCase):
             values = ['2014', '2013/02', '2013/01/02', '2013/02/01 9H',
                       '2013/02/01 09:00']
             for v in values:
-                with tm.assertRaises(exc):
+                with pytest.raises(exc):
                     idx[v:]
 
             s = Series(np.random.rand(len(idx)), index=idx)

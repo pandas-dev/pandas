@@ -50,9 +50,8 @@ Attributes and the raw ndarray(s)
 
 pandas objects have a number of attributes enabling you to access the metadata
 
-  * **shape**: gives the axis dimensions of the object, consistent with ndarray
-  * Axis labels
-
+* **shape**: gives the axis dimensions of the object, consistent with ndarray
+* Axis labels
     * **Series**: *index* (only axis)
     * **DataFrame**: *index* (rows) and *columns*
     * **Panel**: *items*, *major_axis*, and *minor_axis*
@@ -93,7 +92,7 @@ Accelerated operations
 ----------------------
 
 pandas has support for accelerating certain types of binary numerical and boolean operations using
-the ``numexpr`` library (starting in 0.11.0) and the ``bottleneck`` libraries.
+the ``numexpr`` library and the ``bottleneck`` libraries.
 
 These libraries are especially useful when dealing with large data sets, and provide large
 speedups. ``numexpr`` uses smart chunking, caching, and multiple cores. ``bottleneck`` is
@@ -114,6 +113,15 @@ Here is a sample (using 100 column x 100,000 row ``DataFrames``):
 You are highly encouraged to install both libraries. See the section
 :ref:`Recommended Dependencies <install.recommended_dependencies>` for more installation info.
 
+These are both enabled to be used by default, you can control this by setting the options:
+
+.. versionadded:: 0.20.0
+
+.. code-block:: python
+
+   pd.set_option('compute.use_bottleneck', False)
+   pd.set_option('compute.use_numexpr', False)
+
 .. _basics.binop:
 
 Flexible binary operations
@@ -122,9 +130,9 @@ Flexible binary operations
 With binary operations between pandas data structures, there are two key points
 of interest:
 
-  * Broadcasting behavior between higher- (e.g. DataFrame) and
-    lower-dimensional (e.g. Series) objects.
-  * Missing data in computations
+* Broadcasting behavior between higher- (e.g. DataFrame) and
+  lower-dimensional (e.g. Series) objects.
+* Missing data in computations.
 
 We will demonstrate how to manage these issues independently, though they can
 be handled simultaneously.
@@ -159,7 +167,7 @@ either match on the *index* or *columns* via the **axis** keyword:
 
    df_orig = df
 
-Furthermore you can align a level of a multi-indexed DataFrame with a Series.
+Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
 
@@ -217,12 +225,12 @@ We can also do elementwise :func:`divmod`:
 Missing data / operations with fill values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In Series and DataFrame (though not yet in Panel), the arithmetic functions
-have the option of inputting a *fill_value*, namely a value to substitute when
-at most one of the values at a location are missing. For example, when adding
-two DataFrame objects, you may wish to treat NaN as 0 unless both DataFrames
-are missing that value, in which case the result will be NaN (you can later
-replace NaN with some other value using ``fillna`` if you wish).
+In Series and DataFrame, the arithmetic functions have the option of inputting
+a *fill_value*, namely a value to substitute when at most one of the values at
+a location are missing. For example, when adding two DataFrame objects, you may
+wish to treat NaN as 0 unless both DataFrames are missing that value, in which
+case the result will be NaN (you can later replace NaN with some other value
+using ``fillna`` if you wish).
 
 .. ipython:: python
    :suppress:
@@ -242,8 +250,8 @@ replace NaN with some other value using ``fillna`` if you wish).
 Flexible Comparisons
 ~~~~~~~~~~~~~~~~~~~~
 
-Starting in v0.8, pandas introduced binary comparison methods eq, ne, lt, gt,
-le, and ge to Series and DataFrame whose behavior is analogous to the binary
+Series and DataFrame have the binary comparison methods ``eq``, ``ne``, ``lt``, ``gt``,
+``le``, and ``ge`` whose behavior is analogous to the binary
 arithmetic operations described above:
 
 .. ipython:: python
@@ -251,9 +259,9 @@ arithmetic operations described above:
    df.gt(df2)
    df2.ne(df)
 
-These operations produce a pandas object the same type as the left-hand-side input
-that if of dtype ``bool``. These ``boolean`` objects can be used in indexing operations,
-see :ref:`here<indexing.boolean>`
+These operations produce a pandas object of the same type as the left-hand-side
+input that is of dtype ``bool``. These ``boolean`` objects can be used in
+indexing operations, see the section on :ref:`Boolean indexing<indexing.boolean>`.
 
 .. _basics.reductions:
 
@@ -307,7 +315,7 @@ To evaluate single-element pandas objects in a boolean context, use the method
 
        >>> df and df2
 
-   These both will raise as you are trying to compare multiple values.
+   These will both raise errors, as you are trying to compare multiple values.
 
    .. code-block:: python
 
@@ -320,7 +328,7 @@ See :ref:`gotchas<gotchas.truth>` for a more detailed discussion.
 Comparing if objects are equivalent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Often you may find there is more than one way to compute the same
+Often you may find that there is more than one way to compute the same
 result.  As a simple example, consider ``df+df`` and ``df*2``. To test
 that these two computations produce the same result, given the tools
 shown above, you might imagine using ``(df+df == df*2).all()``. But in
@@ -332,13 +340,13 @@ fact, this expression is False:
    (df+df == df*2).all()
 
 Notice that the boolean DataFrame ``df+df == df*2`` contains some False values!
-That is because NaNs do not compare as equals:
+This is because NaNs do not compare as equals:
 
 .. ipython:: python
 
    np.nan == np.nan
 
-So, as of v0.13.1, NDFrames (such as Series, DataFrames, and Panels)
+So, NDFrames (such as Series, DataFrames, and Panels)
 have an :meth:`~DataFrame.equals` method for testing equality, with NaNs in
 corresponding locations treated as equal.
 
@@ -359,7 +367,7 @@ equality to be True:
 Comparing array-like objects
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can conveniently do element-wise comparisons when comparing a pandas
+You can conveniently perform element-wise comparisons when comparing a pandas
 data structure with a scalar value:
 
 .. ipython:: python
@@ -386,7 +394,7 @@ raise a ValueError:
     In [56]: pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
     ValueError: Series lengths must match to compare
 
-Note that this is different from the numpy behavior where a comparison can
+Note that this is different from the NumPy behavior where a comparison can
 be broadcast:
 
 .. ipython:: python
@@ -427,7 +435,7 @@ General DataFrame Combine
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The :meth:`~DataFrame.combine_first` method above calls the more general
-DataFrame method :meth:`~DataFrame.combine`. This method takes another DataFrame
+:meth:`DataFrame.combine`. This method takes another DataFrame
 and a combiner function, aligns the input DataFrame and then passes the combiner
 function pairs of Series (i.e., columns whose names are the same).
 
@@ -435,7 +443,7 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 
 .. ipython:: python
 
-   combiner = lambda x, y: np.where(pd.isnull(x), y, x)
+   combiner = lambda x, y: np.where(pd.isna(x), y, x)
    df1.combine(df2, combiner)
 
 .. _basics.stats:
@@ -443,8 +451,8 @@ So, for instance, to reproduce :meth:`~DataFrame.combine_first` as above:
 Descriptive statistics
 ----------------------
 
-A large number of methods for computing descriptive statistics and other related
-operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
+There exists a large number of methods for computing descriptive statistics and
+other related operations on :ref:`Series <api.series.stats>`, :ref:`DataFrame
 <api.dataframe.stats>`, and :ref:`Panel <api.panel.stats>`. Most of these
 are aggregations (hence producing a lower-dimensional result) like
 :meth:`~DataFrame.sum`, :meth:`~DataFrame.mean`, and :meth:`~DataFrame.quantile`,
@@ -453,10 +461,10 @@ produce an object of the same size. Generally speaking, these methods take an
 **axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
 specified by name or integer:
 
-  - **Series**: no axis argument needed
-  - **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
-  - **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
-    (axis=2)
+* **Series**: no axis argument needed
+* **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
+* **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
+  (axis=2)
 
 For example:
 
@@ -502,7 +510,7 @@ optional ``level`` parameter which applies only if the object has a
     :header: "Function", "Description"
     :widths: 20, 80
 
-    ``count``, Number of non-null observations
+    ``count``, Number of non-NA observations
     ``sum``, Sum of values
     ``mean``, Mean of values
     ``mad``, Mean absolute deviation
@@ -531,8 +539,8 @@ will exclude NAs on Series input by default:
    np.mean(df['one'])
    np.mean(df['one'].values)
 
-``Series`` also has a method :meth:`~Series.nunique` which will return the
-number of unique non-null values:
+:meth:`Series.nunique` will return the number of unique non-NA values in a
+Series:
 
 .. ipython:: python
 
@@ -584,7 +592,7 @@ categorical columns:
     frame = pd.DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
     frame.describe()
 
-This behaviour can be controlled by providing a list of types as ``include``/``exclude``
+This behavior can be controlled by providing a list of types as ``include``/``exclude``
 arguments. The special value ``all`` can also be used:
 
 .. ipython:: python
@@ -702,14 +710,13 @@ on an entire ``DataFrame`` or ``Series``, row- or column-wise, or elementwise.
 
 1. `Tablewise Function Application`_: :meth:`~DataFrame.pipe`
 2. `Row or Column-wise Function Application`_: :meth:`~DataFrame.apply`
-3. Elementwise_ function application: :meth:`~DataFrame.applymap`
+3. `Aggregation API`_: :meth:`~DataFrame.agg` and :meth:`~DataFrame.transform`
+4. `Applying Elementwise Functions`_: :meth:`~DataFrame.applymap`
 
 .. _basics.pipe:
 
 Tablewise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.16.2
 
 ``DataFrames`` and ``Series`` can of course just be passed into functions.
 However, if the function needs to be called in a chain, consider using the :meth:`~DataFrame.pipe` method.
@@ -738,7 +745,7 @@ What if the function you wish to apply takes its data as, say, the second argume
 In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 ``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.
 
-For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.poisson, 'data')`` to ``pipe``:
+For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
 
@@ -748,7 +755,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
    (bb.query('h > 0')
       .assign(ln_h = lambda df: np.log(df.h))
-      .pipe((sm.poisson, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
    )
@@ -756,7 +763,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 The pipe method is inspired by unix pipes and more recently dplyr_ and magrittr_, which
 have introduced the popular ``(%>%)`` (read pipe) operator for R_.
 The implementation of ``pipe`` here is quite clean and feels right at home in python.
-We encourage you to view the source code (``pd.DataFrame.pipe??`` in IPython).
+We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 
 .. _dplyr: https://github.com/hadley/dplyr
 .. _magrittr: https://github.com/smbache/magrittr
@@ -766,9 +773,9 @@ We encourage you to view the source code (``pd.DataFrame.pipe??`` in IPython).
 Row or Column-wise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Arbitrary functions can be applied along the axes of a DataFrame or Panel
+Arbitrary functions can be applied along the axes of a DataFrame
 using the :meth:`~DataFrame.apply` method, which, like the descriptive
-statistics methods, take an optional ``axis`` argument:
+statistics methods, takes an optional ``axis`` argument:
 
 .. ipython:: python
 
@@ -778,8 +785,23 @@ statistics methods, take an optional ``axis`` argument:
    df.apply(np.cumsum)
    df.apply(np.exp)
 
-Depending on the return type of the function passed to :meth:`~DataFrame.apply`,
-the result will either be of lower dimension or the same dimension.
+The :meth:`~DataFrame.apply` method will also dispatch on a string method name.
+
+.. ipython:: python
+
+   df.apply('mean')
+   df.apply('mean', axis=1)
+
+The return type of the function passed to :meth:`~DataFrame.apply` affects the
+type of the final output from ``DataFrame.apply`` for the default behaviour:
+
+* If the applied function returns a ``Series``, the final output is a ``DataFrame``.
+  The columns match the index of the ``Series`` returned by the applied function.
+* If the applied function returns any other type, the final output is a ``Series``.
+
+This default behaviour can be overridden using the ``result_type``, which
+accepts three options: ``reduce``, ``broadcast``, and ``expand``.
+These will determine how list-likes return values expand (or not) to a ``DataFrame``.
 
 :meth:`~DataFrame.apply` combined with some cleverness can be used to answer many questions
 about a data set. For example, suppose we wanted to extract the date where the
@@ -827,16 +849,228 @@ set to True, the passed function will instead receive an ndarray object, which
 has positive performance implications if you do not need the indexing
 functionality.
 
-.. seealso::
+.. _basics.aggregate:
 
-   The section on :ref:`GroupBy <groupby>` demonstrates related, flexible
-   functionality for grouping by some criterion, applying, and combining the
-   results into a Series, DataFrame, etc.
+Aggregation API
+~~~~~~~~~~~~~~~
 
-.. _Elementwise:
+.. versionadded:: 0.20.0
 
-Applying elementwise Python functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The aggregation API allows one to express possibly multiple aggregation operations in a single concise way.
+This API is similar across pandas objects, see :ref:`groupby API <groupby.aggregate>`, the
+:ref:`window functions API <stats.aggregate>`, and the :ref:`resample API <timeseries.aggregate>`.
+The entry point for aggregation is :meth:`DataFrame.aggregate`, or the alias
+:meth:`DataFrame.agg`.
+
+We will use a similar starting frame from above:
+
+.. ipython:: python
+
+   tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+                       index=pd.date_range('1/1/2000', periods=10))
+   tsdf.iloc[3:7] = np.nan
+   tsdf
+
+Using a single function is equivalent to :meth:`~DataFrame.apply`. You can also
+pass named methods as strings. These will return a ``Series`` of the aggregated
+output:
+
+.. ipython:: python
+
+   tsdf.agg(np.sum)
+
+   tsdf.agg('sum')
+
+   # these are equivalent to a ``.sum()`` because we are aggregating on a single function
+   tsdf.sum()
+
+Single aggregations on a ``Series`` this will return a scalar value:
+
+.. ipython:: python
+
+   tsdf.A.agg('sum')
+
+
+Aggregating with multiple functions
++++++++++++++++++++++++++++++++++++
+
+You can pass multiple aggregation arguments as a list.
+The results of each of the passed functions will be a row in the resulting ``DataFrame``.
+These are naturally named from the aggregation function.
+
+.. ipython:: python
+
+   tsdf.agg(['sum'])
+
+Multiple functions yield multiple rows:
+
+.. ipython:: python
+
+   tsdf.agg(['sum', 'mean'])
+
+On a ``Series``, multiple functions return a ``Series``, indexed by the function names:
+
+.. ipython:: python
+
+   tsdf.A.agg(['sum', 'mean'])
+
+Passing a ``lambda`` function will yield a ``<lambda>`` named row:
+
+.. ipython:: python
+
+   tsdf.A.agg(['sum', lambda x: x.mean()])
+
+Passing a named function will yield that name for the row:
+
+.. ipython:: python
+
+   def mymean(x):
+      return x.mean()
+
+   tsdf.A.agg(['sum', mymean])
+
+Aggregating with a dict
++++++++++++++++++++++++
+
+Passing a dictionary of column names to a scalar or a list of scalars, to ``DataFrame.agg``
+allows you to customize which functions are applied to which columns. Note that the results
+are not in any particular order, you can use an ``OrderedDict`` instead to guarantee ordering.
+
+.. ipython:: python
+
+   tsdf.agg({'A': 'mean', 'B': 'sum'})
+
+Passing a list-like will generate a ``DataFrame`` output. You will get a matrix-like output
+of all of the aggregators. The output will consist of all unique functions. Those that are
+not noted for a particular column will be ``NaN``:
+
+.. ipython:: python
+
+   tsdf.agg({'A': ['mean', 'min'], 'B': 'sum'})
+
+.. _basics.aggregation.mixed_dtypes:
+
+Mixed Dtypes
+++++++++++++
+
+When presented with mixed dtypes that cannot aggregate, ``.agg`` will only take the valid
+aggregations. This is similar to how groupby ``.agg`` works.
+
+.. ipython:: python
+
+   mdf = pd.DataFrame({'A': [1, 2, 3],
+                       'B': [1., 2., 3.],
+                       'C': ['foo', 'bar', 'baz'],
+                       'D': pd.date_range('20130101', periods=3)})
+   mdf.dtypes
+
+.. ipython:: python
+
+   mdf.agg(['min', 'sum'])
+
+.. _basics.aggregation.custom_describe:
+
+Custom describe
++++++++++++++++
+
+With ``.agg()`` is it possible to easily create a custom describe function, similar
+to the built in :ref:`describe function <basics.describe>`.
+
+.. ipython:: python
+
+   from functools import partial
+
+   q_25 = partial(pd.Series.quantile, q=0.25)
+   q_25.__name__ = '25%'
+   q_75 = partial(pd.Series.quantile, q=0.75)
+   q_75.__name__ = '75%'
+
+   tsdf.agg(['count', 'mean', 'std', 'min', q_25, 'median', q_75, 'max'])
+
+.. _basics.transform:
+
+Transform API
+~~~~~~~~~~~~~
+
+.. versionadded:: 0.20.0
+
+The :meth:`~DataFrame.transform` method returns an object that is indexed the same (same size)
+as the original. This API allows you to provide *multiple* operations at the same
+time rather than one-by-one. Its API is quite similar to the ``.agg`` API.
+
+We create a frame similar to the one used in the above sections.
+
+.. ipython:: python
+
+   tsdf = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
+                       index=pd.date_range('1/1/2000', periods=10))
+   tsdf.iloc[3:7] = np.nan
+   tsdf
+
+Transform the entire frame. ``.transform()`` allows input functions as: a NumPy function, a string
+function name or a user defined function.
+
+.. ipython:: python
+   :okwarning:
+
+   tsdf.transform(np.abs)
+   tsdf.transform('abs')
+   tsdf.transform(lambda x: x.abs())
+
+Here :meth:`~DataFrame.transform` received a single function; this is equivalent to a ufunc application.
+
+.. ipython:: python
+
+   np.abs(tsdf)
+
+Passing a single function to ``.transform()`` with a ``Series`` will yield a single ``Series`` in return.
+
+.. ipython:: python
+
+   tsdf.A.transform(np.abs)
+
+
+Transform with multiple functions
++++++++++++++++++++++++++++++++++
+
+Passing multiple functions will yield a column MultiIndexed DataFrame.
+The first level will be the original frame column names; the second level
+will be the names of the transforming functions.
+
+.. ipython:: python
+
+   tsdf.transform([np.abs, lambda x: x+1])
+
+Passing multiple functions to a Series will yield a DataFrame. The
+resulting column names will be the transforming functions.
+
+.. ipython:: python
+
+   tsdf.A.transform([np.abs, lambda x: x+1])
+
+
+Transforming with a dict
+++++++++++++++++++++++++
+
+
+Passing a dict of functions will allow selective transforming per column.
+
+.. ipython:: python
+
+   tsdf.transform({'A': np.abs, 'B': lambda x: x+1})
+
+Passing a dict of lists will generate a MultiIndexed DataFrame with these
+selective transforms.
+
+.. ipython:: python
+   :okwarning:
+
+   tsdf.transform({'A': np.abs, 'B': [lambda x: x+1, 'sqrt']})
+
+.. _basics.elementwise:
+
+Applying Elementwise Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Since not all functions can be vectorized (accept NumPy arrays and return
 another array or value), the methods :meth:`~DataFrame.applymap` on DataFrame
@@ -855,7 +1089,7 @@ a single value and returning a single value. For example:
    df4['one'].map(f)
    df4.applymap(f)
 
-:meth:`Series.map` has an additional feature which is that it can be used to easily
+:meth:`Series.map` has an additional feature; it can be used to easily
 "link" or "map" values defined by a secondary series. This is closely related
 to :ref:`merging/joining functionality <merging>`:
 
@@ -876,10 +1110,6 @@ Applying with a Panel
 Applying with a ``Panel`` will pass a ``Series`` to the applied function. If the applied
 function returns a ``Series``, the result of the application will be a ``Panel``. If the applied function
 reduces to a scalar, the result of the application will be a ``DataFrame``.
-
-.. note::
-
-   Prior to 0.13.1 ``apply`` on a ``Panel`` would only work on ``ufuncs`` (e.g. ``np.sum/np.max``).
 
 .. ipython:: python
 
@@ -902,13 +1132,13 @@ A reduction operation.
 
    panel.apply(lambda x: x.dtype, axis='items')
 
-A similar reduction type operation
+A similar reduction type operation.
 
 .. ipython:: python
 
    panel.apply(lambda x: x.sum(), axis='major_axis')
 
-This last reduction is equivalent to
+This last reduction is equivalent to:
 
 .. ipython:: python
 
@@ -936,7 +1166,7 @@ Apply can also accept multiple axes in the ``axis`` argument. This will pass a
    result
    result.loc[:,:,'ItemA']
 
-This is equivalent to the following
+This is equivalent to the following:
 
 .. ipython:: python
 
@@ -956,11 +1186,11 @@ It is used to implement nearly all other features relying on label-alignment
 functionality. To *reindex* means to conform the data to match a given set of
 labels along a particular axis. This accomplishes several things:
 
-  * Reorders the existing data to match a new set of labels
-  * Inserts missing value (NA) markers in label locations where no data for
-    that label existed
-  * If specified, **fill** data for missing labels using logic (highly relevant
-    to working with time series data)
+* Reorders the existing data to match a new set of labels
+* Inserts missing value (NA) markers in label locations where no data for
+  that label existed
+* If specified, **fill** data for missing labels using logic (highly relevant
+  to working with time series data)
 
 Here is a simple example:
 
@@ -980,8 +1210,11 @@ With a DataFrame, you can simultaneously reindex the index and columns:
    df
    df.reindex(index=['c', 'f', 'b'], columns=['three', 'two', 'one'])
 
-For convenience, you may utilize the :meth:`~Series.reindex_axis` method, which
-takes the labels and a keyword ``axis`` parameter.
+You may also use ``reindex`` with an ``axis`` keyword:
+
+.. ipython:: python
+
+   df.reindex(['c', 'f', 'b'], axis='index')
 
 Note that the ``Index`` objects containing the actual axis labels can be
 **shared** between objects. So if we have a Series and a DataFrame, the
@@ -996,6 +1229,15 @@ following can be done:
 This means that the reindexed Series's index is the same Python object as the
 DataFrame's index.
 
+.. versionadded:: 0.21.0
+
+:meth:`DataFrame.reindex` also supports an "axis-style" calling convention,
+where you specify a single ``labels`` argument and the ``axis`` it applies to.
+
+.. ipython:: python
+
+   df.reindex(['c', 'f', 'b'], axis='index')
+   df.reindex(['three', 'two', 'one'], axis='columns')
 
 .. seealso::
 
@@ -1125,9 +1367,9 @@ Note that the same result could have been achieved using
 
    ts2.reindex(ts.index).fillna(method='ffill')
 
-:meth:`~Series.reindex` will raise a ValueError if the index is not monotonic
+:meth:`~Series.reindex` will raise a ValueError if the index is not monotonically
 increasing or decreasing. :meth:`~Series.fillna` and :meth:`~Series.interpolate`
-will not make any checks on the order of the index.
+will not perform any checks on the order of the index.
 
 .. _basics.limits_on_reindex_fill:
 
@@ -1192,11 +1434,22 @@ Series can also be used:
 
 .. ipython:: python
 
-   df.rename(columns={'one' : 'foo', 'two' : 'bar'},
-             index={'a' : 'apple', 'b' : 'banana', 'd' : 'durian'})
+   df.rename(columns={'one': 'foo', 'two': 'bar'},
+             index={'a': 'apple', 'b': 'banana', 'd': 'durian'})
 
-If the mapping doesn't include a column/index label, it isn't renamed. Also
+If the mapping doesn't include a column/index label, it isn't renamed. Note that
 extra labels in the mapping don't throw an error.
+
+.. versionadded:: 0.21.0
+
+:meth:`DataFrame.rename` also supports an "axis-style" calling convention, where
+you specify a single ``mapper`` and the ``axis`` to apply that mapping to.
+
+.. ipython:: python
+
+   df.rename({'one': 'foo', 'two': 'bar'}, axis='columns')
+   df.rename({'a': 'apple', 'b': 'banana', 'd': 'durian'}, axis='index')
+
 
 The :meth:`~DataFrame.rename` method also provides an ``inplace`` named
 parameter that is by default ``False`` and copies the underlying data. Pass
@@ -1264,14 +1517,14 @@ To iterate over the rows of a DataFrame, you can use the following methods:
   one of the following approaches:
 
   * Look for a *vectorized* solution: many operations can be performed using
-    built-in methods or numpy functions, (boolean) indexing, ...
+    built-in methods or NumPy functions, (boolean) indexing, ...
 
   * When you have a function that cannot work on the full DataFrame/Series
     at once, it is better to use :meth:`~DataFrame.apply` instead of iterating
     over the values. See the docs on :ref:`function application <basics.apply>`.
 
   * If you need to do iterative manipulations on the values but performance is
-    important, consider writing the inner loop using e.g. cython or numba.
+    important, consider writing the inner loop with cython or numba.
     See the :ref:`enhancing performance <enhancingperf>` section for some
     examples of this approach.
 
@@ -1350,7 +1603,7 @@ index value along with a Series containing the data in each row:
 
    To preserve dtypes while iterating over the rows, it is better
    to use :meth:`~DataFrame.itertuples` which returns namedtuples of the values
-   and which is generally much faster as ``iterrows``.
+   and which is generally much faster than :meth:`~DataFrame.iterrows`.
 
 For instance, a contrived way to transpose the DataFrame would be:
 
@@ -1371,14 +1624,14 @@ yielding a namedtuple for each row in the DataFrame. The first element
 of the tuple will be the row's corresponding index value, while the
 remaining values are the row values.
 
-For instance,
+For instance:
 
 .. ipython:: python
 
    for row in df.itertuples():
        print(row)
 
-This method does not convert the row to a Series object but just
+This method does not convert the row to a Series object; it merely
 returns the values inside a namedtuple. Therefore,
 :meth:`~DataFrame.itertuples` preserves the data type of the values
 and is generally faster as :meth:`~DataFrame.iterrows`.
@@ -1465,7 +1718,7 @@ The ``.dt`` accessor works for period and timedelta dtypes.
 
 .. note::
 
-   ``Series.dt`` will raise a ``TypeError`` if you access with a non-datetimelike values
+   ``Series.dt`` will raise a ``TypeError`` if you access with a non-datetime-like values.
 
 Vectorized string methods
 -------------------------
@@ -1483,7 +1736,7 @@ built-in string methods. For example:
 
 Powerful pattern-matching methods are provided as well, but note that
 pattern-matching generally uses `regular expressions
-<https://docs.python.org/2/library/re.html>`__ by default (and in some cases
+<https://docs.python.org/3/library/re.html>`__ by default (and in some cases
 always uses them).
 
 Please see :ref:`Vectorized String Methods <text.string_methods>` for a complete
@@ -1494,24 +1747,26 @@ description.
 Sorting
 -------
 
-.. warning::
+Pandas supports three kinds of sorting: sorting by index labels,
+sorting by column values, and sorting by a combination of both.
 
-   The sorting API is substantially changed in 0.17.0, see :ref:`here <whatsnew_0170.api_breaking.sorting>` for these changes.
-   In particular, all sorting methods now return a new object by default, and **DO NOT** operate in-place (except by passing ``inplace=True``).
-
-There are two obvious kinds of sorting that you may be interested in: sorting
-by label and sorting by actual values.
+.. _basics.sort_index:
 
 By Index
 ~~~~~~~~
 
-The primary method for sorting axis
-labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index()`` methods.
+The :meth:`Series.sort_index` and :meth:`DataFrame.sort_index` methods are
+used to sort a pandas object by its index levels.
 
 .. ipython:: python
 
+   df = pd.DataFrame({'one' : pd.Series(np.random.randn(3), index=['a', 'b', 'c']),
+                      'two' : pd.Series(np.random.randn(4), index=['a', 'b', 'c', 'd']),
+                      'three' : pd.Series(np.random.randn(3), index=['b', 'c', 'd'])})
+
    unsorted_df = df.reindex(index=['a', 'd', 'c', 'b'],
                             columns=['three', 'two', 'one'])
+   unsorted_df
 
    # DataFrame
    unsorted_df.sort_index()
@@ -1521,20 +1776,22 @@ labels (indexes) are the ``Series.sort_index()`` and the ``DataFrame.sort_index(
    # Series
    unsorted_df['three'].sort_index()
 
+.. _basics.sort_values:
+
 By Values
 ~~~~~~~~~
 
-The :meth:`Series.sort_values` and :meth:`DataFrame.sort_values` are the entry points for **value** sorting (that is the values in a column or row).
-:meth:`DataFrame.sort_values` can accept an optional ``by`` argument for ``axis=0``
-which will use an arbitrary vector or a column name of the DataFrame to
-determine the sort order:
+The :meth:`Series.sort_values` method is used to sort a `Series` by its values. The
+:meth:`DataFrame.sort_values` method is used to sort a `DataFrame` by its column or row values.
+The optional ``by`` parameter to :meth:`DataFrame.sort_values` may used to specify one or more columns
+to use to determine the sorted order.
 
 .. ipython:: python
 
    df1 = pd.DataFrame({'one':[2,1,1,1],'two':[1,3,2,4],'three':[5,4,3,2]})
    df1.sort_values(by='two')
 
-The ``by`` argument can take a list of column names, e.g.:
+The ``by`` parameter can take a list of column names, e.g.:
 
 .. ipython:: python
 
@@ -1549,13 +1806,46 @@ argument:
    s.sort_values()
    s.sort_values(na_position='first')
 
+.. _basics.sort_indexes_and_values:
+
+By Indexes and Values
+~~~~~~~~~~~~~~~~~~~~~
+
+.. versionadded:: 0.23.0
+
+Strings passed as the ``by`` parameter to :meth:`DataFrame.sort_values` may
+refer to either columns or index level names.
+
+.. ipython:: python
+
+   # Build MultiIndex
+   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+                                   ('b', 2), ('b', 1), ('b', 1)])
+   idx.names = ['first', 'second']
+
+   # Build DataFrame
+   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+                           index=idx)
+   df_multi
+
+Sort by 'second' (index) and 'A' (column)
+
+.. ipython:: python
+
+   df_multi.sort_values(by=['second', 'A'])
+
+.. note::
+
+   If a string matches both a column name and an index level name then a
+   warning is issued and the column takes precedence. This will result in an
+   ambiguity error in a future version.
 
 .. _basics.searchsorted:
 
 searchsorted
 ~~~~~~~~~~~~
 
-Series has the :meth:`~Series.searchsorted` method, which works similar to
+Series has the :meth:`~Series.searchsorted` method, which works similarly to
 :meth:`numpy.ndarray.searchsorted`.
 
 .. ipython:: python
@@ -1573,8 +1863,6 @@ Series has the :meth:`~Series.searchsorted` method, which works similar to
 smallest / largest values
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.14.0
-
 ``Series`` has the :meth:`~Series.nsmallest` and :meth:`~Series.nlargest` methods which return the
 smallest or largest :math:`n` values. For a large ``Series`` this can be much
 faster than sorting the entire Series and calling ``head(n)`` on the result.
@@ -1586,8 +1874,6 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    s.sort_values()
    s.nsmallest(3)
    s.nlargest(3)
-
-.. versionadded:: 0.17.0
 
 ``DataFrame`` also has the ``nlargest`` and ``nsmallest`` methods.
 
@@ -1602,12 +1888,12 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    df.nsmallest(5, ['a', 'c'])
 
 
-.. _basics.multi-index_sorting:
+.. _basics.multiindex_sorting:
 
-Sorting by a multi-index column
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sorting by a MultiIndex column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You must be explicit about sorting when the column is a multi-index, and fully specify
+You must be explicit about sorting when the column is a MultiIndex, and fully specify
 all levels to ``by``.
 
 .. ipython:: python
@@ -1624,25 +1910,41 @@ the axis indexes, since they are immutable) and returns a new object. Note that
 **it is seldom necessary to copy objects**. For example, there are only a
 handful of ways to alter a DataFrame *in-place*:
 
-  * Inserting, deleting, or modifying a column
-  * Assigning to the ``index`` or ``columns`` attributes
-  * For homogeneous data, directly modifying the values via the ``values``
-    attribute or advanced indexing
+* Inserting, deleting, or modifying a column.
+* Assigning to the ``index`` or ``columns`` attributes.
+* For homogeneous data, directly modifying the values via the ``values``
+  attribute or advanced indexing.
 
-To be clear, no pandas methods have the side effect of modifying your data;
-almost all methods return new objects, leaving the original object
-untouched. If data is modified, it is because you did so explicitly.
+To be clear, no pandas method has the side effect of modifying your data;
+almost every method returns a new object, leaving the original object
+untouched. If the data is modified, it is because you did so explicitly.
 
 .. _basics.dtypes:
 
 dtypes
 ------
 
-The main types stored in pandas objects are ``float``, ``int``, ``bool``,
-``datetime64[ns]`` and ``datetime64[ns, tz]`` (in >= 0.17.0), ``timedelta[ns]``, ``category`` (in >= 0.15.0), and ``object``. In addition these dtypes
-have item sizes, e.g. ``int64`` and ``int32``. See :ref:`Series with TZ <timeseries.timezone_series>` for more detail on ``datetime64[ns, tz]`` dtypes.
+For the most part, pandas uses NumPy arrays and dtypes for Series or individual
+columns of a DataFrame. The main types allowed in pandas objects are ``float``,
+``int``, ``bool``, and ``datetime64[ns]`` (note that NumPy does not support
+timezone-aware datetimes).
 
-A convenient :attr:`~DataFrame.dtypes` attribute for DataFrames returns a Series with the data type of each column.
+In addition to NumPy's types, pandas :ref:`extends <extending.extension-types>`
+NumPy's type-system for a few cases.
+
+* :ref:`Categorical <categorical>`
+* :ref:`Datetime with Timezone <timeseries.timezone_series>`
+* :ref:`Period <timeseries.periods>`
+* :ref:`Interval <advanced.indexing.intervallindex>`
+
+Pandas uses the ``object`` dtype for storing strings.
+
+Finally, arbitrary objects may be stored using the ``object`` dtype, but should
+be avoided to the extent possible (for performance and interoperability with
+other libraries and methods. See :ref:`basics.object_conversion`).
+
+A convenient :attr:`~DataFrame.dtypes` attribute for DataFrame returns a Series
+with the data type of each column.
 
 .. ipython:: python
 
@@ -1656,15 +1958,15 @@ A convenient :attr:`~DataFrame.dtypes` attribute for DataFrames returns a Series
    dft
    dft.dtypes
 
-On a ``Series`` use the :attr:`~Series.dtype` attribute.
+On a ``Series`` object, use the :attr:`~Series.dtype` attribute.
 
 .. ipython:: python
 
    dft['A'].dtype
 
-If a pandas object contains data multiple dtypes *IN A SINGLE COLUMN*, the dtype of the
-column will be chosen to accommodate all of the data types (``object`` is the most
-general).
+If a pandas object contains data with multiple dtypes *in a single column*, the
+dtype of the column will be chosen to accommodate all of the data types
+(``object`` is the most general).
 
 .. ipython:: python
 
@@ -1674,14 +1976,14 @@ general).
    # string data forces an ``object`` dtype
    pd.Series([1, 2, 3, 6., 'foo'])
 
-The method :meth:`~DataFrame.get_dtype_counts` will return the number of columns of
-each type in a ``DataFrame``:
+The number of columns of each type in a ``DataFrame`` can be found by calling
+:meth:`~DataFrame.get_dtype_counts`.
 
 .. ipython:: python
 
    dft.get_dtype_counts()
 
-Numeric dtypes will propagate and can coexist in DataFrames (starting in v0.11.0).
+Numeric dtypes will propagate and can coexist in DataFrames.
 If a dtype is passed (either directly via the ``dtype`` keyword, a passed ``ndarray``,
 or a passed ``Series``, then it will be preserved in DataFrame operations. Furthermore,
 different numeric dtypes will **NOT** be combined. The following example will give you a taste.
@@ -1701,7 +2003,8 @@ defaults
 ~~~~~~~~
 
 By default integer types are ``int64`` and float types are ``float64``,
-*REGARDLESS* of platform (32-bit or 64-bit). The following will all result in ``int64`` dtypes.
+*regardless* of platform (32-bit or 64-bit).
+The following will all result in ``int64`` dtypes.
 
 .. ipython:: python
 
@@ -1709,7 +2012,7 @@ By default integer types are ``int64`` and float types are ``float64``,
    pd.DataFrame({'a': [1, 2]}).dtypes
    pd.DataFrame({'a': 1 }, index=list(range(2))).dtypes
 
-Numpy, however will choose *platform-dependent* types when creating arrays.
+Note that Numpy will choose *platform-dependent* types when creating arrays.
 The following **WILL** result in ``int32`` on 32-bit platform.
 
 .. ipython:: python
@@ -1721,7 +2024,7 @@ upcasting
 ~~~~~~~~~
 
 Types can potentially be *upcasted* when combined with other types, meaning they are promoted
-from the current type (say ``int`` to ``float``)
+from the current type (e.g. ``int`` to ``float``).
 
 .. ipython:: python
 
@@ -1730,7 +2033,7 @@ from the current type (say ``int`` to ``float``)
    df3.dtypes
 
 The ``values`` attribute on a DataFrame return the *lower-common-denominator* of the dtypes, meaning
-the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped numpy array. This can
+the dtype that can accommodate **ALL** of the types in the resulting homogeneous dtyped NumPy array. This can
 force some *upcasting*.
 
 .. ipython:: python
@@ -1758,7 +2061,7 @@ then the more *general* one will be used as the result of the operation.
    df3.astype('float32').dtypes
 
 
-Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
+Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`.
 
 .. ipython:: python
 
@@ -1769,7 +2072,7 @@ Convert a subset of columns to a specified type using :meth:`~DataFrame.astype`
 
 .. versionadded:: 0.19.0
 
-Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`
+Convert certain columns to a specific dtype by passing a dict to :meth:`~DataFrame.astype`.
 
 .. ipython:: python
 
@@ -1797,16 +2100,38 @@ object conversion
 ~~~~~~~~~~~~~~~~~
 
 pandas offers various functions to try to force conversion of types from the ``object`` dtype to other types.
-The following functions are available for one dimensional object arrays or scalars:
+In cases where the data is already of the correct type, but stored in an ``object`` array, the
+:meth:`DataFrame.infer_objects` and :meth:`Series.infer_objects` methods can be used to soft convert
+to the correct type.
 
-- :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
+  .. ipython:: python
+
+     import datetime
+     df = pd.DataFrame([[1, 2],
+                        ['a', 'b'],
+                        [datetime.datetime(2016, 3, 2), datetime.datetime(2016, 3, 2)]])
+     df = df.T
+     df
+     df.dtypes
+
+Because the data was transposed the original inference stored all columns as object, which
+``infer_objects`` will correct.
+
+  .. ipython:: python
+
+     df.infer_objects().dtypes
+
+The following functions are available for one dimensional object arrays or scalars to perform
+hard conversion of objects to a specified type:
+
+* :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
 
   .. ipython:: python
 
      m = ['1.1', 2, 3]
      pd.to_numeric(m)
 
-- :meth:`~pandas.to_datetime` (conversion to datetime objects)
+* :meth:`~pandas.to_datetime` (conversion to datetime objects)
 
   .. ipython:: python
 
@@ -1814,7 +2139,7 @@ The following functions are available for one dimensional object arrays or scala
      m = ['2016-07-09', datetime.datetime(2016, 3, 2)]
      pd.to_datetime(m)
 
-- :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
+* :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
 
   .. ipython:: python
 
@@ -1888,8 +2213,8 @@ gotchas
 ~~~~~~~
 
 Performing selection operations on ``integer`` type data can easily upcast the data to ``floating``.
-The dtype of the input data will be preserved in cases where ``nans`` are not introduced (starting in 0.11.0)
-See also :ref:`Support for integer NA <gotchas.intna>`
+The dtype of the input data will be preserved in cases where ``nans`` are not introduced.
+See also :ref:`Support for integer NA <gotchas.intna>`.
 
 .. ipython:: python
 
@@ -1919,8 +2244,6 @@ Selecting columns based on ``dtype``
 
 .. _basics.selectdtypes:
 
-.. versionadded:: 0.14.1
-
 The :meth:`~DataFrame.select_dtypes` method implements subsetting of columns
 based on their ``dtype``.
 
@@ -1943,23 +2266,23 @@ dtypes:
    df['tz_aware_dates'] = pd.date_range('20130101', periods=3, tz='US/Eastern')
    df
 
-And the dtypes
+And the dtypes:
 
 .. ipython:: python
 
    df.dtypes
 
 :meth:`~DataFrame.select_dtypes` has two parameters ``include`` and ``exclude`` that allow you to
-say "give me the columns WITH these dtypes" (``include``) and/or "give the
-columns WITHOUT these dtypes" (``exclude``).
+say "give me the columns *with* these dtypes" (``include``) and/or "give the
+columns *without* these dtypes" (``exclude``).
 
-For example, to select ``bool`` columns
+For example, to select ``bool`` columns:
 
 .. ipython:: python
 
    df.select_dtypes(include=[bool])
 
-You can also pass the name of a dtype in the `numpy dtype hierarchy
+You can also pass the name of a dtype in the `NumPy dtype hierarchy
 <http://docs.scipy.org/doc/numpy/reference/arrays.scalars.html>`__:
 
 .. ipython:: python
@@ -1969,7 +2292,7 @@ You can also pass the name of a dtype in the `numpy dtype hierarchy
 :meth:`~pandas.DataFrame.select_dtypes` also works with generic dtypes as well.
 
 For example, to select all numeric and boolean columns while excluding unsigned
-integers
+integers:
 
 .. ipython:: python
 
@@ -1992,7 +2315,7 @@ can define a function that returns a tree of child dtypes:
            return dtype
        return [dtype, [subdtypes(dt) for dt in subs]]
 
-All numpy dtypes are subclasses of ``numpy.generic``:
+All NumPy dtypes are subclasses of ``numpy.generic``:
 
 .. ipython:: python
 
@@ -2001,8 +2324,4 @@ All numpy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    numpy hierarchy and wont show up with the above function.
-
-.. note::
-
-   The ``include`` and ``exclude`` parameters must be non-string sequences.
+    NumPy hierarchy and won't show up with the above function.

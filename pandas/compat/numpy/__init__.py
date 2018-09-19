@@ -9,18 +9,19 @@ from pandas.compat import string_types, string_and_binary_types
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
-_np_version_under1p8 = _nlv < '1.8'
-_np_version_under1p9 = _nlv < '1.9'
-_np_version_under1p10 = _nlv < '1.10'
-_np_version_under1p11 = _nlv < '1.11'
-_np_version_under1p12 = _nlv < '1.12'
-_np_version_under1p13 = _nlv < '1.13'
+_np_version_under1p10 = _nlv < LooseVersion('1.10')
+_np_version_under1p11 = _nlv < LooseVersion('1.11')
+_np_version_under1p12 = _nlv < LooseVersion('1.12')
+_np_version_under1p13 = _nlv < LooseVersion('1.13')
+_np_version_under1p14 = _nlv < LooseVersion('1.14')
+_np_version_under1p15 = _nlv < LooseVersion('1.15')
 
-if _nlv < '1.7.0':
+
+if _nlv < '1.9':
     raise ImportError('this version of pandas is incompatible with '
-                      'numpy < 1.7.0\n'
+                      'numpy < 1.9.0\n'
                       'your numpy version is {0}.\n'
-                      'Please upgrade numpy to >= 1.7.0 to use '
+                      'Please upgrade numpy to >= 1.9.0 to use '
                       'this pandas version'.format(_np_version))
 
 
@@ -69,9 +70,10 @@ def np_array_datetime64_compat(arr, *args, **kwargs):
 
 
 __all__ = ['np',
-           '_np_version_under1p8',
-           '_np_version_under1p9',
            '_np_version_under1p10',
            '_np_version_under1p11',
            '_np_version_under1p12',
+           '_np_version_under1p13',
+           '_np_version_under1p14',
+           '_np_version_under1p15'
            ]

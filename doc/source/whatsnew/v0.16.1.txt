@@ -26,7 +26,7 @@ Highlights include:
 
 .. warning::
 
-   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package. See :ref:`here for details <remote_data.pandas_datareader>` (:issue:`8961`)
+   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package (:issue:`8961`).
 
 Enhancements
 ~~~~~~~~~~~~
@@ -41,48 +41,94 @@ indexing with duplicates. This is a container around a ``Categorical`` (introduc
 and allows efficient indexing and storage of an index with a large number of duplicated elements. Prior to 0.16.1,
 setting the index of a ``DataFrame/Series`` with a ``category`` dtype would convert this to regular object-based ``Index``.
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df = DataFrame({'A' : np.arange(6),
-                   'B' : Series(list('aabbca')).astype('category',
-                                                       categories=list('cab'))
-                  })
-   df
-   df.dtypes
-   df.B.cat.categories
+    In [1]: df = DataFrame({'A' : np.arange(6),
+       ...:                 'B' : Series(list('aabbca')).astype('category',
+       ...:                                                     categories=list('cab'))
+       ...:                })
+       ...:
+
+    In [2]: df
+    Out[2]:
+       A  B
+    0  0  a
+    1  1  a
+    2  2  b
+    3  3  b
+    4  4  c
+    5  5  a
+
+    In [3]: df.dtypes
+    Out[3]:
+    A       int64
+    B    category
+    dtype: object
+
+    In [4]: df.B.cat.categories
+    Out[4]: Index(['c', 'a', 'b'], dtype='object')
+
 
 setting the index, will create create a ``CategoricalIndex``
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df2 = df.set_index('B')
-   df2.index
+    In [5]: df2 = df.set_index('B')
+
+    In [6]: df2.index
+    Out[6]: CategoricalIndex(['a', 'a', 'b', 'b', 'c', 'a'], categories=['c', 'a', 'b'], ordered=False, name='B', dtype='category')
 
 indexing with ``__getitem__/.iloc/.loc/.ix`` works similarly to an Index with duplicates.
 The indexers MUST be in the category or the operation will raise.
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df2.loc['a']
+    In [7]: df2.loc['a']
+    Out[7]:
+       A
+    B
+    a  0
+    a  1
+    a  5
 
 and preserves the ``CategoricalIndex``
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df2.loc['a'].index
+    In [8]: df2.loc['a'].index
+    Out[8]: CategoricalIndex(['a', 'a', 'a'], categories=['c', 'a', 'b'], ordered=False, name='B', dtype='category')
+
 
 sorting will order by the order of the categories
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df2.sort_index()
+    In [9]: df2.sort_index()
+    Out[9]:
+       A
+    B
+    c  4
+    a  0
+    a  1
+    a  5
+    b  2
+    b  3
 
 groupby operations on the index will preserve the index nature as well
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df2.groupby(level=0).sum()
-   df2.groupby(level=0).sum().index
+    In [10]: df2.groupby(level=0).sum()
+    Out[10]:
+       A
+    B
+    c  4
+    a  6
+    b  5
+
+    In [11]: df2.groupby(level=0).sum().index
+    Out[11]: CategoricalIndex(['c', 'a', 'b'], categories=['c', 'a', 'b'], ordered=False, name='B', dtype='category')
+
 
 reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
@@ -90,12 +136,31 @@ a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the c
 of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
-.. ipython :: python
+.. code-block:: ipython
 
-   df2.reindex(['a','e'])
-   df2.reindex(['a','e']).index
-   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
-   df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+    In [12]: df2.reindex(['a','e'])
+    Out[12]:
+         A
+    B
+    a  0.0
+    a  1.0
+    a  5.0
+    e  NaN
+
+    In [13]: df2.reindex(['a','e']).index
+    Out[13]: Index(['a', 'a', 'a', 'e'], dtype='object', name='B')
+
+    In [14]: df2.reindex(pd.Categorical(['a','e'],categories=list('abcde')))
+    Out[14]:
+         A
+    B
+    a  0.0
+    a  1.0
+    a  5.0
+    e  NaN
+
+    In [15]: df2.reindex(pd.Categorical(['a','e'],categories=list('abcde'))).index
+    Out[15]: CategoricalIndex(['a', 'a', 'a', 'e'], categories=['a', 'b', 'c', 'd', 'e'], ordered=False, name='B', dtype='category')
 
 See the :ref:`documentation <indexing.categoricalindex>` for more. (:issue:`7629`, :issue:`10038`, :issue:`10039`)
 
@@ -172,7 +237,7 @@ enhancements make string operations easier and more consistent with standard pyt
      idx.str.startswith('a')
      s[s.index.str.startswith('a')]
 
-- The following new methods are accesible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
+- The following new methods are accessible via ``.str`` accessor to apply the function to each values. (:issue:`9766`, :issue:`9773`, :issue:`10031`, :issue:`10045`, :issue:`10052`)
 
   ================  ===============  ===============  ===============  ================
   ..                ..               Methods          ..               ..
@@ -248,7 +313,7 @@ Other Enhancements
 - Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
 - Add ``normalize`` as a ``dt`` accessor method. (:issue:`10047`)
 
-- ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
+- ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <extending.subclassing-pandas>`
 
 - ``pd.lib.infer_dtype`` now returns ``'bytes'`` in Python 3 where appropriate. (:issue:`10032`)
 
@@ -283,7 +348,7 @@ Deprecations
 Index Representation
 ~~~~~~~~~~~~~~~~~~~~
 
-The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanges (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
+The string representation of ``Index`` and its sub-classes have now been unified. These will show a single-line display if there are few values; a wrapped multi-line display for a lot of values (but less than ``display.max_seq_items``; if lots of items (> ``display.max_seq_items``) will show a truncated display (the head and tail of the data). The formatting for ``MultiIndex`` is unchanged (a multi-line wrapped display). The display width responds to the option ``display.max_seq_items``, which is defaulted to 100. (:issue:`6482`)
 
 Previous Behavior
 
@@ -372,8 +437,8 @@ Bug Fixes
 - Bug in ``to_msgpack`` and ``read_msgpack`` zlib and blosc compression support (:issue:`9783`)
 - Bug ``GroupBy.size`` doesn't attach index name properly if grouped by ``TimeGrouper`` (:issue:`9925`)
 - Bug causing an exception in slice assignments because ``length_of_indexer`` returns wrong results (:issue:`9995`)
-- Bug in csv parser causing lines with initial whitespace plus one non-space character to be skipped. (:issue:`9710`)
-- Bug in C csv parser causing spurious NaNs when data started with newline followed by whitespace. (:issue:`10022`)
+- Bug in csv parser causing lines with initial white space plus one non-space character to be skipped. (:issue:`9710`)
+- Bug in C csv parser causing spurious NaNs when data started with newline followed by white space. (:issue:`10022`)
 - Bug causing elements with a null group to spill into the final group when grouping by a ``Categorical`` (:issue:`9603`)
 - Bug where .iloc and .loc behavior is not consistent on empty dataframes (:issue:`9964`)
 - Bug in invalid attribute access on a ``TimedeltaIndex`` incorrectly raised ``ValueError`` instead of ``AttributeError`` (:issue:`9680`)
@@ -390,7 +455,7 @@ Bug Fixes
 - Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
 - Bug causing extra index point when resample BM/BQ (:issue:`9756`)
 - Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
-- Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+- Fixed latex output for MultiIndexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
 - Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
 - Bug in ``transform`` and ``filter`` when grouping on a categorical variable (:issue:`9921`)

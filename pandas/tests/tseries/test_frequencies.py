@@ -1,16 +1,21 @@
 from datetime import datetime, timedelta
 from pandas.compat import range
 
+import pytest
 import numpy as np
 
 from pandas import (Index, DatetimeIndex, Timestamp, Series,
                     date_range, period_range)
 
+from pandas._libs.tslibs.frequencies import (_period_code_map,
+                                             INVALID_FREQ_ERR_MSG)
+from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
-from pandas.tseries.tools import to_datetime
+from pandas.core.tools.datetimes import to_datetime
 
 import pandas.tseries.offsets as offsets
-from pandas.tseries.period import PeriodIndex
+from pandas.core.indexes.period import PeriodIndex
 import pandas.compat as compat
 from pandas.compat import is_platform_windows
 
@@ -18,7 +23,7 @@ import pandas.util.testing as tm
 from pandas import Timedelta
 
 
-class TestToOffset(tm.TestCase):
+class TestToOffset(object):
 
     def test_to_offset_multiple(self):
         freqstr = '2h30min'
@@ -100,7 +105,8 @@ class TestToOffset(tm.TestCase):
         assert (result == expected)
 
         # malformed
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 2h20m'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 2h20m'):
             frequencies.to_offset('2h20m')
 
     def test_to_offset_negative(self):
@@ -122,17 +128,23 @@ class TestToOffset(tm.TestCase):
 
     def test_to_offset_invalid(self):
         # GH 13930
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: U1'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: U1'):
             frequencies.to_offset('U1')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -U'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: -U'):
             frequencies.to_offset('-U')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 3U1'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 3U1'):
             frequencies.to_offset('3U1')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2-3U'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: -2-3U'):
             frequencies.to_offset('-2-3U')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: -2D:3H'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: -2D:3H'):
             frequencies.to_offset('-2D:3H')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 1.5.0S'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 1.5.0S'):
             frequencies.to_offset('1.5.0S')
 
         # split offsets with spaces are valid
@@ -145,10 +157,11 @@ class TestToOffset(tm.TestCase):
 
         # special cases
         assert frequencies.to_offset('2SMS-15') == offsets.SemiMonthBegin(2)
-        with tm.assertRaisesRegexp(ValueError,
-                                   'Invalid frequency: 2SMS-15-15'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 2SMS-15-15'):
             frequencies.to_offset('2SMS-15-15')
-        with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: 2SMS-15D'):
+        with tm.assert_raises_regex(ValueError,
+                                    'Invalid frequency: 2SMS-15D'):
             frequencies.to_offset('2SMS-15D')
 
     def test_to_offset_leading_zero(self):
@@ -159,6 +172,19 @@ class TestToOffset(tm.TestCase):
         freqstr = '-00H 03T 14S'
         result = frequencies.to_offset(freqstr)
         assert (result.n == -194)
+
+    def test_to_offset_leading_plus(self):
+        freqstr = '+1d'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == 1)
+
+        freqstr = '+2h30min'
+        result = frequencies.to_offset(freqstr)
+        assert (result.n == 150)
+
+        for bad_freq in ['+-1d', '-+1h', '+1', '-7', '+d', '-m']:
+            with tm.assert_raises_regex(ValueError, 'Invalid frequency:'):
+                frequencies.to_offset(bad_freq)
 
     def test_to_offset_pd_timedelta(self):
         # Tests for #9064
@@ -198,7 +224,7 @@ class TestToOffset(tm.TestCase):
         assert (expected == result)
 
         td = Timedelta(microseconds=0)
-        tm.assertRaises(ValueError, lambda: frequencies.to_offset(td))
+        pytest.raises(ValueError, lambda: frequencies.to_offset(td))
 
     def test_anchored_shortcuts(self):
         result = frequencies.to_offset('W')
@@ -239,11 +265,13 @@ class TestToOffset(tm.TestCase):
 
         # ensure invalid cases fail as expected
         invalid_anchors = ['SM-0', 'SM-28', 'SM-29',
-                           'SM-FOO', 'BSM', 'SM--1'
+                           'SM-FOO', 'BSM', 'SM--1',
                            'SMS-1', 'SMS-28', 'SMS-30',
-                           'SMS-BAR', 'BSMS', 'SMS--2']
+                           'SMS-BAR', 'SMS-BYR' 'BSMS',
+                           'SMS--2']
         for invalid_anchor in invalid_anchors:
-            with tm.assertRaisesRegexp(ValueError, 'Invalid frequency: '):
+            with tm.assert_raises_regex(ValueError,
+                                        'Invalid frequency: '):
                 frequencies.to_offset(invalid_anchor)
 
 
@@ -259,259 +287,225 @@ def test_rule_aliases():
     assert rule == offsets.Micro(10)
 
 
-def test_get_rule_month():
-    result = frequencies._get_rule_month('W')
-    assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.Week())
-    assert (result == 'DEC')
-
-    result = frequencies._get_rule_month('D')
-    assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.Day())
-    assert (result == 'DEC')
-
-    result = frequencies._get_rule_month('Q')
-    assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.QuarterEnd(startingMonth=12))
-    print(result == 'DEC')
-
-    result = frequencies._get_rule_month('Q-JAN')
-    assert (result == 'JAN')
-    result = frequencies._get_rule_month(offsets.QuarterEnd(startingMonth=1))
-    assert (result == 'JAN')
-
-    result = frequencies._get_rule_month('A-DEC')
-    assert (result == 'DEC')
-    result = frequencies._get_rule_month(offsets.YearEnd())
-    assert (result == 'DEC')
-
-    result = frequencies._get_rule_month('A-MAY')
-    assert (result == 'MAY')
-    result = frequencies._get_rule_month(offsets.YearEnd(month=5))
-    assert (result == 'MAY')
-
-
-def test_period_str_to_code():
-    assert (frequencies._period_str_to_code('A') == 1000)
-    assert (frequencies._period_str_to_code('A-DEC') == 1000)
-    assert (frequencies._period_str_to_code('A-JAN') == 1001)
-    assert (frequencies._period_str_to_code('Q') == 2000)
-    assert (frequencies._period_str_to_code('Q-DEC') == 2000)
-    assert (frequencies._period_str_to_code('Q-FEB') == 2002)
-
-    def _assert_depr(freq, expected, aliases):
-        assert isinstance(aliases, list)
-        assert (frequencies._period_str_to_code(freq) == expected)
-
-        msg = frequencies._INVALID_FREQ_ERROR
-        for alias in aliases:
-            with tm.assertRaisesRegexp(ValueError, msg):
-                frequencies._period_str_to_code(alias)
-
-    _assert_depr("M", 3000, ["MTH", "MONTH", "MONTHLY"])
-
-    assert (frequencies._period_str_to_code('W') == 4000)
-    assert (frequencies._period_str_to_code('W-SUN') == 4000)
-    assert (frequencies._period_str_to_code('W-FRI') == 4005)
-
-    _assert_depr("B", 5000, ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY"])
-    _assert_depr("D", 6000, ["DAY", "DLY", "DAILY"])
-    _assert_depr("H", 7000, ["HR", "HOUR", "HRLY", "HOURLY"])
-
-    _assert_depr("T", 8000, ["minute", "MINUTE", "MINUTELY"])
-    assert (frequencies._period_str_to_code('Min') == 8000)
-
-    _assert_depr("S", 9000, ["sec", "SEC", "SECOND", "SECONDLY"])
-    _assert_depr("L", 10000, ["MILLISECOND", "MILLISECONDLY"])
-    assert (frequencies._period_str_to_code('ms') == 10000)
-
-    _assert_depr("U", 11000, ["MICROSECOND", "MICROSECONDLY"])
-    assert (frequencies._period_str_to_code('US') == 11000)
-
-    _assert_depr("N", 12000, ["NANOSECOND", "NANOSECONDLY"])
-    assert (frequencies._period_str_to_code('NS') == 12000)
-
-
-class TestFrequencyCode(tm.TestCase):
+class TestFrequencyCode(object):
 
     def test_freq_code(self):
-        self.assertEqual(frequencies.get_freq('A'), 1000)
-        self.assertEqual(frequencies.get_freq('3A'), 1000)
-        self.assertEqual(frequencies.get_freq('-1A'), 1000)
+        assert frequencies.get_freq('A') == 1000
+        assert frequencies.get_freq('3A') == 1000
+        assert frequencies.get_freq('-1A') == 1000
 
-        self.assertEqual(frequencies.get_freq('W'), 4000)
-        self.assertEqual(frequencies.get_freq('W-MON'), 4001)
-        self.assertEqual(frequencies.get_freq('W-FRI'), 4005)
+        assert frequencies.get_freq('Y') == 1000
+        assert frequencies.get_freq('3Y') == 1000
+        assert frequencies.get_freq('-1Y') == 1000
 
-        for freqstr, code in compat.iteritems(frequencies._period_code_map):
+        assert frequencies.get_freq('W') == 4000
+        assert frequencies.get_freq('W-MON') == 4001
+        assert frequencies.get_freq('W-FRI') == 4005
+
+        for freqstr, code in compat.iteritems(_period_code_map):
             result = frequencies.get_freq(freqstr)
-            self.assertEqual(result, code)
+            assert result == code
 
-            result = frequencies.get_freq_group(freqstr)
-            self.assertEqual(result, code // 1000 * 1000)
+            result = resolution.get_freq_group(freqstr)
+            assert result == code // 1000 * 1000
 
-            result = frequencies.get_freq_group(code)
-            self.assertEqual(result, code // 1000 * 1000)
+            result = resolution.get_freq_group(code)
+            assert result == code // 1000 * 1000
 
     def test_freq_group(self):
-        self.assertEqual(frequencies.get_freq_group('A'), 1000)
-        self.assertEqual(frequencies.get_freq_group('3A'), 1000)
-        self.assertEqual(frequencies.get_freq_group('-1A'), 1000)
-        self.assertEqual(frequencies.get_freq_group('A-JAN'), 1000)
-        self.assertEqual(frequencies.get_freq_group('A-MAY'), 1000)
-        self.assertEqual(frequencies.get_freq_group(offsets.YearEnd()), 1000)
-        self.assertEqual(frequencies.get_freq_group(
-            offsets.YearEnd(month=1)), 1000)
-        self.assertEqual(frequencies.get_freq_group(
-            offsets.YearEnd(month=5)), 1000)
+        assert resolution.get_freq_group('A') == 1000
+        assert resolution.get_freq_group('3A') == 1000
+        assert resolution.get_freq_group('-1A') == 1000
+        assert resolution.get_freq_group('A-JAN') == 1000
+        assert resolution.get_freq_group('A-MAY') == 1000
 
-        self.assertEqual(frequencies.get_freq_group('W'), 4000)
-        self.assertEqual(frequencies.get_freq_group('W-MON'), 4000)
-        self.assertEqual(frequencies.get_freq_group('W-FRI'), 4000)
-        self.assertEqual(frequencies.get_freq_group(offsets.Week()), 4000)
-        self.assertEqual(frequencies.get_freq_group(
-            offsets.Week(weekday=1)), 4000)
-        self.assertEqual(frequencies.get_freq_group(
-            offsets.Week(weekday=5)), 4000)
+        assert resolution.get_freq_group('Y') == 1000
+        assert resolution.get_freq_group('3Y') == 1000
+        assert resolution.get_freq_group('-1Y') == 1000
+        assert resolution.get_freq_group('Y-JAN') == 1000
+        assert resolution.get_freq_group('Y-MAY') == 1000
+
+        assert resolution.get_freq_group(offsets.YearEnd()) == 1000
+        assert resolution.get_freq_group(offsets.YearEnd(month=1)) == 1000
+        assert resolution.get_freq_group(offsets.YearEnd(month=5)) == 1000
+
+        assert resolution.get_freq_group('W') == 4000
+        assert resolution.get_freq_group('W-MON') == 4000
+        assert resolution.get_freq_group('W-FRI') == 4000
+        assert resolution.get_freq_group(offsets.Week()) == 4000
+        assert resolution.get_freq_group(offsets.Week(weekday=1)) == 4000
+        assert resolution.get_freq_group(offsets.Week(weekday=5)) == 4000
 
     def test_get_to_timestamp_base(self):
         tsb = frequencies.get_to_timestamp_base
 
-        self.assertEqual(tsb(frequencies.get_freq_code('D')[0]),
-                         frequencies.get_freq_code('D')[0])
-        self.assertEqual(tsb(frequencies.get_freq_code('W')[0]),
-                         frequencies.get_freq_code('D')[0])
-        self.assertEqual(tsb(frequencies.get_freq_code('M')[0]),
-                         frequencies.get_freq_code('D')[0])
+        assert (tsb(frequencies.get_freq_code('D')[0]) ==
+                frequencies.get_freq_code('D')[0])
+        assert (tsb(frequencies.get_freq_code('W')[0]) ==
+                frequencies.get_freq_code('D')[0])
+        assert (tsb(frequencies.get_freq_code('M')[0]) ==
+                frequencies.get_freq_code('D')[0])
 
-        self.assertEqual(tsb(frequencies.get_freq_code('S')[0]),
-                         frequencies.get_freq_code('S')[0])
-        self.assertEqual(tsb(frequencies.get_freq_code('T')[0]),
-                         frequencies.get_freq_code('S')[0])
-        self.assertEqual(tsb(frequencies.get_freq_code('H')[0]),
-                         frequencies.get_freq_code('S')[0])
+        assert (tsb(frequencies.get_freq_code('S')[0]) ==
+                frequencies.get_freq_code('S')[0])
+        assert (tsb(frequencies.get_freq_code('T')[0]) ==
+                frequencies.get_freq_code('S')[0])
+        assert (tsb(frequencies.get_freq_code('H')[0]) ==
+                frequencies.get_freq_code('S')[0])
 
     def test_freq_to_reso(self):
         Reso = frequencies.Resolution
 
-        self.assertEqual(Reso.get_str_from_freq('A'), 'year')
-        self.assertEqual(Reso.get_str_from_freq('Q'), 'quarter')
-        self.assertEqual(Reso.get_str_from_freq('M'), 'month')
-        self.assertEqual(Reso.get_str_from_freq('D'), 'day')
-        self.assertEqual(Reso.get_str_from_freq('H'), 'hour')
-        self.assertEqual(Reso.get_str_from_freq('T'), 'minute')
-        self.assertEqual(Reso.get_str_from_freq('S'), 'second')
-        self.assertEqual(Reso.get_str_from_freq('L'), 'millisecond')
-        self.assertEqual(Reso.get_str_from_freq('U'), 'microsecond')
-        self.assertEqual(Reso.get_str_from_freq('N'), 'nanosecond')
+        assert Reso.get_str_from_freq('A') == 'year'
+        assert Reso.get_str_from_freq('Q') == 'quarter'
+        assert Reso.get_str_from_freq('M') == 'month'
+        assert Reso.get_str_from_freq('D') == 'day'
+        assert Reso.get_str_from_freq('H') == 'hour'
+        assert Reso.get_str_from_freq('T') == 'minute'
+        assert Reso.get_str_from_freq('S') == 'second'
+        assert Reso.get_str_from_freq('L') == 'millisecond'
+        assert Reso.get_str_from_freq('U') == 'microsecond'
+        assert Reso.get_str_from_freq('N') == 'nanosecond'
 
         for freq in ['A', 'Q', 'M', 'D', 'H', 'T', 'S', 'L', 'U', 'N']:
             # check roundtrip
             result = Reso.get_freq(Reso.get_str_from_freq(freq))
-            self.assertEqual(freq, result)
+            assert freq == result
 
         for freq in ['D', 'H', 'T', 'S', 'L', 'U']:
             result = Reso.get_freq(Reso.get_str(Reso.get_reso_from_freq(freq)))
-            self.assertEqual(freq, result)
+            assert freq == result
 
     def test_resolution_bumping(self):
-        # GH 14378
+        # see gh-14378
         Reso = frequencies.Resolution
 
-        self.assertEqual(Reso.get_stride_from_decimal(1.5, 'T'), (90, 'S'))
-        self.assertEqual(Reso.get_stride_from_decimal(62.4, 'T'), (3744, 'S'))
-        self.assertEqual(Reso.get_stride_from_decimal(1.04, 'H'), (3744, 'S'))
-        self.assertEqual(Reso.get_stride_from_decimal(1, 'D'), (1, 'D'))
-        self.assertEqual(Reso.get_stride_from_decimal(0.342931, 'H'),
-                         (1234551600, 'U'))
-        self.assertEqual(Reso.get_stride_from_decimal(1.2345, 'D'),
-                         (106660800, 'L'))
+        assert Reso.get_stride_from_decimal(1.5, 'T') == (90, 'S')
+        assert Reso.get_stride_from_decimal(62.4, 'T') == (3744, 'S')
+        assert Reso.get_stride_from_decimal(1.04, 'H') == (3744, 'S')
+        assert Reso.get_stride_from_decimal(1, 'D') == (1, 'D')
+        assert (Reso.get_stride_from_decimal(0.342931, 'H') ==
+                (1234551600, 'U'))
+        assert Reso.get_stride_from_decimal(1.2345, 'D') == (106660800, 'L')
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Reso.get_stride_from_decimal(0.5, 'N')
 
         # too much precision in the input can prevent
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             Reso.get_stride_from_decimal(0.3429324798798269273987982, 'H')
 
     def test_get_freq_code(self):
-        # freqstr
-        self.assertEqual(frequencies.get_freq_code('A'),
-                         (frequencies.get_freq('A'), 1))
-        self.assertEqual(frequencies.get_freq_code('3D'),
-                         (frequencies.get_freq('D'), 3))
-        self.assertEqual(frequencies.get_freq_code('-2M'),
-                         (frequencies.get_freq('M'), -2))
+        # frequency str
+        assert (frequencies.get_freq_code('A') ==
+                (frequencies.get_freq('A'), 1))
+        assert (frequencies.get_freq_code('3D') ==
+                (frequencies.get_freq('D'), 3))
+        assert (frequencies.get_freq_code('-2M') ==
+                (frequencies.get_freq('M'), -2))
 
         # tuple
-        self.assertEqual(frequencies.get_freq_code(('D', 1)),
-                         (frequencies.get_freq('D'), 1))
-        self.assertEqual(frequencies.get_freq_code(('A', 3)),
-                         (frequencies.get_freq('A'), 3))
-        self.assertEqual(frequencies.get_freq_code(('M', -2)),
-                         (frequencies.get_freq('M'), -2))
+        assert (frequencies.get_freq_code(('D', 1)) ==
+                (frequencies.get_freq('D'), 1))
+        assert (frequencies.get_freq_code(('A', 3)) ==
+                (frequencies.get_freq('A'), 3))
+        assert (frequencies.get_freq_code(('M', -2)) ==
+                (frequencies.get_freq('M'), -2))
+
         # numeric tuple
-        self.assertEqual(frequencies.get_freq_code((1000, 1)), (1000, 1))
+        assert frequencies.get_freq_code((1000, 1)) == (1000, 1)
 
         # offsets
-        self.assertEqual(frequencies.get_freq_code(offsets.Day()),
-                         (frequencies.get_freq('D'), 1))
-        self.assertEqual(frequencies.get_freq_code(offsets.Day(3)),
-                         (frequencies.get_freq('D'), 3))
-        self.assertEqual(frequencies.get_freq_code(offsets.Day(-2)),
-                         (frequencies.get_freq('D'), -2))
+        assert (frequencies.get_freq_code(offsets.Day()) ==
+                (frequencies.get_freq('D'), 1))
+        assert (frequencies.get_freq_code(offsets.Day(3)) ==
+                (frequencies.get_freq('D'), 3))
+        assert (frequencies.get_freq_code(offsets.Day(-2)) ==
+                (frequencies.get_freq('D'), -2))
 
-        self.assertEqual(frequencies.get_freq_code(offsets.MonthEnd()),
-                         (frequencies.get_freq('M'), 1))
-        self.assertEqual(frequencies.get_freq_code(offsets.MonthEnd(3)),
-                         (frequencies.get_freq('M'), 3))
-        self.assertEqual(frequencies.get_freq_code(offsets.MonthEnd(-2)),
-                         (frequencies.get_freq('M'), -2))
+        assert (frequencies.get_freq_code(offsets.MonthEnd()) ==
+                (frequencies.get_freq('M'), 1))
+        assert (frequencies.get_freq_code(offsets.MonthEnd(3)) ==
+                (frequencies.get_freq('M'), 3))
+        assert (frequencies.get_freq_code(offsets.MonthEnd(-2)) ==
+                (frequencies.get_freq('M'), -2))
 
-        self.assertEqual(frequencies.get_freq_code(offsets.Week()),
-                         (frequencies.get_freq('W'), 1))
-        self.assertEqual(frequencies.get_freq_code(offsets.Week(3)),
-                         (frequencies.get_freq('W'), 3))
-        self.assertEqual(frequencies.get_freq_code(offsets.Week(-2)),
-                         (frequencies.get_freq('W'), -2))
+        assert (frequencies.get_freq_code(offsets.Week()) ==
+                (frequencies.get_freq('W'), 1))
+        assert (frequencies.get_freq_code(offsets.Week(3)) ==
+                (frequencies.get_freq('W'), 3))
+        assert (frequencies.get_freq_code(offsets.Week(-2)) ==
+                (frequencies.get_freq('W'), -2))
 
-        # monday is weekday=0
-        self.assertEqual(frequencies.get_freq_code(offsets.Week(weekday=1)),
-                         (frequencies.get_freq('W-TUE'), 1))
-        self.assertEqual(frequencies.get_freq_code(offsets.Week(3, weekday=0)),
-                         (frequencies.get_freq('W-MON'), 3))
-        self.assertEqual(
-            frequencies.get_freq_code(offsets.Week(-2, weekday=4)),
-            (frequencies.get_freq('W-FRI'), -2))
+        # Monday is weekday=0
+        assert (frequencies.get_freq_code(offsets.Week(weekday=1)) ==
+                (frequencies.get_freq('W-TUE'), 1))
+        assert (frequencies.get_freq_code(offsets.Week(3, weekday=0)) ==
+                (frequencies.get_freq('W-MON'), 3))
+        assert (frequencies.get_freq_code(offsets.Week(-2, weekday=4)) ==
+                (frequencies.get_freq('W-FRI'), -2))
+
+    def test_frequency_misc(self):
+        assert (resolution.get_freq_group('T') ==
+                frequencies.FreqGroup.FR_MIN)
+
+        code, stride = frequencies.get_freq_code(offsets.Hour())
+        assert code == frequencies.FreqGroup.FR_HR
+
+        code, stride = frequencies.get_freq_code((5, 'T'))
+        assert code == frequencies.FreqGroup.FR_MIN
+        assert stride == 5
+
+        offset = offsets.Hour()
+        result = frequencies.to_offset(offset)
+        assert result == offset
+
+        result = frequencies.to_offset((5, 'T'))
+        expected = offsets.Minute(5)
+        assert result == expected
+
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            frequencies.get_freq_code((5, 'baz'))
+
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            frequencies.to_offset('100foo')
+
+        with tm.assert_raises_regex(ValueError, 'Could not evaluate'):
+            frequencies.to_offset(('', ''))
 
 
 _dti = DatetimeIndex
 
 
-class TestFrequencyInference(tm.TestCase):
+class TestFrequencyInference(object):
 
     def test_raise_if_period_index(self):
         index = PeriodIndex(start="1/1/1990", periods=20, freq="M")
-        self.assertRaises(TypeError, frequencies.infer_freq, index)
+        pytest.raises(TypeError, frequencies.infer_freq, index)
 
     def test_raise_if_too_few(self):
         index = _dti(['12/31/1998', '1/3/1999'])
-        self.assertRaises(ValueError, frequencies.infer_freq, index)
+        pytest.raises(ValueError, frequencies.infer_freq, index)
 
     def test_business_daily(self):
+        index = _dti(['01/01/1999', '1/4/1999', '1/5/1999'])
+        assert frequencies.infer_freq(index) == 'B'
+
+    def test_business_daily_look_alike(self):
+        # GH 16624, do not infer 'B' when 'weekend' (2-day gap) in wrong place
         index = _dti(['12/31/1998', '1/3/1999', '1/4/1999'])
-        self.assertEqual(frequencies.infer_freq(index), 'B')
+        assert frequencies.infer_freq(index) is None
 
     def test_day(self):
         self._check_tick(timedelta(1), 'D')
 
     def test_day_corner(self):
         index = _dti(['1/1/2000', '1/2/2000', '1/3/2000'])
-        self.assertEqual(frequencies.infer_freq(index), 'D')
+        assert frequencies.infer_freq(index) == 'D'
 
     def test_non_datetimeindex(self):
         dates = to_datetime(['1/1/2000', '1/2/2000', '1/3/2000'])
-        self.assertEqual(frequencies.infer_freq(dates), 'D')
+        assert frequencies.infer_freq(dates) == 'D'
 
     def test_hour(self):
         self._check_tick(timedelta(hours=1), 'H')
@@ -540,16 +534,16 @@ class TestFrequencyInference(tm.TestCase):
                 exp_freq = '%d%s' % (i, code)
             else:
                 exp_freq = code
-            self.assertEqual(frequencies.infer_freq(index), exp_freq)
+            assert frequencies.infer_freq(index) == exp_freq
 
         index = _dti([b + base_delta * 7] + [b + base_delta * j for j in range(
             3)])
-        self.assertIsNone(frequencies.infer_freq(index))
+        assert frequencies.infer_freq(index) is None
 
         index = _dti([b + base_delta * j for j in range(3)] + [b + base_delta *
                                                                7])
 
-        self.assertIsNone(frequencies.infer_freq(index))
+        assert frequencies.infer_freq(index) is None
 
     def test_weekly(self):
         days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -567,7 +561,7 @@ class TestFrequencyInference(tm.TestCase):
     def test_fifth_week_of_month(self):
         # Only supports freq up to WOM-4. See #9425
         func = lambda: date_range('2014-01-01', freq='WOM-5MON')
-        self.assertRaises(ValueError, func)
+        pytest.raises(ValueError, func)
 
     def test_fifth_week_of_month_infer(self):
         # Only attempts to infer up to WOM-4. See #9425
@@ -585,7 +579,7 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_monthly_ambiguous(self):
         rng = _dti(['1/31/2000', '2/29/2000', '3/31/2000'])
-        self.assertEqual(rng.inferred_freq, 'M')
+        assert rng.inferred_freq == 'M'
 
     def test_business_monthly(self):
         self._check_generated_range('1/1/2000', 'BM')
@@ -607,7 +601,7 @@ class TestFrequencyInference(tm.TestCase):
 
     def test_annual_ambiguous(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
-        self.assertEqual(rng.inferred_freq, 'A-JAN')
+        assert rng.inferred_freq == 'A-JAN'
 
     def _check_generated_range(self, start, freq):
         freq = freq.upper()
@@ -615,41 +609,45 @@ class TestFrequencyInference(tm.TestCase):
         gen = date_range(start, periods=7, freq=freq)
         index = _dti(gen.values)
         if not freq.startswith('Q-'):
-            self.assertEqual(frequencies.infer_freq(index), gen.freqstr)
+            assert frequencies.infer_freq(index) == gen.freqstr
         else:
             inf_freq = frequencies.infer_freq(index)
-            self.assertTrue((inf_freq == 'Q-DEC' and gen.freqstr in (
-                'Q', 'Q-DEC', 'Q-SEP', 'Q-JUN', 'Q-MAR')) or (
-                    inf_freq == 'Q-NOV' and gen.freqstr in (
-                        'Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB')) or (
-                            inf_freq == 'Q-OCT' and gen.freqstr in (
-                                'Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
+            is_dec_range = inf_freq == 'Q-DEC' and gen.freqstr in (
+                'Q', 'Q-DEC', 'Q-SEP', 'Q-JUN', 'Q-MAR')
+            is_nov_range = inf_freq == 'Q-NOV' and gen.freqstr in (
+                'Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB')
+            is_oct_range = inf_freq == 'Q-OCT' and gen.freqstr in (
+                'Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')
+            assert is_dec_range or is_nov_range or is_oct_range
 
         gen = date_range(start, periods=5, freq=freq)
         index = _dti(gen.values)
+
         if not freq.startswith('Q-'):
-            self.assertEqual(frequencies.infer_freq(index), gen.freqstr)
+            assert frequencies.infer_freq(index) == gen.freqstr
         else:
             inf_freq = frequencies.infer_freq(index)
-            self.assertTrue((inf_freq == 'Q-DEC' and gen.freqstr in (
-                'Q', 'Q-DEC', 'Q-SEP', 'Q-JUN', 'Q-MAR')) or (
-                    inf_freq == 'Q-NOV' and gen.freqstr in (
-                        'Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB')) or (
-                            inf_freq == 'Q-OCT' and gen.freqstr in (
-                                'Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')))
+            is_dec_range = inf_freq == 'Q-DEC' and gen.freqstr in (
+                'Q', 'Q-DEC', 'Q-SEP', 'Q-JUN', 'Q-MAR')
+            is_nov_range = inf_freq == 'Q-NOV' and gen.freqstr in (
+                'Q-NOV', 'Q-AUG', 'Q-MAY', 'Q-FEB')
+            is_oct_range = inf_freq == 'Q-OCT' and gen.freqstr in (
+                'Q-OCT', 'Q-JUL', 'Q-APR', 'Q-JAN')
+
+            assert is_dec_range or is_nov_range or is_oct_range
 
     def test_infer_freq(self):
         rng = period_range('1959Q2', '2009Q3', freq='Q')
-        rng = Index(rng.to_timestamp('D', how='e').asobject)
-        self.assertEqual(rng.inferred_freq, 'Q-DEC')
+        rng = Index(rng.to_timestamp('D', how='e').astype(object))
+        assert rng.inferred_freq == 'Q-DEC'
 
         rng = period_range('1959Q2', '2009Q3', freq='Q-NOV')
-        rng = Index(rng.to_timestamp('D', how='e').asobject)
-        self.assertEqual(rng.inferred_freq, 'Q-NOV')
+        rng = Index(rng.to_timestamp('D', how='e').astype(object))
+        assert rng.inferred_freq == 'Q-NOV'
 
         rng = period_range('1959Q2', '2009Q3', freq='Q-OCT')
-        rng = Index(rng.to_timestamp('D', how='e').asobject)
-        self.assertEqual(rng.inferred_freq, 'Q-OCT')
+        rng = Index(rng.to_timestamp('D', how='e').astype(object))
+        assert rng.inferred_freq == 'Q-OCT'
 
     def test_infer_freq_tz(self):
 
@@ -669,7 +667,7 @@ class TestFrequencyInference(tm.TestCase):
                    'US/Pacific', 'US/Eastern']:
             for expected, dates in compat.iteritems(freqs):
                 idx = DatetimeIndex(dates, tz=tz)
-                self.assertEqual(idx.inferred_freq, expected)
+                assert idx.inferred_freq == expected
 
     def test_infer_freq_tz_transition(self):
         # Tests for #8772
@@ -685,11 +683,11 @@ class TestFrequencyInference(tm.TestCase):
                 for freq in freqs:
                     idx = date_range(date_pair[0], date_pair[
                         1], freq=freq, tz=tz)
-                    self.assertEqual(idx.inferred_freq, freq)
+                    assert idx.inferred_freq == freq
 
         index = date_range("2013-11-03", periods=5,
                            freq="3H").tz_localize("America/Chicago")
-        self.assertIsNone(index.inferred_freq)
+        assert index.inferred_freq is None
 
     def test_infer_freq_businesshour(self):
         # GH 7905
@@ -697,21 +695,21 @@ class TestFrequencyInference(tm.TestCase):
             ['2014-07-01 09:00', '2014-07-01 10:00', '2014-07-01 11:00',
              '2014-07-01 12:00', '2014-07-01 13:00', '2014-07-01 14:00'])
         # hourly freq in a day must result in 'H'
-        self.assertEqual(idx.inferred_freq, 'H')
+        assert idx.inferred_freq == 'H'
 
         idx = DatetimeIndex(
             ['2014-07-01 09:00', '2014-07-01 10:00', '2014-07-01 11:00',
              '2014-07-01 12:00', '2014-07-01 13:00', '2014-07-01 14:00',
              '2014-07-01 15:00', '2014-07-01 16:00', '2014-07-02 09:00',
              '2014-07-02 10:00', '2014-07-02 11:00'])
-        self.assertEqual(idx.inferred_freq, 'BH')
+        assert idx.inferred_freq == 'BH'
 
         idx = DatetimeIndex(
             ['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
              '2014-07-04 12:00', '2014-07-04 13:00', '2014-07-04 14:00',
              '2014-07-04 15:00', '2014-07-04 16:00', '2014-07-07 09:00',
              '2014-07-07 10:00', '2014-07-07 11:00'])
-        self.assertEqual(idx.inferred_freq, 'BH')
+        assert idx.inferred_freq == 'BH'
 
         idx = DatetimeIndex(
             ['2014-07-04 09:00', '2014-07-04 10:00', '2014-07-04 11:00',
@@ -722,12 +720,12 @@ class TestFrequencyInference(tm.TestCase):
              '2014-07-07 16:00', '2014-07-08 09:00', '2014-07-08 10:00',
              '2014-07-08 11:00', '2014-07-08 12:00', '2014-07-08 13:00',
              '2014-07-08 14:00', '2014-07-08 15:00', '2014-07-08 16:00'])
-        self.assertEqual(idx.inferred_freq, 'BH')
+        assert idx.inferred_freq == 'BH'
 
     def test_not_monotonic(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
         rng = rng[::-1]
-        self.assertEqual(rng.inferred_freq, '-1A-JAN')
+        assert rng.inferred_freq == '-1A-JAN'
 
     def test_non_datetimeindex2(self):
         rng = _dti(['1/31/2000', '1/31/2001', '1/31/2002'])
@@ -735,21 +733,20 @@ class TestFrequencyInference(tm.TestCase):
         vals = rng.to_pydatetime()
 
         result = frequencies.infer_freq(vals)
-        self.assertEqual(result, rng.inferred_freq)
+        assert result == rng.inferred_freq
 
     def test_invalid_index_types(self):
 
         # test all index types
         for i in [tm.makeIntIndex(10), tm.makeFloatIndex(10),
                   tm.makePeriodIndex(10)]:
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(i))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(i))
 
         # GH 10822
         # odd error message on conversions to datetime for unicode
         if not is_platform_windows():
             for i in [tm.makeStringIndex(10), tm.makeUnicodeIndex(10)]:
-                self.assertRaises(ValueError,
-                                  lambda: frequencies.infer_freq(i))
+                pytest.raises(ValueError, lambda: frequencies.infer_freq(i))
 
     def test_string_datetimelike_compat(self):
 
@@ -758,7 +755,7 @@ class TestFrequencyInference(tm.TestCase):
                                            '2004-04'])
         result = frequencies.infer_freq(Index(['2004-01', '2004-02', '2004-03',
                                                '2004-04']))
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_series(self):
 
@@ -767,79 +764,43 @@ class TestFrequencyInference(tm.TestCase):
 
         # invalid type of Series
         for s in [Series(np.arange(10)), Series(np.arange(10.))]:
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
         # a non-convertible string
-        self.assertRaises(ValueError,
-                          lambda: frequencies.infer_freq(
-                              Series(['foo', 'bar'])))
+        pytest.raises(ValueError, lambda: frequencies.infer_freq(
+            Series(['foo', 'bar'])))
 
         # cannot infer on PeriodIndex
         for freq in [None, 'L']:
             s = Series(period_range('2013', periods=10, freq=freq))
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
-        for freq in ['Y']:
-
-            msg = frequencies._INVALID_FREQ_ERROR
-            with tm.assertRaisesRegexp(ValueError, msg):
-                s = Series(period_range('2013', periods=10, freq=freq))
-            self.assertRaises(TypeError, lambda: frequencies.infer_freq(s))
+            pytest.raises(TypeError, lambda: frequencies.infer_freq(s))
 
         # DateTimeIndex
         for freq in ['M', 'L', 'S']:
             s = Series(date_range('20130101', periods=10, freq=freq))
             inferred = frequencies.infer_freq(s)
-            self.assertEqual(inferred, freq)
+            assert inferred == freq
 
         s = Series(date_range('20130101', '20130110'))
         inferred = frequencies.infer_freq(s)
-        self.assertEqual(inferred, 'D')
+        assert inferred == 'D'
 
     def test_legacy_offset_warnings(self):
         freqs = ['WEEKDAY', 'EOM', 'W@MON', 'W@TUE', 'W@WED', 'W@THU',
                  'W@FRI', 'W@SAT', 'W@SUN', 'Q@JAN', 'Q@FEB', 'Q@MAR',
                  'A@JAN', 'A@FEB', 'A@MAR', 'A@APR', 'A@MAY', 'A@JUN',
                  'A@JUL', 'A@AUG', 'A@SEP', 'A@OCT', 'A@NOV', 'A@DEC',
-                 'WOM@1MON', 'WOM@2MON', 'WOM@3MON', 'WOM@4MON',
-                 'WOM@1TUE', 'WOM@2TUE', 'WOM@3TUE', 'WOM@4TUE',
-                 'WOM@1WED', 'WOM@2WED', 'WOM@3WED', 'WOM@4WED',
-                 'WOM@1THU', 'WOM@2THU', 'WOM@3THU', 'WOM@4THU'
-                 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI', 'WOM@4FRI']
+                 'Y@JAN', 'WOM@1MON', 'WOM@2MON', 'WOM@3MON',
+                 'WOM@4MON', 'WOM@1TUE', 'WOM@2TUE', 'WOM@3TUE',
+                 'WOM@4TUE', 'WOM@1WED', 'WOM@2WED', 'WOM@3WED',
+                 'WOM@4WED', 'WOM@1THU', 'WOM@2THU', 'WOM@3THU',
+                 'WOM@4THU', 'WOM@1FRI', 'WOM@2FRI', 'WOM@3FRI',
+                 'WOM@4FRI']
 
-        msg = frequencies._INVALID_FREQ_ERROR
+        msg = INVALID_FREQ_ERR_MSG
         for freq in freqs:
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 frequencies.get_offset(freq)
 
-            with tm.assertRaisesRegexp(ValueError, msg):
+            with tm.assert_raises_regex(ValueError, msg):
                 date_range('2011-01-01', periods=5, freq=freq)
-
-
-MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT',
-          'NOV', 'DEC']
-
-
-def test_is_superperiod_subperiod():
-
-    # input validation
-    assert not (frequencies.is_superperiod(offsets.YearEnd(), None))
-    assert not (frequencies.is_subperiod(offsets.MonthEnd(), None))
-    assert not (frequencies.is_superperiod(None, offsets.YearEnd()))
-    assert not (frequencies.is_subperiod(None, offsets.MonthEnd()))
-    assert not (frequencies.is_superperiod(None, None))
-    assert not (frequencies.is_subperiod(None, None))
-
-    assert (frequencies.is_superperiod(offsets.YearEnd(), offsets.MonthEnd()))
-    assert (frequencies.is_subperiod(offsets.MonthEnd(), offsets.YearEnd()))
-
-    assert (frequencies.is_superperiod(offsets.Hour(), offsets.Minute()))
-    assert (frequencies.is_subperiod(offsets.Minute(), offsets.Hour()))
-
-    assert (frequencies.is_superperiod(offsets.Second(), offsets.Milli()))
-    assert (frequencies.is_subperiod(offsets.Milli(), offsets.Second()))
-
-    assert (frequencies.is_superperiod(offsets.Milli(), offsets.Micro()))
-    assert (frequencies.is_subperiod(offsets.Micro(), offsets.Milli()))
-
-    assert (frequencies.is_superperiod(offsets.Micro(), offsets.Nano()))
-    assert (frequencies.is_subperiod(offsets.Nano(), offsets.Micro()))

@@ -140,7 +140,7 @@ typedef int64_t JSLONG;
 #endif
 
 #if !defined(__LITTLE_ENDIAN__) && !defined(__BIG_ENDIAN__)
-#error "Endianess not supported"
+#error "Endianness not supported"
 #endif
 
 enum JSTYPES {
@@ -233,7 +233,7 @@ typedef struct __JSONObjectEncoder {
   int recursionMax;
 
   /*
-  Configuration for max decimals of double floating poiunt numbers to encode (0-9) */
+  Configuration for max decimals of double floating point numbers to encode (0-9) */
   int doublePrecision;
 
   /*
@@ -245,7 +245,7 @@ typedef struct __JSONObjectEncoder {
   int encodeHTMLChars;
 
   /*
-  Set to an error message if error occured */
+  Set to an error message if error occurred */
   const char *errorMsg;
   JSOBJ errorObj;
 
@@ -306,5 +306,12 @@ typedef struct __JSONObjectDecoder {
 EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec,
                                        const char *buffer, size_t cbBuffer);
 EXPORTFUNCTION void encode(JSOBJ, JSONObjectEncoder *, const char *, size_t);
+
+#define Buffer_Reserve(__enc, __len)                                  \
+    if ((size_t)((__enc)->end - (__enc)->offset) < (size_t)(__len)) { \
+        Buffer_Realloc((__enc), (__len));                             \
+    }
+
+void Buffer_Realloc(JSONObjectEncoder *enc, size_t cbNeeded);
 
 #endif  // PANDAS__LIBS_SRC_UJSON_LIB_ULTRAJSON_H_

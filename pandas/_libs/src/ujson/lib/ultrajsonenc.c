@@ -714,11 +714,6 @@ int Buffer_EscapeStringValidated(JSOBJ obj, JSONObjectEncoder *enc,
     }
 }
 
-#define Buffer_Reserve(__enc, __len)                                  \
-    if ((size_t)((__enc)->end - (__enc)->offset) < (size_t)(__len)) { \
-        Buffer_Realloc((__enc), (__len));                             \
-    }
-
 #define Buffer_AppendCharUnchecked(__enc, __chr) *((__enc)->offset++) = __chr;
 
 FASTCALL_ATTR INLINE_PREFIX void FASTCALL_MSVC strreverse(char *begin,
@@ -823,15 +818,17 @@ int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
 
     if (diff > 0.5) {
         ++frac;
-        /* handle rollover, e.g.  case 0.99 with prec 1 is 1.0  */
-        if (frac >= pow10) {
-            frac = 0;
-            ++whole;
-        }
     } else if (diff == 0.5 && ((frac == 0) || (frac & 1))) {
         /* if halfway, round up if odd, OR
         if last digit is 0.  That last part is strange */
         ++frac;
+    }
+
+    // handle rollover, e.g.
+    // case 0.99 with prec 1 is 1.0 and case 0.95 with prec is 1.0 as well
+    if (frac >= pow10) {
+        frac = 0;
+        ++whole;
     }
 
     if (enc->doublePrecision == 0) {
@@ -974,6 +971,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             }
 
             enc->iterEnd(obj, &tc);
+            Buffer_Reserve(enc, 2);
             Buffer_AppendCharUnchecked(enc, ']');
             break;
         }
@@ -1001,6 +999,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             }
 
             enc->iterEnd(obj, &tc);
+            Buffer_Reserve(enc, 2);
             Buffer_AppendCharUnchecked(enc, '}');
             break;
         }

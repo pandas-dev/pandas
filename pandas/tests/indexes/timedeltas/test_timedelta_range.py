@@ -1,14 +1,12 @@
+import pytest
 import numpy as np
-
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Day, Second
 from pandas import to_timedelta, timedelta_range
-from pandas.util.testing import assert_frame_equal
 
 
-class TestTimedeltas(tm.TestCase):
-    _multiprocess_can_split_ = True
+class TestTimedeltas(object):
 
     def test_timedelta_range(self):
 
@@ -37,10 +35,10 @@ class TestTimedeltas(tm.TestCase):
         arr = np.arange(10).reshape(2, 5)
         df = pd.DataFrame(np.arange(10).reshape(2, 5))
         for arg in (arr, df):
-            with tm.assertRaisesRegexp(TypeError, "1-d array"):
+            with tm.assert_raises_regex(TypeError, "1-d array"):
                 to_timedelta(arg)
             for errors in ['ignore', 'raise', 'coerce']:
-                with tm.assertRaisesRegexp(TypeError, "1-d array"):
+                with tm.assert_raises_regex(TypeError, "1-d array"):
                     to_timedelta(arg, errors=errors)
 
         # issue10583
@@ -48,4 +46,36 @@ class TestTimedeltas(tm.TestCase):
         df.index = pd.timedelta_range(start='0s', periods=10, freq='s')
         expected = df.loc[pd.Timedelta('0s'):, :]
         result = df.loc['0s':, :]
-        assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
+
+        with pytest.raises(ValueError):
+            # GH 22274: CalendarDay is a relative time measurement
+            timedelta_range('1day', freq='CD', periods=2)
+
+    @pytest.mark.parametrize('periods, freq', [
+        (3, '2D'), (5, 'D'), (6, '19H12T'), (7, '16H'), (9, '12H')])
+    def test_linspace_behavior(self, periods, freq):
+        # GH 20976
+        result = timedelta_range(start='0 days', end='4 days', periods=periods)
+        expected = timedelta_range(start='0 days', end='4 days', freq=freq)
+        tm.assert_index_equal(result, expected)
+
+    def test_errors(self):
+        # not enough params
+        msg = ('Of the four parameters: start, end, periods, and freq, '
+               'exactly three must be specified')
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(start='0 days')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(end='5 days')
+
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(periods=2)
+
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range()
+
+        # too many params
+        with tm.assert_raises_regex(ValueError, msg):
+            timedelta_range(start='0 days', end='5 days', periods=10, freq='H')

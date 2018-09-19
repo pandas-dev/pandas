@@ -6,9 +6,11 @@ import pytz
 import numpy as np
 from pandas import (NaT, Index, Timestamp, Timedelta, Period,
                     DatetimeIndex, PeriodIndex,
-                    TimedeltaIndex, Series, isnull)
+                    TimedeltaIndex, Series, isna)
 from pandas.util import testing as tm
 from pandas._libs.tslib import iNaT
+
+from pandas.compat import callable
 
 
 @pytest.mark.parametrize('nat, idx', [(Timestamp('NaT'), DatetimeIndex),
@@ -95,7 +97,7 @@ def test_identity(klass):
     result = klass('NaT')
     assert result is NaT
 
-    assert isnull(klass('nat'))
+    assert isna(klass('nat'))
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta, Period])
@@ -108,7 +110,7 @@ def test_equality(klass):
     klass('NAT').value == iNaT
     klass(None).value == iNaT
     klass(np.nan).value == iNaT
-    assert isnull(klass('nat'))
+    assert isna(klass('nat'))
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta])
@@ -123,13 +125,15 @@ def test_round_nat(klass):
 
 def test_NaT_methods():
     # GH 9513
+    # GH 17329 for `timestamp`
     raise_methods = ['astimezone', 'combine', 'ctime', 'dst',
                      'fromordinal', 'fromtimestamp', 'isocalendar',
                      'strftime', 'strptime', 'time', 'timestamp',
                      'timetuple', 'timetz', 'toordinal', 'tzname',
                      'utcfromtimestamp', 'utcnow', 'utcoffset',
-                     'utctimetuple']
-    nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today']
+                     'utctimetuple', 'timestamp']
+    nat_methods = ['date', 'now', 'replace', 'to_datetime', 'today',
+                   'tz_convert', 'tz_localize']
     nan_methods = ['weekday', 'isoweekday']
 
     for method in raise_methods:
@@ -153,6 +157,54 @@ def test_NaT_methods():
 
     # GH 12300
     assert NaT.isoformat() == 'NaT'
+
+
+def test_NaT_docstrings():
+    # GH#17327
+    nat_names = dir(NaT)
+
+    # NaT should have *most* of the Timestamp methods, with matching
+    # docstrings.  The attributes that are not expected to be present in NaT
+    # are private methods plus `ts_expected` below.
+    ts_names = dir(Timestamp)
+    ts_missing = [x for x in ts_names if x not in nat_names and
+                  not x.startswith('_')]
+    ts_missing.sort()
+    ts_expected = ['freqstr', 'normalize',
+                   'to_julian_date',
+                   'to_period', 'tz']
+    assert ts_missing == ts_expected
+
+    ts_overlap = [x for x in nat_names if x in ts_names and
+                  not x.startswith('_') and
+                  callable(getattr(Timestamp, x))]
+    for name in ts_overlap:
+        tsdoc = getattr(Timestamp, name).__doc__
+        natdoc = getattr(NaT, name).__doc__
+        assert tsdoc == natdoc
+
+    # NaT should have *most* of the Timedelta methods, with matching
+    # docstrings.  The attributes that are not expected to be present in NaT
+    # are private methods plus `td_expected` below.
+    # For methods that are both Timestamp and Timedelta methods, the
+    # Timestamp docstring takes priority.
+    td_names = dir(Timedelta)
+    td_missing = [x for x in td_names if x not in nat_names and
+                  not x.startswith('_')]
+    td_missing.sort()
+    td_expected = ['components', 'delta', 'is_populated',
+                   'to_pytimedelta', 'to_timedelta64', 'view']
+    assert td_missing == td_expected
+
+    td_overlap = [x for x in nat_names if x in td_names and
+                  x not in ts_names and  # Timestamp __doc__ takes priority
+                  not x.startswith('_') and
+                  callable(getattr(Timedelta, x))]
+    assert td_overlap == ['total_seconds']
+    for name in td_overlap:
+        tddoc = getattr(Timedelta, name).__doc__
+        natdoc = getattr(NaT, name).__doc__
+        assert tddoc == natdoc
 
 
 @pytest.mark.parametrize('klass', [Timestamp, Timedelta])
@@ -197,6 +249,8 @@ def test_nat_arithmetic():
         assert left + right is NaT
         assert right - left is NaT
         assert left - right is NaT
+        assert np.isnan(left / right)
+        assert np.isnan(right / left)
 
     # GH 11718
     t_utc = Timestamp('2014-01-01', tz='UTC')
@@ -219,6 +273,16 @@ def test_nat_arithmetic():
         assert right - left is NaT
 
 
+def test_nat_rfloordiv_timedelta():
+    # GH#18846
+    # See also test_timedelta.TestTimedeltaArithmetic.test_floordiv
+    td = Timedelta(hours=3, minutes=4)
+
+    assert td // np.nan is NaT
+    assert np.isnan(td // NaT)
+    assert np.isnan(td // np.timedelta64('NaT'))
+
+
 def test_nat_arithmetic_index():
     # GH 11718
 
@@ -238,11 +302,31 @@ def test_nat_arithmetic_index():
         tm.assert_index_equal(left - right, exp)
         tm.assert_index_equal(right - left, exp)
 
-    # timedelta
+    # timedelta # GH#19124
     tdi = TimedeltaIndex(['1 day', '2 day'], name='x')
-    exp = DatetimeIndex([NaT, NaT], name='x')
-    for (left, right) in [(NaT, tdi)]:
-        tm.assert_index_equal(left + right, exp)
-        tm.assert_index_equal(right + left, exp)
-        tm.assert_index_equal(left - right, exp)
-        tm.assert_index_equal(right - left, exp)
+    tdi_nat = TimedeltaIndex([NaT, NaT], name='x')
+
+    tm.assert_index_equal(tdi + NaT, tdi_nat)
+    tm.assert_index_equal(NaT + tdi, tdi_nat)
+    tm.assert_index_equal(tdi - NaT, tdi_nat)
+    tm.assert_index_equal(NaT - tdi, tdi_nat)
+
+
+@pytest.mark.parametrize('box, assert_func', [
+    (TimedeltaIndex, tm.assert_index_equal),
+    (Series, tm.assert_series_equal)
+])
+def test_nat_arithmetic_td64_vector(box, assert_func):
+    # GH#19124
+    vec = box(['1 day', '2 day'], dtype='timedelta64[ns]')
+    box_nat = box([NaT, NaT], dtype='timedelta64[ns]')
+
+    assert_func(vec + NaT, box_nat)
+    assert_func(NaT + vec, box_nat)
+    assert_func(vec - NaT, box_nat)
+    assert_func(NaT - vec, box_nat)
+
+
+def test_nat_pinned_docstrings():
+    # GH17327
+    assert NaT.ctime.__doc__ == datetime.ctime.__doc__

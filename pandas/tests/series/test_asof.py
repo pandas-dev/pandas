@@ -1,15 +1,17 @@
 # coding=utf-8
 
+import pytest
+
 import numpy as np
-from pandas import (offsets, Series, notnull,
-                    isnull, date_range, Timestamp)
+from pandas import (offsets, Series, notna,
+                    isna, date_range, Timestamp)
 
 import pandas.util.testing as tm
 
 from .common import TestData
 
 
-class TestSeriesAsof(TestData, tm.TestCase):
+class TestSeriesAsof(TestData):
 
     def test_basic(self):
 
@@ -21,21 +23,21 @@ class TestSeriesAsof(TestData, tm.TestCase):
         dates = date_range('1/1/1990', periods=N * 3, freq='25s')
 
         result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         mask = (result.index >= lb) & (result.index < ub)
         rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
+        assert (rs == ts[lb]).all()
 
         val = result[result.index[result.index >= ub][0]]
-        self.assertEqual(ts[ub], val)
+        assert ts[ub] == val
 
     def test_scalar(self):
 
@@ -48,20 +50,20 @@ class TestSeriesAsof(TestData, tm.TestCase):
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        self.assertEqual(val1, ts[4])
-        self.assertEqual(val2, ts[14])
+        assert val1 == ts[4]
+        assert val2 == ts[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        self.assertEqual(val1, ts[4])
+        assert val1 == ts[4]
 
         # in there
         result = ts.asof(ts.index[3])
-        self.assertEqual(result, ts[3])
+        assert result == ts[3]
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
-        self.assertTrue(np.isnan(ts.asof(d)))
+        assert np.isnan(ts.asof(d))
 
     def test_with_nan(self):
         # basic asof test
@@ -96,19 +98,19 @@ class TestSeriesAsof(TestData, tm.TestCase):
         dates = date_range('1/1/1990', periods=N * 3, freq='37min')
 
         result = ts.asof(dates)
-        self.assertTrue(notnull(result).all())
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         result = ts.asof(list(dates))
-        self.assertTrue(notnull(result).all())
+        assert notna(result).all()
         lb = ts.index[14]
         ub = ts.index[30]
 
         pix = PeriodIndex(result.index.values, freq='H')
         mask = (pix >= lb) & (pix < ub)
         rs = result[mask]
-        self.assertTrue((rs == ts[lb]).all())
+        assert (rs == ts[lb]).all()
 
         ts[5:10] = np.nan
         ts[15:20] = np.nan
@@ -116,19 +118,19 @@ class TestSeriesAsof(TestData, tm.TestCase):
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        self.assertEqual(val1, ts[4])
-        self.assertEqual(val2, ts[14])
+        assert val1 == ts[4]
+        assert val2 == ts[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        self.assertEqual(val1, ts[4])
+        assert val1 == ts[4]
 
         # in there
-        self.assertEqual(ts.asof(ts.index[3]), ts[3])
+        assert ts.asof(ts.index[3]) == ts[3]
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()
-        self.assertTrue(isnull(ts.asof(d)))
+        assert isna(ts.asof(d))
 
     def test_errors(self):
 
@@ -138,15 +140,15 @@ class TestSeriesAsof(TestData, tm.TestCase):
                           Timestamp('20130102')])
 
         # non-monotonic
-        self.assertFalse(s.index.is_monotonic)
-        with self.assertRaises(ValueError):
+        assert not s.index.is_monotonic
+        with pytest.raises(ValueError):
             s.asof(s.index[0])
 
         # subset with Series
         N = 10
         rng = date_range('1/1/1990', periods=N, freq='53s')
         s = Series(np.random.randn(N), index=rng)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.asof(s.index[0], subset='foo')
 
     def test_all_nans(self):
@@ -168,7 +170,7 @@ class TestSeriesAsof(TestData, tm.TestCase):
         # testing scalar input
         date = date_range('1/1/1990', periods=N * 3, freq='25s')[0]
         result = Series(np.nan, index=rng).asof(date)
-        assert isnull(result)
+        assert isna(result)
 
         # test name is propagated
         result = Series(np.nan, index=[1, 2, 3, 4], name='test').asof([4, 5])

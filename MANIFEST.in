@@ -1,27 +1,41 @@
 include MANIFEST.in
 include LICENSE
 include RELEASE.md
-include README.rst
+include README.md
 include setup.py
 
 graft doc
 prune doc/build
 
+graft LICENSES
+
 graft pandas
 
-global-exclude *.so
-global-exclude *.pyd
-global-exclude *.pyc
-global-exclude *~
-global-exclude \#*
-global-exclude .git*
-global-exclude .DS_Store
+global-exclude *.bz2
+global-exclude *.csv
+global-exclude *.dta
+global-exclude *.gz
+global-exclude *.h5
+global-exclude *.html
+global-exclude *.json
+global-exclude *.msgpack
+global-exclude *.pickle
 global-exclude *.png
+global-exclude *.pyc
+global-exclude *.pyd
+global-exclude *.sas7bdat
+global-exclude *.so
+global-exclude *.xls
+global-exclude *.xlsm
+global-exclude *.xlsx
+global-exclude *.xpt
+global-exclude *.xz
+global-exclude *.zip
+global-exclude *~
+global-exclude .DS_Store
+global-exclude .git*
+global-exclude \#*
 
-# include examples/data/*
-# recursive-include examples *.py
-# recursive-include doc/source *
-# recursive-include doc/sphinxext *
-# recursive-include LICENSES *
 include versioneer.py
 include pandas/_version.py
+include pandas/io/formats/templates/*.tpl

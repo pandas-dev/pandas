@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 import numpy as np
 
-from pandas._libs.lib import convert_json_to_lines
+from pandas._libs.writers import convert_json_to_lines
 from pandas import compat, DataFrame
 
 
@@ -114,10 +114,10 @@ def json_normalize(data, record_path=None, meta=None,
     meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
-        * ignore : will ignore KeyError if keys listed in meta are not
-        always present
-        * raise : will raise KeyError if keys listed in meta are not
-        always present
+        * 'ignore' : will ignore KeyError if keys listed in meta are not
+          always present
+        * 'raise' : will raise KeyError if keys listed in meta are not
+          always present
 
         .. versionadded:: 0.20.0
 
@@ -135,6 +135,16 @@ def json_normalize(data, record_path=None, meta=None,
     Examples
     --------
 
+    >>> from pandas.io.json import json_normalize
+    >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
+    ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
+    ...         {'id': 2, 'name': 'Faye Raker'}]
+    >>> json_normalize(data)
+        id        name name.family name.first name.given name.last
+    0  1.0         NaN         NaN     Coleen        NaN      Volk
+    1  NaN         NaN      Regner        NaN       Mose       NaN
+    2  2.0  Faye Raker         NaN        NaN        NaN       NaN
+
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
     ...          'info': {
@@ -150,7 +160,6 @@ def json_normalize(data, record_path=None, meta=None,
     ...          },
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> from pandas.io.json import json_normalize
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
     ...                                           ['info', 'governor']])
     >>> result
@@ -161,6 +170,11 @@ def json_normalize(data, record_path=None, meta=None,
     3      Summit        1234   John Kasich     Ohio        OH
     4    Cuyahoga        1337   John Kasich     Ohio        OH
 
+    >>> data = {'A': [1, 2]}
+    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+        Prefix.0
+    0          1
+    1          2
     """
     def _pull_field(js, spec):
         result = js
@@ -172,7 +186,7 @@ def json_normalize(data, record_path=None, meta=None,
 
         return result
 
-    if isinstance(data, list) and len(data) is 0:
+    if isinstance(data, list) and not data:
         return DataFrame()
 
     # A bit of a hackjob
@@ -180,7 +194,8 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x, dict) for x in compat.itervalues(data[0])]):
+        if any([isinstance(x, dict)
+                for x in compat.itervalues(y)] for y in data):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -198,9 +213,7 @@ def json_normalize(data, record_path=None, meta=None,
     elif not isinstance(meta, list):
         meta = [meta]
 
-    for i, x in enumerate(meta):
-        if not isinstance(x, list):
-            meta[i] = [x]
+    meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records = []
@@ -240,7 +253,8 @@ def json_normalize(data, record_path=None, meta=None,
                                 raise \
                                     KeyError("Try running with "
                                              "errors='ignore' as key "
-                                             "%s is not always present", e)
+                                             "{err} is not always present"
+                                             .format(err=e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
@@ -250,7 +264,8 @@ def json_normalize(data, record_path=None, meta=None,
     result = DataFrame(records)
 
     if record_prefix is not None:
-        result.rename(columns=lambda x: record_prefix + x, inplace=True)
+        result = result.rename(
+            columns=lambda x: "{p}{c}".format(p=record_prefix, c=x))
 
     # Data types, a problem
     for k, v in compat.iteritems(meta_vals):
@@ -258,8 +273,8 @@ def json_normalize(data, record_path=None, meta=None,
             k = meta_prefix + k
 
         if k in result:
-            raise ValueError('Conflicting metadata name %s, '
-                             'need distinguishing prefix ' % k)
+            raise ValueError('Conflicting metadata name {name}, '
+                             'need distinguishing prefix '.format(name=k))
 
         result[k] = np.array(v).repeat(lengths)
 

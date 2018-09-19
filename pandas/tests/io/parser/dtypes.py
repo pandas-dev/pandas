@@ -5,14 +5,16 @@ Tests dtype specification during parsing
 for all of the parsers defined in parsers.py
 """
 
+import pytest
+
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
 from pandas import DataFrame, Series, Index, MultiIndex, Categorical
 from pandas.compat import StringIO
-from pandas.types.dtypes import CategoricalDtype
-from pandas.io.common import ParserWarning
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.errors import ParserWarning
 
 
 class DtypeTests(object):
@@ -40,9 +42,9 @@ class DtypeTests(object):
             tm.assert_frame_equal(result, df)
 
             # invalid dtype
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'foo', 'B': 'float64'},
-                              index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'foo', 'B': 'float64'},
+                          index_col=0)
 
         # see gh-12048: empty frame
         actual = self.read_csv(StringIO('A,B'), dtype=str)
@@ -58,8 +60,8 @@ one,two
 4,5.5"""
 
         result = self.read_csv(StringIO(data), dtype={'one': 'u1', 1: 'S1'})
-        self.assertEqual(result['one'].dtype, 'u1')
-        self.assertEqual(result['two'].dtype, 'object')
+        assert result['one'].dtype == 'u1'
+        assert result['two'].dtype == 'object'
 
     def test_categorical_dtype(self):
         # GH 10153
@@ -112,9 +114,20 @@ one,two
         actual = self.read_csv(StringIO(data), dtype='category')
         tm.assert_frame_equal(actual, expected)
 
-    def test_categorical_dtype_encoding(self):
+    @pytest.mark.slow
+    def test_categorical_dtype_high_cardinality_numeric(self):
+        # GH 18186
+        data = np.sort([str(i) for i in range(524289)])
+        expected = DataFrame({'a': Categorical(data, ordered=True)})
+        actual = self.read_csv(StringIO('a\n' + '\n'.join(data)),
+                               dtype='category')
+        actual["a"] = actual["a"].cat.reorder_categories(
+            np.sort(actual.a.cat.categories), ordered=True)
+        tm.assert_frame_equal(actual, expected)
+
+    def test_categorical_dtype_encoding(self, datapath):
         # GH 10153
-        pth = tm.get_data_path('unicode_series.csv')
+        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
         encoding = 'latin-1'
         expected = self.read_csv(pth, header=None, encoding=encoding)
         expected[1] = Categorical(expected[1])
@@ -122,7 +135,7 @@ one,two
                                dtype={1: 'category'})
         tm.assert_frame_equal(actual, expected)
 
-        pth = tm.get_data_path('utf16_ex.txt')
+        pth = datapath('io', 'parser', 'data', 'utf16_ex.txt')
         encoding = 'utf-16'
         expected = self.read_table(pth, encoding=encoding)
         expected = expected.apply(Categorical)
@@ -142,6 +155,105 @@ one,two
                                    'b': Categorical(['b', 'c'])},
                                   index=[2, 3])]
         actuals = self.read_csv(StringIO(data), dtype={'b': 'category'},
+                                chunksize=2)
+
+        for actual, expected in zip(actuals, expecteds):
+            tm.assert_frame_equal(actual, expected)
+
+    @pytest.mark.parametrize('ordered', [False, True])
+    @pytest.mark.parametrize('categories', [
+        ['a', 'b', 'c'],
+        ['a', 'c', 'b'],
+        ['a', 'b', 'c', 'd'],
+        ['c', 'b', 'a'],
+    ])
+    def test_categorical_categoricaldtype(self, categories, ordered):
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        expected = pd.DataFrame({
+            "a": [1, 1, 1, 2],
+            "b": Categorical(['a', 'b', 'b', 'c'],
+                             categories=categories,
+                             ordered=ordered)
+        })
+        dtype = {"b": CategoricalDtype(categories=categories,
+                                       ordered=ordered)}
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_categoricaldtype_unsorted(self):
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        dtype = CategoricalDtype(['c', 'b', 'a'])
+        expected = pd.DataFrame({
+            'a': [1, 1, 1, 2],
+            'b': Categorical(['a', 'b', 'b', 'c'], categories=['c', 'b', 'a'])
+        })
+        result = self.read_csv(StringIO(data), dtype={'b': dtype})
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_coerces_numeric(self):
+        dtype = {'b': CategoricalDtype([1, 2, 3])}
+        data = "b\n1\n1\n2\n3"
+        expected = pd.DataFrame({'b': Categorical([1, 1, 2, 3])})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_coerces_datetime(self):
+        dtype = {
+            'b': CategoricalDtype(pd.date_range('2017', '2019', freq='AS'))
+        }
+        data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
+        expected = pd.DataFrame({'b': Categorical(dtype['b'].categories)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+        dtype = {
+            'b': CategoricalDtype([pd.Timestamp("2014")])
+        }
+        data = "b\n2014-01-01\n2014-01-01T00:00:00"
+        expected = pd.DataFrame({'b': Categorical([pd.Timestamp('2014')] * 2)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_coerces_timedelta(self):
+        dtype = {'b': CategoricalDtype(pd.to_timedelta(['1H', '2H', '3H']))}
+        data = "b\n1H\n2H\n3H"
+        expected = pd.DataFrame({'b': Categorical(dtype['b'].categories)})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categoricaldtype_unexpected_categories(self):
+        dtype = {'b': CategoricalDtype(['a', 'b', 'd', 'e'])}
+        data = "b\nd\na\nc\nd"  # Unexpected c
+        expected = pd.DataFrame({"b": Categorical(list('dacd'),
+                                                  dtype=dtype['b'])})
+        result = self.read_csv(StringIO(data), dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_categorical_categoricaldtype_chunksize(self):
+        # GH 10153
+        data = """a,b
+1,a
+1,b
+1,b
+2,c"""
+        cats = ['a', 'b', 'c']
+        expecteds = [pd.DataFrame({'a': [1, 1],
+                                   'b': Categorical(['a', 'b'],
+                                                    categories=cats)}),
+                     pd.DataFrame({'a': [1, 2],
+                                   'b': Categorical(['b', 'c'],
+                                                    categories=cats)},
+                                  index=[2, 3])]
+        dtype = CategoricalDtype(cats)
+        actuals = self.read_csv(StringIO(data), dtype={'b': dtype},
                                 chunksize=2)
 
         for actual, expected in zip(actuals, expecteds):
@@ -202,10 +314,11 @@ one,two
         result = self.read_csv(StringIO(data), dtype={0: 'u1', 1: 'f'})
         tm.assert_frame_equal(result, expected, check_index_type=False)
 
-        data = ''
-        result = self.read_csv(StringIO(data), names=['one', 'one'],
-                               dtype={0: 'u1', 1: 'f'})
-        tm.assert_frame_equal(result, expected, check_index_type=False)
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            data = ''
+            result = self.read_csv(StringIO(data), names=['one', 'one'],
+                                   dtype={0: 'u1', 1: 'f'})
+            tm.assert_frame_equal(result, expected, check_index_type=False)
 
     def test_raise_on_passed_int_dtype_with_nas(self):
         # see gh-2631
@@ -213,9 +326,9 @@ one,two
 2001,106380451,10
 2001,,11
 2001,106380451,67"""
-        self.assertRaises(ValueError, self.read_csv, StringIO(data),
-                          sep=",", skipinitialspace=True,
-                          dtype={'DOY': np.int64})
+        pytest.raises(ValueError, self.read_csv, StringIO(data),
+                      sep=",", skipinitialspace=True,
+                      dtype={'DOY': np.int64})
 
     def test_dtype_with_converter(self):
         data = """a,b

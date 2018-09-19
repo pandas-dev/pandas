@@ -1,6 +1,7 @@
 # coding=utf-8
 
 import numpy as np
+import pytest
 from pandas import (DataFrame, date_range, Timestamp, Series,
                     to_datetime)
 
@@ -9,8 +10,8 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestFrameAsof(TestData, tm.TestCase):
-    def setUp(self):
+class TestFrameAsof(TestData):
+    def setup_method(self, method):
         self.N = N = 50
         self.rng = date_range('1/1/1990', periods=N, freq='53s')
         self.df = DataFrame({'A': np.arange(N), 'B': np.arange(N)},
@@ -23,17 +24,17 @@ class TestFrameAsof(TestData, tm.TestCase):
                            freq='25s')
 
         result = df.asof(dates)
-        self.assertTrue(result.notnull().all(1).all())
+        assert result.notna().all(1).all()
         lb = df.index[14]
         ub = df.index[30]
 
         dates = list(dates)
         result = df.asof(dates)
-        self.assertTrue(result.notnull().all(1).all())
+        assert result.notna().all(1).all()
 
         mask = (result.index >= lb) & (result.index < ub)
         rs = result[mask]
-        self.assertTrue((rs == 14).all(1).all())
+        assert (rs == 14).all(1).all()
 
     def test_subset(self):
         N = 10
@@ -105,4 +106,22 @@ class TestFrameAsof(TestData, tm.TestCase):
 
         result = DataFrame(np.nan, index=[1, 2], columns=['A', 'B']).asof(3)
         expected = Series(np.nan, index=['A', 'B'], name=3)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "stamp,expected",
+        [(Timestamp('2018-01-01 23:22:43.325+00:00'),
+          Series(2.0, name=Timestamp('2018-01-01 23:22:43.325+00:00'))),
+         (Timestamp('2018-01-01 22:33:20.682+01:00'),
+          Series(1.0, name=Timestamp('2018-01-01 22:33:20.682+01:00'))),
+         ]
+    )
+    def test_time_zone_aware_index(self, stamp, expected):
+        # GH21194
+        # Testing awareness of DataFrame index considering different
+        # UTC and timezone
+        df = DataFrame(data=[1, 2],
+                       index=[Timestamp('2018-01-01 21:00:05.001+00:00'),
+                              Timestamp('2018-01-01 22:35:10.550+00:00')])
+        result = df.asof(stamp)
         tm.assert_series_equal(result, expected)

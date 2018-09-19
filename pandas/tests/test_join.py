@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from pandas import Index
+from pandas import Index, DataFrame, Categorical, merge
 
 from pandas._libs import join as _join
 import pandas.util.testing as tm
-from pandas.util.testing import assert_almost_equal
+from pandas.util.testing import assert_almost_equal, assert_frame_equal
 
 
-class TestIndexer(tm.TestCase):
+class TestIndexer(object):
 
     def test_outer_join_indexer(self):
         typemap = [('int32', _join.outer_join_indexer_int32),
@@ -23,9 +23,9 @@ class TestIndexer(tm.TestCase):
             empty = np.array([], dtype=dtype)
 
             result, lindexer, rindexer = indexer(left, right)
-            tm.assertIsInstance(result, np.ndarray)
-            tm.assertIsInstance(lindexer, np.ndarray)
-            tm.assertIsInstance(rindexer, np.ndarray)
+            assert isinstance(result, np.ndarray)
+            assert isinstance(lindexer, np.ndarray)
+            assert isinstance(rindexer, np.ndarray)
             tm.assert_numpy_array_equal(result, np.arange(5, dtype=dtype))
             exp = np.array([0, 1, 2, -1, -1], dtype=np.int64)
             tm.assert_numpy_array_equal(lindexer, exp)
@@ -53,7 +53,7 @@ def test_left_join_indexer_unique():
 
     result = _join.left_join_indexer_unique_int64(b, a)
     expected = np.array([1, 1, 2, 3, 3], dtype=np.int64)
-    assert (np.array_equal(result, expected))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 def test_left_outer_join_bug():
@@ -69,13 +69,14 @@ def test_left_outer_join_bug():
 
     lidx, ridx = _join.left_outer_join(left, right, max_groups, sort=False)
 
-    exp_lidx = np.arange(len(left))
-    exp_ridx = -np.ones(len(left))
+    exp_lidx = np.arange(len(left), dtype=np.int64)
+    exp_ridx = -np.ones(len(left), dtype=np.int64)
+
     exp_ridx[left == 1] = 1
     exp_ridx[left == 3] = 0
 
-    assert (np.array_equal(lidx, exp_lidx))
-    assert (np.array_equal(ridx, exp_ridx))
+    tm.assert_numpy_array_equal(lidx, exp_lidx)
+    tm.assert_numpy_array_equal(ridx, exp_ridx)
 
 
 def test_inner_join_indexer():
@@ -192,3 +193,43 @@ def test_inner_join_indexer2():
 
     exp_ridx = np.array([0, 1, 2, 3], dtype=np.int64)
     assert_almost_equal(ridx, exp_ridx)
+
+
+def test_merge_join_categorical_multiindex():
+    # From issue 16627
+    a = {'Cat1': Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
+                             ['a', 'b', 'c']),
+         'Int1': [0, 1, 0, 1, 0, 0]}
+    a = DataFrame(a)
+
+    b = {'Cat': Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                            ['a', 'b', 'c']),
+         'Int': [0, 0, 0, 1, 1, 1],
+         'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
+    b = DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+
+    expected = merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
+                     right_on=['Cat', 'Int'], how='left')
+    result = a.join(b, on=['Cat1', 'Int1'])
+    expected = expected.drop(['Cat', 'Int'], axis=1)
+    assert_frame_equal(expected, result)
+
+    # Same test, but with ordered categorical
+    a = {'Cat1': Categorical(['a', 'b', 'a', 'c', 'a', 'b'],
+                             ['b', 'a', 'c'],
+                             ordered=True),
+         'Int1': [0, 1, 0, 1, 0, 0]}
+    a = DataFrame(a)
+
+    b = {'Cat': Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                            ['b', 'a', 'c'],
+                            ordered=True),
+         'Int': [0, 0, 0, 1, 1, 1],
+         'Factor': [1.1, 1.2, 1.3, 1.4, 1.5, 1.6]}
+    b = DataFrame(b).set_index(['Cat', 'Int'])['Factor']
+
+    expected = merge(a, b.reset_index(), left_on=['Cat1', 'Int1'],
+                     right_on=['Cat', 'Int'], how='left')
+    result = a.join(b, on=['Cat1', 'Int1'])
+    expected = expected.drop(['Cat', 'Int'], axis=1)
+    assert_frame_equal(expected, result)

@@ -18,11 +18,11 @@ was started to provide a more detailed look at the `R language
 party libraries as they relate to ``pandas``. In comparisons with R and CRAN
 libraries, we care about the following things:
 
-  - **Functionality / flexibility**: what can/cannot be done with each tool
-  - **Performance**: how fast are operations. Hard numbers/benchmarks are
-    preferable
-  - **Ease-of-use**: Is one tool easier/harder to use (you may have to be
-    the judge of this, given side-by-side code comparisons)
+* **Functionality / flexibility**: what can/cannot be done with each tool
+* **Performance**: how fast are operations. Hard numbers/benchmarks are
+  preferable
+* **Ease-of-use**: Is one tool easier/harder to use (you may have to be
+  the judge of this, given side-by-side code comparisons)
 
 This page is also here to offer a bit of a translation guide for users of these
 R packages.
@@ -247,8 +247,6 @@ For more details and examples see :ref:`the reshaping documentation
 |subset|_
 ~~~~~~~~~~
 
-.. versionadded:: 0.13
-
 The :meth:`~pandas.DataFrame.query` method is similar to the base R ``subset``
 function. In R you might want to get the rows of a ``data.frame`` where one
 column's values are less than another column's values:
@@ -276,8 +274,6 @@ For more details and examples see :ref:`the query documentation
 
 |with|_
 ~~~~~~~~
-
-.. versionadded:: 0.13
 
 An expression using a data.frame called ``df`` in R with the columns ``a`` and
 ``b`` would be evaluated using ``with`` like so:
@@ -401,7 +397,7 @@ In Python, this list would be a list of tuples, so
    pd.DataFrame(a)
 
 For more details and examples see :ref:`the Into to Data Structures
-documentation <basics.dataframe.from_items>`.
+documentation <dsintro>`.
 
 |meltdf|_
 ~~~~~~~~~~~~~~~~
@@ -508,8 +504,6 @@ For more details and examples see :ref:`the reshaping documentation
 
 |factor|_
 ~~~~~~~~~
-
-.. versionadded:: 0.15
 
 pandas has a data type for categorical data.
 

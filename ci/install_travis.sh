@@ -34,9 +34,9 @@ fi
 
 # install miniconda
 if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
-    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh || exit 1
+    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -q -O miniconda.sh || exit 1
 else
-    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh || exit 1
+    time wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -q -O miniconda.sh || exit 1
 fi
 time bash miniconda.sh -b -p "$MINICONDA_DIR" || exit 1
 
@@ -47,21 +47,8 @@ which conda
 echo
 echo "[update conda]"
 conda config --set ssl_verify false || exit 1
-conda config --set always_yes true --set changeps1 false || exit 1
+conda config --set quiet true --set always_yes true --set changeps1 false || exit 1
 conda update -q conda
-
-echo
-echo "[add channels]"
-# add the pandas channel to take priority
-# to add extra packages
-conda config --add channels pandas || exit 1
-conda config --remove channels defaults || exit 1
-conda config --add channels defaults || exit 1
-
-if [ "$CONDA_FORGE" ]; then
-    # add conda-forge channel as priority
-    conda config --add channels conda-forge || exit 1
-fi
 
 # Useful for debugging any issues with conda
 conda info -a || exit 1
@@ -93,89 +80,29 @@ echo
 echo "[create env]"
 
 # create our environment
-REQ="ci/requirements-${JOB}.build"
-time conda create -n pandas --file=${REQ} || exit 1
+time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
 
 source activate pandas
 
-# may have addtl installation instructions for this build
+# remove any installed pandas package
+# w/o removing anything else
 echo
-echo "[build addtl installs]"
-REQ="ci/requirements-${JOB}.build.sh"
-if [ -e ${REQ} ]; then
-    time bash $REQ || exit 1
-fi
-
-time conda install -n pandas pytest
-time pip install pytest-xdist
-
-if [ "$LINT" ]; then
-   conda install flake8
-   pip install cpplint
-fi
-
-if [ "$COVERAGE" ]; then
-    pip install coverage pytest-cov
-fi
+echo "[removing installed pandas]"
+conda remove pandas -y --force
+pip uninstall -y pandas
 
 echo
-if [ "$BUILD_TEST" ]; then
+echo "[no installed pandas]"
+conda list pandas
+pip list --format columns |grep pandas
 
-    # build & install testing
-    echo ["Starting installation test."]
-    python setup.py clean
-    python setup.py build_ext --inplace
-    python setup.py sdist --formats=gztar
-    conda uninstall cython
-    pip install dist/*tar.gz || exit 1
+# build and install
+echo "[running setup.py develop]"
+python setup.py develop  || exit 1
 
-else
-
-    # build but don't install
-    echo "[build em]"
-    time python setup.py build_ext --inplace || exit 1
-
-fi
-
-# we may have run installations
 echo
-echo "[conda installs]"
-REQ="ci/requirements-${JOB}.run"
-if [ -e ${REQ} ]; then
-    time conda install -n pandas --file=${REQ} || exit 1
-fi
-
-# we may have additional pip installs
-echo
-echo "[pip installs]"
-REQ="ci/requirements-${JOB}.pip"
-if [ -e ${REQ} ]; then
-   pip install -r $REQ
-fi
-
-# may have addtl installation instructions for this build
-echo
-echo "[addtl installs]"
-REQ="ci/requirements-${JOB}.sh"
-if [ -e ${REQ} ]; then
-    time bash $REQ || exit 1
-fi
-
-# finish install if we are not doing a build-testk
-if [ -z "$BUILD_TEST" ]; then
-
-    # remove any installed pandas package
-    # w/o removing anything else
-    echo
-    echo "[removing installed pandas]"
-    conda remove pandas --force
-
-    # install our pandas
-    echo
-    echo "[running setup.py develop]"
-    python setup.py develop  || exit 1
-
-fi
+echo "[show environment]"
+conda list
 
 echo
 echo "[done]"

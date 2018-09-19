@@ -3,9 +3,9 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestPivotTable(tm.TestCase):
+class TestPivotTable(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.dense = pd.DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
                                          'foo', 'bar', 'foo', 'foo'],
                                    'B': ['one', 'one', 'two', 'three',

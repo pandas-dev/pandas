@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 from datetime import timedelta
 
@@ -6,8 +8,7 @@ import pandas.util.testing as tm
 from pandas import TimedeltaIndex, timedelta_range, to_timedelta
 
 
-class TestTimedeltaIndex(tm.TestCase):
-    _multiprocess_can_split_ = True
+class TestTimedeltaIndex(object):
 
     def test_construction_base_constructor(self):
         arr = [pd.Timedelta('1 days'), pd.NaT, pd.Timedelta('3 days')]
@@ -43,44 +44,52 @@ class TestTimedeltaIndex(tm.TestCase):
         tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit='ms'),
                               expected)
 
+    def test_constructor_iso(self):
+        # GH #21877
+        expected = timedelta_range('1s', periods=9, freq='s')
+        durations = ['P0DT0H0M{}S'.format(i) for i in range(1, 10)]
+        result = to_timedelta(durations)
+        tm.assert_index_equal(result, expected)
+
     def test_constructor_coverage(self):
         rng = timedelta_range('1 days', periods=10.5)
         exp = timedelta_range('1 days', periods=10)
-        self.assert_index_equal(rng, exp)
+        tm.assert_index_equal(rng, exp)
 
-        self.assertRaises(ValueError, TimedeltaIndex, start='1 days',
-                          periods='foo', freq='D')
+        msg = 'periods must be a number, got foo'
+        with tm.assert_raises_regex(TypeError, msg):
+            TimedeltaIndex(start='1 days', periods='foo', freq='D')
 
-        self.assertRaises(ValueError, TimedeltaIndex, start='1 days',
-                          end='10 days')
+        pytest.raises(ValueError, TimedeltaIndex, start='1 days',
+                      end='10 days')
 
-        self.assertRaises(ValueError, TimedeltaIndex, '1 days')
+        pytest.raises(ValueError, TimedeltaIndex, '1 days')
 
         # generator expression
         gen = (timedelta(i) for i in range(10))
         result = TimedeltaIndex(gen)
         expected = TimedeltaIndex([timedelta(i) for i in range(10)])
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         # NumPy string array
         strings = np.array(['1 days', '2 days', '3 days'])
         result = TimedeltaIndex(strings)
         expected = to_timedelta([1, 2, 3], unit='d')
-        self.assert_index_equal(result, expected)
+        tm.assert_index_equal(result, expected)
 
         from_ints = TimedeltaIndex(expected.asi8)
-        self.assert_index_equal(from_ints, expected)
+        tm.assert_index_equal(from_ints, expected)
 
         # non-conforming freq
-        self.assertRaises(ValueError, TimedeltaIndex,
-                          ['1 days', '2 days', '4 days'], freq='D')
+        pytest.raises(ValueError, TimedeltaIndex,
+                      ['1 days', '2 days', '4 days'], freq='D')
 
-        self.assertRaises(ValueError, TimedeltaIndex, periods=10, freq='D')
+        pytest.raises(ValueError, TimedeltaIndex, periods=10, freq='D')
 
     def test_constructor_name(self):
         idx = TimedeltaIndex(start='1 days', periods=1, freq='D', name='TEST')
-        self.assertEqual(idx.name, 'TEST')
+        assert idx.name == 'TEST'
 
         # GH10025
         idx2 = TimedeltaIndex(idx, name='something else')
-        self.assertEqual(idx2.name, 'something else')
+        assert idx2.name == 'something else'

@@ -1,17 +1,19 @@
 # coding=utf-8
 
+import pytest
+
 import numpy as np
 import random
 
-from pandas import (DataFrame, Series, MultiIndex)
+from pandas import DataFrame, Series, MultiIndex, IntervalIndex, Categorical
 
-from pandas.util.testing import (assert_series_equal, assert_almost_equal)
+from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
 from .common import TestData
 
 
-class TestSeriesSorting(TestData, tm.TestCase):
+class TestSeriesSorting(TestData):
 
     def test_sortlevel_deprecated(self):
         ts = self.ts.copy()
@@ -26,20 +28,20 @@ class TestSeriesSorting(TestData, tm.TestCase):
         ser = Series([3, 2, 4, 1], ['A', 'B', 'C', 'D'])
         expected = Series([1, 2, 3, 4], ['D', 'B', 'A', 'C'])
         result = ser.sort_values()
-        self.assert_series_equal(expected, result)
+        tm.assert_series_equal(expected, result)
 
         ts = self.ts.copy()
         ts[:5] = np.NaN
         vals = ts.values
 
         result = ts.sort_values()
-        self.assertTrue(np.isnan(result[-5:]).all())
-        self.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
+        assert np.isnan(result[-5:]).all()
+        tm.assert_numpy_array_equal(result[:-5].values, np.sort(vals[5:]))
 
         # na_position
         result = ts.sort_values(na_position='first')
-        self.assertTrue(np.isnan(result[:5]).all())
-        self.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
+        assert np.isnan(result[:5]).all()
+        tm.assert_numpy_array_equal(result[5:].values, np.sort(vals[5:]))
 
         # something object-type
         ser = Series(['A', 'B'], [1, 2])
@@ -48,10 +50,10 @@ class TestSeriesSorting(TestData, tm.TestCase):
 
         # ascending=False
         ordered = ts.sort_values(ascending=False)
-        expected = np.sort(ts.valid().values)[::-1]
-        assert_almost_equal(expected, ordered.valid().values)
+        expected = np.sort(ts.dropna().values)[::-1]
+        assert_almost_equal(expected, ordered.dropna().values)
         ordered = ts.sort_values(ascending=False, na_position='first')
-        assert_almost_equal(expected, ordered.valid().values)
+        assert_almost_equal(expected, ordered.dropna().values)
 
         # ascending=[False] should behave the same as ascending=False
         ordered = ts.sort_values(ascending=[False])
@@ -61,23 +63,23 @@ class TestSeriesSorting(TestData, tm.TestCase):
         expected = ts.sort_values(ascending=False, na_position='first')
         assert_series_equal(expected, ordered)
 
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=None))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=[]))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=[1, 2, 3]))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending=[False, False]))
-        self.assertRaises(ValueError,
-                          lambda: ts.sort_values(ascending='foobar'))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=None))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=[]))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=[1, 2, 3]))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending=[False, False]))
+        pytest.raises(ValueError,
+                      lambda: ts.sort_values(ascending='foobar'))
 
         # inplace=True
         ts = self.ts.copy()
         ts.sort_values(ascending=False, inplace=True)
-        self.assert_series_equal(ts, self.ts.sort_values(ascending=False))
-        self.assert_index_equal(ts.index,
-                                self.ts.sort_values(ascending=False).index)
+        tm.assert_series_equal(ts, self.ts.sort_values(ascending=False))
+        tm.assert_index_equal(ts.index,
+                              self.ts.sort_values(ascending=False).index)
 
         # GH 5856/5853
         # Series.sort_values operating on a view
@@ -87,7 +89,7 @@ class TestSeriesSorting(TestData, tm.TestCase):
         def f():
             s.sort_values(inplace=True)
 
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_sort_index(self):
         rindex = list(self.ts.index)
@@ -110,13 +112,13 @@ class TestSeriesSorting(TestData, tm.TestCase):
         sorted_series = random_order.sort_index(axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        self.assertRaises(ValueError, lambda: random_order.sort_values(axis=1))
+        pytest.raises(ValueError, lambda: random_order.sort_values(axis=1))
 
         sorted_series = random_order.sort_index(level=0, axis=0)
         assert_series_equal(sorted_series, self.ts)
 
-        self.assertRaises(ValueError,
-                          lambda: random_order.sort_index(level=0, axis=1))
+        pytest.raises(ValueError,
+                      lambda: random_order.sort_index(level=0, axis=1))
 
     def test_sort_index_inplace(self):
 
@@ -127,30 +129,32 @@ class TestSeriesSorting(TestData, tm.TestCase):
         # descending
         random_order = self.ts.reindex(rindex)
         result = random_order.sort_index(ascending=False, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts.reindex(self.ts.index[::-1]))
+
+        assert result is None
+        tm.assert_series_equal(random_order, self.ts.reindex(
+            self.ts.index[::-1]))
 
         # ascending
         random_order = self.ts.reindex(rindex)
         result = random_order.sort_index(ascending=True, inplace=True)
-        self.assertIs(result, None,
-                      msg='sort_index() inplace should return None')
-        assert_series_equal(random_order, self.ts)
 
-    def test_sort_index_multiindex(self):
+        assert result is None
+        tm.assert_series_equal(random_order, self.ts)
+
+    @pytest.mark.parametrize("level", ['A', 0])  # GH 21052
+    def test_sort_index_multiindex(self, level):
 
         mi = MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list('ABC'))
         s = Series([1, 2], mi)
         backwards = s.iloc[[1, 0]]
 
         # implicit sort_remaining=True
-        res = s.sort_index(level='A')
+        res = s.sort_index(level=level)
         assert_series_equal(backwards, res)
 
         # GH13496
-        # rows share same level='A': sort has no effect without remaining lvls
-        res = s.sort_index(level='A', sort_remaining=False)
+        # sort has no effect without remaining lvls
+        res = s.sort_index(level=level, sort_remaining=False)
         assert_series_equal(s, res)
 
     def test_sort_index_kind(self):
@@ -177,3 +181,87 @@ class TestSeriesSorting(TestData, tm.TestCase):
         expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan])
         index_sorted_series = series.sort_index(na_position='last')
         assert_series_equal(expected_series_last, index_sorted_series)
+
+    def test_sort_index_intervals(self):
+        s = Series([np.nan, 1, 2, 3], IntervalIndex.from_arrays(
+            [0, 1, 2, 3],
+            [1, 2, 3, 4]))
+
+        result = s.sort_index()
+        expected = s
+        assert_series_equal(result, expected)
+
+        result = s.sort_index(ascending=False)
+        expected = Series([3, 2, 1, np.nan], IntervalIndex.from_arrays(
+            [3, 2, 1, 0],
+            [4, 3, 2, 1]))
+        assert_series_equal(result, expected)
+
+    def test_sort_values_categorical(self):
+
+        c = Categorical(["a", "b", "b", "a"], ordered=False)
+        cat = Series(c.copy())
+
+        # sort in the categories order
+        expected = Series(
+            Categorical(["a", "a", "b", "b"],
+                        ordered=False), index=[0, 3, 1, 2])
+        result = cat.sort_values()
+        tm.assert_series_equal(result, expected)
+
+        cat = Series(Categorical(["a", "c", "b", "d"], ordered=True))
+        res = cat.sort_values()
+        exp = np.array(["a", "b", "c", "d"], dtype=np.object_)
+        tm.assert_numpy_array_equal(res.__array__(), exp)
+
+        cat = Series(Categorical(["a", "c", "b", "d"], categories=[
+                     "a", "b", "c", "d"], ordered=True))
+        res = cat.sort_values()
+        exp = np.array(["a", "b", "c", "d"], dtype=np.object_)
+        tm.assert_numpy_array_equal(res.__array__(), exp)
+
+        res = cat.sort_values(ascending=False)
+        exp = np.array(["d", "c", "b", "a"], dtype=np.object_)
+        tm.assert_numpy_array_equal(res.__array__(), exp)
+
+        raw_cat1 = Categorical(["a", "b", "c", "d"],
+                               categories=["a", "b", "c", "d"], ordered=False)
+        raw_cat2 = Categorical(["a", "b", "c", "d"],
+                               categories=["d", "c", "b", "a"], ordered=True)
+        s = ["a", "b", "c", "d"]
+        df = DataFrame({"unsort": raw_cat1,
+                        "sort": raw_cat2,
+                        "string": s,
+                        "values": [1, 2, 3, 4]})
+
+        # Cats must be sorted in a dataframe
+        res = df.sort_values(by=["string"], ascending=False)
+        exp = np.array(["d", "c", "b", "a"], dtype=np.object_)
+        tm.assert_numpy_array_equal(res["sort"].values.__array__(), exp)
+        assert res["sort"].dtype == "category"
+
+        res = df.sort_values(by=["sort"], ascending=False)
+        exp = df.sort_values(by=["string"], ascending=True)
+        tm.assert_series_equal(res["values"], exp["values"])
+        assert res["sort"].dtype == "category"
+        assert res["unsort"].dtype == "category"
+
+        # unordered cat, but we allow this
+        df.sort_values(by=["unsort"], ascending=False)
+
+        # multi-columns sort
+        # GH 7848
+        df = DataFrame({"id": [6, 5, 4, 3, 2, 1],
+                        "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
+        df["grade"] = Categorical(df["raw_grade"], ordered=True)
+        df['grade'] = df['grade'].cat.set_categories(['b', 'e', 'a'])
+
+        # sorts 'grade' according to the order of the categories
+        result = df.sort_values(by=['grade'])
+        expected = df.iloc[[1, 2, 5, 0, 3, 4]]
+        tm.assert_frame_equal(result, expected)
+
+        # multi
+        result = df.sort_values(by=['grade', 'id'])
+        expected = df.iloc[[2, 1, 5, 4, 3, 0]]
+        tm.assert_frame_equal(result, expected)

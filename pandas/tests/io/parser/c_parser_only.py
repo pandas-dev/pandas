@@ -7,33 +7,35 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
+import os
+import sys
+import tarfile
+
 import pytest
 import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas import compat
 from pandas.compat import StringIO, range, lrange
 
 
 class CParserTests(object):
 
-    def test_buffer_overflow(self):
+    @pytest.mark.parametrize(
+        'malf',
+        ['1\r1\r1\r 1\r 1\r',
+         '1\r1\r1\r 1\r 1\r11\r',
+         '1\r1\r1\r 1\r 1\r11\r1\r'],
+        ids=['words pointer', 'stream pointer', 'lines pointer'])
+    def test_buffer_overflow(self, malf):
         # see gh-9205: test certain malformed input files that cause
         # buffer overflows in tokenizer.c
-
-        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
-        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
-        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
-
         cperr = 'Buffer overflow caught - possible malformed input file.'
-
-        for malf in (malfw, malfs, malfl):
-            try:
-                self.read_table(StringIO(malf))
-            except Exception as err:
-                self.assertIn(cperr, str(err))
+        with pytest.raises(pd.errors.ParserError) as excinfo:
+            self.read_table(StringIO(malf))
+        assert cperr in str(excinfo.value)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
@@ -96,7 +98,7 @@ nan 2
 3.0 3
 """
         # fallback casting, but not castable
-        with tm.assertRaisesRegexp(ValueError, 'cannot safely convert'):
+        with tm.assert_raises_regex(ValueError, 'cannot safely convert'):
             self.read_csv(StringIO(data), sep=r'\s+', header=None,
                           names=['a', 'b'], dtype={'a': np.int32})
 
@@ -108,26 +110,25 @@ nan 2
             df.to_csv(path)
 
             # valid but we don't support it (date)
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'datetime64', 'B': 'float64'},
-                              index_col=0)
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'datetime64', 'B': 'float64'},
-                              index_col=0, parse_dates=['B'])
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'datetime64', 'B': 'float64'},
+                          index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'datetime64', 'B': 'float64'},
+                          index_col=0, parse_dates=['B'])
 
             # valid but we don't support it
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'timedelta64', 'B': 'float64'},
-                              index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'timedelta64', 'B': 'float64'},
+                          index_col=0)
 
             # valid but unsupported - fixed width unicode string
-            self.assertRaises(TypeError, self.read_csv, path,
-                              dtype={'A': 'U8'},
-                              index_col=0)
+            pytest.raises(TypeError, self.read_csv, path,
+                          dtype={'A': 'U8'},
+                          index_col=0)
 
+    @td.skip_if_32bit
     def test_precise_conversion(self):
-        # see gh-8002
-        tm._skip_if_32bit()
         from decimal import Decimal
 
         normal_errors = []
@@ -152,29 +153,10 @@ nan 2
             precise_errors.append(error(precise_val))
 
             # round-trip should match float()
-            self.assertEqual(roundtrip_val, float(text[2:]))
+            assert roundtrip_val == float(text[2:])
 
-        self.assertTrue(sum(precise_errors) <= sum(normal_errors))
-        self.assertTrue(max(precise_errors) <= max(normal_errors))
-
-    def test_pass_dtype_as_recarray(self):
-        if compat.is_platform_windows() and self.low_memory:
-            pytest.skip(
-                "segfaults on win-64, only when all tests are run")
-
-        data = """\
-one,two
-1,2.5
-2,3.5
-3,4.5
-4,5.5"""
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), dtype={
-                'one': 'u1', 1: 'S1'}, as_recarray=True)
-            self.assertEqual(result['one'].dtype, 'u1')
-            self.assertEqual(result['two'].dtype, 'S1')
+        assert sum(precise_errors) <= sum(normal_errors)
+        assert max(precise_errors) <= max(normal_errors)
 
     def test_usecols_dtypes(self):
         data = """\
@@ -195,8 +177,8 @@ one,two
                                 converters={'a': str},
                                 dtype={'b': int, 'c': float},
                                 )
-        self.assertTrue((result.dtypes == [object, np.int, np.float]).all())
-        self.assertTrue((result2.dtypes == [object, np.float]).all())
+        assert (result.dtypes == [object, np.int, np.float]).all()
+        assert (result2.dtypes == [object, np.float]).all()
 
     def test_disable_bool_parsing(self):
         # #2090
@@ -208,10 +190,10 @@ Yes,,Yes
 No,No,No"""
 
         result = self.read_csv(StringIO(data), dtype=object)
-        self.assertTrue((result.dtypes == object).all())
+        assert (result.dtypes == object).all()
 
         result = self.read_csv(StringIO(data), dtype=object, na_filter=False)
-        self.assertEqual(result['B'][2], '')
+        assert result['B'][2] == ''
 
     def test_custom_lineterminator(self):
         data = 'a,b,c~1,2,3~4,5,6'
@@ -286,11 +268,11 @@ No,No,No"""
             test_empty_header_read(count)
 
     def test_parse_trim_buffers(self):
-        # This test is part of a bugfix for issue #13703. It attmepts to
+        # This test is part of a bugfix for issue #13703. It attempts to
         # to stress the system memory allocator, to cause it to move the
         # stream buffer and either let the OS reclaim the region, or let
         # other memory requests of parser otherwise modify the contents
-        # of memory space, where it was formely located.
+        # of memory space, where it was formally located.
         # This test is designed to cause a `segfault` with unpatched
         # `tokenizer.c`. Sometimes the test fails on `segfault`, other
         # times it fails due to memory corruption, which causes the
@@ -342,7 +324,7 @@ No,No,No"""
 
         # Generate the expected output: manually create the dataframe
         # by splitting by comma and repeating the `n_lines` times.
-        row = tuple(val_ if val_ else float("nan")
+        row = tuple(val_ if val_ else np.nan
                     for val_ in record_.split(","))
         expected = pd.DataFrame([row for _ in range(n_lines)],
                                 dtype=object, columns=None, index=None)
@@ -353,6 +335,15 @@ No,No,No"""
         result = pd.concat(chunks_, axis=0, ignore_index=True)
 
         # Check for data corruption if there was no segfault
+        tm.assert_frame_equal(result, expected)
+
+        # This extra test was added to replicate the fault in gh-5291.
+        # Force 'utf-8' encoding, so that `_string_convert` would take
+        # a different execution branch.
+        chunks_ = self.read_csv(StringIO(csv_data), header=None,
+                                dtype=object, chunksize=chunksize,
+                                encoding='utf_8')
+        result = pd.concat(chunks_, axis=0, ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
     def test_internal_null_byte(self):
@@ -388,7 +379,7 @@ No,No,No"""
 
         df = self.read_csv(StringIO(test_input), sep='\t', nrows=1010)
 
-        self.assertTrue(df.size == 1010 * 10)
+        assert df.size == 1010 * 10
 
     def test_float_precision_round_trip_with_text(self):
         # gh-15140 - This should not segfault on Python 2.7+
@@ -408,3 +399,87 @@ No,No,No"""
         expected = DataFrame([row.split(',')[0] for row in rows])
 
         tm.assert_frame_equal(result, expected)
+
+    def test_data_after_quote(self):
+        # see gh-15910
+
+        data = 'a\n1\n"b"a'
+        result = self.read_csv(StringIO(data))
+        expected = DataFrame({'a': ['1', 'ba']})
+
+        tm.assert_frame_equal(result, expected)
+
+    @tm.capture_stderr
+    def test_comment_whitespace_delimited(self):
+        test_input = """\
+1 2
+2 2 3
+3 2 3 # 3 fields
+4 2 3# 3 fields
+5 2 # 2 fields
+6 2# 2 fields
+7 # 1 field, NaN
+8# 1 field, NaN
+9 2 3 # skipped line
+# comment"""
+        df = self.read_csv(StringIO(test_input), comment='#', header=None,
+                           delimiter='\\s+', skiprows=0,
+                           error_bad_lines=False)
+        error = sys.stderr.getvalue()
+        # skipped lines 2, 3, 4, 9
+        for line_num in (2, 3, 4, 9):
+            assert 'Skipping line {}'.format(line_num) in error, error
+        expected = DataFrame([[1, 2],
+                              [5, 2],
+                              [6, 2],
+                              [7, np.nan],
+                              [8, np.nan]])
+        tm.assert_frame_equal(df, expected)
+
+    def test_file_like_no_next(self):
+        # gh-16530: the file-like need not have a "next" or "__next__"
+        # attribute despite having an "__iter__" attribute.
+        #
+        # NOTE: This is only true for the C engine, not Python engine.
+        class NoNextBuffer(StringIO):
+            def __next__(self):
+                raise AttributeError("No next method")
+
+            next = __next__
+
+        data = "a\n1"
+
+        expected = pd.DataFrame({"a": [1]})
+        result = self.read_csv(NoNextBuffer(data))
+
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
+    def test_read_tarfile(self, tar_suffix):
+        # see gh-16530
+        #
+        # Unfortunately, Python's CSV library can't handle
+        # tarfile objects (expects string, not bytes when
+        # iterating through a file-like).
+        tar_path = os.path.join(self.dirpath, "tar_csv" + tar_suffix)
+
+        with tarfile.open(tar_path, "r") as tar:
+            data_file = tar.extractfile("tar_data.csv")
+
+            out = self.read_csv(data_file)
+            expected = pd.DataFrame({"a": [1]})
+            tm.assert_frame_equal(out, expected)
+
+    @pytest.mark.high_memory
+    def test_bytes_exceed_2gb(self):
+        """Read from a "CSV" that has a column larger than 2GB.
+
+        GH 16798
+        """
+        if self.low_memory:
+            pytest.skip("not a high_memory test")
+
+        csv = StringIO('strings\n' + '\n'.join(
+            ['x' * (1 << 20) for _ in range(2100)]))
+        df = self.read_csv(csv, low_memory=False)
+        assert not df.empty

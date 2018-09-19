@@ -11,13 +11,26 @@ The full license is in the LICENSE file, distributed with this software.
 #define PANDAS__LIBS_SRC_COMPAT_HELPER_H_
 
 #include "Python.h"
-#include "numpy_helper.h"
+#include "inline_helper.h"
 
 /*
 PySlice_GetIndicesEx changes signature in PY3
 but 3.6.1 in particular changes the behavior of this function slightly
 https://bugs.python.org/issue27867
+
+
+In 3.6.1 PySlice_GetIndicesEx was changed to a macro
+inadvertently breaking ABI compat.  For now, undefing
+the macro, which restores compat.
+https://github.com/pandas-dev/pandas/issues/15961
+https://bugs.python.org/issue29943
 */
+
+#ifndef PYPY_VERSION
+# if PY_VERSION_HEX < 0x03070000 && defined(PySlice_GetIndicesEx)
+#   undef PySlice_GetIndicesEx
+# endif
+#endif
 
 PANDAS_INLINE int slice_get_indices(PyObject *s,
                                     Py_ssize_t length,

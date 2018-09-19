@@ -7,7 +7,7 @@ Cross-compatible functions for Python 2 and 3.
 Key items to import for 2/3 compatible code:
 * iterators: range(), map(), zip(), filter(), reduce()
 * lists: lrange(), lmap(), lzip(), lfilter()
-* unicode: u() [u"" is a syntax error in Python 3.0-3.2]
+* unicode: u() [no unicode builtin in Python 3]
 * longs: long (int in Python 3)
 * callable
 * iterable method compatibility: iteritems, iterkeys, itervalues
@@ -21,27 +21,31 @@ Key items to import for 2/3 compatible code:
   given metaclass instead (and avoids intermediary class creation)
 
 Other items:
-* OrderedDefaultDict
 * platform checker
 """
 # pylint disable=W0611
 # flake8: noqa
 
+import re
 import functools
 import itertools
 from distutils.version import LooseVersion
 from itertools import product
 import sys
+import platform
 import types
 from unicodedata import east_asian_width
 import struct
 import inspect
 from collections import namedtuple
+import collections
 
 PY2 = sys.version_info[0] == 2
-PY3 = (sys.version_info[0] >= 3)
-PY35 = (sys.version_info >= (3, 5))
-PY36 = (sys.version_info >= (3, 6))
+PY3 = sys.version_info[0] >= 3
+PY35 = sys.version_info >= (3, 5)
+PY36 = sys.version_info >= (3, 6)
+PY37 = sys.version_info >= (3, 7)
+PYPY = platform.python_implementation() == 'PyPy'
 
 try:
     import __builtin__ as builtins
@@ -99,17 +103,22 @@ if PY3:
                                            'varargs', 'keywords'])
         return argspec(args, defaults, varargs, keywords)
 
+    def get_range_parameters(data):
+        """Gets the start, stop, and step parameters from a range object"""
+        return data.start, data.stop, data.step
+
     # have to explicitly put builtins into the namespace
     range = range
     map = map
     zip = zip
     filter = filter
+    intern = sys.intern
     reduce = functools.reduce
     long = int
     unichr = chr
 
     # This was introduced in Python 3.3, but we don't support
-    # Python 3.x < 3.4, so checking PY3 is safe.
+    # Python 3.x < 3.5, so checking PY3 is safe.
     FileNotFoundError = FileNotFoundError
 
     # list-producing versions of the major Python iterating functions
@@ -125,9 +134,16 @@ if PY3:
     def lfilter(*args, **kwargs):
         return list(filter(*args, **kwargs))
 
+    from importlib import reload
+    reload = reload
+    Hashable = collections.abc.Hashable
+    Iterable = collections.abc.Iterable
+    Mapping = collections.abc.Mapping
+    Sequence = collections.abc.Sequence
+    Sized = collections.abc.Sized
+
 else:
     # Python 2
-    import re
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
     FileNotFoundError = IOError
@@ -144,8 +160,27 @@ else:
     def signature(f):
         return inspect.getargspec(f)
 
+    def get_range_parameters(data):
+        """Gets the start, stop, and step parameters from a range object"""
+        # seems we only have indexing ops to infer
+        # rather than direct accessors
+        if len(data) > 1:
+            step = data[1] - data[0]
+            stop = data[-1] + step
+            start = data[0]
+        elif len(data):
+            start = data[0]
+            stop = data[0] + 1
+            step = 1
+        else:
+            start = stop = 0
+            step = 1
+
+        return start, stop, step
+
     # import iterator versions of these functions
     range = xrange
+    intern = intern
     zip = itertools.izip
     filter = itertools.ifilter
     map = itertools.imap
@@ -159,6 +194,13 @@ else:
     lmap = builtins.map
     lfilter = builtins.filter
 
+    reload = builtins.reload
+
+    Hashable = collections.Hashable
+    Iterable = collections.Iterable
+    Mapping = collections.Mapping
+    Sequence = collections.Sequence
+    Sized = collections.Sized
 
 if PY2:
     def iteritems(obj, **kw):
@@ -232,6 +274,16 @@ if PY3:
     def u_safe(s):
         return s
 
+    def to_str(s):
+        """
+        Convert bytes and non-string into Python 3 str
+        """
+        if isinstance(s, binary_type):
+            s = bytes_to_str(s)
+        elif not isinstance(s, string_types):
+            s = str(s)
+        return s
+
     def strlen(data, encoding=None):
         # encoding is for compat with PY2
         return len(data)
@@ -241,7 +293,7 @@ if PY3:
         Calculate display width considering unicode East Asian Width
         """
         if isinstance(data, text_type):
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
@@ -277,6 +329,14 @@ else:
         except:
             return s
 
+    def to_str(s):
+        """
+        Convert unicode and non-string into Python 2 str
+        """
+        if not isinstance(s, string_types):
+            s = str(s)
+        return s
+
     def strlen(data, encoding=None):
         try:
             data = data.decode(encoding)
@@ -293,7 +353,7 @@ else:
                 data = data.decode(encoding)
             except UnicodeError:
                 pass
-            return sum([_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data])
+            return sum(_EAW_MAP.get(east_asian_width(c), ambiguous_width) for c in data)
         else:
             return len(data)
 
@@ -320,6 +380,20 @@ try:
 except NameError:
     def callable(obj):
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
+
+
+if PY2:
+    # In PY2 functools.wraps doesn't provide metadata pytest needs to generate
+    # decorated tests using parametrization. See pytest GH issue #2782
+    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
+              updated=functools.WRAPPER_UPDATES):
+        def wrapper(f):
+            f = functools.wraps(wrapped, assigned, updated)(f)
+            f.__wrapped__ = wrapped
+            return f
+        return wrapper
+else:
+    wraps = functools.wraps
 
 
 def add_metaclass(metaclass):
@@ -353,47 +427,22 @@ raise_with_traceback.__doc__ = """Raise exception with existing traceback.
 If traceback is not passed, uses sys.exc_info() to get traceback."""
 
 
-# http://stackoverflow.com/questions/4126348
-# Thanks to @martineau at SO
-
-from dateutil import parser as _date_parser
+# dateutil minimum version
 import dateutil
-if LooseVersion(dateutil.__version__) < '2.0':
-    @functools.wraps(_date_parser.parse)
-    def parse_date(timestr, *args, **kwargs):
-        timestr = bytes(timestr)
-        return _date_parser.parse(timestr, *args, **kwargs)
-elif PY2 and LooseVersion(dateutil.__version__) == '2.0':
-    # dateutil brokenness
-    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-                    'install version 1.5 or 2.1+!')
+
+if LooseVersion(dateutil.__version__) < LooseVersion('2.5'):
+    raise ImportError('dateutil 2.5.0 is the minimum required version')
+from dateutil import parser as _date_parser
+parse_date = _date_parser.parse
+
+
+# In Python 3.7, the private re._pattern_type is removed.
+# Python 3.5+ have typing.re.Pattern
+if PY36:
+    import typing
+    re_type = typing.re.Pattern
 else:
-    parse_date = _date_parser.parse
-
-
-class OrderedDefaultdict(OrderedDict):
-
-    def __init__(self, *args, **kwargs):
-        newdefault = None
-        newargs = ()
-        if args:
-            newdefault = args[0]
-            if not (newdefault is None or callable(newdefault)):
-                raise TypeError('first argument must be callable or None')
-            newargs = args[1:]
-        self.default_factory = newdefault
-        super(self.__class__, self).__init__(*newargs, **kwargs)
-
-    def __missing__(self, key):
-        if self.default_factory is None:
-            raise KeyError(key)
-        self[key] = value = self.default_factory()
-        return value
-
-    def __reduce__(self):  # optional, for pickle support
-        args = self.default_factory if self.default_factory else tuple()
-        return type(self), args, None, None, list(self.items())
-
+    re_type = type(re.compile(''))
 
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():

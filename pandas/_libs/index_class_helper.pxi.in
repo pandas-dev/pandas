@@ -55,37 +55,29 @@ cdef class {{name}}Engine(IndexEngine):
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
-            ndarray[uint8_t, cast=True] indexer
+            ndarray[uint8_t, ndim=1, cast=True] indexer
+            ndarray[intp_t, ndim=1] found
             ndarray[{{ctype}}] values
             int count = 0
-            Py_ssize_t i, n
-            int last_true
 
         {{if name != 'Float64'}}
         if not util.is_integer_object(val):
             raise KeyError(val)
         {{endif}}
 
-        values = self._get_index_values()
-        n = len(values)
+        # A view is needed for some subclasses, such as PeriodEngine:
+        values = self._get_index_values().view('{{dtype}}')
+        indexer = values == val
+        found = np.where(indexer)[0]
+        count = len(found)
 
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
+        if count > 1:
+            return indexer
         if count == 1:
-            return last_true
+            return int(found[0])
 
-        return result
+        raise KeyError(val)
+
     {{endif}}
 
 {{endfor}}

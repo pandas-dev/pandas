@@ -2,6 +2,7 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
+from warnings import catch_warnings, simplefilter
 import re
 import operator
 import pytest
@@ -11,12 +12,11 @@ from numpy.random import randn
 import numpy as np
 
 from pandas.core.api import DataFrame, Panel
-from pandas.computation import expressions as expr
-from pandas import compat, _np_version_under1p11
+from pandas.core.computation import expressions as expr
+from pandas import compat, _np_version_under1p11, _np_version_under1p13
 from pandas.util.testing import (assert_almost_equal, assert_series_equal,
-                                 assert_frame_equal, assert_panel_equal,
-                                 assert_panel4d_equal, slow)
-from pandas.formats.printing import pprint_thing
+                                 assert_frame_equal, assert_panel_equal)
+from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
 
@@ -32,25 +32,33 @@ _mixed2 = DataFrame({'A': _frame2['A'].copy(),
                      'D': _frame2['D'].astype('int32')})
 _integer = DataFrame(
     np.random.randint(1, 100,
-                      size=(10001, 4)), columns=list('ABCD'), dtype='int64')
+                      size=(10001, 4)),
+    columns=list('ABCD'), dtype='int64')
 _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
                       columns=list('ABCD'), dtype='int64')
-_frame_panel = Panel(dict(ItemA=_frame.copy(), ItemB=(
-    _frame.copy() + 3), ItemC=_frame.copy(), ItemD=_frame.copy()))
-_frame2_panel = Panel(dict(ItemA=_frame2.copy(), ItemB=(_frame2.copy() + 3),
-                           ItemC=_frame2.copy(), ItemD=_frame2.copy()))
-_integer_panel = Panel(dict(ItemA=_integer, ItemB=(_integer + 34).astype(
-    'int64')))
-_integer2_panel = Panel(dict(ItemA=_integer2, ItemB=(_integer2 + 34).astype(
-    'int64')))
-_mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
-_mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
+
+with catch_warnings(record=True):
+    simplefilter("ignore", FutureWarning)
+    _frame_panel = Panel(dict(ItemA=_frame.copy(),
+                              ItemB=(_frame.copy() + 3),
+                              ItemC=_frame.copy(),
+                              ItemD=_frame.copy()))
+    _frame2_panel = Panel(dict(ItemA=_frame2.copy(),
+                               ItemB=(_frame2.copy() + 3),
+                               ItemC=_frame2.copy(),
+                               ItemD=_frame2.copy()))
+    _integer_panel = Panel(dict(ItemA=_integer,
+                                ItemB=(_integer + 34).astype('int64')))
+    _integer2_panel = Panel(dict(ItemA=_integer2,
+                                 ItemB=(_integer2 + 34).astype('int64')))
+    _mixed_panel = Panel(dict(ItemA=_mixed, ItemB=(_mixed + 3)))
+    _mixed2_panel = Panel(dict(ItemA=_mixed2, ItemB=(_mixed2 + 3)))
 
 
 @pytest.mark.skipif(not expr._USE_NUMEXPR, reason='not using numexpr')
-class TestExpressions(tm.TestCase):
+class TestExpressions(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
@@ -59,22 +67,16 @@ class TestExpressions(tm.TestCase):
         self.integer = _integer.copy()
         self._MIN_ELEMENTS = expr._MIN_ELEMENTS
 
-    def tearDown(self):
+    def teardown_method(self, method):
         expr._MIN_ELEMENTS = self._MIN_ELEMENTS
 
     def run_arithmetic(self, df, other, assert_func, check_dtype=False,
                        test_flex=True):
         expr._MIN_ELEMENTS = 0
-        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv', 'pow']
+        operations = ['add', 'sub', 'mul', 'mod', 'truediv', 'floordiv']
         if not compat.PY3:
             operations.append('div')
         for arith in operations:
-
-            # numpy >= 1.11 doesn't handle integers
-            # raised to integer powers
-            # https://github.com/pandas-dev/pandas/issues/15363
-            if arith == 'pow' and not _np_version_under1p11:
-                continue
 
             operator_name = arith
             if arith == 'div':
@@ -107,7 +109,7 @@ class TestExpressions(tm.TestCase):
                             check_dtype=True)
 
     def run_binary(self, df, other, assert_func, test_flex=False,
-                   numexpr_ops=set(['gt', 'lt', 'ge', 'le', 'eq', 'ne'])):
+                   numexpr_ops={'gt', 'lt', 'ge', 'le', 'eq', 'ne'}):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -116,6 +118,7 @@ class TestExpressions(tm.TestCase):
         expr._MIN_ELEMENTS = 0
         expr.set_test_mode(True)
         operations = ['gt', 'lt', 'ge', 'le', 'eq', 'ne']
+
         for arith in operations:
             if test_flex:
                 op = lambda x, y: getattr(df, arith)(y)
@@ -188,7 +191,8 @@ class TestExpressions(tm.TestCase):
     def test_integer_arithmetic_series(self):
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
-    @slow
+    @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_integer_panel(self):
         self.run_panel(_integer2_panel, np.random.randint(1, 100))
 
@@ -198,15 +202,10 @@ class TestExpressions(tm.TestCase):
     def test_float_arithmetic_series(self):
         self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
 
-    @slow
+    @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_float_panel(self):
         self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
-
-    @slow
-    def test_panel4d(self):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.run_panel(tm.makePanel4D(), np.random.randn() + 0.5,
-                           assert_func=assert_panel4d_equal, binary_comp=3)
 
     def test_mixed_arithmetic_frame(self):
         # TODO: FIGURE OUT HOW TO GET IT TO WORK...
@@ -218,7 +217,8 @@ class TestExpressions(tm.TestCase):
         for col in self.mixed2.columns:
             self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
 
-    @slow
+    @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_mixed_panel(self):
         self.run_panel(_mixed2_panel, np.random.randint(1, 100),
                        binary_comp=-2)
@@ -246,22 +246,22 @@ class TestExpressions(tm.TestCase):
         # no op
         result = expr._can_use_numexpr(operator.add, None, self.frame,
                                        self.frame, 'evaluate')
-        self.assertFalse(result)
+        assert not result
 
         # mixed
         result = expr._can_use_numexpr(operator.add, '+', self.mixed,
                                        self.frame, 'evaluate')
-        self.assertFalse(result)
+        assert not result
 
         # min elements
         result = expr._can_use_numexpr(operator.add, '+', self.frame2,
                                        self.frame2, 'evaluate')
-        self.assertFalse(result)
+        assert not result
 
         # ok, we only check on first part of expression
         result = expr._can_use_numexpr(operator.add, '+', self.frame,
                                        self.frame2, 'evaluate')
-        self.assertTrue(result)
+        assert result
 
     def test_binary_ops(self):
         def testit():
@@ -285,7 +285,7 @@ class TestExpressions(tm.TestCase):
                     if op is not None:
                         result = expr._can_use_numexpr(op, op_str, f, f,
                                                        'evaluate')
-                        self.assertNotEqual(result, f._is_mixed_type)
+                        assert result != f._is_mixed_type
 
                         result = expr.evaluate(op, op_str, f, f,
                                                use_numexpr=True)
@@ -300,7 +300,7 @@ class TestExpressions(tm.TestCase):
 
                         result = expr._can_use_numexpr(op, op_str, f2, f2,
                                                        'evaluate')
-                        self.assertFalse(result)
+                        assert not result
 
         expr.set_use_numexpr(False)
         testit()
@@ -328,7 +328,7 @@ class TestExpressions(tm.TestCase):
 
                     result = expr._can_use_numexpr(op, op_str, f11, f12,
                                                    'evaluate')
-                    self.assertNotEqual(result, f11._is_mixed_type)
+                    assert result != f11._is_mixed_type
 
                     result = expr.evaluate(op, op_str, f11, f12,
                                            use_numexpr=True)
@@ -341,7 +341,7 @@ class TestExpressions(tm.TestCase):
 
                     result = expr._can_use_numexpr(op, op_str, f21, f22,
                                                    'evaluate')
-                    self.assertFalse(result)
+                    assert not result
 
         expr.set_use_numexpr(False)
         testit()
@@ -382,22 +382,22 @@ class TestExpressions(tm.TestCase):
                 f = getattr(operator, name)
                 err_msg = re.escape(msg % op)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df, df)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df.a, df.b)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df.a, True)
 
-                with tm.assertRaisesRegexp(NotImplementedError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df.a)
 
-                with tm.assertRaisesRegexp(TypeError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df)
 
-                with tm.assertRaisesRegexp(TypeError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):
@@ -411,6 +411,10 @@ class TestExpressions(tm.TestCase):
         for op, name in zip(ops, names):
             f = getattr(operator, name)
             fe = getattr(operator, sub_funcs[subs[op]])
+
+            # >= 1.13.0 these are now TypeErrors
+            if op == '-' and not _np_version_under1p13:
+                continue
 
             with tm.use_numexpr(True, min_elements=5):
                 with tm.assert_produces_warning(check_stacklevel=False):

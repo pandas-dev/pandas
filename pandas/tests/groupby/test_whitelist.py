@@ -8,13 +8,12 @@ from string import ascii_lowercase
 import numpy as np
 from pandas import DataFrame, Series, compat, date_range, Index, MultiIndex
 from pandas.util import testing as tm
-from pandas.compat import lrange, product
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                  'mad', 'std', 'var', 'sem']
 AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
 
-df_whitelist = frozenset([
+df_whitelist = [
     'last',
     'first',
     'mean',
@@ -24,6 +23,7 @@ df_whitelist = frozenset([
     'head',
     'tail',
     'cumcount',
+    'ngroup',
     'resample',
     'rank',
     'quantile',
@@ -41,7 +41,6 @@ df_whitelist = frozenset([
     'pct_change',
     'skew',
     'plot',
-    'boxplot',
     'hist',
     'median',
     'dtypes',
@@ -49,9 +48,15 @@ df_whitelist = frozenset([
     'corr',
     'cov',
     'diff',
-])
+]
 
-s_whitelist = frozenset([
+
+@pytest.fixture(params=df_whitelist)
+def df_whitelist_fixture(request):
+    return request.param
+
+
+s_whitelist = [
     'last',
     'first',
     'mean',
@@ -61,6 +66,7 @@ s_whitelist = frozenset([
     'head',
     'tail',
     'cumcount',
+    'ngroup',
     'resample',
     'rank',
     'quantile',
@@ -87,7 +93,14 @@ s_whitelist = frozenset([
     'unique',
     'nlargest',
     'nsmallest',
-])
+    'is_monotonic_increasing',
+    'is_monotonic_decreasing',
+]
+
+
+@pytest.fixture(params=s_whitelist)
+def s_whitelist_fixture(request):
+    return request.param
 
 
 @pytest.fixture
@@ -120,11 +133,22 @@ def df_letters():
     return df
 
 
-@pytest.mark.parametrize(
-    "obj, whitelist", zip((df_letters(), df_letters().floats),
-                          (df_whitelist, s_whitelist)))
-def test_groupby_whitelist(df_letters, obj, whitelist):
+@pytest.mark.parametrize("whitelist", [df_whitelist, s_whitelist])
+def test_groupby_whitelist(df_letters, whitelist):
     df = df_letters
+    if whitelist == df_whitelist:
+        # dataframe
+        obj = df_letters
+    else:
+        obj = df_letters['floats']
+
+    gb = obj.groupby(df.letters)
+
+    assert set(whitelist) == set(gb._apply_whitelist)
+
+
+def check_whitelist(obj, df, m):
+    # check the obj for a particular whitelist m
 
     # these are aliases so ok to have the alias __name__
     alias = {'bfill': 'backfill',
@@ -133,29 +157,38 @@ def test_groupby_whitelist(df_letters, obj, whitelist):
 
     gb = obj.groupby(df.letters)
 
-    assert whitelist == gb._apply_whitelist
-    for m in whitelist:
+    m = alias.get(m, m)
+    if m is None:
+        return
 
-        m = alias.get(m, m)
-        if m is None:
-            continue
+    f = getattr(type(gb), m)
 
-        f = getattr(type(gb), m)
+    # name
+    try:
+        n = f.__name__
+    except AttributeError:
+        return
+    assert n == m
 
-        # name
+    # qualname
+    if compat.PY3:
         try:
-            n = f.__name__
+            n = f.__qualname__
         except AttributeError:
-            continue
-        assert n == m
+            return
+        assert n.endswith(m)
 
-        # qualname
-        if compat.PY3:
-            try:
-                n = f.__qualname__
-            except AttributeError:
-                continue
-            assert n.endswith(m)
+
+def test_groupby_series_whitelist(df_letters, s_whitelist_fixture):
+    m = s_whitelist_fixture
+    df = df_letters
+    check_whitelist(df.letters, df, m)
+
+
+def test_groupby_frame_whitelist(df_letters, df_whitelist_fixture):
+    m = df_whitelist_fixture
+    df = df_letters
+    check_whitelist(df, df, m)
 
 
 @pytest.fixture
@@ -172,14 +205,17 @@ def raw_frame():
     return raw_frame
 
 
-@pytest.mark.parametrize(
-    "op, level, axis, skipna",
-    product(AGG_FUNCTIONS,
-            lrange(2), lrange(2),
-            [True, False]))
-def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna):
+@pytest.mark.parametrize('op', AGG_FUNCTIONS)
+@pytest.mark.parametrize('level', [0, 1])
+@pytest.mark.parametrize('axis', [0, 1])
+@pytest.mark.parametrize('skipna', [True, False])
+@pytest.mark.parametrize('sort', [True, False])
+def test_regression_whitelist_methods(
+        raw_frame, op, level,
+        axis, skipna, sort):
     # GH6944
-    # explicity test the whitelest methods
+    # GH 17537
+    # explicitly test the whitelist methods
 
     if axis == 0:
         frame = raw_frame
@@ -187,15 +223,19 @@ def test_regression_whitelist_methods(raw_frame, op, level, axis, skipna):
         frame = raw_frame.T
 
     if op in AGG_FUNCTIONS_WITH_SKIPNA:
-        grouped = frame.groupby(level=level, axis=axis)
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)(skipna=skipna)
         expected = getattr(frame, op)(level=level, axis=axis,
                                       skipna=skipna)
+        if sort:
+            expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
     else:
-        grouped = frame.groupby(level=level, axis=axis)
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
         result = getattr(grouped, op)()
         expected = getattr(frame, op)(level=level, axis=axis)
+        if sort:
+            expected = expected.sort_index(axis=axis, level=level)
         tm.assert_frame_equal(result, expected)
 
 
@@ -223,24 +263,25 @@ def test_groupby_blacklist(df_letters):
         for obj in (df, s):
             gb = obj.groupby(df.letters)
             msg = fmt.format(bl, type(gb).__name__)
-            with tm.assertRaisesRegexp(AttributeError, msg):
+            with tm.assert_raises_regex(AttributeError, msg):
                 getattr(gb, bl)
 
 
 def test_tab_completion(mframe):
     grp = mframe.groupby(level='second')
-    results = set([v for v in dir(grp) if not v.startswith('_')])
-    expected = set(
-        ['A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
-         'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
-         'mean', 'median', 'min', 'name', 'ngroups', 'nth', 'ohlc', 'plot',
-         'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
-         'nunique', 'head', 'describe', 'cummax', 'quantile',
-         'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
-         'cumsum', 'cumcount', 'all', 'shift', 'skew',
-         'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
-         'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-         'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding'])
+    results = {v for v in dir(grp) if not v.startswith('_')}
+    expected = {
+        'A', 'B', 'C', 'agg', 'aggregate', 'apply', 'boxplot', 'filter',
+        'first', 'get_group', 'groups', 'hist', 'indices', 'last', 'max',
+        'mean', 'median', 'min', 'ngroups', 'nth', 'ohlc', 'plot',
+        'prod', 'size', 'std', 'sum', 'transform', 'var', 'sem', 'count',
+        'nunique', 'head', 'describe', 'cummax', 'quantile',
+        'rank', 'cumprod', 'tail', 'resample', 'cummin', 'fillna',
+        'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
+        'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
+        'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
+        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe',
+    }
     assert results == expected
 
 

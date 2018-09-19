@@ -198,8 +198,16 @@ div.body p, div.body dd, div.body li {
     line-height: 1.5em;
 }
 
-div.admonition p.admonition-title + p {
+div.admonition p.admonition-title + p, div.deprecated p {
     display: inline;
+}
+
+div.deprecated {
+    margin-bottom: 10px;
+    margin-top: 10px;
+    padding: 7px;
+    background-color: #ffe4e4;
+    border: 1px solid #f66;
 }
 
 div.highlight{
@@ -299,19 +307,44 @@ td.field-body blockquote {
     padding-left: 30px;
 }
 
-.rendered_html table {
+// Adapted from the new Jupyter notebook style
+// https://github.com/jupyter/notebook/blob/c8841b68c4c0739bbee1291e0214771f24194079/notebook/static/notebook/less/renderedhtml.less#L59
+table {
     margin-left: auto;
     margin-right: auto;
-    border-right: 1px solid #cbcbcb;
-    border-bottom: 1px solid #cbcbcb;
+    border: none;
+    border-collapse: collapse;
+    border-spacing: 0;
+    color: @rendered_html_border_color;
+    table-layout: fixed;
+}
+thead {
+    border-bottom: 1px solid @rendered_html_border_color;
+    vertical-align: bottom;
+}
+tr, th, td {
+    vertical-align: middle;
+    padding: 0.5em 0.5em;
+    line-height: normal;
+    white-space: normal;
+    max-width: none;
+    border: none;
+}
+th {
+    font-weight: bold;
+}
+th.col_heading {
+    text-align: right;
+}
+tbody tr:nth-child(odd) {
+    background: #f5f5f5;
 }
 
-.rendered_html td, th {
-    border-left: 1px solid #cbcbcb;
-    border-top: 1px solid #cbcbcb;
-    margin: 0;
-    padding: 0.5em .75em;
+table td.data, table th.row_heading table th.col_heading {
+    font-family: monospace;
+    text-align: right;
 }
+
 
 /**
  * See also

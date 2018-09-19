@@ -5,13 +5,16 @@ from __future__ import print_function
 from datetime import datetime, timedelta
 import re
 import sys
+import textwrap
 
 from numpy import nan
 import numpy as np
+import pytest
 
-from pandas import (DataFrame, compat, option_context)
-from pandas.compat import StringIO, lrange, u
-import pandas.formats.format as fmt
+from pandas import (DataFrame, Series, compat, option_context,
+                    date_range, period_range, Categorical)
+from pandas.compat import StringIO, lrange, u, PYPY
+import pandas.io.formats.format as fmt
 import pandas as pd
 
 import pandas.util.testing as tm
@@ -23,7 +26,7 @@ from pandas.tests.frame.common import TestData
 # structure
 
 
-class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
+class TestDataFrameReprInfoEtc(TestData):
 
     def test_repr_empty(self):
         # empty
@@ -40,7 +43,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         foo = repr(self.mixed_frame)  # noqa
         self.mixed_frame.info(verbose=False, buf=buf)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_repr_mixed_big(self):
         # big mixed
         biggie = DataFrame({'A': np.random.randn(200),
@@ -72,22 +75,22 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         self.empty.info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
-        self.assertFalse("\t" in repr(df))
-        self.assertFalse("\r" in repr(df))
-        self.assertFalse("a\n" in repr(df))
+        assert "\t" not in repr(df)
+        assert "\r" not in repr(df)
+        assert "a\n" not in repr(df)
 
     def test_repr_dimensions(self):
         df = DataFrame([[1, 2, ], [3, 4]])
         with option_context('display.show_dimensions', True):
-            self.assertTrue("2 rows x 2 columns" in repr(df))
+            assert "2 rows x 2 columns" in repr(df)
 
         with option_context('display.show_dimensions', False):
-            self.assertFalse("2 rows x 2 columns" in repr(df))
+            assert "2 rows x 2 columns" not in repr(df)
 
         with option_context('display.show_dimensions', 'truncate'):
-            self.assertFalse("2 rows x 2 columns" in repr(df))
+            assert "2 rows x 2 columns" not in repr(df)
 
-    @tm.slow
+    @pytest.mark.slow
     def test_repr_big(self):
         # big one
         biggie = DataFrame(np.zeros((200, 4)), columns=lrange(4),
@@ -118,7 +121,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         fmt.set_option('display.max_rows', 1000, 'display.max_columns', 1000)
         repr(self.frame)
 
-        self.reset_display_options()
+        tm.reset_display_options()
 
         warnings.filters = warn_filters
 
@@ -132,11 +135,11 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         result = repr(df)
         ex_top = '      A'
-        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+        assert result.split('\n')[0].rstrip() == ex_top
 
         df = DataFrame({'A': [uval, uval]})
         result = repr(df)
-        self.assertEqual(result.split('\n')[0].rstrip(), ex_top)
+        assert result.split('\n')[0].rstrip() == ex_top
 
     def test_unicode_string_with_unicode(self):
         df = DataFrame({'A': [u("\u05d0")]})
@@ -170,8 +173,8 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                                       'the CSV file externally. I want to Call'
                                       ' the File through the code..')})
 
-        result = repr(df)
-        self.assertIn('StringCol', result)
+        with option_context('display.max_columns', 20):
+            assert 'StringCol' in repr(df)
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
@@ -186,11 +189,12 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         with option_context("display.latex.escape", False,
                             'display.latex.repr', True):
             df = DataFrame([[r'$\alpha$', 'b', 'c'], [1, 2, 3]])
-            self.assertEqual(result, df._repr_latex_())
+            assert result == df._repr_latex_()
 
         # GH 12182
-        self.assertIsNone(df._repr_latex_())
+        assert df._repr_latex_() is None
 
+    @tm.capture_stdout
     def test_info(self):
         io = StringIO()
         self.frame.info(buf=io)
@@ -198,11 +202,27 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         frame = DataFrame(np.random.randn(5, 3))
 
-        import sys
-        sys.stdout = StringIO()
         frame.info()
         frame.info(verbose=False)
-        sys.stdout = sys.__stdout__
+
+    def test_info_memory(self):
+        # https://github.com/pandas-dev/pandas/issues/21056
+        df = pd.DataFrame({'a': pd.Series([1, 2], dtype='i8')})
+        buf = StringIO()
+        df.info(buf=buf)
+        result = buf.getvalue()
+        bytes = float(df.memory_usage().sum())
+
+        expected = textwrap.dedent("""\
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 2 entries, 0 to 1
+        Data columns (total 1 columns):
+        a    2 non-null int64
+        dtypes: int64(1)
+        memory usage: {} bytes
+        """.format(bytes))
+
+        assert result == expected
 
     def test_info_wide(self):
         from pandas import set_option, reset_option
@@ -213,13 +233,13 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         io = StringIO()
         df.info(buf=io, max_cols=101)
         rs = io.getvalue()
-        self.assertTrue(len(rs.splitlines()) > 100)
+        assert len(rs.splitlines()) > 100
         xp = rs
 
         set_option('display.max_info_columns', 101)
         io = StringIO()
         df.info(buf=io)
-        self.assertEqual(rs, xp)
+        assert rs == xp
         reset_option('display.max_info_columns')
 
     def test_info_duplicate_columns(self):
@@ -239,8 +259,8 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         frame.info(buf=io)
         io.seek(0)
         lines = io.readlines()
-        self.assertEqual('a    1 non-null int64\n', lines[3])
-        self.assertEqual('a    1 non-null float64\n', lines[4])
+        assert 'a    1 non-null int64\n' == lines[3]
+        assert 'a    1 non-null float64\n' == lines[4]
 
     def test_info_shows_column_dtypes(self):
         dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
@@ -265,7 +285,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
         for len_, verbose in [(10, None), (5, False), (10, True)]:
 
@@ -274,7 +294,7 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                 buf = StringIO()
                 df.info(buf=buf, verbose=verbose)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
         for len_, max_cols in [(10, 5), (5, 4)]:
             # setting truncates
@@ -282,14 +302,14 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
             # setting wouldn't truncate
             with option_context('max_info_columns', 5):
                 buf = StringIO()
                 df.info(buf=buf, max_cols=max_cols)
                 res = buf.getvalue()
-                self.assertEqual(len(res.strip().split('\n')), len_)
+                assert len(res.strip().split('\n')) == len_
 
     def test_info_memory_usage(self):
         # Ensure memory usage is displayed, when asserted, on the last line
@@ -305,41 +325,24 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         # display memory usage case
         df.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
-        self.assertTrue("memory usage: " in res[-1])
+        assert "memory usage: " in res[-1]
 
-        # do not display memory usage cas
+        # do not display memory usage case
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
-        self.assertTrue("memory usage: " not in res[-1])
+        assert "memory usage: " not in res[-1]
 
         df.info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
 
         # memory usage is a lower bound, so print it as XYZ+ MB
-        self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
 
         df.iloc[:, :5].info(buf=buf, memory_usage=True)
         res = buf.getvalue().splitlines()
 
         # excluded column with object dtype, so estimate is accurate
-        self.assertFalse(re.match(r"memory usage: [^+]+\+", res[-1]))
-
-        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
-        df_with_object_index.info(buf=buf, memory_usage=True)
-        res = buf.getvalue().splitlines()
-        self.assertTrue(re.match(r"memory usage: [^+]+\+", res[-1]))
-
-        df_with_object_index.info(buf=buf, memory_usage='deep')
-        res = buf.getvalue().splitlines()
-        self.assertTrue(re.match(r"memory usage: [^+]+$", res[-1]))
-
-        self.assertGreater(df_with_object_index.memory_usage(index=True,
-                                                             deep=True).sum(),
-                           df_with_object_index.memory_usage(index=True).sum())
-
-        df_object = pd.DataFrame({'a': ['a']})
-        self.assertGreater(df_object.memory_usage(deep=True).sum(),
-                           df_object.memory_usage().sum())
+        assert not re.match(r"memory usage: [^+]+\+", res[-1])
 
         # Test a DataFrame with duplicate columns
         dtypes = ['int64', 'int64', 'int64', 'float64']
@@ -350,19 +353,27 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame(data)
         df.columns = dtypes
 
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        df_with_object_index.info(buf=buf, memory_usage=True)
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+\+", res[-1])
+
+        df_with_object_index.info(buf=buf, memory_usage='deep')
+        res = buf.getvalue().splitlines()
+        assert re.match(r"memory usage: [^+]+$", res[-1])
+
         # Ensure df size is as expected
         # (cols * rows * bytes) + index size
         df_size = df.memory_usage().sum()
         exp_size = len(dtypes) * n * 8 + df.index.nbytes
-        self.assertEqual(df_size, exp_size)
+        assert df_size == exp_size
 
         # Ensure number of cols in memory_usage is the same as df
         size_df = np.size(df.columns.values) + 1  # index=True; default
-        self.assertEqual(size_df, np.size(df.memory_usage()))
+        assert size_df == np.size(df.memory_usage())
 
         # assert deep works only on object
-        self.assertEqual(df.memory_usage().sum(),
-                         df.memory_usage(deep=True).sum())
+        assert df.memory_usage().sum() == df.memory_usage(deep=True).sum()
 
         # test for validity
         DataFrame(1, index=['a'], columns=['A']
@@ -379,10 +390,48 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df.memory_usage(index=True)
         df.index.values.nbytes
 
+        mem = df.memory_usage(deep=True).sum()
+        assert mem > 0
+
+    @pytest.mark.skipif(PYPY,
+                        reason="on PyPy deep=True doesn't change result")
+    def test_info_memory_usage_deep_not_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() >
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() >
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(not PYPY,
+                        reason="on PyPy deep=True does not change result")
+    def test_info_memory_usage_deep_pypy(self):
+        df_with_object_index = pd.DataFrame({'a': [1]}, index=['foo'])
+        assert (df_with_object_index.memory_usage(
+                index=True, deep=True).sum() ==
+                df_with_object_index.memory_usage(
+                    index=True).sum())
+
+        df_object = pd.DataFrame({'a': ['a']})
+        assert (df_object.memory_usage(deep=True).sum() ==
+                df_object.memory_usage().sum())
+
+    @pytest.mark.skipif(PYPY, reason="PyPy getsizeof() fails by design")
+    def test_usage_via_getsizeof(self):
+        df = DataFrame(
+            data=1,
+            index=pd.MultiIndex.from_product(
+                [['a'], range(1000)]),
+            columns=['A']
+        )
+        mem = df.memory_usage(deep=True).sum()
         # sys.getsizeof will call the .memory_usage with
         # deep=True, and add on some GC overhead
-        diff = df.memory_usage(deep=True).sum() - sys.getsizeof(df)
-        self.assertTrue(abs(diff) < 100)
+        diff = mem - sys.getsizeof(df)
+        assert abs(diff) < 100
 
     def test_info_memory_usage_qualified(self):
 
@@ -390,27 +439,27 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame(1, columns=list('ab'),
                        index=[1, 2, 3])
         df.info(buf=buf)
-        self.assertFalse('+' in buf.getvalue())
+        assert '+' not in buf.getvalue()
 
         buf = StringIO()
         df = DataFrame(1, columns=list('ab'),
                        index=list('ABC'))
         df.info(buf=buf)
-        self.assertTrue('+' in buf.getvalue())
+        assert '+' in buf.getvalue()
 
         buf = StringIO()
         df = DataFrame(1, columns=list('ab'),
                        index=pd.MultiIndex.from_product(
                            [range(3), range(3)]))
         df.info(buf=buf)
-        self.assertFalse('+' in buf.getvalue())
+        assert '+' not in buf.getvalue()
 
         buf = StringIO()
         df = DataFrame(1, columns=list('ab'),
                        index=pd.MultiIndex.from_product(
                            [range(3), ['foo', 'bar']]))
         df.info(buf=buf)
-        self.assertTrue('+' in buf.getvalue())
+        assert '+' in buf.getvalue()
 
     def test_info_memory_usage_bug_on_multiindex(self):
         # GH 14308
@@ -430,11 +479,11 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
         df = DataFrame({'value': np.random.randn(N * M)}, index=index)
 
         unstacked = df.unstack('id')
-        self.assertEqual(df.values.nbytes, unstacked.values.nbytes)
-        self.assertTrue(memory_usage(df) > memory_usage(unstacked))
+        assert df.values.nbytes == unstacked.values.nbytes
+        assert memory_usage(df) > memory_usage(unstacked)
 
         # high upper bound
-        self.assertTrue(memory_usage(unstacked) - memory_usage(df) < 2000)
+        assert memory_usage(unstacked) - memory_usage(df) < 2000
 
     def test_info_categorical(self):
         # GH14298
@@ -443,3 +492,34 @@ class TestDataFrameReprInfoEtc(tm.TestCase, TestData):
 
         buf = StringIO()
         df.info(buf=buf)
+
+    def test_info_categorical_column(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({'int64': np.random.randint(100, size=n)})
+        df['category'] = Series(np.array(list('abcdefghij')).take(
+            np.random.randint(0, 10, size=n))).astype('category')
+        df.isna()
+        buf = StringIO()
+        df.info(buf=buf)
+
+        df2 = df[df['category'] == 'd']
+        buf = compat.StringIO()
+        df2.info(buf=buf)
+
+    def test_repr_categorical_dates_periods(self):
+        # normal DataFrame
+        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
+                        tz='US/Eastern')
+        p = period_range('2011-01', freq='M', periods=5)
+        df = DataFrame({'dt': dt, 'p': p})
+        exp = """                         dt       p
+0 2011-01-01 09:00:00-05:00 2011-01
+1 2011-01-01 10:00:00-05:00 2011-02
+2 2011-01-01 11:00:00-05:00 2011-03
+3 2011-01-01 12:00:00-05:00 2011-04
+4 2011-01-01 13:00:00-05:00 2011-05"""
+
+        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df) == exp

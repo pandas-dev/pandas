@@ -7,7 +7,7 @@ python: 3.5
 # set NOCACHE-true
 # To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
 # travis cache --delete inside the project directory from the travis command line client
-# The cash directories will be deleted if anything in ci/ changes in a commit
+# The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
  ccache: true
  directories:
@@ -16,9 +16,10 @@ cache:
 
 env:
   global:
-
-  # pandas-docs-travis GH
-  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
+    # create a github personal access token
+    # cd pandas-dev/pandas
+    # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
+    - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
     # for cloning
@@ -29,67 +30,65 @@ matrix:
     exclude:
       # Exclude the default Python 3.5 build
       - python: 3.5
+
     include:
-    - os: osx
-      language: generic
+    - dist: trusty
       env:
-        - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network"
-    - os: linux
+        - JOB="3.7" ENV_FILE="ci/travis-37.yaml" TEST_ARGS="--skip-slow --skip-network"
+
+    - dist: trusty
       env:
-        - JOB="2.7_LOCALE" TEST_ARGS="--only-slow --skip-network" LOCALE_OVERRIDE="zh_CN.UTF-8"
+        - JOB="2.7, locale, slow, old NumPy" ENV_FILE="ci/travis-27-locale.yaml" LOCALE_OVERRIDE="zh_CN.UTF-8" SLOW=true
       addons:
         apt:
           packages:
           - language-pack-zh-hans
-    - os: linux
+    - dist: trusty
       env:
-        - JOB="2.7" TEST_ARGS="--skip-slow" LINT=true
+        - JOB="2.7, lint" ENV_FILE="ci/travis-27.yaml" TEST_ARGS="--skip-slow" LINT=true
       addons:
         apt:
           packages:
           - python-gtk2
-    - os: linux
+    - dist: trusty
       env:
-        - JOB="3.5" TEST_ARGS="--skip-slow --skip-network" COVERAGE=true
+        - JOB="3.6, coverage" ENV_FILE="ci/travis-36.yaml" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" COVERAGE=true DOCTEST=true
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="3.6, slow" ENV_FILE="ci/travis-36-slow.yaml" SLOW=true
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="3.7, NumPy dev" ENV_FILE="ci/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
       addons:
         apt:
           packages:
           - xsel
-    - os: linux
-      env:
-        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true
     # In allow_failures
-    - os: linux
+    - dist: trusty
       env:
-        - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
-    # In allow_failures
-    - os: linux
-      env:
-        - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
-    # In allow_failures
-    - os: linux
-      env:
-        - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
-    # In allow_failures
-    - os: linux
-      env:
-        - JOB="3.5_DOC" DOC=true
+        - JOB="3.6, doc" ENV_FILE="ci/travis-36-doc.yaml" DOC=true
     allow_failures:
-      - os: linux
+      - dist: trusty
         env:
-          - JOB="2.7_SLOW" TEST_ARGS="--only-slow --skip-network"
-      - os: linux
+          - JOB="3.6, slow" ENV_FILE="ci/travis-36-slow.yaml" SLOW=true
+      - dist: trusty
         env:
-          - JOB="2.7_BUILD_TEST" TEST_ARGS="--skip-slow" BUILD_TEST=true
-      - os: linux
+          - JOB="3.7, NumPy dev" ENV_FILE="ci/travis-37-numpydev.yaml" TEST_ARGS="--skip-slow --skip-network -W error" PANDAS_TESTING_MODE="deprecate"
+        addons:
+          apt:
+            packages:
+            - xsel
+      - dist: trusty
         env:
-          - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
-      - os: linux
-        env:
-          - JOB="3.5_DOC" DOC=true
+          - JOB="3.6, doc" ENV_FILE="ci/travis-36-doc.yaml" DOC=true
 
 before_install:
   - echo "before_install"
+  # set non-blocking IO on travis
+  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+  - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - source ci/travis_process_gbq_encryption.sh
   - export PATH="$HOME/miniconda3/bin:$PATH"
   - df -h
@@ -97,8 +96,6 @@ before_install:
   - uname -a
   - git --version
   - git tag
-  - ci/before_install_travis.sh
-  - export DISPLAY=":99.0"
 
 install:
   - echo "install start"
@@ -108,8 +105,9 @@ install:
   - echo "install done"
 
 before_script:
-  - source activate pandas && pip install codecov
   - ci/install_db_travis.sh
+  - export DISPLAY=":99.0"
+  - ci/before_script_travis.sh
 
 script:
   - echo "script start"
@@ -117,16 +115,17 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - ci/doctests.sh
+  - echo "checking imports"
+  - source activate pandas && python ci/check_imports.py
   - echo "script done"
 
 after_success:
-  - if [ "$COVERAGE" ]; then
-        source activate pandas && codecov --file /tmp/cov-single.xml /tmp/cov-multiple.xml;
-    fi
+  -  ci/upload_coverage.sh
 
 after_script:
   - echo "after_script start"
-  - source activate pandas && python -c "import pandas; pandas.show_versions();"
+  - source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
   - if [ -e /tmp/single.xml ]; then
     ci/print_skipped.py /tmp/single.xml;
     fi

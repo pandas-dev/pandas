@@ -8,15 +8,6 @@ fi
 cd "$TRAVIS_BUILD_DIR"
 echo "inside $0"
 
-git show --pretty="format:" --name-only HEAD~5.. --first-parent | grep -P "rst|txt|doc"
-
-if [ "$?" != "0" ]; then
-    echo "Skipping doc build, none were modified"
-    # nope, skip docs build
-    exit 0
-fi
-
-
 if [ "$DOC" ]; then
 
     echo "Will build docs"
@@ -24,6 +15,7 @@ if [ "$DOC" ]; then
     source activate pandas
 
     mv "$TRAVIS_BUILD_DIR"/doc /tmp
+    mv "$TRAVIS_BUILD_DIR/LICENSE" /tmp  # included in the docs.
     cd /tmp/doc
 
     echo ###############################
@@ -40,10 +32,10 @@ if [ "$DOC" ]; then
     cd /tmp/doc/build/html
     git config --global user.email "pandas-docs-bot@localhost.foo"
     git config --global user.name "pandas-docs-bot"
-    git config --global credential.helper cache
 
     # create the repo
     git init
+
     touch README
     git add README
     git commit -m "Initial commit" --allow-empty
@@ -52,8 +44,12 @@ if [ "$DOC" ]; then
     touch .nojekyll
     git add --all .
     git commit -m "Version" --allow-empty
+
     git remote remove origin
-    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-docs/pandas-docs-travis.git"
+    git remote add origin "https://${PANDAS_GH_TOKEN}@github.com/pandas-dev/pandas-docs-travis.git"
+    git fetch origin
+    git remote -v
+
     git push origin gh-pages -f
 fi
 

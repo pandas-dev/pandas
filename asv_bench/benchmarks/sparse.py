@@ -1,142 +1,162 @@
-from .pandas_vb_common import *
-import pandas.sparse.series
+import itertools
+
+import numpy as np
 import scipy.sparse
-from pandas.core.sparse import SparseSeries, SparseDataFrame
-from pandas.core.sparse import SparseDataFrame
+from pandas import (SparseSeries, SparseDataFrame, SparseArray, Series,
+                    date_range, MultiIndex)
+
+from .pandas_vb_common import setup  # noqa
 
 
-class sparse_series_to_frame(object):
+def make_array(size, dense_proportion, fill_value, dtype):
+    dense_size = int(size * dense_proportion)
+    arr = np.full(size, fill_value, dtype)
+    indexer = np.random.choice(np.arange(size), dense_size, replace=False)
+    arr[indexer] = np.random.choice(np.arange(100, dtype=dtype), dense_size)
+    return arr
+
+
+class SparseSeriesToFrame(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.K = 50
-        self.N = 50000
-        self.rng = np.asarray(date_range('1/1/2000', periods=self.N, freq='T'))
+        K = 50
+        N = 50001
+        rng = date_range('1/1/2000', periods=N, freq='T')
         self.series = {}
-        for i in range(1, (self.K + 1)):
-            self.data = np.random.randn(self.N)[:(- i)]
-            self.this_rng = self.rng[:(- i)]
-            self.data[100:] = np.nan
-            self.series[i] = SparseSeries(self.data, index=self.this_rng)
+        for i in range(1, K):
+            data = np.random.randn(N)[:-i]
+            idx = rng[:-i]
+            data[100:] = np.nan
+            self.series[i] = SparseSeries(data, index=idx)
 
-    def time_sparse_series_to_frame(self):
+    def time_series_to_frame(self):
         SparseDataFrame(self.series)
 
 
-class sparse_frame_constructor(object):
+class SparseArrayConstructor(object):
+
     goal_time = 0.2
+    params = ([0.1, 0.01], [0, np.nan],
+              [np.int64, np.float64, np.object])
+    param_names = ['dense_proportion', 'fill_value', 'dtype']
 
-    def time_sparse_frame_constructor(self):
-        SparseDataFrame(columns=np.arange(100), index=np.arange(1000))
+    def setup(self, dense_proportion, fill_value, dtype):
+        N = 10**6
+        self.array = make_array(N, dense_proportion, fill_value, dtype)
+
+    def time_sparse_array(self, dense_proportion, fill_value, dtype):
+        SparseArray(self.array, fill_value=fill_value, dtype=dtype)
 
 
-class sparse_series_from_coo(object):
+class SparseDataFrameConstructor(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.A = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0], ([1, 0, 0], [0, 2, 3])), shape=(100, 100))
+        N = 1000
+        self.arr = np.arange(N)
+        self.sparse = scipy.sparse.rand(N, N, 0.005)
+        self.dict = dict(zip(range(N), itertools.repeat([0])))
+
+    def time_constructor(self):
+        SparseDataFrame(columns=self.arr, index=self.arr)
+
+    def time_from_scipy(self):
+        SparseDataFrame(self.sparse)
+
+    def time_from_dict(self):
+        SparseDataFrame(self.dict)
+
+
+class FromCoo(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.matrix = scipy.sparse.coo_matrix(([3.0, 1.0, 2.0],
+                                               ([1, 0, 0], [0, 2, 3])),
+                                              shape=(100, 100))
 
     def time_sparse_series_from_coo(self):
-        self.ss = pandas.sparse.series.SparseSeries.from_coo(self.A)
+        SparseSeries.from_coo(self.matrix)
 
 
-class sparse_series_to_coo(object):
+class ToCoo(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.s = pd.Series(([np.nan] * 10000))
-        self.s[0] = 3.0
-        self.s[100] = (-1.0)
-        self.s[999] = 12.1
-        self.s.index = pd.MultiIndex.from_product((range(10), range(10), range(10), range(10)))
-        self.ss = self.s.to_sparse()
+        s = Series([np.nan] * 10000)
+        s[0] = 3.0
+        s[100] = -1.0
+        s[999] = 12.1
+        s.index = MultiIndex.from_product([range(10)] * 4)
+        self.ss = s.to_sparse()
 
     def time_sparse_series_to_coo(self):
-        self.ss.to_coo(row_levels=[0, 1], column_levels=[2, 3], sort_labels=True)
+        self.ss.to_coo(row_levels=[0, 1],
+                       column_levels=[2, 3],
+                       sort_labels=True)
 
 
-class sparse_arithmetic_int(object):
+class Arithmetic(object):
+
     goal_time = 0.2
+    params = ([0.1, 0.01], [0, np.nan])
+    param_names = ['dense_proportion', 'fill_value']
 
-    def setup(self):
-        np.random.seed(1)
-        self.a_10percent = self.make_sparse_array(length=1000000, dense_size=100000, fill_value=np.nan)
-        self.b_10percent = self.make_sparse_array(length=1000000, dense_size=100000, fill_value=np.nan)
+    def setup(self, dense_proportion, fill_value):
+        N = 10**6
+        arr1 = make_array(N, dense_proportion, fill_value, np.int64)
+        self.array1 = SparseArray(arr1, fill_value=fill_value)
+        arr2 = make_array(N, dense_proportion, fill_value, np.int64)
+        self.array2 = SparseArray(arr2, fill_value=fill_value)
 
-        self.a_10percent_zero = self.make_sparse_array(length=1000000, dense_size=100000, fill_value=0)
-        self.b_10percent_zero = self.make_sparse_array(length=1000000, dense_size=100000, fill_value=0)
+    def time_make_union(self, dense_proportion, fill_value):
+        self.array1.sp_index.make_union(self.array2.sp_index)
 
-        self.a_1percent = self.make_sparse_array(length=1000000, dense_size=10000, fill_value=np.nan)
-        self.b_1percent = self.make_sparse_array(length=1000000, dense_size=10000, fill_value=np.nan)
+    def time_intersect(self, dense_proportion, fill_value):
+        self.array1.sp_index.intersect(self.array2.sp_index)
 
-    def make_sparse_array(self, length, dense_size, fill_value):
-        arr = np.array([fill_value] * length, dtype=np.float64)
-        indexer = np.unique(np.random.randint(0, length, dense_size))
-        arr[indexer] = np.random.randint(0, 100, len(indexer))
-        return pd.SparseArray(arr, fill_value=fill_value)
+    def time_add(self, dense_proportion, fill_value):
+        self.array1 + self.array2
 
-    def time_sparse_make_union(self):
-        self.a_10percent.sp_index.make_union(self.b_10percent.sp_index)
-
-    def time_sparse_intersect(self):
-        self.a_10percent.sp_index.intersect(self.b_10percent.sp_index)
-
-    def time_sparse_addition_10percent(self):
-        self.a_10percent + self.b_10percent
-
-    def time_sparse_addition_10percent_zero(self):
-        self.a_10percent_zero + self.b_10percent_zero
-
-    def time_sparse_addition_1percent(self):
-        self.a_1percent + self.b_1percent
-
-    def time_sparse_division_10percent(self):
-        self.a_10percent / self.b_10percent
-
-    def time_sparse_division_10percent_zero(self):
-        self.a_10percent_zero / self.b_10percent_zero
-
-    def time_sparse_division_1percent(self):
-        self.a_1percent / self.b_1percent
+    def time_divide(self, dense_proportion, fill_value):
+        self.array1 / self.array2
 
 
+class ArithmeticBlock(object):
 
-class sparse_arithmetic_block(object):
     goal_time = 0.2
+    params = [np.nan, 0]
+    param_names = ['fill_value']
 
-    def setup(self):
-        np.random.seed(1)
-        self.a = self.make_sparse_array(length=1000000, num_blocks=1000,
-                                        block_size=10, fill_value=np.nan)
-        self.b = self.make_sparse_array(length=1000000, num_blocks=1000,
-                                        block_size=10, fill_value=np.nan)
+    def setup(self, fill_value):
+        N = 10**6
+        self.arr1 = self.make_block_array(length=N, num_blocks=1000,
+                                          block_size=10, fill_value=fill_value)
+        self.arr2 = self.make_block_array(length=N, num_blocks=1000,
+                                          block_size=10, fill_value=fill_value)
 
-        self.a_zero = self.make_sparse_array(length=1000000, num_blocks=1000,
-                                             block_size=10, fill_value=0)
-        self.b_zero = self.make_sparse_array(length=1000000, num_blocks=1000,
-                                             block_size=10, fill_value=np.nan)
+    def make_block_array(self, length, num_blocks, block_size, fill_value):
+        arr = np.full(length, fill_value)
+        indicies = np.random.choice(np.arange(0, length, block_size),
+                                    num_blocks,
+                                    replace=False)
+        for ind in indicies:
+            arr[ind:ind + block_size] = np.random.randint(0, 100, block_size)
+        return SparseArray(arr, fill_value=fill_value)
 
-    def make_sparse_array(self, length, num_blocks, block_size, fill_value):
-        a = np.array([fill_value] * length)
-        for block in range(num_blocks):
-            i = np.random.randint(0, length)
-            a[i:i + block_size] = np.random.randint(0, 100, len(a[i:i + block_size]))
-        return pd.SparseArray(a, fill_value=fill_value)
+    def time_make_union(self, fill_value):
+        self.arr1.sp_index.make_union(self.arr2.sp_index)
 
-    def time_sparse_make_union(self):
-        self.a.sp_index.make_union(self.b.sp_index)
+    def time_intersect(self, fill_value):
+        self.arr2.sp_index.intersect(self.arr2.sp_index)
 
-    def time_sparse_intersect(self):
-        self.a.sp_index.intersect(self.b.sp_index)
+    def time_addition(self, fill_value):
+        self.arr1 + self.arr2
 
-    def time_sparse_addition(self):
-        self.a + self.b
-
-    def time_sparse_addition_zero(self):
-        self.a_zero + self.b_zero
-
-    def time_sparse_division(self):
-        self.a / self.b
-
-    def time_sparse_division_zero(self):
-        self.a_zero / self.b_zero
+    def time_division(self, fill_value):
+        self.arr1 / self.arr2

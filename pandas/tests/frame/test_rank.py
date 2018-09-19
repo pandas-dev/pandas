@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta, datetime
-from distutils.version import LooseVersion
-from numpy import nan
+import pytest
 import numpy as np
+import pandas.util.testing as tm
 
+from distutils.version import LooseVersion
+from datetime import timedelta, datetime
+from numpy import nan
+
+from pandas.util.testing import assert_frame_equal
+from pandas.tests.frame.common import TestData
 from pandas import Series, DataFrame
 
-from pandas.compat import product
-from pandas.util.testing import assert_frame_equal
-import pandas.util.testing as tm
-from pandas.tests.frame.common import TestData
 
-
-class TestRank(tm.TestCase, TestData):
+class TestRank(TestData):
     s = Series([1, 3, 4, 2, nan, 2, 1, 5, nan, 3])
     df = DataFrame({'A': s, 'B': s})
 
@@ -25,9 +25,15 @@ class TestRank(tm.TestCase, TestData):
         'dense': np.array([1, 3, 4, 2, nan, 2, 1, 5, nan, 3]),
     }
 
+    @pytest.fixture(params=['average', 'min', 'max', 'first', 'dense'])
+    def method(self, request):
+        """
+        Fixture for trying all rank methods
+        """
+        return request.param
+
     def test_rank(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
@@ -120,8 +126,7 @@ class TestRank(tm.TestCase, TestData):
         tm.assert_frame_equal(df.rank(), exp)
 
     def test_rank_na_option(self):
-        tm._skip_if_no_scipy()
-        from scipy.stats import rankdata
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
 
         self.frame['A'][::2] = np.nan
         self.frame['B'][::3] = np.nan
@@ -186,6 +191,16 @@ class TestRank(tm.TestCase, TestData):
         tm.assert_numpy_array_equal(ranks0.values, exp0)
         tm.assert_numpy_array_equal(ranks1.values, exp1)
 
+        # bad values throw error
+        msg = "na_option must be one of 'keep', 'top', or 'bottom'"
+
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.rank(na_option='bad', ascending=False)
+
+        # invalid type
+        with tm.assert_raises_regex(ValueError, msg):
+            self.frame.rank(na_option=True, ascending=False)
+
     def test_rank_axis(self):
         # check if using axes' names gives the same result
         df = DataFrame([[2, 1], [4, 3]])
@@ -193,10 +208,9 @@ class TestRank(tm.TestCase, TestData):
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis='columns'))
 
     def test_rank_methods_frame(self):
-        tm.skip_if_no_package('scipy', min_version='0.13',
-                              app='scipy.stats.rankdata')
+        pytest.importorskip('scipy.stats.special')
+        rankdata = pytest.importorskip('scipy.stats.rankdata')
         import scipy
-        from scipy.stats import rankdata
 
         xs = np.random.randint(0, 21, (100, 26))
         xs = (xs - 10.0) / 10.0
@@ -214,38 +228,40 @@ class TestRank(tm.TestCase, TestData):
                     sprank = sprank.astype(np.float64)
                     expected = DataFrame(sprank, columns=cols)
 
-                    if LooseVersion(scipy.__version__) >= '0.17.0':
+                    if (LooseVersion(scipy.__version__) >=
+                            LooseVersion('0.17.0')):
                         expected = expected.astype('float64')
                     tm.assert_frame_equal(result, expected)
 
-    def test_rank_descending(self):
-        dtypes = ['O', 'f8', 'i8']
+    @pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
+    def test_rank_descending(self, method, dtype):
 
-        for dtype, method in product(dtypes, self.results):
-            if 'i' in dtype:
-                df = self.df.dropna()
-            else:
-                df = self.df.astype(dtype)
+        if 'i' in dtype:
+            df = self.df.dropna()
+        else:
+            df = self.df.astype(dtype)
 
-            res = df.rank(ascending=False)
-            expected = (df.max() - df).rank()
-            assert_frame_equal(res, expected)
+        res = df.rank(ascending=False)
+        expected = (df.max() - df).rank()
+        assert_frame_equal(res, expected)
 
-            if method == 'first' and dtype == 'O':
-                continue
+        if method == 'first' and dtype == 'O':
+            return
 
-            expected = (df.max() - df).rank(method=method)
+        expected = (df.max() - df).rank(method=method)
 
-            if dtype != 'O':
-                res2 = df.rank(method=method, ascending=False,
-                               numeric_only=True)
-                assert_frame_equal(res2, expected)
+        if dtype != 'O':
+            res2 = df.rank(method=method, ascending=False,
+                           numeric_only=True)
+            assert_frame_equal(res2, expected)
 
-            res3 = df.rank(method=method, ascending=False,
-                           numeric_only=False)
-            assert_frame_equal(res3, expected)
+        res3 = df.rank(method=method, ascending=False,
+                       numeric_only=False)
+        assert_frame_equal(res3, expected)
 
-    def test_rank_2d_tie_methods(self):
+    @pytest.mark.parametrize('axis', [0, 1])
+    @pytest.mark.parametrize('dtype', [None, object])
+    def test_rank_2d_tie_methods(self, method, axis, dtype):
         df = self.df
 
         def _check2d(df, expected, method='average', axis=0):
@@ -258,12 +274,38 @@ class TestRank(tm.TestCase, TestData):
             result = df.rank(method=method, axis=axis)
             assert_frame_equal(result, exp_df)
 
-        dtypes = [None, object]
-        disabled = set([(object, 'first')])
-        results = self.results
+        disabled = {(object, 'first')}
+        if (dtype, method) in disabled:
+            return
+        frame = df if dtype is None else df.astype(dtype)
+        _check2d(frame, self.results[method], method=method, axis=axis)
 
-        for method, axis, dtype in product(results, [0, 1], dtypes):
-            if (dtype, method) in disabled:
-                continue
-            frame = df if dtype is None else df.astype(dtype)
-            _check2d(frame, results[method], method=method, axis=axis)
+    @pytest.mark.parametrize(
+        "method,exp", [("dense",
+                        [[1., 1., 1.],
+                         [1., 0.5, 2. / 3],
+                         [1., 0.5, 1. / 3]]),
+                       ("min",
+                        [[1. / 3, 1., 1.],
+                         [1. / 3, 1. / 3, 2. / 3],
+                         [1. / 3, 1. / 3, 1. / 3]]),
+                       ("max",
+                        [[1., 1., 1.],
+                         [1., 2. / 3, 2. / 3],
+                         [1., 2. / 3, 1. / 3]]),
+                       ("average",
+                        [[2. / 3, 1., 1.],
+                         [2. / 3, 0.5, 2. / 3],
+                         [2. / 3, 0.5, 1. / 3]]),
+                       ("first",
+                        [[1. / 3, 1., 1.],
+                         [2. / 3, 1. / 3, 2. / 3],
+                         [3. / 3, 2. / 3, 1. / 3]])])
+    def test_rank_pct_true(self, method, exp):
+        # see gh-15630.
+
+        df = DataFrame([[2012, 66, 3], [2012, 65, 2], [2012, 65, 1]])
+        result = df.rank(method=method, pct=True)
+
+        expected = DataFrame(exp)
+        tm.assert_frame_equal(result, expected)

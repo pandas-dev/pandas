@@ -93,7 +93,7 @@ columns, this is equivalent to passing a
 
    store.select('df',columns = ['A','B'])
 
-``HDFStore`` now serializes multi-index dataframes when appending tables.
+``HDFStore`` now serializes MultiIndex dataframes when appending tables.
 
 .. ipython:: python
 
@@ -149,15 +149,15 @@ combined result, by using ``where`` on a selector table.
   `nan`.
 
 - You can pass ``index`` to ``append``. This defaults to ``True``. This will
-  automagically create indicies on the *indexables* and *data columns* of the
+  automagically create indices on the *indexables* and *data columns* of the
   table
 
 - You can pass ``chunksize=an integer`` to ``append``, to change the writing
-  chunksize (default is 50000). This will signficantly lower your memory usage
+  chunksize (default is 50000). This will significantly lower your memory usage
   on writing.
 
 - You can pass ``expectedrows=an integer`` to the first ``append``, to set the
-  TOTAL number of expectedrows that ``PyTables`` will expected. This will
+  TOTAL number of expected rows that ``PyTables`` will expected. This will
   optimize read/write performance.
 
 - ``Select`` now supports passing ``start`` and ``stop`` to provide selection
@@ -191,7 +191,7 @@ combined result, by using ``where`` on a selector table.
   levels with a very large number of combinatorial values (:issue:`2684`)
 - Fixed bug that causes plotting to fail when the index is a DatetimeIndex with
   a fixed-offset timezone (:issue:`2683`)
-- Corrected businessday subtraction logic when the offset is more than 5 bdays
+- Corrected business day subtraction logic when the offset is more than 5 bdays
   and the starting date is on a weekend (:issue:`2680`)
 - Fixed C file parser behavior when the file has more columns than data
   (:issue:`2668`)

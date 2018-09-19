@@ -8,10 +8,10 @@ parsing for all of the parsers defined in parsers.py
 import numpy as np
 from numpy import nan
 
-import pandas.io.parsers as parsers
+import pandas.io.common as com
 import pandas.util.testing as tm
 
-from pandas import DataFrame, MultiIndex
+from pandas import DataFrame, Index, MultiIndex
 from pandas.compat import StringIO, range
 
 
@@ -69,10 +69,10 @@ NaN,nan
                 tm.assert_frame_equal(out, expected)
 
     def test_default_na_values(self):
-        _NA_VALUES = set(['-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN',
-                          '#N/A', 'N/A', 'NA', '#NA', 'NULL', 'NaN',
-                          'nan', '-NaN', '-nan', '#N/A N/A', ''])
-        self.assertEqual(_NA_VALUES, parsers._NA_VALUES)
+        _NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A',
+                      'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', 'nan',
+                      '-NaN', '-nan', '#N/A N/A', ''}
+        assert _NA_VALUES == com._NA_VALUES
         nv = len(_NA_VALUES)
 
         def f(i, v):
@@ -88,7 +88,7 @@ NaN,nan
 
             return buf
 
-        data = StringIO('\n'.join([f(i, v) for i, v in enumerate(_NA_VALUES)]))
+        data = StringIO('\n'.join(f(i, v) for i, v in enumerate(_NA_VALUES)))
         expected = DataFrame(np.nan, columns=range(nv), index=range(nv))
         df = self.read_csv(data, header=None)
         tm.assert_frame_equal(df, expected)
@@ -224,6 +224,45 @@ g,7,seven
                                   'seven']})
         tm.assert_frame_equal(xp.reindex(columns=df.columns), df)
 
+    def test_no_keep_default_na_dict_na_values(self):
+        # see gh-19227
+        data = "a,b\n,2"
+
+        df = self.read_csv(StringIO(data), na_values={"b": ["2"]},
+                           keep_default_na=False)
+        expected = DataFrame({"a": [""], "b": [np.nan]})
+        tm.assert_frame_equal(df, expected)
+
+        # Scalar values shouldn't cause the parsing to crash or fail.
+        data = "a,b\n1,2"
+
+        df = self.read_csv(StringIO(data), na_values={"b": 2},
+                           keep_default_na=False)
+        expected = DataFrame({"a": [1], "b": [np.nan]})
+        tm.assert_frame_equal(df, expected)
+
+        data = """\
+113125,"blah","/blaha",kjsdkj,412.166,225.874,214.008
+729639,"qwer","",asdfkj,466.681,,252.373
+"""
+        expected = DataFrame({0: [np.nan, 729639.0],
+                              1: [np.nan, "qwer"],
+                              2: ["/blaha", np.nan],
+                              3: ["kjsdkj", "asdfkj"],
+                              4: [412.166, 466.681],
+                              5: ["225.874", ""],
+                              6: [np.nan, 252.373]})
+
+        df = self.read_csv(StringIO(data), header=None, keep_default_na=False,
+                           na_values={2: "", 6: "214.008",
+                                      1: "blah", 0: 113125})
+        tm.assert_frame_equal(df, expected)
+
+        df = self.read_csv(StringIO(data), header=None, keep_default_na=False,
+                           na_values={2: "", 6: "214.008",
+                                      1: "blah", 0: "113125"})
+        tm.assert_frame_equal(df, expected)
+
     def test_na_values_na_filter_override(self):
         data = """\
 A,B
@@ -248,8 +287,8 @@ nan,B
 2012-05-12,USD,SBUX,SELL,500"""
 
         result = self.read_csv(StringIO(data))
-        self.assertEqual(result['Date'][1], '2012-05-12')
-        self.assertTrue(result['UnitPrice'].isnull().all())
+        assert result['Date'][1] == '2012-05-12'
+        assert result['UnitPrice'].isna().all()
 
     def test_na_values_scalar(self):
         # see gh-12224
@@ -302,4 +341,42 @@ nan,B
         data = str(2**63) + ',1' + '\n,2'
         expected = DataFrame([[str(2**63), 1], ['', 2]])
         out = self.read_csv(StringIO(data), header=None)
+        tm.assert_frame_equal(out, expected)
+
+    def test_empty_na_values_no_default_with_index(self):
+        # see gh-15835
+        data = "a,1\nb,2"
+
+        expected = DataFrame({'1': [2]}, index=Index(["b"], name="a"))
+        out = self.read_csv(StringIO(data), keep_default_na=False, index_col=0)
+
+        tm.assert_frame_equal(out, expected)
+
+    def test_no_na_filter_on_index(self):
+        # see gh-5239
+        data = "a,b,c\n1,,3\n4,5,6"
+
+        # Don't parse NA-values in index when na_filter=False.
+        out = self.read_csv(StringIO(data), index_col=[1], na_filter=False)
+
+        expected = DataFrame({"a": [1, 4], "c": [3, 6]},
+                             index=Index(["", "5"], name="b"))
+        tm.assert_frame_equal(out, expected)
+
+        # Parse NA-values in index when na_filter=True.
+        out = self.read_csv(StringIO(data), index_col=[1], na_filter=True)
+
+        expected = DataFrame({"a": [1, 4], "c": [3, 6]},
+                             index=Index([np.nan, 5.0], name="b"))
+        tm.assert_frame_equal(out, expected)
+
+    def test_inf_na_values_with_int_index(self):
+        # see gh-17128
+        data = "idx,col1,col2\n1,3,4\n2,inf,-inf"
+
+        # Don't fail with OverflowError with infs and integer index column
+        out = self.read_csv(StringIO(data), index_col=[0],
+                            na_values=['inf', '-inf'])
+        expected = DataFrame({"col1": [3, np.nan], "col2": [4, np.nan]},
+                             index=Index([1, 2], name="idx"))
         tm.assert_frame_equal(out, expected)

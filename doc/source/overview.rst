@@ -6,42 +6,42 @@
 Package overview
 ****************
 
-:mod:`pandas` consists of the following things
+:mod:`pandas` is an open source, BSD-licensed library providing high-performance, 
+easy-to-use data structures and data analysis tools for the `Python <https://www.python.org/>`__
+programming language.
 
- * A set of labeled array data structures, the primary of which are
-   Series and DataFrame
- * Index objects enabling both simple axis indexing and multi-level /
-   hierarchical axis indexing
- * An integrated group by engine for aggregating and transforming data sets
- * Date range generation (date_range) and custom date offsets enabling the
-   implementation of customized frequencies
- * Input/Output tools: loading tabular data from flat files (CSV, delimited,
-   Excel 2003), and saving and loading pandas objects from the fast and
-   efficient PyTables/HDF5 format.
- * Memory-efficient "sparse" versions of the standard data structures for storing
-   data that is mostly missing or mostly constant (some fixed value)
- * Moving window statistics (rolling mean, rolling standard deviation, etc.)
- * Static and moving window linear and `panel regression
-   <http://en.wikipedia.org/wiki/Panel_data>`__
+:mod:`pandas` consists of the following elements:
 
-Data structures at a glance
----------------------------
+* A set of labeled array data structures, the primary of which are
+  Series and DataFrame.
+* Index objects enabling both simple axis indexing and multi-level /
+  hierarchical axis indexing.
+* An integrated group by engine for aggregating and transforming data sets.
+* Date range generation (date_range) and custom date offsets enabling the
+  implementation of customized frequencies.
+* Input/Output tools: loading tabular data from flat files (CSV, delimited,
+  Excel 2003), and saving and loading pandas objects from the fast and
+  efficient PyTables/HDF5 format.
+* Memory-efficient "sparse" versions of the standard data structures for storing
+  data that is mostly missing or mostly constant (some fixed value).
+* Moving window statistics (rolling mean, rolling standard deviation, etc.).
+
+Data Structures
+---------------
 
 .. csv-table::
     :header: "Dimensions", "Name", "Description"
     :widths: 15, 20, 50
 
-    1, Series, "1D labeled homogeneously-typed array"
-    2, DataFrame, "General 2D labeled, size-mutable tabular structure with
-    potentially heterogeneously-typed columns"
-    3, Panel, "General 3D labeled, also size-mutable array"
+    1, "Series", "1D labeled homogeneously-typed array"
+    2, "DataFrame", "General 2D labeled, size-mutable tabular structure with potentially heterogeneously-typed column"
 
-Why more than 1 data structure?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Why more than one data structure?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The best way to think about the pandas data structures is as flexible
 containers for lower dimensional data. For example, DataFrame is a container
-for Series, and Panel is a container for DataFrame objects. We would like to be
+for Series, and Series is a container for scalars. We would like to be
 able to insert and remove objects from these containers in a dictionary-like
 fashion.
 
@@ -58,7 +58,7 @@ transformations in downstream functions.
 
 For example, with tabular data (DataFrame) it is more semantically helpful to
 think of the **index** (the rows) and the **columns** rather than axis 0 and
-axis 1. And iterating through the columns of the DataFrame thus results in more
+axis 1. Iterating through the columns of the DataFrame thus results in more
 readable code:
 
 ::
@@ -74,8 +74,7 @@ All pandas data structures are value-mutable (the values they contain can be
 altered) but not always size-mutable. The length of a Series cannot be
 changed, but, for example, columns can be inserted into a DataFrame. However,
 the vast majority of methods produce new objects and leave the input data
-untouched. In general, though, we like to **favor immutability** where
-sensible.
+untouched. In general we like to **favor immutability** where sensible.
 
 Getting Support
 ---------------
@@ -85,36 +84,41 @@ The first stop for pandas issues and ideas is the `Github Issue Tracker
 pandas community experts can answer through `Stack Overflow
 <http://stackoverflow.com/questions/tagged/pandas>`__.
 
-Longer discussions occur on the `developer mailing list
-<http://groups.google.com/group/pystatsmodels>`__, and commercial support
-inquiries for Lambda Foundry should be sent to: support@lambdafoundry.com
+Community
+---------
 
-Credits
--------
+pandas is actively supported today by a community of like-minded individuals around 
+the world who contribute their valuable time and energy to help make open source 
+pandas possible. Thanks to `all of our contributors <https://github.com/pandas-dev/pandas/graphs/contributors>`__.
 
-pandas development began at `AQR Capital Management <http://www.aqr.com>`__ in
-April 2008. It was open-sourced at the end of 2009. AQR continued to provide
-resources for development through the end of 2011, and continues to contribute
-bug reports today.
+If you're interested in contributing, please
+visit `Contributing to pandas webpage <http://pandas.pydata.org/pandas-docs/stable/contributing.html>`__.
 
-Since January 2012, `Lambda Foundry <http://www.lambdafoundry.com>`__, has
-been providing development resources, as well as commercial support,
-training, and consulting for pandas.
+pandas is a `NumFOCUS <https://www.numfocus.org/open-source-projects/>`__ sponsored project.
+This will help ensure the success of development of pandas as a world-class open-source
+project, and makes it possible to `donate <https://pandas.pydata.org/donate.html>`__ to the project.
 
-pandas is only made possible by a group of people around the world like you
-who have contributed new code, bug reports, fixes, comments and ideas. A
-complete list can be found `on Github <http://www.github.com/pandas-dev/pandas/contributors>`__.
+Project Governance
+------------------
+
+The governance process that pandas project has used informally since its inception in 2008 is formalized in `Project Governance documents <https://github.com/pandas-dev/pandas-governance>`__.
+The documents clarify how decisions are made and how the various elements of our community interact, including the relationship between open source collaborative development and work that may be funded by for-profit or non-profit entities.
+
+Wes McKinney is the Benevolent Dictator for Life (BDFL).
 
 Development Team
-----------------
+-----------------
 
-pandas is a part of the PyData project. The PyData Development Team is a
-collection of developers focused on the improvement of Python's data
-libraries. The core team that coordinates development can be found on `Github
-<http://github.com/pydata>`__. If you're interested in contributing, please
-visit the `project website <http://pandas.pydata.org>`__.
+The list of the Core Team members and more detailed information can be found on the `people’s page <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`__ of the governance repo.
+ 
+
+Institutional Partners
+----------------------
+
+The information about current institutional partners can be found on `pandas website page <https://pandas.pydata.org/about.html>`__.
 
 License
 -------
 
 .. literalinclude:: ../../LICENSE
+

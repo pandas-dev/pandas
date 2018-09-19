@@ -1,107 +1,170 @@
-from .pandas_vb_common import *
-import string
-import itertools as IT
-import pandas.util.testing as testing
+import warnings
+
+import numpy as np
+from pandas import Series, DataFrame
+import pandas.util.testing as tm
 
 
-class StringMethods(object):
+class Methods(object):
+
     goal_time = 0.2
 
-    def make_series(self, letters, strlen, size):
-        return Series([str(x) for x in np.fromiter(IT.cycle(letters), count=(size * strlen), dtype='|S1').view('|S{}'.format(strlen))])
-
     def setup(self):
-        self.many = self.make_series(('matchthis' + string.ascii_uppercase), strlen=19, size=10000)
-        self.few = self.make_series(('matchthis' + (string.ascii_uppercase * 42)), strlen=19, size=10000)
-        self.s = self.make_series(string.ascii_uppercase, strlen=10, size=10000).str.join('|')
-
-    def time_cat(self):
-        self.many.str.cat(sep=',')
+        self.s = Series(tm.makeStringIndex(10**5))
 
     def time_center(self):
-        self.many.str.center(100)
-
-    def time_contains_few(self):
-        self.few.str.contains('matchthis')
-
-    def time_contains_few_noregex(self):
-        self.few.str.contains('matchthis', regex=False)
-
-    def time_contains_many(self):
-        self.many.str.contains('matchthis')
-
-    def time_contains_many_noregex(self):
-        self.many.str.contains('matchthis', regex=False)
+        self.s.str.center(100)
 
     def time_count(self):
-        self.many.str.count('matchthis')
+        self.s.str.count('A')
 
     def time_endswith(self):
-        self.many.str.endswith('matchthis')
+        self.s.str.endswith('A')
 
     def time_extract(self):
-        self.many.str.extract('(\\w*)matchthis(\\w*)')
+        with warnings.catch_warnings(record=True):
+            self.s.str.extract('(\\w*)A(\\w*)')
 
     def time_findall(self):
-        self.many.str.findall('[A-Z]+')
+        self.s.str.findall('[A-Z]+')
 
     def time_get(self):
-        self.many.str.get(0)
-
-    def time_join_split(self):
-        self.many.str.join('--').str.split('--')
-
-    def time_join_split_expand(self):
-        self.many.str.join('--').str.split('--', expand=True)
+        self.s.str.get(0)
 
     def time_len(self):
-        self.many.str.len()
+        self.s.str.len()
 
     def time_match(self):
-        self.many.str.match('mat..this')
+        self.s.str.match('A')
 
     def time_pad(self):
-        self.many.str.pad(100, side='both')
-
-    def time_repeat(self):
-        self.many.str.repeat(list(IT.islice(IT.cycle(range(1, 4)), len(self.many))))
+        self.s.str.pad(100, side='both')
 
     def time_replace(self):
-        self.many.str.replace('(matchthis)', '\x01\x01')
+        self.s.str.replace('A', '\x01\x01')
 
     def time_slice(self):
-        self.many.str.slice(5, 15, 2)
+        self.s.str.slice(5, 15, 2)
 
     def time_startswith(self):
-        self.many.str.startswith('matchthis')
+        self.s.str.startswith('A')
 
     def time_strip(self):
-        self.many.str.strip('matchthis')
+        self.s.str.strip('A')
 
     def time_rstrip(self):
-        self.many.str.rstrip('matchthis')
+        self.s.str.rstrip('A')
 
     def time_lstrip(self):
-        self.many.str.lstrip('matchthis')
+        self.s.str.lstrip('A')
 
     def time_title(self):
-        self.many.str.title()
+        self.s.str.title()
 
     def time_upper(self):
-        self.many.str.upper()
+        self.s.str.upper()
 
     def time_lower(self):
-        self.many.str.lower()
+        self.s.str.lower()
+
+
+class Repeat(object):
+
+    goal_time = 0.2
+    params = ['int', 'array']
+    param_names = ['repeats']
+
+    def setup(self, repeats):
+        N = 10**5
+        self.s = Series(tm.makeStringIndex(N))
+        repeat = {'int': 1, 'array': np.random.randint(1, 3, N)}
+        self.repeat = repeat[repeats]
+
+    def time_repeat(self, repeats):
+        self.s.str.repeat(self.repeat)
+
+
+class Cat(object):
+
+    goal_time = 0.2
+    params = ([0, 3], [None, ','], [None, '-'], [0.0, 0.001, 0.15])
+    param_names = ['other_cols', 'sep', 'na_rep', 'na_frac']
+
+    def setup(self, other_cols, sep, na_rep, na_frac):
+        N = 10 ** 5
+        mask_gen = lambda: np.random.choice([True, False], N,
+                                            p=[1 - na_frac, na_frac])
+        self.s = Series(tm.makeStringIndex(N)).where(mask_gen())
+        if other_cols == 0:
+            # str.cat self-concatenates only for others=None
+            self.others = None
+        else:
+            self.others = DataFrame({i: tm.makeStringIndex(N).where(mask_gen())
+                                     for i in range(other_cols)})
+
+    def time_cat(self, other_cols, sep, na_rep, na_frac):
+        # before the concatenation (one caller + other_cols columns), the total
+        # expected fraction of rows containing any NaN is:
+        # reduce(lambda t, _: t + (1 - t) * na_frac, range(other_cols + 1), 0)
+        # for other_cols=3 and na_frac=0.15, this works out to ~48%
+        self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
+
+
+class Contains(object):
+
+    goal_time = 0.2
+    params = [True, False]
+    param_names = ['regex']
+
+    def setup(self, regex):
+        self.s = Series(tm.makeStringIndex(10**5))
+
+    def time_contains(self, regex):
+        self.s.str.contains('A', regex=regex)
+
+
+class Split(object):
+
+    goal_time = 0.2
+    params = [True, False]
+    param_names = ['expand']
+
+    def setup(self, expand):
+        self.s = Series(tm.makeStringIndex(10**5)).str.join('--')
+
+    def time_split(self, expand):
+        self.s.str.split('--', expand=expand)
+
+
+class Dummies(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(tm.makeStringIndex(10**5)).str.join('|')
 
     def time_get_dummies(self):
         self.s.str.get_dummies('|')
 
 
-class StringEncode(object):
+class Encode(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.ser = Series(testing.makeUnicodeIndex())
+        self.ser = Series(tm.makeUnicodeIndex())
 
     def time_encode_decode(self):
         self.ser.str.encode('utf-8').str.decode('utf-8')
+
+
+class Slice(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.s = Series(['abcdefg', np.nan] * 500000)
+
+    def time_vector_slice(self):
+        # GH 2602
+        self.s.str[:5]

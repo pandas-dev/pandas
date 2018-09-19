@@ -1,18 +1,62 @@
-""" self-contained to write legacy storage (pickle/msgpack) files """
+#!/usr/bin/env python
+
+"""
+self-contained to write legacy storage (pickle/msgpack) files
+
+To use this script. Create an environment where you want
+generate pickles, say its for 0.18.1, with your pandas clone
+in ~/pandas
+
+. activate pandas_0.18.1
+cd ~/
+
+$ python pandas/pandas/tests/io/generate_legacy_storage_files.py \
+    pandas/pandas/tests/io/data/legacy_pickle/0.18.1/ pickle
+
+This script generates a storage file for the current arch, system,
+and python version
+  pandas version: 0.18.1
+  output dir    : pandas/pandas/tests/io/data/legacy_pickle/0.18.1/
+  storage format: pickle
+created pickle file: 0.18.1_x86_64_darwin_3.5.2.pickle
+
+The idea here is you are using the *current* version of the
+generate_legacy_storage_files with an *older* version of pandas to
+generate a pickle file. We will then check this file into a current
+branch, and test using test_pickle.py. This will load the *older*
+pickles and test versus the current data that is generated
+(with master). These are then compared.
+
+If we have cases where we changed the signature (e.g. we renamed
+offset -> freq in Timestamp). Then we have to conditionally execute
+in the generate_legacy_storage_files.py to make it
+run under the older AND the newer version.
+
+"""
+
 from __future__ import print_function
+from warnings import catch_warnings, filterwarnings
 from distutils.version import LooseVersion
 from pandas import (Series, DataFrame, Panel,
                     SparseSeries, SparseDataFrame,
                     Index, MultiIndex, bdate_range, to_msgpack,
-                    date_range, period_range,
+                    date_range, period_range, timedelta_range,
                     Timestamp, NaT, Categorical, Period)
+from pandas.tseries.offsets import (
+    DateOffset, Hour, Minute, Day,
+    MonthBegin, MonthEnd, YearBegin,
+    YearEnd, Week, WeekOfMonth, LastWeekOfMonth,
+    BusinessDay, BusinessHour, CustomBusinessDay, FY5253,
+    Easter,
+    SemiMonthEnd, SemiMonthBegin,
+    QuarterBegin, QuarterEnd)
 from pandas.compat import u
 import os
 import sys
 import numpy as np
 import pandas
 import platform as pl
-
+from datetime import timedelta
 
 _loose_version = LooseVersion(pandas.__version__)
 
@@ -72,7 +116,18 @@ def create_data():
 
     index = dict(int=Index(np.arange(10)),
                  date=date_range('20130101', periods=10),
-                 period=period_range('2013-01-01', freq='M', periods=10))
+                 period=period_range('2013-01-01', freq='M', periods=10),
+                 float=Index(np.arange(10, dtype=np.float64)),
+                 uint=Index(np.arange(10, dtype=np.uint64)),
+                 timedelta=timedelta_range('00:00:00', freq='30T', periods=10))
+
+    if _loose_version >= LooseVersion('0.18'):
+        from pandas import RangeIndex
+        index['range'] = RangeIndex(10)
+
+    if _loose_version >= LooseVersion('0.21'):
+        from pandas import interval_range
+        index['interval'] = interval_range(0, periods=10)
 
     mi = dict(reg2=MultiIndex.from_tuples(
         tuple(zip(*[[u'bar', u'bar', u'baz', u'baz', u'foo',
@@ -124,17 +179,24 @@ def create_data():
                  mixed_dup=mixed_dup_df,
                  dt_mixed_tzs=DataFrame({
                      u'A': Timestamp('20130102', tz='US/Eastern'),
-                     u'B': Timestamp('20130603', tz='CET')}, index=range(5))
+                     u'B': Timestamp('20130603', tz='CET')}, index=range(5)),
+                 dt_mixed2_tzs=DataFrame({
+                     u'A': Timestamp('20130102', tz='US/Eastern'),
+                     u'B': Timestamp('20130603', tz='CET'),
+                     u'C': Timestamp('20130603', tz='UTC')}, index=range(5))
                  )
 
-    mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
-                             u'ItemB': frame[u'int']})
-    mixed_dup_panel.items = [u'ItemA', u'ItemA']
-    panel = dict(float=Panel({u'ItemA': frame[u'float'],
-                              u'ItemB': frame[u'float'] + 1}),
-                 dup=Panel(np.arange(30).reshape(3, 5, 2).astype(np.float64),
-                           items=[u'A', u'B', u'A']),
-                 mixed_dup=mixed_dup_panel)
+    with catch_warnings(record=True):
+        filterwarnings("ignore", "\\nPanel", FutureWarning)
+        mixed_dup_panel = Panel({u'ItemA': frame[u'float'],
+                                 u'ItemB': frame[u'int']})
+        mixed_dup_panel.items = [u'ItemA', u'ItemA']
+        panel = dict(float=Panel({u'ItemA': frame[u'float'],
+                                  u'ItemB': frame[u'float'] + 1}),
+                     dup=Panel(
+                         np.arange(30).reshape(3, 5, 2).astype(np.float64),
+                         items=[u'A', u'B', u'A']),
+                     mixed_dup=mixed_dup_panel)
 
     cat = dict(int8=Categorical(list('abcdefg')),
                int16=Categorical(np.arange(1000)),
@@ -142,10 +204,39 @@ def create_data():
 
     timestamp = dict(normal=Timestamp('2011-01-01'),
                      nat=NaT,
-                     tz=Timestamp('2011-01-01', tz='US/Eastern'),
-                     freq=Timestamp('2011-01-01', freq='D'),
-                     both=Timestamp('2011-01-01', tz='Asia/Tokyo',
-                                    freq='M'))
+                     tz=Timestamp('2011-01-01', tz='US/Eastern'))
+
+    if _loose_version < LooseVersion('0.19.2'):
+        timestamp['freq'] = Timestamp('2011-01-01', offset='D')
+        timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
+                                      offset='M')
+    else:
+        timestamp['freq'] = Timestamp('2011-01-01', freq='D')
+        timestamp['both'] = Timestamp('2011-01-01', tz='Asia/Tokyo',
+                                      freq='M')
+
+    off = {'DateOffset': DateOffset(years=1),
+           'DateOffset_h_ns': DateOffset(hour=6, nanoseconds=5824),
+           'BusinessDay': BusinessDay(offset=timedelta(seconds=9)),
+           'BusinessHour': BusinessHour(normalize=True, n=6, end='15:14'),
+           'CustomBusinessDay': CustomBusinessDay(weekmask='Mon Fri'),
+           'SemiMonthBegin': SemiMonthBegin(day_of_month=9),
+           'SemiMonthEnd': SemiMonthEnd(day_of_month=24),
+           'MonthBegin': MonthBegin(1),
+           'MonthEnd': MonthEnd(1),
+           'QuarterBegin': QuarterBegin(1),
+           'QuarterEnd': QuarterEnd(1),
+           'Day': Day(1),
+           'YearBegin': YearBegin(1),
+           'YearEnd': YearEnd(1),
+           'Week': Week(1),
+           'Week_Tues': Week(2, normalize=False, weekday=1),
+           'WeekOfMonth': WeekOfMonth(week=3, weekday=4),
+           'LastWeekOfMonth': LastWeekOfMonth(n=1, weekday=3),
+           'FY5253': FY5253(n=2, weekday=6, startingMonth=7, variation="last"),
+           'Easter': Easter(),
+           'Hour': Hour(1),
+           'Minute': Minute(1)}
 
     return dict(series=series,
                 frame=frame,
@@ -157,7 +248,8 @@ def create_data():
                                ts=_create_sp_tsseries()),
                 sp_frame=dict(float=_create_sp_frame()),
                 cat=cat,
-                timestamp=timestamp)
+                timestamp=timestamp,
+                offsets=off)
 
 
 def create_pickle_data():
@@ -165,10 +257,10 @@ def create_pickle_data():
 
     # Pre-0.14.1 versions generated non-unpicklable mixed-type frames and
     # panels if their columns/items were non-unique.
-    if _loose_version < '0.14.1':
+    if _loose_version < LooseVersion('0.14.1'):
         del data['frame']['mixed_dup']
         del data['panel']['mixed_dup']
-    if _loose_version < '0.17.0':
+    if _loose_version < LooseVersion('0.17.0'):
         del data['series']['period']
         del data['scalars']['period']
     return data
@@ -180,12 +272,12 @@ def _u(x):
 
 def create_msgpack_data():
     data = create_data()
-    if _loose_version < '0.17.0':
+    if _loose_version < LooseVersion('0.17.0'):
         del data['frame']['mixed_dup']
         del data['panel']['mixed_dup']
         del data['frame']['dup']
         del data['panel']['dup']
-    if _loose_version < '0.18.0':
+    if _loose_version < LooseVersion('0.18.0'):
         del data['series']['dt_tz']
         del data['frame']['dt_mixed_tzs']
     # Not supported
@@ -196,6 +288,9 @@ def create_msgpack_data():
     del data['frame']['cat_onecol']
     del data['frame']['cat_and_float']
     del data['scalars']['period']
+    if _loose_version < LooseVersion('0.23.0'):
+        del data['index']['interval']
+    del data['offsets']
     return _u(data)
 
 
@@ -209,7 +304,7 @@ def write_legacy_pickles(output_dir):
     # make sure we are < 0.13 compat (in py3)
     try:
         from pandas.compat import zip, cPickle as pickle  # noqa
-    except:
+    except ImportError:
         import pickle
 
     version = pandas.__version__

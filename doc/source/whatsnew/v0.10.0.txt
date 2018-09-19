@@ -128,15 +128,45 @@ labeled the aggregated group with the end of the interval: the next day).
   ``notnull``. That they ever were was a relic of early pandas. This behavior
   can be re-enabled globally by the ``mode.use_inf_as_null`` option:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    s = pd.Series([1.5, np.inf, 3.4, -np.inf])
-	pd.isnull(s)
-    s.fillna(0)
-    pd.set_option('use_inf_as_null', True)
-	pd.isnull(s)
-    s.fillna(0)
-	pd.reset_option('use_inf_as_null')
+    In [6]: s = pd.Series([1.5, np.inf, 3.4, -np.inf])
+
+    In [7]: pd.isnull(s)
+    Out[7]:
+    0    False
+    1    False
+    2    False
+    3    False
+    Length: 4, dtype: bool
+
+    In [8]: s.fillna(0)
+    Out[8]:
+    0    1.500000
+    1         inf
+    2    3.400000
+    3        -inf
+    Length: 4, dtype: float64
+
+    In [9]: pd.set_option('use_inf_as_null', True)
+
+    In [10]: pd.isnull(s)
+    Out[10]:
+    0    False
+    1     True
+    2    False
+    3     True
+    Length: 4, dtype: bool
+
+    In [11]: s.fillna(0)
+    Out[11]:
+    0    1.5
+    1    0.0
+    2    3.4
+    3    0.0
+    Length: 4, dtype: float64
+
+    In [12]: pd.reset_option('use_inf_as_null')
 
 - Methods with the ``inplace`` option now all return ``None`` instead of the
   calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
@@ -251,16 +281,11 @@ The old behavior of printing out summary information can be achieved via the
 
 The width of each line can be changed via 'line_width' (80 by default):
 
-.. ipython:: python
+.. code-block:: python
 
    pd.set_option('line_width', 40)
 
    wide_frame
-
-.. ipython:: python
-   :suppress:
-
-   pd.reset_option('line_width')
 
 
 Updated PyTables Support
@@ -339,8 +364,8 @@ Updated PyTables Support
       df1
       df1.get_dtype_counts()
 
-- performance improvments on table writing
-- support for arbitrarily indexed dimensions
+- performance improvements on table writing
+- support for arbitrarly indexed dimensions
 - ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
 - enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
   to strip arbitrary characters (:issue:`2411`)
@@ -379,17 +404,25 @@ N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
-:ref:`Docs <dsintro.panel4d>` for NDim. Here is a taste of what to expect.
+Here is a taste of what to expect.
 
-     .. ipython:: python
-        :okwarning:
+.. code-block:: ipython
 
-        p4d = Panel4D(randn(2, 2, 5, 4),
-              labels=['Label1','Label2'],
-              items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
-        p4d
+  In [58]: p4d = Panel4D(randn(2, 2, 5, 4),
+    ....:       labels=['Label1','Label2'],
+    ....:       items=['Item1', 'Item2'],
+    ....:       major_axis=date_range('1/1/2000', periods=5),
+    ....:       minor_axis=['A', 'B', 'C', 'D'])
+    ....:
+
+  In [59]: p4d
+  Out[59]:
+  <class 'pandas.core.panelnd.Panel4D'>
+  Dimensions: 2 (labels) x 2 (items) x 5 (major_axis) x 4 (minor_axis)
+  Labels axis: Label1 to Label2
+  Items axis: Item1 to Item2
+  Major_axis axis: 2000-01-01 00:00:00 to 2000-01-05 00:00:00
+  Minor_axis axis: A to D
 
 
 

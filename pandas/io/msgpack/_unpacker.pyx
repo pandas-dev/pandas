@@ -1,15 +1,23 @@
 # coding: utf-8
-#cython: embedsignature=True
+# cython: embedsignature=True
 
-from cpython cimport *
+from cython cimport Py_ssize_t
+
+from cpython cimport (
+    PyCallable_Check,
+    PyBUF_SIMPLE, PyObject_GetBuffer, PyBuffer_Release,
+    PyBytes_Size,
+    PyBytes_FromStringAndSize,
+    PyBytes_AsString)
+
 cdef extern from "Python.h":
     ctypedef struct PyObject
     cdef int PyObject_AsReadBuffer(object o, const void** buff,
                                    Py_ssize_t* buf_len) except -1
 
-from libc.stdlib cimport *
-from libc.string cimport *
-from libc.limits cimport *
+from libc.stdlib cimport free, malloc
+from libc.string cimport memcpy, memmove
+from libc.limits cimport INT_MAX
 
 from pandas.io.msgpack.exceptions import (BufferFull, OutOfData,
                                           UnpackValueError, ExtraData)
@@ -20,7 +28,7 @@ cdef extern from "../../src/msgpack/unpack.h":
     ctypedef struct msgpack_user:
         bint use_list
         PyObject* object_hook
-        bint has_pairs_hook # call object_hook with k-v pairs
+        bint has_pairs_hook  # call object_hook with k-v pairs
         PyObject* list_hook
         PyObject* ext_hook
         char *encoding
@@ -94,13 +102,13 @@ cdef inline init_ctx(unpack_context *ctx,
 
 def default_read_extended_type(typecode, data):
     raise NotImplementedError("Cannot decode extended type "
-                              "with typecode=%d" % typecode)
+                              "with typecode={code}".format(code=typecode))
 
 
 def unpackb(object packed, object object_hook=None, object list_hook=None,
             bint use_list=1, encoding=None, unicode_errors="strict",
             object_pairs_hook=None, ext_hook=ExtType,
-            Py_ssize_t max_str_len=2147483647, # 2**32-1
+            Py_ssize_t max_str_len=2147483647,  # 2**32-1
             Py_ssize_t max_bin_len=2147483647,
             Py_ssize_t max_array_len=2147483647,
             Py_ssize_t max_map_len=2147483647,
@@ -139,12 +147,12 @@ def unpackb(object packed, object object_hook=None, object list_hook=None,
     ret = unpack_construct(&ctx, buf, buf_len, &off)
     if ret == 1:
         obj = unpack_data(&ctx)
-        if off < buf_len:
+        if <Py_ssize_t> off < buf_len:
             raise ExtraData(obj, PyBytes_FromStringAndSize(
                 buf + off, buf_len - off))
         return obj
     else:
-        raise UnpackValueError("Unpack failed: error = %d" % (ret,))
+        raise UnpackValueError("Unpack failed: error = {ret}".format(ret=ret))
 
 
 def unpack(object stream, object object_hook=None, object list_hook=None,
@@ -202,7 +210,7 @@ cdef class Unpacker(object):
     :param int max_buffer_size:
         Limits size of data waiting unpacked.  0 means system's
         INT_MAX  (default). Raises `BufferFull` exception when it
-        is insufficient. You shoud set this parameter when unpacking
+        is insufficient. You should set this parameter when unpacking
         data from untrasted source.
 
     :param int max_str_len:
@@ -257,7 +265,7 @@ cdef class Unpacker(object):
                  object object_hook=None, object object_pairs_hook=None,
                  object list_hook=None, encoding=None, unicode_errors='strict',
                  int max_buffer_size=0, object ext_hook=ExtType,
-                 Py_ssize_t max_str_len=2147483647, # 2**32-1
+                 Py_ssize_t max_str_len=2147483647,  # 2**32-1
                  Py_ssize_t max_bin_len=2147483647,
                  Py_ssize_t max_array_len=2147483647,
                  Py_ssize_t max_map_len=2147483647,
@@ -367,9 +375,11 @@ cdef class Unpacker(object):
         self.buf_tail = tail + _buf_len
 
     cdef read_from_file(self):
+        # Assume self.max_buffer_size - (self.buf_tail - self.buf_head) >= 0
         next_bytes = self.file_like_read(
             min(self.read_size,
-                self.max_buffer_size - (self.buf_tail - self.buf_head)))
+                <Py_ssize_t>(self.max_buffer_size -
+                             (self.buf_tail - self.buf_head))))
         if next_bytes:
             self.append_buffer(PyBytes_AsString(next_bytes),
                                PyBytes_Size(next_bytes))
@@ -411,12 +421,15 @@ cdef class Unpacker(object):
                 else:
                     raise OutOfData("No more data to unpack.")
             else:
-                raise ValueError("Unpack failed: error = %d" % (ret,))
+                raise ValueError("Unpack failed: error = {ret}"
+                                 .format(ret=ret))
 
     def read_bytes(self, Py_ssize_t nbytes):
         """Read a specified number of raw bytes from the stream"""
         cdef size_t nread
-        nread = min(self.buf_tail - self.buf_head, nbytes)
+
+        # Assume that self.buf_tail - self.buf_head >= 0
+        nread = min(<Py_ssize_t>(self.buf_tail - self.buf_head), nbytes)
         ret = PyBytes_FromStringAndSize(self.buf + self.buf_head, nread)
         self.buf_head += nread
         if len(ret) < nbytes and self.file_like is not None:
@@ -466,8 +479,8 @@ cdef class Unpacker(object):
         return self._unpack(unpack_construct, None, 1)
 
     # for debug.
-    #def _buf(self):
+    # def _buf(self):
     #    return PyString_FromStringAndSize(self.buf, self.buf_tail)
 
-    #def _off(self):
+    # def _off(self):
     #    return self.buf_head

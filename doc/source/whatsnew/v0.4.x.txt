@@ -9,7 +9,7 @@ New Features
 - Added Python 3 support using 2to3 (:issue:`200`)
 - :ref:`Added <dsintro.name_attribute>` ``name`` attribute to ``Series``, now
   prints as part of ``Series.__repr__``
-- :ref:`Added <missing.isnull>` instance methods ``isnull`` and ``notnull`` to
+- :ref:`Added <missing.isna>` instance methods ``isnull`` and ``notnull`` to
   Series (:issue:`209`, :issue:`203`)
 - :ref:`Added <basics.align>` ``Series.align`` method for aligning two series
   with choice of join method (ENH56_)

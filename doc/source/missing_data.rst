@@ -7,7 +7,7 @@
    import pandas as pd
    pd.options.display.max_rows=15
    import matplotlib
-   matplotlib.style.use('ggplot')
+   # matplotlib.style.use('default')
    import matplotlib.pyplot as plt
 
 .. _missing_data:
@@ -27,7 +27,7 @@ pandas.
     NumPy will soon be able to provide a native NA type solution (similar to R)
     performant enough to be used in pandas.
 
-See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies
+See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 
 Missing data basics
 -------------------
@@ -36,14 +36,14 @@ When / why does data become missing?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some might quibble over our usage of *missing*. By "missing" we simply mean
-**null** or "not present for whatever reason". Many data sets simply arrive with
+**NA** ("not available") or "not present for whatever reason". Many data sets simply arrive with
 missing data, either because it exists and was not collected or it never
 existed. For example, in a collection of financial time series, some of the time
 series might start on different dates. Thus, values prior to the start date
 would generally be marked as missing.
 
 In pandas, one of the most common ways that missing data is **introduced** into
-a data set is by reindexing. For example
+a data set is by reindexing. For example:
 
 .. ipython:: python
 
@@ -63,32 +63,31 @@ to handling missing data. While ``NaN`` is the default missing value marker for
 reasons of computational speed and convenience, we need to be able to easily
 detect this value with data of different types: floating point, integer,
 boolean, and general object. In many cases, however, the Python ``None`` will
-arise and we wish to also consider that "missing" or "null".
+arise and we wish to also consider that "missing" or "not available" or "NA".
 
 .. note::
 
-   Prior to version v0.10.0 ``inf`` and ``-inf`` were also
-   considered to be "null" in computations. This is no longer the case by
-   default; use the ``mode.use_inf_as_null`` option to recover it.
+   If you want to consider ``inf`` and ``-inf`` to be "NA" in computations,
+   you can set ``pandas.options.mode.use_inf_as_na = True``.
 
-.. _missing.isnull:
+.. _missing.isna:
 
 To make detecting missing values easier (and across different array dtypes),
-pandas provides the :func:`~pandas.core.common.isnull` and
-:func:`~pandas.core.common.notnull` functions, which are also methods on
-``Series`` and ``DataFrame`` objects:
+pandas provides the :func:`isna` and
+:func:`notna` functions, which are also methods on
+Series and DataFrame objects:
 
 .. ipython:: python
 
    df2['one']
-   pd.isnull(df2['one'])
-   df2['four'].notnull()
-   df2.isnull()
+   pd.isna(df2['one'])
+   df2['four'].notna()
+   df2.isna()
 
 .. warning::
 
-   One has to be mindful that in python (and numpy), the ``nan's`` don't compare equal, but ``None's`` **do**.
-   Note that Pandas/numpy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
+   One has to be mindful that in Python (and NumPy), the ``nan's`` don't compare equal, but ``None's`` **do**.
+   Note that pandas/NumPy uses the fact that ``np.nan != np.nan``, and treats ``None`` like ``np.nan``.
 
    .. ipython:: python
 
@@ -105,8 +104,8 @@ Datetimes
 ---------
 
 For datetime64[ns] types, ``NaT`` represents missing values. This is a pseudo-native
-sentinel value that can be represented by numpy in a singular dtype (datetime64[ns]).
-pandas objects provide intercompatibility between ``NaT`` and ``NaN``.
+sentinel value that can be represented by NumPy in a singular dtype (datetime64[ns]).
+pandas objects provide compatibility between ``NaT`` and ``NaN``.
 
 .. ipython:: python
 
@@ -170,10 +169,9 @@ The descriptive statistics and computational methods discussed in the
 <api.series.stats>` and :ref:`here <api.dataframe.stats>`) are all written to
 account for missing data. For example:
 
-* When summing data, NA (missing) values will be treated as zero
-* If the data are all NA, the result will be NA
-* Methods like **cumsum** and **cumprod** ignore NA values, but preserve them
-  in the resulting arrays
+* When summing data, NA (missing) values will be treated as zero.
+* If the data are all NA, the result will be 0.
+* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
 
 .. ipython:: python
 
@@ -181,6 +179,35 @@ account for missing data. For example:
    df['one'].sum()
    df.mean(1)
    df.cumsum()
+   df.cumsum(skipna=False)
+
+
+.. _missing_data.numeric_sum:
+
+Sum/Prod of Empties/Nans
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   This behavior is now standard as of v0.22.0 and is consistent with the default in ``numpy``; previously sum/prod of all-NA or empty Series/DataFrames would return NaN.
+   See :ref:`v0.22.0 whatsnew <whatsnew_0220>` for more.
+
+The sum of an empty or all-NA Series or column of a DataFrame is 0.
+
+.. ipython:: python
+
+   pd.Series([np.nan]).sum()
+   
+   pd.Series([]).sum()
+
+The product of an empty or all-NA Series or column of a DataFrame is 1.
+
+.. ipython:: python
+
+   pd.Series([np.nan]).prod()
+   
+   pd.Series([]).prod()
+
 
 NA values in GroupBy
 ~~~~~~~~~~~~~~~~~~~~
@@ -206,7 +233,7 @@ with missing data.
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **fillna** function can "fill in" NA values with non-null data in a couple
+:meth:`~DataFrame.fillna` can "fill in" NA values with non-NA data in a couple
 of ways, which we illustrate:
 
 **Replace NA with a scalar value**
@@ -215,12 +242,12 @@ of ways, which we illustrate:
 
    df2
    df2.fillna(0)
-   df2['four'].fillna('missing')
+   df2['one'].fillna('missing')
 
 **Fill gaps forward or backward**
 
 Using the same filling arguments as :ref:`reindexing <basics.reindexing>`, we
-can propagate non-null values forward or backward:
+can propagate non-NA values forward or backward:
 
 .. ipython:: python
 
@@ -256,15 +283,13 @@ To remind you, these are the available filling methods:
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
 
-The ``ffill()`` function is equivalent to ``fillna(method='ffill')``
-and ``bfill()`` is equivalent to ``fillna(method='bfill')``
+:meth:`~DataFrame.ffill` is equivalent to ``fillna(method='ffill')``
+and :meth:`~DataFrame.bfill` is equivalent to ``fillna(method='bfill')``
 
 .. _missing_data.PandasObject:
 
 Filling with a PandasObject
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. versionadded:: 0.12
 
 You can also fillna using a dict or Series that is alignable. The labels of the dict or index of the Series
 must match the columns of the frame you wish to fill. The
@@ -281,14 +306,12 @@ use case of this is to fill a DataFrame with the mean of that column.
         dff.fillna(dff.mean())
         dff.fillna(dff.mean()['B':'C'])
 
-.. versionadded:: 0.13
-
 Same result as above, but is aligning the 'fill' value which is
 a Series in this case.
 
 .. ipython:: python
 
-        dff.where(pd.notnull(dff), dff.mean(), axis='columns')
+        dff.where(pd.notna(dff), dff.mean(), axis='columns')
 
 
 .. _missing_data.dropna:
@@ -297,7 +320,7 @@ Dropping axis labels with missing data: dropna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may wish to simply exclude labels from a data set which refer to missing
-data. To do this, use the **dropna** method:
+data. To do this, use :meth:`~DataFrame.dropna`:
 
 .. ipython:: python
    :suppress:
@@ -312,7 +335,7 @@ data. To do this, use the **dropna** method:
    df.dropna(axis=1)
    df['one'].dropna()
 
-Series.dropna is a simpler method as it only has one axis to consider.
+An equivalent :meth:`~Series.dropna` is available for Series.
 DataFrame.dropna has considerably more options than Series.dropna, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
@@ -321,17 +344,12 @@ examined :ref:`in the API <api.dataframe.missing>`.
 Interpolation
 ~~~~~~~~~~~~~
 
-.. versionadded:: 0.13.0
+.. versionadded:: 0.21.0
 
-  :meth:`~pandas.DataFrame.interpolate`, and :meth:`~pandas.Series.interpolate` have
-  revamped interpolation methods and functionality.
+  The ``limit_area`` keyword argument was added.
 
-.. versionadded:: 0.17.0
-
-  The ``limit_direction`` keyword argument was added.
-
-Both Series and Dataframe objects have an ``interpolate`` method that, by default,
-performs linear interpolation at missing datapoints.
+Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
+that, by default, performs linear interpolation at missing data points.
 
 .. ipython:: python
    :suppress:
@@ -389,7 +407,7 @@ You can also interpolate with a DataFrame:
    df.interpolate()
 
 The ``method`` argument gives access to fancier interpolation methods.
-If you have scipy_ installed, you can set pass the name of a 1-d interpolation routine to ``method``.
+If you have scipy_ installed, you can pass the name of a 1-d interpolation routine to ``method``.
 You'll want to consult the full scipy interpolation documentation_ and reference guide_ for details.
 The appropriate interpolation method will depend on the type of data you are working with.
 
@@ -397,7 +415,7 @@ The appropriate interpolation method will depend on the type of data you are wor
   ``method='quadratic'`` may be appropriate.
 * If you have values approximating a cumulative distribution function,
   then ``method='pchip'`` should work well.
-* To fill missing values with goal of smooth plotting, use ``method='akima'``.
+* To fill missing values with goal of smooth plotting, consider ``method='akima'``.
 
 .. warning::
 
@@ -454,39 +472,61 @@ at the new values.
 .. _documentation: http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation
 .. _guide: http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html
 
+.. _missing_data.interp_limits:
+
 Interpolation Limits
 ^^^^^^^^^^^^^^^^^^^^
 
-Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
-argument. Use this argument to limit the number of consecutive interpolations,
-keeping ``NaN`` values for interpolations that are too far from the last valid
-observation:
+Like other pandas fill methods, :meth:`~DataFrame.interpolate` accepts a ``limit`` keyword
+argument. Use this argument to limit the number of consecutive ``NaN`` values
+filled since the last valid observation:
 
 .. ipython:: python
 
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13])
-   ser.interpolate(limit=2)
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
 
-By default, ``limit`` applies in a forward direction, so that only ``NaN``
-values after a non-``NaN`` value can be filled. If you provide ``'backward'`` or
-``'both'`` for the ``limit_direction`` keyword argument, you can fill ``NaN``
-values before non-``NaN`` values, or both before and after non-``NaN`` values,
-respectively:
+   # fill all consecutive values in a forward direction
+   ser.interpolate()
+
+   # fill one consecutive value in a forward direction
+   ser.interpolate(limit=1)
+
+By default, ``NaN`` values are filled in a ``forward`` direction. Use
+``limit_direction`` parameter to fill ``backward`` or from ``both`` directions.
 
 .. ipython:: python
 
-   ser.interpolate(limit=1)  # limit_direction == 'forward'
-
+   # fill one consecutive value backwards
    ser.interpolate(limit=1, limit_direction='backward')
 
+   # fill one consecutive value in both directions
    ser.interpolate(limit=1, limit_direction='both')
+
+   # fill all consecutive values in both directions
+   ser.interpolate(limit_direction='both')
+
+By default, ``NaN`` values are filled whether they are inside (surrounded by)
+existing valid values, or outside existing valid values. Introduced in v0.23
+the ``limit_area`` parameter restricts filling to either inside or outside values.
+
+.. ipython:: python
+
+   # fill one consecutive inside value in both directions
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+   # fill all consecutive outside values backward
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+   # fill all consecutive outside values in both directions
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _missing_data.replace:
 
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Often times we want to replace arbitrary values with other values. New in v0.8
-is the ``replace`` method in Series/DataFrame that provides an efficient yet
+Often times we want to replace arbitrary values with other values.
+
+:meth:`~Series.replace` in Series and :meth:`~DataFrame.replace` in DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another
@@ -537,10 +577,10 @@ String/Regular Expression Replacement
    backslashes than strings without this prefix. Backslashes in raw strings
    will be interpreted as an escaped backslash, e.g., ``r'\' == '\\'``. You
    should `read about them
-   <http://docs.python.org/2/reference/lexical_analysis.html#string-literals>`__
+   <https://docs.python.org/3/reference/lexical_analysis.html#string-literals>`__
    if this is unclear.
 
-Replace the '.' with ``nan`` (str -> str)
+Replace the '.' with ``NaN`` (str -> str):
 
 .. ipython:: python
 
@@ -549,58 +589,58 @@ Replace the '.' with ``nan`` (str -> str)
    df.replace('.', np.nan)
 
 Now do it with a regular expression that removes surrounding whitespace
-(regex -> regex)
+(regex -> regex):
 
 .. ipython:: python
 
    df.replace(r'\s*\.\s*', np.nan, regex=True)
 
-Replace a few different values (list -> list)
+Replace a few different values (list -> list):
 
 .. ipython:: python
 
    df.replace(['a', '.'], ['b', np.nan])
 
-list of regex -> list of regex
+list of regex -> list of regex:
 
 .. ipython:: python
 
    df.replace([r'\.', r'(a)'], ['dot', '\1stuff'], regex=True)
 
-Only search in column ``'b'`` (dict -> dict)
+Only search in column ``'b'`` (dict -> dict):
 
 .. ipython:: python
 
    df.replace({'b': '.'}, {'b': np.nan})
 
 Same as the previous example, but use a regular expression for
-searching instead (dict of regex -> dict)
+searching instead (dict of regex -> dict):
 
 .. ipython:: python
 
    df.replace({'b': r'\s*\.\s*'}, {'b': np.nan}, regex=True)
 
-You can pass nested dictionaries of regular expressions that use ``regex=True``
+You can pass nested dictionaries of regular expressions that use ``regex=True``:
 
 .. ipython:: python
 
    df.replace({'b': {'b': r''}}, regex=True)
 
-or you can pass the nested dictionary like so
+Alternatively, you can pass the nested dictionary like so:
 
 .. ipython:: python
 
    df.replace(regex={'b': {r'\s*\.\s*': np.nan}})
 
 You can also use the group of a regular expression match when replacing (dict
-of regex -> dict of regex), this works for lists as well
+of regex -> dict of regex), this works for lists as well.
 
 .. ipython:: python
 
    df.replace({'b': r'\s*(\.)\s*'}, {'b': r'\1ty'}, regex=True)
 
 You can pass a list of regular expressions, of which those that match
-will be replaced with a scalar (list of regex -> regex)
+will be replaced with a scalar (list of regex -> regex).
 
 .. ipython:: python
 
@@ -609,7 +649,7 @@ will be replaced with a scalar (list of regex -> regex)
 All of the regular expression examples can also be passed with the
 ``to_replace`` argument as the ``regex`` argument. In this case the ``value``
 argument must be passed explicitly by name or ``regex`` must be a nested
-dictionary. The previous example, in this case, would then be
+dictionary. The previous example, in this case, would then be:
 
 .. ipython:: python
 
@@ -626,7 +666,7 @@ want to use a regular expression.
 Numeric Replacement
 ~~~~~~~~~~~~~~~~~~~
 
-Similar to ``DataFrame.fillna``
+:meth:`~DataFrame.replace` is similar to :meth:`~DataFrame.fillna`.
 
 .. ipython:: python
 
@@ -634,7 +674,7 @@ Similar to ``DataFrame.fillna``
    df[np.random.rand(df.shape[0]) > 0.5] = 1.5
    df.replace(1.5, np.nan)
 
-Replacing more than one value via lists works as well
+Replacing more than one value is possible by passing a list.
 
 .. ipython:: python
 
@@ -642,7 +682,7 @@ Replacing more than one value via lists works as well
    df.replace([1.5, df00], [np.nan, 'a'])
    df[1].dtype
 
-You can also operate on the DataFrame in place
+You can also operate on the DataFrame in place:
 
 .. ipython:: python
 
@@ -652,7 +692,7 @@ You can also operate on the DataFrame in place
 
    When replacing multiple ``bool`` or ``datetime64`` objects, the first
    argument to ``replace`` (``to_replace``) must match the type of the value
-   being replaced type. For example,
+   being replaced. For example,
 
    .. code-block:: python
 
@@ -680,9 +720,9 @@ Missing data casting rules and indexing
 
 While pandas supports storing arrays of integer and boolean type, these types
 are not capable of storing missing data. Until we can switch to using a native
-NA type in NumPy, we've established some "casting rules" when reindexing will
-cause missing data to be introduced into, say, a Series or DataFrame. Here they
-are:
+NA type in NumPy, we've established some "casting rules". When a reindexing
+operation introduces missing data, the Series will be cast according to the
+rules introduced in the table below.
 
 .. csv-table::
     :header: "data type", "Cast to"
@@ -715,7 +755,7 @@ contains NAs, an exception will be generated:
    reindexed = s.reindex(list(range(8))).fillna(0)
    reindexed[crit]
 
-However, these can be filled in using **fillna** and it will work fine:
+However, these can be filled in using :meth:`~DataFrame.fillna` and it will work fine:
 
 .. ipython:: python
 

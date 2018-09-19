@@ -1,11 +1,13 @@
 # pylint: disable-msg=E1101,W0612
+import pytest
 
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
+import itertools
 
 
-class TestSparseSeriesConcat(tm.TestCase):
+class TestSparseSeriesConcat(object):
 
     def test_concat(self):
         val1 = np.array([1, 2, np.nan, np.nan, 0, np.nan])
@@ -69,7 +71,7 @@ class TestSparseSeriesConcat(tm.TestCase):
         res = pd.concat([sparse1, sparse2], axis=1)
         exp = pd.concat([pd.Series(val1, name='x'),
                          pd.Series(val2, name='y')], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_different_kind(self):
@@ -122,9 +124,9 @@ class TestSparseSeriesConcat(tm.TestCase):
             tm.assert_sp_series_equal(res, exp)
 
 
-class TestSparseDataFrameConcat(tm.TestCase):
+class TestSparseDataFrameConcat(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         self.dense1 = pd.DataFrame({'A': [0., 1., 2., np.nan],
                                     'B': [0., 0., 0., 0.],
@@ -200,17 +202,29 @@ class TestSparseDataFrameConcat(tm.TestCase):
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
+    def test_concat_different_columns_sort_warns(self):
+        sparse = self.dense1.to_sparse()
+        sparse3 = self.dense3.to_sparse()
+
+        with tm.assert_produces_warning(FutureWarning):
+            res = pd.concat([sparse, sparse3])
+        with tm.assert_produces_warning(FutureWarning):
+            exp = pd.concat([self.dense1, self.dense3])
+
+        exp = exp.to_sparse()
+        tm.assert_sp_frame_equal(res, exp)
+
     def test_concat_different_columns(self):
         # fill_value = np.nan
         sparse = self.dense1.to_sparse()
         sparse3 = self.dense3.to_sparse()
 
-        res = pd.concat([sparse, sparse3])
-        exp = pd.concat([self.dense1, self.dense3]).to_sparse()
+        res = pd.concat([sparse, sparse3], sort=True)
+        exp = pd.concat([self.dense1, self.dense3], sort=True).to_sparse()
         tm.assert_sp_frame_equal(res, exp)
 
-        res = pd.concat([sparse3, sparse])
-        exp = pd.concat([self.dense3, self.dense1]).to_sparse()
+        res = pd.concat([sparse3, sparse], sort=True)
+        exp = pd.concat([self.dense3, self.dense1], sort=True).to_sparse()
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
@@ -218,13 +232,15 @@ class TestSparseDataFrameConcat(tm.TestCase):
         sparse = self.dense1.to_sparse(fill_value=0)
         sparse3 = self.dense3.to_sparse(fill_value=0)
 
-        res = pd.concat([sparse, sparse3])
-        exp = pd.concat([self.dense1, self.dense3]).to_sparse(fill_value=0)
+        res = pd.concat([sparse, sparse3], sort=True)
+        exp = (pd.concat([self.dense1, self.dense3], sort=True)
+                 .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
-        res = pd.concat([sparse3, sparse])
-        exp = pd.concat([self.dense3, self.dense1]).to_sparse(fill_value=0)
+        res = pd.concat([sparse3, sparse], sort=True)
+        exp = (pd.concat([self.dense3, self.dense1], sort=True)
+                 .to_sparse(fill_value=0))
         exp._default_fill_value = np.nan
         tm.assert_sp_frame_equal(res, exp)
 
@@ -232,14 +248,14 @@ class TestSparseDataFrameConcat(tm.TestCase):
         sparse = self.dense1.to_sparse()
         sparse3 = self.dense3.to_sparse(fill_value=0)
         # each columns keeps its fill_value, thus compare in dense
-        res = pd.concat([sparse, sparse3])
-        exp = pd.concat([self.dense1, self.dense3])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        res = pd.concat([sparse, sparse3], sort=True)
+        exp = pd.concat([self.dense1, self.dense3], sort=True)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
-        res = pd.concat([sparse3, sparse])
-        exp = pd.concat([self.dense3, self.dense1])
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        res = pd.concat([sparse3, sparse], sort=True)
+        exp = pd.concat([self.dense3, self.dense1], sort=True)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
     def test_concat_series(self):
@@ -309,45 +325,60 @@ class TestSparseDataFrameConcat(tm.TestCase):
         # each columns keeps its fill_value, thus compare in dense
         res = pd.concat([sparse, sparse3], axis=1)
         exp = pd.concat([self.dense1, self.dense3], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
         res = pd.concat([sparse3, sparse], axis=1)
         exp = pd.concat([self.dense3, self.dense1], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
+        assert isinstance(res, pd.SparseDataFrame)
         tm.assert_frame_equal(res.to_dense(), exp)
 
-    def test_concat_sparse_dense(self):
-        sparse = self.dense1.to_sparse()
+    @pytest.mark.parametrize('fill_value,sparse_idx,dense_idx',
+                             itertools.product([None, 0, 1, np.nan],
+                                               [0, 1],
+                                               [1, 0]))
+    def test_concat_sparse_dense_rows(self, fill_value, sparse_idx, dense_idx):
+        frames = [self.dense1, self.dense2]
+        sparse_frame = [frames[dense_idx],
+                        frames[sparse_idx].to_sparse(fill_value=fill_value)]
+        dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
-        res = pd.concat([sparse, self.dense2])
-        exp = pd.concat([self.dense1, self.dense2])
-        self.assertIsInstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res.to_dense(), exp)
+        # This will try both directions sparse + dense and dense + sparse
+        for _ in range(2):
+            res = pd.concat(sparse_frame)
+            exp = pd.concat(dense_frame)
 
-        res = pd.concat([self.dense2, sparse])
-        exp = pd.concat([self.dense2, self.dense1])
-        self.assertIsInstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res.to_dense(), exp)
+            assert isinstance(res, pd.SparseDataFrame)
+            tm.assert_frame_equal(res.to_dense(), exp)
 
-        sparse = self.dense1.to_sparse(fill_value=0)
+            sparse_frame = sparse_frame[::-1]
+            dense_frame = dense_frame[::-1]
 
-        res = pd.concat([sparse, self.dense2])
-        exp = pd.concat([self.dense1, self.dense2])
-        self.assertIsInstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res.to_dense(), exp)
+    @pytest.mark.parametrize('fill_value,sparse_idx,dense_idx',
+                             itertools.product([None, 0, 1, np.nan],
+                                               [0, 1],
+                                               [1, 0]))
+    def test_concat_sparse_dense_cols(self, fill_value, sparse_idx, dense_idx):
+        # See GH16874, GH18914 and #18686 for why this should be a DataFrame
 
-        res = pd.concat([self.dense2, sparse])
-        exp = pd.concat([self.dense2, self.dense1])
-        self.assertIsInstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res.to_dense(), exp)
+        frames = [self.dense1, self.dense3]
 
-        res = pd.concat([self.dense3, sparse], axis=1)
-        exp = pd.concat([self.dense3, self.dense1], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res, exp)
+        sparse_frame = [frames[dense_idx],
+                        frames[sparse_idx].to_sparse(fill_value=fill_value)]
+        dense_frame = [frames[dense_idx], frames[sparse_idx]]
 
-        res = pd.concat([sparse, self.dense3], axis=1)
-        exp = pd.concat([self.dense1, self.dense3], axis=1)
-        self.assertIsInstance(res, pd.SparseDataFrame)
-        tm.assert_frame_equal(res, exp)
+        # This will try both directions sparse + dense and dense + sparse
+        for _ in range(2):
+            res = pd.concat(sparse_frame, axis=1)
+            exp = pd.concat(dense_frame, axis=1)
+
+            for column in frames[dense_idx].columns:
+                if dense_idx == sparse_idx:
+                    tm.assert_frame_equal(res[column], exp[column])
+                else:
+                    tm.assert_series_equal(res[column], exp[column])
+
+            tm.assert_frame_equal(res, exp)
+
+            sparse_frame = sparse_frame[::-1]
+            dense_frame = dense_frame[::-1]

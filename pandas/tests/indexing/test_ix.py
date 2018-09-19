@@ -1,26 +1,30 @@
 """ test indexing with ix """
 
+import pytest
+
 from warnings import catch_warnings
 
 import numpy as np
 import pandas as pd
 
-from pandas.types.common import is_scalar
+from pandas.core.dtypes.common import is_scalar
 from pandas.compat import lrange
 from pandas import Series, DataFrame, option_context, MultiIndex
 from pandas.util import testing as tm
-from pandas.core.common import PerformanceWarning
+from pandas.errors import PerformanceWarning
 
 
-class TestIX(tm.TestCase):
+def test_ix_deprecation():
+    # GH 15114
 
-    def test_ix_deprecation(self):
-        # GH 15114
+    df = DataFrame({'A': [1, 2, 3]})
+    with tm.assert_produces_warning(DeprecationWarning,
+                                    check_stacklevel=False):
+        df.ix[1, 'A']
 
-        df = DataFrame({'A': [1, 2, 3]})
-        with tm.assert_produces_warning(DeprecationWarning,
-                                        check_stacklevel=False):
-            df.ix[1, 'A']
+
+@pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
+class TestIX(object):
 
     def test_ix_loc_setitem_consistency(self):
 
@@ -51,13 +55,15 @@ class TestIX(tm.TestCase):
 
         # GH 8607
         # ix setitem consistency
-        df = DataFrame({'timestamp': [1413840976, 1413842580, 1413760580],
-                        'delta': [1174, 904, 161],
-                        'elapsed': [7673, 9277, 1470]})
-        expected = DataFrame({'timestamp': pd.to_datetime(
-            [1413840976, 1413842580, 1413760580], unit='s'),
-            'delta': [1174, 904, 161],
-            'elapsed': [7673, 9277, 1470]})
+        df = DataFrame({'delta': [1174, 904, 161],
+                        'elapsed': [7673, 9277, 1470],
+                        'timestamp': [1413840976, 1413842580, 1413760580]})
+        expected = DataFrame({'delta': [1174, 904, 161],
+                              'elapsed': [7673, 9277, 1470],
+                              'timestamp': pd.to_datetime(
+                                  [1413840976, 1413842580, 1413760580],
+                                  unit='s')
+                              })
 
         df2 = df.copy()
         df2['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
@@ -80,12 +86,12 @@ class TestIX(tm.TestCase):
 
         def compare(result, expected):
             if is_scalar(expected):
-                self.assertEqual(result, expected)
+                assert result == expected
             else:
-                self.assertTrue(expected.equals(result))
+                assert expected.equals(result)
 
         # failure cases for .loc, but these work for .ix
-        df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'))
+        df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'))
         for key in [slice(1, 3), tuple([slice(0, 2), slice(0, 2)]),
                     tuple([slice(0, 2), df.columns[0:2]])]:
 
@@ -96,10 +102,10 @@ class TestIX(tm.TestCase):
                 with catch_warnings(record=True):
                     df.ix[key]
 
-                self.assertRaises(TypeError, lambda: df.loc[key])
+                pytest.raises(TypeError, lambda: df.loc[key])
 
-        df = pd.DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
-                          index=pd.date_range('2012-01-01', periods=5))
+        df = DataFrame(np.random.randn(5, 4), columns=list('ABCD'),
+                       index=pd.date_range('2012-01-01', periods=5))
 
         for key in ['2012-01-03',
                     '2012-01-31',
@@ -116,7 +122,7 @@ class TestIX(tm.TestCase):
                 with catch_warnings(record=True):
                     expected = df.ix[key]
             except KeyError:
-                self.assertRaises(KeyError, lambda: df.loc[key])
+                pytest.raises(KeyError, lambda: df.loc[key])
                 continue
 
             result = df.loc[key]
@@ -184,7 +190,7 @@ class TestIX(tm.TestCase):
         key = 4.0, 2012
 
         # emits a PerformanceWarning, ok
-        with self.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(PerformanceWarning):
             tm.assert_frame_equal(df.loc[key], df.iloc[2:])
 
         # this is ok
@@ -214,7 +220,7 @@ class TestIX(tm.TestCase):
             indexer = i * 2
             v = 1000 + i * 200
             expected.loc[indexer, 'y'] = v
-            self.assertEqual(expected.loc[indexer, 'y'], v)
+            assert expected.loc[indexer, 'y'] == v
 
         df.loc[df.x % 2 == 0, 'y'] = df.loc[df.x % 2 == 0, 'y'] * 100
         tm.assert_frame_equal(df, expected)
@@ -225,7 +231,7 @@ class TestIX(tm.TestCase):
         expected = DataFrame({'a': [1, 2, 3], 'b': [100, 1, -100]})
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame({'a': lrange(4)})
+        df = DataFrame({'a': lrange(4)})
         df['b'] = np.nan
         df.loc[[1, 3], 'b'] = [100, -100]
         expected = DataFrame({'a': [0, 1, 2, 3],
@@ -233,9 +239,9 @@ class TestIX(tm.TestCase):
         tm.assert_frame_equal(df, expected)
 
         # ok, but chained assignments are dangerous
-        # if we turn off chained assignement it will work
+        # if we turn off chained assignment it will work
         with option_context('chained_assignment', None):
-            df = pd.DataFrame({'a': lrange(4)})
+            df = DataFrame({'a': lrange(4)})
             df['b'] = np.nan
             df['b'].loc[[1, 3]] = [100, -100]
             tm.assert_frame_equal(df, expected)
@@ -250,21 +256,21 @@ class TestIX(tm.TestCase):
                        index=['e', 7, 'f', 'g'])
 
         with catch_warnings(record=True):
-            self.assertEqual(df.ix['e', 8], 2)
-        self.assertEqual(df.loc['e', 8], 2)
+            assert df.ix['e', 8] == 2
+        assert df.loc['e', 8] == 2
 
         with catch_warnings(record=True):
             df.ix['e', 8] = 42
-            self.assertEqual(df.ix['e', 8], 42)
-        self.assertEqual(df.loc['e', 8], 42)
+            assert df.ix['e', 8] == 42
+        assert df.loc['e', 8] == 42
 
         df.loc['e', 8] = 45
         with catch_warnings(record=True):
-            self.assertEqual(df.ix['e', 8], 45)
-        self.assertEqual(df.loc['e', 8], 45)
+            assert df.ix['e', 8] == 45
+        assert df.loc['e', 8] == 45
 
     def test_ix_slicing_strings(self):
-        # GH3836
+        # see gh-3836
         data = {'Classification':
                 ['SA EQUITY CFD', 'bbb', 'SA EQUITY', 'SA SSF', 'aaa'],
                 'Random': [1, 2, 3, 4, 5],
@@ -294,18 +300,18 @@ class TestIX(tm.TestCase):
         tm.assert_frame_equal(df, expected)
 
     def test_ix_setitem_out_of_bounds_axis_0(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.randn(2, 5), index=["row%s" % i for i in range(2)],
             columns=["col%s" % i for i in range(5)])
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, df.ix.__setitem__, (2, 0), 100)
+            pytest.raises(ValueError, df.ix.__setitem__, (2, 0), 100)
 
     def test_ix_setitem_out_of_bounds_axis_1(self):
-        df = pd.DataFrame(
+        df = DataFrame(
             np.random.randn(5, 2), index=["row%s" % i for i in range(5)],
             columns=["col%s" % i for i in range(2)])
         with catch_warnings(record=True):
-            self.assertRaises(ValueError, df.ix.__setitem__, (0, 2), 100)
+            pytest.raises(ValueError, df.ix.__setitem__, (0, 2), 100)
 
     def test_ix_empty_list_indexer_is_ok(self):
         with catch_warnings(record=True):

@@ -5,6 +5,8 @@ Tests the TextReader class in parsers.pyx, which
 is integral to the C engine in parsers.py
 """
 
+import pytest
+
 from pandas.compat import StringIO, BytesIO, map
 from pandas import compat
 
@@ -20,37 +22,32 @@ from pandas.util.testing import assert_frame_equal
 
 import pandas.util.testing as tm
 
-from pandas.io.libparsers import TextReader
-import pandas.io.libparsers as parser
+from pandas._libs.parsers import TextReader
+import pandas._libs.parsers as parser
 
 
-class TestTextReader(tm.TestCase):
+class TestTextReader(object):
 
-    def setUp(self):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath('io', 'parser', 'data')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
     def test_file_handle(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f)
-            result = reader.read()  # noqa
-        finally:
-            f.close()
+            reader.read()
 
     def test_string_filename(self):
         reader = TextReader(self.csv1, header=None)
         reader.read()
 
     def test_file_handle_mmap(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f, memory_map=True, header=None)
             reader.read()
-        finally:
-            f.close()
 
     def test_StringIO(self):
         with open(self.csv1, 'rb') as f:
@@ -64,7 +61,7 @@ class TestTextReader(tm.TestCase):
         data = 'a\nb\na\nb\na'
         reader = TextReader(StringIO(data), header=None)
         result = reader.read()
-        self.assertEqual(len(set(map(id, result[0]))), 2)
+        assert len(set(map(id, result[0]))) == 2
 
     def test_skipinitialspace(self):
         data = ('a,   b\n'
@@ -76,12 +73,10 @@ class TestTextReader(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_numpy_array_equal(result[0],
-                                      np.array(['a', 'a', 'a', 'a'],
-                                               dtype=np.object_))
-        self.assert_numpy_array_equal(result[1],
-                                      np.array(['b', 'b', 'b', 'b'],
-                                               dtype=np.object_))
+        tm.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a', 'a'],
+                                                        dtype=np.object_))
+        tm.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b', 'b'],
+                                                        dtype=np.object_))
 
     def test_parse_booleans(self):
         data = 'True\nFalse\nTrue\nTrue'
@@ -89,7 +84,7 @@ class TestTextReader(tm.TestCase):
         reader = TextReader(StringIO(data), header=None)
         result = reader.read()
 
-        self.assertEqual(result[0].dtype, np.bool_)
+        assert result[0].dtype == np.bool_
 
     def test_delimit_whitespace(self):
         data = 'a  b\na\t\t "b"\n"a"\t \t b'
@@ -98,10 +93,10 @@ class TestTextReader(tm.TestCase):
                             header=None)
         result = reader.read()
 
-        self.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a'],
-                                                          dtype=np.object_))
-        self.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b'],
-                                                          dtype=np.object_))
+        tm.assert_numpy_array_equal(result[0], np.array(['a', 'a', 'a'],
+                                                        dtype=np.object_))
+        tm.assert_numpy_array_equal(result[1], np.array(['b', 'b', 'b'],
+                                                        dtype=np.object_))
 
     def test_embedded_newline(self):
         data = 'a\n"hello\nthere"\nthis'
@@ -110,7 +105,7 @@ class TestTextReader(tm.TestCase):
         result = reader.read()
 
         expected = np.array(['a', 'hello\nthere', 'this'], dtype=np.object_)
-        self.assert_numpy_array_equal(result[0], expected)
+        tm.assert_numpy_array_equal(result[0], expected)
 
     def test_euro_decimal(self):
         data = '12345,67\n345,678'
@@ -142,6 +137,7 @@ class TestTextReader(tm.TestCase):
         expected = DataFrame([123456, 12500])
         tm.assert_frame_equal(result, expected)
 
+    @tm.capture_stderr
     def test_skip_bad_lines(self):
         # too many lines, see #2430 for why
         data = ('a:b:c\n'
@@ -153,31 +149,27 @@ class TestTextReader(tm.TestCase):
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None)
-        self.assertRaises(parser.ParserError, reader.read)
+        pytest.raises(parser.ParserError, reader.read)
 
         reader = TextReader(StringIO(data), delimiter=':',
                             header=None,
                             error_bad_lines=False,
                             warn_bad_lines=False)
         result = reader.read()
-        expected = {0: ['a', 'd', 'g', 'l'],
-                    1: ['b', 'e', 'h', 'm'],
-                    2: ['c', 'f', 'i', 'n']}
+        expected = {0: np.array(['a', 'd', 'g', 'l'], dtype=object),
+                    1: np.array(['b', 'e', 'h', 'm'], dtype=object),
+                    2: np.array(['c', 'f', 'i', 'n'], dtype=object)}
         assert_array_dicts_equal(result, expected)
 
-        stderr = sys.stderr
-        sys.stderr = StringIO()
-        try:
-            reader = TextReader(StringIO(data), delimiter=':',
-                                header=None,
-                                error_bad_lines=False,
-                                warn_bad_lines=True)
-            reader.read()
-            val = sys.stderr.getvalue()
-            self.assertTrue('Skipping line 4' in val)
-            self.assertTrue('Skipping line 6' in val)
-        finally:
-            sys.stderr = stderr
+        reader = TextReader(StringIO(data), delimiter=':',
+                            header=None,
+                            error_bad_lines=False,
+                            warn_bad_lines=True)
+        reader.read()
+        val = sys.stderr.getvalue()
+
+        assert 'Skipping line 4' in val
+        assert 'Skipping line 6' in val
 
     def test_header_not_enough_lines(self):
         data = ('skip this\n'
@@ -189,36 +181,13 @@ class TestTextReader(tm.TestCase):
         reader = TextReader(StringIO(data), delimiter=',', header=2)
         header = reader.header
         expected = [['a', 'b', 'c']]
-        self.assertEqual(header, expected)
+        assert header == expected
 
         recs = reader.read()
-        expected = {0: [1, 4], 1: [2, 5], 2: [3, 6]}
-        assert_array_dicts_equal(expected, recs)
-
-        # not enough rows
-        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
-                          delimiter=',', header=5, as_recarray=True)
-
-    def test_header_not_enough_lines_as_recarray(self):
-        data = ('skip this\n'
-                'skip this\n'
-                'a,b,c\n'
-                '1,2,3\n'
-                '4,5,6')
-
-        reader = TextReader(StringIO(data), delimiter=',', header=2,
-                            as_recarray=True)
-        header = reader.header
-        expected = [['a', 'b', 'c']]
-        self.assertEqual(header, expected)
-
-        recs = reader.read()
-        expected = {'a': [1, 4], 'b': [2, 5], 'c': [3, 6]}
-        assert_array_dicts_equal(expected, recs)
-
-        # not enough rows
-        self.assertRaises(parser.ParserError, TextReader, StringIO(data),
-                          delimiter=',', header=5, as_recarray=True)
+        expected = {0: np.array([1, 4], dtype=np.int64),
+                    1: np.array([2, 5], dtype=np.int64),
+                    2: np.array([3, 6], dtype=np.int64)}
+        assert_array_dicts_equal(recs, expected)
 
     def test_escapechar(self):
         data = ('\\"hello world\"\n'
@@ -228,7 +197,7 @@ class TestTextReader(tm.TestCase):
         reader = TextReader(StringIO(data), delimiter=',', header=None,
                             escapechar='\\')
         result = reader.read()
-        expected = {0: ['"hello world"'] * 3}
+        expected = {0: np.array(['"hello world"'] * 3, dtype=object)}
         assert_array_dicts_equal(result, expected)
 
     def test_eof_has_eol(self):
@@ -253,37 +222,18 @@ aaaaa,5"""
         reader = _make_reader(dtype='S5,i4')
         result = reader.read()
 
-        self.assertEqual(result[0].dtype, 'S5')
+        assert result[0].dtype == 'S5'
 
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaaa'], dtype='S5')
-        self.assertTrue((result[0] == ex_values).all())
-        self.assertEqual(result[1].dtype, 'i4')
+        assert (result[0] == ex_values).all()
+        assert result[1].dtype == 'i4'
 
         reader = _make_reader(dtype='S4')
         result = reader.read()
-        self.assertEqual(result[0].dtype, 'S4')
+        assert result[0].dtype == 'S4'
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        self.assertTrue((result[0] == ex_values).all())
-        self.assertEqual(result[1].dtype, 'S4')
-
-    def test_numpy_string_dtype_as_recarray(self):
-        data = """\
-a,1
-aa,2
-aaa,3
-aaaa,4
-aaaaa,5"""
-
-        def _make_reader(**kwds):
-            return TextReader(StringIO(data), delimiter=',', header=None,
-                              **kwds)
-
-        reader = _make_reader(dtype='S4', as_recarray=True)
-        result = reader.read()
-        self.assertEqual(result['0'].dtype, 'S4')
-        ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        self.assertTrue((result['0'] == ex_values).all())
-        self.assertEqual(result['1'].dtype, 'S4')
+        assert (result[0] == ex_values).all()
+        assert result[1].dtype == 'S4'
 
     def test_pass_dtype(self):
         data = """\
@@ -298,19 +248,19 @@ one,two
 
         reader = _make_reader(dtype={'one': 'u1', 1: 'S1'})
         result = reader.read()
-        self.assertEqual(result[0].dtype, 'u1')
-        self.assertEqual(result[1].dtype, 'S1')
+        assert result[0].dtype == 'u1'
+        assert result[1].dtype == 'S1'
 
         reader = _make_reader(dtype={'one': np.uint8, 1: object})
         result = reader.read()
-        self.assertEqual(result[0].dtype, 'u1')
-        self.assertEqual(result[1].dtype, 'O')
+        assert result[0].dtype == 'u1'
+        assert result[1].dtype == 'O'
 
         reader = _make_reader(dtype={'one': np.dtype('u1'),
                                      1: np.dtype('O')})
         result = reader.read()
-        self.assertEqual(result[0].dtype, 'u1')
-        self.assertEqual(result[1].dtype, 'O')
+        assert result[0].dtype == 'u1'
+        assert result[1].dtype == 'O'
 
     def test_usecols(self):
         data = """\
@@ -327,9 +277,9 @@ a,b,c
         result = reader.read()
 
         exp = _make_reader().read()
-        self.assertEqual(len(result), 2)
-        self.assertTrue((result[1] == exp[1]).all())
-        self.assertTrue((result[2] == exp[2]).all())
+        assert len(result) == 2
+        assert (result[1] == exp[1]).all()
+        assert (result[2] == exp[2]).all()
 
     def test_cr_delimited(self):
         def _test(text, **kwargs):
@@ -363,7 +313,7 @@ a,b,c
 
         result = TextReader(StringIO(data), delimiter=',').read()
 
-        expected = {0: np.array([1, 4]),
+        expected = {0: np.array([1, 4], dtype=np.int64),
                     1: np.array(['2', ''], dtype=object),
                     2: np.array(['3', ''], dtype=object)}
         assert_array_dicts_equal(result, expected)
@@ -395,9 +345,10 @@ a,b,c
         # GH14867
         df = read_csv(StringIO(), chunksize=20, header=None,
                       names=['a', 'b', 'c'])
-        self.assertTrue(isinstance(df, TextFileReader))
+        assert isinstance(df, TextFileReader)
 
 
 def assert_array_dicts_equal(left, right):
     for k, v in compat.iteritems(left):
-        assert(np.array_equal(v, right[k]))
+        assert tm.assert_numpy_array_equal(np.asarray(v),
+                                           np.asarray(right[k]))

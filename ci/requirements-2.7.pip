@@ -1,8 +1,0 @@
-blosc
-pandas-gbq
-pathlib
-backports.lzma
-py
-PyCrypto
-mock
-ipython
