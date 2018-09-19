@@ -3940,10 +3940,11 @@ class Index(IndexOpsMixin, PandasObject):
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
 
-        # figure out join names
-        self_names = com._not_none(*self.names)
-        other_names = com._not_none(*other.names)
-        overlap = list(set(self_names) & set(other_names))
+        if self_is_mi and other_is_mi:
+
+            # Drop the non matching levels
+            ldrop_levels = list(set(self_names) - set(overlap))
+            rdrop_levels = list(set(other_names) - set(overlap))
 
             self_jnlevels = self.droplevel(ldrop_levels)
             other_jnlevels = other.droplevel(rdrop_levels)
