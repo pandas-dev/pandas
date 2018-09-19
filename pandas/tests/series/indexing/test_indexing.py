@@ -390,6 +390,8 @@ def test_setslice(test_data):
     assert sl.index.is_unique
 
 
+# FutureWarning from NumPy about [slice(None, 5).
+@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(test_data):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     with tm.assert_raises_regex(ValueError, 'tuple-index'):

@@ -541,10 +541,12 @@ def _binary_op_method_timedeltalike(op, name):
 
         elif hasattr(other, 'dtype'):
             # nd-array like
-            if other.dtype.kind not in ['m', 'M']:
-                # raise rathering than letting numpy return wrong answer
+            if other.dtype.kind in ['m', 'M']:
+                return op(self.to_timedelta64(), other)
+            elif other.dtype.kind == 'O':
+                return np.array([op(self, x) for x in other])
+            else:
                 return NotImplemented
-            return op(self.to_timedelta64(), other)
 
         elif not _validate_ops_compat(other):
             return NotImplemented
