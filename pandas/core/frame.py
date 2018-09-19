@@ -7430,8 +7430,7 @@ class DataFrame(NDFrame):
 
     def isin(self, values):
         """
-        Return boolean DataFrame showing whether each element in the
-        DataFrame is contained in values.
+        Whether each element in the DataFrame is contained in values.
 
         Parameters
         ----------
@@ -7444,8 +7443,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-
-        DataFrame of booleans
+        DataFrame
+            DataFrame of boolean showing whether each element in the DataFrame
+            is contained in values.
 
         Examples
         --------
@@ -7458,23 +7458,24 @@ class DataFrame(NDFrame):
         1  False  False
         2   True  False
 
-        When ``values`` is a dict:
+        When ``values`` is a dict. Note that B doesn't match the 1 here.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
         >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
                A      B
-        0   True  False  # Note that B didn't match the 1 here.
+        0   True  False
         1  False   True
         2   True   True
 
-        When ``values`` is a Series or DataFrame:
+        When ``values`` is a Series or DataFrame. Column A in `df2` has a
+        3, but not at index 1.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
         >>> df.isin(df2)
                A      B
         0   True  False
-        1  False  False  # Column A in `df2` has a 3, but not at index 1.
+        1  False  False
         2   True   True
         """
         if isinstance(values, dict):
