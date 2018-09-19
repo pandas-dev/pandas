@@ -651,6 +651,8 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             - 'raise' will raise an NonExistentTimeError if there are
               nonexistent times
 
+            .. versionadded:: 0.24.0
+
         errors : {'raise', 'coerce'}, default 'raise'
 
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
