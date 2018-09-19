@@ -4037,10 +4037,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def _reindex_multi(self, axes, copy, fill_value):
         return NotImplemented
 
-    _shared_docs['reindex_axis'] = ("""Conform input object to new index with optional
-        filling logic, placing NA/NaN in locations having no value in the
-        previous index. A new object is produced unless the new index is
-        equivalent to the current one and copy=False
+    _shared_docs['reindex_axis'] = ("""Conform input object to new index
+        with optional filling logic, placing NA/NaN in locations having
+        no value in the previous index. A new object is produced unless
+        the new index is equivalent to the current one and copy=False.
 
         Parameters
         ----------
