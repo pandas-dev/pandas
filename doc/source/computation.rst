@@ -154,8 +154,7 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
 
 
 A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
-compute the correlation between like-labeled Series contained in different 
-DataFrame objects.
+compute the correlation between another DataFrame or Series object.
 
 .. ipython:: python
 
@@ -164,20 +163,8 @@ DataFrame objects.
    df1 = pd.DataFrame(np.random.randn(5, 4), index=index, columns=columns)
    df2 = pd.DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
    df1.corrwith(df2)
+   df1.corrwith(df2, how='all')
    df2.corrwith(df1, axis=1)
-
-A method :meth:`~DataFrame.corrmatrix` creates a correlation matrix between
-all columns of the first DataFrame object and all columns of the second
-DataFrame object.
-
-.. ipython:: python
-
-   index = ['a', 'b', 'c', 'd', 'e']
-   columns1 = ['one', 'two']
-   columns2 = ['three', 'four']
-   df1 = pd.DataFrame(np.random.randn(5, 2), index=index, columns=columns1)
-   df2 = pd.DataFrame(np.random.randn(4, 2), index=index[:4], columns=columns2)
-   df1.corrmatrix(df2)
 
 .. _computation.ranking:
 

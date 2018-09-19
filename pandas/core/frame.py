@@ -6824,66 +6824,25 @@ class DataFrame(NDFrame):
 
         return self._constructor(baseCov, index=idx, columns=cols)
 
-    def corrwith(self, other, axis=0, drop=False):
+    def corrwith(self, other, axis=0, how='pairwise', drop=False,
+                 method='pearson', min_periods=1):
         """
-        Compute pairwise correlation between rows or columns of two DataFrame
-        objects.
+        Compute correlation between rows or columns of two DataFrame objects
+        or of DataFrame and Series objects.
 
         Parameters
         ----------
         other : DataFrame, Series
         axis : {0 or 'index', 1 or 'columns'}, default 0
             0 or 'index' to compute column-wise, 1 or 'columns' for row-wise
+        how : {'pairwise', 'all'}, default 'pairwise' if other is a DataFrame
+            and default 'all' if other is a Series object
+            * 'pairwise' to compute correlation between rows or columns with
+              the same name/index,
+            * 'all' to compute correlation between all possible pairs of rows
+              or columns
         drop : boolean, default False
             Drop missing indices from result, default returns union of all
-
-        Returns
-        -------
-        correls : Series
-        """
-        axis = self._get_axis_number(axis)
-        this = self._get_numeric_data()
-
-        if isinstance(other, Series):
-            return this.apply(other.corr, axis=axis)
-
-        other = other._get_numeric_data()
-
-        left, right = this.align(other, join='inner', copy=False)
-
-        # mask missing values
-        left = left + right * 0
-        right = right + left * 0
-
-        if axis == 1:
-            left = left.T
-            right = right.T
-
-        # demeaned data
-        ldem = left - left.mean()
-        rdem = right - right.mean()
-
-        num = (ldem * rdem).sum()
-        dom = (left.count() - 1) * left.std() * right.std()
-
-        correl = num / dom
-
-        if not drop:
-            raxis = 1 if axis == 0 else 0
-            result_index = this._get_axis(raxis).union(other._get_axis(raxis))
-            correl = correl.reindex(result_index)
-
-        return correl
-
-    def corrmatrix(self, other, method='pearson', min_periods=1):
-        """
-        Compute correlation matrix between columns of two DataFrame objects.
-        Resulting DataFrame object will have dimension of shape
-        (self.shape[1], other.shape[1])
-
-        Parameters
-        ----------
-        other : DataFrame, Series
         method : {'pearson', 'kendall', 'spearman'}
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
@@ -6895,38 +6854,63 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        correls : DataFrame if `other' is DataFrame else Series
+        y : DataFrame
+
+        Returns
+        -------
+        correl : Series (how='pairwise') or DataFrame (how='all')
         """
 
-        if other is self:
-            return self.corr(method=method, min_periods=min_periods)
-
-        if isinstance(self.index, MultiIndex) \
-           or isinstance(self.columns, MultiIndex) \
-           or isinstance(other.index, MultiIndex):
-            raise TypeError("MultiIndex is not supported")
+        axis = self._get_axis_number(axis)
+        this = self._get_numeric_data()
 
         if isinstance(other, Series):
-            corr = np.zeros(self.shape[1])
+            return this.apply(other.corr, axis=axis,
+                              method=method, min_periods=min_periods)
 
-            for i, col1 in enumerate(self.columns):
-                corr[i] = self[col1].corr(other,
-                                          method=method,
-                                          min_periods=min_periods)
-            return Series(data=corr[i], index=self.columns)
-        else:
-            if isinstance(other.columns, MultiIndex):
-                raise TypeError("MultiIndex is not supported")
-            corr = np.zeros((self.shape[1], other.shape[1]))
+        if not isinstance(other, DataFrame):
+            raise TypeError("'other' parameter should be a DataFrame "
+                            "or a Series object")
 
-            for i, col1 in enumerate(self.columns):
+        other = other._get_numeric_data()
+
+        if isinstance(this.columns, MultiIndex) \
+                or isinstance(other.columns, MultiIndex):
+            raise TypeError("MultiIndex is not supported")
+
+        if axis==1:
+            this = this.transpose()
+            other = other.transpose()
+
+        if how=='all':
+            corr = np.zeros((this.shape[1], other.shape[1]))
+
+            for i, col1 in enumerate(this.columns):
                 for j, col2 in enumerate(other.columns):
-                    corr[i, j] = self[col1].corr(other[col2],
-                                                 method=method,
-                                                 min_periods=min_periods)
-            return DataFrame(data=corr,
-                             index=self.columns,
+                    corr[i, j] = this.loc[:, col1].corr(other.loc[:, col2],
+                                                        method=method,
+                                                        min_periods=min_periods)
+            return DataFrame(data=corr, index=this.columns,
                              columns=other.columns)
+
+        elif how=='pairwise':
+            index = []
+            corr = []
+            for col in this.columns:
+                if col in other.columns:
+                    index.append(col)
+                    corr.append(this.loc[:, col].corr(other.loc[:, col],
+                                method=method, min_periods=min_periods))
+
+            correl = Series(data=corr, index=index)
+
+            if not drop:  # add missing columns to the resulting Series
+                result_index = this._get_axis(1).union(other._get_axis(1))
+                correl = correl.reindex(result_index)
+            return correl
+
+        else:
+            raise TypeError("'how' parameter should be 'pairwise' or 'all'")
 
     # ----------------------------------------------------------------------
     # ndarray-like stats methods

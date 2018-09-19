@@ -256,14 +256,26 @@ class TestDataFrameAnalytics(TestData):
         expected = pd.Series(data=corrs, index=['a', 'b'])
         tm.assert_series_equal(result, expected)
 
-    def test_corrmatrix(self):
-        a = self.tsframe
-        noise = Series(randn(len(a)), index=a.index)
+    def test_corrwith_how_all(self):
+        df = DataFrame({'a':np.random.randn(10000), 'b':np.random.randn(10000)})
+        c1 = df.corrwith(df, how='all').loc['a', 'b']
+        c2 = np.corrcoef(df['a'], df['b'])[0][1]
 
-        b = self.tsframe.add(noise, axis=0)
+        tm.assert_almost_equal(c1, c2)
+        assert c1 < 1
 
-        colcorr = a.corrmatrix(b)
-        tm.assert_almost_equal(colcorr.loc['A', 'A'], a['A'].corr(b['A']))
+    def test_corrwith_how_all_axis1(self):
+        data1 = np.random.randn(2,1000)
+        data2 = np.random.randn(2,1000)
+        columns = ['c'+str(i) for i in range(1000)]
+        index = ['a', 'b']
+
+        df = DataFrame(data=data1, columns=columns, index=index)
+        c1 = df.corrwith(df, how='all', axis=1).loc['a', 'b']
+        c2 = np.corrcoef(df.loc['a', :], df.loc['b', :])[0][1]
+
+        tm.assert_almost_equal(c1, c2)
+        assert c1 < 1
 
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
