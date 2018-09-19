@@ -3918,10 +3918,10 @@ class DataFrame(NDFrame):
             if not (is_scalar(x) or isinstance(x, tuple)):
                 if not isinstance(x, (ABCSeries, ABCIndexClass, ABCMultiIndex,
                                       list, np.ndarray)):
-                    raise TypeError('keys may only contain a combination of '
-                                    'the following: valid column keys, '
-                                    'Series, Index, MultiIndex, list or '
-                                    'np.ndarray')
+                    raise TypeError('The parameter "keys" may only contain a '
+                                    'combination of the following: valid '
+                                    'column keys, Series, Index, MultiIndex, '
+                                    'list or np.ndarray')
             else:
                 if x not in self:
                     missing.append(x)

@@ -184,17 +184,13 @@ class TestDataFrameAlterAxes():
 
         keys = [box1(df['A']), box2(df['A'])]
 
-        # == gives ambiguous Boolean for Series
-        if drop and keys[0] is 'A' and keys[1] is 'A':
-            # can't drop same column twice
-            first_drop = False
-        else:
-            first_drop = drop
-
         # to test against already-tested behaviour, we add sequentially,
-        # hence second append always True; must wrap in list, otherwise
-        # list-box will be illegal
-        expected = df.set_index([keys[0]], drop=first_drop, append=append)
+        # hence second append always True; must wrap keys in list, otherwise
+        # box = list would be illegal; need to adapt drop for case that both
+        # keys are 'A' -- can't drop the same column twice
+        expected = df.set_index([keys[0]], drop=(False if (keys[0] is 'A'
+                                                           and keys[1] is 'A')
+                                                 else drop), append=append)
         expected = expected.set_index([keys[1]], drop=drop, append=True)
 
         result = df.set_index(keys, drop=drop, append=append)
@@ -238,7 +234,7 @@ class TestDataFrameAlterAxes():
         with tm.assert_raises_regex(KeyError, 'X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
-        rgx = 'keys may only contain a combination of the following:.*'
+        rgx = 'The parameter "keys" may only contain a combination of.*'
         # forbidden type, e.g. set
         with tm.assert_raises_regex(TypeError, rgx):
             df.set_index(set(df['A']), drop=drop, append=append)
