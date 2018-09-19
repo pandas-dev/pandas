@@ -31,6 +31,7 @@ matrix:
       # Exclude the default Python 3.5 build
       - python: 3.5
 
+    include:
     - dist: trusty
       env:
         - JOB="3.7" ENV_FILE="ci/travis-37.yaml" TEST_ARGS="--skip-slow --skip-network"
