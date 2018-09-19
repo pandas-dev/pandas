@@ -3842,6 +3842,12 @@ class DataFrame(NDFrame):
             necessary. Setting to False will improve the performance of this
             method
 
+        See Also
+        --------
+        DataFrame.reset_index : opposite of set_index
+        DataFrame.reindex : change to new indices or expand indices
+        DataFrame.reindex_like : change to same indices as other DataFrame
+
         Examples
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
@@ -3980,6 +3986,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         resetted : DataFrame
+        
+        See Also
+        --------
+        DataFrame.set_index : opposite of reset_index
+        DataFrame.reindex : change to new indices or expand indices
+        DataFrame.reindex_like : change to same indices as other DataFrame
 
         Examples
         --------
