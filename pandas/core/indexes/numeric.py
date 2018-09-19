@@ -6,6 +6,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     needs_i8_conversion,
     is_integer_dtype,
+    is_float,
     is_bool,
     is_bool_dtype,
     is_scalar)
@@ -162,7 +163,25 @@ _int64_descr_args = dict(
 )
 
 
-class Int64Index(NumericIndex):
+class IntegerIndex(NumericIndex):
+    """
+    This is an abstract class for Int64Index, UInt64Index.
+    """
+
+    def __contains__(self, key):
+        """
+        Check if key is a float and has a decimal. If it has, return False.
+        """
+        hash(key)
+        try:
+            if is_float(key) and int(key) != key:
+                return False
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+
+class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
@@ -220,7 +239,7 @@ _uint64_descr_args = dict(
 )
 
 
-class UInt64Index(NumericIndex):
+class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
