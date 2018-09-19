@@ -266,12 +266,11 @@ class TestDataFrameAnalytics(TestData):
         assert c1 < 1
 
     def test_corrwith_how_all_axis1(self):
-        data1 = np.random.randn(2, 1000)
-        data2 = np.random.randn(2, 1000)
+        data = np.random.randn(2, 1000)
         columns = ['c' + str(i) for i in range(1000)]
         index = ['a', 'b']
 
-        df = DataFrame(data=data1, columns=columns, index=index)
+        df = DataFrame(data=data, columns=columns, index=index)
         c1 = df.corrwith(df, how='all', axis=1).loc['a', 'b']
         c2 = np.corrcoef(df.loc['a', :], df.loc['b', :])[0][1]
 
