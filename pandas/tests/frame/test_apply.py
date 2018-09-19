@@ -11,6 +11,8 @@ from itertools import chain
 
 import warnings
 import numpy as np
+from hypothesis import given
+from hypothesis.strategies import composite, dates, integers, sampled_from
 
 from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
@@ -106,9 +108,9 @@ class TestDataFrameApply(TestData):
         assert x == []
 
     def test_apply_deprecate_reduce(self):
-        with warnings.catch_warnings(record=True):
-            x = []
-            self.empty.apply(x.append, axis=1, result_type='reduce')
+        x = []
+        with tm.assert_produces_warning(FutureWarning):
+            self.empty.apply(x.append, axis=1, reduce=True)
 
     def test_apply_standard_nonunique(self):
         df = DataFrame(
@@ -259,6 +261,7 @@ class TestDataFrameApply(TestData):
 
         def _check(df, f):
             with warnings.catch_warnings(record=True):
+                warnings.simplefilter("ignore", RuntimeWarning)
                 test_res = f(np.array([], dtype='f8'))
             is_reduction = not isinstance(test_res, np.ndarray)
 
@@ -1155,3 +1158,24 @@ class TestDataFrameAggregate(TestData):
         # GH21224
         with pytest.raises(expected):
             df.agg(func, axis=axis)
+
+    @composite
+    def indices(draw, max_length=5):
+        date = draw(
+            dates(
+                min_value=Timestamp.min.ceil("D").to_pydatetime().date(),
+                max_value=Timestamp.max.floor("D").to_pydatetime().date(),
+            ).map(Timestamp)
+        )
+        periods = draw(integers(0, max_length))
+        freq = draw(sampled_from(list("BDHTS")))
+        dr = date_range(date, periods=periods, freq=freq)
+        return pd.DatetimeIndex(list(dr))
+
+    @given(index=indices(5), num_columns=integers(0, 5))
+    def test_frequency_is_original(self, index, num_columns):
+        # GH22150
+        original = index.copy()
+        df = DataFrame(True, index=index, columns=range(num_columns))
+        df.apply(lambda x: x)
+        assert index.freq == original.freq

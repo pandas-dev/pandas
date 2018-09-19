@@ -465,7 +465,7 @@ class TestSeriesConstructors(TestData):
         # test that construction of a Series with an index of different length
         # raises an error
         msg = 'Length of passed values is 3, index implies 4'
-        with pytest.raises(ValueError, message=msg):
+        with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
     def test_constructor_numpy_scalar(self):
@@ -957,6 +957,8 @@ class TestSeriesConstructors(TestData):
         values = frozenset(values)
         pytest.raises(TypeError, Series, values)
 
+    # https://github.com/pandas-dev/pandas/issues/22698
+    @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self):
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 

@@ -520,6 +520,36 @@ class TestUnique(object):
         expected = np.array([np.nan])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_first_nan_kept(self):
+        # GH 22295
+        # create different nans from bit-patterns:
+        bits_for_nan1 = 0xfff8000000000001
+        bits_for_nan2 = 0x7ff8000000000001
+        NAN1 = struct.unpack("d", struct.pack("=Q", bits_for_nan1))[0]
+        NAN2 = struct.unpack("d", struct.pack("=Q", bits_for_nan2))[0]
+        assert NAN1 != NAN1
+        assert NAN2 != NAN2
+        for el_type in [np.float64, np.object]:
+            a = np.array([NAN1, NAN2], dtype=el_type)
+            result = pd.unique(a)
+            assert result.size == 1
+            # use bit patterns to identify which nan was kept:
+            result_nan_bits = struct.unpack("=Q",
+                                            struct.pack("d", result[0]))[0]
+            assert result_nan_bits == bits_for_nan1
+
+    def test_do_not_mangle_na_values(self, unique_nulls_fixture,
+                                     unique_nulls_fixture2):
+        # GH 22295
+        if unique_nulls_fixture is unique_nulls_fixture2:
+            return  # skip it, values not unique
+        a = np.array([unique_nulls_fixture,
+                      unique_nulls_fixture2], dtype=np.object)
+        result = pd.unique(a)
+        assert result.size == 2
+        assert a[0] is unique_nulls_fixture
+        assert a[1] is unique_nulls_fixture2
+
 
 class TestIsin(object):
 

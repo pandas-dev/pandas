@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from cython cimport Py_ssize_t
-
-from cpython cimport PyFloat_Check, PyUnicode_Check
+from cython import Py_ssize_t
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_CheckExact,
@@ -17,8 +15,6 @@ import numpy as np
 cnp.import_array()
 
 import pytz
-from dateutil.tz import tzlocal, tzutc as dateutil_utc
-
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object)
@@ -601,7 +597,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-                if PyUnicode_Check(val) and PY2:
+                if isinstance(val, unicode) and PY2:
                     val = val.encode('utf-8')
 
                 try:
@@ -740,7 +736,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             # set as nan except if its a NaT
             if checknull_with_nat(val):
-                if PyFloat_Check(val):
+                if isinstance(val, float):
                     oresult[i] = np.nan
                 else:
                     oresult[i] = NaT

@@ -122,6 +122,24 @@ def is_bool_indexer(key):
     return False
 
 
+def cast_scalar_indexer(val):
+    """
+    To avoid numpy DeprecationWarnings, cast float to integer where valid.
+
+    Parameters
+    ----------
+    val : scalar
+
+    Returns
+    -------
+    outval : scalar
+    """
+    # assumes lib.is_scalar(val)
+    if lib.is_float(val) and val == int(val):
+        return int(val)
+    return val
+
+
 def _not_none(*args):
     """Returns a generator consisting of the arguments that are not None"""
     return (arg for arg in args if arg is not None)
@@ -338,7 +356,7 @@ def standardize_mapping(into):
             return partial(
                 collections.defaultdict, into.default_factory)
         into = type(into)
-    if not issubclass(into, collections.Mapping):
+    if not issubclass(into, compat.Mapping):
         raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(
