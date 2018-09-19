@@ -13,7 +13,7 @@ conda list
 @rem Clean up any left-over from a previous build
 conda remove --all -q -y -n %CONDA_ENV%
 @rem Scipy, CFFI, jinja2 and IPython are optional dependencies, but exercised in the test suite
-conda env create -n %CONDA_ENV% --file=ci\azure-%CONDA_PY%.yaml
+conda env create -n %CONDA_ENV% --file=ci\azure-windows-%CONDA_PY%.yaml
 
 call activate %CONDA_ENV%
 conda list
