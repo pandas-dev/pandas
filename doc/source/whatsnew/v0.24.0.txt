@@ -8,6 +8,8 @@ v0.24.0 (Month XX, 2018)
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
    See :ref:`install.dropping-27` for more.
 
+This is a deliberate error :meth:`notaclass` to test the failure.
+
 .. _whatsnew_0240.enhancements:
 
 New features
