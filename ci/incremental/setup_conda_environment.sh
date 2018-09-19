@@ -33,7 +33,8 @@ pip uninstall -y pandas
 echo
 echo "[no installed pandas]"
 conda list pandas
-pip list --format columns |grep pandas
+# Add the grep -v grep so that exit with 0
+pip list --format columns | grep pandas | {grep -v grep || true; }
 
 # # Install the compiler toolchain
 # if [[ $(uname) == Linux ]]; then
