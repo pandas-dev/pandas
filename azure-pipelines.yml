@@ -3,10 +3,10 @@ jobs:
 # Mac and Linux could potentially use the same template
 # except it isn't clear how to use a different build matrix
 # for each, so for now they are separate
-# - template: ci/azure/macos.yml
-#   parameters:
-#     name: macOS
-#     vmImage: xcode9-macos10.13
+- template: ci/azure/macos.yml
+  parameters:
+    name: macOS
+    vmImage: xcode9-macos10.13
 # - template: ci/azure/linux.yml
 #   parameters:
 #     name: Linux

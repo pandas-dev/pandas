@@ -10,7 +10,7 @@ jobs:
     maxParallel: 11
     matrix:
       py36_np14:
-        ENV_FILE: ci/azure-36.yml
+        ENV_FILE: ci/azure-windows-36.yml
         CONDA_PY: "36"
         CONDA_ENV: pandas
 
