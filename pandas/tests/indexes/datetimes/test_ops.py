@@ -547,7 +547,7 @@ class TestCustomDatetimeIndex(object):
         tm.assert_index_equal(idx.shift(periods=0), idx)
         tm.assert_index_equal(idx.shift(0), idx)
         with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
+                                        check_stacklevel=True):
             tm.assert_index_equal(idx.shift(n=0), idx)
 
     def test_pickle_unpickle(self):
