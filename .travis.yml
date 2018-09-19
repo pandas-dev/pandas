@@ -30,11 +30,6 @@ matrix:
     exclude:
       # Exclude the default Python 3.5 build
       - python: 3.5
-    include:
-    - os: osx
-      language: generic
-      env:
-        - JOB="3.5, OSX" ENV_FILE="ci/travis-35-osx.yaml" TEST_ARGS="--skip-slow --skip-network"
 
     - dist: trusty
       env:
