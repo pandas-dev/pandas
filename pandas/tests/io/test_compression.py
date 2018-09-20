@@ -1,5 +1,6 @@
 import os
 import warnings
+import contextlib
 
 import pytest
 
@@ -8,12 +9,15 @@ import pandas.io.common as icom
 import pandas.util.testing as tm
 
 
+@contextlib.contextmanager
 def catch_to_csv_depr():
     # Catching warnings because Series.to_csv has
     # been deprecated. Remove this context when
     # Series.to_csv has been aligned.
 
-    return warnings.catch_warnings(record=True)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter("ignore", FutureWarning)
+        yield
 
 
 @pytest.mark.parametrize('obj', [

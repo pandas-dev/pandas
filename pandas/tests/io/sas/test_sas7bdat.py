@@ -9,6 +9,8 @@ import numpy as np
 import pytest
 
 
+# https://github.com/cython/cython/issues/1720
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestSAS7BDAT(object):
 
     @pytest.fixture(autouse=True)

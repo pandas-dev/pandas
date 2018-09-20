@@ -637,6 +637,14 @@ Otherwise, you need to do it manually:
         warnings.warn('Use new_func instead.', FutureWarning, stacklevel=2)
         new_func()
 
+You'll also need to
+
+1. write a new test that asserts a warning is issued when calling with the deprecated argument
+2. Update all of pandas existing tests and code to use the new argument
+
+See :ref:`contributing.warnings` for more.
+
+
 .. _contributing.ci:
 
 Testing With Continuous Integration
@@ -863,6 +871,55 @@ To keep the Pandas test suite running quickly, parametrized tests are
 preferred if the inputs or logic are simple, with Hypothesis tests reserved
 for cases with complex logic or where there are too many combinations of
 options or subtle interactions to test (or think of!) all of them.
+
+.. _contributing.warnings:
+
+Testing Warnings
+~~~~~~~~~~~~~~~~
+
+By default, one of pandas CI workers will fail if any unhandled warnings are emitted.
+
+If your change involves checking that a warning is actually emitted, use
+``tm.assert_produces_warning(ExpectedWarning)``.
+
+
+.. code-block:: python
+
+   with tm.assert_prodcues_warning(FutureWarning):
+       df.some_operation()
+
+We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
+stacklevel is set correctly. The stacklevel is what ensure the *user's* file name and line number
+is printed in the warning, rather than something internal to pandas. It represents the number of
+function calls from user code (e.g. ``df.some_operation()``) to the function that actually emits
+the warning. Our linter will fail the build if you use ``pytest.warns`` in a test.
+
+If you have a test that would emit a warning, but you aren't actually testing the
+warning itself (say because it's going to be removed in the future, or because we're
+matching a 3rd-party library's behavior), then use ``pytest.mark.filterwarnings`` to
+ignore the error.
+
+.. code-block:: python
+
+   @pytest.mark.filterwarnings("ignore:msg:category")
+   def test_thing(self):
+       ...
+
+If the test generates a warning of class ``category`` whose message starts
+with ``msg``, the warning will be ignored and the test will pass.
+
+If you need finer-grained control, you can use Python's usual
+`warnings module <https://docs.python.org/3/library/warnings.html>`__
+to control whether a warning is ignored / raised at different places within
+a single test.
+
+.. code-block:: python
+
+   with warch.catch_warnings():
+       warnings.simplefilter("ignore", FutureWarning)
+       # Or use warnings.filterwarnings(...)
+
+Alternatively, consider breaking up the unit test.
 
 
 Running the test suite

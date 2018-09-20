@@ -386,6 +386,8 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         # ZIP Compression
         elif compression == 'zip':
             zf = BytesZipFile(path_or_buf, mode)
+            # Ensure the container is closed as well.
+            handles.append(zf)
             if zf.mode == 'w':
                 f = zf
             elif zf.mode == 'r':

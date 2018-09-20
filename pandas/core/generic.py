@@ -2501,80 +2501,70 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        a DataArray for a Series
-        a Dataset for a DataFrame
-        a DataArray for higher dims
+        xarray.DataArray or xarray.Dataset
+            Data in the pandas structure converted to Dataset if the object is
+            a DataFrame, or a DataArray if the object is a Series.
+
+        See Also
+        --------
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-                               'B' : ['foo', 'bar', 'foo'],
-                               'C' : np.arange(4.,7)})
+        >>> df = pd.DataFrame([('falcon', 'bird',  389.0, 2),
+        ...                    ('parrot', 'bird', 24.0, 2),
+        ...                    ('lion',   'mammal', 80.5, 4),
+        ...                    ('monkey', 'mammal', np.nan, 4)],
+        ...                    columns=['name', 'class', 'max_speed',
+        ...                             'num_legs'])
         >>> df
-           A    B    C
-        0  1  foo  4.0
-        1  1  bar  5.0
-        2  2  foo  6.0
+             name   class  max_speed  num_legs
+        0  falcon    bird      389.0         2
+        1  parrot    bird       24.0         2
+        2    lion  mammal       80.5         4
+        3  monkey  mammal        NaN         4
 
         >>> df.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (index: 3)
+        Dimensions:    (index: 4)
         Coordinates:
-          * index    (index) int64 0 1 2
+          * index      (index) int64 0 1 2 3
         Data variables:
-            A        (index) int64 1 1 2
-            B        (index) object 'foo' 'bar' 'foo'
-            C        (index) float64 4.0 5.0 6.0
+            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 389.0 24.0 80.5 nan
+            num_legs   (index) int64 2 2 4 4
 
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-                               'B' : ['foo', 'bar', 'foo'],
-                               'C' : np.arange(4.,7)}
-                             ).set_index(['B','A'])
-        >>> df
-                 C
-        B   A
-        foo 1  4.0
-        bar 1  5.0
-        foo 2  6.0
+        >>> df['max_speed'].to_xarray()
+        <xarray.DataArray 'max_speed' (index: 4)>
+        array([389. ,  24. ,  80.5,   nan])
+        Coordinates:
+          * index    (index) int64 0 1 2 3
 
-        >>> df.to_xarray()
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-01',
+        ...                         '2018-01-02', '2018-01-02'])
+        >>> df_multiindex = pd.DataFrame({'date': dates,
+        ...                    'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
+        ...                                                    'animal'])
+        >>> df_multiindex
+                           speed
+        date       animal
+        2018-01-01 falcon    350
+                   parrot     18
+        2018-01-02 falcon    361
+                   parrot     15
+
+        >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (A: 2, B: 2)
+        Dimensions:  (animal: 2, date: 2)
         Coordinates:
-          * B        (B) object 'bar' 'foo'
-          * A        (A) int64 1 2
+          * date     (date) datetime64[ns] 2018-01-01 2018-01-02
+          * animal   (animal) object 'falcon' 'parrot'
         Data variables:
-            C        (B, A) float64 5.0 nan 4.0 6.0
-
-        >>> p = pd.Panel(np.arange(24).reshape(4,3,2),
-                         items=list('ABCD'),
-                         major_axis=pd.date_range('20130101', periods=3),
-                         minor_axis=['first', 'second'])
-        >>> p
-        <class 'pandas.core.panel.Panel'>
-        Dimensions: 4 (items) x 3 (major_axis) x 2 (minor_axis)
-        Items axis: A to D
-        Major_axis axis: 2013-01-01 00:00:00 to 2013-01-03 00:00:00
-        Minor_axis axis: first to second
-
-        >>> p.to_xarray()
-        <xarray.DataArray (items: 4, major_axis: 3, minor_axis: 2)>
-        array([[[ 0,  1],
-                [ 2,  3],
-                [ 4,  5]],
-               [[ 6,  7],
-                [ 8,  9],
-                [10, 11]],
-               [[12, 13],
-                [14, 15],
-                [16, 17]],
-               [[18, 19],
-                [20, 21],
-                [22, 23]]])
-        Coordinates:
-          * items       (items) object 'A' 'B' 'C' 'D'
-          * major_axis  (major_axis) datetime64[ns] 2013-01-01 2013-01-02 2013-01-03  # noqa
-          * minor_axis  (minor_axis) object 'first' 'second'
+            speed    (date, animal) int64 350 18 361 15
 
         Notes
         -----
@@ -9693,15 +9683,15 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
       original index.
     * None : reduce all axes, return a scalar.
 
+bool_only : boolean, default None
+    Include only boolean columns. If None, will attempt to use everything,
+    then use only boolean data. Not implemented for Series.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s.
-bool_only : boolean, default None
-    Include only boolean columns. If None, will attempt to use everything,
-    then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.

@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings
+import pytest
 import numpy as np
 
 from pandas import DataFrame, Series, MultiIndex, Panel, Index
@@ -126,28 +126,28 @@ class TestDataFrameSubclassing(TestData):
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_to_panel_expanddim(self):
         # GH 9762
 
-        with catch_warnings(record=True):
-            class SubclassedFrame(DataFrame):
+        class SubclassedFrame(DataFrame):
 
-                @property
-                def _constructor_expanddim(self):
-                    return SubclassedPanel
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedPanel
 
-            class SubclassedPanel(Panel):
-                pass
+        class SubclassedPanel(Panel):
+            pass
 
-            index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
-            df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
-            result = df.to_panel()
-            assert isinstance(result, SubclassedPanel)
-            expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
-                                       items=['X', 'Y'], major_axis=[0],
-                                       minor_axis=[0, 1, 2],
-                                       dtype='int64')
-            tm.assert_panel_equal(result, expected)
+        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+        df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+        result = df.to_panel()
+        assert isinstance(result, SubclassedPanel)
+        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                   items=['X', 'Y'], major_axis=[0],
+                                   minor_axis=[0, 1, 2],
+                                   dtype='int64')
+        tm.assert_panel_equal(result, expected)
 
     def test_subclass_attr_err_propagation(self):
         # GH 11808
