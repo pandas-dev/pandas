@@ -42,6 +42,12 @@ class TestCategoricalConstructors(object):
         expected = pd.Int64Index([1, 2, 3])
         tm.assert_index_equal(c.categories, expected)
 
+    def test_constructor_empty_boolean(self):
+        # see gh-22702
+        cat = pd.Categorical([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
+
     def test_constructor_tuples(self):
         values = np.array([(1,), (1, 2), (1,), (1, 2)], dtype=object)
         result = Categorical(values)

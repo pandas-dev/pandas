@@ -136,6 +136,12 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_construction_empty_with_bool_categories(self):
+        # see gh-22702
+        cat = pd.CategoricalIndex([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
+
     def test_construction_with_categorical_dtype(self):
         # construction with CategoricalDtype
         # GH18109
