@@ -844,7 +844,7 @@ class TestDataFrameDataTypes(TestData):
                            "B": pd.Categorical([1, 2])})
         result = np.asarray(df)
         # may change from object in the future
-        expected = np.array([[1, 1], [2, 2,]], dtype='object')
+        expected = np.array([[1, 1], [2, 2]], dtype='object')
         tm.assert_numpy_array_equal(result, expected)
 
 
