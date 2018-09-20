@@ -29,8 +29,8 @@ if [ "$DOC" ]; then
     echo # Lint build log #
     echo ##################
 
-    echo './make.py lint_log --logfile=doc-build.log'
-    ./make.py lint_log --logfile=doc-build.log
+    echo './make.py lint_log --log-file=doc-build.log'
+    ./make.py lint_log --log-file=doc-build.log
 
     if [ ?$ == 1 ]
     then
