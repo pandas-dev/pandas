@@ -1,3 +1,10 @@
+"""Rudimentary Apache Arrow-backed ExtensionArray.
+
+At the moment, just a boolean array / type is implemented.
+Eventually, we'll want to parametrize the type and support
+multiple dtypes. Not all methods are implemented yet, and the
+current implementation is not efficient.
+"""
 import copy
 import itertools
 
@@ -5,11 +12,11 @@ import numpy as np
 import pyarrow as pa
 import pandas as pd
 from pandas.api.extensions import (
-    ExtensionDtype, ExtensionArray
+    ExtensionDtype, ExtensionArray, take, register_extension_dtype
 )
 
 
-# @register_extension_dtype
+@register_extension_dtype
 class ArrowBoolDtype(ExtensionDtype):
 
     type = np.bool_
@@ -79,7 +86,6 @@ class ArrowBoolArray(ExtensionArray):
         return pd.isna(self._data.to_pandas())
 
     def take(self, indices, allow_fill=False, fill_value=None):
-        from pandas.core.algorithms import take
         data = self._data.to_pandas()
 
         if allow_fill and fill_value is None:
