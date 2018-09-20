@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 if [ "${TRAVIS_OS_NAME}" != "linux" ]; then
    echo "not doing build_docs on non-linux"
@@ -37,6 +38,9 @@ if [ "$DOC" ]; then
         echo "Errors in documentation build."
         exit 1
     fi
+fi
+
+if [ -z "${PANDAS_GH_TOKEN}" ]; then
 
     echo ########################
     echo # Create and send docs #
