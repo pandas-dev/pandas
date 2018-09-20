@@ -791,6 +791,11 @@ class BlockManager(PandasObject):
         """
         dtype = _interleaved_dtype(self.blocks)
 
+        if is_extension_array_dtype(dtype):
+            # TODO: https://github.com/pandas-dev/pandas/issues/22791
+            # Give EAs some input on what happens here. Sparse needs this.
+            dtype = 'object'
+
         result = np.empty(self.shape, dtype=dtype)
 
         if result.shape[0] == 0:
