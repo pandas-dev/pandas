@@ -126,14 +126,17 @@ class TestFrameFlexArithmetic(object):
              'B': ser * 2})
         tm.assert_frame_equal(result, expected)
 
-    def test_arith_flex_frame(self, all_arithmetic_operators, int_frame,
-                              mixed_int_frame, float_frame, mixed_float_frame):
+    def test_arith_flex_frame(self, all_arithmetic_operators, float_frame,
+                              mixed_float_frame):
 
-        op = all_arithmetic_operators
+        op = all_arithmetic_operators  # one instance of parametrized fixture
         if op.startswith('__r'):
-            pytest.skip('Reverse methods not available in operator library')
+            # get op without "r" and invert it
+            tmp = getattr(operator, op[:2] + op[3:])
+            f = lambda x, y: tmp(y, x)
+        else:
+            f = getattr(operator, op)
 
-        f = getattr(operator, op)
         result = getattr(float_frame, op)(2 * float_frame)
         exp = f(float_frame, 2 * float_frame)
         tm.assert_frame_equal(result, exp)
@@ -144,58 +147,52 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, exp)
         _check_mixed_float(result, dtype=dict(C=None))
 
+    @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
+    def test_arith_flex_frame_mixed(self, op, int_frame, mixed_int_frame,
+                                    float_frame, mixed_float_frame):
+
+        if op.startswith('__r'):
+            # get op without "r" and invert it
+            tmp = getattr(operator, op[:2] + op[3:])
+            f = lambda x, y: tmp(y, x)
+        else:
+            f = getattr(operator, op)
+
         # vs mix int
-        if op in ['add', 'sub', 'mul']:
-            result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
-            exp = f(mixed_int_frame, 2 + mixed_int_frame)
+        result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
+        exp = f(mixed_int_frame, 2 + mixed_int_frame)
 
-            # no overflow in the uint
-            dtype = None
-            if op in ['sub']:
-                dtype = dict(B='uint64', C=None)
-            elif op in ['add', 'mul']:
-                dtype = dict(C=None)
-            tm.assert_frame_equal(result, exp)
-            _check_mixed_int(result, dtype=dtype)
+        # no overflow in the uint
+        dtype = None
+        if op in ['__sub__']:
+            dtype = dict(B='uint64', C=None)
+        elif op in ['__add__', '__mul__']:
+            dtype = dict(C=None)
+        tm.assert_frame_equal(result, exp)
+        _check_mixed_int(result, dtype=dtype)
 
-            # rops
-            r_f = lambda x, y: f(y, x)
-            result = getattr(float_frame, 'r' + op)(2 * float_frame)
-            exp = r_f(float_frame, 2 * float_frame)
-            tm.assert_frame_equal(result, exp)
+        # vs mix float
+        result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
+        exp = f(mixed_float_frame, 2 * mixed_float_frame)
+        tm.assert_frame_equal(result, exp)
+        _check_mixed_float(result, dtype=dict(C=None))
 
-            # vs mix float
-            result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
-            exp = f(mixed_float_frame, 2 * mixed_float_frame)
-            tm.assert_frame_equal(result, exp)
-            _check_mixed_float(result, dtype=dict(C=None))
+        # vs plain int
+        result = getattr(int_frame, op)(2 * int_frame)
+        exp = f(int_frame, 2 * int_frame)
+        tm.assert_frame_equal(result, exp)
 
-            result = getattr(int_frame, op)(2 * int_frame)
-            exp = f(int_frame, 2 * int_frame)
-            tm.assert_frame_equal(result, exp)
+    def test_arith_flex_frame_corner(self, all_arithmetic_operators,
+                                     float_frame):
 
-            # vs mix int
-            if op in ['add', 'sub', 'mul']:
-                result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
-                exp = f(mixed_int_frame, 2 + mixed_int_frame)
+        op = all_arithmetic_operators
 
-                # no overflow in the uint
-                dtype = None
-                if op in ['sub']:
-                    dtype = dict(B='uint64', C=None)
-                elif op in ['add', 'mul']:
-                    dtype = dict(C=None)
-                tm.assert_frame_equal(result, exp)
-                _check_mixed_int(result, dtype=dtype)
-
-        # ndim >= 3
-        ndim_5 = np.ones(float_frame.shape + (3, 4, 5))
-        msg = "Unable to coerce to Series/DataFrame"
-        with tm.assert_raises_regex(ValueError, msg):
-            f(float_frame, ndim_5)
-
-        with tm.assert_raises_regex(ValueError, msg):
-            getattr(float_frame, op)(ndim_5)
+        # Check that arrays with dim >= 3 raise
+        for dim in range(3, 6):
+            arr = np.ones((1,) * dim)
+            msg = "Unable to coerce to Series/DataFrame"
+            with tm.assert_raises_regex(ValueError, msg):
+                getattr(float_frame, op)(arr)
 
         const_add = float_frame.add(1)
         tm.assert_frame_equal(const_add, float_frame + 1)
@@ -206,8 +203,10 @@ class TestFrameFlexArithmetic(object):
 
         result = float_frame[:0].add(float_frame)
         tm.assert_frame_equal(result, float_frame * np.nan)
+
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             float_frame.add(float_frame.iloc[0], fill_value=3)
+
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             float_frame.add(float_frame.iloc[0], axis='index', fill_value=3)
 
