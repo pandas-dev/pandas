@@ -22,6 +22,15 @@ except (ImportError, AttributeError):
     pass
 
 
+@pytest.fixture
+def expected_html(read_file):
+    def _expected_html(name):
+        filename = '.'.join([name, 'html'])
+        html = read_file(filename)
+        return html.rstrip()
+    return _expected_html
+
+
 class TestToHTML(object):
 
     def test_to_html_with_col_space(self):
@@ -1903,6 +1912,22 @@ class TestToHTML(object):
             </tr>
           </tbody>
         </table>""")
+        assert result == expected
+
+    def test_to_html_truncation_index_false_max_rows(self, expected_html):
+        # GH 15019
+        np.random.seed(seed=0)
+        df = pd.DataFrame(np.random.randn(5, 2))
+        result = df.to_html(max_rows=4, index=False)
+        expected = expected_html('gh15019_expected_output')
+        assert result == expected
+
+    def test_to_html_truncation_index_false_max_cols(self, expected_html):
+        # GH 22783
+        np.random.seed(seed=0)
+        df = pd.DataFrame(np.random.randn(2, 5))
+        result = df.to_html(max_cols=4, index=False)
+        expected = expected_html('gh22783_expected_output')
         assert result == expected
 
     def test_to_html_notebook_has_style(self):
