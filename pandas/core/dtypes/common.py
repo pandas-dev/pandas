@@ -91,6 +91,33 @@ def ensure_categorical(arr):
     return arr
 
 
+def ensure_int64_or_float64(arr, copy=False):
+    """
+    Ensure that an dtype array of some integer dtype
+    has an int64 dtype if possible
+    If it's not possible, potentially because of overflow,
+    convert the array to float64 instead.
+
+    Parameters
+    ----------
+    arr : array-like
+          The array whose data type we want to enforce.
+    copy: boolean
+          Whether to copy the original array or reuse
+          it in place, if possible.
+
+    Returns
+    -------
+    out_arr : The input array cast as int64 if
+              possible without overflow.
+              Otherwise the input array cast to float64.
+    """
+    try:
+        return arr.astype('int64', copy=copy, casting='safe')
+    except TypeError:
+        return arr.astype('float64', copy=copy)
+
+
 def is_object_dtype(arr_or_dtype):
     """
     Check whether an array-like or dtype is of the object dtype.
@@ -1595,6 +1622,11 @@ def is_bool_dtype(arr_or_dtype):
     -------
     boolean : Whether or not the array or dtype is of a boolean dtype.
 
+    Notes
+    -----
+    An ExtensionArray is considered boolean when the ``_is_boolean``
+    attribute is set to True.
+
     Examples
     --------
     >>> is_bool_dtype(str)
@@ -1611,6 +1643,8 @@ def is_bool_dtype(arr_or_dtype):
     False
     >>> is_bool_dtype(np.array([True, False]))
     True
+    >>> is_bool_dtype(pd.Categorical([True, False]))
+    True
     >>> is_bool_dtype(pd.SparseArray([True, False]))
     True
     """
@@ -1622,6 +1656,13 @@ def is_bool_dtype(arr_or_dtype):
         # this isn't even a dtype
         return False
 
+    if isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        arr_or_dtype = arr_or_dtype.dtype
+
+    if isinstance(arr_or_dtype, CategoricalDtype):
+        arr_or_dtype = arr_or_dtype.categories
+        # now we use the special definition for Index
+
     if isinstance(arr_or_dtype, ABCIndexClass):
 
         # TODO(jreback)
@@ -1630,10 +1671,10 @@ def is_bool_dtype(arr_or_dtype):
         # guess this
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
-    elif isinstance(arr_or_dtype, SparseDtype):
-        # TODO: Do this for all EAs? Document behavior and ramifications.
-        # https://github.com/pandas-dev/pandas/issues/22326
-        return issubclass(arr_or_dtype.subtype.type, np.bool_)
+    elif is_extension_array_dtype(arr_or_dtype):
+        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+        return dtype._is_boolean
+
     return issubclass(tipo, np.bool_)
 
 

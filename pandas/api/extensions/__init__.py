@@ -5,4 +5,6 @@ from pandas.core.accessor import (register_dataframe_accessor,  # noqa
 from pandas.core.algorithms import take  # noqa
 from pandas.core.arrays.base import (ExtensionArray,    # noqa
                                      ExtensionScalarOpsMixin)
-from pandas.core.dtypes.dtypes import registry, ExtensionDtype  # noqa
+from pandas.core.dtypes.dtypes import (  # noqa
+    ExtensionDtype, register_extension_dtype
+)

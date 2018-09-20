@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable-msg=W0612,E1101
 
-from warnings import catch_warnings
 import pytest
 from collections import OrderedDict
 
@@ -591,12 +590,12 @@ class TestGetDummies(object):
 
 class TestCategoricalReshape(object):
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_reshaping_panel_categorical(self):
 
-        with catch_warnings(record=True):
-            p = tm.makePanel()
-            p['str'] = 'foo'
-            df = p.to_frame()
+        p = tm.makePanel()
+        p['str'] = 'foo'
+        df = p.to_frame()
 
         df['category'] = df['str'].astype('category')
         result = df['category'].unstack()

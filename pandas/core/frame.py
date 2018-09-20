@@ -109,10 +109,9 @@ from pandas.core.config import get_option
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
-    axis="""
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        - 0 or 'index': apply function to each column.
-        - 1 or 'columns': apply function to each row.""",
+    axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.""",
     optional_by="""
         by : str or list of str
             Name or list of names to sort by.
@@ -418,9 +417,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, collections.Iterable)
+        elif (isinstance(data, compat.Iterable)
               and not isinstance(data, string_and_binary_types)):
-            if not isinstance(data, collections.Sequence):
+            if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -613,6 +612,34 @@ class DataFrame(NDFrame):
         (2, 3)
         """
         return len(self.index), len(self.columns)
+
+    @property
+    def _is_homogeneous(self):
+        """
+        Whether all the columns in a DataFrame have the same type.
+
+        Returns
+        -------
+        bool
+
+        Examples
+        --------
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous
+        True
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous
+        False
+
+        Items with the same type but different sizes are considered
+        different types.
+
+        >>> DataFrame({"A": np.array([1, 2], dtype=np.int32),
+        ...            "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous
+        False
+        """
+        if self._data.any_extension_types:
+            return len({block.dtype for block in self._data.blocks}) == 1
+        else:
+            return not self._data.is_mixed_type
 
     def _repr_fits_vertical_(self):
         """
@@ -4837,15 +4864,23 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_index(self, other, func, level=None):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         assert left.index.equals(right.index)
-        new_data = func(left.values.T, right.values).T
-        return self._constructor(new_data,
-                                 index=left.index, columns=self.columns,
-                                 copy=False)
+
+        if left._is_mixed_type or right._is_mixed_type:
+            # operate column-wise; avoid costly object-casting in `.values`
+            return ops.dispatch_to_series(left, right, func)
+        else:
+            # fastpath --> operate directly on values
+            new_data = func(left.values.T, right.values).T
+            return self._constructor(new_data,
+                                     index=left.index, columns=self.columns,
+                                     copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
@@ -4863,21 +4898,6 @@ class DataFrame(NDFrame):
                                    errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
-
-    def _compare_frame(self, other, func, str_rep):
-        # compare_frame assumes self._indexed_same(other)
-
-        import pandas.core.computation.expressions as expressions
-
-        def _compare(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-        result = self._constructor(data=new_data, index=self.index,
-                                   copy=False)
-        result.columns = self.columns
-        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -7662,7 +7682,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], collections.Mapping):
+    elif isinstance(data[0], compat.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], Series):

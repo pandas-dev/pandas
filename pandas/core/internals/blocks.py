@@ -3342,6 +3342,7 @@ def _putmask_smart(v, m, n):
 
         # we ignore ComplexWarning here
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", np.ComplexWarning)
             nn_at = nn.astype(v.dtype)
 
         # avoid invalid dtype comparisons

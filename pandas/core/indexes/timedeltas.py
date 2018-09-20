@@ -1,5 +1,6 @@
 """ implement the TimedeltaIndex """
 import operator
+from datetime import datetime
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -28,7 +29,7 @@ from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
-from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
+from pandas.util._decorators import Appender, Substitution
 from pandas.core.indexes.datetimelike import (
     TimelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op)
 from pandas.core.tools.timedeltas import (
@@ -487,7 +488,11 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         -------
         loc : int
         """
-        if is_list_like(key):
+        if is_list_like(key) or (isinstance(key, datetime) and key is not NaT):
+            # GH#20464 datetime check here is to ensure we don't allow
+            #   datetime objects to be incorrectly treated as timedelta
+            #   objects; NaT is a special case because it plays a double role
+            #   as Not-A-Timedelta
             raise TypeError
 
         if isna(key):
@@ -604,7 +609,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
 
     @Substitution(klass='TimedeltaIndex')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if isinstance(value, (np.ndarray, Index)):
             value = np.array(value, dtype=_TD_DTYPE, copy=False)
@@ -737,7 +741,7 @@ def timedelta_range(start=None, end=None, periods=None, freq=None,
         Right bound for generating timedeltas
     periods : integer, default None
         Number of periods to generate
-    freq : string or DateOffset, default 'D' (calendar daily)
+    freq : string or DateOffset, default 'D'
         Frequency strings can have multiples, e.g. '5H'
     name : string, default None
         Name of the resulting TimedeltaIndex

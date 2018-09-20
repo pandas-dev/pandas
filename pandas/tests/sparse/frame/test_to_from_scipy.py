@@ -1,6 +1,5 @@
 import pytest
 import numpy as np
-from warnings import catch_warnings
 from pandas.util import testing as tm
 from pandas import SparseDataFrame, SparseSeries
 from pandas.core.sparse.api import SparseDtype
@@ -10,12 +9,16 @@ from pandas.core.dtypes.common import (
 )
 
 scipy = pytest.importorskip('scipy')
+ignore_matrix_warning = pytest.mark.filterwarnings(
+    "ignore:the matrix subclass:PendingDeprecationWarning"
+)
 
 
 @pytest.mark.parametrize('index', [None, list('abc')])  # noqa: F811
 @pytest.mark.parametrize('columns', [None, list('def')])
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])
 @pytest.mark.parametrize('dtype', [bool, int, float, np.uint16])
+@ignore_matrix_warning
 def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
     # GH 4343
     # Make one ndarray and from it one sparse matrix, both to be used for
@@ -65,6 +68,8 @@ def test_from_to_scipy(spmatrix, index, columns, fill_value, dtype):
 
 
 @pytest.mark.parametrize('fill_value', [None, 0, np.nan])  # noqa: F811
+@ignore_matrix_warning
+@pytest.mark.filterwarnings("ignore:object dtype is not supp:UserWarning")
 def test_from_to_scipy_object(spmatrix, fill_value):
     # GH 4343
     dtype = object
@@ -104,8 +109,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     tm.assert_frame_equal(sdf_obj.to_dense(), expected.to_dense())
 
     # Assert spmatrices equal
-    with catch_warnings(record=True):
-        assert dict(sdf.to_coo().todok()) == dict(spm.todok())
+    assert dict(sdf.to_coo().todok()) == dict(spm.todok())
 
     # Ensure dtype is preserved if possible
     res_dtype = object
@@ -114,6 +118,7 @@ def test_from_to_scipy_object(spmatrix, fill_value):
     assert sdf.to_coo().dtype == res_dtype
 
 
+@ignore_matrix_warning
 def test_from_scipy_correct_ordering(spmatrix):
     # GH 16179
     arr = np.arange(1, 5).reshape(2, 2)
@@ -132,6 +137,7 @@ def test_from_scipy_correct_ordering(spmatrix):
     tm.assert_frame_equal(sdf.to_dense(), expected.to_dense())
 
 
+@ignore_matrix_warning
 def test_from_scipy_fillna(spmatrix):
     # GH 16112
     arr = np.eye(3)

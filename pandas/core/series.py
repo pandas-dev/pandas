@@ -6,7 +6,6 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
 
-import collections
 import warnings
 from textwrap import dedent
 
@@ -76,8 +75,7 @@ import pandas.core.nanops as nanops
 import pandas.core.indexes.base as ibase
 
 import pandas.io.formats.format as fmt
-from pandas.util._decorators import (
-    Appender, deprecate, deprecate_kwarg, Substitution)
+from pandas.util._decorators import Appender, deprecate, Substitution
 from pandas.util._validators import validate_bool_kwarg
 
 from pandas._libs import index as libindex, tslibs, lib, iNaT
@@ -91,10 +89,8 @@ __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
     axes='index', klass='Series', axes_single_arg="{0 or 'index'}",
-    axis="""
-    axis : {0 or 'index'}
-        Parameter needed for compatibility with DataFrame.
-    """,
+    axis="""axis : {0 or 'index'}
+        Parameter needed for compatibility with DataFrame.""",
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
@@ -244,8 +240,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise TypeError("{0!r} type is unordered"
                                 "".format(data.__class__.__name__))
             # If data is Iterable but not list-like, consume into list.
-            elif (isinstance(data, collections.Iterable)
-                  and not isinstance(data, collections.Sized)):
+            elif (isinstance(data, compat.Iterable)
+                  and not isinstance(data, compat.Sized)):
                 data = list(data)
             else:
 
@@ -2096,7 +2092,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if sorter is not None:
             sorter = ensure_platform_int(sorter)
@@ -2752,17 +2747,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        n : int
-            Return this many descending sorted values
-        keep : {'first', 'last'}, default 'first'
-            Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+        n : int, default 5
+            Return this many descending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+            - ``first`` : take the first occurrences based on the index order
+            - ``last`` : take the last occurrences based on the index order
+            - ``all`` : keep all occurrences. This can result in a Series of
+                size larger than `n`.
 
         Returns
         -------
-        top_n : Series
-            The n largest values in the Series, in sorted order
+        Series
+            The `n` largest values in the Series, sorted in decreasing order.
 
         Notes
         -----
@@ -2771,23 +2769,70 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.nsmallest
+        Series.nsmallest: Get the `n` smallest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
 
         Examples
         --------
-        >>> s = pd.Series(np.random.randn(10**6))
-        >>> s.nlargest(10)  # only sorts up to the N requested
-        219921    4.644710
-        82124     4.608745
-        421689    4.564644
-        425277    4.447014
-        718691    4.414137
-        43154     4.403520
-        283187    4.313922
-        595519    4.273635
-        503969    4.250236
-        121637    4.240952
-        dtype: float64
+        >>> countries_population = {"Italy": 59000000, "France": 65000000,
+        ...                         "Malta": 434000, "Maldives": 434000,
+        ...                         "Brunei": 434000, "Iceland": 337000,
+        ...                         "Nauru": 11300, "Tuvalu": 11300,
+        ...                         "Anguilla": 11300, "Monserat": 5200}
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Monserat        5200
+        dtype: int64
+
+        The `n` largest elements where ``n=5`` by default.
+
+        >>> s.nlargest()
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3``. Default `keep` value is 'first'
+        so Malta will be kept.
+
+        >>> s.nlargest(3)
+        France    65000000
+        Italy     59000000
+        Malta       434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3`` and keeping the last duplicates.
+        Brunei will be kept since it is the last with value 434000 based on
+        the index order.
+
+        >>> s.nlargest(3, keep='last')
+        France      65000000
+        Italy       59000000
+        Brunei        434000
+        dtype: int64
+
+        The `n` largest elements where ``n=3`` with all duplicates kept. Note
+        that the returned Series has five elements due to the three duplicates.
+
+        >>> s.nlargest(3, keep='all')
+        France      65000000
+        Italy       59000000
+        Malta         434000
+        Maldives      434000
+        Brunei        434000
+        dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nlargest()
 
@@ -2797,17 +2842,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        n : int
-            Return this many ascending sorted values
-        keep : {'first', 'last'}, default 'first'
-            Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+        n : int, default 5
+            Return this many ascending sorted values.
+        keep : {'first', 'last', 'all'}, default 'first'
+            When there are duplicate values that cannot all fit in a
+            Series of `n` elements:
+            - ``first`` : take the first occurrences based on the index order
+            - ``last`` : take the last occurrences based on the index order
+            - ``all`` : keep all occurrences. This can result in a Series of
+                size larger than `n`.
 
         Returns
         -------
-        bottom_n : Series
-            The n smallest values in the Series, in sorted order
+        Series
+            The `n` smallest values in the Series, sorted in increasing order.
 
         Notes
         -----
@@ -2816,23 +2864,69 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.nlargest
+        Series.nlargest: Get the `n` largest elements.
+        Series.sort_values: Sort Series by values.
+        Series.head: Return the first `n` rows.
 
         Examples
         --------
-        >>> s = pd.Series(np.random.randn(10**6))
-        >>> s.nsmallest(10)  # only sorts up to the N requested
-        288532   -4.954580
-        732345   -4.835960
-        64803    -4.812550
-        446457   -4.609998
-        501225   -4.483945
-        669476   -4.472935
-        973615   -4.401699
-        621279   -4.355126
-        773916   -4.347355
-        359919   -4.331927
-        dtype: float64
+        >>> countries_population = {"Italy": 59000000, "France": 65000000,
+        ...                         "Brunei": 434000, "Malta": 434000,
+        ...                         "Maldives": 434000, "Iceland": 337000,
+        ...                         "Nauru": 11300, "Tuvalu": 11300,
+        ...                         "Anguilla": 11300, "Monserat": 5200}
+        >>> s = pd.Series(countries_population)
+        >>> s
+        Italy       59000000
+        France      65000000
+        Brunei        434000
+        Malta         434000
+        Maldives      434000
+        Iceland       337000
+        Nauru          11300
+        Tuvalu         11300
+        Anguilla       11300
+        Monserat        5200
+        dtype: int64
+
+        The `n` largest elements where ``n=5`` by default.
+
+        >>> s.nsmallest()
+        Monserat      5200
+        Nauru        11300
+        Tuvalu       11300
+        Anguilla     11300
+        Iceland     337000
+        dtype: int64
+
+        The `n` smallest elements where ``n=3``. Default `keep` value is
+        'first' so Nauru and Tuvalu will be kept.
+
+        >>> s.nsmallest(3)
+        Monserat     5200
+        Nauru       11300
+        Tuvalu      11300
+        dtype: int64
+
+        The `n` smallest elements where ``n=3`` and keeping the last
+        duplicates. Anguilla and Tuvalu will be kept since they are the last
+        with value 11300 based on the index order.
+
+        >>> s.nsmallest(3, keep='last')
+        Monserat     5200
+        Anguilla    11300
+        Tuvalu      11300
+        dtype: int64
+
+        The `n` smallest elements where ``n=3`` with all duplicates kept. Note
+        that the returned Series has four elements due to the three duplicates.
+
+        >>> s.nsmallest(3, keep='all')
+        Monserat     5200
+        Nauru       11300
+        Tuvalu      11300
+        Anguilla    11300
+        dtype: int64
         """
         return algorithms.SelectNSeries(self, n=n, keep=keep).nsmallest()
 
@@ -2895,7 +2989,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         order : list of int representing new level order.
                (reference level by number or key)
-        axis : where to reorder levels
 
         Returns
         -------
@@ -3106,6 +3199,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return result
 
     agg = aggregate
+
+    @Appender(generic._shared_docs['transform'] % _shared_doc_kwargs)
+    def transform(self, func, axis=0, *args, **kwargs):
+        # Validate the axis parameter
+        self._get_axis_number(axis)
+        return super(Series, self).transform(func, *args, **kwargs)
 
     def apply(self, func, convert_dtype=True, args=(), **kwds):
         """
