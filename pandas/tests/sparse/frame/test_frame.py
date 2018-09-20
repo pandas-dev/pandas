@@ -30,6 +30,23 @@ class TestSparseDataFrame(SharedWithSparse):
     _assert_frame_equal = staticmethod(tm.assert_sp_frame_equal)
     _assert_series_equal = staticmethod(tm.assert_sp_series_equal)
 
+    def test_iterrows(self, float_frame, float_string_frame):
+        # Same as parent, but we don't ensure the sparse kind is the same.
+        for k, v in float_frame.iterrows():
+            exp = float_frame.loc[k]
+            tm.assert_sp_series_equal(v, exp, check_kind=False)
+
+        for k, v in float_string_frame.iterrows():
+            exp = float_string_frame.loc[k]
+            tm.assert_sp_series_equal(v, exp, check_kind=False)
+
+    def test_itertuples(self, float_frame):
+         for i, tup in enumerate(float_frame.itertuples()):
+             s = self.klass._constructor_sliced(tup[1:])
+             s.name = tup[0]
+             expected = float_frame.iloc[i, :].reset_index(drop=True)
+             tm.assert_sp_series_equal(s, expected, check_kind=False)
+
     def test_fill_value_when_combine_const(self):
         # GH12723
         dat = np.array([0, 1, np.nan, 3, 4, 5], dtype='float')
@@ -76,7 +93,7 @@ class TestSparseDataFrame(SharedWithSparse):
                                  float_frame_fill0['A'].values)
         tm.assert_numpy_array_equal(np.array([0., 0., 0., 0., 1., 2.,
                                               3., 4., 5., 6.]),
-                                    self.zframe['A'].to_dense().values,)
+                                    float_frame_fill0['A'].to_dense().values)
 
         # construct no data
         sdf = SparseDataFrame(columns=np.arange(10), index=np.arange(10))
