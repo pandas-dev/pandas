@@ -14,10 +14,12 @@ Usage
 import importlib
 import sys
 import os
+import re
 import textwrap
 import shutil
 # import subprocess
 import argparse
+from collections import namedtuple
 from contextlib import contextmanager
 import webbrowser
 import jinja2
@@ -328,41 +330,57 @@ class DocBuilder:
 
     def lint_log(self):
         with open(self.log_file) as f:
-            log = f.readlines()
+            log = f.read()
 
-        failures = self._check_log(log)
-        if failures:
-            self._report_failures(failures)
+        tokens = tokenize_log(log)
+        failed = [tok for tok in tokens if tok.kind != 'OK']
+        if failed:
+            report_failures(failed)
             sys.exit(1)
 
-    @staticmethod
-    def _check_log(log):
-        # type: (List[str]) -> List[Tuple[int, str]]
-        failures = []
-        for i, line in enumerate(log):
-            if "WARNING:" in line:
-                failures.append((i, line))
+# ------
+# Linter
+# ------
 
-        return failures
+LinterToken = namedtuple("Token", ['kind', 'value'])
+IPY_ERROR = r'(?P<IPY_ERROR>>>>-*\n.*?<<<-*\n)'
+SPHINX_WARNING = r'(?P<SPHINX_WARNING>^[^\n]*?: WARNING:.*?$\n?)'
+OK = r'(?P<OK>^.*?\n)'
 
-    @staticmethod
-    def _report_failures(failures):
-        tpl = textwrap.dedent("""\
-        {n} failure{s}
 
-        {individual}
-        """)
-        joined = []
-        for i, (lineno, f) in enumerate(failures):
-            line = "Failure [{}]: {} (log line {})".format(i,
-                                                           f.strip(),
-                                                           lineno)
-            joined.append(line)
-        joined = '\n'.join(joined)
+def tokenize_log(log):
+    master_pat = re.compile("|".join([IPY_ERROR, SPHINX_WARNING, OK]),
+                            flags=re.MULTILINE | re.DOTALL)
 
-        print(tpl.format(n=len(failures),
-                         s="s" if len(failures) != 1 else "",
-                         individual=joined))
+    def generate_tokens(pat, text):
+        scanner = pat.scanner(text)
+        for m in iter(scanner.match, None):
+            yield LinterToken(m.lastgroup, m.group(m.lastgroup))
+
+    tok = list(generate_tokens(master_pat, log))
+    return tok
+
+
+def report_failures(failed):
+    tpl = textwrap.dedent("""\
+    {n} failure{s}
+
+    {individual}
+    """)
+    joined = []
+    for i, tok in enumerate(failed):
+        line = "Failure [{}]: {}".format(i, tok.value.strip())
+        joined.append(line)
+    joined = '\n'.join(joined)
+
+    print(tpl.format(n=len(failed),
+                     s="s" if len(failed) != 1 else "",
+                     individual=joined))
+
+
+# ---
+# CLI
+# ---
 
 
 def main():

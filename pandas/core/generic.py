@@ -4199,6 +4199,10 @@ class NDFrame(PandasObject, SelectionMixin):
         on position. It is useful for quickly testing if your object
         has the right type of data in it.
 
+        .. ipython:: python
+
+           2 / 0
+
         Parameters
         ----------
         n : int, default 5
