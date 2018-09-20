@@ -392,6 +392,30 @@ column name provided).
    df['D'] = pd.Series(df['C']+1, df.index)
    df
 
+From a Numpy Series
+~~~~~~~~~~~~~~~~~~~
+
+Numpy series is list or list of lists with no index.
+
+.. ipython:: python
+
+    x1 = np.random.randint(0, 10, (5))
+    x1
+    x2 = np.random.randint(-1.0, 10, (5))
+    x2
+    df1 = pd.DataFrame(x1, columns=['A'])
+    df1
+    df2 = pd.DataFrame([[x[0], x[1]] for x in zip(x1, x2)], columns=['B','C'])
+    df2
+    df3 = pd.DataFrame(np.random.randint(100, 999, (5, 2)), columns=['A', 'B'])
+    df3
+    x1 = np.random.rand(5, 2)
+    x1
+    df3['A'] = x1
+    df3
+    df3[['A', 'B']] = x1
+    df3
+
 **Missing Data**
 
 Much more will be said on this topic in the :ref:`Missing data <missing_data>`
@@ -401,6 +425,7 @@ as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
 
 .. ipython:: python
+
    df = pd.DataFrame()
    df
    x1 = pd.Series([1,2,3,4], index=[1,2,3,4])
