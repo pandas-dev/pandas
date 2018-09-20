@@ -185,7 +185,7 @@ Other Enhancements
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
-
+- New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
@@ -723,6 +723,7 @@ Indexing
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
 - Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
 - :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
+- Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
 
 Missing
 ^^^^^^^
@@ -749,6 +750,7 @@ I/O
 - :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
 - :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
+- Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 
 Plotting
 ^^^^^^^^
@@ -768,6 +770,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Resampler.apply` when passing postiional arguments to applied func (:issue:`14615`).
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to ``loffset`` kwarg (:issue:`7687`).
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
+- Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 
 Sparse
 ^^^^^^

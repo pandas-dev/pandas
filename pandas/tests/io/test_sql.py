@@ -18,7 +18,6 @@ The SQL tests are broken down in different classes:
 """
 
 from __future__ import print_function
-from warnings import catch_warnings
 import pytest
 import sqlite3
 import csv
@@ -582,11 +581,11 @@ class _TestSQLApi(PandasSQLTest):
         s2 = sql.read_sql_query("SELECT * FROM test_series", self.conn)
         tm.assert_frame_equal(s.to_frame(), s2)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_to_sql_panel(self):
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            pytest.raises(NotImplementedError, sql.to_sql, panel,
-                          'test_panel', self.conn)
+        panel = tm.makePanel()
+        pytest.raises(NotImplementedError, sql.to_sql, panel,
+                      'test_panel', self.conn)
 
     def test_roundtrip(self):
         sql.to_sql(self.test_frame1, 'test_frame_roundtrip',

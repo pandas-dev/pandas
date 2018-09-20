@@ -28,14 +28,14 @@ if [ "$DOCTEST" ]; then
     fi
 
     pytest --doctest-modules -v pandas/core/series.py \
-        -k"-nlargest -nonzero -nsmallest -reindex -searchsorted -to_dict"
+        -k"-nonzero -reindex -searchsorted -to_dict"
 
     if [ $? -ne "0" ]; then
         RET=1
     fi
 
     pytest --doctest-modules -v pandas/core/generic.py \
-        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -to_xarray -transpose -values -xs"
+        -k"-_set_axis_name -_xs -describe -droplevel -groupby -interpolate -pct_change -pipe -reindex -reindex_axis -resample -sample -to_json -transpose -values -xs"
 
     if [ $? -ne "0" ]; then
         RET=1

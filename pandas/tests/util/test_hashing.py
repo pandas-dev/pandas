@@ -1,7 +1,6 @@
 import pytest
 import datetime
 
-from warnings import catch_warnings
 import numpy as np
 import pandas as pd
 
@@ -216,12 +215,12 @@ class TestHashing(object):
         assert result[0] in expected
         assert result[1] in expected
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_pandas_errors(self):
         with pytest.raises(TypeError):
             hash_pandas_object(pd.Timestamp('20130101'))
 
-        with catch_warnings(record=True):
-            obj = tm.makePanel()
+        obj = tm.makePanel()
 
         with pytest.raises(TypeError):
             hash_pandas_object(obj)

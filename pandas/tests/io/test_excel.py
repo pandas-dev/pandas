@@ -611,6 +611,8 @@ class TestXlrdReader(ReadingTestsBase):
             tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
+    # ignore warning from old xlrd
+    @pytest.mark.filterwarnings("ignore:This metho:PendingDeprecationWarning")
     def test_read_from_file_url(self, ext):
 
         # FILE
@@ -2189,6 +2191,7 @@ class TestExcelWriterEngineTests(object):
         with tm.assert_raises_regex(ValueError, 'No engine'):
             ExcelWriter('nothing')
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
         called_save = []

@@ -2,7 +2,7 @@ import pytest
 import os
 import tempfile
 from contextlib import contextmanager
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from distutils.version import LooseVersion
 
 import datetime
@@ -39,6 +39,10 @@ from pandas.io.pytables import (TableIterator,  # noqa:E402
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
                        LooseVersion('2.2') else 'zlib')
 
+
+ignore_natural_naming_warning = pytest.mark.filterwarnings(
+    "ignore:object name:tables.exceptions.NaturalNameWarning"
+)
 
 # contextmanager to ensure the file cleanup
 
@@ -139,12 +143,14 @@ class Base(object):
 
 
 @pytest.mark.single
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
     def test_factory_fun(self):
         path = create_tempfile(self.path)
         try:
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 with get_store(path) as tbl:
                     raise ValueError('blah')
         except ValueError:
@@ -153,11 +159,13 @@ class TestHDFStore(Base):
             safe_remove(path)
 
         try:
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 with get_store(path) as tbl:
                     tbl['a'] = tm.makeDataFrame()
 
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 with get_store(path) as tbl:
                     assert len(tbl) == 1
                     assert type(tbl['a']) == DataFrame
@@ -425,8 +433,8 @@ class TestHDFStore(Base):
             df.loc[3:6, ['obj1']] = np.nan
             df = df._consolidate()._convert(datetime=True)
 
-            # PerformanceWarning
             with catch_warnings(record=True):
+                simplefilter("ignore", pd.errors.PerformanceWarning)
                 store['df'] = df
 
             # make a random group in hdf space
@@ -446,6 +454,7 @@ class TestHDFStore(Base):
             repr(s)
             str(s)
 
+    @ignore_natural_naming_warning
     def test_contains(self):
 
         with ensure_clean_store(self.path) as store:
@@ -912,11 +921,15 @@ class TestHDFStore(Base):
 
             # PerformanceWarning
             with catch_warnings(record=True):
+                simplefilter("ignore", pd.errors.PerformanceWarning)
                 store.put('df', df)
 
             expected = store.get('df')
             tm.assert_frame_equal(expected, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:object name:tables.exceptions.NaturalNameWarning"
+    )
     def test_append(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1075,6 +1088,7 @@ class TestHDFStore(Base):
 
                 # PerformanceWarning
                 with catch_warnings(record=True):
+                    simplefilter("ignore", pd.errors.PerformanceWarning)
                     check('fixed', index)
 
     @pytest.mark.skipif(not is_platform_little_endian(),
@@ -1355,6 +1369,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
                 wp = tm.makePanel()
                 wp2 = wp.rename_axis(
                     {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
@@ -2553,6 +2568,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
 
                 wp = tm.makePanel()
                 wpneg = Panel.fromDict({-1: tm.makeDataFrame(),
@@ -2758,8 +2774,10 @@ class TestHDFStore(Base):
         DF = DataFrame(data, index=idx, columns=col)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal)
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self):
 
         with catch_warnings(record=True):
@@ -2988,6 +3006,9 @@ class TestHDFStore(Base):
             wp = tm.makePanel()
             self._check_roundtrip(wp, assert_panel_equal)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
     def test_select_with_dups(self):
 
         # single dtypes
@@ -3047,6 +3068,9 @@ class TestHDFStore(Base):
             result = store.select('df', columns=['B', 'A'])
             assert_frame_equal(result, expected, by_blocks=True)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
     def test_wide_table_dups(self):
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
@@ -3589,6 +3613,9 @@ class TestHDFStore(Base):
             # should be []
             assert len(results) == 0
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
+    )
     def test_retain_index_attributes(self):
 
         # GH 3499, losing frequency info on index recreation
@@ -3631,6 +3658,9 @@ class TestHDFStore(Base):
                                           freq='D'))))
             store.append('df2', df3)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
+    )
     def test_retain_index_attributes2(self):
         with ensure_clean_path(self.path) as path:
 
@@ -4533,7 +4563,8 @@ class TestHDFStore(Base):
                 datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
                 mode='r') as store:
 
-            with catch_warnings(record=True):
+            with catch_warnings():
+                simplefilter("ignore", pd.io.pytables.IncompatibilityWarning)
                 store.select('df1')
                 store.select('df2')
                 store.select('wp1')
@@ -4665,6 +4696,7 @@ class TestHDFStore(Base):
 
         # PerformanceWarning
         with catch_warnings(record=True):
+            simplefilter("ignore", pd.errors.PerformanceWarning)
             s = Series(np.random.randn(len(unicode_values)), unicode_values)
             self._check_roundtrip(s, tm.assert_series_equal)
 
@@ -4933,6 +4965,7 @@ class TestHDFStore(Base):
             df_loaded = read_hdf(path, 'df', columns=cols2load)  # noqa
             assert cols2load_original == cols2load
 
+    @ignore_natural_naming_warning
     def test_to_hdf_with_object_column_names(self):
         # GH9057
         # Writing HDF5 table format should only work for string-like
@@ -5277,6 +5310,7 @@ class TestHDFComplexValues(Base):
             reread = read_hdf(path, 'df')
             assert_frame_equal(df, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions_fixed(self):
         with catch_warnings(record=True):
             complex128 = np.array(
@@ -5294,6 +5328,7 @@ class TestHDFComplexValues(Base):
                     reread = read_hdf(path, 'obj')
                     comp(obj, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions(self):
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
         s = Series(complex128, index=list('abcd'))
