@@ -29,8 +29,7 @@ from pandas.core.indexes.base import (
 from pandas.core.indexes.frozen import FrozenList, _ensure_frozen
 import pandas.core.missing as missing
 
-from pandas.io.formats.printing import (
-    default_pprint, format_object_summary, pprint_thing)
+from pandas.io.formats.printing import format_object_summary, pprint_thing
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
@@ -816,24 +815,6 @@ class MultiIndex(Index):
         >>> idx = pd.MultiIndex.from_tuples([(1, 'one'), (1, 'two'),
                                             (2, 'one'), (2, 'two')],
                                             names=['foo', 'bar'])
-<<<<<<< HEAD
-        >>> idx.set_codes([[1,0,1,0], [0,0,1,1]])
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=['foo', 'bar'])
-        >>> idx.set_codes([1,0,1,0], level=0)
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[1, 0, 1, 0], [0, 1, 0, 1]],
-                   names=['foo', 'bar'])
-        >>> idx.set_codes([0,0,1,1], level='bar')
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[0, 0, 1, 1], [0, 0, 1, 1]],
-                   names=['foo', 'bar'])
-        >>> idx.set_codes([[1,0,1,0], [0,0,1,1]], level=[0,1])
-        MultiIndex(levels=[[1, 2], ['one', 'two']],
-                   codes=[[1, 0, 1, 0], [0, 0, 1, 1]],
-                   names=['foo', 'bar'])
-=======
         >>> idx.set_codes([[1, 0, 1, 0], [0, 0, 1, 1]])
         MultiIndex([(2, 'one'),
                     (1, 'one'),
@@ -858,7 +839,6 @@ class MultiIndex(Index):
                     (2, 'two'),
                     (1, 'two')],
                    dtype='object', names=['foo', 'bar'])
->>>>>>> Update doc string examples and docs
         """
         if level is not None and not is_list_like(level):
             if not is_list_like(codes):
