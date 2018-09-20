@@ -8288,6 +8288,11 @@ class NDFrame(PandasObject, SelectionMixin):
             See Notes.
         axis : %(axes_single_arg)s
 
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+
         Notes
         -----
         If freq is specified then the index values are shifted but the data
