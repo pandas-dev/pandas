@@ -342,6 +342,7 @@ class HTMLFormatter(TableFormatter):
                 self._write_hierarchical_rows(fmt_values, indent)
             else:
                 self._write_regular_rows(fmt_values, indent)
+# GH 15019, GH 22783 add truncation logic below
         else:
             for i in range(min(len(self.frame), self.max_rows)):
                 row = [fmt_values[j][i] for j in range(len(self.columns))]
