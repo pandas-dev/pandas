@@ -111,17 +111,19 @@ before_script:
 
 script:
   - echo "script start"
-  - ci/run_build_docs.sh
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
   - ci/doctests.sh
+  - ci/docs/build_docs.sh
+  - ci/docs/lint_docs.sh
   - echo "checking imports"
   - source activate pandas && python ci/check_imports.py
   - echo "script done"
 
 after_success:
-  -  ci/upload_coverage.sh
+  - ci/upload_coverage.sh
+  - ci/docs/upload_docs.sh
 
 after_script:
   - echo "after_script start"
