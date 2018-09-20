@@ -366,12 +366,31 @@ dictionary.
 
 .. _basics.dataframe.from_series:
 
-From a Series
-~~~~~~~~~~~~~
+From a Panda Series
+~~~~~~~~~~~~~~~~~~~
 
 The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
+
+.. ipython:: python
+
+   df = pd.DataFrame()
+   df
+   x1 = pd.Series([1,2,3,4], index=[1,2,3,4])
+   x1
+   df['A'] = x1
+   df
+   x2 = pd.Series([5,5], index=[1, 3])
+   x2
+   df['B'] = x2
+   df
+   lst = [9, 9, 9, 9]
+   x3 = pd.Series(lst, df.index)
+   x3
+   x4 = df['C']
+   df['D'] = pd.Series(df['C']+1, df.index)
+   df
 
 **Missing Data**
 
@@ -381,6 +400,16 @@ represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
 
+.. ipython:: python
+   df = pd.DataFrame()
+   df
+   x1 = pd.Series([1,2,3,4], index=[1,2,3,4])
+   x1
+   df['A'] = x1
+   df
+   x2 = pd.Series([1, np.nan, np.nan, 4], df.index)
+   x2
+   
 Alternate Constructors
 ~~~~~~~~~~~~~~~~~~~~~~
 
