@@ -114,7 +114,7 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
-  - ci/doctests.sh
+  - ci/docs/doctests.sh
   - ci/docs/build_docs.sh
   - ci/docs/lint_docs.sh
   - echo "checking imports"
