@@ -306,7 +306,7 @@ class MultiIndex(Index):
         >>> MultiIndex.from_tuples([('a', 1), ('a', 2)])._is_homogeneous
         False
         """
-        return len(set(x.dtype for x in self.levels)) <= 1
+        return len({x.dtype for x in self.levels}) <= 1
 
     def _set_levels(self, levels, level=None, copy=False, validate=True,
                     verify_integrity=False):
