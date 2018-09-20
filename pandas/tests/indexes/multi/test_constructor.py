@@ -67,7 +67,7 @@ def test_constructor_mismatched_label_levels(idx):
         MultiIndex(levels=levels, labels=labels)
 
     length_error = re.compile('>= length of level')
-    label_error = re.compile(r'Unequal label lengths: \[4, 2\]')
+    label_error = re.compile(r'Unequal code lengths: \[4, 2\]')
 
     # important to check that it's looking at the right thing.
     with pytest.raises(ValueError, match=length_error):

@@ -137,7 +137,12 @@ class MultiIndex(Index):
     ----------
     levels : sequence of arrays
         The unique labels for each level
+    codes : sequence of arrays
+        Integers for each level designating which label at each location
     labels : sequence of arrays
+        .. deprecated:: 0.24.0
+            Use ``codes`` instead
+
         Integers for each level designating which label at each location
     sortorder : optional int
         Level of sortedness (must be lexicographically sorted by that
@@ -181,6 +186,7 @@ class MultiIndex(Index):
     ----------
     names
     levels
+    codes
     labels
     nlevels
     levshape
@@ -205,7 +211,7 @@ class MultiIndex(Index):
     _typ = 'multiindex'
     _names = FrozenList()
     _levels = FrozenList()
-    _labels = FrozenList()
+    _codes = FrozenList()
     _comparables = ['names']
     rename = Index.set_names
 
@@ -227,7 +233,7 @@ class MultiIndex(Index):
 
         # we've already validated levels and labels, so shortcut here
         result._set_levels(levels, copy=copy, validate=False)
-        result._set_labels(labels, copy=copy, validate=False)
+        result._set_codes(labels, copy=copy, validate=False)
 
         if names is not None:
             # handles name validation
@@ -244,39 +250,39 @@ class MultiIndex(Index):
             result._reset_identity()
         return result
 
-    def _verify_integrity(self, labels=None, levels=None):
+    def _verify_integrity(self, codes=None, levels=None):
         """
 
         Parameters
         ----------
-        labels : optional list
-            Labels to check for validity. Defaults to current labels.
+        codes : optional list
+            Codes to check for validity. Defaults to current codes.
         levels : optional list
             Levels to check for validity. Defaults to current levels.
 
         Raises
         ------
         ValueError
-            If length of levels and labels don't match, if any label would
+            If length of levels and codes don't match, if any code would
             exceed level bounds, or there are any duplicate levels.
         """
         # NOTE: Currently does not check, among other things, that cached
         # nlevels matches nor that sortorder matches actually sortorder.
-        labels = labels or self.labels
+        codes = codes or self.labels
         levels = levels or self.levels
 
-        if len(levels) != len(labels):
-            raise ValueError("Length of levels and labels must match. NOTE:"
+        if len(levels) != len(codes):
+            raise ValueError("Length of levels and codes must match. NOTE:"
                              " this index is in an inconsistent state.")
-        label_length = len(self.labels[0])
-        for i, (level, label) in enumerate(zip(levels, labels)):
-            if len(label) != label_length:
-                raise ValueError("Unequal label lengths: %s" %
-                                 ([len(lab) for lab in labels]))
-            if len(label) and label.max() >= len(level):
-                raise ValueError("On level %d, label max (%d) >= length of"
+        codes_length = len(self.labels[0])
+        for i, (level, level_codes) in enumerate(zip(levels, codes)):
+            if len(level_codes) != codes_length:
+                raise ValueError("Unequal code lengths: %s" %
+                                 ([len(code_) for code_ in codes]))
+            if len(level_codes) and level_codes.max() >= len(level):
+                raise ValueError("On level %d, code max (%d) >= length of"
                                  " level  (%d). NOTE: this index is in an"
-                                 " inconsistent state" % (i, label.max(),
+                                 " inconsistent state" % (i, level_codes.max(),
                                                           len(level)))
             if not level.is_unique:
                 raise ValueError("Level values must be unique: {values} on "
@@ -414,33 +420,33 @@ class MultiIndex(Index):
 
     @property
     def labels(self):
-        return self._labels
+        return self._codes
 
-    def _set_labels(self, labels, level=None, copy=False, validate=True,
-                    verify_integrity=False):
+    def _set_codes(self, codes, level=None, copy=False, validate=True,
+                   verify_integrity=False):
 
-        if validate and level is None and len(labels) != self.nlevels:
-            raise ValueError("Length of labels must match number of levels")
-        if validate and level is not None and len(labels) != len(level):
-            raise ValueError('Length of labels must match length of levels.')
+        if validate and level is None and len(codes) != self.nlevels:
+            raise ValueError("Length of codes must match number of levels")
+        if validate and level is not None and len(codes) != len(level):
+            raise ValueError('Length of codes must match length of levels.')
 
         if level is None:
-            new_labels = FrozenList(
-                _ensure_frozen(lab, lev, copy=copy)._shallow_copy()
-                for lev, lab in zip(self.levels, labels))
+            new_codes = FrozenList(
+                _ensure_frozen(level_codes, lev, copy=copy)._shallow_copy()
+                for lev, level_codes in zip(self.levels, codes))
         else:
             level = [self._get_level_number(l) for l in level]
-            new_labels = list(self._labels)
-            for lev_idx, lab in zip(level, labels):
+            new_codes = list(self._codes)
+            for lev_idx, level_codes in zip(level, codes):
                 lev = self.levels[lev_idx]
-                new_labels[lev_idx] = _ensure_frozen(
-                    lab, lev, copy=copy)._shallow_copy()
-            new_labels = FrozenList(new_labels)
+                new_codes[lev_idx] = _ensure_frozen(
+                    level_codes, lev, copy=copy)._shallow_copy()
+            new_codes = FrozenList(new_codes)
 
         if verify_integrity:
-            self._verify_integrity(labels=new_labels)
+            self._verify_integrity(codes=new_codes)
 
-        self._labels = new_labels
+        self._codes = new_codes
         self._tuples = None
         self._reset_cache()
 
@@ -503,7 +509,7 @@ class MultiIndex(Index):
         else:
             idx = self._shallow_copy()
         idx._reset_identity()
-        idx._set_labels(labels, level=level, verify_integrity=verify_integrity)
+        idx._set_codes(labels, level=level, verify_integrity=verify_integrity)
         if not inplace:
             return idx
 
@@ -639,7 +645,7 @@ class MultiIndex(Index):
         attrs = [
             ('levels', ibase.default_pprint(self._levels,
                                             max_seq_items=False)),
-            ('labels', ibase.default_pprint(self._labels,
+            ('labels', ibase.default_pprint(self._codes,
                                             max_seq_items=False))]
         if com._any_not_none(*self.names):
             attrs.append(('names', ibase.default_pprint(self.names)))
@@ -1558,7 +1564,7 @@ class MultiIndex(Index):
         if changed:
             result._reset_identity()
             result._set_levels(new_levels, validate=False)
-            result._set_labels(new_labels, validate=False)
+            result._set_codes(new_labels, validate=False)
 
         return result
 
@@ -1594,7 +1600,7 @@ class MultiIndex(Index):
             levels, labels, sortorder, names = own_state
 
         self._set_levels([Index(x) for x in levels], validate=False)
-        self._set_labels(labels)
+        self._set_codes(labels)
         self._set_names(names)
         self.sortorder = sortorder
         self._verify_integrity()
