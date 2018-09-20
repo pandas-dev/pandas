@@ -510,6 +510,6 @@ class TestSeriesDtypes(TestData):
         tm.assert_series_equal(actual, expected)
 
     def test_is_homogeneous(self):
-        assert Series().is_homogeneous
-        assert Series([1, 2]).is_homogeneous
-        assert Series(pd.Categorical([1, 2])).is_homogeneous
+        assert Series()._is_homogeneous
+        assert Series([1, 2])._is_homogeneous
+        assert Series(pd.Categorical([1, 2]))._is_homogeneous

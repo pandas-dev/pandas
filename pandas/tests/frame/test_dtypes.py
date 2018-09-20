@@ -837,7 +837,7 @@ class TestDataFrameDataTypes(TestData):
 
     ])
     def test_is_homogeneous(self, data, expected):
-        assert data.is_homogeneous is expected
+        assert data._is_homogeneous is expected
 
 
 class TestDataFrameDatetimeWithTZ(TestData):
