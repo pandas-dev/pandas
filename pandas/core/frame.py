@@ -4869,7 +4869,11 @@ class DataFrame(NDFrame):
 
         elif (np.ndim(other) == 1 and isinstance(other, np.ndarray) and
               len(other) == len(self.columns)):
-            right = np.broadcast_to(other, self.shape)
+            try:
+                right = np.broadcast_to(other, self.shape)
+            except AttributeError:
+                # numpy < 1.10
+                right = np.tile(other, self.shape)
             return ops.dispatch_to_series(self, right, func)
 
         elif (np.ndim(other) == 1 and
@@ -4877,7 +4881,11 @@ class DataFrame(NDFrame):
               len(other) == len(self) != len(self.columns)):
             # tests include at least 1 tuple in this case
             right = np.array(other)[:, None]
-            right = np.broadcast_to(right, self.shape)
+            try:
+                right = np.broadcast_to(right, self.shape)
+            except AttributeError:
+                # numpy < 1.10
+                right = np.tile(right, self.shape)
             return ops.dispatch_to_series(self, right, func)
 
         elif np.ndim(other) == 1:
