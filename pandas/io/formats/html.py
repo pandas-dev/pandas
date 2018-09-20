@@ -358,11 +358,12 @@ class HTMLFormatter(TableFormatter):
                 self._write_regular_rows(fmt_values, indent)
         else:
             row_levels = 0
+            if self.show_col_idx_names:
+                row_levels = 1
+# GH 22579 TODO:no truncation logic. needs fixing first.
             for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
-                if self.show_col_idx_names:
-                    row.insert(0, '')
-                    row_levels = 1
+                row = [''] * row_levels + [fmt_values[j][i]
+                                           for j in range(len(self.columns))]
                 self.write_tr(row, indent, self.indent_delta,
                               tags=None, nindex_levels=row_levels)
 
