@@ -798,12 +798,8 @@ class BlockManager(PandasObject):
         from pandas.core.dtypes.common import is_sparse
         dtype = _interleaved_dtype(self.blocks)
 
-        # This is unclear...
-        # For things like SparseArray we want to go Sparse[T] -> ndarray[T]
-        # But for things like Categorical, we want to go to object.
-        # What about IntegerDtype?
-        # Probably best to add this to the API
-
+        # TODO: https://github.com/pandas-dev/pandas/issues/22791
+        # Give EAs some input on what happens here. Sparse needs this.
         if is_sparse(dtype):
             dtype = dtype.subtype
         elif is_extension_array_dtype(dtype):
@@ -924,26 +920,24 @@ class BlockManager(PandasObject):
 
         # unique
         dtype = _interleaved_dtype(self.blocks)
-        if is_extension_array_dtype(dtype):
-            values = []
-            rls = []
-            # TODO: what is rls? is it ever out of order? ensure that's tested
-            for blk in self.blocks:
-                for i, rl in enumerate(blk.mgr_locs):
-                    values.append(blk.iget((i, loc)))
-                    rls.append(rl)
-
-            result = dtype.construct_array_type()._from_sequence(
-                values, dtype=dtype).take(rls)
-            return result
 
         n = len(items)
-        result = np.empty(n, dtype=dtype)
+        if is_extension_array_dtype(dtype):
+            # we'll eventually construct an ExtensionArray.
+            result = np.empty(n, dtype=object)
+        else:
+            result = np.empty(n, dtype=dtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+
+        if is_extension_array_dtype(dtype):
+            result = dtype.construct_array_type()._from_sequence(
+                result, dtype=dtype
+            )
 
         return result
 
@@ -1889,8 +1883,8 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(blocks):
-    """
-    Get the common dtype for `blocks`.
+    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+    """Find the common dtype for `blocks`.
 
     Parameters
     ----------
@@ -1899,6 +1893,7 @@ def _interleaved_dtype(blocks):
     Returns
     -------
     dtype : Optional[Union[np.dtype, ExtensionDtype]]
+        None is returned when `blocks` is empty.
     """
     if not len(blocks):
         return None
