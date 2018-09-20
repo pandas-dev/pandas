@@ -288,6 +288,26 @@ class MultiIndex(Index):
     def levels(self):
         return self._levels
 
+    @property
+    def _is_homogeneous(self):
+        """Whether the levels of a MultiIndex all have the same dtype.
+
+        This looks at the dtypes of the levels.
+
+        See Also
+        --------
+        Index._is_homogeneous
+        DataFrame._is_homogeneous
+
+        Examples
+        --------
+        >>> MultiIndex.from_tuples([('a', 'b'), ('a', 'c')])._is_homogeneous
+        True
+        >>> MultiIndex.from_tuples([('a', 1), ('a', 2)])._is_homogeneous
+        False
+        """
+        return len(set(x.dtype for x in self.levels)) <= 1
+
     def _set_levels(self, levels, level=None, copy=False, validate=True,
                     verify_integrity=False):
         # This is NOT part of the levels property because it should be
