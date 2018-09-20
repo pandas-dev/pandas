@@ -144,7 +144,7 @@ class DocBuilder:
                         # for names not in the top-level namespace by default,
                         # e.g. pandas.io.formats.style.Styler
                         importlib.import_module('.'.join([obj.__name__, name]))
-                    except ModuleNotFoundError:
+                    except ImportError:
                         pass
                     obj = getattr(obj, name)
             except AttributeError:
@@ -337,6 +337,7 @@ class DocBuilder:
         if failed:
             report_failures(failed)
             sys.exit(1)
+
 
 # ------
 # Linter
