@@ -225,7 +225,7 @@ def assert_almost_equal(left, right, check_dtype="equiv",
     ----------
     left : object
     right : object
-    check_dtype : bool / string {'equiv'}, default False
+    check_dtype : bool / string {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
@@ -787,7 +787,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default False
+    exact : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1034,7 +1034,7 @@ def assert_interval_array_equal(left, right, exact='equiv',
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
-    obj : str, default 'Categorical'
+    obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
@@ -1326,12 +1326,13 @@ def assert_frame_equal(left, right, check_dtype=True,
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : {'equiv'} or bool, default 'equiv'
+    check_index_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : {'equiv'} or bool, default 'equiv'
+    check_column_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
-        are identical.
+        are identical. Is passed as the ``exact`` argument of
+        :func:`assert_index_equal`.
     check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
     check_less_precise : bool or int, default False
