@@ -1,10 +1,11 @@
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.dtypes import registry
+from pandas.core.dtypes.dtypes import register_extension_dtype
 from pandas import compat
 
 
+@register_extension_dtype
 class SparseDtype(ExtensionDtype):
     """
     Dtype for data stored in :class:`SparseArray`.
@@ -109,6 +110,11 @@ class SparseDtype(ExtensionDtype):
         return not is_object_dtype(self.subtype)
 
     @property
+    def _is_boolean(self):
+        from pandas.core.dtypes.common import is_bool_dtype
+        return is_bool_dtype(self.subtype)
+
+    @property
     def kind(self):
         return self.subtype.kind
 
@@ -163,6 +169,3 @@ class SparseDtype(ExtensionDtype):
         elif isinstance(dtype, cls):
             return True
         return isinstance(dtype, np.dtype) or dtype == 'Sparse'
-
-
-registry.register(SparseDtype)
