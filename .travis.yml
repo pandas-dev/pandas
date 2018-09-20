@@ -122,6 +122,7 @@ script:
   - echo "script done"
 
 after_success:
+  - source activate pandas
   - ci/upload_coverage.sh
   - ci/docs/upload_docs.sh
 
