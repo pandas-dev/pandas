@@ -366,8 +366,8 @@ dictionary.
 
 .. _basics.dataframe.from_series:
 
-From a Panda Series
-~~~~~~~~~~~~~~~~~~~
+From a Pandas Series
+~~~~~~~~~~~~~~~~~~~~
 
 The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
