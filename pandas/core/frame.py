@@ -629,8 +629,8 @@ class DataFrame(NDFrame):
         >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous
         False
 
-        Items with the type but different sizes are considered different
-        types.
+        Items with the same type but different sizes are considered
+        different types.
 
         >>> DataFrame({"A": np.array([1, 2], dtype=np.int32),
         ...            "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous
