@@ -664,6 +664,21 @@ class IndexOpsMixin(object):
                                 "definition self")
 
     @property
+    def _is_homogeneous(self):
+        """Whether the object has a single dtype.
+
+        By definition, Series and Index are always considered homogeneous.
+        A MultiIndex may or may not be homogeneous, depending on the
+        dtypes of the levels.
+
+        See Also
+        --------
+        DataFrame._is_homogeneous
+        MultiIndex._is_homogeneous
+        """
+        return True
+
+    @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
         return self._values.shape
