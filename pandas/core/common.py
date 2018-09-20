@@ -386,7 +386,7 @@ def standardize_mapping(into):
             return partial(
                 collections.defaultdict, into.default_factory)
         into = type(into)
-    if not issubclass(into, collections.Mapping):
+    if not issubclass(into, compat.Mapping):
         raise TypeError('unsupported type: {into}'.format(into=into))
     elif into == collections.defaultdict:
         raise TypeError(

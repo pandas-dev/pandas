@@ -1979,11 +1979,17 @@ class NDFrame(PandasObject, SelectionMixin):
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
 
-    >>> writer = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
-    >>> df1.to_excel(writer, sheet_name='Sheet1')
     >>> df2 = df1.copy()
-    >>> df2.to_excel(writer, sheet_name='Sheet2')
-    >>> writer.save()
+    >>> with pd.ExcelWriter('output.xlsx') as writer:
+    ...     df1.to_excel(writer, sheet_name='Sheet_name_1')
+    ...     df2.to_excel(writer, sheet_name='Sheet_name_2')
+
+    To set the library that is used to write the Excel file,
+    you can pass the `engine` keyword (the default engine is
+    automatically chosen depending on the file extension):
+
+    >>> df1.to_excel('output1.xlsx', engine='xlsxwriter')
+
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
@@ -2494,80 +2500,70 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        a DataArray for a Series
-        a Dataset for a DataFrame
-        a DataArray for higher dims
+        xarray.DataArray or xarray.Dataset
+            Data in the pandas structure converted to Dataset if the object is
+            a DataFrame, or a DataArray if the object is a Series.
+
+        See Also
+        --------
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-                               'B' : ['foo', 'bar', 'foo'],
-                               'C' : np.arange(4.,7)})
+        >>> df = pd.DataFrame([('falcon', 'bird',  389.0, 2),
+        ...                    ('parrot', 'bird', 24.0, 2),
+        ...                    ('lion',   'mammal', 80.5, 4),
+        ...                    ('monkey', 'mammal', np.nan, 4)],
+        ...                    columns=['name', 'class', 'max_speed',
+        ...                             'num_legs'])
         >>> df
-           A    B    C
-        0  1  foo  4.0
-        1  1  bar  5.0
-        2  2  foo  6.0
+             name   class  max_speed  num_legs
+        0  falcon    bird      389.0         2
+        1  parrot    bird       24.0         2
+        2    lion  mammal       80.5         4
+        3  monkey  mammal        NaN         4
 
         >>> df.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (index: 3)
+        Dimensions:    (index: 4)
         Coordinates:
-          * index    (index) int64 0 1 2
+          * index      (index) int64 0 1 2 3
         Data variables:
-            A        (index) int64 1 1 2
-            B        (index) object 'foo' 'bar' 'foo'
-            C        (index) float64 4.0 5.0 6.0
+            name       (index) object 'falcon' 'parrot' 'lion' 'monkey'
+            class      (index) object 'bird' 'bird' 'mammal' 'mammal'
+            max_speed  (index) float64 389.0 24.0 80.5 nan
+            num_legs   (index) int64 2 2 4 4
 
-        >>> df = pd.DataFrame({'A' : [1, 1, 2],
-                               'B' : ['foo', 'bar', 'foo'],
-                               'C' : np.arange(4.,7)}
-                             ).set_index(['B','A'])
-        >>> df
-                 C
-        B   A
-        foo 1  4.0
-        bar 1  5.0
-        foo 2  6.0
+        >>> df['max_speed'].to_xarray()
+        <xarray.DataArray 'max_speed' (index: 4)>
+        array([389. ,  24. ,  80.5,   nan])
+        Coordinates:
+          * index    (index) int64 0 1 2 3
 
-        >>> df.to_xarray()
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-01',
+        ...                         '2018-01-02', '2018-01-02'])
+        >>> df_multiindex = pd.DataFrame({'date': dates,
+        ...                    'animal': ['falcon', 'parrot', 'falcon',
+        ...                               'parrot'],
+        ...                    'speed': [350, 18, 361, 15]}).set_index(['date',
+        ...                                                    'animal'])
+        >>> df_multiindex
+                           speed
+        date       animal
+        2018-01-01 falcon    350
+                   parrot     18
+        2018-01-02 falcon    361
+                   parrot     15
+
+        >>> df_multiindex.to_xarray()
         <xarray.Dataset>
-        Dimensions:  (A: 2, B: 2)
+        Dimensions:  (animal: 2, date: 2)
         Coordinates:
-          * B        (B) object 'bar' 'foo'
-          * A        (A) int64 1 2
+          * date     (date) datetime64[ns] 2018-01-01 2018-01-02
+          * animal   (animal) object 'falcon' 'parrot'
         Data variables:
-            C        (B, A) float64 5.0 nan 4.0 6.0
-
-        >>> p = pd.Panel(np.arange(24).reshape(4,3,2),
-                         items=list('ABCD'),
-                         major_axis=pd.date_range('20130101', periods=3),
-                         minor_axis=['first', 'second'])
-        >>> p
-        <class 'pandas.core.panel.Panel'>
-        Dimensions: 4 (items) x 3 (major_axis) x 2 (minor_axis)
-        Items axis: A to D
-        Major_axis axis: 2013-01-01 00:00:00 to 2013-01-03 00:00:00
-        Minor_axis axis: first to second
-
-        >>> p.to_xarray()
-        <xarray.DataArray (items: 4, major_axis: 3, minor_axis: 2)>
-        array([[[ 0,  1],
-                [ 2,  3],
-                [ 4,  5]],
-               [[ 6,  7],
-                [ 8,  9],
-                [10, 11]],
-               [[12, 13],
-                [14, 15],
-                [16, 17]],
-               [[18, 19],
-                [20, 21],
-                [22, 23]]])
-        Coordinates:
-          * items       (items) object 'A' 'B' 'C' 'D'
-          * major_axis  (major_axis) datetime64[ns] 2013-01-01 2013-01-02 2013-01-03  # noqa
-          * minor_axis  (minor_axis) object 'first' 'second'
+            speed    (date, animal) int64 350 18 361 15
 
         Notes
         -----
@@ -4545,17 +4541,16 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    func : function, string, dictionary, or list of string/functions
+    func : function, str, list or dict
         Function to use for aggregating the data. If a function, must either
-        work when passed a %(klass)s or when passed to %(klass)s.apply. For
-        a DataFrame, can pass a dict, if the keys are DataFrame column names.
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
 
         Accepted combinations are:
 
-        - string function name.
-        - function.
-        - list of functions.
-        - dict of column names -> functions (or list of functions).
+        - function
+        - string function name
+        - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+        - dict of axis labels -> functions, function names or list of such.
     %(axis)s
     *args
         Positional arguments to pass to `func`.
@@ -4564,7 +4559,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    aggregated : %(klass)s
+    DataFrame, Series or scalar
+        if DataFrame.agg is called with a single function, returns a Series
+        if DataFrame.agg is called with several functions, returns a DataFrame
+        if Series.agg is called with single function, returns a scalar
+        if Series.agg is called with several functions, returns a Series
 
     Notes
     -----
@@ -4574,50 +4573,71 @@ class NDFrame(PandasObject, SelectionMixin):
     """)
 
     _shared_docs['transform'] = ("""
-    Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values
+    Call ``func`` on self producing a %(klass)s with transformed values
+    and that has the same axis length as self.
 
     .. versionadded:: 0.20.0
 
     Parameters
     ----------
-    func : callable, string, dictionary, or list of string/callables
-        To apply to column
+    func : function, str, list or dict
+        Function to use for transforming the data. If a function, must either
+        work when passed a %(klass)s or when passed to %(klass)s.apply.
 
-        Accepted Combinations are:
+        Accepted combinations are:
 
-        - string function name
         - function
-        - list of functions
-        - dict of column names -> functions (or list of functions)
+        - string function name
+        - list of functions and/or function names, e.g. ``[np.exp. 'sqrt']``
+        - dict of axis labels -> functions, function names or list of such.
+    %(axis)s
+    *args
+        Positional arguments to pass to `func`.
+    **kwargs
+        Keyword arguments to pass to `func`.
 
     Returns
     -------
-    transformed : %(klass)s
+    %(klass)s
+        A %(klass)s that must have the same length as self.
+
+    Raises
+    ------
+    ValueError : If the returned %(klass)s has a different length than self.
+
+    See Also
+    --------
+    %(klass)s.agg : Only perform aggregating type operations.
+    %(klass)s.apply : Invoke function on a %(klass)s.
 
     Examples
     --------
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    df.iloc[3:7] = np.nan
+    >>> df = pd.DataFrame({'A': range(3), 'B': range(1, 4)})
+    >>> df
+       A  B
+    0  0  1
+    1  1  2
+    2  2  3
+    >>> df.transform(lambda x: x + 1)
+       A  B
+    0  1  2
+    1  2  3
+    2  3  4
 
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                       A         B         C
-    2000-01-01  0.579457  1.236184  0.123424
-    2000-01-02  0.370357 -0.605875 -1.231325
-    2000-01-03  1.455756 -0.277446  0.288967
-    2000-01-04       NaN       NaN       NaN
-    2000-01-05       NaN       NaN       NaN
-    2000-01-06       NaN       NaN       NaN
-    2000-01-07       NaN       NaN       NaN
-    2000-01-08 -0.498658  1.274522  1.642524
-    2000-01-09 -0.540524 -1.012676 -0.828968
-    2000-01-10 -1.366388 -0.614710  0.005378
+    Even though the resulting %(klass)s must have the same length as the
+    input %(klass)s, it is possible to provide several input functions:
 
-    See also
-    --------
-    pandas.%(klass)s.aggregate
-    pandas.%(klass)s.apply
+    >>> s = pd.Series(range(3))
+    >>> s
+    0    0
+    1    1
+    2    2
+    dtype: int64
+    >>> s.transform([np.sqrt, np.exp])
+           sqrt        exp
+    0  0.000000   1.000000
+    1  1.000000   2.718282
+    2  1.414214   7.389056
     """)
 
     # ----------------------------------------------------------------------
@@ -9401,7 +9421,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.ewm = ewm
 
-    @Appender(_shared_docs['transform'] % _shared_doc_kwargs)
+    @Appender(_shared_docs['transform'] % dict(axis="", **_shared_doc_kwargs))
     def transform(self, func, *args, **kwargs):
         result = self.agg(func, *args, **kwargs)
         if is_scalar(result) or len(result) != len(self):

@@ -90,6 +90,33 @@ def ensure_categorical(arr):
     return arr
 
 
+def ensure_int64_or_float64(arr, copy=False):
+    """
+    Ensure that an dtype array of some integer dtype
+    has an int64 dtype if possible
+    If it's not possible, potentially because of overflow,
+    convert the array to float64 instead.
+
+    Parameters
+    ----------
+    arr : array-like
+          The array whose data type we want to enforce.
+    copy: boolean
+          Whether to copy the original array or reuse
+          it in place, if possible.
+
+    Returns
+    -------
+    out_arr : The input array cast as int64 if
+              possible without overflow.
+              Otherwise the input array cast to float64.
+    """
+    try:
+        return arr.astype('int64', copy=copy, casting='safe')
+    except TypeError:
+        return arr.astype('float64', copy=copy)
+
+
 def is_object_dtype(arr_or_dtype):
     """
     Check whether an array-like or dtype is of the object dtype.
