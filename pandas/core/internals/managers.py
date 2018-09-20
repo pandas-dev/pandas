@@ -906,13 +906,24 @@ class BlockManager(PandasObject):
 
         # unique
         dtype = _interleaved_dtype(self.blocks)
+
         n = len(items)
-        result = np.empty(n, dtype=dtype)
+        if is_extension_array_dtype(dtype):
+            # we'll eventually construct an ExtensionArray.
+            result = np.empty(n, dtype=object)
+        else:
+            result = np.empty(n, dtype=dtype)
+
         for blk in self.blocks:
             # Such assignment may incorrectly coerce NaT to None
             # result[blk.mgr_locs] = blk._slice((slice(None), loc))
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk._try_coerce_result(blk.iget((i, loc)))
+
+        if is_extension_array_dtype(dtype):
+            result = dtype.construct_array_type()._from_sequence(
+                result, dtype=dtype
+            )
 
         return result
 
@@ -1855,16 +1866,22 @@ def _stack_arrays(tuples, dtype):
 
 
 def _interleaved_dtype(blocks):
+    # type: (List[Block]) -> Optional[Union[np.dtype, ExtensionDtype]]
+    """Find the common dtype for `blocks`.
+
+    Parameters
+    ----------
+    blocks : List[Block]
+
+    Returns
+    -------
+    dtype : Optional[Union[np.dtype, ExtensionDtype]]
+        None is returned when `blocks` is empty.
+    """
     if not len(blocks):
         return None
 
-    dtype = find_common_type([b.dtype for b in blocks])
-
-    # only numpy compat
-    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
-        dtype = np.object
-
-    return dtype
+    return find_common_type([b.dtype for b in blocks])
 
 
 def _consolidate(blocks):
