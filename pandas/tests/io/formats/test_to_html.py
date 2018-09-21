@@ -23,10 +23,13 @@ except (ImportError, AttributeError):
 
 
 @pytest.fixture
-def expected_html(read_file):
+def expected_html(datapath):
+    """fixture factory to read html files from tests/io/formats/data"""
     def _expected_html(name):
         filename = '.'.join([name, 'html'])
-        html = read_file(filename)
+        filepath = datapath('io', 'formats', 'data', filename)
+        with open(filepath) as f:
+            html = f.read()
         return html.rstrip()
     return _expected_html
 

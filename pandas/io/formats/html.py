@@ -306,6 +306,8 @@ class HTMLFormatter(TableFormatter):
             align = self.fmt.justify
 
             if truncate_h:
+                if self.fmt.index is False:
+                    row_levels = 0
                 ins_col = row_levels + self.fmt.tr_col_num
                 col_row.insert(ins_col, '...')
 
@@ -342,10 +344,22 @@ class HTMLFormatter(TableFormatter):
                 self._write_hierarchical_rows(fmt_values, indent)
             else:
                 self._write_regular_rows(fmt_values, indent)
-# GH 15019, GH 22783 add truncation logic below
         else:
-            for i in range(min(len(self.frame), self.max_rows)):
-                row = [fmt_values[j][i] for j in range(len(self.columns))]
+            truncate_h = self.fmt.truncate_h
+            truncate_v = self.fmt.truncate_v
+            ncols = len(self.fmt.tr_frame.columns)
+            nrows = len(self.fmt.tr_frame)
+
+            row = []
+            for i in range(nrows):
+                if truncate_v and i == (self.fmt.tr_row_num):
+                    str_sep_row = ['...'] * len(row)
+                    self.write_tr(str_sep_row, indent,
+                                  self.indent_delta, tags=None)
+                row = [fmt_values[j][i] for j in range(ncols)]
+                if truncate_h:
+                    dot_col_ix = self.fmt.tr_col_num
+                    row.insert(dot_col_ix, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=None)
 
         indent -= self.indent_delta
