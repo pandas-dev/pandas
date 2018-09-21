@@ -103,19 +103,27 @@ class PyArrowImpl(BaseImpl):
         self.api = pyarrow
 
     def write(self, df, path, compression='snappy',
-              coerce_timestamps='ms', **kwargs):
+              coerce_timestamps='ms', index=None, **kwargs):
         self.validate_dataframe(df)
-        if self._pyarrow_lt_070:
+
+        # Only validate the index if we're writing it.
+        if self._pyarrow_lt_070 and index is not False:
             self._validate_write_lt_070(df)
         path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
+        if index is None:
+            from_pandas_kwargs = {}
+        else:
+            from_pandas_kwargs = {'preserve_index': index}
+
         if self._pyarrow_lt_060:
-            table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
+            table = self.api.Table.from_pandas(df, timestamps_to_ms=True,
+                                               **from_pandas_kwargs)
             self.api.parquet.write_table(
                 table, path, compression=compression, **kwargs)
 
         else:
-            table = self.api.Table.from_pandas(df)
+            table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
             self.api.parquet.write_table(
                 table, path, compression=compression,
                 coerce_timestamps=coerce_timestamps, **kwargs)
@@ -197,7 +205,7 @@ class FastParquetImpl(BaseImpl):
             )
         self.api = fastparquet
 
-    def write(self, df, path, compression='snappy', **kwargs):
+    def write(self, df, path, compression='snappy', index=None, **kwargs):
         self.validate_dataframe(df)
         # thriftpy/protocol/compact.py:339:
         # DeprecationWarning: tostring() is deprecated.
@@ -214,8 +222,8 @@ class FastParquetImpl(BaseImpl):
             path, _, _, _ = get_filepath_or_buffer(path)
 
         with catch_warnings(record=True):
-            self.api.write(path, df,
-                           compression=compression, **kwargs)
+            self.api.write(path, df, compression=compression,
+                           write_index=index, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
         if is_s3_url(path):
@@ -234,7 +242,8 @@ class FastParquetImpl(BaseImpl):
         return parquet_file.to_pandas(columns=columns, **kwargs)
 
 
-def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
+def to_parquet(df, path, engine='auto', compression='snappy', index=None,
+               **kwargs):
     """
     Write a DataFrame to the parquet format.
 
@@ -250,11 +259,17 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
         'pyarrow' is unavailable.
     compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
+    index : bool, default None
+        If ``True``, include the dataframe's index(es) in the file output. If
+        ``False``, they will not be written to the file. If ``None``, the
+        engine's default behavior will be used.
+
+        .. versionadded 0.24.0
     kwargs
         Additional keyword arguments passed to the engine
     """
     impl = get_engine(engine)
-    return impl.write(df, path, compression=compression, **kwargs)
+    return impl.write(df, path, compression=compression, index=index, **kwargs)
 
 
 def read_parquet(path, engine='auto', columns=None, **kwargs):
