@@ -715,14 +715,14 @@ class TestInferOutputShape(object):
         result = df.apply(lambda x: Series([1, 2, 3],
                                            index=['test', 'other', 'cols']),
                           axis=1)
-        expected = DataFrame(int_frame_const_col.values,
-                             columns=['test', 'other', 'cols'])
+        expected = int_frame_const_col.rename(columns={'A': 'test',
+                                                       'B': 'other',
+                                                       'C': 'cols'})
         assert_frame_equal(result, expected)
 
         result = df.apply(lambda x: Series([1, 2], index=['test', 'other']),
                           axis=1)
-        expected = DataFrame(int_frame_const_col.values[:, :2],
-                             columns=['test', 'other'])
+        expected = expected[['test', 'other']]
         assert_frame_equal(result, expected)
 
     def test_result_type(self, int_frame_const_col):
@@ -786,7 +786,8 @@ class TestInferOutputShape(object):
         assert_series_equal(result, expected)
 
         result = df.apply(lambda x: box([1, 2]), axis=1, result_type='expand')
-        expected = DataFrame(int_frame_const_col.values[:, :2])
+        expected = int_frame_const_col[['A', 'B']].rename(columns={'A': 0,
+                                                                   'B': 1})
         assert_frame_equal(result, expected)
 
 
