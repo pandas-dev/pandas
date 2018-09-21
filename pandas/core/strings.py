@@ -1334,13 +1334,13 @@ def str_pad(arr, width, side='left', fillchar=' '):
     See Also
     --------
     Series.str.rjust: Fills the left side of strings with an arbitrary
-        character.
+        character. Equivalent to pd.str.pad(side='left').
     Series.str.ljust: Fills the right side of strings with an arbitrary
-        character.
+        character. Equivalent to pd.str.pad(side='right').
     Series.str.center: Fills boths sides of strings with an arbitrary
-        character.
+        character. Equivalent to pd.str.pad(side='both').
     Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
-        character.
+        character. Equivalent to pd.str.pad(side='right', fillchar='0').
 
     Examples
     --------
