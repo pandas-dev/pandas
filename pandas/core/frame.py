@@ -613,6 +613,34 @@ class DataFrame(NDFrame):
         """
         return len(self.index), len(self.columns)
 
+    @property
+    def _is_homogeneous(self):
+        """
+        Whether all the columns in a DataFrame have the same type.
+
+        Returns
+        -------
+        bool
+
+        Examples
+        --------
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous
+        True
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous
+        False
+
+        Items with the same type but different sizes are considered
+        different types.
+
+        >>> DataFrame({"A": np.array([1, 2], dtype=np.int32),
+        ...            "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous
+        False
+        """
+        if self._data.any_extension_types:
+            return len({block.dtype for block in self._data.blocks}) == 1
+        else:
+            return not self._data.is_mixed_type
+
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
@@ -1874,7 +1902,7 @@ class DataFrame(NDFrame):
         to_feather(self, fname)
 
     def to_parquet(self, fname, engine='auto', compression='snappy',
-                   **kwargs):
+                   index=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -1896,6 +1924,13 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+        index : bool, default None
+            If ``True``, include the dataframe's index(es) in the file output.
+            If ``False``, they will not be written to the file. If ``None``,
+            the behavior depends on the chosen engine.
+
+            .. versionadded:: 0.24.0
+
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
@@ -1924,7 +1959,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
-                   compression=compression, **kwargs)
+                   compression=compression, index=index, **kwargs)
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
