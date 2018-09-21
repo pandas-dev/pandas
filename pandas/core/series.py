@@ -2034,15 +2034,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         float
-            The Pearson correlation between self and self.shift(lag).
+            The pearson correlation between self and self.shift(lag).
 
-        See also
+        See Also
         --------
         Series.corr : Compute the correlation between two Series.
+        Series.shift : Shift index by desired number of periods.
+        DataFrame.corr : Compute pairwise correlation of columns.
+        DataFrame.corrwith : Compute pairwise correlation between rows or
+            columns of two DataFrame objects.
 
         Notes
         -----
-        return Nan if the computation of the autocorr is not possible.
+        If the pearson correlation is not well defined return 'NaN'.
 
         Examples
         --------
@@ -2054,8 +2058,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         **Warning**
 
-        If the pearson correlation between self and self.shift(lag) cannot be
-        computed, then nan is returned.
+        If the pearson correlation is not well defined, then 'NaN' is returned.
 
         >>> s = pd.Series([1, 0, 0, 0])
         >>> s.autocorr()
