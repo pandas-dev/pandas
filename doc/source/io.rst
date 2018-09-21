@@ -4777,7 +4777,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
     data.to_sql('data_chunked', engine, chunksize=1000)
 
 SQL data types
-++++++++++++++
+''''''''''''''
 
 :func:`~pandas.DataFrame.to_sql` will try to map your data to an appropriate
 SQL data type based on the dtype of the data. When you have columns of dtype
@@ -4808,6 +4808,30 @@ default ``Text`` type for string columns:
     this gives an array of strings).
     Because of this, reading the database table back in does **not** generate
     a categorical.
+
+Datetime data types
+'''''''''''''''''''
+
+Using SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
+datetime data that is timezone naive or timezone aware. However, the resulting
+data stored in the database ultimately depends on the corresponding,
+supported data type for datetime data.
+
+===========   =============================================  ===================
+Database      SQL Datetime Types                             Timezone Support
+===========   =============================================  ===================
+SQLite        ``TEXT``                                       No
+MySQL         ``TIMESTAMP`` or ``DATETIME``                  No
+PostgreSQL    ``TIMESTAMP`` or ``TIMESTAMP WITH TIME ZONE``  Yes
+===========   =============================================  ===================
+
+When writing timezone aware data to databases that do not support timezones,
+the data will be written as timezone naive timestamps that are in local time
+with respect to the timezone.
+
+:func:`~pandas.read_sql_table` is also capable of reading datetime data that is
+timezone aware of naive. When reading ``TIMESTAMP WITH TIME ZONE`` types, pandas
+will convert the data to UTC.
 
 Reading Tables
 ''''''''''''''

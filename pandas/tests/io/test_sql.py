@@ -1370,7 +1370,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         expected = DataFrame({'A': date_range(
             '2013-01-01 09:00:00', periods=3, tz='US/Pacific'
         )})
-        expected.to_sql('test_datetime_tz', self.conn)
+        expected.to_sql('test_datetime_tz', self.conn, index=False)
 
         if self.flavor == 'postgresql':
             # SQLalchemy "timezones" (i.e. offsets) are coerced to UTC
@@ -1380,13 +1380,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             expected['A'] = expected['A'].dt.tz_localize(None)
 
         result = sql.read_sql_table('test_datetime_tz', self.conn)
-        result = result.drop('index', axis=1)
         tm.assert_frame_equal(result, expected)
 
         result = sql.read_sql_query(
             'SELECT * FROM test_datetime_tz', self.conn
         )
-        result = result.drop('index', axis=1)
         if self.flavor == 'sqlite':
             # read_sql_query does not return datetime type like read_sql_table
             assert isinstance(result.loc[0, 'A'], string_types)
