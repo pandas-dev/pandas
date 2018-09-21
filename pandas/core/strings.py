@@ -1331,6 +1331,17 @@ def str_pad(arr, width, side='left', fillchar=' '):
     Series or Index of object
         Returns Series or Index with minimum number of char in object.
 
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+        character.
+
     Examples
     --------
     >>> s = pd.Series(["caribou", "tiger"])
@@ -1360,21 +1371,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
     1           NaN
     2           NaN
     dtype: object
-
-    See Also
-    --------
-    Series.str.rjust: Fills the left side of strings with an arbitrary
-        character.
-    Series.str.ljust: Fills the right side of strings with an arbitrary
-        character.
-    Series.str.pad: Fills the specified sides of strings with an arbitrary
-        character.
-    Series.str.center: Fills boths sides of strings with an arbitrary
-        character.
-    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
-        character.
     """
-
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
