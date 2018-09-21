@@ -266,6 +266,7 @@ cdef class {{name}}HashTable(HashTable):
     def __cinit__(self, size_hint=1):
         self.table = kh_init_{{dtype}}()
         if size_hint is not None:
+            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
             kh_resize_{{dtype}}(self.table, size_hint)
 
     def __len__(self):
@@ -498,6 +499,7 @@ cdef class StringHashTable(HashTable):
     def __init__(self, int size_hint=1):
         self.table = kh_init_str()
         if size_hint is not None:
+            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
             kh_resize_str(self.table, size_hint)
 
     def __dealloc__(self):

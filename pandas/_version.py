@@ -243,7 +243,8 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, run_command=run_command):
                 print(fmt.format(full_tag=full_tag, tag_prefix=tag_prefix))
             pieces["error"] = ("tag '{full_tag}' doesn't start with "
                                "prefix '{tag_prefix}'".format(
-                                   full_tag, tag_prefix))
+                                   full_tag=full_tag,
+                                   tag_prefix=tag_prefix))
             return pieces
         pieces["closest-tag"] = full_tag[len(tag_prefix):]
 
