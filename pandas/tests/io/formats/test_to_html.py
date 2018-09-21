@@ -22,16 +22,12 @@ except (ImportError, AttributeError):
     pass
 
 
-@pytest.fixture
-def expected_html(datapath):
-    """fixture factory to read html files from tests/io/formats/data"""
-    def _expected_html(name):
-        filename = '.'.join([name, 'html'])
-        filepath = datapath('io', 'formats', 'data', filename)
-        with open(filepath) as f:
-            html = f.read()
-        return html.rstrip()
-    return _expected_html
+def expected_html(datapath, name):
+    filename = '.'.join([name, 'html'])
+    filepath = datapath('io', 'formats', 'data', filename)
+    with open(filepath) as f:
+        html = f.read()
+    return html.rstrip()
 
 
 class TestToHTML(object):
@@ -1917,20 +1913,20 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
-    def test_to_html_truncation_index_false_max_rows(self, expected_html):
+    def test_to_html_truncation_index_false_max_rows(self, datapath):
         # GH 15019
         np.random.seed(seed=0)
         df = pd.DataFrame(np.random.randn(5, 2))
         result = df.to_html(max_rows=4, index=False)
-        expected = expected_html('gh15019_expected_output')
+        expected = expected_html(datapath, 'gh15019_expected_output')
         assert result == expected
 
-    def test_to_html_truncation_index_false_max_cols(self, expected_html):
+    def test_to_html_truncation_index_false_max_cols(self, datapath):
         # GH 22783
         np.random.seed(seed=0)
         df = pd.DataFrame(np.random.randn(2, 5))
         result = df.to_html(max_cols=4, index=False)
-        expected = expected_html('gh22783_expected_output')
+        expected = expected_html(datapath, 'gh22783_expected_output')
         assert result == expected
 
     def test_to_html_notebook_has_style(self):
