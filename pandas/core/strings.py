@@ -1364,13 +1364,6 @@ def str_pad(arr, width, side='left', fillchar=' '):
     0    -caribou--
     1    --tiger---
     dtype: object
-
-    >>> s = pd.Series(["caribou", 0, np.NaN])
-    >>> s.str.pad(width=10, fillchar='-')
-    0    ---caribou
-    1           NaN
-    2           NaN
-    dtype: object
     """
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
