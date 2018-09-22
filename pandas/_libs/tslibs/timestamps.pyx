@@ -78,20 +78,20 @@ except ImportError:
     npdivmod = _npdivmod
 
 
-cdef inline _floor_int64(v, u):
-    return v - np.remainder(v, u)
+cdef inline _floor_int64(values, unit):
+    return values - np.remainder(values, unit)
 
-cdef inline _ceil_int64(v, u):
-    return v + np.remainder(-v, u)
+cdef inline _ceil_int64(values, unit):
+    return values + np.remainder(-values, unit)
 
-cdef inline _rounddown_int64(v, u):
-    return _ceil_int64(v - u//2, u)
+cdef inline _rounddown_int64(values, unit):
+    return _ceil_int64(values - unit//2, unit)
 
-cdef inline _roundup_int64(v, u):
-    return _floor_int64(v + u//2, u)
+cdef inline _roundup_int64(values, unit):
+    return _floor_int64(values + unit//2, unit)
 
 
-def round_nsint64(values, mode: RoundTo, freq):
+def round_nsint64(values, mode, freq):
     """
     Applies rounding mode at given frequency
 
@@ -123,15 +123,16 @@ def round_nsint64(values, mode: RoundTo, freq):
         # for odd unit there is no need of a tie break
         if unit % 2:
             return _rounddown_int64(values, unit)
-        d, r = npdivmod(values, unit)
+        quotient, remainder = npdivmod(values, unit)
         mask = np.logical_or(
-            r > (unit // 2),
-            np.logical_and(r == (unit // 2), d % 2)
+            remainder > (unit // 2),
+            np.logical_and(remainder == (unit // 2), quotient % 2)
         )
-        d[mask] += 1
-        return d * unit
+        quotient[mask] += 1
+        return quotient * unit
 
-    raise NotImplementedError(mode)
+    # this should be unreachable
+    assert False, "should never arrive here"
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
