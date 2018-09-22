@@ -496,7 +496,7 @@ cdef class StringHashTable(HashTable):
     # or a sentinel np.nan / None missing value
     na_string_sentinel = '__nan__'
 
-    def __init__(self, int size_hint=1):
+    def __init__(self, size_hint=1):
         self.table = kh_init_str()
         if size_hint is not None:
             size_hint = min(size_hint, _SIZE_HINT_LIMIT)
@@ -735,7 +735,9 @@ cdef class PyObjectHashTable(HashTable):
 
     def __init__(self, size_hint=1):
         self.table = kh_init_pymap()
-        kh_resize_pymap(self.table, size_hint)
+        if size_hint is not None:
+            size_hint = min(size_hint, _SIZE_HINT_LIMIT)
+            kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
         if self.table is not NULL:
