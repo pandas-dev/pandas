@@ -224,6 +224,30 @@ def json_normalize(data, record_path=None, meta=None,
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
+    def _extract(obj, path, seen_meta, level):
+        recs = _pull_field(obj, path[0])
+
+        # For repeating the metadata later
+        lengths.append(len(recs))
+
+        for val, key in zip(meta, meta_keys):
+            if level + 1 > len(val):
+                meta_val = seen_meta[key]
+            else:
+                try:
+                    meta_val = _pull_field(obj, val[level:])
+                except KeyError as e:
+                    if errors == 'ignore':
+                        meta_val = np.nan
+                    else:
+                        raise KeyError("Try running with "
+                                       "errors='ignore' as key "
+                                       "{err} is not always present"
+                                       .format(err=e))
+            meta_vals[key].append(meta_val)
+
+        records.extend(recs)
+
     def _recursive_extract(data, path, seen_meta, level=0):
         if len(path) > 1:
             for obj in data:
@@ -233,31 +257,11 @@ def json_normalize(data, record_path=None, meta=None,
 
                 _recursive_extract(obj[path[0]], path[1:],
                                    seen_meta, level=level + 1)
-        else:
+        elif isinstance(data, list):
             for obj in data:
-                recs = _pull_field(obj, path[0])
-
-                # For repeating the metadata later
-                lengths.append(len(recs))
-
-                for val, key in zip(meta, meta_keys):
-                    if level + 1 > len(val):
-                        meta_val = seen_meta[key]
-                    else:
-                        try:
-                            meta_val = _pull_field(obj, val[level:])
-                        except KeyError as e:
-                            if errors == 'ignore':
-                                meta_val = np.nan
-                            else:
-                                raise \
-                                    KeyError("Try running with "
-                                             "errors='ignore' as key "
-                                             "{err} is not always present"
-                                             .format(err=e))
-                    meta_vals[key].append(meta_val)
-
-                records.extend(recs)
+                _extract(obj, path, seen_meta, level)
+        else:
+            _extract(data, path, seen_meta, level)
 
     _recursive_extract(data, record_path, {}, level=0)
 
