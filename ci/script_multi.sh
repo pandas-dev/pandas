@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 echo "[script multi]"
 
@@ -12,43 +12,32 @@ if [ -n "$LOCALE_OVERRIDE" ]; then
     python -c "$pycmd"
 fi
 
+# Enforce absent network during testing by faking a proxy
+if echo "$TEST_ARGS" | grep -e --skip-network -q; then
+    export http_proxy=http://1.2.3.4 https_proxy=http://1.2.3.4;
+fi
+
 # Workaround for pytest-xdist flaky collection order
 # https://github.com/pytest-dev/pytest/issues/920
 # https://github.com/pytest-dev/pytest/issues/1075
 export PYTHONHASHSEED=$(python -c 'import random; print(random.randint(1, 4294967295))')
 echo PYTHONHASHSEED=$PYTHONHASHSEED
 
-if [ "$BUILD_TEST" ]; then
-    echo "[build-test]"
-
-    echo "[env]"
-    pip list --format columns |grep pandas
-
-    echo "[running]"
-    cd /tmp
-    unset PYTHONPATH
-
-    echo "[build-test: single]"
-    python -c 'import pandas; pandas.test(["--skip-slow", "--skip-network", "-r xX", "-m single"])'
-
-    echo "[build-test: not single]"
-    python -c 'import pandas; pandas.test(["-n 2", "--skip-slow", "--skip-network", "-r xX", "-m not single"])'
-
-elif [ "$DOC" ]; then
+if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    echo pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    pytest -s -n 2 -m "not single" --cov=pandas --cov-report xml:/tmp/cov-multiple.xml --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
 
 elif [ "$SLOW" ]; then
     TEST_ARGS="--only-slow --skip-network"
-    echo pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
+    echo pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    pytest -r xX -m "not single and slow" -v --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
 
 else
-    echo pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas
-    pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml $TEST_ARGS pandas # TODO: doctest
+    echo pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas
+    pytest -n 2 -r xX -m "not single" --junitxml=/tmp/multiple.xml --strict $TEST_ARGS pandas # TODO: doctest
 
 fi
 

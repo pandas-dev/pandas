@@ -1,6 +1,22 @@
-# cython: profile=False
+# -*- coding: utf-8 -*-
 
-from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
+cimport cython
+
+from cpython cimport (PyObject, Py_INCREF, PyList_Check, PyTuple_Check,
+                      PyMem_Malloc, PyMem_Realloc, PyMem_Free,
+                      PyString_Check, PyBytes_Check,
+                      PyUnicode_Check)
+
+from libc.stdlib cimport malloc, free
+
+import numpy as np
+cimport numpy as cnp
+from numpy cimport ndarray, uint8_t, uint32_t
+cnp.import_array()
+
+cdef extern from "numpy/npy_math.h":
+    double NAN "NPY_NAN"
+
 
 from khash cimport (
     khiter_t,
@@ -23,29 +39,12 @@ from khash cimport (
     kh_put_pymap, kh_resize_pymap)
 
 
-from numpy cimport ndarray, uint8_t, uint32_t
-
-from libc.stdlib cimport malloc, free
-from cpython cimport (PyMem_Malloc, PyMem_Realloc, PyMem_Free,
-                      PyString_Check, PyBytes_Check,
-                      PyUnicode_Check)
-
-from util cimport _checknan
 cimport util
 
-import numpy as np
+from missing cimport checknull
+
+
 nan = np.nan
-
-cdef extern from "numpy/npy_math.h":
-    double NAN "NPY_NAN"
-
-cimport cython
-cimport numpy as cnp
-
-from pandas._libs.lib import checknull
-
-cnp.import_array()
-cnp.import_ufunc()
 
 cdef int64_t iNaT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7
@@ -70,7 +69,7 @@ cdef class Factorizer:
         return self.count
 
     def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1,
-                  check_null=True):
+                  na_value=None):
         """
         Factorize values with nans replaced by na_sentinel
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
@@ -81,7 +80,7 @@ cdef class Factorizer:
             uniques.extend(self.uniques.to_array())
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel, check_null)
+                                       self.count, na_sentinel, na_value)
         mask = (labels == na_sentinel)
         # sort on
         if sort:
@@ -114,7 +113,7 @@ cdef class Int64Factorizer:
         return self.count
 
     def factorize(self, int64_t[:] values, sort=False,
-                  na_sentinel=-1, check_null=True):
+                  na_sentinel=-1, na_value=None):
         """
         Factorize values with nans replaced by na_sentinel
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
@@ -126,7 +125,7 @@ cdef class Int64Factorizer:
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel,
-                                       check_null)
+                                       na_value=na_value)
 
         # sort on
         if sort:
@@ -148,7 +147,7 @@ cdef class Int64Factorizer:
 def unique_label_indices(ndarray[int64_t, ndim=1] labels):
     """
     indices of the first occurrences of the unique labels
-    *excluding* -1. equivelent to:
+    *excluding* -1. equivalent to:
         np.unique(labels, return_index=True)[1]
     """
     cdef:

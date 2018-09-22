@@ -2,10 +2,10 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings
+import pytest
 import numpy as np
 
-from pandas import DataFrame, Series, MultiIndex, Panel
+from pandas import DataFrame, Series, MultiIndex, Panel, Index
 import pandas as pd
 import pandas.util.testing as tm
 
@@ -126,28 +126,28 @@ class TestDataFrameSubclassing(TestData):
         tm.assert_series_equal(res, exp)
         assert isinstance(res, tm.SubclassedSeries)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_to_panel_expanddim(self):
         # GH 9762
 
-        with catch_warnings(record=True):
-            class SubclassedFrame(DataFrame):
+        class SubclassedFrame(DataFrame):
 
-                @property
-                def _constructor_expanddim(self):
-                    return SubclassedPanel
+            @property
+            def _constructor_expanddim(self):
+                return SubclassedPanel
 
-            class SubclassedPanel(Panel):
-                pass
+        class SubclassedPanel(Panel):
+            pass
 
-            index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
-            df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
-            result = df.to_panel()
-            assert isinstance(result, SubclassedPanel)
-            expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
-                                       items=['X', 'Y'], major_axis=[0],
-                                       minor_axis=[0, 1, 2],
-                                       dtype='int64')
-            tm.assert_panel_equal(result, expected)
+        index = MultiIndex.from_tuples([(0, 0), (0, 1), (0, 2)])
+        df = SubclassedFrame({'X': [1, 2, 3], 'Y': [4, 5, 6]}, index=index)
+        result = df.to_panel()
+        assert isinstance(result, SubclassedPanel)
+        expected = SubclassedPanel([[[1, 2, 3]], [[4, 5, 6]]],
+                                   items=['X', 'Y'], major_axis=[0],
+                                   minor_axis=[0, 1, 2],
+                                   dtype='int64')
+        tm.assert_panel_equal(result, expected)
 
     def test_subclass_attr_err_propagation(self):
         # GH 11808
@@ -247,3 +247,326 @@ class TestDataFrameSubclassing(TestData):
                                               [2, 5],
                                               [3, 6]])
         tm.assert_sp_frame_equal(ossdf.T, essdf)
+
+    def test_subclass_stack(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                                    index=['a', 'b', 'c'],
+                                    columns=['X', 'Y', 'Z'])
+
+        res = df.stack()
+        exp = tm.SubclassedSeries(
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            index=[list('aaabbbccc'), list('XYZXYZXYZ')])
+
+        tm.assert_series_equal(res, exp)
+
+    def test_subclass_stack_multi(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame([
+            [10, 11, 12, 13],
+            [20, 21, 22, 23],
+            [30, 31, 32, 33],
+            [40, 41, 42, 43]],
+            index=MultiIndex.from_tuples(
+                list(zip(list('AABB'), list('cdcd'))),
+                names=['aaa', 'ccc']),
+            columns=MultiIndex.from_tuples(
+                list(zip(list('WWXX'), list('yzyz'))),
+                names=['www', 'yyy']))
+
+        exp = tm.SubclassedDataFrame([
+            [10, 12],
+            [11, 13],
+            [20, 22],
+            [21, 23],
+            [30, 32],
+            [31, 33],
+            [40, 42],
+            [41, 43]],
+            index=MultiIndex.from_tuples(list(zip(
+                list('AAAABBBB'), list('ccddccdd'), list('yzyzyzyz'))),
+                names=['aaa', 'ccc', 'yyy']),
+            columns=Index(['W', 'X'], name='www'))
+
+        res = df.stack()
+        tm.assert_frame_equal(res, exp)
+
+        res = df.stack('yyy')
+        tm.assert_frame_equal(res, exp)
+
+        exp = tm.SubclassedDataFrame([
+            [10, 11],
+            [12, 13],
+            [20, 21],
+            [22, 23],
+            [30, 31],
+            [32, 33],
+            [40, 41],
+            [42, 43]],
+            index=MultiIndex.from_tuples(list(zip(
+                list('AAAABBBB'), list('ccddccdd'), list('WXWXWXWX'))),
+                names=['aaa', 'ccc', 'www']),
+            columns=Index(['y', 'z'], name='yyy'))
+
+        res = df.stack('www')
+        tm.assert_frame_equal(res, exp)
+
+    def test_subclass_stack_multi_mixed(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame([
+            [10, 11, 12.0, 13.0],
+            [20, 21, 22.0, 23.0],
+            [30, 31, 32.0, 33.0],
+            [40, 41, 42.0, 43.0]],
+            index=MultiIndex.from_tuples(
+                list(zip(list('AABB'), list('cdcd'))),
+                names=['aaa', 'ccc']),
+            columns=MultiIndex.from_tuples(
+                list(zip(list('WWXX'), list('yzyz'))),
+                names=['www', 'yyy']))
+
+        exp = tm.SubclassedDataFrame([
+            [10, 12.0],
+            [11, 13.0],
+            [20, 22.0],
+            [21, 23.0],
+            [30, 32.0],
+            [31, 33.0],
+            [40, 42.0],
+            [41, 43.0]],
+            index=MultiIndex.from_tuples(list(zip(
+                list('AAAABBBB'), list('ccddccdd'), list('yzyzyzyz'))),
+                names=['aaa', 'ccc', 'yyy']),
+            columns=Index(['W', 'X'], name='www'))
+
+        res = df.stack()
+        tm.assert_frame_equal(res, exp)
+
+        res = df.stack('yyy')
+        tm.assert_frame_equal(res, exp)
+
+        exp = tm.SubclassedDataFrame([
+            [10.0, 11.0],
+            [12.0, 13.0],
+            [20.0, 21.0],
+            [22.0, 23.0],
+            [30.0, 31.0],
+            [32.0, 33.0],
+            [40.0, 41.0],
+            [42.0, 43.0]],
+            index=MultiIndex.from_tuples(list(zip(
+                list('AAAABBBB'), list('ccddccdd'), list('WXWXWXWX'))),
+                names=['aaa', 'ccc', 'www']),
+            columns=Index(['y', 'z'], name='yyy'))
+
+        res = df.stack('www')
+        tm.assert_frame_equal(res, exp)
+
+    def test_subclass_unstack(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                                    index=['a', 'b', 'c'],
+                                    columns=['X', 'Y', 'Z'])
+
+        res = df.unstack()
+        exp = tm.SubclassedSeries(
+            [1, 4, 7, 2, 5, 8, 3, 6, 9],
+            index=[list('XXXYYYZZZ'), list('abcabcabc')])
+
+        tm.assert_series_equal(res, exp)
+
+    def test_subclass_unstack_multi(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame([
+            [10, 11, 12, 13],
+            [20, 21, 22, 23],
+            [30, 31, 32, 33],
+            [40, 41, 42, 43]],
+            index=MultiIndex.from_tuples(
+                list(zip(list('AABB'), list('cdcd'))),
+                names=['aaa', 'ccc']),
+            columns=MultiIndex.from_tuples(
+                list(zip(list('WWXX'), list('yzyz'))),
+                names=['www', 'yyy']))
+
+        exp = tm.SubclassedDataFrame([
+            [10, 20, 11, 21, 12, 22, 13, 23],
+            [30, 40, 31, 41, 32, 42, 33, 43]],
+            index=Index(['A', 'B'], name='aaa'),
+            columns=MultiIndex.from_tuples(list(zip(
+                list('WWWWXXXX'), list('yyzzyyzz'), list('cdcdcdcd'))),
+            names=['www', 'yyy', 'ccc']))
+
+        res = df.unstack()
+        tm.assert_frame_equal(res, exp)
+
+        res = df.unstack('ccc')
+        tm.assert_frame_equal(res, exp)
+
+        exp = tm.SubclassedDataFrame([
+            [10, 30, 11, 31, 12, 32, 13, 33],
+            [20, 40, 21, 41, 22, 42, 23, 43]],
+            index=Index(['c', 'd'], name='ccc'),
+            columns=MultiIndex.from_tuples(list(zip(
+                list('WWWWXXXX'), list('yyzzyyzz'), list('ABABABAB'))),
+                names=['www', 'yyy', 'aaa']))
+
+        res = df.unstack('aaa')
+        tm.assert_frame_equal(res, exp)
+
+    def test_subclass_unstack_multi_mixed(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame([
+            [10, 11, 12.0, 13.0],
+            [20, 21, 22.0, 23.0],
+            [30, 31, 32.0, 33.0],
+            [40, 41, 42.0, 43.0]],
+            index=MultiIndex.from_tuples(
+                list(zip(list('AABB'), list('cdcd'))),
+                names=['aaa', 'ccc']),
+            columns=MultiIndex.from_tuples(
+                list(zip(list('WWXX'), list('yzyz'))),
+                names=['www', 'yyy']))
+
+        exp = tm.SubclassedDataFrame([
+            [10, 20, 11, 21, 12.0, 22.0, 13.0, 23.0],
+            [30, 40, 31, 41, 32.0, 42.0, 33.0, 43.0]],
+            index=Index(['A', 'B'], name='aaa'),
+            columns=MultiIndex.from_tuples(list(zip(
+                list('WWWWXXXX'), list('yyzzyyzz'), list('cdcdcdcd'))),
+            names=['www', 'yyy', 'ccc']))
+
+        res = df.unstack()
+        tm.assert_frame_equal(res, exp)
+
+        res = df.unstack('ccc')
+        tm.assert_frame_equal(res, exp)
+
+        exp = tm.SubclassedDataFrame([
+            [10, 30, 11, 31, 12.0, 32.0, 13.0, 33.0],
+            [20, 40, 21, 41, 22.0, 42.0, 23.0, 43.0]],
+            index=Index(['c', 'd'], name='ccc'),
+            columns=MultiIndex.from_tuples(list(zip(
+                list('WWWWXXXX'), list('yyzzyyzz'), list('ABABABAB'))),
+                names=['www', 'yyy', 'aaa']))
+
+        res = df.unstack('aaa')
+        tm.assert_frame_equal(res, exp)
+
+    def test_subclass_pivot(self):
+        # GH 15564
+        df = tm.SubclassedDataFrame({
+            'index': ['A', 'B', 'C', 'C', 'B', 'A'],
+            'columns': ['One', 'One', 'One', 'Two', 'Two', 'Two'],
+            'values': [1., 2., 3., 3., 2., 1.]})
+
+        pivoted = df.pivot(
+            index='index', columns='columns', values='values')
+
+        expected = tm.SubclassedDataFrame({
+            'One': {'A': 1., 'B': 2., 'C': 3.},
+            'Two': {'A': 1., 'B': 2., 'C': 3.}})
+
+        expected.index.name, expected.columns.name = 'index', 'columns'
+
+        tm.assert_frame_equal(pivoted, expected)
+
+    def test_subclassed_melt(self):
+        # GH 15564
+        cheese = tm.SubclassedDataFrame({
+            'first': ['John', 'Mary'],
+            'last': ['Doe', 'Bo'],
+            'height': [5.5, 6.0],
+            'weight': [130, 150]})
+
+        melted = pd.melt(cheese, id_vars=['first', 'last'])
+
+        expected = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 5.5],
+            ['Mary', 'Bo', 'height', 6.0],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        tm.assert_frame_equal(melted, expected)
+
+    def test_subclassed_wide_to_long(self):
+        # GH 9762
+
+        np.random.seed(123)
+        x = np.random.randn(3)
+        df = tm.SubclassedDataFrame({
+            "A1970": {0: "a", 1: "b", 2: "c"},
+            "A1980": {0: "d", 1: "e", 2: "f"},
+            "B1970": {0: 2.5, 1: 1.2, 2: .7},
+            "B1980": {0: 3.2, 1: 1.3, 2: .1},
+            "X": dict(zip(range(3), x))})
+
+        df["id"] = df.index
+        exp_data = {"X": x.tolist() + x.tolist(),
+                    "A": ['a', 'b', 'c', 'd', 'e', 'f'],
+                    "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
+                    "year": [1970, 1970, 1970, 1980, 1980, 1980],
+                    "id": [0, 1, 2, 0, 1, 2]}
+        expected = tm.SubclassedDataFrame(exp_data)
+        expected = expected.set_index(['id', 'year'])[["X", "A", "B"]]
+        long_frame = pd.wide_to_long(df, ["A", "B"], i="id", j="year")
+
+        tm.assert_frame_equal(long_frame, expected)
+
+    def test_subclassed_apply(self):
+        # GH 19822
+
+        def check_row_subclass(row):
+            assert isinstance(row, tm.SubclassedSeries)
+
+        def strech(row):
+            if row["variable"] == "height":
+                row["value"] += 0.5
+            return row
+
+        df = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 5.5],
+            ['Mary', 'Bo', 'height', 6.0],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        df.apply(lambda x: check_row_subclass(x))
+        df.apply(lambda x: check_row_subclass(x), axis=1)
+
+        expected = tm.SubclassedDataFrame([
+            ['John', 'Doe', 'height', 6.0],
+            ['Mary', 'Bo', 'height', 6.5],
+            ['John', 'Doe', 'weight', 130],
+            ['Mary', 'Bo', 'weight', 150]],
+            columns=['first', 'last', 'variable', 'value'])
+
+        result = df.apply(lambda x: strech(x), axis=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        expected = tm.SubclassedDataFrame([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]])
+
+        result = df.apply(lambda x: tm.SubclassedSeries([1, 2, 3]), axis=1)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="expand")
+        assert isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_frame_equal(result, expected)
+
+        expected = tm.SubclassedSeries([
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3]])
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1)
+        assert not isinstance(result, tm.SubclassedDataFrame)
+        tm.assert_series_equal(result, expected)

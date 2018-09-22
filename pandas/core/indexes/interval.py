@@ -1,80 +1,89 @@
 """ define the IntervalIndex """
+import textwrap
+import warnings
 
 import numpy as np
 
-from pandas.core.dtypes.missing import notna, isna
-from pandas.core.dtypes.generic import ABCPeriodIndex
-from pandas.core.dtypes.dtypes import IntervalDtype
+from pandas.compat import add_metaclass
+from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.cast import find_common_type, maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_datetime_or_timedelta_dtype,
+    is_datetime64tz_dtype,
     is_integer_dtype,
-    is_object_dtype,
-    is_categorical_dtype,
     is_float_dtype,
     is_interval_dtype,
+    is_object_dtype,
     is_scalar,
     is_float,
     is_number,
     is_integer)
 from pandas.core.indexes.base import (
-    Index, _ensure_index,
+    Index, ensure_index,
     default_pprint, _index_shared_docs)
 
 from pandas._libs import Timestamp, Timedelta
 from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
-    intervals_to_interval_bounds)
+)
 
 from pandas.core.indexes.datetimes import date_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
-from pandas.compat.numpy import function as nv
-from pandas.core import common as com
+import pandas.core.common as com
 from pandas.util._decorators import cache_readonly, Appender
+from pandas.util._doctools import _WritableDoc
+from pandas.util._exceptions import rewrite_exception
 from pandas.core.config import get_option
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
 
 import pandas.core.indexes.base as ibase
+from pandas.core.arrays.interval import (IntervalArray,
+                                         _interval_shared_docs)
+
+_VALID_CLOSED = {'left', 'right', 'both', 'neither'}
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(
     dict(klass='IntervalIndex',
-         target_klass='IntervalIndex or list of Intervals'))
-
-
-_VALID_CLOSED = set(['left', 'right', 'both', 'neither'])
+         target_klass='IntervalIndex or list of Intervals',
+         name=textwrap.dedent("""\
+         name : object, optional
+              to be stored in the index.
+         """),
+         ))
 
 
 def _get_next_label(label):
     dtype = getattr(label, 'dtype', type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = 'datetime64'
-    if is_datetime_or_timedelta_dtype(dtype):
+    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return label + np.timedelta64(1, 'ns')
     elif is_integer_dtype(dtype):
         return label + 1
     elif is_float_dtype(dtype):
         return np.nextafter(label, np.infty)
     else:
-        raise TypeError('cannot determine next label for type %r'
-                        % type(label))
+        raise TypeError('cannot determine next label for type {typ!r}'
+                        .format(typ=type(label)))
 
 
 def _get_prev_label(label):
     dtype = getattr(label, 'dtype', type(label))
     if isinstance(label, (Timestamp, Timedelta)):
         dtype = 'datetime64'
-    if is_datetime_or_timedelta_dtype(dtype):
+    if is_datetime_or_timedelta_dtype(dtype) or is_datetime64tz_dtype(dtype):
         return label - np.timedelta64(1, 'ns')
     elif is_integer_dtype(dtype):
         return label - 1
     elif is_float_dtype(dtype):
         return np.nextafter(label, -np.infty)
     else:
-        raise TypeError('cannot determine next label for type %r'
-                        % type(label))
+        raise TypeError('cannot determine next label for type {typ!r}'
+                        .format(typ=type(label)))
 
 
 def _get_interval_closed_bounds(interval):
@@ -91,39 +100,23 @@ def _get_interval_closed_bounds(interval):
 
 
 def _new_IntervalIndex(cls, d):
-    """ This is called upon unpickling,
-    rather than the default which doesn't
-    have arguments and breaks __new__ """
-
+    """
+    This is called upon unpickling, rather than the default which doesn't have
+    arguments and breaks __new__
+    """
     return cls.from_arrays(**d)
 
 
-class IntervalIndex(IntervalMixin, Index):
-    """
-    Immutable Index implementing an ordered, sliceable set. IntervalIndex
-    represents an Index of intervals that are all closed on the same side.
-
-    .. versionadded:: 0.20.0
-
-    .. warning::
-
-       The indexing behaviors are provisional and may change in
-       a future version of pandas.
-
-    Attributes
-    ----------
-    left, right : array-like (1-dimensional)
-        Left and right bounds for each interval.
-    closed : {'left', 'right', 'both', 'neither'}, optional
-        Whether the intervals are closed on the left-side, right-side, both or
-        neither. Defaults to 'right'.
-    name : object, optional
-        Name to be stored in the index.
-    copy : boolean, default False
-        Copy the meta-data
+@Appender(_interval_shared_docs['class'] % dict(
+    klass="IntervalIndex",
+    summary="Immutable index of intervals that are closed on the same side.",
+    name=_index_doc_kwargs['name'],
+    versionadded="0.20.0",
+    extra_methods="contains\n",
+    examples=textwrap.dedent("""\
 
     Examples
-    ---------
+    --------
     A new ``IntervalIndex`` is typically constructed using
     :func:`interval_range`:
 
@@ -132,150 +125,79 @@ class IntervalIndex(IntervalMixin, Index):
                   closed='right', dtype='interval[int64]')
 
     It may also be constructed using one of the constructor
-    methods :meth:`IntervalIndex.from_arrays`,
-    :meth:`IntervalIndex.from_breaks`, :meth:`IntervalIndex.from_intervals`
-    and :meth:`IntervalIndex.from_tuples`.
+    methods: :meth:`IntervalIndex.from_arrays`,
+    :meth:`IntervalIndex.from_breaks`, and :meth:`IntervalIndex.from_tuples`.
 
     See further examples in the doc strings of ``interval_range`` and the
     mentioned constructor methods.
+    """),
 
-    Notes
-    ------
-    See the `user guide
-    <http://pandas.pydata.org/pandas-docs/stable/advanced.html#intervalindex>`_
-    for more.
-
-    See Also
-    --------
-    Index : The base pandas Index type
-    Interval : A bounded slice-like interval
-    interval_range : Function to create a fixed frequency
-    IntervalIndex, IntervalIndex.from_arrays, IntervalIndex.from_breaks,
-    IntervalIndex.from_intervals, IntervalIndex.from_tuples
-    cut, qcut : convert arrays of continuous data into categoricals/series of
-                ``Interval``.
-    """
+))
+@add_metaclass(_WritableDoc)
+class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
     _attributes = ['name', 'closed']
-    _allow_index_ops = True
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
 
+    # Immutable, so we are able to cache computations like isna in '_mask'
     _mask = None
 
-    def __new__(cls, data, closed='right',
-                name=None, copy=False, dtype=None,
-                fastpath=False, verify_integrity=True):
+    def __new__(cls, data, closed=None, dtype=None, copy=False,
+                name=None, fastpath=False, verify_integrity=True):
 
         if fastpath:
-            return cls._simple_new(data.left, data.right, closed, name,
-                                   copy=copy, verify_integrity=False)
+            return cls._simple_new(data, name)
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if isinstance(data, IntervalIndex):
-            left = data.left
-            right = data.right
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype,
+                                  fastpath=fastpath,
+                                  verify_integrity=verify_integrity)
 
-        else:
-
-            # don't allow scalars
-            if is_scalar(data):
-                cls._scalar_data_error(data)
-
-            data = IntervalIndex.from_intervals(data, name=name)
-            left, right = data.left, data.right
-
-        return cls._simple_new(left, right, closed, name,
-                               copy=copy, verify_integrity=verify_integrity)
+        return cls._simple_new(array, name)
 
     @classmethod
-    def _simple_new(cls, left, right, closed=None, name=None,
-                    copy=False, verify_integrity=True):
+    def _simple_new(cls, array, name, closed=None):
+        """
+        Construct from an IntervalArray
+
+        Parameters
+        ----------
+        array : IntervalArray
+        name : str
+            Attached as result.name
+        closed : Any
+            Ignored.
+        """
         result = IntervalMixin.__new__(cls)
-
-        if closed is None:
-            closed = 'right'
-        left = _ensure_index(left, copy=copy)
-        right = _ensure_index(right, copy=copy)
-
-        # coerce dtypes to match if needed
-        if is_float_dtype(left) and is_integer_dtype(right):
-            right = right.astype(left.dtype)
-        if is_float_dtype(right) and is_integer_dtype(left):
-            left = left.astype(right.dtype)
-
-        if type(left) != type(right):
-            raise ValueError("must not have differing left [{}] "
-                             "and right [{}] types".format(
-                                 type(left), type(right)))
-
-        if isinstance(left, ABCPeriodIndex):
-            raise ValueError("Period dtypes are not supported, "
-                             "use a PeriodIndex instead")
-
-        result._left = left
-        result._right = right
-        result._closed = closed
+        result._data = array
         result.name = name
-        if verify_integrity:
-            result._validate()
         result._reset_identity()
         return result
 
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, left=None, right=None, **kwargs):
-        if left is None:
-
-            # no values passed
-            left, right = self.left, self.right
-
-        elif right is None:
-
-            # only single value passed, could be an IntervalIndex
-            # or array of Intervals
-            if not isinstance(left, IntervalIndex):
-                left = type(self).from_intervals(left)
-
-            left, right = left.left, left.right
-        else:
-
-            # both left and right are values
-            pass
-
+        result = self._data._shallow_copy(left=left, right=right)
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
-        attributes['verify_integrity'] = False
-        return self._simple_new(left, right, **attributes)
-
-    def _validate(self):
-        """
-        Verify that the IntervalIndex is valid.
-        """
-        if self.closed not in _VALID_CLOSED:
-            raise ValueError("invalid options for 'closed': %s" % self.closed)
-        if len(self.left) != len(self.right):
-            raise ValueError('left and right must have the same length')
-        left_mask = notna(self.left)
-        right_mask = notna(self.right)
-        if not (left_mask == right_mask).all():
-            raise ValueError('missing values must be missing in the same '
-                             'location both left and right sides')
-        if not (self.left[left_mask] <= self.right[left_mask]).all():
-            raise ValueError('left side of interval must be <= right side')
-        self._mask = ~left_mask
+        return self._simple_new(result, **attributes)
 
     @cache_readonly
     def hasnans(self):
-        """ return if I have any nans; enables various perf speedups """
+        """
+        Return if the IntervalIndex has any nans; enables various performance
+        speedups
+        """
         return self._isnan.any()
 
     @cache_readonly
     def _isnan(self):
-        """ return if each value is nan"""
+        """Return a mask indicating if each value is NA"""
         if self._mask is None:
             self._mask = isna(self.left)
         return self._mask
@@ -286,7 +208,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @property
     def _constructor(self):
-        return type(self).from_intervals
+        return type(self)
 
     def __contains__(self, key):
         """
@@ -312,7 +234,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     def contains(self, key):
         """
-        return a boolean if this key is IN the index
+        Return a boolean indicating if the key is IN the index
 
         We accept / allow keys to be not *just* actual
         objects.
@@ -332,181 +254,61 @@ class IntervalIndex(IntervalMixin, Index):
             return False
 
     @classmethod
-    def from_breaks(cls, breaks, closed='right', name=None, copy=False):
-        """
-        Construct an IntervalIndex from an array of splits
-
-        Parameters
-        ----------
-        breaks : array-like (1-dimensional)
-            Left and right bounds for each interval.
-        closed : {'left', 'right', 'both', 'neither'}, optional
-            Whether the intervals are closed on the left-side, right-side, both
-            or neither. Defaults to 'right'.
-        name : object, optional
-            Name to be stored in the index.
-        copy : boolean, default False
-            copy the data
-
-        Examples
-        --------
-        >>> pd.IntervalIndex.from_breaks([0, 1, 2, 3])
-        IntervalIndex([(0, 1], (1, 2], (2, 3]]
-                      closed='right',
-                      dtype='interval[int64]')
-
-        See Also
-        --------
-        interval_range : Function to create a fixed frequency IntervalIndex
-        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
-                                    right array
-        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
-                                       of Interval objects
-        IntervalIndex.from_tuples : Construct an IntervalIndex from a
-                                    list/array of tuples
-        """
-        breaks = np.asarray(breaks)
-        return cls.from_arrays(breaks[:-1], breaks[1:], closed,
-                               name=name, copy=copy)
+    @Appender(_interval_shared_docs['from_breaks'] % _index_doc_kwargs)
+    def from_breaks(cls, breaks, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_breaks(breaks, closed=closed, copy=copy,
+                                              dtype=dtype)
+        return cls._simple_new(array, name=name)
 
     @classmethod
-    def from_arrays(cls, left, right, closed='right', name=None, copy=False):
-        """
-        Construct an IntervalIndex from a a left and right array
-
-        Parameters
-        ----------
-        left : array-like (1-dimensional)
-            Left bounds for each interval.
-        right : array-like (1-dimensional)
-            Right bounds for each interval.
-        closed : {'left', 'right', 'both', 'neither'}, optional
-            Whether the intervals are closed on the left-side, right-side, both
-            or neither. Defaults to 'right'.
-        name : object, optional
-            Name to be stored in the index.
-        copy : boolean, default False
-            copy the data
-
-        Examples
-        --------
-        >>> pd.IntervalIndex.from_arrays([0, 1, 2], [1, 2, 3])
-        IntervalIndex([(0, 1], (1, 2], (2, 3]]
-                      closed='right',
-                      dtype='interval[int64]')
-
-        See Also
-        --------
-        interval_range : Function to create a fixed frequency IntervalIndex
-        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                    splits
-        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
-                                       of Interval objects
-        IntervalIndex.from_tuples : Construct an IntervalIndex from a
-                                    list/array of tuples
-        """
-        left = np.asarray(left)
-        right = np.asarray(right)
-        return cls._simple_new(left, right, closed, name=name,
-                               copy=copy, verify_integrity=True)
+    @Appender(_interval_shared_docs['from_arrays'] % _index_doc_kwargs)
+    def from_arrays(cls, left, right, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray.from_arrays(left, right, closed, copy=copy,
+                                              dtype=dtype)
+        return cls._simple_new(array, name=name)
 
     @classmethod
-    def from_intervals(cls, data, name=None, copy=False):
-        """
-        Construct an IntervalIndex from a 1d array of Interval objects
+    @Appender(_interval_shared_docs['from_intervals'] % _index_doc_kwargs)
+    def from_intervals(cls, data, closed=None, name=None, copy=False,
+                       dtype=None):
+        msg = ('IntervalIndex.from_intervals is deprecated and will be '
+               'removed in a future version; Use IntervalIndex(...) instead')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        with rewrite_exception("IntervalArray", cls.__name__):
+            array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
 
-        Parameters
-        ----------
-        data : array-like (1-dimensional)
-            Array of Interval objects. All intervals must be closed on the same
-            sides.
-        name : object, optional
-            Name to be stored in the index.
-        copy : boolean, default False
-            by-default copy the data, this is compat only and ignored
+        if name is None and isinstance(data, cls):
+            name = data.name
 
-        Examples
-        --------
-        >>> pd.IntervalIndex.from_intervals([pd.Interval(0, 1),
-        ...                                  pd.Interval(1, 2)])
-        IntervalIndex([(0, 1], (1, 2]]
-                      closed='right', dtype='interval[int64]')
-
-        The generic Index constructor work identically when it infers an array
-        of all intervals:
-
-        >>> pd.Index([pd.Interval(0, 1), pd.Interval(1, 2)])
-        IntervalIndex([(0, 1], (1, 2]]
-                      closed='right', dtype='interval[int64]')
-
-        See Also
-        --------
-        interval_range : Function to create a fixed frequency IntervalIndex
-        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
-                                    right array
-        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                    splits
-        IntervalIndex.from_tuples : Construct an IntervalIndex from a
-                                    list/array of tuples
-        """
-        data = np.asarray(data)
-        left, right, closed = intervals_to_interval_bounds(data)
-        return cls.from_arrays(left, right, closed, name=name, copy=False)
+        return cls._simple_new(array, name=name)
 
     @classmethod
-    def from_tuples(cls, data, closed='right', name=None, copy=False):
-        """
-        Construct an IntervalIndex from a list/array of tuples
+    @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
+    def from_tuples(cls, data, closed='right', name=None, copy=False,
+                    dtype=None):
+        with rewrite_exception("IntervalArray", cls.__name__):
+            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
+                                            dtype=dtype)
+        return cls._simple_new(arr, name=name)
 
-        Parameters
-        ----------
-        data : array-like (1-dimensional)
-            Array of tuples
-        closed : {'left', 'right', 'both', 'neither'}, optional
-            Whether the intervals are closed on the left-side, right-side, both
-            or neither. Defaults to 'right'.
-        name : object, optional
-            Name to be stored in the index.
-        copy : boolean, default False
-            by-default copy the data, this is compat only and ignored
-
+    @Appender(_interval_shared_docs['to_tuples'] % dict(
+        return_type="Index",
+        examples="""
         Examples
         --------
-        >>>  pd.IntervalIndex.from_tuples([(0, 1), (1,2)])
-        IntervalIndex([(0, 1], (1, 2]],
-                      closed='right', dtype='interval[int64]')
-
-        See Also
-        --------
-        interval_range : Function to create a fixed frequency IntervalIndex
-        IntervalIndex.from_arrays : Construct an IntervalIndex from a left and
-                                    right array
-        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                    splits
-        IntervalIndex.from_intervals : Construct an IntervalIndex from an array
-                                       of Interval objects
-        """
-        left = []
-        right = []
-        for d in data:
-
-            if isna(d):
-                left.append(np.nan)
-                right.append(np.nan)
-                continue
-
-            l, r = d
-            left.append(l)
-            right.append(r)
-
-        # TODO
-        # if we have nulls and we previous had *only*
-        # integer data, then we have changed the dtype
-
-        return cls.from_arrays(left, right, closed, name=name, copy=False)
-
-    def to_tuples(self):
-        return Index(com._asarray_tuplesafe(zip(self.left, self.right)))
+        >>>  idx = pd.IntervalIndex.from_arrays([0, np.nan, 2], [1, np.nan, 3])
+        >>>  idx.to_tuples()
+        Index([(0.0, 1.0), (nan, nan), (2.0, 3.0)], dtype='object')
+        >>>  idx.to_tuples(na_tuple=False)
+        Index([(0.0, 1.0), nan, (2.0, 3.0)], dtype='object')""",
+    ))
+    def to_tuples(self, na_tuple=True):
+        tuples = self._data.to_tuples(na_tuple=na_tuple)
+        return Index(tuples)
 
     @cache_readonly
     def _multiindex(self):
@@ -515,15 +317,66 @@ class IntervalIndex(IntervalMixin, Index):
 
     @property
     def left(self):
-        return self._left
+        """
+        Return the left endpoints of each Interval in the IntervalIndex as
+        an Index
+        """
+        return self._data._left
 
     @property
     def right(self):
-        return self._right
+        """
+        Return the right endpoints of each Interval in the IntervalIndex as
+        an Index
+        """
+        return self._data._right
 
     @property
     def closed(self):
-        return self._closed
+        """
+        Whether the intervals are closed on the left-side, right-side, both or
+        neither
+        """
+        return self._data._closed
+
+    @Appender(_interval_shared_docs['set_closed'] % _index_doc_kwargs)
+    def set_closed(self, closed):
+        if closed not in _VALID_CLOSED:
+            msg = "invalid option for 'closed': {closed}"
+            raise ValueError(msg.format(closed=closed))
+
+        # return self._shallow_copy(closed=closed)
+        array = self._data.set_closed(closed)
+        return self._simple_new(array, self.name)
+
+    @property
+    def length(self):
+        """
+        Return an Index with entries denoting the length of each Interval in
+        the IntervalIndex
+        """
+        return self._data.length
+
+    @property
+    def size(self):
+        # Avoid materializing ndarray[Interval]
+        return self._data.size
+
+    @property
+    def shape(self):
+        # Avoid materializing ndarray[Interval]
+        return self._data.shape
+
+    @property
+    def itemsize(self):
+        msg = ('IntervalIndex.itemsize is deprecated and will be removed in '
+               'a future version')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+
+        # supress the warning from the underlying left/right itemsize
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            return self.left.itemsize + self.right.itemsize
 
     def __len__(self):
         return len(self.left)
@@ -531,13 +384,20 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def values(self):
         """
-        Returns the IntervalIndex's data as a numpy array of Interval
-        objects (with dtype='object')
+        Return the IntervalIndex's data as an IntervalArray.
         """
+        return self._data
+
+    @cache_readonly
+    def _values(self):
+        return self._data
+
+    @cache_readonly
+    def _ndarray_values(self):
         left = self.left
         right = self.right
         mask = self._isnan
-        closed = self._closed
+        closed = self.closed
 
         result = np.empty(len(left), dtype=object)
         for i in range(len(left)):
@@ -549,14 +409,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     def __array__(self, result=None):
         """ the array interface, return my values """
-        return self.values
+        return self._ndarray_values
 
     def __array_wrap__(self, result, context=None):
         # we don't want the superclass implementation
         return result
-
-    def _array_values(self):
-        return self.values
 
     def __reduce__(self):
         d = dict(left=self.left,
@@ -566,82 +423,79 @@ class IntervalIndex(IntervalMixin, Index):
 
     @Appender(_index_shared_docs['copy'])
     def copy(self, deep=False, name=None):
-        left = self.left.copy(deep=True) if deep else self.left
-        right = self.right.copy(deep=True) if deep else self.right
-        name = name if name is not None else self.name
-        return type(self).from_arrays(left, right, name=name)
+        array = self._data.copy(deep=deep)
+        attributes = self._get_attributes_dict()
+        if name is not None:
+            attributes.update(name=name)
+
+        return self._simple_new(array, **attributes)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
-        if is_interval_dtype(dtype):
-            if copy:
-                self = self.copy()
-            return self
-        elif is_object_dtype(dtype):
-            return Index(self.values, dtype=object)
-        elif is_categorical_dtype(dtype):
-            from pandas import Categorical
-            return Categorical(self, ordered=True)
-        raise ValueError('Cannot cast IntervalIndex to dtype %s' % dtype)
+        with rewrite_exception('IntervalArray', self.__class__.__name__):
+            new_values = self.values.astype(dtype, copy=copy)
+        if is_interval_dtype(new_values):
+            return self._shallow_copy(new_values.left, new_values.right)
+        return super(IntervalIndex, self).astype(dtype, copy=copy)
 
     @cache_readonly
     def dtype(self):
-        return IntervalDtype.construct_from_string(str(self.left.dtype))
+        """Return the dtype object of the underlying data"""
+        return self._data.dtype
 
     @property
     def inferred_type(self):
+        """Return a string of the type inferred from the values"""
         return 'interval'
 
     @Appender(Index.memory_usage.__doc__)
     def memory_usage(self, deep=False):
-        # we don't use an explict engine
+        # we don't use an explicit engine
         # so return the bytes here
         return (self.left.memory_usage(deep=deep) +
                 self.right.memory_usage(deep=deep))
 
     @cache_readonly
     def mid(self):
-        """Returns the mid-point of each interval in the index as an array
         """
-        try:
-            return Index(0.5 * (self.left.values + self.right.values))
-        except TypeError:
-            # datetime safe version
-            delta = self.right.values - self.left.values
-            return Index(self.left.values + 0.5 * delta)
+        Return the midpoint of each Interval in the IntervalIndex as an Index
+        """
+        return self._data.mid
 
     @cache_readonly
     def is_monotonic(self):
+        """
+        Return True if the IntervalIndex is monotonic increasing (only equal or
+        increasing values), else False
+        """
         return self._multiindex.is_monotonic
 
     @cache_readonly
     def is_monotonic_increasing(self):
+        """
+        Return True if the IntervalIndex is monotonic increasing (only equal or
+        increasing values), else False
+        """
         return self._multiindex.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_decreasing(self):
+        """
+        Return True if the IntervalIndex is monotonic decreasing (only equal or
+        decreasing values), else False
+        """
         return self._multiindex.is_monotonic_decreasing
 
     @cache_readonly
     def is_unique(self):
+        """
+        Return True if the IntervalIndex contains unique elements, else False
+        """
         return self._multiindex.is_unique
 
     @cache_readonly
     def is_non_overlapping_monotonic(self):
-        # must be increasing  (e.g., [0, 1), [1, 2), [2, 3), ... )
-        # or decreasing (e.g., [-1, 0), [-2, -1), [-3, -2), ...)
-        # we already require left <= right
-
-        # strict inequality for closed == 'both'; equality implies overlapping
-        # at a point when both sides of intervals are included
-        if self.closed == 'both':
-            return bool((self.right[:-1] < self.left[1:]).all() or
-                        (self.left[:-1] > self.right[1:]).all())
-
-        # non-strict inequality when closed != 'both'; at least one side is
-        # not included in the intervals, so equality does not imply overlapping
-        return bool((self.right[:-1] <= self.left[1:]).all() or
-                    (self.left[:-1] >= self.right[1:]).all())
+        return self._data.is_non_overlapping_monotonic
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -692,9 +546,8 @@ class IntervalIndex(IntervalMixin, Index):
             return
 
         if method in ['bfill', 'backfill', 'pad', 'ffill', 'nearest']:
-            raise NotImplementedError(
-                'method {} not yet implemented for '
-                'IntervalIndex'.format(method))
+            msg = 'method {method} not yet implemented for IntervalIndex'
+            raise NotImplementedError(msg.format(method=method))
 
         raise ValueError("Invalid fill method")
 
@@ -707,8 +560,11 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(label, IntervalMixin):
             raise NotImplementedError
 
+        # GH 20921: "not is_monotonic_increasing" for the second condition
+        # instead of "is_monotonic_decreasing" to account for single element
+        # indexes being both increasing and decreasing
         if ((side == 'left' and self.left.is_monotonic_increasing) or
-                (side == 'right' and self.left.is_monotonic_decreasing)):
+                (side == 'right' and not self.left.is_monotonic_increasing)):
             sub_idx = self.right
             if self.open_right or exclude_label:
                 label = _get_next_label(label)
@@ -773,7 +629,7 @@ class IntervalIndex(IntervalMixin, Index):
         Examples
         ---------
         >>> i1, i2 = pd.Interval(0, 1), pd.Interval(1, 2)
-        >>> index = pd.IntervalIndex.from_intervals([i1, i2])
+        >>> index = pd.IntervalIndex([i1, i2])
         >>> index.get_loc(1)
         0
 
@@ -789,7 +645,7 @@ class IntervalIndex(IntervalMixin, Index):
         relevant intervals.
 
         >>> i3 = pd.Interval(0, 2)
-        >>> overlapping_index = pd.IntervalIndex.from_intervals([i2, i3])
+        >>> overlapping_index = pd.IntervalIndex([i2, i3])
         >>> overlapping_index.get_loc(1.5)
         array([0, 1], dtype=int64)
         """
@@ -833,17 +689,14 @@ class IntervalIndex(IntervalMixin, Index):
         elif isinstance(key, slice):
 
             if not (key.step is None or key.step == 1):
-                raise ValueError("cannot support not-default "
-                                 "step in a slice")
+                raise ValueError("cannot support not-default step in a slice")
 
             try:
                 loc = self.get_loc(key)
             except TypeError:
-
-                # we didn't find exact intervals
-                # or are non-unique
-                raise ValueError("unable to slice with "
-                                 "this key: {}".format(key))
+                # we didn't find exact intervals or are non-unique
+                msg = "unable to slice with this key: {key}".format(key=key)
+                raise ValueError(msg)
 
         else:
             loc = self.get_loc(key)
@@ -853,7 +706,7 @@ class IntervalIndex(IntervalMixin, Index):
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
 
         self._check_method(method)
-        target = _ensure_index(target)
+        target = ensure_index(target)
         target = self._maybe_cast_indexed(target)
 
         if self.equals(target):
@@ -877,7 +730,7 @@ class IntervalIndex(IntervalMixin, Index):
         else:
             indexer = np.concatenate([self.get_loc(i) for i in target])
 
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     def _get_reindexer(self, target):
         """
@@ -896,31 +749,31 @@ class IntervalIndex(IntervalMixin, Index):
         indexer = []
         n = len(self)
 
-        for i, (l, r) in enumerate(zip(lindexer, rindexer)):
+        for i, (lhs, rhs) in enumerate(zip(lindexer, rindexer)):
 
             target_value = target[i]
 
             # matching on the lhs bound
-            if (l != -1 and
+            if (lhs != -1 and
                     self.closed == 'right' and
-                    target_value.left == self[l].right):
-                l += 1
+                    target_value.left == self[lhs].right):
+                lhs += 1
 
             # matching on the lhs bound
-            if (r != -1 and
+            if (rhs != -1 and
                     self.closed == 'left' and
-                    target_value.right == self[r].left):
-                r -= 1
+                    target_value.right == self[rhs].left):
+                rhs -= 1
 
             # not found
-            if l == -1 and r == -1:
+            if lhs == -1 and rhs == -1:
                 indexer.append(np.array([-1]))
 
-            elif r == -1:
+            elif rhs == -1:
 
-                indexer.append(np.arange(l, n))
+                indexer.append(np.arange(lhs, n))
 
-            elif l == -1:
+            elif lhs == -1:
 
                 # care about left/right closed here
                 value = self[i]
@@ -943,16 +796,16 @@ class IntervalIndex(IntervalMixin, Index):
                         indexer.append(np.array([-1]))
                         continue
 
-                indexer.append(np.arange(0, r + 1))
+                indexer.append(np.arange(0, rhs + 1))
 
             else:
-                indexer.append(np.arange(l, r + 1))
+                indexer.append(np.arange(lhs, rhs + 1))
 
         return np.concatenate(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = self._maybe_cast_indexed(_ensure_index(target))
+        target = self._maybe_cast_indexed(ensure_index(target))
         return super(IntervalIndex, self).get_indexer_non_unique(target)
 
     @Appender(_index_shared_docs['where'])
@@ -963,27 +816,60 @@ class IntervalIndex(IntervalMixin, Index):
         return self._shallow_copy(values)
 
     def delete(self, loc):
+        """
+        Return a new IntervalIndex with passed location(-s) deleted
+
+        Returns
+        -------
+        new_index : IntervalIndex
+        """
         new_left = self.left.delete(loc)
         new_right = self.right.delete(loc)
         return self._shallow_copy(new_left, new_right)
 
     def insert(self, loc, item):
-        if not isinstance(item, Interval):
-            raise ValueError('can only insert Interval objects into an '
-                             'IntervalIndex')
-        if not item.closed == self.closed:
-            raise ValueError('inserted item must be closed on the same side '
-                             'as the index')
-        new_left = self.left.insert(loc, item.left)
-        new_right = self.right.insert(loc, item.right)
+        """
+        Return a new IntervalIndex inserting new item at location. Follows
+        Python list.append semantics for negative values.  Only Interval
+        objects and NA can be inserted into an IntervalIndex
+
+        Parameters
+        ----------
+        loc : int
+        item : object
+
+        Returns
+        -------
+        new_index : IntervalIndex
+        """
+        if isinstance(item, Interval):
+            if item.closed != self.closed:
+                raise ValueError('inserted item must be closed on the same '
+                                 'side as the index')
+            left_insert = item.left
+            right_insert = item.right
+        elif is_scalar(item) and isna(item):
+            # GH 18295
+            left_insert = right_insert = item
+        else:
+            raise ValueError('can only insert Interval objects and NA into '
+                             'an IntervalIndex')
+
+        new_left = self.left.insert(loc, left_insert)
+        new_right = self.right.insert(loc, right_insert)
         return self._shallow_copy(new_left, new_right)
 
-    def _as_like_interval_index(self, other, error_msg):
+    def _as_like_interval_index(self, other):
         self._assert_can_do_setop(other)
-        other = _ensure_index(other)
-        if (not isinstance(other, IntervalIndex) or
-                self.closed != other.closed):
-            raise ValueError(error_msg)
+        other = ensure_index(other)
+        if not isinstance(other, IntervalIndex):
+            msg = ('the other index needs to be an IntervalIndex too, but '
+                   'was type {}').format(other.__class__.__name__)
+            raise TypeError(msg)
+        elif self.closed != other.closed:
+            msg = ('can only do set operations between two IntervalIndex '
+                   'objects that are closed on the same side')
+            raise ValueError(msg)
         return other
 
     def _concat_same_dtype(self, to_concat, name):
@@ -991,7 +877,7 @@ class IntervalIndex(IntervalMixin, Index):
         assert that we all have the same .closed
         we allow a 0-len index here as well
         """
-        if not len(set([i.closed for i in to_concat if len(i)])) == 1:
+        if not len({i.closed for i in to_concat if len(i)}) == 1:
             msg = ('can only append two IntervalIndex objects '
                    'that are closed on the same side')
             raise ValueError(msg)
@@ -1000,33 +886,10 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
-        nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
-        left, right = self.left, self.right
-
-        if fill_value is None:
-            fill_value = self._na_value
-        mask = indices == -1
-
-        if not mask.any():
-            # we won't change dtype here in this case
-            # if we don't need
-            allow_fill = False
-
-        taker = lambda x: x.take(indices, allow_fill=allow_fill,
-                                 fill_value=fill_value)
-
-        try:
-            new_left = taker(left)
-            new_right = taker(right)
-        except ValueError:
-
-            # we need to coerce; migth have NA's in an
-            # integer dtype
-            new_left = taker(left.astype(float))
-            new_right = taker(right.astype(float))
-
-        return self._shallow_copy(new_left, new_right)
+        result = self._data.take(indices, axis=axis, allow_fill=allow_fill,
+                                 fill_value=fill_value, **kwargs)
+        attributes = self._get_attributes_dict()
+        return self._simple_new(result, **attributes)
 
     def __getitem__(self, value):
         mask = self._isnan[value]
@@ -1068,41 +931,43 @@ class IntervalIndex(IntervalMixin, Index):
             summary = '[]'
         elif n == 1:
             first = formatter(self[0])
-            summary = '[{}]'.format(first)
+            summary = '[{first}]'.format(first=first)
         elif n == 2:
             first = formatter(self[0])
             last = formatter(self[-1])
-            summary = '[{}, {}]'.format(first, last)
+            summary = '[{first}, {last}]'.format(first=first, last=last)
         else:
 
             if n > max_seq_items:
                 n = min(max_seq_items // 2, 10)
                 head = [formatter(x) for x in self[:n]]
                 tail = [formatter(x) for x in self[-n:]]
-                summary = '[{} ... {}]'.format(', '.join(head),
-                                               ', '.join(tail))
+                summary = '[{head} ... {tail}]'.format(
+                    head=', '.join(head), tail=', '.join(tail))
             else:
-                head = []
                 tail = [formatter(x) for x in self]
-                summary = '[{}]'.format(', '.join(tail))
+                summary = '[{tail}]'.format(tail=', '.join(tail))
 
-        return summary + self._format_space()
+        return summary + ',' + self._format_space()
 
     def _format_attrs(self):
         attrs = [('closed', repr(self.closed))]
         if self.name is not None:
             attrs.append(('name', default_pprint(self.name)))
-        attrs.append(('dtype', "'%s'" % self.dtype))
+        attrs.append(('dtype', "'{dtype}'".format(dtype=self.dtype)))
         return attrs
 
     def _format_space(self):
-        return "\n%s" % (' ' * (len(self.__class__.__name__) + 1))
+        space = ' ' * (len(self.__class__.__name__) + 1)
+        return "\n{space}".format(space=space)
 
     def argsort(self, *args, **kwargs):
         return np.lexsort((self.right, self.left))
 
     def equals(self, other):
-
+        """
+        Determines if two IntervalIndex objects contain the same elements
+        """
         if self.is_(other):
             return True
 
@@ -1119,19 +984,33 @@ class IntervalIndex(IntervalMixin, Index):
 
     def _setop(op_name):
         def func(self, other):
-            msg = ('can only do set operations between two IntervalIndex '
-                   'objects that are closed on the same side')
-            other = self._as_like_interval_index(other, msg)
+            other = self._as_like_interval_index(other)
+
+            # GH 19016: ensure set op will not return a prohibited dtype
+            subtypes = [self.dtype.subtype, other.dtype.subtype]
+            common_subtype = find_common_type(subtypes)
+            if is_object_dtype(common_subtype):
+                msg = ('can only do {op} between two IntervalIndex '
+                       'objects that have compatible dtypes')
+                raise TypeError(msg.format(op=op_name))
+
             result = getattr(self._multiindex, op_name)(other._multiindex)
             result_name = self.name if self.name == other.name else None
-            return type(self).from_tuples(result.values, closed=self.closed,
+
+            # GH 19101: ensure empty results have correct dtype
+            if result.empty:
+                result = result.values.astype(self.dtype.subtype)
+            else:
+                result = result.values
+
+            return type(self).from_tuples(result, closed=self.closed,
                                           name=result_name)
         return func
 
     union = _setop('union')
     intersection = _setop('intersection')
     difference = _setop('difference')
-    symmetric_differnce = _setop('symmetric_difference')
+    symmetric_difference = _setop('symmetric_difference')
 
     # TODO: arithmetic operations
 
@@ -1173,16 +1052,22 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     freq : numeric, string, or DateOffset, default None
         The length of each interval. Must be consistent with the type of start
         and end, e.g. 2 for numeric, or '5H' for datetime-like.  Default is 1
-        for numeric and 'D' (calendar daily) for datetime-like.
+        for numeric and 'D' for datetime-like.
     name : string, default None
         Name of the resulting IntervalIndex
-    closed : string, default 'right'
-        options are: 'left', 'right', 'both', 'neither'
+    closed : {'left', 'right', 'both', 'neither'}, default 'right'
+        Whether the intervals are closed on the left-side, right-side, both
+        or neither.
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``IntervalIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end``, inclusively.
+
+    To learn more about datetime-like frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
@@ -1221,6 +1106,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
                    (2017-03-01, 2017-04-01]]
                   closed='right', dtype='interval[datetime64[ns]]')
 
+    Specify ``start``, ``end``, and ``periods``; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.interval_range(start=0, end=6, periods=4)
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+              closed='right',
+              dtype='interval[float64]')
+
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
@@ -1232,19 +1125,21 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    if com._count_not_none(start, end, periods) != 2:
-        raise ValueError('Of the three parameters: start, end, and periods, '
-                         'exactly two must be specified')
+    start = com.maybe_box_datetimelike(start)
+    end = com.maybe_box_datetimelike(end)
+    endpoint = start if start is not None else end
 
-    start = com._maybe_box_datetimelike(start)
-    end = com._maybe_box_datetimelike(end)
-    endpoint = next(com._not_none(start, end))
+    if freq is None and com._any_none(periods, start, end):
+        freq = 1 if is_number(endpoint) else 'D'
+
+    if com.count_not_none(start, end, periods, freq) != 3:
+        raise ValueError('Of the four parameters: start, end, periods, and '
+                         'freq, exactly three must be specified')
 
     if not _is_valid_endpoint(start):
         msg = 'start must be numeric or datetime-like, got {start}'
         raise ValueError(msg.format(start=start))
-
-    if not _is_valid_endpoint(end):
+    elif not _is_valid_endpoint(end):
         msg = 'end must be numeric or datetime-like, got {end}'
         raise ValueError(msg.format(end=end))
 
@@ -1254,8 +1149,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         msg = 'periods must be a number, got {periods}'
         raise TypeError(msg.format(periods=periods))
 
-    freq = freq or (1 if is_number(endpoint) else 'D')
-    if not is_number(freq):
+    if freq is not None and not is_number(freq):
         try:
             freq = to_offset(freq)
         except ValueError:
@@ -1268,28 +1162,34 @@ def interval_range(start=None, end=None, periods=None, freq=None,
                 _is_type_compatible(end, freq)]):
         raise TypeError("start, end, freq need to be type compatible")
 
+    # +1 to convert interval count to breaks count (n breaks = n-1 intervals)
+    if periods is not None:
+        periods += 1
+
     if is_number(endpoint):
+        # force consistency between start/end/freq (lower end if freq skips it)
+        if com._all_not_none(start, end, freq):
+            end -= (end - start) % freq
+
+        # compute the period/start/end if unspecified (at most one)
         if periods is None:
-            periods = int((end - start) // freq)
+            periods = int((end - start) // freq) + 1
+        elif start is None:
+            start = end - (periods - 1) * freq
+        elif end is None:
+            end = start + (periods - 1) * freq
 
-        if start is None:
-            start = end - periods * freq
-
-        # force end to be consistent with freq (lower if freq skips over end)
-        end = start + periods * freq
-
-        # end + freq for inclusive endpoint
-        breaks = np.arange(start, end + freq, freq)
-    elif isinstance(endpoint, Timestamp):
-        # add one to account for interval endpoints (n breaks = n-1 intervals)
-        if periods is not None:
-            periods += 1
-        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+        breaks = np.linspace(start, end, periods)
+        if all(is_integer(x) for x in com._not_none(start, end, freq)):
+            # np.linspace always produces float output
+            breaks = maybe_downcast_to_dtype(breaks, 'int64')
     else:
-        # add one to account for interval endpoints (n breaks = n-1 intervals)
-        if periods is not None:
-            periods += 1
-        breaks = timedelta_range(start=start, end=end, periods=periods,
-                                 freq=freq)
+        # delegate to the appropriate range function
+        if isinstance(endpoint, Timestamp):
+            range_func = date_range
+        else:
+            range_func = timedelta_range
+
+        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

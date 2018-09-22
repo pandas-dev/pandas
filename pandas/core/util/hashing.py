@@ -4,7 +4,7 @@ data hash pandas / numpy objects
 import itertools
 
 import numpy as np
-from pandas._libs import hashing, tslib
+from pandas._libs import hashing, tslibs
 from pandas.core.dtypes.generic import (
     ABCMultiIndex,
     ABCIndexClass,
@@ -205,12 +205,14 @@ def _hash_categorical(c, encoding, hash_key):
     -------
     ndarray of hashed values array, same size as len(c)
     """
-    hashed = hash_array(c.categories.values, encoding, hash_key,
+    # Convert ExtensionArrays to ndarrays
+    values = np.asarray(c.categories.values)
+    hashed = hash_array(values, encoding, hash_key,
                         categorize=False)
 
     # we have uint64, as we don't directly support missing values
     # we don't want to use take_nd which will coerce to float
-    # instead, directly construt the result with a
+    # instead, directly construct the result with a
     # max(np.uint64) as the missing value indicator
     #
     # TODO: GH 15362
@@ -321,8 +323,8 @@ def _hash_scalar(val, encoding='utf8', hash_key=None):
         # for tz-aware datetimes, we need the underlying naive UTC value and
         # not the tz aware object or pd extension type (as
         # infer_dtype_from_scalar would do)
-        if not isinstance(val, tslib.Timestamp):
-            val = tslib.Timestamp(val)
+        if not isinstance(val, tslibs.Timestamp):
+            val = tslibs.Timestamp(val)
         val = val.tz_convert(None)
 
     dtype, val = infer_dtype_from_scalar(val)

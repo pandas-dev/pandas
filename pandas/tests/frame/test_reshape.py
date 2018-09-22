@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 
 import itertools
@@ -56,6 +56,7 @@ class TestDataFrameReshape(TestData):
 
         with catch_warnings(record=True):
             # pivot multiple columns
+            simplefilter("ignore", FutureWarning)
             wp = tm.makePanel()
             lp = wp.to_frame()
             df = lp.reset_index()
@@ -132,6 +133,30 @@ class TestDataFrameReshape(TestData):
         unstacked_cols_df = stacked_df.unstack(0)
         assert_frame_equal(unstacked_cols.T, df)
         assert_frame_equal(unstacked_cols_df['bar'].T, df)
+
+    def test_stack_mixed_level(self):
+        # GH 18310
+        levels = [range(3), [3, 'a', 'b'], [1, 2]]
+
+        # flat columns:
+        df = DataFrame(1, index=levels[0], columns=levels[1])
+        result = df.stack()
+        expected = Series(1, index=MultiIndex.from_product(levels[:2]))
+        assert_series_equal(result, expected)
+
+        # MultiIndex columns:
+        df = DataFrame(1, index=levels[0],
+                       columns=MultiIndex.from_product(levels[1:]))
+        result = df.stack(1)
+        expected = DataFrame(1, index=MultiIndex.from_product([levels[0],
+                                                               levels[2]]),
+                             columns=levels[1])
+        assert_frame_equal(result, expected)
+
+        # as above, but used labels in level are actually of homogeneous type
+        result = df[['a', 'b']].stack(1)
+        expected = expected[['a', 'b']]
+        assert_frame_equal(result, expected)
 
     def test_unstack_fill(self):
 
@@ -546,6 +571,68 @@ class TestDataFrameReshape(TestData):
         with pytest.raises(ValueError):
             df.T.stack('c1')
 
+    def test_unstack_unused_levels(self):
+        # GH 17845: unused labels in index make unstack() cast int to float
+        idx = pd.MultiIndex.from_product([['a'], ['A', 'B', 'C', 'D']])[:-1]
+        df = pd.DataFrame([[1, 0]] * 3, index=idx)
+
+        result = df.unstack()
+        exp_col = pd.MultiIndex.from_product([[0, 1], ['A', 'B', 'C']])
+        expected = pd.DataFrame([[1, 1, 1, 0, 0, 0]], index=['a'],
+                                columns=exp_col)
+        tm.assert_frame_equal(result, expected)
+        assert((result.columns.levels[1] == idx.levels[1]).all())
+
+        # Unused items on both levels
+        levels = [[0, 1, 7], [0, 1, 2, 3]]
+        labels = [[0, 0, 1, 1], [0, 2, 0, 2]]
+        idx = pd.MultiIndex(levels, labels)
+        block = np.arange(4).reshape(2, 2)
+        df = pd.DataFrame(np.concatenate([block, block + 4]), index=idx)
+        result = df.unstack()
+        expected = pd.DataFrame(np.concatenate([block * 2, block * 2 + 1],
+                                               axis=1),
+                                columns=idx)
+        tm.assert_frame_equal(result, expected)
+        assert((result.columns.levels[1] == idx.levels[1]).all())
+
+        # With mixed dtype and NaN
+        levels = [['a', 2, 'c'], [1, 3, 5, 7]]
+        labels = [[0, -1, 1, 1], [0, 2, -1, 2]]
+        idx = pd.MultiIndex(levels, labels)
+        data = np.arange(8)
+        df = pd.DataFrame(data.reshape(4, 2), index=idx)
+
+        cases = ((0, [13, 16, 6, 9, 2, 5, 8, 11],
+                  [np.nan, 'a', 2], [np.nan, 5, 1]),
+                 (1, [8, 11, 1, 4, 12, 15, 13, 16],
+                  [np.nan, 5, 1], [np.nan, 'a', 2]))
+        for level, idces, col_level, idx_level in cases:
+            result = df.unstack(level=level)
+            exp_data = np.zeros(18) * np.nan
+            exp_data[idces] = data
+            cols = pd.MultiIndex.from_product([[0, 1], col_level])
+            expected = pd.DataFrame(exp_data.reshape(3, 6),
+                                    index=idx_level, columns=cols)
+            tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("cols", [['A', 'C'], slice(None)])
+    def test_unstack_unused_level(self, cols):
+        # GH 18562 : unused labels on the unstacked level
+        df = pd.DataFrame([[2010, 'a', 'I'],
+                           [2011, 'b', 'II']],
+                          columns=['A', 'B', 'C'])
+
+        ind = df.set_index(['A', 'B', 'C'], drop=False)
+        selection = ind.loc[(slice(None), slice(None), 'I'), cols]
+        result = selection.unstack()
+
+        expected = ind.iloc[[0]][cols]
+        expected.columns = MultiIndex.from_product([expected.columns, ['I']],
+                                                   names=[None, 'C'])
+        expected.index = expected.index.droplevel('C')
+        tm.assert_frame_equal(result, expected)
+
     def test_unstack_nan_index(self):  # GH7466
         cast = lambda val: '{0:1}'.format('' if val != val else val)
         nan = np.nan
@@ -637,9 +724,10 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(left, right)
 
         # GH7401
-        df = pd.DataFrame({'A': list('aaaaabbbbb'), 'C': np.arange(10),
+        df = pd.DataFrame({'A': list('aaaaabbbbb'),
                            'B': (date_range('2012-01-01', periods=5)
-                                 .tolist() * 2)})
+                                 .tolist() * 2),
+                           'C': np.arange(10)})
 
         df.iloc[3, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack()
@@ -768,18 +856,58 @@ class TestDataFrameReshape(TestData):
                              dtype=df.dtypes[0])
         assert_frame_equal(result, expected)
 
-    def test_stack_preserve_categorical_dtype(self):
+    @pytest.mark.parametrize('ordered', [False, True])
+    @pytest.mark.parametrize('labels', [list("yxz"), list("yxy")])
+    def test_stack_preserve_categorical_dtype(self, ordered, labels):
         # GH13854
-        for ordered in [False, True]:
-            for labels in [list("yxz"), list("yxy")]:
-                cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
-                                           ordered=ordered)
-                df = DataFrame([[10, 11, 12]], columns=cidx)
-                result = df.stack()
+        cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
+                                   ordered=ordered)
+        df = DataFrame([[10, 11, 12]], columns=cidx)
+        result = df.stack()
 
-                # `MutliIndex.from_product` preserves categorical dtype -
-                # it's tested elsewhere.
-                midx = pd.MultiIndex.from_product([df.index, cidx])
-                expected = Series([10, 11, 12], index=midx)
+        # `MutliIndex.from_product` preserves categorical dtype -
+        # it's tested elsewhere.
+        midx = pd.MultiIndex.from_product([df.index, cidx])
+        expected = Series([10, 11, 12], index=midx)
 
-                tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("level", [0, 'baz'])
+    def test_unstack_swaplevel_sortlevel(self, level):
+        # GH 20994
+        mi = pd.MultiIndex.from_product([[0], ['d', 'c']],
+                                        names=['bar', 'baz'])
+        df = pd.DataFrame([[0, 2], [1, 3]], index=mi, columns=['B', 'A'])
+        df.columns.name = 'foo'
+
+        expected = pd.DataFrame([
+            [3, 1, 2, 0]], columns=pd.MultiIndex.from_tuples([
+                ('c', 'A'), ('c', 'B'), ('d', 'A'), ('d', 'B')], names=[
+                    'baz', 'foo']))
+        expected.index.name = 'bar'
+
+        result = df.unstack().swaplevel(axis=1).sort_index(axis=1, level=level)
+        tm.assert_frame_equal(result, expected)
+
+
+def test_unstack_fill_frame_object():
+    # GH12815 Test unstacking with object.
+    data = pd.Series(['a', 'b', 'c', 'a'], dtype='object')
+    data.index = pd.MultiIndex.from_tuples(
+        [('x', 'a'), ('x', 'b'), ('y', 'b'), ('z', 'a')])
+
+    # By default missing values will be NaN
+    result = data.unstack()
+    expected = pd.DataFrame(
+        {'a': ['a', np.nan, 'a'], 'b': ['b', 'c', np.nan]},
+        index=list('xyz')
+    )
+    assert_frame_equal(result, expected)
+
+    # Fill with any value replaces missing values as expected
+    result = data.unstack(fill_value='d')
+    expected = pd.DataFrame(
+        {'a': ['a', 'd', 'a'], 'b': ['b', 'c', 'd']},
+        index=list('xyz')
+    )
+    assert_frame_equal(result, expected)

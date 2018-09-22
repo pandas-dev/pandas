@@ -17,13 +17,14 @@ from pandas.util.testing import (assert_series_equal,
                                  makeCustomDataframe as mkdf)
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 
 from pandas.tests.frame.common import TestData
 
 
 PARSERS = 'python', 'pandas'
-ENGINES = 'python', 'numexpr'
+ENGINES = 'python', pytest.param('numexpr', marks=td.skip_if_no_ne)
 
 
 @pytest.fixture(params=PARSERS, ids=lambda x: x)
@@ -39,13 +40,6 @@ def engine(request):
 def skip_if_no_pandas_parser(parser):
     if parser != 'pandas':
         pytest.skip("cannot evaluate with parser {0!r}".format(parser))
-
-
-def skip_if_no_ne(engine='numexpr'):
-    if engine == 'numexpr':
-        if not _NUMEXPR_INSTALLED:
-            pytest.skip("cannot query engine numexpr when numexpr not "
-                        "installed")
 
 
 class TestCompat(object):
@@ -175,7 +169,6 @@ class TestDataFrameEval(TestData):
 class TestDataFrameQueryWithMultiIndex(object):
 
     def test_query_with_named_multiindex(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         skip_if_no_pandas_parser(parser)
         a = np.random.choice(['red', 'green'], size=10)
         b = np.random.choice(['eggs', 'ham'], size=10)
@@ -225,7 +218,6 @@ class TestDataFrameQueryWithMultiIndex(object):
         assert_frame_equal(res2, exp)
 
     def test_query_with_unnamed_multiindex(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         skip_if_no_pandas_parser(parser)
         a = np.random.choice(['red', 'green'], size=10)
         b = np.random.choice(['eggs', 'ham'], size=10)
@@ -316,7 +308,6 @@ class TestDataFrameQueryWithMultiIndex(object):
         assert_frame_equal(res2, exp)
 
     def test_query_with_partially_named_multiindex(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         skip_if_no_pandas_parser(parser)
         a = np.random.choice(['red', 'green'], size=10)
         b = np.arange(10)
@@ -369,28 +360,21 @@ class TestDataFrameQueryWithMultiIndex(object):
             else:
                 raise AssertionError("object must be a Series or Index")
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_raise_on_panel_with_multiindex(self, parser, engine):
-        tm.skip_if_no_ne()
         p = tm.makePanel(7)
         p.items = tm.makeCustomIndex(len(p.items), nlevels=2)
         with pytest.raises(NotImplementedError):
             pd.eval('p + 1', parser=parser, engine=engine)
 
-    def test_raise_on_panel4d_with_multiindex(self, parser, engine):
-        tm.skip_if_no_ne()
-        p4d = tm.makePanel4D(7)
-        p4d.items = tm.makeCustomIndex(len(p4d.items), nlevels=2)
-        with pytest.raises(NotImplementedError):
-            pd.eval('p4d + 1', parser=parser, engine=engine)
 
-
+@td.skip_if_no_ne
 class TestDataFrameQueryNumExprPandas(object):
 
     @classmethod
     def setup_class(cls):
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
-        tm.skip_if_no_ne(cls.engine)
 
     @classmethod
     def teardown_class(cls):
@@ -480,9 +464,13 @@ class TestDataFrameQueryNumExprPandas(object):
         df = DataFrame({'dates': date_range('1/1/2012', periods=n),
                         'nondate': np.arange(n)})
 
-        ops = '==', '!=', '<', '>', '<=', '>='
+        result = df.query('dates == nondate', parser=parser, engine=engine)
+        assert len(result) == 0
 
-        for op in ops:
+        result = df.query('dates != nondate', parser=parser, engine=engine)
+        assert_frame_equal(result, df)
+
+        for op in ['<', '>', '<=', '>=']:
             with pytest.raises(TypeError):
                 df.query('dates %s nondate' % op, parser=parser, engine=engine)
 
@@ -714,6 +702,7 @@ class TestDataFrameQueryNumExprPandas(object):
             assert_frame_equal(result, expected)
 
 
+@td.skip_if_no_ne
 class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
 
     @classmethod
@@ -721,7 +710,6 @@ class TestDataFrameQueryNumExprPython(TestDataFrameQueryNumExprPandas):
         super(TestDataFrameQueryNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
-        tm.skip_if_no_ne(cls.engine)
         cls.frame = TestData().frame
 
     def test_date_query_no_attribute_access(self):
@@ -859,7 +847,6 @@ class TestDataFrameQueryPythonPython(TestDataFrameQueryNumExprPython):
 class TestDataFrameQueryStrings(object):
 
     def test_str_query_method(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         df = DataFrame(randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings == 'a']
@@ -896,7 +883,6 @@ class TestDataFrameQueryStrings(object):
             assert_frame_equal(res, df[~df.strings.isin(['a'])])
 
     def test_str_list_query_method(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         df = DataFrame(randn(10, 1), columns=['b'])
         df['strings'] = Series(list('aabbccddee'))
         expect = df[df.strings.isin(['a', 'b'])]
@@ -935,7 +921,6 @@ class TestDataFrameQueryStrings(object):
             assert_frame_equal(res, expect)
 
     def test_query_with_string_columns(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         df = DataFrame({'a': list('aaaabbbbcccc'),
                         'b': list('aabbccddeeff'),
                         'c': np.random.randint(5, size=12),
@@ -956,7 +941,6 @@ class TestDataFrameQueryStrings(object):
                 df.query('a in b and c < d', parser=parser, engine=engine)
 
     def test_object_array_eq_ne(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         df = DataFrame({'a': list('aaaabbbbcccc'),
                         'b': list('aabbccddeeff'),
                         'c': np.random.randint(5, size=12),
@@ -970,7 +954,6 @@ class TestDataFrameQueryStrings(object):
         assert_frame_equal(res, exp)
 
     def test_query_with_nested_strings(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         skip_if_no_pandas_parser(parser)
         raw = """id          event          timestamp
         1   "page 1 load"   1/1/2014 0:00:01
@@ -995,7 +978,6 @@ class TestDataFrameQueryStrings(object):
 
     def test_query_with_nested_special_character(self, parser, engine):
         skip_if_no_pandas_parser(parser)
-        tm.skip_if_no_ne(engine)
         df = DataFrame({'a': ['a', 'b', 'test & test'],
                         'b': [1, 2, 3]})
         res = df.query('a == "test & test"', parser=parser, engine=engine)
@@ -1003,7 +985,6 @@ class TestDataFrameQueryStrings(object):
         assert_frame_equal(res, expec)
 
     def test_query_lex_compare_strings(self, parser, engine):
-        tm.skip_if_no_ne(engine=engine)
         import operator as opr
 
         a = Series(np.random.choice(list('abcde'), 20))
@@ -1018,7 +999,6 @@ class TestDataFrameQueryStrings(object):
             assert_frame_equal(res, expected)
 
     def test_query_single_element_booleans(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         columns = 'bid', 'bidsize', 'ask', 'asksize'
         data = np.random.randint(2, size=(1, len(columns))).astype(bool)
         df = DataFrame(data, columns=columns)
@@ -1027,7 +1007,6 @@ class TestDataFrameQueryStrings(object):
         assert_frame_equal(res, expected)
 
     def test_query_string_scalar_variable(self, parser, engine):
-        tm.skip_if_no_ne(engine)
         skip_if_no_pandas_parser(parser)
         df = pd.DataFrame({'Symbol': ['BUD US', 'BUD US', 'IBM US', 'IBM US'],
                            'Price': [109.70, 109.72, 183.30, 183.35]})
@@ -1037,13 +1016,7 @@ class TestDataFrameQueryStrings(object):
         assert_frame_equal(e, r)
 
 
-class TestDataFrameEvalNumExprPandas(object):
-
-    @classmethod
-    def setup_class(cls):
-        cls.engine = 'numexpr'
-        cls.parser = 'pandas'
-        tm.skip_if_no_ne()
+class TestDataFrameEvalWithFrame(object):
 
     def setup_method(self, method):
         self.frame = DataFrame(randn(10, 3), columns=list('abc'))
@@ -1051,49 +1024,20 @@ class TestDataFrameEvalNumExprPandas(object):
     def teardown_method(self, method):
         del self.frame
 
-    def test_simple_expr(self):
-        res = self.frame.eval('a + b', engine=self.engine, parser=self.parser)
+    def test_simple_expr(self, parser, engine):
+        res = self.frame.eval('a + b', engine=engine, parser=parser)
         expect = self.frame.a + self.frame.b
         assert_series_equal(res, expect)
 
-    def test_bool_arith_expr(self):
-        res = self.frame.eval('a[a < 1] + b', engine=self.engine,
-                              parser=self.parser)
+    def test_bool_arith_expr(self, parser, engine):
+        res = self.frame.eval('a[a < 1] + b', engine=engine, parser=parser)
         expect = self.frame.a[self.frame.a < 1] + self.frame.b
         assert_series_equal(res, expect)
 
-    def test_invalid_type_for_operator_raises(self):
+    @pytest.mark.parametrize('op', ['+', '-', '*', '/'])
+    def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({'a': [1, 2], 'b': ['c', 'd']})
-        ops = '+', '-', '*', '/'
-        for op in ops:
-            with tm.assert_raises_regex(TypeError,
-                                        "unsupported operand type\(s\) "
-                                        "for .+: '.+' and '.+'"):
-                df.eval('a {0} b'.format(op), engine=self.engine,
-                        parser=self.parser)
-
-
-class TestDataFrameEvalNumExprPython(TestDataFrameEvalNumExprPandas):
-
-    @classmethod
-    def setup_class(cls):
-        super(TestDataFrameEvalNumExprPython, cls).setup_class()
-        cls.engine = 'numexpr'
-        cls.parser = 'python'
-        tm.skip_if_no_ne(cls.engine)
-
-
-class TestDataFrameEvalPythonPandas(TestDataFrameEvalNumExprPandas):
-
-    @classmethod
-    def setup_class(cls):
-        super(TestDataFrameEvalPythonPandas, cls).setup_class()
-        cls.engine = 'python'
-        cls.parser = 'pandas'
-
-
-class TestDataFrameEvalPythonPython(TestDataFrameEvalNumExprPython):
-
-    @classmethod
-    def setup_class(cls):
-        cls.engine = cls.parser = 'python'
+        with tm.assert_raises_regex(TypeError,
+                                    r"unsupported operand type\(s\) "
+                                    "for .+: '.+' and '.+'"):
+            df.eval('a {0} b'.format(op), engine=engine, parser=parser)

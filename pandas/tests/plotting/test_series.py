@@ -3,7 +3,7 @@
 """ Test cases for Series.plot """
 
 
-import itertools
+from itertools import chain
 import pytest
 
 from datetime import datetime
@@ -12,6 +12,7 @@ import pandas as pd
 from pandas import Series, DataFrame, date_range
 from pandas.compat import range, lrange
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy.random import randn
@@ -21,9 +22,8 @@ from pandas.tests.plotting.common import (TestPlotBase, _check_plot_works,
                                           _skip_if_no_scipy_gaussian_kde,
                                           _ok_for_gaussian_kde)
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
     def setup_method(self, method):
@@ -333,8 +333,7 @@ class TestSeriesPlots(TestPlotBase):
                                autopct='%.2f', fontsize=7)
         pcts = ['{0:.2f}'.format(s * 100)
                 for s in series.values / float(series.sum())]
-        iters = [iter(series.index), iter(pcts)]
-        expected_texts = list(next(it) for it in itertools.cycle(iters))
+        expected_texts = list(chain.from_iterable(zip(series.index, pcts)))
         self._check_text_labels(ax.texts, expected_texts)
         for t in ax.texts:
             assert t.get_fontsize() == 7
@@ -590,6 +589,7 @@ class TestSeriesPlots(TestPlotBase):
             x.plot(style='k--', color='k', ax=ax)
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -603,7 +603,6 @@ class TestSeriesPlots(TestPlotBase):
         ylabels = ax.get_yticklabels()
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _check_plot_works(self.ts.plot.kde)
         _check_plot_works(self.ts.plot.density)
@@ -616,26 +615,28 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_kwargs(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
 
-        from numpy import linspace
-        _check_plot_works(self.ts.plot.kde, bw_method=.5,
-                          ind=linspace(-100, 100, 20))
+        sample_points = np.linspace(-100, 100, 20)
+        _check_plot_works(self.ts.plot.kde, bw_method='scott', ind=20)
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=20)
+        _check_plot_works(self.ts.plot.kde, bw_method=None, ind=np.int(20))
+        _check_plot_works(self.ts.plot.kde, bw_method=.5, ind=sample_points)
         _check_plot_works(self.ts.plot.density, bw_method=.5,
-                          ind=linspace(-100, 100, 20))
+                          ind=sample_points)
         _, ax = self.plt.subplots()
-        ax = self.ts.plot.kde(logy=True, bw_method=.5,
-                              ind=linspace(-100, 100, 20), ax=ax)
+        ax = self.ts.plot.kde(logy=True, bw_method=.5, ind=sample_points,
+                              ax=ax)
         self._check_ax_scales(ax, yaxis='log')
         self._check_text_labels(ax.yaxis.get_label(), 'Density')
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_kde_missing_vals(self):
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -666,6 +667,7 @@ class TestSeriesPlots(TestPlotBase):
             tm.close()
 
     @pytest.mark.slow
+    @td.skip_if_no_scipy
     def test_hist_kde_color(self):
         if not self.mpl_ge_1_5_0:
             pytest.skip("mpl is not supported")
@@ -676,7 +678,6 @@ class TestSeriesPlots(TestPlotBase):
         assert len(ax.patches) == 10
         self._check_colors(ax.patches, facecolors=['b'] * 10)
 
-        tm._skip_if_no_scipy()
         _skip_if_no_scipy_gaussian_kde()
         _, ax = self.plt.subplots()
         ax = self.ts.plot.kde(logy=True, color='r', ax=ax)
@@ -791,6 +792,7 @@ class TestSeriesPlots(TestPlotBase):
         with pytest.raises((ValueError, TypeError)):
             s.plot(yerr=s_err)
 
+    @td.xfail_if_mpl_2_2
     def test_table(self):
         _check_plot_works(self.series.plot, table=True)
         _check_plot_works(self.series.plot, table=self.series)

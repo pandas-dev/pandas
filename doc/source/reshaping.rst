@@ -41,7 +41,7 @@ Data is often stored in CSV files or databases in so-called "stacked" or
    df
 
 
-For the curious here is how the above DataFrame was created:
+For the curious here is how the above ``DataFrame`` was created:
 
 .. code-block:: python
 
@@ -60,18 +60,21 @@ To select out everything for variable ``A`` we could do:
 
    df[df['variable'] == 'A']
 
+.. image:: _static/reshaping_pivot.png
+
 But suppose we wish to do time series operations with the variables. A better
 representation would be where the ``columns`` are the unique variables and an
 ``index`` of dates identifies individual observations. To reshape the data into
-this form, use the ``pivot`` function:
+this form, we use the :meth:`DataFrame.pivot` method (also implemented as a
+top level function :func:`~pandas.pivot`):
 
 .. ipython:: python
 
    df.pivot(index='date', columns='variable', values='value')
 
-If the ``values`` argument is omitted, and the input DataFrame has more than
+If the ``values`` argument is omitted, and the input ``DataFrame`` has more than
 one column of values which are not used as column or index inputs to ``pivot``,
-then the resulting "pivoted" DataFrame will have :ref:`hierarchical columns
+then the resulting "pivoted" ``DataFrame`` will have :ref:`hierarchical columns
 <advanced.hierarchical>` whose topmost level indicates the respective value
 column:
 
@@ -81,7 +84,7 @@ column:
    pivoted = df.pivot('date', 'variable')
    pivoted
 
-You of course can then select subsets from the pivoted DataFrame:
+You can then select subsets from the pivoted ``DataFrame``:
 
 .. ipython:: python
 
@@ -95,18 +98,22 @@ are homogeneously-typed.
 Reshaping by stacking and unstacking
 ------------------------------------
 
-Closely related to the ``pivot`` function are the related ``stack`` and
-``unstack`` functions currently available on Series and DataFrame. These
-functions are designed to work together with ``MultiIndex`` objects (see the
-section on :ref:`hierarchical indexing <advanced.hierarchical>`). Here are
-essentially what these functions do:
+.. image:: _static/reshaping_stack.png
 
-  - ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
-    returning a DataFrame with an index with a new inner-most level of row
-    labels.
-  - ``unstack``: inverse operation from ``stack``: "pivot" a level of the
-    (possibly hierarchical) row index to the column axis, producing a reshaped
-    DataFrame with a new inner-most level of column labels.
+Closely related to the :meth:`~DataFrame.pivot` method are the related
+:meth:`~DataFrame.stack` and :meth:`~DataFrame.unstack` methods available on
+``Series`` and ``DataFrame``. These methods are designed to work together with
+``MultiIndex`` objects (see the section on :ref:`hierarchical indexing
+<advanced.hierarchical>`). Here are essentially what these methods do:
+
+* ``stack``: "pivot" a level of the (possibly hierarchical) column labels,
+  returning a ``DataFrame`` with an index with a new inner-most level of row
+  labels.
+* ``unstack``: (inverse operation of ``stack``) "pivot" a level of the
+  (possibly hierarchical) row index to the column axis, producing a reshaped
+  ``DataFrame`` with a new inner-most level of column labels.
+
+.. image:: _static/reshaping_unstack.png
 
 The clearest way to explain is by example. Let's take a prior example data set
 from the hierarchical indexing section:
@@ -122,11 +129,11 @@ from the hierarchical indexing section:
    df2 = df[:4]
    df2
 
-The ``stack`` function "compresses" a level in the DataFrame's columns to
+The ``stack`` function "compresses" a level in the ``DataFrame``'s columns to
 produce either:
 
-  - A Series, in the case of a simple column Index
-  - A DataFrame, in the case of a ``MultiIndex`` in the columns
+* A ``Series``, in the case of a simple column Index.
+* A ``DataFrame``, in the case of a ``MultiIndex`` in the columns.
 
 If the columns have a ``MultiIndex``, you can choose which level to stack. The
 stacked level becomes the new lowest level in a ``MultiIndex`` on the columns:
@@ -136,7 +143,7 @@ stacked level becomes the new lowest level in a ``MultiIndex`` on the columns:
    stacked = df2.stack()
    stacked
 
-With a "stacked" DataFrame or Series (having a ``MultiIndex`` as the
+With a "stacked" ``DataFrame`` or ``Series`` (having a ``MultiIndex`` as the
 ``index``), the inverse operation of ``stack`` is ``unstack``, which by default
 unstacks the **last level**:
 
@@ -148,6 +155,8 @@ unstacks the **last level**:
 
 .. _reshaping.unstack_by_name:
 
+.. image:: _static/reshaping_unstack_1.png
+
 If the indexes have names, you can use the level names instead of specifying
 the level numbers:
 
@@ -155,9 +164,12 @@ the level numbers:
 
    stacked.unstack('second')
 
+
+.. image:: _static/reshaping_unstack_0.png
+
 Notice that the ``stack`` and ``unstack`` methods implicitly sort the index
 levels involved. Hence a call to ``stack`` and then ``unstack``, or vice versa,
-will result in a **sorted** copy of the original DataFrame or Series:
+will result in a **sorted** copy of the original ``DataFrame`` or ``Series``:
 
 .. ipython:: python
 
@@ -166,7 +178,7 @@ will result in a **sorted** copy of the original DataFrame or Series:
    df
    all(df.unstack().stack() == df.sort_index())
 
-while the above code will raise a ``TypeError`` if the call to ``sort_index`` is
+The above code will raise a ``TypeError`` if the call to ``sort_index`` is
 removed.
 
 .. _reshaping.stack_multiple:
@@ -240,7 +252,7 @@ values will be set to ``NaN``.
    df3
    df3.unstack()
 
-.. versionadded: 0.18.0
+.. versionadded:: 0.18.0
 
 Alternatively, unstack takes an optional ``fill_value`` argument, for specifying
 the value of missing data.
@@ -265,12 +277,14 @@ the right thing:
 Reshaping by Melt
 -----------------
 
-The top-level :func:`melt` and :func:`~DataFrame.melt` functions are useful to
-massage a DataFrame into a format where one or more columns are identifier variables,
-while all other columns, considered measured variables, are "unpivoted" to the
-row axis, leaving just two non-identifier columns, "variable" and "value". The
-names of those columns can be customized by supplying the ``var_name`` and
-``value_name`` parameters.
+.. image:: _static/reshaping_melt.png
+
+The top-level :func:`~pandas.melt` function and the corresponding :meth:`DataFrame.melt`
+are useful to massage a ``DataFrame`` into a format where one or more columns
+are *identifier variables*, while all other columns, considered *measured
+variables*, are "unpivoted" to the row axis, leaving just two non-identifier
+columns, "variable" and "value". The names of those columns can be customized
+by supplying the ``var_name`` and ``value_name`` parameters.
 
 For instance,
 
@@ -284,8 +298,9 @@ For instance,
    cheese.melt(id_vars=['first', 'last'])
    cheese.melt(id_vars=['first', 'last'], var_name='quantity')
 
-Another way to transform is to use the ``wide_to_long`` panel data convenience
-function.
+Another way to transform is to use the :func:`~pandas.wide_to_long` panel data
+convenience function. It is less flexible than :func:`~pandas.melt`, but more
+user-friendly.
 
 .. ipython:: python
 
@@ -324,22 +339,25 @@ Pivot tables
 
 .. _reshaping.pivot:
 
-While ``pivot`` provides general purpose pivoting of DataFrames with various
-data types (strings, numerics, etc.), Pandas also provides the ``pivot_table``
-function for pivoting with aggregation of numeric data.
 
-The function ``pandas.pivot_table`` can be used to create spreadsheet-style pivot
-tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced strategies
 
-It takes a number of arguments
+While :meth:`~DataFrame.pivot` provides general purpose pivoting with various
+data types (strings, numerics, etc.), pandas also provides :func:`~pandas.pivot_table`
+for pivoting with aggregation of numeric data.
 
-- ``data``: A DataFrame object
-- ``values``: a column or a list of columns to aggregate
-- ``index``: a column, Grouper, array which has the same length as data, or list of them.
+The function :func:`~pandas.pivot_table` can be used to create spreadsheet-style
+pivot tables. See the :ref:`cookbook<cookbook.pivot>` for some advanced
+strategies.
+
+It takes a number of arguments:
+
+* ``data``: a DataFrame object.
+* ``values``: a column or a list of columns to aggregate.
+* ``index``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table index. If an array is passed, it is being used as the same manner as column values.
-- ``columns``: a column, Grouper, array which has the same length as data, or list of them.
+* ``columns``: a column, Grouper, array which has the same length as data, or list of them.
   Keys to group by on the pivot table column. If an array is passed, it is being used as the same manner as column values.
-- ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``
+* ``aggfunc``: function to use for aggregation, defaulting to ``numpy.mean``.
 
 Consider a data set like this:
 
@@ -363,7 +381,7 @@ We can produce pivot tables from this data very easily:
    pd.pivot_table(df, values='D', index=['B'], columns=['A', 'C'], aggfunc=np.sum)
    pd.pivot_table(df, values=['D','E'], index=['B'], columns=['A', 'C'], aggfunc=np.sum)
 
-The result object is a DataFrame having potentially hierarchical indexes on the
+The result object is a ``DataFrame`` having potentially hierarchical indexes on the
 rows and columns. If the ``values`` column name is not given, the pivot table
 will include all of the data that can be aggregated in an additional level of
 hierarchy in the columns:
@@ -386,7 +404,8 @@ calling ``to_string`` if you wish:
    table = pd.pivot_table(df, index=['A', 'B'], columns=['C'])
    print(table.to_string(na_rep=''))
 
-Note that ``pivot_table`` is also available as an instance method on DataFrame.
+Note that ``pivot_table`` is also available as an instance method on DataFrame,
+ i.e. :meth:`DataFrame.pivot_table`.
 
 .. _reshaping.pivot.margins:
 
@@ -406,27 +425,27 @@ rows and columns:
 Cross tabulations
 -----------------
 
-Use the ``crosstab`` function to compute a cross-tabulation of two (or more)
+Use :func:`~pandas.crosstab` to compute a cross-tabulation of two (or more)
 factors. By default ``crosstab`` computes a frequency table of the factors
 unless an array of values and an aggregation function are passed.
 
 It takes a number of arguments
 
-- ``index``: array-like, values to group by in the rows
-- ``columns``: array-like, values to group by in the columns
-- ``values``: array-like, optional, array of values to aggregate according to
-  the factors
-- ``aggfunc``: function, optional, If no values array is passed, computes a
-  frequency table
-- ``rownames``: sequence, default ``None``, must match number of row arrays passed
-- ``colnames``: sequence, default ``None``, if passed, must match number of column
-  arrays passed
-- ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
-- ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
+* ``index``: array-like, values to group by in the rows.
+* ``columns``: array-like, values to group by in the columns.
+* ``values``: array-like, optional, array of values to aggregate according to
+  the factors.
+* ``aggfunc``: function, optional, If no values array is passed, computes a
+  frequency table.
+* ``rownames``: sequence, default ``None``, must match number of row arrays passed.
+* ``colnames``: sequence, default ``None``, if passed, must match number of column
+  arrays passed.
+* ``margins``: boolean, default ``False``, Add row/column margins (subtotals)
+* ``normalize``: boolean, {'all', 'index', 'columns'}, or {0,1}, default ``False``.
   Normalize by dividing all values by the sum of values.
 
 
-Any Series passed will have their name attributes used unless row or column
+Any ``Series`` passed will have their name attributes used unless row or column
 names for the cross-tabulation are specified
 
 For example:
@@ -478,9 +497,9 @@ using the ``normalize`` argument:
 
    pd.crosstab(df.A, df.B, normalize='columns')
 
-``crosstab`` can also be passed a third Series and an aggregation function
-(``aggfunc``) that will be applied to the values of the third Series within each
-group defined by the first two Series:
+``crosstab`` can also be passed a third ``Series`` and an aggregation function
+(``aggfunc``) that will be applied to the values of the third ``Series`` within
+each group defined by the first two ``Series``:
 
 .. ipython:: python
 
@@ -502,9 +521,9 @@ Finally, one can also add margins or normalize this output.
 Tiling
 ------
 
-The ``cut`` function computes groupings for the values of the input array and
-is often used to transform continuous variables to discrete or categorical
-variables:
+The :func:`~pandas.cut` function computes groupings for the values of the input
+array and is often used to transform continuous variables to discrete or
+categorical variables:
 
 .. ipython:: python
 
@@ -523,7 +542,7 @@ Alternatively we can specify custom bin-edges:
 .. versionadded:: 0.20.0
 
 If the ``bins`` keyword is an ``IntervalIndex``, then these will be
-used to bin the passed data.
+used to bin the passed data.::
 
    pd.cut([25, 20, 50], bins=c.categories)
 
@@ -533,9 +552,10 @@ used to bin the passed data.
 Computing indicator / dummy variables
 -------------------------------------
 
-To convert a categorical variable into a "dummy" or "indicator" DataFrame, for example
-a column in a DataFrame (a Series) which has ``k`` distinct values, can derive a DataFrame
-containing ``k`` columns of 1s and 0s:
+To convert a categorical variable into a "dummy" or "indicator" ``DataFrame``,
+for example a column in a ``DataFrame`` (a ``Series``) which has ``k`` distinct
+values, can derive a ``DataFrame`` containing ``k`` columns of 1s and 0s using
+:func:`~pandas.get_dummies`:
 
 .. ipython:: python
 
@@ -544,7 +564,7 @@ containing ``k`` columns of 1s and 0s:
    pd.get_dummies(df['key'])
 
 Sometimes it's useful to prefix the column names, for example when merging the result
-with the original DataFrame:
+with the original ``DataFrame``:
 
 .. ipython:: python
 
@@ -569,9 +589,9 @@ This function is often used along with discretization functions like ``cut``:
 
 See also :func:`Series.str.get_dummies <pandas.Series.str.get_dummies>`.
 
-:func:`get_dummies` also accepts a DataFrame. By default all categorical
-variables (categorical in the statistical sense,
-those with `object` or `categorical` dtype) are encoded as dummy variables.
+:func:`get_dummies` also accepts a ``DataFrame``. By default all categorical
+variables (categorical in the statistical sense, those with `object` or
+`categorical` dtype) are encoded as dummy variables.
 
 
 .. ipython:: python
@@ -580,9 +600,8 @@ those with `object` or `categorical` dtype) are encoded as dummy variables.
                        'C': [1, 2, 3]})
     pd.get_dummies(df)
 
-All non-object columns are included untouched in the output.
-
-You can control the columns that are encoded with the ``columns`` keyword.
+All non-object columns are included untouched in the output. You can control
+the columns that are encoded with the ``columns`` keyword.
 
 .. ipython:: python
 
@@ -592,14 +611,14 @@ Notice that the ``B`` column is still included in the output, it just hasn't
 been encoded. You can drop ``B`` before calling ``get_dummies`` if you don't
 want to include it in the output.
 
-As with the Series version, you can pass values for the ``prefix`` and
+As with the ``Series`` version, you can pass values for the ``prefix`` and
 ``prefix_sep``. By default the column name is used as the prefix, and '_' as
-the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways
+the prefix separator. You can specify ``prefix`` and ``prefix_sep`` in 3 ways:
 
-- string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
-  to be encoded
-- list: Must be the same length as the number of columns being encoded.
-- dict: Mapping column name to prefix
+* string: Use the same value for ``prefix`` or ``prefix_sep`` for each column
+  to be encoded.
+* list: Must be the same length as the number of columns being encoded.
+* dict: Mapping column name to prefix.
 
 .. ipython:: python
 
@@ -634,12 +653,24 @@ When a column contains only one level, it will be omitted in the result.
 
     pd.get_dummies(df, drop_first=True)
 
+By default new columns will have ``np.uint8`` dtype.
+To choose another dtype, use the ``dtype`` argument:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abc'), 'B': [1.1, 2.2, 3.3]})
+
+    pd.get_dummies(df, dtype=bool).dtypes
+
+.. versionadded:: 0.23.0
+
+
 .. _reshaping.factorize:
 
 Factorizing values
 ------------------
 
-To encode 1-d values as an enumerated type use ``factorize``:
+To encode 1-d values as an enumerated type use :func:`~pandas.factorize`:
 
 .. ipython:: python
 
@@ -655,7 +686,7 @@ handling of NaN:
 .. note::
    The following ``numpy.unique`` will fail under Python 3 with a ``TypeError``
    because of an ordering bug. See also
-   `Here <https://github.com/numpy/numpy/issues/641>`__
+   `here <https://github.com/numpy/numpy/issues/641>`__.
 
 .. code-block:: ipython
 

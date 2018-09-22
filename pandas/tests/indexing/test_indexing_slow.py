@@ -12,6 +12,7 @@ import pytest
 class TestIndexingSlow(object):
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 
         with warnings.catch_warnings(record=True):
@@ -70,7 +71,7 @@ class TestIndexingSlow(object):
             keys += list(map(lambda t: t[:-1], vals[::n // m]))
 
             # covers both unique index and non-unique index
-            df = pd.DataFrame(vals, columns=cols)
+            df = DataFrame(vals, columns=cols)
             a, b = pd.concat([df, df]), df.drop_duplicates(subset=cols[:-1])
 
             for frame in a, b:

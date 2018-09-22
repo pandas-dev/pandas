@@ -8,16 +8,15 @@ import numpy as np
 import warnings
 
 import pandas as pd
-from pandas.core.base import PandasObject
+from pandas.core.base import PandasObject, IndexOpsMixin
 
 from pandas import compat
-from pandas.compat import range
+from pandas.compat import range, PYPY
 from pandas.compat.numpy import function as nv
 
-from pandas.core.dtypes.generic import (
-    ABCSparseArray, ABCSparseSeries)
+from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
     is_integer_dtype,
@@ -27,10 +26,12 @@ from pandas.core.dtypes.common import (
     is_scalar, is_dtype_equal)
 from pandas.core.dtypes.cast import (
     maybe_convert_platform, maybe_promote,
-    astype_nansafe, find_common_type)
+    astype_nansafe, find_common_type, infer_dtype_from_scalar,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
 
 import pandas._libs.sparse as splib
+import pandas._libs.lib as lib
 from pandas._libs.sparse import SparseIndex, BlockIndex, IntIndex
 from pandas._libs import index as libindex
 import pandas.core.algorithms as algos
@@ -43,39 +44,6 @@ from pandas.core.indexes.base import _index_shared_docs
 _sparray_doc_kwargs = dict(klass='SparseArray')
 
 
-def _arith_method(op, name, str_rep=None, default_axis=None, fill_zeros=None,
-                  **eval_kwargs):
-    """
-    Wrapper function for Series arithmetic operations, to avoid
-    code duplication.
-    """
-
-    def wrapper(self, other):
-        if isinstance(other, np.ndarray):
-            if len(self) != len(other):
-                raise AssertionError("length mismatch: {self} vs. {other}"
-                                     .format(self=len(self), other=len(other)))
-            if not isinstance(other, ABCSparseArray):
-                dtype = getattr(other, 'dtype', None)
-                other = SparseArray(other, fill_value=self.fill_value,
-                                    dtype=dtype)
-            return _sparse_array_op(self, other, op, name)
-        elif is_scalar(other):
-            with np.errstate(all='ignore'):
-                fill = op(_get_fill(self), np.asarray(other))
-                result = op(self.sp_values, other)
-
-            return _wrap_result(name, result, self.sp_index, fill)
-        else:  # pragma: no cover
-            raise TypeError('operation with {other} not supported'
-                            .format(other=type(other)))
-
-    if name.startswith("__"):
-        name = name[2:-2]
-    wrapper.__name__ = name
-    return wrapper
-
-
 def _get_fill(arr):
     # coerce fill_value to arr dtype if possible
     # int64 SparseArray can have NaN as fill_value if there is no missing
@@ -85,16 +53,10 @@ def _get_fill(arr):
         return np.asarray(arr.fill_value)
 
 
-def _sparse_array_op(left, right, op, name, series=False):
-
-    if series and is_integer_dtype(left) and is_integer_dtype(right):
-        # series coerces to float64 if result should have NaN/inf
-        if name in ('floordiv', 'mod') and (right.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
-        elif name in ('rfloordiv', 'rmod') and (left.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+def _sparse_array_op(left, right, op, name):
+    if name.startswith('__'):
+        # For lookups in _libs.sparse we need non-dunder op name
+        name = name[2:-2]
 
     # dtype used to find corresponding sparse method
     if not is_dtype_equal(left.dtype, right.dtype):
@@ -151,6 +113,10 @@ def _sparse_array_op(left, right, op, name, series=False):
 
 def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     """ wrap op result to have correct dtype """
+    if name.startswith('__'):
+        # e.g. __eq__ --> eq
+        name = name[2:-2]
+
     if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
         dtype = np.bool
 
@@ -195,9 +161,9 @@ class SparseArray(PandasObject, np.ndarray):
                 data = np.nan
             if not is_scalar(data):
                 raise Exception("must only pass scalars with an index ")
-            values = np.empty(len(index), dtype='float64')
-            values.fill(data)
-            data = values
+            dtype = infer_dtype_from_scalar(data)[0]
+            data = construct_1d_arraylike_from_scalar(
+                data, len(index), dtype)
 
         if isinstance(data, ABCSparseSeries):
             data = data.values
@@ -272,6 +238,17 @@ class SparseArray(PandasObject, np.ndarray):
         elif isinstance(self.sp_index, IntIndex):
             return 'integer'
 
+    @Appender(IndexOpsMixin.memory_usage.__doc__)
+    def memory_usage(self, deep=False):
+        values = self.sp_values
+
+        v = values.nbytes
+
+        if deep and is_object_dtype(self) and not PYPY:
+            v += lib.memory_usage_of_objects(values)
+
+        return v
+
     def __array_wrap__(self, out_arr, context=None):
         """
         NumPy calls this method when ufunc is applied
@@ -313,6 +290,7 @@ class SparseArray(PandasObject, np.ndarray):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = self.fill_value, self.sp_index
+        object_state[2] = self.sp_values.__reduce__()[2]
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -361,6 +339,10 @@ class SparseArray(PandasObject, np.ndarray):
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
         return output
+
+    @property
+    def shape(self):
+        return (len(self),)
 
     @property
     def sp_values(self):
@@ -464,7 +446,10 @@ class SparseArray(PandasObject, np.ndarray):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return libindex.get_value_at(self, sp_loc)
+            # libindex.get_value_at will end up calling __getitem__,
+            # so to avoid recursing we need to unwrap `self` so the
+            # ndarray.__getitem__ implementation is called.
+            return libindex.get_value_at(np.asarray(self), sp_loc)
 
     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
@@ -486,7 +471,7 @@ class SparseArray(PandasObject, np.ndarray):
             # return scalar
             return self[indices]
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         n = len(self)
         if allow_fill and fill_value is not None:
             # allow -1 to indicate self.fill_value,
@@ -525,7 +510,7 @@ class SparseArray(PandasObject, np.ndarray):
         # if is_integer(key):
         #    self.values[key] = value
         # else:
-        #    raise Exception("SparseArray does not support seting non-scalars
+        #    raise Exception("SparseArray does not support setting non-scalars
         # via setitem")
         raise TypeError(
             "SparseArray does not support item assignment via setitem")
@@ -538,7 +523,7 @@ class SparseArray(PandasObject, np.ndarray):
         slobj = slice(i, j)  # noqa
 
         # if not is_scalar(value):
-        #    raise Exception("SparseArray does not support seting non-scalars
+        #    raise Exception("SparseArray does not support setting non-scalars
         # via slices")
 
         # x = self.values
@@ -864,7 +849,4 @@ def _make_index(length, indices, kind):
     return index
 
 
-ops.add_special_arithmetic_methods(SparseArray, arith_method=_arith_method,
-                                   comp_method=_arith_method,
-                                   bool_method=_arith_method,
-                                   use_numexpr=False)
+ops.add_special_arithmetic_methods(SparseArray)

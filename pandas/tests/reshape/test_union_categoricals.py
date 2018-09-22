@@ -129,6 +129,15 @@ class TestUnionCategoricals(object):
                           categories=['x', 'y', 'z'])
         tm.assert_categorical_equal(res, exp)
 
+    def test_union_categorical_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19096
+        c1 = Categorical(['a', 'b', 'c'], categories=['a', 'b', 'c'])
+        c2 = Categorical(['a', 'b', 'c'], categories=['b', 'a', 'c'])
+        result = union_categoricals([c1, c2])
+        expected = Categorical(['a', 'b', 'c', 'a', 'b', 'c'],
+                               categories=['a', 'b', 'c'])
+        tm.assert_categorical_equal(result, expected)
+
     def test_union_categoricals_ordered(self):
         c1 = Categorical([1, 2, 3], ordered=True)
         c2 = Categorical([1, 2, 3], ordered=False)

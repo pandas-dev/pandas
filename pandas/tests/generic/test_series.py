@@ -15,6 +15,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal)
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from .test_generic import Generic
 
 try:
@@ -173,7 +174,8 @@ class TestSeries(Generic):
         Series.__finalize__ = _finalize
 
     @pytest.mark.skipif(not _XARRAY_INSTALLED or _XARRAY_INSTALLED and
-                        LooseVersion(xarray.__version__) < '0.10.0',
+                        LooseVersion(xarray.__version__) <
+                        LooseVersion('0.10.0'),
                         reason='xarray >= 0.10.0 required')
     @pytest.mark.parametrize(
         "index",
@@ -199,9 +201,8 @@ class TestSeries(Generic):
                             check_index_type=False,
                             check_categorical=True)
 
+    @td.skip_if_no('xarray', min_version='0.7.0')
     def test_to_xarray(self):
-
-        tm._skip_if_no_xarray()
         from xarray import DataArray
 
         s = Series([])
@@ -221,3 +222,27 @@ class TestSeries(Generic):
         assert_almost_equal(list(result.coords.keys()), ['one', 'two'])
         assert isinstance(result, DataArray)
         assert_series_equal(result.to_series(), s)
+
+    def test_valid_deprecated(self):
+        # GH18800
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series([]).valid()
+
+    @pytest.mark.parametrize("s", [
+        Series([np.arange(5)]),
+        pd.date_range('1/1/2011', periods=24, freq='H'),
+        pd.Series(range(5), index=pd.date_range("2017", periods=5))
+    ])
+    @pytest.mark.parametrize("shift_size", [0, 1, 2])
+    def test_shift_always_copy(self, s, shift_size):
+        # GH22397
+        assert s.shift(shift_size) is not s
+
+    @pytest.mark.parametrize("move_by_freq", [
+        pd.Timedelta('1D'),
+        pd.Timedelta('1M'),
+    ])
+    def test_datetime_shift_always_copy(self, move_by_freq):
+        # GH22397
+        s = pd.Series(range(5), index=pd.date_range("2017", periods=5))
+        assert s.shift(freq=move_by_freq) is not s

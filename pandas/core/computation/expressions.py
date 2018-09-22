@@ -8,7 +8,8 @@ Offer fast expression evaluation through numexpr
 
 import warnings
 import numpy as np
-from pandas.core.common import _values_from_object
+
+import pandas.core.common as com
 from pandas.core.computation.check import _NUMEXPR_INSTALLED
 from pandas.core.config import get_option
 
@@ -23,8 +24,8 @@ _where = None
 
 # the set of dtypes that we will allow pass to numexpr
 _ALLOWED_DTYPES = {
-    'evaluate': set(['int64', 'int32', 'float64', 'float32', 'bool']),
-    'where': set(['int64', 'float64', 'bool'])
+    'evaluate': {'int64', 'int32', 'float64', 'float32', 'bool'},
+    'where': {'int64', 'float64', 'bool'}
 }
 
 # the minimum prod shape that we will use numexpr
@@ -71,7 +72,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
         # required min elements (otherwise we are adding overhead)
         if np.prod(a.shape) > _MIN_ELEMENTS:
 
-            # check for dtype compatiblity
+            # check for dtype compatibility
             dtypes = set()
             for o in [a, b]:
                 if hasattr(o, 'get_dtype_counts'):
@@ -80,7 +81,7 @@ def _can_use_numexpr(op, op_str, a, b, dtype_check):
                         return False
                     dtypes |= set(s.index)
                 elif isinstance(o, np.ndarray):
-                    dtypes |= set([o.dtype.name])
+                    dtypes |= {o.dtype.name}
 
             # allowed are a superset
             if not len(dtypes) or _ALLOWED_DTYPES[dtype_check] >= dtypes:
@@ -122,8 +123,8 @@ def _evaluate_numexpr(op, op_str, a, b, truediv=True,
 
 
 def _where_standard(cond, a, b):
-    return np.where(_values_from_object(cond), _values_from_object(a),
-                    _values_from_object(b))
+    return np.where(com.values_from_object(cond), com.values_from_object(a),
+                    com.values_from_object(b))
 
 
 def _where_numexpr(cond, a, b):
@@ -224,7 +225,7 @@ def where(cond, a, b, use_numexpr=True):
 
 def set_test_mode(v=True):
     """
-    Keeps track of whether numexpr  was used.  Stores an additional ``True``
+    Keeps track of whether numexpr was used.  Stores an additional ``True``
     for every successful use of evaluate with numexpr since the last
     ``get_test_result``
     """

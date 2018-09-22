@@ -11,11 +11,16 @@ import numpy as np
 import pandas.util.testing as tm
 
 from pandas import DataFrame, Index
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 from pandas.compat import StringIO
 
 
 class UsecolsTests(object):
+    msg_validate_usecols_arg = ("'usecols' must either be list-like of all "
+                                "strings, all unicode, all integers or a "
+                                "callable.")
+    msg_validate_usecols_names = ("Usecols do not match columns, columns "
+                                  "expected but not found: {0}")
 
     def test_raise_on_mixed_dtype_usecols(self):
         # See gh-12678
@@ -24,11 +29,9 @@ class UsecolsTests(object):
         4000,5000,6000
         """
 
-        msg = ("'usecols' must either be all strings, all unicode, "
-               "all integers or a callable")
         usecols = [0, 'b', 2]
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, self.msg_validate_usecols_arg):
             self.read_csv(StringIO(data), usecols=usecols)
 
     def test_usecols(self):
@@ -84,6 +87,18 @@ a,b,c
         # length conflict, passed names and usecols disagree
         pytest.raises(ValueError, self.read_csv, StringIO(data),
                       names=['a', 'b'], usecols=[1], header=None)
+
+    def test_usecols_single_string(self):
+        # GH 20558
+        data = """foo, bar, baz
+        1000, 2000, 3000
+        4000, 5000, 6000
+        """
+
+        usecols = 'foo'
+
+        with tm.assert_raises_regex(ValueError, self.msg_validate_usecols_arg):
+            self.read_csv(StringIO(data), usecols=usecols)
 
     def test_usecols_index_col_False(self):
         # see gh-9082
@@ -348,13 +363,10 @@ a,b,c
         3.568935038,7,False,a
         '''
 
-        msg = ("'usecols' must either be all strings, all unicode, "
-               "all integers or a callable")
-
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, self.msg_validate_usecols_arg):
             self.read_csv(StringIO(s), usecols=[u'AAA', b'BBB'])
 
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError, self.msg_validate_usecols_arg):
             self.read_csv(StringIO(s), usecols=[b'AAA', u'BBB'])
 
     def test_usecols_with_multibyte_characters(self):
@@ -401,7 +413,7 @@ a,b,c
         # should not raise
         data = 'a,b,c\n1,2,3\n4,5,6'
         expected = DataFrame()
-        result = self.read_csv(StringIO(data), usecols=set([]))
+        result = self.read_csv(StringIO(data), usecols=set())
         tm.assert_frame_equal(result, expected)
 
     def test_np_array_usecols(self):
@@ -480,11 +492,6 @@ a,b,c
         # GH 14671
         data = 'a,b,c,d\n1,2,3,4\n5,6,7,8'
 
-        if self.engine == 'c':
-            msg = 'Usecols do not match names'
-        else:
-            msg = 'is not in list'
-
         usecols = ['a', 'b', 'c', 'd']
         df = self.read_csv(StringIO(data), usecols=usecols)
         expected = DataFrame({'a': [1, 5], 'b': [2, 6], 'c': [3, 7],
@@ -492,11 +499,21 @@ a,b,c
         tm.assert_frame_equal(df, expected)
 
         usecols = ['a', 'b', 'c', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError,
+                                    self.msg_validate_usecols_names.format(
+                                        r"\['f'\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         usecols = ['a', 'b', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError,
+                                    self.msg_validate_usecols_names.format(
+                                        r"\['f'\]")):
+            self.read_csv(StringIO(data), usecols=usecols)
+
+        usecols = ['a', 'b', 'f', 'g']
+        with tm.assert_raises_regex(ValueError,
+                                    self.msg_validate_usecols_names.format(
+                                        r"\[('f', 'g'|'g', 'f')\]")):
             self.read_csv(StringIO(data), usecols=usecols)
 
         names = ['A', 'B', 'C', 'D']
@@ -520,9 +537,13 @@ a,b,c
         # tm.assert_frame_equal(df, expected)
 
         usecols = ['A', 'B', 'C', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError,
+                                    self.msg_validate_usecols_names.format(
+                                        r"\['f'\]")):
             self.read_csv(StringIO(data), header=0, names=names,
                           usecols=usecols)
         usecols = ['A', 'B', 'f']
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(ValueError,
+                                    self.msg_validate_usecols_names.format(
+                                        r"\['f'\]")):
             self.read_csv(StringIO(data), names=names, usecols=usecols)

@@ -3,12 +3,15 @@
 import pytest
 
 import pandas as pd
+import pandas.compat as compat
 import numpy as np
-from pandas import (Series, DataFrame, Timestamp,
-                    Categorical, CategoricalIndex)
+from pandas import (Series, DataFrame, Timestamp, Categorical,
+                    CategoricalIndex, Interval, Index)
 from pandas.util.testing import assert_series_equal, assert_frame_equal
 from pandas.util import testing as tm
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 
 class TestCategoricalIndex(object):
@@ -74,6 +77,229 @@ class TestCategoricalIndex(object):
         expected = s.iloc[0]
         result = s[cats[0]]
         assert result == expected
+
+    def test_slicing_directly(self):
+        cat = Categorical(["a", "b", "c", "d", "a", "b", "c"])
+        sliced = cat[3]
+        assert sliced == "d"
+        sliced = cat[3:5]
+        expected = Categorical(["d", "a"], categories=['a', 'b', 'c', 'd'])
+        tm.assert_numpy_array_equal(sliced._codes, expected._codes)
+        tm.assert_index_equal(sliced.categories, expected.categories)
+
+    def test_slicing(self):
+        cat = Series(Categorical([1, 2, 3, 4]))
+        reversed = cat[::-1]
+        exp = np.array([4, 3, 2, 1], dtype=np.int64)
+        tm.assert_numpy_array_equal(reversed.__array__(), exp)
+
+        df = DataFrame({'value': (np.arange(100) + 1).astype('int64')})
+        df['D'] = pd.cut(df.value, bins=[0, 25, 50, 75, 100])
+
+        expected = Series([11, Interval(0, 25)], index=['value', 'D'], name=10)
+        result = df.iloc[10]
+        tm.assert_series_equal(result, expected)
+
+        expected = DataFrame({'value': np.arange(11, 21).astype('int64')},
+                             index=np.arange(10, 20).astype('int64'))
+        expected['D'] = pd.cut(expected.value, bins=[0, 25, 50, 75, 100])
+        result = df.iloc[10:20]
+        tm.assert_frame_equal(result, expected)
+
+        expected = Series([9, Interval(0, 25)], index=['value', 'D'], name=8)
+        result = df.loc[8]
+        tm.assert_series_equal(result, expected)
+
+    def test_slicing_and_getting_ops(self):
+
+        # systematically test the slicing operations:
+        #  for all slicing ops:
+        #   - returning a dataframe
+        #   - returning a column
+        #   - returning a row
+        #   - returning a single value
+
+        cats = Categorical(
+            ["a", "c", "b", "c", "c", "c", "c"], categories=["a", "b", "c"])
+        idx = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values = [1, 2, 3, 4, 5, 6, 7]
+        df = DataFrame({"cats": cats, "values": values}, index=idx)
+
+        # the expected values
+        cats2 = Categorical(["b", "c"], categories=["a", "b", "c"])
+        idx2 = Index(["j", "k"])
+        values2 = [3, 4]
+
+        # 2:4,: | "j":"k",:
+        exp_df = DataFrame({"cats": cats2, "values": values2}, index=idx2)
+
+        # :,"cats" | :,0
+        exp_col = Series(cats, index=idx, name='cats')
+
+        # "j",: | 2,:
+        exp_row = Series(["b", 3], index=["cats", "values"], dtype="object",
+                         name="j")
+
+        # "j","cats | 2,0
+        exp_val = "b"
+
+        # iloc
+        # frame
+        res_df = df.iloc[2:4, :]
+        tm.assert_frame_equal(res_df, exp_df)
+        assert is_categorical_dtype(res_df["cats"])
+
+        # row
+        res_row = df.iloc[2, :]
+        tm.assert_series_equal(res_row, exp_row)
+        assert isinstance(res_row["cats"], compat.string_types)
+
+        # col
+        res_col = df.iloc[:, 0]
+        tm.assert_series_equal(res_col, exp_col)
+        assert is_categorical_dtype(res_col)
+
+        # single value
+        res_val = df.iloc[2, 0]
+        assert res_val == exp_val
+
+        # loc
+        # frame
+        res_df = df.loc["j":"k", :]
+        tm.assert_frame_equal(res_df, exp_df)
+        assert is_categorical_dtype(res_df["cats"])
+
+        # row
+        res_row = df.loc["j", :]
+        tm.assert_series_equal(res_row, exp_row)
+        assert isinstance(res_row["cats"], compat.string_types)
+
+        # col
+        res_col = df.loc[:, "cats"]
+        tm.assert_series_equal(res_col, exp_col)
+        assert is_categorical_dtype(res_col)
+
+        # single value
+        res_val = df.loc["j", "cats"]
+        assert res_val == exp_val
+
+        # ix
+        # frame
+        # res_df = df.loc["j":"k",[0,1]] # doesn't work?
+        res_df = df.loc["j":"k", :]
+        tm.assert_frame_equal(res_df, exp_df)
+        assert is_categorical_dtype(res_df["cats"])
+
+        # row
+        res_row = df.loc["j", :]
+        tm.assert_series_equal(res_row, exp_row)
+        assert isinstance(res_row["cats"], compat.string_types)
+
+        # col
+        res_col = df.loc[:, "cats"]
+        tm.assert_series_equal(res_col, exp_col)
+        assert is_categorical_dtype(res_col)
+
+        # single value
+        res_val = df.loc["j", df.columns[0]]
+        assert res_val == exp_val
+
+        # iat
+        res_val = df.iat[2, 0]
+        assert res_val == exp_val
+
+        # at
+        res_val = df.at["j", "cats"]
+        assert res_val == exp_val
+
+        # fancy indexing
+        exp_fancy = df.iloc[[2]]
+
+        res_fancy = df[df["cats"] == "b"]
+        tm.assert_frame_equal(res_fancy, exp_fancy)
+        res_fancy = df[df["values"] == 3]
+        tm.assert_frame_equal(res_fancy, exp_fancy)
+
+        # get_value
+        res_val = df.at["j", "cats"]
+        assert res_val == exp_val
+
+        # i : int, slice, or sequence of integers
+        res_row = df.iloc[2]
+        tm.assert_series_equal(res_row, exp_row)
+        assert isinstance(res_row["cats"], compat.string_types)
+
+        res_df = df.iloc[slice(2, 4)]
+        tm.assert_frame_equal(res_df, exp_df)
+        assert is_categorical_dtype(res_df["cats"])
+
+        res_df = df.iloc[[2, 3]]
+        tm.assert_frame_equal(res_df, exp_df)
+        assert is_categorical_dtype(res_df["cats"])
+
+        res_col = df.iloc[:, 0]
+        tm.assert_series_equal(res_col, exp_col)
+        assert is_categorical_dtype(res_col)
+
+        res_df = df.iloc[:, slice(0, 2)]
+        tm.assert_frame_equal(res_df, df)
+        assert is_categorical_dtype(res_df["cats"])
+
+        res_df = df.iloc[:, [0, 1]]
+        tm.assert_frame_equal(res_df, df)
+        assert is_categorical_dtype(res_df["cats"])
+
+    def test_slicing_doc_examples(self):
+
+        # GH 7918
+        cats = Categorical(["a", "b", "b", "b", "c", "c", "c"],
+                           categories=["a", "b", "c"])
+        idx = Index(["h", "i", "j", "k", "l", "m", "n", ])
+        values = [1, 2, 2, 2, 3, 4, 5]
+        df = DataFrame({"cats": cats, "values": values}, index=idx)
+
+        result = df.iloc[2:4, :]
+        expected = DataFrame(
+            {"cats": Categorical(['b', 'b'], categories=['a', 'b', 'c']),
+             "values": [2, 2]}, index=['j', 'k'])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.iloc[2:4, :].dtypes
+        expected = Series(['category', 'int64'], ['cats', 'values'])
+        tm.assert_series_equal(result, expected)
+
+        result = df.loc["h":"j", "cats"]
+        expected = Series(Categorical(['a', 'b', 'b'],
+                                      categories=['a', 'b', 'c']),
+                          index=['h', 'i', 'j'], name='cats')
+        tm.assert_series_equal(result, expected)
+
+        result = df.loc["h":"j", df.columns[0:1]]
+        expected = DataFrame({'cats': Categorical(['a', 'b', 'b'],
+                                                  categories=['a', 'b', 'c'])},
+                             index=['h', 'i', 'j'])
+        tm.assert_frame_equal(result, expected)
+
+    def test_getitem_category_type(self):
+        # GH 14580
+        # test iloc() on Series with Categorical data
+
+        s = Series([1, 2, 3]).astype('category')
+
+        # get slice
+        result = s.iloc[0:2]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get list of indexes
+        result = s.iloc[[0, 1]]
+        expected = Series([1, 2]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
+
+        # get boolean array
+        result = s.iloc[[True, False, False]]
+        expected = Series([1]).astype(CategoricalDtype([1, 2, 3]))
+        tm.assert_series_equal(result, expected)
 
     def test_loc_listlike(self):
 
@@ -206,6 +432,23 @@ class TestCategoricalIndex(object):
         expected = np.array([0, 1], dtype='intp')
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_same_categories_same_order(self):
+        ci = CategoricalIndex(['a', 'b'], categories=['a', 'b'])
+
+        result = ci.get_indexer(CategoricalIndex(['b', 'b'],
+                                                 categories=['a', 'b']))
+        expected = np.array([1, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_get_indexer_same_categories_different_order(self):
+        # https://github.com/pandas-dev/pandas/issues/19551
+        ci = CategoricalIndex(['a', 'b'], categories=['a', 'b'])
+
+        result = ci.get_indexer(CategoricalIndex(['b', 'b'],
+                                                 categories=['b', 'a']))
+        expected = np.array([1, 1], dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_getitem_with_listlike(self):
         # GH 16115
         cats = Categorical([Timestamp('12-31-1999'),
@@ -216,6 +459,21 @@ class TestCategoricalIndex(object):
         dummies = pd.get_dummies(cats)
         result = dummies[[c for c in dummies.columns]]
         assert_frame_equal(result, expected)
+
+    def test_setitem_listlike(self):
+
+        # GH 9469
+        # properly coerce the input indexers
+        np.random.seed(1)
+        c = Categorical(np.random.randint(0, 5, size=150000).astype(
+            np.int8)).add_categories([-1000])
+        indexer = np.array([100000]).astype(np.int64)
+        c[indexer] = -1000
+
+        # we are asserting the code result here
+        # which maps to the -1000 category
+        result = c.codes[np.array([100000]).astype(np.int64)]
+        tm.assert_numpy_array_equal(result, np.array([5], dtype='int8'))
 
     def test_ix_categorical_index(self):
         # GH 12531
@@ -439,3 +697,21 @@ class TestCategoricalIndex(object):
 
         res = (cat[['A']] == 'foo')
         tm.assert_frame_equal(res, exp)
+
+    def test_map_with_dict_or_series(self):
+        orig_values = ['a', 'B', 1, 'a']
+        new_values = ['one', 2, 3.0, 'one']
+        cur_index = pd.CategoricalIndex(orig_values, name='XXX')
+        expected = pd.CategoricalIndex(new_values,
+                                       name='XXX', categories=[3.0, 2, 'one'])
+
+        mapper = pd.Series(new_values[:-1], index=orig_values[:-1])
+        output = cur_index.map(mapper)
+        # Order of categories in output can be different
+        tm.assert_index_equal(expected, output)
+
+        mapper = {o: n for o, n in
+                  zip(orig_values[:-1], new_values[:-1])}
+        output = cur_index.map(mapper)
+        # Order of categories in output can be different
+        tm.assert_index_equal(expected, output)

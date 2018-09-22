@@ -3,121 +3,35 @@
 import pytest
 
 from datetime import datetime
-from pandas.compat import range, PY3
+from pandas.compat import range
 
 import numpy as np
 
-from pandas import (date_range, notna, Series, Index, Float64Index,
-                    Int64Index, UInt64Index, RangeIndex)
+from pandas import (Series, Index, Float64Index,
+                    Int64Index, UInt64Index)
 
 import pandas.util.testing as tm
 
 import pandas as pd
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslibs import Timestamp
 
 from pandas.tests.indexes.common import Base
 
 
-def full_like(array, value):
-    """Compatibility for numpy<1.8.0
-    """
-    ret = np.empty(array.shape, dtype=np.array(value).dtype)
-    ret.fill(value)
-    return ret
-
-
 class Numeric(Base):
 
-    def test_numeric_compat(self):
-
+    def test_can_hold_identifiers(self):
         idx = self.create_index()
-        didx = idx * idx
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
-
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-        # in general not true for RangeIndex
-        if not isinstance(idx, RangeIndex):
-            result = idx * idx
-            tm.assert_index_equal(result, idx ** 2)
-
-        # truediv under PY3
-        result = idx / 1
-        expected = idx
-        if PY3:
-            expected = expected.astype('float64')
-        tm.assert_index_equal(result, expected)
-
-        result = idx / 2
-        if PY3:
-            expected = expected.astype('float64')
-        expected = Index(idx.values / 2)
-        tm.assert_index_equal(result, expected)
-
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-        result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result, idx * 5)
-
-        arr_dtype = 'uint64' if isinstance(idx, UInt64Index) else 'int64'
-        result = idx * np.arange(5, dtype=arr_dtype)
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype=arr_dtype))
-        tm.assert_index_equal(result, didx)
-
-        result = idx * Series(np.arange(5, dtype='float64') + 0.1)
-        expected = Float64Index(np.arange(5, dtype='float64') *
-                                (np.arange(5, dtype='float64') + 0.1))
-        tm.assert_index_equal(result, expected)
-
-        # invalid
-        pytest.raises(TypeError,
-                      lambda: idx * date_range('20130101', periods=5))
-        pytest.raises(ValueError, lambda: idx * idx[0:3])
-        pytest.raises(ValueError, lambda: idx * np.array([1, 2]))
-
-        result = divmod(idx, 2)
-        with np.errstate(all='ignore'):
-            div, mod = divmod(idx.values, 2)
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        result = divmod(idx, full_like(idx.values, 2))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(idx.values, full_like(idx.values, 2))
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        result = divmod(idx, Series(full_like(idx.values, 2)))
-        with np.errstate(all='ignore'):
-            div, mod = divmod(
-                idx.values,
-                full_like(idx.values, 2),
-            )
-            expected = Index(div), Index(mod)
-        for r, e in zip(result, expected):
-            tm.assert_index_equal(r, e)
-
-        # test power calculations both ways, GH 14973
-        expected = pd.Float64Index(2.0**idx.values)
-        result = 2.0**idx
-        tm.assert_index_equal(result, expected)
-
-        expected = pd.Float64Index(idx.values**2.0)
-        result = idx**2.0
-        tm.assert_index_equal(result, expected)
+    def test_numeric_compat(self):
+        pass  # override Base method
 
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = self._holder(np.arange(5, dtype='int64'))
 
         # float conversions
@@ -169,11 +83,24 @@ class Numeric(Base):
                         ex_keys[1]: idx[[1, 4]]}
             tm.assert_dict_equal(idx.groupby(to_groupby), expected)
 
-    def test_modulo(self):
-        # GH 9244
-        index = self.create_index()
-        expected = Index(index.values % 2)
-        tm.assert_index_equal(index % 2, expected)
+    @pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+    def test_where(self, klass):
+        i = self.create_index()
+        cond = [True] * len(i)
+        expected = i
+        result = i.where(klass(cond))
+
+        cond = [False] + [True] * (len(i) - 1)
+        expected = Float64Index([i._na_value] + i[1:].tolist())
+        result = i.where(klass(cond))
+        tm.assert_index_equal(result, expected)
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = Float64Index([0, np.nan, 1, 2, 3, 4])
+        for na in (np.nan, pd.NaT, None):
+            result = self.create_index().insert(1, na)
+            tm.assert_index_equal(result, expected)
 
 
 class TestFloat64Index(Numeric):
@@ -306,6 +233,18 @@ class TestFloat64Index(Numeric):
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
 
+    def test_type_coercion_fail(self, any_int_dtype):
+        # see gh-15832
+        msg = "Trying to coerce float values to integers"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index([1, 2, 3.5], dtype=any_int_dtype)
+
+    def test_type_coercion_valid(self, float_dtype):
+        # There is no Float32Index, so we always
+        # generate Float64Index.
+        i = Index([1, 2, 3.5], dtype=float_dtype)
+        tm.assert_index_equal(i, Index([1, 2, 3.5]))
+
     def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
@@ -350,6 +289,8 @@ class TestFloat64Index(Numeric):
         pytest.raises(KeyError, idx.get_loc, 1.5)
         pytest.raises(KeyError, idx.get_loc, 1.5, method='pad',
                       tolerance=0.1)
+        pytest.raises(KeyError, idx.get_loc, True)
+        pytest.raises(KeyError, idx.get_loc, False)
 
         with tm.assert_raises_regex(ValueError, 'must be numeric'):
             idx.get_loc(1.4, method='nearest', tolerance='foo')
@@ -624,40 +565,6 @@ class NumericInt(Numeric):
         idx = self._holder([1, 2], name='asdf')
         assert idx.name == idx[1:].name
 
-    def test_ufunc_coercions(self):
-        idx = self._holder([1, 2, 3, 4, 5], name='x')
-
-        result = np.sqrt(idx)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index(np.sqrt(np.array([1, 2, 3, 4, 5])), name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = np.divide(idx, 2.)
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
-        # _evaluate_numeric_binop
-        result = idx + 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([3., 4., 5., 6., 7.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx - 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([-1., 0., 1., 2., 3.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx * 1.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([1., 2., 3., 4., 5.], name='x')
-        tm.assert_index_equal(result, exp)
-
-        result = idx / 2.
-        assert isinstance(result, Float64Index)
-        exp = Float64Index([0.5, 1., 1.5, 2., 2.5], name='x')
-        tm.assert_index_equal(result, exp)
-
 
 class TestInt64Index(NumericInt):
     _dtype = 'int64'
@@ -717,6 +624,14 @@ class TestInt64Index(NumericInt):
         with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
 
+    def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
+
+        # see gh-15832
+        msg = "Trying to coerce negative values to unsigned integers"
+
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([-1], dtype=uint_dtype)
+
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])
@@ -725,31 +640,6 @@ class TestInt64Index(NumericInt):
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
         assert isinstance(arr, Index)
-
-    def test_where(self):
-        i = self.create_index()
-        result = i.where(notna(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        _nan = i._na_value
-        cond = [False] + [True] * len(i[1:])
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        result = i.where(cond)
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-
-        _nan = i._na_value
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, pd.Series]
-        expected = pd.Index([_nan] + i[1:].tolist())
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
 
     def test_get_indexer(self):
         target = Int64Index(np.arange(10))

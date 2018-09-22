@@ -16,7 +16,7 @@ import pandas.io.formats.format as fmt
 div_style = ''
 try:
     import IPython
-    if IPython.__version__ < LooseVersion('3.0.0'):
+    if LooseVersion(IPython.__version__) < LooseVersion('3.0.0'):
         div_style = ' style="max-width:1500px;overflow:auto;"'
 except (ImportError, AttributeError):
     pass
@@ -1411,8 +1411,9 @@ class TestToHTML(object):
         result = df.to_html(border=0)
         assert 'border="0"' in result
 
+    @tm.capture_stdout
     def test_display_option_warning(self):
-        with tm.assert_produces_warning(DeprecationWarning,
+        with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.options.html.border
 
@@ -1435,7 +1436,7 @@ class TestToHTML(object):
 
         biggie.to_html(columns=['B', 'A'], col_space=17)
         biggie.to_html(columns=['B', 'A'],
-                       formatters={'A': lambda x: '%.1f' % x})
+                       formatters={'A': lambda x: '{x:.1f}'.format(x=x)})
 
         biggie.to_html(columns=['B', 'A'], float_format=str)
         biggie.to_html(columns=['B', 'A'], col_space=12, float_format=str)
@@ -1843,6 +1844,67 @@ class TestToHTML(object):
         </table>""")
         assert result == expected
 
+    def test_to_html_multiindex_max_cols(self):
+        # GH 6131
+        index = MultiIndex(levels=[['ba', 'bb', 'bc'], ['ca', 'cb', 'cc']],
+                           labels=[[0, 1, 2], [0, 1, 2]],
+                           names=['b', 'c'])
+        columns = MultiIndex(levels=[['d'], ['aa', 'ab', 'ac']],
+                             labels=[[0, 0, 0], [0, 1, 2]],
+                             names=[None, 'a'])
+        data = np.array(
+            [[1., np.nan, np.nan], [np.nan, 2., np.nan], [np.nan, np.nan, 3.]])
+        df = DataFrame(data, index, columns)
+        result = df.to_html(max_cols=2)
+        expected = dedent("""\
+        <table border="1" class="dataframe">
+          <thead>
+            <tr>
+              <th></th>
+              <th></th>
+              <th colspan="3" halign="left">d</th>
+            </tr>
+            <tr>
+              <th></th>
+              <th>a</th>
+              <th>aa</th>
+              <th>...</th>
+              <th>ac</th>
+            </tr>
+            <tr>
+              <th>b</th>
+              <th>c</th>
+              <th></th>
+              <th></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>ba</th>
+              <th>ca</th>
+              <td>1.0</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bb</th>
+              <th>cb</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>NaN</td>
+            </tr>
+            <tr>
+              <th>bc</th>
+              <th>cc</th>
+              <td>NaN</td>
+              <td>...</td>
+              <td>3.0</td>
+            </tr>
+          </tbody>
+        </table>""")
+        assert result == expected
+
     def test_to_html_notebook_has_style(self):
         df = pd.DataFrame({"A": [1, 2, 3]})
         result = df.to_html(notebook=True)
@@ -1863,3 +1925,10 @@ class TestToHTML(object):
                                                         name='myindexname'))
         result = df.to_html(index_names=False)
         assert 'myindexname' not in result
+
+    def test_to_html_with_id(self):
+        # gh-8496
+        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
+                                                        name='myindexname'))
+        result = df.to_html(index_names=False, table_id="TEST_ID")
+        assert ' id="TEST_ID"' in result

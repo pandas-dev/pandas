@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -63,17 +64,6 @@ class TestSeriesPeriod(object):
         tm.assert_series_equal(s.dropna(),
                                Series([pd.Period('2011-01', freq='M')]))
 
-    def test_series_comparison_scalars(self):
-        val = pd.Period('2000-01-04', freq='D')
-        result = self.series > val
-        expected = pd.Series([x > val for x in self.series])
-        tm.assert_series_equal(result, expected)
-
-        val = self.series[5]
-        result = self.series > val
-        expected = pd.Series([x > val for x in self.series])
-        tm.assert_series_equal(result, expected)
-
     def test_between(self):
         left, right = self.series[[2, 7]]
         result = self.series.between(left, right)
@@ -83,22 +73,23 @@ class TestSeriesPeriod(object):
     # ---------------------------------------------------------------------
     # NaT support
 
-    """
-    # ToDo: Enable when support period dtype
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
+                       strict=True)
     def test_NaT_scalar(self):
-        series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
+        series = Series([0, 1000, 2000, pd._libs.iNaT], dtype='period[D]')
 
         val = series[3]
-        assert isna(val)
+        assert pd.isna(val)
 
         series[2] = val
-        assert isna(series[2])
+        assert pd.isna(series[2])
 
+    @pytest.mark.xfail(reason="PeriodDtype Series not supported yet",
+                       strict=True)
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
-        expected = Series([NaT])
+        expected = Series([pd.NaT])
         tm.assert_series_equal(result, expected)
-    """
 
     def test_set_none_nan(self):
         # currently Period is stored as object dtype, not as NaT
@@ -128,110 +119,7 @@ class TestSeriesPeriod(object):
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
 
-    def test_comp_series_period_scalar(self):
-        # GH 13200
-        for freq in ['M', '2M', '3M']:
-            base = Series([Period(x, freq=freq) for x in
-                           ['2011-01', '2011-02', '2011-03', '2011-04']])
-            p = Period('2011-02', freq=freq)
-
-            exp = pd.Series([False, True, False, False])
-            tm.assert_series_equal(base == p, exp)
-            tm.assert_series_equal(p == base, exp)
-
-            exp = pd.Series([True, False, True, True])
-            tm.assert_series_equal(base != p, exp)
-            tm.assert_series_equal(p != base, exp)
-
-            exp = pd.Series([False, False, True, True])
-            tm.assert_series_equal(base > p, exp)
-            tm.assert_series_equal(p < base, exp)
-
-            exp = pd.Series([True, False, False, False])
-            tm.assert_series_equal(base < p, exp)
-            tm.assert_series_equal(p > base, exp)
-
-            exp = pd.Series([False, True, True, True])
-            tm.assert_series_equal(base >= p, exp)
-            tm.assert_series_equal(p <= base, exp)
-
-            exp = pd.Series([True, True, False, False])
-            tm.assert_series_equal(base <= p, exp)
-            tm.assert_series_equal(p >= base, exp)
-
-            # different base freq
-            msg = "Input has different freq=A-DEC from Period"
-            with tm.assert_raises_regex(
-                    period.IncompatibleFrequency, msg):
-                base <= Period('2011', freq='A')
-
-            with tm.assert_raises_regex(
-                    period.IncompatibleFrequency, msg):
-                Period('2011', freq='A') >= base
-
-    def test_comp_series_period_series(self):
-        # GH 13200
-        for freq in ['M', '2M', '3M']:
-            base = Series([Period(x, freq=freq) for x in
-                           ['2011-01', '2011-02', '2011-03', '2011-04']])
-
-            s = Series([Period(x, freq=freq) for x in
-                        ['2011-02', '2011-01', '2011-03', '2011-05']])
-
-            exp = Series([False, False, True, False])
-            tm.assert_series_equal(base == s, exp)
-
-            exp = Series([True, True, False, True])
-            tm.assert_series_equal(base != s, exp)
-
-            exp = Series([False, True, False, False])
-            tm.assert_series_equal(base > s, exp)
-
-            exp = Series([True, False, False, True])
-            tm.assert_series_equal(base < s, exp)
-
-            exp = Series([False, True, True, False])
-            tm.assert_series_equal(base >= s, exp)
-
-            exp = Series([True, False, True, True])
-            tm.assert_series_equal(base <= s, exp)
-
-            s2 = Series([Period(x, freq='A') for x in
-                         ['2011', '2011', '2011', '2011']])
-
-            # different base freq
-            msg = "Input has different freq=A-DEC from Period"
-            with tm.assert_raises_regex(
-                    period.IncompatibleFrequency, msg):
-                base <= s2
-
-    def test_comp_series_period_object(self):
-        # GH 13200
-        base = Series([Period('2011', freq='A'), Period('2011-02', freq='M'),
-                       Period('2013', freq='A'), Period('2011-04', freq='M')])
-
-        s = Series([Period('2012', freq='A'), Period('2011-01', freq='M'),
-                    Period('2013', freq='A'), Period('2011-05', freq='M')])
-
-        exp = Series([False, False, True, False])
-        tm.assert_series_equal(base == s, exp)
-
-        exp = Series([True, True, False, True])
-        tm.assert_series_equal(base != s, exp)
-
-        exp = Series([False, True, False, False])
-        tm.assert_series_equal(base > s, exp)
-
-        exp = Series([True, False, False, True])
-        tm.assert_series_equal(base < s, exp)
-
-        exp = Series([False, True, True, False])
-        tm.assert_series_equal(base >= s, exp)
-
-        exp = Series([True, False, True, True])
-        tm.assert_series_equal(base <= s, exp)
-
-    def test_align_series(self):
+    def test_add_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -243,12 +131,15 @@ class TestSeriesPeriod(object):
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        # it works!
-        for kind in ['inner', 'outer', 'left', 'right']:
-            ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")
+
+    def test_align_series(self, join_type):
+        rng = period_range('1/1/2000', '1/1/2010', freq='A')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts.align(ts[::2], join=join_type)
 
     def test_truncate(self):
         # GH 17717
@@ -272,10 +163,29 @@ class TestSeriesPeriod(object):
             pd.Period('2017-09-03')
         ])
         series2 = pd.Series([1, 2, 3], index=idx2)
-        result2 = series2.truncate(after='2017-09-02')
+        result2 = series2.sort_index().truncate(after='2017-09-02')
 
         expected_idx2 = pd.PeriodIndex([
-            pd.Period('2017-09-03'),
             pd.Period('2017-09-02')
         ])
-        tm.assert_series_equal(result2, pd.Series([1, 2], index=expected_idx2))
+        tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))
+
+    @pytest.mark.parametrize('input_vals', [
+        [Period('2016-01', freq='M'), Period('2016-02', freq='M')],
+        [Period('2016-01-01', freq='D'), Period('2016-01-02', freq='D')],
+        [Period('2016-01-01 00:00:00', freq='H'),
+         Period('2016-01-01 01:00:00', freq='H')],
+        [Period('2016-01-01 00:00:00', freq='M'),
+         Period('2016-01-01 00:01:00', freq='M')],
+        [Period('2016-01-01 00:00:00', freq='S'),
+         Period('2016-01-01 00:00:01', freq='S')]
+    ])
+    def test_end_time_timevalues(self, input_vals):
+        # GH 17157
+        # Check that the time part of the Period is adjusted by end_time
+        # when using the dt accessor on a Series
+
+        s = Series(input_vals)
+        result = s.dt.end_time
+        expected = s.apply(lambda x: x.end_time)
+        tm.assert_series_equal(result, expected)

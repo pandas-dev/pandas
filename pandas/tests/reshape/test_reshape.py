@@ -2,6 +2,7 @@
 # pylint: disable-msg=W0612,E1101
 
 import pytest
+from collections import OrderedDict
 
 from pandas import DataFrame, Series
 import pandas as pd
@@ -11,242 +12,58 @@ import numpy as np
 
 from pandas.util.testing import assert_frame_equal
 
-from pandas.core.reshape.reshape import get_dummies
-from pandas.core.reshape.melt import melt, lreshape, wide_to_long
+from pandas import get_dummies, Categorical, Index
 import pandas.util.testing as tm
-from pandas.compat import range, u
-
-
-class TestMelt(object):
-
-    def setup_method(self, method):
-        self.df = tm.makeTimeDataFrame()[:10]
-        self.df['id1'] = (self.df['A'] > 0).astype(np.int64)
-        self.df['id2'] = (self.df['B'] > 0).astype(np.int64)
-
-        self.var_name = 'var'
-        self.value_name = 'val'
-
-        self.df1 = pd.DataFrame([[1.067683, -1.110463, 0.20867
-                                  ], [-1.321405, 0.368915, -1.055342],
-                                 [-0.807333, 0.08298, -0.873361]])
-        self.df1.columns = [list('ABC'), list('abc')]
-        self.df1.columns.names = ['CAP', 'low']
-
-    def test_top_level_method(self):
-        result = melt(self.df)
-        assert result.columns.tolist() == ['variable', 'value']
-
-    def test_method_signatures(self):
-        tm.assert_frame_equal(self.df.melt(),
-                              melt(self.df))
-
-        tm.assert_frame_equal(self.df.melt(id_vars=['id1', 'id2'],
-                                           value_vars=['A', 'B']),
-                              melt(self.df,
-                                   id_vars=['id1', 'id2'],
-                                   value_vars=['A', 'B']))
-
-        tm.assert_frame_equal(self.df.melt(var_name=self.var_name,
-                                           value_name=self.value_name),
-                              melt(self.df,
-                                   var_name=self.var_name,
-                                   value_name=self.value_name))
-
-        tm.assert_frame_equal(self.df1.melt(col_level=0),
-                              melt(self.df1, col_level=0))
-
-    def test_default_col_names(self):
-        result = self.df.melt()
-        assert result.columns.tolist() == ['variable', 'value']
-
-        result1 = self.df.melt(id_vars=['id1'])
-        assert result1.columns.tolist() == ['id1', 'variable', 'value']
-
-        result2 = self.df.melt(id_vars=['id1', 'id2'])
-        assert result2.columns.tolist() == ['id1', 'id2', 'variable', 'value']
-
-    def test_value_vars(self):
-        result3 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A')
-        assert len(result3) == 10
-
-        result4 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'])
-        expected4 = DataFrame({'id1': self.df['id1'].tolist() * 2,
-                               'id2': self.df['id2'].tolist() * 2,
-                               'variable': ['A'] * 10 + ['B'] * 10,
-                               'value': (self.df['A'].tolist() +
-                                         self.df['B'].tolist())},
-                              columns=['id1', 'id2', 'variable', 'value'])
-        tm.assert_frame_equal(result4, expected4)
-
-    def test_value_vars_types(self):
-        # GH 15348
-        expected = DataFrame({'id1': self.df['id1'].tolist() * 2,
-                              'id2': self.df['id2'].tolist() * 2,
-                              'variable': ['A'] * 10 + ['B'] * 10,
-                              'value': (self.df['A'].tolist() +
-                                        self.df['B'].tolist())},
-                             columns=['id1', 'id2', 'variable', 'value'])
-
-        for type_ in (tuple, list, np.array):
-            result = self.df.melt(id_vars=['id1', 'id2'],
-                                  value_vars=type_(('A', 'B')))
-            tm.assert_frame_equal(result, expected)
-
-    def test_vars_work_with_multiindex(self):
-        expected = DataFrame({
-            ('A', 'a'): self.df1[('A', 'a')],
-            'CAP': ['B'] * len(self.df1),
-            'low': ['b'] * len(self.df1),
-            'value': self.df1[('B', 'b')],
-        }, columns=[('A', 'a'), 'CAP', 'low', 'value'])
-
-        result = self.df1.melt(id_vars=[('A', 'a')], value_vars=[('B', 'b')])
-        tm.assert_frame_equal(result, expected)
-
-    def test_tuple_vars_fail_with_multiindex(self):
-        # melt should fail with an informative error message if
-        # the columns have a MultiIndex and a tuple is passed
-        # for id_vars or value_vars.
-        tuple_a = ('A', 'a')
-        list_a = [tuple_a]
-        tuple_b = ('B', 'b')
-        list_b = [tuple_b]
-
-        for id_vars, value_vars in ((tuple_a, list_b), (list_a, tuple_b),
-                                    (tuple_a, tuple_b)):
-            with tm.assert_raises_regex(ValueError, r'MultiIndex'):
-                self.df1.melt(id_vars=id_vars, value_vars=value_vars)
-
-    def test_custom_var_name(self):
-        result5 = self.df.melt(var_name=self.var_name)
-        assert result5.columns.tolist() == ['var', 'value']
-
-        result6 = self.df.melt(id_vars=['id1'], var_name=self.var_name)
-        assert result6.columns.tolist() == ['id1', 'var', 'value']
-
-        result7 = self.df.melt(id_vars=['id1', 'id2'], var_name=self.var_name)
-        assert result7.columns.tolist() == ['id1', 'id2', 'var', 'value']
-
-        result8 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
-                               var_name=self.var_name)
-        assert result8.columns.tolist() == ['id1', 'id2', 'var', 'value']
-
-        result9 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
-                               var_name=self.var_name)
-        expected9 = DataFrame({'id1': self.df['id1'].tolist() * 2,
-                               'id2': self.df['id2'].tolist() * 2,
-                               self.var_name: ['A'] * 10 + ['B'] * 10,
-                               'value': (self.df['A'].tolist() +
-                                         self.df['B'].tolist())},
-                              columns=['id1', 'id2', self.var_name, 'value'])
-        tm.assert_frame_equal(result9, expected9)
-
-    def test_custom_value_name(self):
-        result10 = self.df.melt(value_name=self.value_name)
-        assert result10.columns.tolist() == ['variable', 'val']
-
-        result11 = self.df.melt(id_vars=['id1'], value_name=self.value_name)
-        assert result11.columns.tolist() == ['id1', 'variable', 'val']
-
-        result12 = self.df.melt(id_vars=['id1', 'id2'],
-                                value_name=self.value_name)
-        assert result12.columns.tolist() == ['id1', 'id2', 'variable', 'val']
-
-        result13 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
-                                value_name=self.value_name)
-        assert result13.columns.tolist() == ['id1', 'id2', 'variable', 'val']
-
-        result14 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
-                                value_name=self.value_name)
-        expected14 = DataFrame({'id1': self.df['id1'].tolist() * 2,
-                                'id2': self.df['id2'].tolist() * 2,
-                                'variable': ['A'] * 10 + ['B'] * 10,
-                                self.value_name: (self.df['A'].tolist() +
-                                                  self.df['B'].tolist())},
-                               columns=['id1', 'id2', 'variable',
-                                        self.value_name])
-        tm.assert_frame_equal(result14, expected14)
-
-    def test_custom_var_and_value_name(self):
-
-        result15 = self.df.melt(var_name=self.var_name,
-                                value_name=self.value_name)
-        assert result15.columns.tolist() == ['var', 'val']
-
-        result16 = self.df.melt(id_vars=['id1'], var_name=self.var_name,
-                                value_name=self.value_name)
-        assert result16.columns.tolist() == ['id1', 'var', 'val']
-
-        result17 = self.df.melt(id_vars=['id1', 'id2'],
-                                var_name=self.var_name,
-                                value_name=self.value_name)
-        assert result17.columns.tolist() == ['id1', 'id2', 'var', 'val']
-
-        result18 = self.df.melt(id_vars=['id1', 'id2'], value_vars='A',
-                                var_name=self.var_name,
-                                value_name=self.value_name)
-        assert result18.columns.tolist() == ['id1', 'id2', 'var', 'val']
-
-        result19 = self.df.melt(id_vars=['id1', 'id2'], value_vars=['A', 'B'],
-                                var_name=self.var_name,
-                                value_name=self.value_name)
-        expected19 = DataFrame({'id1': self.df['id1'].tolist() * 2,
-                                'id2': self.df['id2'].tolist() * 2,
-                                self.var_name: ['A'] * 10 + ['B'] * 10,
-                                self.value_name: (self.df['A'].tolist() +
-                                                  self.df['B'].tolist())},
-                               columns=['id1', 'id2', self.var_name,
-                                        self.value_name])
-        tm.assert_frame_equal(result19, expected19)
-
-        df20 = self.df.copy()
-        df20.columns.name = 'foo'
-        result20 = df20.melt()
-        assert result20.columns.tolist() == ['foo', 'value']
-
-    def test_col_level(self):
-        res1 = self.df1.melt(col_level=0)
-        res2 = self.df1.melt(col_level='CAP')
-        assert res1.columns.tolist() == ['CAP', 'value']
-        assert res2.columns.tolist() == ['CAP', 'value']
-
-    def test_multiindex(self):
-        res = self.df1.melt()
-        assert res.columns.tolist() == ['CAP', 'low', 'value']
+from pandas.compat import u
 
 
 class TestGetDummies(object):
 
-    sparse = False
+    @pytest.fixture
+    def df(self):
+        return DataFrame({'A': ['a', 'b', 'a'],
+                          'B': ['b', 'b', 'c'],
+                          'C': [1, 2, 3]})
 
-    def setup_method(self, method):
-        self.df = DataFrame({'A': ['a', 'b', 'a'],
-                             'B': ['b', 'b', 'c'],
-                             'C': [1, 2, 3]})
+    @pytest.fixture(params=['uint8', 'i8', np.float64, bool, None])
+    def dtype(self, request):
+        return np.dtype(request.param)
 
-    def test_basic(self):
+    @pytest.fixture(params=['dense', 'sparse'])
+    def sparse(self, request):
+        # params are strings to simplify reading test results,
+        # e.g. TestGetDummies::test_basic[uint8-sparse] instead of [uint8-True]
+        return request.param == 'sparse'
+
+    def effective_dtype(self, dtype):
+        if dtype is None:
+            return np.uint8
+        return dtype
+
+    def test_raises_on_dtype_object(self, df):
+        with pytest.raises(ValueError):
+            get_dummies(df, dtype='object')
+
+    def test_basic(self, sparse, dtype):
         s_list = list('abc')
         s_series = Series(s_list)
         s_series_index = Series(s_list, list('ABC'))
 
-        expected = DataFrame({'a': {0: 1,
-                                    1: 0,
-                                    2: 0},
-                              'b': {0: 0,
-                                    1: 1,
-                                    2: 0},
-                              'c': {0: 0,
-                                    1: 0,
-                                    2: 1}}, dtype=np.uint8)
-        assert_frame_equal(get_dummies(s_list, sparse=self.sparse), expected)
-        assert_frame_equal(get_dummies(s_series, sparse=self.sparse), expected)
+        expected = DataFrame({'a': [1, 0, 0],
+                              'b': [0, 1, 0],
+                              'c': [0, 0, 1]},
+                             dtype=self.effective_dtype(dtype))
+        result = get_dummies(s_list, sparse=sparse, dtype=dtype)
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(s_series, sparse=sparse, dtype=dtype)
+        assert_frame_equal(result, expected)
 
         expected.index = list('ABC')
-        assert_frame_equal(
-            get_dummies(s_series_index, sparse=self.sparse), expected)
+        result = get_dummies(s_series_index, sparse=sparse, dtype=dtype)
+        assert_frame_equal(result, expected)
 
-    def test_basic_types(self):
+    def test_basic_types(self, sparse, dtype):
         # GH 10531
         s_list = list('abc')
         s_series = Series(s_list)
@@ -257,38 +74,43 @@ class TestGetDummies(object):
         expected = DataFrame({'a': [1, 0, 0],
                               'b': [0, 1, 0],
                               'c': [0, 0, 1]},
-                             dtype='uint8',
+                             dtype=self.effective_dtype(dtype),
                              columns=list('abc'))
-        if not self.sparse:
+        if not sparse:
             compare = tm.assert_frame_equal
         else:
             expected = expected.to_sparse(fill_value=0, kind='integer')
             compare = tm.assert_sp_frame_equal
 
-        result = get_dummies(s_list, sparse=self.sparse)
+        result = get_dummies(s_list, sparse=sparse, dtype=dtype)
         compare(result, expected)
 
-        result = get_dummies(s_series, sparse=self.sparse)
+        result = get_dummies(s_series, sparse=sparse, dtype=dtype)
         compare(result, expected)
 
-        result = get_dummies(s_df, sparse=self.sparse, columns=s_df.columns)
+        result = get_dummies(s_df, columns=s_df.columns,
+                             sparse=sparse, dtype=dtype)
         tm.assert_series_equal(result.get_dtype_counts(),
-                               Series({'uint8': 8}))
+                               Series({dtype.name: 8}))
 
-        result = get_dummies(s_df, sparse=self.sparse, columns=['a'])
-        expected = Series({'uint8': 3, 'int64': 1, 'object': 1}).sort_values()
-        tm.assert_series_equal(result.get_dtype_counts().sort_values(),
+        result = get_dummies(s_df, columns=['a'], sparse=sparse, dtype=dtype)
+        dtype_name = self.effective_dtype(dtype).name
+
+        expected_counts = {'int64': 1, 'object': 1}
+        expected_counts[dtype_name] = 3 + expected_counts.get(dtype_name, 0)
+
+        expected = Series(expected_counts).sort_index()
+        tm.assert_series_equal(result.get_dtype_counts().sort_index(),
                                expected)
 
-    def test_just_na(self):
+    def test_just_na(self, sparse):
         just_na_list = [np.nan]
         just_na_series = Series(just_na_list)
         just_na_series_index = Series(just_na_list, index=['A'])
 
-        res_list = get_dummies(just_na_list, sparse=self.sparse)
-        res_series = get_dummies(just_na_series, sparse=self.sparse)
-        res_series_index = get_dummies(just_na_series_index,
-                                       sparse=self.sparse)
+        res_list = get_dummies(just_na_list, sparse=sparse)
+        res_series = get_dummies(just_na_series, sparse=sparse)
+        res_series_index = get_dummies(just_na_series_index, sparse=sparse)
 
         assert res_list.empty
         assert res_series.empty
@@ -298,216 +120,227 @@ class TestGetDummies(object):
         assert res_series.index.tolist() == [0]
         assert res_series_index.index.tolist() == ['A']
 
-    def test_include_na(self):
+    def test_include_na(self, sparse, dtype):
+        if sparse:
+            pytest.xfail(reason='nan in index is problematic (GH 16894)')
+
         s = ['a', 'b', np.nan]
-        res = get_dummies(s, sparse=self.sparse)
-        exp = DataFrame({'a': {0: 1, 1: 0, 2: 0},
-                         'b': {0: 0, 1: 1, 2: 0}}, dtype=np.uint8)
+        res = get_dummies(s, sparse=sparse, dtype=dtype)
+        exp = DataFrame({'a': [1, 0, 0],
+                         'b': [0, 1, 0]},
+                        dtype=self.effective_dtype(dtype))
         assert_frame_equal(res, exp)
 
         # Sparse dataframes do not allow nan labelled columns, see #GH8822
-        res_na = get_dummies(s, dummy_na=True, sparse=self.sparse)
-        exp_na = DataFrame({nan: {0: 0, 1: 0, 2: 1},
-                            'a': {0: 1, 1: 0, 2: 0},
-                            'b': {0: 0, 1: 1, 2: 0}},
-                           dtype=np.uint8)
+        res_na = get_dummies(s, dummy_na=True, sparse=sparse, dtype=dtype)
+        exp_na = DataFrame({nan: [0, 0, 1],
+                            'a': [1, 0, 0],
+                            'b': [0, 1, 0]},
+                           dtype=self.effective_dtype(dtype))
         exp_na = exp_na.reindex(['a', 'b', nan], axis=1)
         # hack (NaN handling in assert_index_equal)
         exp_na.columns = res_na.columns
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse)
+        res_just_na = get_dummies([nan], dummy_na=True,
+                                  sparse=sparse, dtype=dtype)
         exp_just_na = DataFrame(Series(1, index=[0]), columns=[nan],
-                                dtype=np.uint8)
+                                dtype=self.effective_dtype(dtype))
         tm.assert_numpy_array_equal(res_just_na.values, exp_just_na.values)
 
-    def test_unicode(self
-                     ):  # See GH 6885 - get_dummies chokes on unicode values
+    def test_unicode(self, sparse):
+        # See GH 6885 - get_dummies chokes on unicode values
         import unicodedata
         e = 'e'
         eacute = unicodedata.lookup('LATIN SMALL LETTER E WITH ACUTE')
         s = [e, eacute, eacute]
-        res = get_dummies(s, prefix='letter', sparse=self.sparse)
-        exp = DataFrame({'letter_e': {0: 1,
-                                      1: 0,
-                                      2: 0},
-                         u('letter_%s') % eacute: {0: 0,
-                                                   1: 1,
-                                                   2: 1}},
+        res = get_dummies(s, prefix='letter', sparse=sparse)
+        exp = DataFrame({'letter_e': [1, 0, 0],
+                         u('letter_%s') % eacute: [0, 1, 1]},
                         dtype=np.uint8)
         assert_frame_equal(res, exp)
 
-    def test_dataframe_dummies_all_obj(self):
-        df = self.df[['A', 'B']]
-        result = get_dummies(df, sparse=self.sparse)
+    def test_dataframe_dummies_all_obj(self, df, sparse):
+        df = df[['A', 'B']]
+        result = get_dummies(df, sparse=sparse)
         expected = DataFrame({'A_a': [1, 0, 1],
                               'A_b': [0, 1, 0],
                               'B_b': [1, 1, 0],
-                              'B_c': [0, 0, 1]}, dtype=np.uint8)
+                              'B_c': [0, 0, 1]},
+                             dtype=np.uint8)
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_mix_default(self):
-        df = self.df
-        result = get_dummies(df, sparse=self.sparse)
+    def test_dataframe_dummies_mix_default(self, df, sparse, dtype):
+        result = get_dummies(df, sparse=sparse, dtype=dtype)
         expected = DataFrame({'C': [1, 2, 3],
                               'A_a': [1, 0, 1],
                               'A_b': [0, 1, 0],
                               'B_b': [1, 1, 0],
                               'B_c': [0, 0, 1]})
         cols = ['A_a', 'A_b', 'B_b', 'B_c']
-        expected[cols] = expected[cols].astype(np.uint8)
+        expected[cols] = expected[cols].astype(dtype)
         expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c']]
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_prefix_list(self):
+    def test_dataframe_dummies_prefix_list(self, df, sparse):
         prefixes = ['from_A', 'from_B']
-        df = DataFrame({'A': ['a', 'b', 'a'],
-                        'B': ['b', 'b', 'c'],
-                        'C': [1, 2, 3]})
-        result = get_dummies(df, prefix=prefixes, sparse=self.sparse)
+        result = get_dummies(df, prefix=prefixes, sparse=sparse)
+        expected = DataFrame({'C': [1, 2, 3],
+                              'from_A_a': [1, 0, 1],
+                              'from_A_b': [0, 1, 0],
+                              'from_B_b': [1, 1, 0],
+                              'from_B_c': [0, 0, 1]},
+                             dtype=np.uint8)
+        expected[['C']] = df[['C']]
+        expected = expected[['C', 'from_A_a', 'from_A_b',
+                             'from_B_b', 'from_B_c']]
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_prefix_str(self, df, sparse):
+        # not that you should do this...
+        result = get_dummies(df, prefix='bad', sparse=sparse)
+        bad_columns = ['bad_a', 'bad_b', 'bad_b', 'bad_c']
+        expected = DataFrame([[1, 1, 0, 1, 0],
+                              [2, 0, 1, 1, 0],
+                              [3, 1, 0, 0, 1]],
+                             columns=['C'] + bad_columns,
+                             dtype=np.uint8)
+        expected = expected.astype({"C": np.int64})
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_subset(self, df, sparse):
+        result = get_dummies(df, prefix=['from_A'], columns=['A'],
+                             sparse=sparse)
+        expected = DataFrame({'B': ['b', 'b', 'c'],
+                              'C': [1, 2, 3],
+                              'from_A_a': [1, 0, 1],
+                              'from_A_b': [0, 1, 0]}, dtype=np.uint8)
+        expected[['C']] = df[['C']]
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_prefix_sep(self, df, sparse):
+        result = get_dummies(df, prefix_sep='..', sparse=sparse)
+        expected = DataFrame({'C': [1, 2, 3],
+                              'A..a': [1, 0, 1],
+                              'A..b': [0, 1, 0],
+                              'B..b': [1, 1, 0],
+                              'B..c': [0, 0, 1]},
+                             dtype=np.uint8)
+        expected[['C']] = df[['C']]
+        expected = expected[['C', 'A..a', 'A..b', 'B..b', 'B..c']]
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(df, prefix_sep=['..', '__'], sparse=sparse)
+        expected = expected.rename(columns={'B..b': 'B__b', 'B..c': 'B__c'})
+        assert_frame_equal(result, expected)
+
+        result = get_dummies(df, prefix_sep={'A': '..', 'B': '__'},
+                             sparse=sparse)
+        assert_frame_equal(result, expected)
+
+    def test_dataframe_dummies_prefix_bad_length(self, df, sparse):
+        with pytest.raises(ValueError):
+            get_dummies(df, prefix=['too few'], sparse=sparse)
+
+    def test_dataframe_dummies_prefix_sep_bad_length(self, df, sparse):
+        with pytest.raises(ValueError):
+            get_dummies(df, prefix_sep=['bad'], sparse=sparse)
+
+    def test_dataframe_dummies_prefix_dict(self, sparse):
+        prefixes = {'A': 'from_A', 'B': 'from_B'}
+        df = DataFrame({'C': [1, 2, 3],
+                        'A': ['a', 'b', 'a'],
+                        'B': ['b', 'b', 'c']})
+        result = get_dummies(df, prefix=prefixes, sparse=sparse)
+
         expected = DataFrame({'C': [1, 2, 3],
                               'from_A_a': [1, 0, 1],
                               'from_A_b': [0, 1, 0],
                               'from_B_b': [1, 1, 0],
                               'from_B_c': [0, 0, 1]})
-        cols = expected.columns[1:]
-        expected[cols] = expected[cols].astype(np.uint8)
-        expected = expected[['C', 'from_A_a', 'from_A_b', 'from_B_b',
-                             'from_B_c']]
+
+        columns = ['from_A_a', 'from_A_b', 'from_B_b', 'from_B_c']
+        expected[columns] = expected[columns].astype(np.uint8)
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_prefix_str(self):
-        # not that you should do this...
-        df = self.df
-        result = get_dummies(df, prefix='bad', sparse=self.sparse)
-        expected = DataFrame([[1, 1, 0, 1, 0],
-                              [2, 0, 1, 1, 0],
-                              [3, 1, 0, 0, 1]],
-                             columns=['C', 'bad_a', 'bad_b', 'bad_b', 'bad_c'],
-                             dtype=np.uint8)
-        expected = expected.astype({"C": np.int64})
-        assert_frame_equal(result, expected)
-
-    def test_dataframe_dummies_subset(self):
-        df = self.df
-        result = get_dummies(df, prefix=['from_A'], columns=['A'],
-                             sparse=self.sparse)
-        expected = DataFrame({'from_A_a': [1, 0, 1],
-                              'from_A_b': [0, 1, 0],
-                              'B': ['b', 'b', 'c'],
-                              'C': [1, 2, 3]})
-        cols = ['from_A_a', 'from_A_b']
-        expected[cols] = expected[cols].astype(np.uint8)
-        assert_frame_equal(result, expected)
-
-    def test_dataframe_dummies_prefix_sep(self):
-        df = self.df
-        result = get_dummies(df, prefix_sep='..', sparse=self.sparse)
-        expected = DataFrame({'C': [1, 2, 3],
-                              'A..a': [1, 0, 1],
-                              'A..b': [0, 1, 0],
-                              'B..b': [1, 1, 0],
-                              'B..c': [0, 0, 1]})
-        expected = expected[['C', 'A..a', 'A..b', 'B..b', 'B..c']]
-        cols = expected.columns[1:]
-        expected[cols] = expected[cols].astype(np.uint8)
-        assert_frame_equal(result, expected)
-
-        result = get_dummies(df, prefix_sep=['..', '__'], sparse=self.sparse)
-        expected = expected.rename(columns={'B..b': 'B__b', 'B..c': 'B__c'})
-        assert_frame_equal(result, expected)
-
-        result = get_dummies(df, prefix_sep={'A': '..',
-                                             'B': '__'}, sparse=self.sparse)
-        assert_frame_equal(result, expected)
-
-    def test_dataframe_dummies_prefix_bad_length(self):
-        with pytest.raises(ValueError):
-            get_dummies(self.df, prefix=['too few'], sparse=self.sparse)
-
-    def test_dataframe_dummies_prefix_sep_bad_length(self):
-        with pytest.raises(ValueError):
-            get_dummies(self.df, prefix_sep=['bad'], sparse=self.sparse)
-
-    def test_dataframe_dummies_prefix_dict(self):
-        prefixes = {'A': 'from_A', 'B': 'from_B'}
-        df = DataFrame({'A': ['a', 'b', 'a'],
-                        'B': ['b', 'b', 'c'],
-                        'C': [1, 2, 3]})
-        result = get_dummies(df, prefix=prefixes, sparse=self.sparse)
-        expected = DataFrame({'from_A_a': [1, 0, 1],
-                              'from_A_b': [0, 1, 0],
-                              'from_B_b': [1, 1, 0],
-                              'from_B_c': [0, 0, 1],
-                              'C': [1, 2, 3]})
-        cols = ['from_A_a', 'from_A_b', 'from_B_b', 'from_B_c']
-        expected[cols] = expected[cols].astype(np.uint8)
-        assert_frame_equal(result, expected)
-
-    def test_dataframe_dummies_with_na(self):
-        df = self.df
+    def test_dataframe_dummies_with_na(self, df, sparse, dtype):
         df.loc[3, :] = [np.nan, np.nan, np.nan]
-        result = get_dummies(df, dummy_na=True, sparse=self.sparse)
+        result = get_dummies(df, dummy_na=True,
+                             sparse=sparse, dtype=dtype).sort_index(axis=1)
         expected = DataFrame({'C': [1, 2, 3, np.nan],
                               'A_a': [1, 0, 1, 0],
                               'A_b': [0, 1, 0, 0],
                               'A_nan': [0, 0, 0, 1],
                               'B_b': [1, 1, 0, 0],
                               'B_c': [0, 0, 1, 0],
-                              'B_nan': [0, 0, 0, 1]})
-        cols = ['A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan']
-        expected[cols] = expected[cols].astype(np.uint8)
-        expected = expected[['C', 'A_a', 'A_b', 'A_nan',
-                             'B_b', 'B_c', 'B_nan']]
+                              'B_nan': [0, 0, 0, 1]}).sort_index(axis=1)
+
+        e_dtype = self.effective_dtype(dtype)
+        columns = ['A_a', 'A_b', 'A_nan', 'B_b', 'B_c', 'B_nan']
+        expected[columns] = expected[columns].astype(e_dtype)
         assert_frame_equal(result, expected)
 
-        result = get_dummies(df, dummy_na=False, sparse=self.sparse)
+        result = get_dummies(df, dummy_na=False, sparse=sparse, dtype=dtype)
         expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c']]
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_with_categorical(self):
-        df = self.df
+    def test_dataframe_dummies_with_categorical(self, df, sparse, dtype):
         df['cat'] = pd.Categorical(['x', 'y', 'y'])
-        result = get_dummies(df, sparse=self.sparse)
+        result = get_dummies(df, sparse=sparse, dtype=dtype).sort_index(axis=1)
         expected = DataFrame({'C': [1, 2, 3],
                               'A_a': [1, 0, 1],
                               'A_b': [0, 1, 0],
                               'B_b': [1, 1, 0],
                               'B_c': [0, 0, 1],
                               'cat_x': [1, 0, 0],
-                              'cat_y': [0, 1, 1]})
-        cols = ['A_a', 'A_b', 'B_b', 'B_c', 'cat_x', 'cat_y']
-        expected[cols] = expected[cols].astype(np.uint8)
-        expected = expected[['C', 'A_a', 'A_b', 'B_b', 'B_c',
-                             'cat_x', 'cat_y']]
+                              'cat_y': [0, 1, 1]}).sort_index(axis=1)
+
+        columns = ['A_a', 'A_b', 'B_b', 'B_c', 'cat_x', 'cat_y']
+        effective_dtype = self.effective_dtype(dtype)
+        expected[columns] = expected[columns].astype(effective_dtype)
+        expected.sort_index(axis=1)
         assert_frame_equal(result, expected)
 
-    def test_basic_drop_first(self):
+    @pytest.mark.parametrize('get_dummies_kwargs,expected', [
+        ({'data': pd.DataFrame(({u'ä': ['a']}))},
+         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'ä']})},
+         pd.DataFrame({u'x_ä': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix':u'ä'},
+         pd.DataFrame({u'ä_a': [1]}, dtype=np.uint8)),
+
+        ({'data': pd.DataFrame({'x': [u'a']}), 'prefix_sep':u'ä'},
+         pd.DataFrame({u'xäa': [1]}, dtype=np.uint8))])
+    def test_dataframe_dummies_unicode(self, get_dummies_kwargs, expected):
+        # GH22084 pd.get_dummies incorrectly encodes unicode characters
+        # in dataframe column names
+        result = get_dummies(**get_dummies_kwargs)
+        assert_frame_equal(result, expected)
+
+    def test_basic_drop_first(self, sparse):
         # GH12402 Add a new parameter `drop_first` to avoid collinearity
         # Basic case
         s_list = list('abc')
         s_series = Series(s_list)
         s_series_index = Series(s_list, list('ABC'))
 
-        expected = DataFrame({'b': {0: 0,
-                                    1: 1,
-                                    2: 0},
-                              'c': {0: 0,
-                                    1: 0,
-                                    2: 1}}, dtype=np.uint8)
+        expected = DataFrame({'b': [0, 1, 0],
+                              'c': [0, 0, 1]},
+                             dtype=np.uint8)
 
-        result = get_dummies(s_list, sparse=self.sparse, drop_first=True)
+        result = get_dummies(s_list, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-        result = get_dummies(s_series, sparse=self.sparse, drop_first=True)
+        result = get_dummies(s_series, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
         expected.index = list('ABC')
-        result = get_dummies(s_series_index, sparse=self.sparse,
-                             drop_first=True)
+        result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-    def test_basic_drop_first_one_level(self):
+    def test_basic_drop_first_one_level(self, sparse):
         # Test the case that categorical variable only has one level.
         s_list = list('aaa')
         s_series = Series(s_list)
@@ -515,53 +348,48 @@ class TestGetDummies(object):
 
         expected = DataFrame(index=np.arange(3))
 
-        result = get_dummies(s_list, sparse=self.sparse, drop_first=True)
+        result = get_dummies(s_list, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-        result = get_dummies(s_series, sparse=self.sparse, drop_first=True)
+        result = get_dummies(s_series, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
         expected = DataFrame(index=list('ABC'))
-        result = get_dummies(s_series_index, sparse=self.sparse,
-                             drop_first=True)
+        result = get_dummies(s_series_index, drop_first=True, sparse=sparse)
         assert_frame_equal(result, expected)
 
-    def test_basic_drop_first_NA(self):
-        # Test NA hadling together with drop_first
+    def test_basic_drop_first_NA(self, sparse):
+        # Test NA handling together with drop_first
         s_NA = ['a', 'b', np.nan]
-        res = get_dummies(s_NA, sparse=self.sparse, drop_first=True)
-        exp = DataFrame({'b': {0: 0,
-                               1: 1,
-                               2: 0}}, dtype=np.uint8)
+        res = get_dummies(s_NA, drop_first=True, sparse=sparse)
+        exp = DataFrame({'b': [0, 1, 0]}, dtype=np.uint8)
         assert_frame_equal(res, exp)
 
-        res_na = get_dummies(s_NA, dummy_na=True, sparse=self.sparse,
-                             drop_first=True)
-        exp_na = DataFrame({'b': {0: 0,
-                                  1: 1,
-                                  2: 0},
-                            nan: {0: 0,
-                                  1: 0,
-                                  2: 1}}, dtype=np.uint8).reindex(
-                                      ['b', nan], axis=1)
+        res_na = get_dummies(s_NA, dummy_na=True, drop_first=True,
+                             sparse=sparse)
+        exp_na = DataFrame(
+            {'b': [0, 1, 0],
+             nan: [0, 0, 1]},
+            dtype=np.uint8).reindex(['b', nan], axis=1)
         assert_frame_equal(res_na, exp_na)
 
-        res_just_na = get_dummies([nan], dummy_na=True, sparse=self.sparse,
-                                  drop_first=True)
+        res_just_na = get_dummies([nan], dummy_na=True, drop_first=True,
+                                  sparse=sparse)
         exp_just_na = DataFrame(index=np.arange(1))
         assert_frame_equal(res_just_na, exp_just_na)
 
-    def test_dataframe_dummies_drop_first(self):
-        df = self.df[['A', 'B']]
-        result = get_dummies(df, sparse=self.sparse, drop_first=True)
+    def test_dataframe_dummies_drop_first(self, df, sparse):
+        df = df[['A', 'B']]
+        result = get_dummies(df, drop_first=True, sparse=sparse)
         expected = DataFrame({'A_b': [0, 1, 0],
-                              'B_c': [0, 0, 1]}, dtype=np.uint8)
+                              'B_c': [0, 0, 1]},
+                             dtype=np.uint8)
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_drop_first_with_categorical(self):
-        df = self.df
+    def test_dataframe_dummies_drop_first_with_categorical(
+            self, df, sparse, dtype):
         df['cat'] = pd.Categorical(['x', 'y', 'y'])
-        result = get_dummies(df, sparse=self.sparse, drop_first=True)
+        result = get_dummies(df, drop_first=True, sparse=sparse)
         expected = DataFrame({'C': [1, 2, 3],
                               'A_b': [0, 1, 0],
                               'B_c': [0, 0, 1],
@@ -571,11 +399,10 @@ class TestGetDummies(object):
         expected = expected[['C', 'A_b', 'B_c', 'cat_y']]
         assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_drop_first_with_na(self):
-        df = self.df
+    def test_dataframe_dummies_drop_first_with_na(self, df, sparse):
         df.loc[3, :] = [np.nan, np.nan, np.nan]
-        result = get_dummies(df, dummy_na=True, sparse=self.sparse,
-                             drop_first=True)
+        result = get_dummies(df, dummy_na=True, drop_first=True,
+                             sparse=sparse).sort_index(axis=1)
         expected = DataFrame({'C': [1, 2, 3, np.nan],
                               'A_b': [0, 1, 0, 0],
                               'A_nan': [0, 0, 0, 1],
@@ -583,30 +410,34 @@ class TestGetDummies(object):
                               'B_nan': [0, 0, 0, 1]})
         cols = ['A_b', 'A_nan', 'B_c', 'B_nan']
         expected[cols] = expected[cols].astype(np.uint8)
-
-        expected = expected[['C', 'A_b', 'A_nan', 'B_c', 'B_nan']]
+        expected = expected.sort_index(axis=1)
         assert_frame_equal(result, expected)
 
-        result = get_dummies(df, dummy_na=False, sparse=self.sparse,
-                             drop_first=True)
+        result = get_dummies(df, dummy_na=False, drop_first=True,
+                             sparse=sparse)
         expected = expected[['C', 'A_b', 'B_c']]
         assert_frame_equal(result, expected)
 
     def test_int_int(self):
         data = Series([1, 2, 1])
         result = pd.get_dummies(data)
-        expected = DataFrame([[1, 0], [0, 1], [1, 0]], columns=[1, 2],
+        expected = DataFrame([[1, 0],
+                              [0, 1],
+                              [1, 0]],
+                             columns=[1, 2],
                              dtype=np.uint8)
         tm.assert_frame_equal(result, expected)
 
         data = Series(pd.Categorical(['a', 'b', 'a']))
         result = pd.get_dummies(data)
-        expected = DataFrame([[1, 0], [0, 1], [1, 0]],
+        expected = DataFrame([[1, 0],
+                              [0, 1],
+                              [1, 0]],
                              columns=pd.Categorical(['a', 'b']),
                              dtype=np.uint8)
         tm.assert_frame_equal(result, expected)
 
-    def test_int_df(self):
+    def test_int_df(self, dtype):
         data = DataFrame(
             {'A': [1, 2, 1],
              'B': pd.Categorical(['a', 'b', 'a']),
@@ -620,32 +451,73 @@ class TestGetDummies(object):
             [2, 2., 0, 1, 0, 1],
             [1, 1., 1, 0, 1, 0]
         ], columns=columns)
-        expected[columns[2:]] = expected[columns[2:]].astype(np.uint8)
-        result = pd.get_dummies(data, columns=['A', 'B'])
+        expected[columns[2:]] = expected[columns[2:]].astype(dtype)
+        result = pd.get_dummies(data, columns=['A', 'B'], dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
-    def test_dataframe_dummies_preserve_categorical_dtype(self):
+    def test_dataframe_dummies_preserve_categorical_dtype(self, dtype):
         # GH13854
         for ordered in [False, True]:
             cat = pd.Categorical(list("xy"), categories=list("xyz"),
                                  ordered=ordered)
-            result = get_dummies(cat)
+            result = get_dummies(cat, dtype=dtype)
 
-            data = np.array([[1, 0, 0], [0, 1, 0]], dtype=np.uint8)
+            data = np.array([[1, 0, 0], [0, 1, 0]],
+                            dtype=self.effective_dtype(dtype))
             cols = pd.CategoricalIndex(cat.categories,
                                        categories=cat.categories,
                                        ordered=ordered)
-            expected = DataFrame(data, columns=cols)
+            expected = DataFrame(data, columns=cols,
+                                 dtype=self.effective_dtype(dtype))
 
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('sparse', [True, False])
+    def test_get_dummies_dont_sparsify_all_columns(self, sparse):
+        # GH18914
+        df = DataFrame.from_dict(OrderedDict([('GDP', [1, 2]),
+                                              ('Nation', ['AB', 'CD'])]))
+        df = get_dummies(df, columns=['Nation'], sparse=sparse)
+        df2 = df.reindex(columns=['GDP'])
 
-class TestGetDummiesSparse(TestGetDummies):
-    sparse = True
+        tm.assert_frame_equal(df[['GDP']], df2)
 
-    @pytest.mark.xfail(reason='nan in index is problematic (GH 16894)')
-    def test_include_na(self):
-        super(TestGetDummiesSparse, self).test_include_na()
+    def test_get_dummies_duplicate_columns(self, df):
+        # GH20839
+        df.columns = ["A", "A", "A"]
+        result = get_dummies(df).sort_index(axis=1)
+
+        expected = DataFrame([[1, 1, 0, 1, 0],
+                              [2, 0, 1, 1, 0],
+                              [3, 1, 0, 0, 1]],
+                             columns=['A', 'A_a', 'A_b', 'A_b', 'A_c'],
+                             dtype=np.uint8).sort_index(axis=1)
+
+        expected = expected.astype({"A": np.int64})
+
+        tm.assert_frame_equal(result, expected)
+
+
+class TestCategoricalReshape(object):
+
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    def test_reshaping_panel_categorical(self):
+
+        p = tm.makePanel()
+        p['str'] = 'foo'
+        df = p.to_frame()
+
+        df['category'] = df['str'].astype('category')
+        result = df['category'].unstack()
+
+        c = Categorical(['foo'] * len(p.major_axis))
+        expected = DataFrame({'A': c.copy(),
+                              'B': c.copy(),
+                              'C': c.copy(),
+                              'D': c.copy()},
+                             columns=Index(list('ABCD'), name='minor'),
+                             index=p.major_axis.set_names('major'))
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMakeAxisDummies(object):
@@ -667,327 +539,3 @@ class TestMakeAxisDummies(object):
 
             result = make_axis_dummies(df, transform=lambda x: x)
             tm.assert_frame_equal(result, expected)
-
-
-class TestLreshape(object):
-
-    def test_pairs(self):
-        data = {'birthdt': ['08jan2009', '20dec2008', '30dec2008', '21dec2008',
-                            '11jan2009'],
-                'birthwt': [1766, 3301, 1454, 3139, 4133],
-                'id': [101, 102, 103, 104, 105],
-                'sex': ['Male', 'Female', 'Female', 'Female', 'Female'],
-                'visitdt1': ['11jan2009', '22dec2008', '04jan2009',
-                             '29dec2008', '20jan2009'],
-                'visitdt2':
-                ['21jan2009', nan, '22jan2009', '31dec2008', '03feb2009'],
-                'visitdt3': ['05feb2009', nan, nan, '02jan2009', '15feb2009'],
-                'wt1': [1823, 3338, 1549, 3298, 4306],
-                'wt2': [2011.0, nan, 1892.0, 3338.0, 4575.0],
-                'wt3': [2293.0, nan, nan, 3377.0, 4805.0]}
-
-        df = DataFrame(data)
-
-        spec = {'visitdt': ['visitdt%d' % i for i in range(1, 4)],
-                'wt': ['wt%d' % i for i in range(1, 4)]}
-        result = lreshape(df, spec)
-
-        exp_data = {'birthdt':
-                    ['08jan2009', '20dec2008', '30dec2008', '21dec2008',
-                     '11jan2009', '08jan2009', '30dec2008', '21dec2008',
-                     '11jan2009', '08jan2009', '21dec2008', '11jan2009'],
-                    'birthwt': [1766, 3301, 1454, 3139, 4133, 1766, 1454, 3139,
-                                4133, 1766, 3139, 4133],
-                    'id': [101, 102, 103, 104, 105, 101, 103, 104, 105, 101,
-                           104, 105],
-                    'sex': ['Male', 'Female', 'Female', 'Female', 'Female',
-                            'Male', 'Female', 'Female', 'Female', 'Male',
-                            'Female', 'Female'],
-                    'visitdt': ['11jan2009', '22dec2008', '04jan2009',
-                                '29dec2008', '20jan2009', '21jan2009',
-                                '22jan2009', '31dec2008', '03feb2009',
-                                '05feb2009', '02jan2009', '15feb2009'],
-                    'wt': [1823.0, 3338.0, 1549.0, 3298.0, 4306.0, 2011.0,
-                           1892.0, 3338.0, 4575.0, 2293.0, 3377.0, 4805.0]}
-        exp = DataFrame(exp_data, columns=result.columns)
-        tm.assert_frame_equal(result, exp)
-
-        result = lreshape(df, spec, dropna=False)
-        exp_data = {'birthdt':
-                    ['08jan2009', '20dec2008', '30dec2008', '21dec2008',
-                     '11jan2009', '08jan2009', '20dec2008', '30dec2008',
-                     '21dec2008', '11jan2009', '08jan2009', '20dec2008',
-                     '30dec2008', '21dec2008', '11jan2009'],
-                    'birthwt': [1766, 3301, 1454, 3139, 4133, 1766, 3301, 1454,
-                                3139, 4133, 1766, 3301, 1454, 3139, 4133],
-                    'id': [101, 102, 103, 104, 105, 101, 102, 103, 104, 105,
-                           101, 102, 103, 104, 105],
-                    'sex': ['Male', 'Female', 'Female', 'Female', 'Female',
-                            'Male', 'Female', 'Female', 'Female', 'Female',
-                            'Male', 'Female', 'Female', 'Female', 'Female'],
-                    'visitdt': ['11jan2009', '22dec2008', '04jan2009',
-                                '29dec2008', '20jan2009', '21jan2009', nan,
-                                '22jan2009', '31dec2008', '03feb2009',
-                                '05feb2009', nan, nan, '02jan2009',
-                                '15feb2009'],
-                    'wt': [1823.0, 3338.0, 1549.0, 3298.0, 4306.0, 2011.0, nan,
-                           1892.0, 3338.0, 4575.0, 2293.0, nan, nan, 3377.0,
-                           4805.0]}
-        exp = DataFrame(exp_data, columns=result.columns)
-        tm.assert_frame_equal(result, exp)
-
-        spec = {'visitdt': ['visitdt%d' % i for i in range(1, 3)],
-                'wt': ['wt%d' % i for i in range(1, 4)]}
-        pytest.raises(ValueError, lreshape, df, spec)
-
-
-class TestWideToLong(object):
-
-    def test_simple(self):
-        np.random.seed(123)
-        x = np.random.randn(3)
-        df = pd.DataFrame({"A1970": {0: "a",
-                                     1: "b",
-                                     2: "c"},
-                           "A1980": {0: "d",
-                                     1: "e",
-                                     2: "f"},
-                           "B1970": {0: 2.5,
-                                     1: 1.2,
-                                     2: .7},
-                           "B1980": {0: 3.2,
-                                     1: 1.3,
-                                     2: .1},
-                           "X": dict(zip(
-                               range(3), x))})
-        df["id"] = df.index
-        exp_data = {"X": x.tolist() + x.tolist(),
-                    "A": ['a', 'b', 'c', 'd', 'e', 'f'],
-                    "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
-                    "id": [0, 1, 2, 0, 1, 2]}
-        exp_frame = DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
-        long_frame = wide_to_long(df, ["A", "B"], i="id", j="year")
-        tm.assert_frame_equal(long_frame, exp_frame)
-
-    def test_stubs(self):
-        # GH9204
-        df = pd.DataFrame([[0, 1, 2, 3, 8], [4, 5, 6, 7, 9]])
-        df.columns = ['id', 'inc1', 'inc2', 'edu1', 'edu2']
-        stubs = ['inc', 'edu']
-
-        # TODO: unused?
-        df_long = pd.wide_to_long(df, stubs, i='id', j='age')  # noqa
-
-        assert stubs == ['inc', 'edu']
-
-    def test_separating_character(self):
-        # GH14779
-        np.random.seed(123)
-        x = np.random.randn(3)
-        df = pd.DataFrame({"A.1970": {0: "a",
-                                      1: "b",
-                                      2: "c"},
-                           "A.1980": {0: "d",
-                                      1: "e",
-                                      2: "f"},
-                           "B.1970": {0: 2.5,
-                                      1: 1.2,
-                                      2: .7},
-                           "B.1980": {0: 3.2,
-                                      1: 1.3,
-                                      2: .1},
-                           "X": dict(zip(
-                               range(3), x))})
-        df["id"] = df.index
-        exp_data = {"X": x.tolist() + x.tolist(),
-                    "A": ['a', 'b', 'c', 'd', 'e', 'f'],
-                    "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
-                    "id": [0, 1, 2, 0, 1, 2]}
-        exp_frame = DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
-        long_frame = wide_to_long(df, ["A", "B"], i="id", j="year", sep=".")
-        tm.assert_frame_equal(long_frame, exp_frame)
-
-    def test_escapable_characters(self):
-        np.random.seed(123)
-        x = np.random.randn(3)
-        df = pd.DataFrame({"A(quarterly)1970": {0: "a",
-                                                1: "b",
-                                                2: "c"},
-                           "A(quarterly)1980": {0: "d",
-                                                1: "e",
-                                                2: "f"},
-                           "B(quarterly)1970": {0: 2.5,
-                                                1: 1.2,
-                                                2: .7},
-                           "B(quarterly)1980": {0: 3.2,
-                                                1: 1.3,
-                                                2: .1},
-                           "X": dict(zip(
-                               range(3), x))})
-        df["id"] = df.index
-        exp_data = {"X": x.tolist() + x.tolist(),
-                    "A(quarterly)": ['a', 'b', 'c', 'd', 'e', 'f'],
-                    "B(quarterly)": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
-                    "id": [0, 1, 2, 0, 1, 2]}
-        exp_frame = DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(
-            ['id', 'year'])[["X", "A(quarterly)", "B(quarterly)"]]
-        long_frame = wide_to_long(df, ["A(quarterly)", "B(quarterly)"],
-                                  i="id", j="year")
-        tm.assert_frame_equal(long_frame, exp_frame)
-
-    def test_unbalanced(self):
-        # test that we can have a varying amount of time variables
-        df = pd.DataFrame({'A2010': [1.0, 2.0],
-                           'A2011': [3.0, 4.0],
-                           'B2010': [5.0, 6.0],
-                           'X': ['X1', 'X2']})
-        df['id'] = df.index
-        exp_data = {'X': ['X1', 'X1', 'X2', 'X2'],
-                    'A': [1.0, 3.0, 2.0, 4.0],
-                    'B': [5.0, np.nan, 6.0, np.nan],
-                    'id': [0, 0, 1, 1],
-                    'year': ['2010', '2011', '2010', '2011']}
-        exp_frame = pd.DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
-        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year')
-        tm.assert_frame_equal(long_frame, exp_frame)
-
-    def test_character_overlap(self):
-        # Test we handle overlapping characters in both id_vars and value_vars
-        df = pd.DataFrame({
-            'A11': ['a11', 'a22', 'a33'],
-            'A12': ['a21', 'a22', 'a23'],
-            'B11': ['b11', 'b12', 'b13'],
-            'B12': ['b21', 'b22', 'b23'],
-            'BB11': [1, 2, 3],
-            'BB12': [4, 5, 6],
-            'BBBX': [91, 92, 93],
-            'BBBZ': [91, 92, 93]
-        })
-        df['id'] = df.index
-        exp_frame = pd.DataFrame({
-            'BBBX': [91, 92, 93, 91, 92, 93],
-            'BBBZ': [91, 92, 93, 91, 92, 93],
-            'A': ['a11', 'a22', 'a33', 'a21', 'a22', 'a23'],
-            'B': ['b11', 'b12', 'b13', 'b21', 'b22', 'b23'],
-            'BB': [1, 2, 3, 4, 5, 6],
-            'id': [0, 1, 2, 0, 1, 2],
-            'year': ['11', '11', '11', '12', '12', '12']})
-        exp_frame = exp_frame.set_index(['id', 'year'])[
-            ['BBBX', 'BBBZ', 'A', 'B', 'BB']]
-        long_frame = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
-
-    def test_invalid_separator(self):
-        # if an invalid separator is supplied a empty data frame is returned
-        sep = 'nope!'
-        df = pd.DataFrame({'A2010': [1.0, 2.0],
-                           'A2011': [3.0, 4.0],
-                           'B2010': [5.0, 6.0],
-                           'X': ['X1', 'X2']})
-        df['id'] = df.index
-        exp_data = {'X': '',
-                    'A2010': [],
-                    'A2011': [],
-                    'B2010': [],
-                    'id': [],
-                    'year': [],
-                    'A': [],
-                    'B': []}
-        exp_frame = pd.DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[[
-            'X', 'A2010', 'A2011', 'B2010', 'A', 'B']]
-        exp_frame.index.set_levels([[0, 1], []], inplace=True)
-        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year', sep=sep)
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
-
-    def test_num_string_disambiguation(self):
-        # Test that we can disambiguate number value_vars from
-        # string value_vars
-        df = pd.DataFrame({
-            'A11': ['a11', 'a22', 'a33'],
-            'A12': ['a21', 'a22', 'a23'],
-            'B11': ['b11', 'b12', 'b13'],
-            'B12': ['b21', 'b22', 'b23'],
-            'BB11': [1, 2, 3],
-            'BB12': [4, 5, 6],
-            'Arating': [91, 92, 93],
-            'Arating_old': [91, 92, 93]
-        })
-        df['id'] = df.index
-        exp_frame = pd.DataFrame({
-            'Arating': [91, 92, 93, 91, 92, 93],
-            'Arating_old': [91, 92, 93, 91, 92, 93],
-            'A': ['a11', 'a22', 'a33', 'a21', 'a22', 'a23'],
-            'B': ['b11', 'b12', 'b13', 'b21', 'b22', 'b23'],
-            'BB': [1, 2, 3, 4, 5, 6],
-            'id': [0, 1, 2, 0, 1, 2],
-            'year': ['11', '11', '11', '12', '12', '12']})
-        exp_frame = exp_frame.set_index(['id', 'year'])[
-            ['Arating', 'Arating_old', 'A', 'B', 'BB']]
-        long_frame = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
-
-    def test_invalid_suffixtype(self):
-        # If all stubs names end with a string, but a numeric suffix is
-        # assumed,  an empty data frame is returned
-        df = pd.DataFrame({'Aone': [1.0, 2.0],
-                           'Atwo': [3.0, 4.0],
-                           'Bone': [5.0, 6.0],
-                           'X': ['X1', 'X2']})
-        df['id'] = df.index
-        exp_data = {'X': '',
-                    'Aone': [],
-                    'Atwo': [],
-                    'Bone': [],
-                    'id': [],
-                    'year': [],
-                    'A': [],
-                    'B': []}
-        exp_frame = pd.DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[[
-            'X', 'Aone', 'Atwo', 'Bone', 'A', 'B']]
-        exp_frame.index.set_levels([[0, 1], []], inplace=True)
-        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year')
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
-
-    def test_multiple_id_columns(self):
-        # Taken from http://www.ats.ucla.edu/stat/stata/modules/reshapel.htm
-        df = pd.DataFrame({
-            'famid': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-            'birth': [1, 2, 3, 1, 2, 3, 1, 2, 3],
-            'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
-            'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
-        })
-        exp_frame = pd.DataFrame({
-            'ht': [2.8, 3.4, 2.9, 3.8, 2.2, 2.9, 2.0, 3.2, 1.8,
-                   2.8, 1.9, 2.4, 2.2, 3.3, 2.3, 3.4, 2.1, 2.9],
-            'famid': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
-            'birth': [1, 1, 2, 2, 3, 3, 1, 1, 2, 2, 3, 3, 1, 1, 2, 2, 3, 3],
-            'age': ['1', '2', '1', '2', '1', '2', '1', '2', '1',
-                    '2', '1', '2', '1', '2', '1', '2', '1', '2']
-        })
-        exp_frame = exp_frame.set_index(['famid', 'birth', 'age'])[['ht']]
-        long_frame = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
-        tm.assert_frame_equal(long_frame, exp_frame)
-
-    def test_non_unique_idvars(self):
-        # GH16382
-        # Raise an error message if non unique id vars (i) are passed
-        df = pd.DataFrame({
-            'A_A1': [1, 2, 3, 4, 5],
-            'B_B1': [1, 2, 3, 4, 5],
-            'x': [1, 1, 1, 1, 1]
-        })
-        with pytest.raises(ValueError):
-            wide_to_long(df, ['A_A', 'B_B'], i='x', j='colname')

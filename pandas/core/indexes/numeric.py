@@ -1,19 +1,20 @@
 import numpy as np
 from pandas._libs import (index as libindex,
-                          algos as libalgos, join as libjoin)
+                          join as libjoin)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
-    is_float_dtype,
-    is_object_dtype,
+    needs_i8_conversion,
     is_integer_dtype,
+    is_float,
     is_bool,
     is_bool_dtype,
     is_scalar)
-from pandas.core.common import _asarray_tuplesafe, _values_from_object
+from pandas.core.dtypes.missing import isna
 
 from pandas import compat
 from pandas.core import algorithms
+import pandas.core.common as com
 from pandas.core.indexes.base import (
     Index, InvalidIndexError, _index_shared_docs)
 from pandas.util._decorators import Appender, cache_readonly
@@ -39,7 +40,7 @@ class NumericIndex(Index):
         if fastpath:
             return cls._simple_new(data, name=name)
 
-        # isscalar, generators handled in coerce_to_ndarray
+        # is_scalar, generators handled in coerce_to_ndarray
         data = cls._coerce_to_ndarray(data)
 
         if issubclass(data.dtype.type, compat.string_types):
@@ -61,6 +62,14 @@ class NumericIndex(Index):
 
         # we will try to coerce to integers
         return self._maybe_cast_indexer(label)
+
+    @Appender(_index_shared_docs['_shallow_copy'])
+    def _shallow_copy(self, values=None, **kwargs):
+        if values is not None and not self._can_hold_na:
+            # Ensure we are not returning an Int64Index with float data:
+            return self._shallow_copy_with_infer(values=values, **kwargs)
+        return (super(NumericIndex, self)._shallow_copy(values=values,
+                                                        **kwargs))
 
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
@@ -107,6 +116,13 @@ class NumericIndex(Index):
         """
         return False
 
+    @Appender(Index.insert.__doc__)
+    def insert(self, loc, item):
+        # treat NA values as nans:
+        if is_scalar(item) and isna(item):
+            item = self._na_value
+        return super(NumericIndex, self).insert(loc, item)
+
 
 _num_index_shared_docs['class_descr'] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object
@@ -121,6 +137,14 @@ _num_index_shared_docs['class_descr'] = """
         Make a copy of input ndarray
     name : object
         Name to be stored in the index
+
+    Attributes
+    ----------
+    None
+
+    Methods
+    -------
+    None
 
     Notes
     -----
@@ -139,11 +163,28 @@ _int64_descr_args = dict(
 )
 
 
-class Int64Index(NumericIndex):
+class IntegerIndex(NumericIndex):
+    """
+    This is an abstract class for Int64Index, UInt64Index.
+    """
+
+    def __contains__(self, key):
+        """
+        Check if key is a float and has a decimal. If it has, return False.
+        """
+        hash(key)
+        try:
+            if is_float(key) and int(key) != key:
+                return False
+            return key in self._engine
+        except (OverflowError, TypeError, ValueError):
+            return False
+
+
+class Int64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
-    _arrmap = libalgos.arrmap_int64
     _left_indexer_unique = libjoin.left_join_indexer_unique_int64
     _left_indexer = libjoin.left_join_indexer_int64
     _inner_indexer = libjoin.inner_join_indexer_int64
@@ -154,6 +195,7 @@ class Int64Index(NumericIndex):
 
     @property
     def inferred_type(self):
+        """Always 'integer' for ``Int64Index``"""
         return 'integer'
 
     @property
@@ -197,22 +239,21 @@ _uint64_descr_args = dict(
 )
 
 
-class UInt64Index(NumericIndex):
+class UInt64Index(IntegerIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
-    _arrmap = libalgos.arrmap_uint64
     _left_indexer_unique = libjoin.left_join_indexer_unique_uint64
     _left_indexer = libjoin.left_join_indexer_uint64
     _inner_indexer = libjoin.inner_join_indexer_uint64
     _outer_indexer = libjoin.outer_join_indexer_uint64
     _can_hold_na = False
-    _na_value = 0
     _engine_type = libindex.UInt64Engine
     _default_dtype = np.uint64
 
     @property
     def inferred_type(self):
+        """Always 'integer' for ``UInt64Index``"""
         return 'integer'
 
     @property
@@ -235,9 +276,9 @@ class UInt64Index(NumericIndex):
         # Cast the indexer to uint64 if possible so
         # that the values returned from indexing are
         # also uint64.
-        keyarr = _asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
         if is_integer_dtype(keyarr):
-            return _asarray_tuplesafe(keyarr, dtype=np.uint64)
+            return com.asarray_tuplesafe(keyarr, dtype=np.uint64)
         return keyarr
 
     @Appender(_index_shared_docs['_convert_index_indexer'])
@@ -280,7 +321,6 @@ class Float64Index(NumericIndex):
 
     _typ = 'float64index'
     _engine_type = libindex.Float64Engine
-    _arrmap = libalgos.arrmap_float64
     _left_indexer_unique = libjoin.left_join_indexer_unique_float64
     _left_indexer = libjoin.left_join_indexer_float64
     _inner_indexer = libjoin.inner_join_indexer_float64
@@ -290,24 +330,20 @@ class Float64Index(NumericIndex):
 
     @property
     def inferred_type(self):
+        """Always 'floating' for ``Float64Index``"""
         return 'floating'
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
         dtype = pandas_dtype(dtype)
-        if is_float_dtype(dtype):
-            values = self._values.astype(dtype, copy=copy)
-        elif is_integer_dtype(dtype):
-            if self.hasnans:
-                raise ValueError('cannot convert float NaN to integer')
-            values = self._values.astype(dtype, copy=copy)
-        elif is_object_dtype(dtype):
-            values = self._values.astype('object', copy=copy)
-        else:
-            raise TypeError('Setting %s dtype to anything other than '
-                            'float64 or object is not supported' %
-                            self.__class__)
-        return Index(values, name=self.name, dtype=dtype)
+        if needs_i8_conversion(dtype):
+            msg = ('Cannot convert Float64Index to dtype {dtype}; integer '
+                   'values are required for conversion').format(dtype=dtype)
+            raise TypeError(msg)
+        elif is_integer_dtype(dtype) and self.hasnans:
+            # GH 13149
+            raise ValueError('Cannot convert NA to integer')
+        return super(Float64Index, self).astype(dtype, copy=copy)
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -345,9 +381,9 @@ class Float64Index(NumericIndex):
         if not is_scalar(key):
             raise InvalidIndexError
 
-        k = _values_from_object(key)
+        k = com.values_from_object(key)
         loc = self.get_loc(k)
-        new_values = _values_from_object(series)[loc]
+        new_values = com.values_from_object(series)[loc]
 
         return new_values
 
@@ -369,7 +405,7 @@ class Float64Index(NumericIndex):
             if (not is_dtype_equal(self.dtype, other.dtype) or
                     self.shape != other.shape):
                 return False
-            left, right = self._values, other._values
+            left, right = self._ndarray_values, other._ndarray_values
             return ((left == right) | (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False
@@ -385,14 +421,16 @@ class Float64Index(NumericIndex):
             try:
                 return len(other) <= 1 and ibase._try_get_item(other) in self
             except TypeError:
-                return False
-        except:
-            return False
+                pass
+        except TypeError:
+            pass
+
+        return False
 
     @Appender(_index_shared_docs['get_loc'])
     def get_loc(self, key, method=None, tolerance=None):
         try:
-            if np.all(np.isnan(key)):
+            if np.all(np.isnan(key)) or is_bool(key):
                 nan_idxs = self._nan_idxs
                 try:
                     return nan_idxs.item()

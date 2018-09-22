@@ -5,14 +5,14 @@
 
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
-tm._skip_if_no_mpl()
 
-
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):

@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
-
+import sys
 import pytest
 
-from warnings import catch_warnings
-import numpy as np
-
-import pandas
-from pandas.core import common as com
 from pandas.api import types
 from pandas.util import testing as tm
 
@@ -30,7 +25,7 @@ class TestTypes(Base):
                'is_period_dtype', 'is_interval', 'is_interval_dtype',
                'is_re', 'is_re_compilable',
                'is_dict_like', 'is_iterator', 'is_file_like',
-               'is_list_like', 'is_hashable',
+               'is_list_like', 'is_hashable', 'is_array_like',
                'is_named_tuple',
                'pandas_dtype', 'union_categoricals', 'infer_dtype']
     deprecated = ['is_any_int_dtype', 'is_floating_dtype', 'is_sequence']
@@ -52,42 +47,6 @@ class TestTypes(Base):
             except AttributeError:
                 pytest.raises(AttributeError, lambda: fnew('foo'))
 
-    def test_deprecation_core_common(self):
-
-        # test that we are in fact deprecating
-        # the pandas.core.common introspectors
-        for t in self.allowed:
-            self.check_deprecation(getattr(com, t), getattr(types, t))
-
-    def test_deprecation_core_common_array_equivalent(self):
-
-        with tm.assert_produces_warning(DeprecationWarning):
-            com.array_equivalent(np.array([1, 2]), np.array([1, 2]))
-
-    def test_deprecation_core_common_moved(self):
-
-        # these are in pandas.core.dtypes.common
-        l = ['is_datetime_arraylike',
-             'is_datetime_or_timedelta_dtype',
-             'is_datetimelike',
-             'is_datetimelike_v_numeric',
-             'is_datetimelike_v_object',
-             'is_datetimetz',
-             'is_int_or_datetime_dtype',
-             'is_period_arraylike',
-             'is_string_like',
-             'is_string_like_dtype']
-
-        from pandas.core.dtypes import common as c
-        for t in l:
-            self.check_deprecation(getattr(com, t), getattr(c, t))
-
-    def test_removed_from_core_common(self):
-
-        for t in ['is_null_datelike_scalar',
-                  'ensure_float']:
-            pytest.raises(AttributeError, lambda: getattr(com, t))
-
     def test_deprecated_from_api_types(self):
 
         for t in self.deprecated:
@@ -97,7 +56,13 @@ class TestTypes(Base):
 
 
 def test_moved_infer_dtype():
+    # del from sys.modules to ensure we try to freshly load.
+    # if this was imported from another test previously, we would
+    # not see the warning, since the import is otherwise cached.
+    sys.modules.pop("pandas.lib", None)
 
-    with catch_warnings(record=True):
+    with tm.assert_produces_warning(FutureWarning):
+        import pandas.lib
+
         e = pandas.lib.infer_dtype('foo')
         assert e is not None

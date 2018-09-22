@@ -1,12 +1,15 @@
-from .pandas_vb_common import *
-
+import numpy as np
+from pandas import DataFrame
 try:
     from pandas.util import cache_readonly
 except ImportError:
     from pandas.util.decorators import cache_readonly
 
+from .pandas_vb_common import setup  # noqa
+
 
 class DataFrameAttributes(object):
+
     goal_time = 0.2
 
     def setup(self):
@@ -21,6 +24,7 @@ class DataFrameAttributes(object):
 
 
 class CacheReadonly(object):
+
     goal_time = 0.2
 
     def setup(self):

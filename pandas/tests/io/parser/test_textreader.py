@@ -28,31 +28,26 @@ import pandas._libs.parsers as parser
 
 class TestTextReader(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath('io', 'parser', 'data')
         self.csv1 = os.path.join(self.dirpath, 'test1.csv')
         self.csv2 = os.path.join(self.dirpath, 'test2.csv')
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
     def test_file_handle(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f)
-            result = reader.read()  # noqa
-        finally:
-            f.close()
+            reader.read()
 
     def test_string_filename(self):
         reader = TextReader(self.csv1, header=None)
         reader.read()
 
     def test_file_handle_mmap(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f, memory_map=True, header=None)
             reader.read()
-        finally:
-            f.close()
 
     def test_StringIO(self):
         with open(self.csv1, 'rb') as f:
@@ -194,33 +189,6 @@ class TestTextReader(object):
                     2: np.array([3, 6], dtype=np.int64)}
         assert_array_dicts_equal(recs, expected)
 
-        # not enough rows
-        pytest.raises(parser.ParserError, TextReader, StringIO(data),
-                      delimiter=',', header=5, as_recarray=True)
-
-    def test_header_not_enough_lines_as_recarray(self):
-        data = ('skip this\n'
-                'skip this\n'
-                'a,b,c\n'
-                '1,2,3\n'
-                '4,5,6')
-
-        reader = TextReader(StringIO(data), delimiter=',',
-                            header=2, as_recarray=True)
-        header = reader.header
-        expected = [['a', 'b', 'c']]
-        assert header == expected
-
-        recs = reader.read()
-        expected = {'a': np.array([1, 4], dtype=np.int64),
-                    'b': np.array([2, 5], dtype=np.int64),
-                    'c': np.array([3, 6], dtype=np.int64)}
-        assert_array_dicts_equal(expected, recs)
-
-        # not enough rows
-        pytest.raises(parser.ParserError, TextReader, StringIO(data),
-                      delimiter=',', header=5, as_recarray=True)
-
     def test_escapechar(self):
         data = ('\\"hello world\"\n'
                 '\\"hello world\"\n'
@@ -266,25 +234,6 @@ aaaaa,5"""
         ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
         assert (result[0] == ex_values).all()
         assert result[1].dtype == 'S4'
-
-    def test_numpy_string_dtype_as_recarray(self):
-        data = """\
-a,1
-aa,2
-aaa,3
-aaaa,4
-aaaaa,5"""
-
-        def _make_reader(**kwds):
-            return TextReader(StringIO(data), delimiter=',', header=None,
-                              **kwds)
-
-        reader = _make_reader(dtype='S4', as_recarray=True)
-        result = reader.read()
-        assert result['0'].dtype == 'S4'
-        ex_values = np.array(['a', 'aa', 'aaa', 'aaaa', 'aaaa'], dtype='S4')
-        assert (result['0'] == ex_values).all()
-        assert result['1'].dtype == 'S4'
 
     def test_pass_dtype(self):
         data = """\

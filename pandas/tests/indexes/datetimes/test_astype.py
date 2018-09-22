@@ -57,9 +57,21 @@ class TestDatetimeIndex(object):
                           dtype=object)
         tm.assert_series_equal(result, expected)
 
+        # GH 18951: tz-aware to tz-aware
+        idx = date_range('20170101', periods=4, tz='US/Pacific')
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101 03:00:00', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
+        # GH 18951: tz-naive to tz-aware
+        idx = date_range('20170101', periods=4)
+        result = idx.astype('datetime64[ns, US/Eastern]')
+        expected = date_range('20170101', periods=4, tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
     def test_astype_str_compat(self):
         # GH 13149, GH 13209
-        # verify that we are returing NaT as a string (and not unicode)
+        # verify that we are returning NaT as a string (and not unicode)
 
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
         result = idx.astype(str)
@@ -126,15 +138,39 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(casted, Index(exp_values, dtype=np.object_))
         assert casted.tolist() == exp_values
 
-    def test_astype_raises(self):
+    @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
+    def test_astype_object_tz(self, tz):
+        idx = pd.date_range(start='2013-01-01', periods=4, freq='M',
+                            name='idx', tz=tz)
+        expected_list = [Timestamp('2013-01-31', tz=tz),
+                         Timestamp('2013-02-28', tz=tz),
+                         Timestamp('2013-03-31', tz=tz),
+                         Timestamp('2013-04-30', tz=tz)]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        tm.assert_index_equal(result, expected)
+        assert idx.tolist() == expected_list
+
+    def test_astype_object_with_nat(self):
+        idx = DatetimeIndex([datetime(2013, 1, 1), datetime(2013, 1, 2),
+                             pd.NaT, datetime(2013, 1, 4)], name='idx')
+        expected_list = [Timestamp('2013-01-01'),
+                         Timestamp('2013-01-02'), pd.NaT,
+                         Timestamp('2013-01-04')]
+        expected = pd.Index(expected_list, dtype=object, name='idx')
+        result = idx.astype(object)
+        tm.assert_index_equal(result, expected)
+        assert idx.tolist() == expected_list
+
+    @pytest.mark.parametrize('dtype', [
+        float, 'timedelta64', 'timedelta64[ns]', 'datetime64',
+        'datetime64[D]'])
+    def test_astype_raises(self, dtype):
         # GH 13149, GH 13209
         idx = DatetimeIndex(['2016-05-16', 'NaT', NaT, np.NaN])
-
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, 'timedelta64')
-        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
-        pytest.raises(ValueError, idx.astype, 'datetime64')
-        pytest.raises(ValueError, idx.astype, 'datetime64[D]')
+        msg = 'Cannot cast DatetimeIndex to dtype'
+        with tm.assert_raises_regex(TypeError, msg):
+            idx.astype(dtype)
 
     def test_index_convert_to_datetime_array(self):
         def _check_rng(rng):
@@ -189,6 +225,16 @@ class TestDatetimeIndex(object):
         _check_rng(rng_eastern)
         _check_rng(rng_utc)
 
+    @pytest.mark.parametrize('tz, dtype', [
+        ['US/Pacific', 'datetime64[ns, US/Pacific]'],
+        [None, 'datetime64[ns]']])
+    def test_integer_index_astype_datetime(self, tz, dtype):
+        # GH 20997, 20964
+        val = [pd.Timestamp('2018-01-01', tz=tz).value]
+        result = pd.Index(val).astype(dtype)
+        expected = pd.DatetimeIndex(['2018-01-01'], tz=tz)
+        tm.assert_index_equal(result, expected)
+
 
 class TestToPeriod(object):
 
@@ -200,7 +246,9 @@ class TestToPeriod(object):
     def test_to_period_millisecond(self):
         index = self.index
 
-        period = index.to_period(freq='L')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            period = index.to_period(freq='L')
         assert 2 == len(period)
         assert period[0] == Period('2007-01-01 10:11:12.123Z', 'L')
         assert period[1] == Period('2007-01-01 10:11:13.789Z', 'L')
@@ -208,93 +256,33 @@ class TestToPeriod(object):
     def test_to_period_microsecond(self):
         index = self.index
 
-        period = index.to_period(freq='U')
+        with tm.assert_produces_warning(UserWarning):
+            # warning that timezone info will be lost
+            period = index.to_period(freq='U')
         assert 2 == len(period)
         assert period[0] == Period('2007-01-01 10:11:12.123456Z', 'U')
         assert period[1] == Period('2007-01-01 10:11:13.789123Z', 'U')
 
-    def test_to_period_tz_pytz(self):
-        from pytz import utc as UTC
+    @pytest.mark.parametrize('tz', [
+        'US/Eastern', pytz.utc, tzlocal(), 'dateutil/US/Eastern',
+        dateutil.tz.tzutc()])
+    def test_to_period_tz(self, tz):
+        ts = date_range('1/1/2000', '2/1/2000', tz=tz)
 
-        xp = date_range('1/1/2000', '4/1/2000').to_period()
-
-        ts = date_range('1/1/2000', '4/1/2000', tz='US/Eastern')
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-        ts = date_range('1/1/2000', '4/1/2000', tz=UTC)
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+        with tm.assert_produces_warning(UserWarning):
+            # GH#21333 warning that timezone info will be lost
+            result = ts.to_period()[0]
+            expected = ts[0].to_period()
 
         assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
 
-        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
+        expected = date_range('1/1/2000', '2/1/2000').to_period()
 
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
+        with tm.assert_produces_warning(UserWarning):
+            # GH#21333 warning that timezone info will be lost
+            result = ts.to_period()
 
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-    def test_to_period_tz_explicit_pytz(self):
-        xp = date_range('1/1/2000', '4/1/2000').to_period()
-
-        ts = date_range('1/1/2000', '4/1/2000', tz=pytz.timezone('US/Eastern'))
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-        ts = date_range('1/1/2000', '4/1/2000', tz=pytz.utc)
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-    def test_to_period_tz_dateutil(self):
-        xp = date_range('1/1/2000', '4/1/2000').to_period()
-
-        ts = date_range('1/1/2000', '4/1/2000', tz='dateutil/US/Eastern')
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-        ts = date_range('1/1/2000', '4/1/2000', tz=dateutil.tz.tzutc())
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
-
-        ts = date_range('1/1/2000', '4/1/2000', tz=tzlocal())
-
-        result = ts.to_period()[0]
-        expected = ts[0].to_period()
-
-        assert result == expected
-        tm.assert_index_equal(ts.to_period(), xp)
+        tm.assert_index_equal(result, expected)
 
     def test_to_period_nofreq(self):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-04'])

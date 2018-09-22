@@ -1,12 +1,11 @@
 """ basic inference routines """
 
-import collections
 import re
 import numpy as np
-from collections import Iterable
 from numbers import Number
+from pandas import compat
 from pandas.compat import (PY2, string_types, text_type,
-                           string_and_binary_types)
+                           string_and_binary_types, re_type)
 from pandas._libs import lib
 
 is_bool = lib.is_bool
@@ -17,7 +16,7 @@ is_float = lib.is_float
 
 is_complex = lib.is_complex
 
-is_scalar = lib.isscalar
+is_scalar = lib.is_scalar
 
 is_decimal = lib.is_decimal
 
@@ -28,20 +27,37 @@ def is_number(obj):
     """
     Check if the object is a number.
 
+    Returns True when the object is a number, and False if is not.
+
     Parameters
     ----------
-    obj : The object to check.
+    obj : any type
+        The object to check if is a number.
 
     Returns
     -------
     is_number : bool
         Whether `obj` is a number or not.
 
+    See Also
+    --------
+    pandas.api.types.is_integer: checks a subgroup of numbers
+
     Examples
     --------
-    >>> is_number(1)
+    >>> pd.api.types.is_number(1)
     True
-    >>> is_number("foo")
+    >>> pd.api.types.is_number(7.15)
+    True
+
+    Booleans are valid because they are int subclass.
+
+    >>> pd.api.types.is_number(False)
+    True
+
+    >>> pd.api.types.is_number("foo")
+    False
+    >>> pd.api.types.is_number("5")
     False
     """
 
@@ -95,7 +111,7 @@ def _iterable_not_string(obj):
     False
     """
 
-    return (isinstance(obj, collections.Iterable) and
+    return (isinstance(obj, compat.Iterable) and
             not isinstance(obj, string_types))
 
 
@@ -199,7 +215,7 @@ def is_re(obj):
     False
     """
 
-    return isinstance(obj, re._pattern_type)
+    return isinstance(obj, re_type)
 
 
 def is_re_compilable(obj):
@@ -261,10 +277,50 @@ def is_list_like(obj):
     False
     >>> is_list_like(1)
     False
+    >>> is_list_like(np.array([2]))
+    True
+    >>> is_list_like(np.array(2)))
+    False
     """
 
-    return (isinstance(obj, Iterable) and
-            not isinstance(obj, string_and_binary_types))
+    return (isinstance(obj, compat.Iterable) and
+            # we do not count strings/unicode/bytes as list-like
+            not isinstance(obj, string_and_binary_types) and
+            # exclude zero-dimensional numpy arrays, effectively scalars
+            not (isinstance(obj, np.ndarray) and obj.ndim == 0))
+
+
+def is_array_like(obj):
+    """
+    Check if the object is array-like.
+
+    For an object to be considered array-like, it must be list-like and
+    have a `dtype` attribute.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_array_like : bool
+        Whether `obj` has array-like properties.
+
+    Examples
+    --------
+    >>> is_array_like(np.array([1, 2, 3]))
+    True
+    >>> is_array_like(pd.Series(["a", "b"]))
+    True
+    >>> is_array_like(pd.Index(["2016-01-01"]))
+    True
+    >>> is_array_like([1, 2, 3])
+    False
+    >>> is_array_like(("a", "b"))
+    False
+    """
+
+    return is_list_like(obj) and hasattr(obj, "dtype")
 
 
 def is_nested_list_like(obj):

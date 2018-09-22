@@ -247,12 +247,10 @@ class TestConfig(object):
         assert self.cf._is_deprecated('foo')
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
-            try:
+            with pytest.raises(
+                    KeyError,
+                    message="Nonexistent option didn't raise KeyError"):
                 self.cf.get_option('foo')
-            except KeyError:
-                pass
-            else:
-                self.fail("Nonexistent option didn't raise KeyError")
 
             assert len(w) == 1  # should have raised one warning
             assert 'deprecated' in str(w[-1])  # we get the default message
@@ -428,3 +426,9 @@ class TestConfig(object):
 
         # Ensure the current context is reset
         assert self.cf.get_option(option_name) == original_value
+
+    def test_dictwrapper_getattr(self):
+        options = self.cf.options
+        # GH 19789
+        pytest.raises(self.cf.OptionError, getattr, options, 'bananas')
+        assert not hasattr(options, 'bananas')

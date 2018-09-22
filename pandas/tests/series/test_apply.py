@@ -4,6 +4,7 @@
 import pytest
 
 from collections import Counter, defaultdict, OrderedDict
+from itertools import chain
 
 import numpy as np
 import pandas as pd
@@ -11,8 +12,10 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, isna)
 from pandas.compat import lrange
 from pandas import compat
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import (assert_series_equal,
+                                 assert_frame_equal)
 import pandas.util.testing as tm
+from pandas.conftest import _get_cython_table_params
 
 from .common import TestData
 
@@ -76,6 +79,17 @@ class TestSeriesApply(TestData):
         result = s.apply(str.split, args=(',', ))
         assert result[0] == ['foo', 'bar']
         assert isinstance(result[0], list)
+
+    def test_series_map_box_timestamps(self):
+        # GH#2689, GH#2627
+        ser = Series(pd.date_range('1/1/2000', periods=10))
+
+        def func(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        ser.map(func)
+        ser.apply(func)
 
     def test_apply_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
@@ -152,8 +166,6 @@ class TestSeriesApply(TestData):
 
 
 class TestSeriesAggregate(TestData):
-
-    _multiprocess_can_split_ = True
 
     def test_transform(self):
         # transforming functions
@@ -322,6 +334,85 @@ class TestSeriesAggregate(TestData):
                                        ('mean', 1.5)]))
         assert_series_equal(result[expected.index], expected)
 
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series(), [
+            ('sum', 0),
+            ('max', np.nan),
+            ('min', np.nan),
+            ('all', True),
+            ('any', False),
+            ('mean', np.nan),
+            ('prod', 1),
+            ('std', np.nan),
+            ('var', np.nan),
+            ('median', np.nan),
+        ]),
+        _get_cython_table_params(Series([np.nan, 1, 2, 3]), [
+            ('sum', 6),
+            ('max', 3),
+            ('min', 1),
+            ('all', True),
+            ('any', True),
+            ('mean', 2),
+            ('prod', 6),
+            ('std', 1),
+            ('var', 1),
+            ('median', 2),
+        ]),
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('sum', 'abc'),
+            ('max', 'c'),
+            ('min', 'a'),
+            ('all', 'c'),  # see GH12863
+            ('any', 'a'),
+        ]),
+    ))
+    def test_agg_cython_table(self, series, func, expected):
+        # GH21224
+        # test reducing functions in
+        # pandas.core.base.SelectionMixin._cython_table
+        result = series.agg(func)
+        if tm.is_number(expected):
+            assert np.isclose(result, expected, equal_nan=True)
+        else:
+            assert result == expected
+
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series(), [
+            ('cumprod', Series([], Index([]))),
+            ('cumsum', Series([], Index([]))),
+        ]),
+        _get_cython_table_params(Series([np.nan, 1, 2, 3]), [
+            ('cumprod', Series([np.nan, 1, 2, 6])),
+            ('cumsum', Series([np.nan, 1, 3, 6])),
+        ]),
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('cumsum', Series(['a', 'ab', 'abc'])),
+        ]),
+    ))
+    def test_agg_cython_table_transform(self, series, func, expected):
+        # GH21224
+        # test transforming functions in
+        # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        result = series.agg(func)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('mean', TypeError),  # mean raises TypeError
+            ('prod', TypeError),
+            ('std', TypeError),
+            ('var', TypeError),
+            ('median', TypeError),
+            ('cumprod', TypeError),
+        ])
+    ))
+    def test_agg_cython_table_raises(self, series, func, expected):
+        # GH21224
+        with pytest.raises(expected):
+            # e.g. Series('a b'.split()).cumprod() will raise
+            series.agg(func)
+
 
 class TestSeriesMap(TestData):
 
@@ -377,6 +468,14 @@ class TestSeriesMap(TestData):
         exp = Series([np.nan, 'B', 'C', 'D'])
         tm.assert_series_equal(a.map(c), exp)
 
+    @pytest.mark.parametrize("index", tm.all_index_generator(10))
+    def test_map_empty(self, index):
+        s = Series(index)
+        result = s.map({})
+
+        expected = pd.Series(np.nan, index=s.index)
+        tm.assert_series_equal(result, expected)
+
     def test_map_compat(self):
         # related GH 8024
         s = Series([True, True, False], index=[1, 2, 3])
@@ -422,8 +521,10 @@ class TestSeriesMap(TestData):
         converted to a multi-index, preventing tuple values
         from being mapped properly.
         """
+        # GH 18496
         df = pd.DataFrame({'a': [(1, ), (2, ), (3, 4), (5, 6)]})
         label_mappings = {(1, ): 'A', (2, ): 'B', (3, 4): 'A', (5, 6): 'B'}
+
         df['labels'] = df['a'].map(label_mappings)
         df['expected_labels'] = pd.Series(['A', 'B', 'A', 'B'], index=df.index)
         # All labels should be filled now
@@ -557,3 +658,14 @@ class TestSeriesMap(TestData):
         result = s.map(f)
         exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
         tm.assert_series_equal(result, exp)
+
+    @pytest.mark.parametrize("vals,mapping,exp", [
+        (list('abc'), {np.nan: 'not NaN'}, [np.nan] * 3 + ['not NaN']),
+        (list('abc'), {'a': 'a letter'}, ['a letter'] + [np.nan] * 3),
+        (list(range(3)), {0: 42}, [42] + [np.nan] * 3)])
+    def test_map_missing_mixed(self, vals, mapping, exp):
+        # GH20495
+        s = pd.Series(vals + [np.nan])
+        result = s.map(mapping)
+
+        tm.assert_series_equal(result, pd.Series(exp))

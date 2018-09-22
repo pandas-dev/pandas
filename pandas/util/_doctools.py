@@ -28,10 +28,10 @@ class TablePlotter(object):
         """
 
         if vertical:
-            # calcurate required number of cells
-            vcells = max(sum([self._shape(l)[0] for l in left]),
+            # calculate required number of cells
+            vcells = max(sum(self._shape(l)[0] for l in left),
                          self._shape(right)[0])
-            hcells = (max([self._shape(l)[1] for l in left]) +
+            hcells = (max(self._shape(l)[1] for l in left) +
                       self._shape(right)[1])
         else:
             vcells = max([self._shape(l)[0] for l in left] +
@@ -72,8 +72,8 @@ class TablePlotter(object):
         if vertical:
             gs = gridspec.GridSpec(len(left), hcells)
             # left
-            max_left_cols = max([self._shape(l)[1] for l in left])
-            max_left_rows = max([self._shape(l)[0] for l in left])
+            max_left_cols = max(self._shape(l)[1] for l in left)
+            max_left_rows = max(self._shape(l)[0] for l in left)
             for i, (l, label) in enumerate(zip(left, labels)):
                 ax = fig.add_subplot(gs[i, 0:max_left_cols])
                 self._make_table(ax, l, title=label,
@@ -83,7 +83,7 @@ class TablePlotter(object):
             self._make_table(ax, right, title='Result', height=1.05 / vcells)
             fig.subplots_adjust(top=0.9, bottom=0.05, left=0.05, right=0.95)
         else:
-            max_rows = max([self._shape(df)[0] for df in left + [right]])
+            max_rows = max(self._shape(df)[0] for df in left + [right])
             height = 1.0 / np.max(max_rows)
             gs = gridspec.GridSpec(1, hcells)
             # left
@@ -161,6 +161,14 @@ class TablePlotter(object):
 
         ax.set_title(title, size=self.font_size)
         ax.axis('off')
+
+
+class _WritableDoc(type):
+    # Remove this when Python2 support is dropped
+    # __doc__ is not mutable for new-style classes in Python2, which means
+    # we can't use @Appender to share class docstrings. This can be used
+    # with `add_metaclass` to make cls.__doc__ mutable.
+    pass
 
 
 if __name__ == "__main__":

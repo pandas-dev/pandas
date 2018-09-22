@@ -23,7 +23,7 @@ This module supports the following requirements:
 - all options in a certain sub - namespace can be reset at once.
 - the user can set / get / reset or ask for the description of an option.
 - a developer can register and mark an option as deprecated.
-- you can register a callback to be invoked when the the option value
+- you can register a callback to be invoked when the option value
   is set or reset. Changing the stored value is considered misuse, but
   is not verboten.
 
@@ -33,8 +33,8 @@ Implementation
 - Data is stored using nested dictionaries, and should be accessed
   through the provided API.
 
-- "Registered options" and "Deprecated options" have metadata associcated
-  with them, which are stored in auxilary dictionaries keyed on the
+- "Registered options" and "Deprecated options" have metadata associated
+  with them, which are stored in auxiliary dictionaries keyed on the
   fully-qualified key, e.g. "x.y.z.option".
 
 - the config_init module is imported by the package's __init__.py file.
@@ -196,7 +196,10 @@ class DictWrapper(object):
         if prefix:
             prefix += "."
         prefix += key
-        v = object.__getattribute__(self, "d")[key]
+        try:
+            v = object.__getattribute__(self, "d")[key]
+        except KeyError:
+            raise OptionError("No such option")
         if isinstance(v, dict):
             return DictWrapper(v, prefix)
         else:
@@ -209,7 +212,7 @@ class DictWrapper(object):
 # in the docstring. For dev convenience we'd like to generate the docstrings
 # dynamically instead of maintaining them by hand. To this, we use the
 # class below which wraps functions inside a callable, and converts
-# __doc__ into a propery function. The doctsrings below are templates
+# __doc__ into a property function. The doctsrings below are templates
 # using the py2.6+ advanced formatting syntax to plug in a concise list
 # of options, and option descriptions.
 
@@ -381,14 +384,14 @@ class option_context(object):
     --------
 
     >>> with option_context('display.max_rows', 10, 'display.max_columns', 5):
-            ...
+    ...     ...
 
     """
 
     def __init__(self, *args):
         if not (len(args) % 2 == 0 and len(args) >= 2):
             raise ValueError('Need to invoke as'
-                             'option_context(pat, val, [(pat, val), ...)).')
+                             ' option_context(pat, val, [(pat, val), ...]).')
 
         self.ops = list(zip(args[::2], args[1::2]))
 
@@ -613,7 +616,7 @@ def _warn_if_deprecated(key):
     if d:
         if d.msg:
             print(d.msg)
-            warnings.warn(d.msg, DeprecationWarning)
+            warnings.warn(d.msg, FutureWarning)
         else:
             msg = "'{key}' is deprecated".format(key=key)
             if d.removal_ver:
@@ -624,7 +627,7 @@ def _warn_if_deprecated(key):
             else:
                 msg += ', please refrain from using it.'
 
-            warnings.warn(msg, DeprecationWarning)
+            warnings.warn(msg, FutureWarning)
         return True
     return False
 
@@ -691,7 +694,7 @@ def pp_options_list(keys, width=80, _print=False):
 
 @contextmanager
 def config_prefix(prefix):
-    """contextmanager for multiple invocations of API  with a common prefix
+    """contextmanager for multiple invocations of API with a common prefix
 
     supported API functions: (register / get / set )__option
 
@@ -800,7 +803,7 @@ def is_one_of_factory(legal_values):
         from pandas.io.formats.printing import pprint_thing as pp
         if x not in legal_values:
 
-            if not any([c(x) for c in callables]):
+            if not any(c(x) for c in callables):
                 pp_values = pp("|".join(lmap(pp, legal_values)))
                 msg = "Value must be one of {pp_values}"
                 if len(callables):

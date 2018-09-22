@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import numpy as np
 from datetime import datetime
 from pandas.util import testing as tm
@@ -9,11 +9,14 @@ from pandas.util import testing as tm
 import pandas as pd
 from pandas.core import config as cf
 from pandas.compat import u
+
+from pandas._libs import missing as libmissing
 from pandas._libs.tslib import iNaT
 from pandas import (NaT, Float64Index, Series,
                     DatetimeIndex, TimedeltaIndex, date_range)
 from pandas.core.dtypes.common import is_scalar
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype, PeriodDtype, IntervalDtype)
 from pandas.core.dtypes.missing import (
     array_equivalent, isna, notna, isnull, notnull,
     na_value_for_dtype)
@@ -91,18 +94,12 @@ class TestIsNA(object):
 
         # panel
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             for p in [tm.makePanel(), tm.makePeriodPanel(),
                       tm.add_nans(tm.makePanel())]:
                 result = isna_f(p)
                 expected = p.apply(isna_f)
                 tm.assert_panel_equal(result, expected)
-
-        # panel 4d
-        with catch_warnings(record=True):
-            for p in [tm.makePanel4D(), tm.add_nans_panel4d(tm.makePanel4D())]:
-                result = isna_f(p)
-                expected = p.apply(isna_f)
-                tm.assert_panel4d_equal(result, expected)
 
     def test_isna_lists(self):
         result = isna([[False]])
@@ -120,6 +117,11 @@ class TestIsNA(object):
 
         result = isna([u('foo'), u('bar')])
         exp = np.array([False, False])
+        tm.assert_numpy_array_equal(result, exp)
+
+        # GH20675
+        result = isna([np.NaN, 'world'])
+        exp = np.array([True, False])
         tm.assert_numpy_array_equal(result, exp)
 
     def test_isna_nat(self):
@@ -316,20 +318,73 @@ def test_array_equivalent_str():
                                     np.array(['A', 'X'], dtype=dtype))
 
 
-def test_na_value_for_dtype():
-    for dtype in [np.dtype('M8[ns]'), np.dtype('m8[ns]'),
-                  DatetimeTZDtype('datetime64[ns, US/Eastern]')]:
-        assert na_value_for_dtype(dtype) is NaT
+@pytest.mark.parametrize('dtype, na_value', [
+    # Datetime-like
+    (np.dtype("M8[ns]"), NaT),
+    (np.dtype("m8[ns]"), NaT),
+    (DatetimeTZDtype('datetime64[ns, US/Eastern]'), NaT),
+    (PeriodDtype("M"), NaT),
+    # Integer
+    ('u1', 0), ('u2', 0), ('u4', 0), ('u8', 0),
+    ('i1', 0), ('i2', 0), ('i4', 0), ('i8', 0),
+    # Bool
+    ('bool', False),
+    # Float
+    ('f2', np.nan), ('f4', np.nan), ('f8', np.nan),
+    # Object
+    ('O', np.nan),
+    # Interval
+    (IntervalDtype(), np.nan),
+])
+def test_na_value_for_dtype(dtype, na_value):
+    result = na_value_for_dtype(dtype)
+    assert result is na_value
 
-    for dtype in ['u1', 'u2', 'u4', 'u8',
-                  'i1', 'i2', 'i4', 'i8']:
-        assert na_value_for_dtype(np.dtype(dtype)) == 0
 
-    for dtype in ['bool']:
-        assert na_value_for_dtype(np.dtype(dtype)) is False
+class TestNAObj(object):
 
-    for dtype in ['f2', 'f4', 'f8']:
-        assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+    _1d_methods = ['isnaobj', 'isnaobj_old']
+    _2d_methods = ['isnaobj2d', 'isnaobj2d_old']
 
-    for dtype in ['O']:
-        assert np.isnan(na_value_for_dtype(np.dtype(dtype)))
+    def _check_behavior(self, arr, expected):
+        for method in TestNAObj._1d_methods:
+            result = getattr(libmissing, method)(arr)
+            tm.assert_numpy_array_equal(result, expected)
+
+        arr = np.atleast_2d(arr)
+        expected = np.atleast_2d(expected)
+
+        for method in TestNAObj._2d_methods:
+            result = getattr(libmissing, method)(arr)
+            tm.assert_numpy_array_equal(result, expected)
+
+    def test_basic(self):
+        arr = np.array([1, None, 'foo', -5.1, pd.NaT, np.nan])
+        expected = np.array([False, True, False, False, True, True])
+
+        self._check_behavior(arr, expected)
+
+    def test_non_obj_dtype(self):
+        arr = np.array([1, 3, np.nan, 5], dtype=float)
+        expected = np.array([False, False, True, False])
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_arr(self):
+        arr = np.array([])
+        expected = np.array([], dtype=bool)
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_str_inp(self):
+        arr = np.array([""])  # empty but not na
+        expected = np.array([False])
+
+        self._check_behavior(arr, expected)
+
+    def test_empty_like(self):
+        # see gh-13717: no segfaults!
+        arr = np.empty_like([None])
+        expected = np.array([True])
+
+        self._check_behavior(arr, expected)

@@ -2,6 +2,9 @@
 """
 Testing that we work in the downstream packages
 """
+import subprocess
+import sys
+
 import pytest
 import numpy as np  # noqa
 from pandas import DataFrame
@@ -53,7 +56,14 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+def test_oo_optimizable():
+    # GH 21071
+    subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
+
+
 @tm.network
+# Cython import warning
+@pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_statsmodels():
 
     statsmodels = import_module('statsmodels')  # noqa
@@ -63,6 +73,8 @@ def test_statsmodels():
     smf.ols('Lottery ~ Literacy + np.log(Pop1831)', data=df).fit()
 
 
+# Cython import warning
+@pytest.mark.filterwarnings("ignore:can't:ImportWarning")
 def test_scikit_learn(df):
 
     sklearn = import_module('sklearn')  # noqa
@@ -74,6 +86,9 @@ def test_scikit_learn(df):
     clf.predict(digits.data[-1:])
 
 
+# Cython import warning and traitlets
+@tm.network
+@pytest.mark.filterwarnings("ignore")
 def test_seaborn():
 
     seaborn = import_module('seaborn')
@@ -86,13 +101,19 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
+@pytest.mark.xfail(reason="0.7.0 pending", strict=True)
 @tm.network
 def test_pandas_datareader():
 
     pandas_datareader = import_module('pandas_datareader')  # noqa
-    pandas_datareader.get_data_google('AAPL')
+    pandas_datareader.DataReader(
+        'F', 'quandl', '2017-01-01', '2017-02-01')
 
 
+# importing from pandas, Cython import warning
+@pytest.mark.filterwarnings("ignore:The 'warn':DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:pandas.util:DeprecationWarning")
+@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
@@ -100,6 +121,8 @@ def test_geopandas():
     assert geopandas.read_file(fp) is not None
 
 
+# Cython import warning
+@pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
 def test_pyarrow(df):
 
     pyarrow = import_module('pyarrow')  # noqa

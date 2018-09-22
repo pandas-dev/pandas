@@ -62,6 +62,14 @@ You can construct a ``Timedelta`` scalar through various arguments:
    pd.Timedelta('nan')
    pd.Timedelta('nat')
 
+   # ISO 8601 Duration strings
+   pd.Timedelta('P0DT0H1M0S')
+   pd.Timedelta('P0DT0H0M0.000000123S')
+
+.. versionadded:: 0.23.0
+
+   Added constructor for `ISO 8601 Duration`_ strings
+
 :ref:`DateOffsets<timeseries.offsets>` (``Day, Hour, Minute, Second, Milli, Micro, Nano``) can also be used in construction.
 
 .. ipython:: python
@@ -238,7 +246,7 @@ Frequency Conversion
 
 Timedelta Series, ``TimedeltaIndex``, and ``Timedelta`` scalars can be converted to other 'frequencies' by dividing by another timedelta,
 or by astyping to a specific timedelta type. These operations yield Series and propagate ``NaT`` -> ``nan``.
-Note that division by the numpy scalar is true division, while astyping is equivalent of floor division.
+Note that division by the NumPy scalar is true division, while astyping is equivalent of floor division.
 
 .. ipython:: python
 
@@ -266,6 +274,28 @@ yields another ``timedelta64[ns]`` dtypes Series.
 
    td * -1
    td * pd.Series([1, 2, 3, 4])
+
+Rounded division (floor-division) of a ``timedelta64[ns]`` Series by a scalar
+``Timedelta`` gives a series of integers.
+
+.. ipython:: python
+
+   td // pd.Timedelta(days=3, hours=4)
+   pd.Timedelta(days=3, hours=4) // td
+
+.. _timedeltas.mod_divmod:
+
+The mod (%) and divmod operations are defined for ``Timedelta`` when operating with another timedelta-like or with a numeric argument.
+
+.. ipython:: python
+
+   pd.Timedelta(hours=37) % datetime.timedelta(hours=2)
+
+   # divmod against a timedelta-like returns a pair (int, Timedelta)
+   divmod(datetime.timedelta(hours=2), pd.Timedelta(minutes=11))
+
+   # divmod against a numeric returns a pair (Timedelta, Timedelta)
+   divmod(pd.Timedelta(hours=25), 86400000000000)
 
 Attributes
 ----------
@@ -322,8 +352,8 @@ You can convert a ``Timedelta`` to an `ISO 8601 Duration`_ string with the
 TimedeltaIndex
 --------------
 
-To generate an index with time delta, you can use either the ``TimedeltaIndex`` or
-the ``timedelta_range`` constructor.
+To generate an index with time delta, you can use either the :class:`TimedeltaIndex` or
+the :func:`timedelta_range` constructor.
 
 Using ``TimedeltaIndex`` you can pass string-like, ``Timedelta``, ``timedelta``,
 or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent missing values.
@@ -333,12 +363,53 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
    pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
                      np.timedelta64(2,'D'), datetime.timedelta(days=2,seconds=2)])
 
-Similarly to ``date_range``, you can construct regular ranges of a ``TimedeltaIndex``:
+The string 'infer' can be passed in order to set the frequency of the index as the
+inferred frequency upon creation:
 
 .. ipython:: python
 
-   pd.timedelta_range(start='1 days', periods=5, freq='D')
+   pd.TimedeltaIndex(['0 days', '10 days', '20 days'], freq='infer')
+
+Generating Ranges of Time Deltas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Similar to :func:`date_range`, you can construct regular ranges of a ``TimedeltaIndex``
+using :func:`timedelta_range`.  The default frequency for ``timedelta_range`` is 
+calendar day:
+
+.. ipython:: python
+
+   pd.timedelta_range(start='1 days', periods=5)
+
+Various combinations of ``start``, ``end``, and ``periods`` can be used with
+``timedelta_range``:
+
+.. ipython:: python
+
+   pd.timedelta_range(start='1 days', end='5 days')
+
+   pd.timedelta_range(end='10 days', periods=4)
+
+The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseries.offset_aliases>`:
+
+.. ipython:: python
+
    pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+
+   pd.timedelta_range(start='1 days', periods=5, freq='2D5H')
+
+
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+timedeltas from ``start`` to ``end`` inclusively, with ``periods`` number of elements
+in the resulting ``TimedeltaIndex``:
+
+.. ipython:: python
+
+   pd.timedelta_range('0 days', '4 days', periods=5)
+
+   pd.timedelta_range('0 days', '4 days', periods=10)
 
 Using the TimedeltaIndex
 ~~~~~~~~~~~~~~~~~~~~~~~~

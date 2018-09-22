@@ -2,7 +2,7 @@
 
 import pytest
 
-from datetime import datetime, date
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import operator as op
@@ -11,8 +11,25 @@ from pandas import (DatetimeIndex, Series, DataFrame,
                     date_range, Index, Timedelta, Timestamp)
 from pandas.util import testing as tm
 
+from pandas.core.indexing import IndexingError
+
 
 class TestSlicing(object):
+    def test_dti_slicing(self):
+        dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
+        dti2 = dti[[1, 3, 5]]
+
+        v1 = dti2[0]
+        v2 = dti2[1]
+        v3 = dti2[2]
+
+        assert v1 == Timestamp('2/28/2005')
+        assert v2 == Timestamp('4/30/2005')
+        assert v3 == Timestamp('6/30/2005')
+
+        # don't carry freq through irregular slicing
+        assert dti2.freq is None
+
     def test_slice_keeps_name(self):
         # GH4226
         st = pd.Timestamp('2013-07-01 00:00:00', tz='America/Los_Angeles')
@@ -75,6 +92,27 @@ class TestSlicing(object):
         result = idx._maybe_cast_slice_bound('2017-01-01', 'left', 'loc')
         expected = Timestamp('2017-01-01')
         assert result == expected
+
+    def test_monotone_DTI_indexing_bug(self):
+        # GH 19362
+        # Testing accessing the first element in a montononic descending
+        # partial string indexing.
+
+        df = pd.DataFrame(list(range(5)))
+        date_list = ['2018-01-02', '2017-02-10', '2016-03-10',
+                     '2015-03-15', '2014-03-16']
+        date_index = pd.to_datetime(date_list)
+        df['date'] = date_index
+        expected = pd.DataFrame({0: list(range(5)), 'date': date_index})
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame({'A': [1, 2, 3]},
+                          index=pd.date_range('20170101',
+                                              periods=3)[::-1])
+        expected = pd.DataFrame({'A': 1},
+                                index=pd.date_range('20170103',
+                                                    periods=1))
+        tm.assert_frame_equal(df.loc['2017-01-03'], expected)
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)
@@ -277,12 +315,12 @@ class TestSlicing(object):
         result = df_multi.loc[('2013-06-19 09:30:00', 'ACCT1', 'ABC')]
         tm.assert_series_equal(result, expected)
 
-        # this is a KeyError as we don't do partial string selection on
-        # multi-levels
+        # this is an IndexingError as we don't do partial string selection on
+        # multi-levels.
         def f():
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
 
-        pytest.raises(KeyError, f)
+        pytest.raises(IndexingError, f)
 
         # GH 4294
         # partial slice on a series mi
@@ -334,7 +372,7 @@ class TestSlicing(object):
 
     @pytest.mark.parametrize('datetimelike', [
         Timestamp('20130101'), datetime(2013, 1, 1),
-        date(2013, 1, 1), np.datetime64('2013-01-01T00:00', 'ns')])
+        np.datetime64('2013-01-01T00:00', 'ns')])
     @pytest.mark.parametrize('op,expected', [
         (op.lt, [True, False, False, False]),
         (op.le, [True, True, False, False]),

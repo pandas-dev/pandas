@@ -22,7 +22,6 @@
 #   usage: ./apache-pr-merge.py    (see config env vars below)
 #
 # Lightly modified from version of this script in incubator-parquet-format
-
 from __future__ import print_function
 
 from subprocess import check_output
@@ -160,7 +159,7 @@ def merge_pr(pr_num, target_ref):
     if body is not None:
         merge_message_flags += ["-m", '\n'.join(textwrap.wrap(body))]
 
-    authors = "\n".join(["Author: %s" % a for a in distinct_authors])
+    authors = "\n".join("Author: %s" % a for a in distinct_authors)
 
     merge_message_flags += ["-m", authors]
 
@@ -223,7 +222,7 @@ def update_pr(pr_num, user_login, base_ref):
             try:
                 run_cmd(
                     'git push -f %s %s:%s' % (push_user_remote, pr_branch_name,
-                                           base_ref))
+                                              base_ref))
             except Exception as e:
                 fail("Exception while pushing: %s" % e)
                 clean_up()
@@ -275,6 +274,7 @@ def fix_version_from_branch(branch, versions):
         branch_ver = branch.replace("branch-", "")
         return filter(lambda x: x.name.startswith(branch_ver), versions)[-1]
 
+
 pr_num = input("Which pull request would you like to merge? (e.g. 34): ")
 pr = get_json("%s/pulls/%s" % (GITHUB_API_BASE, pr_num))
 
@@ -297,9 +297,15 @@ if not bool(pr["mergeable"]):
     continue_maybe(msg)
 
 print("\n=== Pull Request #%s ===" % pr_num)
-print("title\t%s\nsource\t%s\ntarget\t%s\nurl\t%s"
-      % (title, pr_repo_desc, target_ref, url))
 
+# we may have un-printable unicode in our title
+try:
+    title = title.encode('raw_unicode_escape')
+except Exception:
+    pass
+
+print("title\t{title}\nsource\t{source}\ntarget\t{target}\nurl\t{url}".format(
+    title=title, source=pr_repo_desc, target=target_ref, url=url))
 
 
 merged_refs = [target_ref]

@@ -1,5 +1,4 @@
 import warnings
-from warnings import catch_warnings
 import operator
 from itertools import product
 
@@ -10,7 +9,6 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_bool, is_list_like, is_scalar
 import pandas as pd
-from pandas.core import common as com
 from pandas.errors import PerformanceWarning
 from pandas import DataFrame, Series, Panel, date_range
 from pandas.util.testing import makeCustomDataframe as mkdf
@@ -28,6 +26,7 @@ from pandas.core.computation.ops import (
 
 import pandas.core.computation.expr as expr
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import (assert_frame_equal, randbool,
                                  assert_numpy_array_equal, assert_series_equal,
                                  assert_produces_warning)
@@ -93,14 +92,14 @@ def _is_py3_complex_incompat(result, expected):
             np.isnan(result))
 
 
-_good_arith_ops = com.difference(_arith_ops_syms, _special_case_arith_ops_syms)
+_good_arith_ops = set(_arith_ops_syms).difference(_special_case_arith_ops_syms)
 
 
+@td.skip_if_no_ne
 class TestEvalNumexprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -175,9 +174,8 @@ class TestEvalNumexprPandas(object):
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_floor_division(lhs, '//', rhs)
 
+    @td.skip_if_windows
     def test_pow(self):
-        tm._skip_if_windows()
-
         # odd failure on win32 platform, so skip
         for lhs, rhs in product(self.lhses, self.rhses):
             self.check_pow(lhs, '**', rhs)
@@ -374,7 +372,6 @@ class TestEvalNumexprPandas(object):
             tm.assert_almost_equal(expected, result)
 
             for engine in self.current_engines:
-                tm.skip_if_no_ne(engine)
                 tm.assert_almost_equal(result, pd.eval('~elb', engine=engine,
                                                        parser=self.parser))
 
@@ -400,7 +397,6 @@ class TestEvalNumexprPandas(object):
 
             # make sure the other engines work the same as this one
             for engine in self.current_engines:
-                tm.skip_if_no_ne(engine)
                 ev = pd.eval(ex, engine=self.engine, parser=self.parser)
                 tm.assert_almost_equal(ev, result)
 
@@ -544,66 +540,42 @@ class TestEvalNumexprPandas(object):
 
         # float
         lhs = DataFrame(randn(5, 2))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_frame_equal(expect, result)
 
         # int
         lhs = DataFrame(randint(5, size=(5, 2)))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_frame_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = DataFrame(rand(5, 2) > 0.5)
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_frame_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_frame_equal(expect, result)
 
     def test_series_pos(self):
         expr = self.ex('+')
 
         # float
         lhs = Series(randn(5))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_series_equal(expect, result)
 
         # int
         lhs = Series(randint(5, size=5))
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_series_equal(expect, result)
 
         # bool doesn't work with numexpr but works elsewhere
         lhs = Series(rand(5) > 0.5)
-        if self.engine == 'python':
-            with pytest.raises(TypeError):
-                result = pd.eval(expr, engine=self.engine, parser=self.parser)
-        else:
-            expect = lhs
-            result = pd.eval(expr, engine=self.engine, parser=self.parser)
-            assert_series_equal(expect, result)
+        expect = lhs
+        result = pd.eval(expr, engine=self.engine, parser=self.parser)
+        assert_series_equal(expect, result)
 
     def test_scalar_unary(self):
         with pytest.raises(TypeError):
@@ -731,12 +703,12 @@ class TestEvalNumexprPandas(object):
             df.query('lambda == 0')
 
 
+@td.skip_if_no_ne
 class TestEvalNumexprPython(TestEvalNumexprPandas):
 
     @classmethod
     def setup_class(cls):
         super(TestEvalNumexprPython, cls).setup_class()
-        tm.skip_if_no_ne()
         import numexpr as ne
         cls.ne = ne
         cls.engine = 'numexpr'
@@ -951,12 +923,18 @@ class TestAlignment(object):
         # only test dt with dt, otherwise weird joins result
         args = product(['i', 'u', 's'], ['i', 'u', 's'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
+            # avoid warning about comparing strings and ints
+            warnings.simplefilter("ignore", RuntimeWarning)
+
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
+            # avoid warning about comparing strings and ints
+            warnings.simplefilter("ignore", RuntimeWarning)
+
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
@@ -1078,11 +1056,11 @@ class TestAlignment(object):
 # ------------------------------------
 # Slightly more complex ops
 
+@td.skip_if_no_ne
 class TestOperationsNumExprPandas(object):
 
     @classmethod
     def setup_class(cls):
-        tm.skip_if_no_ne()
         cls.engine = 'numexpr'
         cls.parser = 'pandas'
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
@@ -1139,13 +1117,13 @@ class TestOperationsNumExprPandas(object):
             exp = eval(ex)
             assert res == exp
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_panel_fails(self):
-        with catch_warnings(record=True):
-            x = Panel(randn(3, 4, 5))
-            y = Series(randn(10))
-            with pytest.raises(NotImplementedError):
-                self.eval('x + y',
-                          local_dict={'x': x, 'y': y})
+        x = Panel(randn(3, 4, 5))
+        y = Series(randn(10))
+        with pytest.raises(NotImplementedError):
+            self.eval('x + y',
+                      local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
@@ -1409,6 +1387,7 @@ class TestOperationsNumExprPandas(object):
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2],
                                                 np.array([]), (1, 3)])
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
@@ -1528,6 +1507,7 @@ class TestOperationsNumExprPandas(object):
                         parser=self.parser)
 
 
+@td.skip_if_no_ne
 class TestOperationsNumExprPython(TestOperationsNumExprPandas):
 
     @classmethod
@@ -1535,7 +1515,6 @@ class TestOperationsNumExprPython(TestOperationsNumExprPandas):
         super(TestOperationsNumExprPython, cls).setup_class()
         cls.engine = 'numexpr'
         cls.parser = 'python'
-        tm.skip_if_no_ne(cls.engine)
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
         cls.arith_ops = filter(lambda x: x not in ('in', 'not in'),
                                cls.arith_ops)
@@ -1623,11 +1602,11 @@ class TestOperationsPythonPandas(TestOperationsNumExprPandas):
         cls.arith_ops = expr._arith_ops_syms + expr._cmp_ops_syms
 
 
+@td.skip_if_no_ne
 class TestMathPythonPython(object):
 
     @classmethod
     def setup_class(cls):
-        tm.skip_if_no_ne()
         cls.engine = 'python'
         cls.parser = 'pandas'
         cls.unary_fns = _unary_math_ops
@@ -1782,15 +1761,15 @@ class TestScope(object):
         assert gbls == gbls2
 
 
+@td.skip_if_no_ne
 def test_invalid_engine():
-    tm.skip_if_no_ne()
     tm.assert_raises_regex(KeyError, 'Invalid engine \'asdf\' passed',
                            pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
                            engine='asdf')
 
 
+@td.skip_if_no_ne
 def test_invalid_parser():
-    tm.skip_if_no_ne()
     tm.assert_raises_regex(KeyError, 'Invalid parser \'asdf\' passed',
                            pd.eval, 'x + y', local_dict={'x': 1, 'y': 2},
                            parser='asdf')
@@ -1800,10 +1779,9 @@ _parsers = {'python': PythonExprVisitor, 'pytables': pytables.ExprVisitor,
             'pandas': PandasExprVisitor}
 
 
-@pytest.mark.parametrize('engine', _parsers)
+@pytest.mark.parametrize('engine', _engines)
 @pytest.mark.parametrize('parser', _parsers)
 def test_disallowed_nodes(engine, parser):
-    tm.skip_if_no_ne(engine)
     VisitorClass = _parsers[parser]
     uns_ops = VisitorClass.unsupported_nodes
     inst = VisitorClass('x + 1', engine, parser)

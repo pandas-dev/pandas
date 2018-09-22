@@ -6,9 +6,9 @@ from datetime import datetime
 
 import numpy as np
 from numpy import nan
-import pandas as pd
 from pandas.core import common as com
-from pandas import DataFrame, MultiIndex, merge, concat, Series, compat
+from pandas import (DataFrame, MultiIndex, merge, concat, Series, compat,
+                    _np_version_under1p10)
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 from pandas.core.sorting import (is_int64_overflow_possible,
@@ -50,7 +50,7 @@ class TestSorting(object):
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))
-        tups = com._asarray_tuplesafe(tups)
+        tups = com.asarray_tuplesafe(tups)
 
         expected = df.groupby(tups).sum()['values']
 
@@ -63,10 +63,8 @@ class TestSorting(object):
 
         # GH9096
         values = range(55109)
-        data = pd.DataFrame.from_dict({'a': values,
-                                       'b': values,
-                                       'c': values,
-                                       'd': values})
+        data = DataFrame.from_dict(
+            {'a': values, 'b': values, 'c': values, 'd': values})
         grouped = data.groupby(['a', 'b', 'c', 'd'])
         assert len(grouped) == len(values)
 
@@ -84,7 +82,7 @@ class TestSorting(object):
         # verify this is testing what it is supposed to test!
         assert is_int64_overflow_possible(gr.grouper.shape)
 
-        # mannually compute groupings
+        # manually compute groupings
         jim, joe = defaultdict(list), defaultdict(list)
         for key, a, b in zip(map(tuple, arr), df['jim'], df['joe']):
             jim[key].append(a)
@@ -418,7 +416,7 @@ class TestSafeSort(object):
     def test_unsortable(self):
         # GH 13714
         arr = np.array([1, 2, datetime.now(), 0, 3], dtype=object)
-        if compat.PY2 and not pd._np_version_under1p10:
+        if compat.PY2 and not _np_version_under1p10:
             # RuntimeWarning: tp_compare didn't return -1 or -2 for exception
             with warnings.catch_warnings():
                 pytest.raises(TypeError, safe_sort, arr)

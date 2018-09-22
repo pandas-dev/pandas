@@ -1,9 +1,8 @@
-import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
-from dateutil.relativedelta import relativedelta
 
 import pytest
+import pytz
 from pandas.compat import range
 from pandas import compat
 
@@ -12,12 +11,15 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
-from pandas.tseries.frequencies import (_offset_map, get_freq_code,
-                                        _get_freq_str, _INVALID_FREQ_ERROR,
-                                        get_offset, get_standard_freq)
+from pandas._libs.tslibs import conversion
+from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
+                                             INVALID_FREQ_ERR_MSG)
+from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
-from pandas._libs.tslibs.offsets import WeekDay, CacheableOffset
+from pandas.core.indexes.timedeltas import TimedeltaIndex
+import pandas._libs.tslibs.offsets as liboffsets
+from pandas._libs.tslibs.offsets import CacheableOffset
 from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     BusinessHour, WeekOfMonth, CBMonthEnd,
                                     CustomBusinessHour,
@@ -28,14 +30,12 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth)
-from pandas.core.tools.datetimes import (
-    format, ole2datetime, parse_time_string,
-    to_datetime, DateParseError)
+                                    LastWeekOfMonth, Tick, CalendarDay)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
-from pandas._libs.tslib import normalize_date, NaT, Timestamp
+from pandas._libs.tslib import NaT, Timestamp
+from pandas._libs.tslibs.timedeltas import Timedelta
 import pandas._libs.tslib as tslib
 import pandas.util.testing as tm
 from pandas.tseries.holiday import USFederalHolidayCalendar
@@ -43,45 +43,20 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 from .common import assert_offset_equal, assert_onOffset
 
 
-def test_monthrange():
-    import calendar
-    for y in range(2000, 2013):
-        for m in range(1, 13):
-            assert tslib.monthrange(y, m) == calendar.monthrange(y, m)
+class WeekDay(object):
+    # TODO: Remove: This is not used outside of tests
+    MON = 0
+    TUE = 1
+    WED = 2
+    THU = 3
+    FRI = 4
+    SAT = 5
+    SUN = 6
+
 
 ####
 # Misc function tests
 ####
-
-
-def test_format():
-    actual = format(datetime(2008, 1, 15))
-    assert actual == '20080115'
-
-
-def test_ole2datetime():
-    actual = ole2datetime(60000)
-    assert actual == datetime(2064, 4, 8)
-
-    with pytest.raises(ValueError):
-        ole2datetime(60)
-
-
-def test_to_datetime1():
-    actual = to_datetime(datetime(2008, 1, 15))
-    assert actual == datetime(2008, 1, 15)
-
-    actual = to_datetime('20080115')
-    assert actual == datetime(2008, 1, 15)
-
-    # unparseable
-    s = 'Month 1, 1999'
-    assert to_datetime(s, errors='ignore') == s
-
-
-def test_normalize_date():
-    actual = normalize_date(datetime(2007, 10, 1, 1, 12, 5, 10))
-    assert actual == datetime(2007, 10, 1)
 
 
 def test_to_m8():
@@ -103,6 +78,7 @@ def test_to_m8():
 
 class Base(object):
     _offset = None
+    d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
                  'dateutil/Asia/Tokyo', 'dateutil/US/Pacific']
@@ -127,11 +103,12 @@ class Base(object):
         else:
             try:
                 klass = klass(value, normalize=normalize)
-            except:
+            except Exception:
                 klass = klass(normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self, tz):
+    def test_apply_out_of_range(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         if self._offset is None:
             return
 
@@ -157,10 +134,60 @@ class Base(object):
 
         except tslib.OutOfBoundsDatetime:
             raise
-        except (ValueError, KeyError) as e:
-            pytest.skip(
-                "cannot create out_of_range offset: {0} {1}".format(
-                    str(self).split('.')[-1], e))
+        except (ValueError, KeyError):
+            # we are creating an invalid offset
+            # so ignore
+            pass
+
+    def test_offsets_compare_equal(self):
+        # root cause of GH#456: __ne__ was not implemented
+        if self._offset is None:
+            return
+        offset1 = self._offset()
+        offset2 = self._offset()
+        assert not offset1 != offset2
+        assert offset1 == offset2
+
+    def test_rsub(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
+
+    def test_radd(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        assert self.d + self.offset2 == self.offset2 + self.d
+
+    def test_sub(self):
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
+            return
+        off = self.offset2
+        with pytest.raises(Exception):
+            off - self.d
+
+        assert 2 * off - off == off
+        assert self.d - self.offset2 == self.d + self._offset(-2)
+        assert self.d - self.offset2 == self.d - (2 * off - off)
+
+    def testMult1(self):
+        if self._offset is None or not hasattr(self, "offset1"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset1 attr
+            return
+        assert self.d + 10 * self.offset1 == self.d + self._offset(10)
+        assert self.d + 5 * self.offset1 == self.d + self._offset(5)
+
+    def testMult2(self):
+        if self._offset is None:
+            return
+        assert self.d + (-5 * self._offset(-10)) == self.d + self._offset(50)
+        assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
 
 class TestCommon(Base):
@@ -168,6 +195,7 @@ class TestCommon(Base):
     # are applied to 2011/01/01 09:00 (Saturday)
     # used for .apply and .rollforward
     expecteds = {'Day': Timestamp('2011-01-02 09:00:00'),
+                 'CalendarDay': Timestamp('2011-01-02 09:00:00'),
                  'DateOffset': Timestamp('2011-01-02 09:00:00'),
                  'BusinessDay': Timestamp('2011-01-03 09:00:00'),
                  'CustomBusinessDay': Timestamp('2011-01-03 09:00:00'),
@@ -203,6 +231,14 @@ class TestCommon(Base):
                  'Nano': Timestamp(np_datetime64_compat(
                                    '2011-01-01T09:00:00.000000001Z'))}
 
+    def test_immutable(self, offset_types):
+        # GH#21341 check that __setattr__ raises
+        offset = self._get_offset(offset_types)
+        with pytest.raises(AttributeError):
+            offset.normalize = True
+        with pytest.raises(AttributeError):
+            offset.n = 91
+
     def test_return_type(self, offset_types):
         offset = self._get_offset(offset_types)
 
@@ -232,13 +268,18 @@ class TestCommon(Base):
 
         freqstr = offset.freqstr
         if freqstr not in ('<Easter>',
-                           "<DateOffset: kwds={'days': 1}>",
+                           "<DateOffset: days=1>",
                            'LWOM-SAT', ):
             code = get_offset(freqstr)
             assert offset.rule_code == code
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected,
                                 normalize=False):
+
+        if normalize and issubclass(offset, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
+
         offset_s = self._get_offset(offset, normalize=normalize)
         func = getattr(offset_s, funcname)
 
@@ -276,7 +317,7 @@ class TestCommon(Base):
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
-            dt_tz = tslib._localize_pydatetime(dt, tz_obj)
+            dt_tz = conversion.localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
             assert isinstance(result, Timestamp)
@@ -323,7 +364,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         no_changes = ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin',
                       'Week', 'Hour', 'Minute', 'Second', 'Milli', 'Micro',
-                      'Nano', 'DateOffset']
+                      'Nano', 'DateOffset', 'CalendarDay']
         for n in no_changes:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
@@ -336,6 +377,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2011-01-02 00:00:00'),
+                      'CalendarDay': Timestamp('2011-01-02 00:00:00'),
                       'DateOffset': Timestamp('2011-01-02 00:00:00'),
                       'MonthBegin': Timestamp('2011-02-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2011-01-15 00:00:00'),
@@ -388,7 +430,7 @@ class TestCommon(Base):
         # result will not be changed if the target is on the offset
         for n in ['Day', 'MonthBegin', 'SemiMonthBegin', 'YearBegin', 'Week',
                   'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-                  'DateOffset']:
+                  'DateOffset', 'CalendarDay']:
             expecteds[n] = Timestamp('2011/01/01 09:00')
 
         # but be changed when normalize=True
@@ -397,6 +439,7 @@ class TestCommon(Base):
             norm_expected[k] = Timestamp(norm_expected[k].date())
 
         normalized = {'Day': Timestamp('2010-12-31 00:00:00'),
+                      'CalendarDay': Timestamp('2010-12-31 00:00:00'),
                       'DateOffset': Timestamp('2010-12-31 00:00:00'),
                       'MonthBegin': Timestamp('2010-12-01 00:00:00'),
                       'SemiMonthBegin': Timestamp('2010-12-15 00:00:00'),
@@ -427,6 +470,9 @@ class TestCommon(Base):
         assert offset_s.onOffset(dt)
 
         # when normalize=True, onOffset checks time is 00:00:00
+        if issubclass(offset_types, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
         offset_n = self._get_offset(offset_types, normalize=True)
         assert not offset_n.onOffset(dt)
 
@@ -437,7 +483,8 @@ class TestCommon(Base):
         date = datetime(dt.year, dt.month, dt.day)
         assert offset_n.onOffset(date)
 
-    def test_add(self, offset_types, tz):
+    def test_add(self, offset_types, tz_naive_fixture):
+        tz = tz_naive_fixture
         dt = datetime(2011, 1, 1, 9, 0)
 
         offset_s = self._get_offset(offset_types)
@@ -454,7 +501,9 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-        # normalize=True
+        # normalize=True, disallowed for Tick subclasses GH#21427
+        if issubclass(offset_types, Tick):
+            return
         offset_s = self._get_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
 
@@ -469,14 +518,15 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-    def test_pickle_v0_15_2(self):
+    def test_pickle_v0_15_2(self, datapath):
         offsets = {'DateOffset': DateOffset(years=1),
                    'MonthBegin': MonthBegin(1),
                    'Day': Day(1),
                    'YearBegin': YearBegin(1),
                    'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'dateoffset_0_15_2.pickle')
+
+        pickle_path = datapath('tseries', 'offsets', 'data',
+                               'dateoffset_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
@@ -529,20 +579,23 @@ class TestBusinessDay(Base):
         self.d = datetime(2008, 1, 1)
 
         self.offset = BDay()
+        self.offset1 = self.offset
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = BDay()
-        offset2 = BDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<BusinessDay>'
         assert repr(self.offset2) == '<2 * BusinessDays>'
 
-        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
+        if compat.PY37:
+            expected = '<BusinessDay: offset=datetime.timedelta(days=1)>'
+        else:
+            expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -550,7 +603,7 @@ class TestBusinessDay(Base):
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
 
-    def testEQ(self):
+    def test_eq(self):
         assert self.offset2 == self.offset2
 
     def test_mul(self):
@@ -559,27 +612,8 @@ class TestBusinessDay(Base):
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset2(self.d) == datetime(2008, 1, 3)
-
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d + BDay(-2)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 10 * self.offset == self.d + BDay(10)
-
-    def testMult2(self):
-        assert self.d + (-5 * BDay(-10)) == self.d + BDay(50)
 
     def testRollback1(self):
         assert BDay(10).rollback(self.d) == self.d
@@ -620,50 +654,50 @@ class TestBusinessDay(Base):
         for offset, d, expected in tests:
             assert_onOffset(offset, d, expected)
 
-    def test_apply(self):
-        tests = []
+    apply_cases = []
+    apply_cases.append((BDay(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 2),
+        datetime(2008, 1, 4): datetime(2008, 1, 7),
+        datetime(2008, 1, 5): datetime(2008, 1, 7),
+        datetime(2008, 1, 6): datetime(2008, 1, 7),
+        datetime(2008, 1, 7): datetime(2008, 1, 8)}))
 
-        tests.append((BDay(), {datetime(2008, 1, 1): datetime(2008, 1, 2),
-                               datetime(2008, 1, 4): datetime(2008, 1, 7),
-                               datetime(2008, 1, 5): datetime(2008, 1, 7),
-                               datetime(2008, 1, 6): datetime(2008, 1, 7),
-                               datetime(2008, 1, 7): datetime(2008, 1, 8)}))
+    apply_cases.append((2 * BDay(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 3),
+        datetime(2008, 1, 4): datetime(2008, 1, 8),
+        datetime(2008, 1, 5): datetime(2008, 1, 8),
+        datetime(2008, 1, 6): datetime(2008, 1, 8),
+        datetime(2008, 1, 7): datetime(2008, 1, 9)}))
 
-        tests.append((2 * BDay(), {datetime(2008, 1, 1): datetime(2008, 1, 3),
-                                   datetime(2008, 1, 4): datetime(2008, 1, 8),
-                                   datetime(2008, 1, 5): datetime(2008, 1, 8),
-                                   datetime(2008, 1, 6): datetime(2008, 1, 8),
-                                   datetime(2008, 1, 7): datetime(2008, 1, 9)}
-                      ))
+    apply_cases.append((-BDay(), {
+        datetime(2008, 1, 1): datetime(2007, 12, 31),
+        datetime(2008, 1, 4): datetime(2008, 1, 3),
+        datetime(2008, 1, 5): datetime(2008, 1, 4),
+        datetime(2008, 1, 6): datetime(2008, 1, 4),
+        datetime(2008, 1, 7): datetime(2008, 1, 4),
+        datetime(2008, 1, 8): datetime(2008, 1, 7)}))
 
-        tests.append((-BDay(), {datetime(2008, 1, 1): datetime(2007, 12, 31),
-                                datetime(2008, 1, 4): datetime(2008, 1, 3),
-                                datetime(2008, 1, 5): datetime(2008, 1, 4),
-                                datetime(2008, 1, 6): datetime(2008, 1, 4),
-                                datetime(2008, 1, 7): datetime(2008, 1, 4),
-                                datetime(2008, 1, 8): datetime(2008, 1, 7)}
-                      ))
+    apply_cases.append((-2 * BDay(), {
+        datetime(2008, 1, 1): datetime(2007, 12, 28),
+        datetime(2008, 1, 4): datetime(2008, 1, 2),
+        datetime(2008, 1, 5): datetime(2008, 1, 3),
+        datetime(2008, 1, 6): datetime(2008, 1, 3),
+        datetime(2008, 1, 7): datetime(2008, 1, 3),
+        datetime(2008, 1, 8): datetime(2008, 1, 4),
+        datetime(2008, 1, 9): datetime(2008, 1, 7)}))
 
-        tests.append((-2 * BDay(), {
-            datetime(2008, 1, 1): datetime(2007, 12, 28),
-            datetime(2008, 1, 4): datetime(2008, 1, 2),
-            datetime(2008, 1, 5): datetime(2008, 1, 3),
-            datetime(2008, 1, 6): datetime(2008, 1, 3),
-            datetime(2008, 1, 7): datetime(2008, 1, 3),
-            datetime(2008, 1, 8): datetime(2008, 1, 4),
-            datetime(2008, 1, 9): datetime(2008, 1, 7)}
-        ))
+    apply_cases.append((BDay(0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 1),
+        datetime(2008, 1, 4): datetime(2008, 1, 4),
+        datetime(2008, 1, 5): datetime(2008, 1, 7),
+        datetime(2008, 1, 6): datetime(2008, 1, 7),
+        datetime(2008, 1, 7): datetime(2008, 1, 7)}))
 
-        tests.append((BDay(0), {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                                datetime(2008, 1, 4): datetime(2008, 1, 4),
-                                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                                datetime(2008, 1, 7): datetime(2008, 1, 7)}
-                      ))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('case', apply_cases)
+    def test_apply(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -691,12 +725,6 @@ class TestBusinessDay(Base):
 
     def test_apply_corner(self):
         pytest.raises(TypeError, BDay().apply, BMonthEnd())
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = BDay()
-        offset2 = BDay()
-        assert not offset1 != offset2
 
 
 class TestBusinessHour(Base):
@@ -727,11 +755,10 @@ class TestBusinessHour(Base):
             BusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<BusinessHour: BH=09:00-17:00>'
@@ -749,7 +776,7 @@ class TestBusinessHour(Base):
         assert self.d + BusinessHour() * 3 == expected
         assert self.d + BusinessHour(n=3) == expected
 
-    def testEQ(self):
+    def test_eq(self):
         for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
             assert offset == offset
 
@@ -763,30 +790,21 @@ class TestBusinessHour(Base):
         for offset in [self.offset1, self.offset2, self.offset3, self.offset4]:
             assert hash(offset) == hash(offset)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
         assert self.offset2(self.d) == datetime(2014, 7, 1, 13)
         assert self.offset3(self.d) == datetime(2014, 6, 30, 17)
         assert self.offset4(self.d) == datetime(2014, 6, 30, 14)
 
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
+    def test_sub(self):
+        # we have to override test_sub here becasue self.offset2 is not
+        # defined as self._offset(2)
         off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
+        with pytest.raises(Exception):
+            off - self.d
         assert 2 * off - off == off
 
         assert self.d - self.offset2 == self.d + self._offset(-3)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 5 * self.offset1 == self.d + self._offset(5)
-
-    def testMult2(self):
-        assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d
@@ -850,483 +868,469 @@ class TestBusinessHour(Base):
         result = offset.rollforward(dt)
         assert result == datetime(2014, 7, 7, 9)
 
-    def test_normalize(self):
-        tests = []
+    normalize_cases = []
+    normalize_cases.append((BusinessHour(normalize=True), {
+        datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 2),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 2),
+        datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+        datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
+        datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
+        datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
+        datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
+        datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
+        datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
 
-        tests.append((BusinessHour(normalize=True),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 2),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 2),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
-                       datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
-                       datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
-                       datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
-                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
-                       datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
-                       datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
+    normalize_cases.append((BusinessHour(-1, normalize=True), {
+        datetime(2014, 7, 1, 8): datetime(2014, 6, 30),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
+        datetime(2014, 7, 1, 10): datetime(2014, 6, 30),
+        datetime(2014, 7, 1, 0): datetime(2014, 6, 30),
+        datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
+        datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
+        datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
+        datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
 
-        tests.append((BusinessHour(-1, normalize=True),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 6, 30),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 10): datetime(2014, 6, 30),
-                       datetime(2014, 7, 1, 0): datetime(2014, 6, 30),
-                       datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
-                       datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
-                       datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
-                       datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
+    normalize_cases.append((BusinessHour(1, normalize=True, start='17:00',
+                                         end='04:00'), {
+        datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+        datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+        datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
+        datetime(2014, 7, 2, 3): datetime(2014, 7, 2),
+        datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
+        datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
+        datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
+        datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
 
-        tests.append((BusinessHour(1, normalize=True, start='17:00',
-                                   end='04:00'),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
-                       datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
-                       datetime(2014, 7, 2, 3): datetime(2014, 7, 2),
-                       datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
-                       datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
-                       datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
-                       datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
+    @pytest.mark.parametrize('case', normalize_cases)
+    def test_normalize(self, case):
+        offset, cases = case
+        for dt, expected in compat.iteritems(cases):
+            assert offset.apply(dt) == expected
 
-        for offset, cases in tests:
-            for dt, expected in compat.iteritems(cases):
-                assert offset.apply(dt) == expected
+    on_offset_cases = []
+    on_offset_cases.append((BusinessHour(), {
+        datetime(2014, 7, 1, 9): True,
+        datetime(2014, 7, 1, 8, 59): False,
+        datetime(2014, 7, 1, 8): False,
+        datetime(2014, 7, 1, 17): True,
+        datetime(2014, 7, 1, 17, 1): False,
+        datetime(2014, 7, 1, 18): False,
+        datetime(2014, 7, 5, 9): False,
+        datetime(2014, 7, 6, 12): False}))
 
-    def test_onOffset(self):
-        tests = []
+    on_offset_cases.append((BusinessHour(start='10:00', end='15:00'), {
+        datetime(2014, 7, 1, 9): False,
+        datetime(2014, 7, 1, 10): True,
+        datetime(2014, 7, 1, 15): True,
+        datetime(2014, 7, 1, 15, 1): False,
+        datetime(2014, 7, 5, 12): False,
+        datetime(2014, 7, 6, 12): False}))
 
-        tests.append((BusinessHour(), {datetime(2014, 7, 1, 9): True,
-                                       datetime(2014, 7, 1, 8, 59): False,
-                                       datetime(2014, 7, 1, 8): False,
-                                       datetime(2014, 7, 1, 17): True,
-                                       datetime(2014, 7, 1, 17, 1): False,
-                                       datetime(2014, 7, 1, 18): False,
-                                       datetime(2014, 7, 5, 9): False,
-                                       datetime(2014, 7, 6, 12): False}))
+    on_offset_cases.append((BusinessHour(start='19:00', end='05:00'), {
+        datetime(2014, 7, 1, 9, 0): False,
+        datetime(2014, 7, 1, 10, 0): False,
+        datetime(2014, 7, 1, 15): False,
+        datetime(2014, 7, 1, 15, 1): False,
+        datetime(2014, 7, 5, 12, 0): False,
+        datetime(2014, 7, 6, 12, 0): False,
+        datetime(2014, 7, 1, 19, 0): True,
+        datetime(2014, 7, 2, 0, 0): True,
+        datetime(2014, 7, 4, 23): True,
+        datetime(2014, 7, 5, 1): True,
+        datetime(2014, 7, 5, 5, 0): True,
+        datetime(2014, 7, 6, 23, 0): False,
+        datetime(2014, 7, 7, 3, 0): False}))
 
-        tests.append((BusinessHour(start='10:00', end='15:00'),
-                      {datetime(2014, 7, 1, 9): False,
-                       datetime(2014, 7, 1, 10): True,
-                       datetime(2014, 7, 1, 15): True,
-                       datetime(2014, 7, 1, 15, 1): False,
-                       datetime(2014, 7, 5, 12): False,
-                       datetime(2014, 7, 6, 12): False}))
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, cases = case
+        for dt, expected in compat.iteritems(cases):
+            assert offset.onOffset(dt) == expected
 
-        tests.append((BusinessHour(start='19:00', end='05:00'),
-                      {datetime(2014, 7, 1, 9, 0): False,
-                       datetime(2014, 7, 1, 10, 0): False,
-                       datetime(2014, 7, 1, 15): False,
-                       datetime(2014, 7, 1, 15, 1): False,
-                       datetime(2014, 7, 5, 12, 0): False,
-                       datetime(2014, 7, 6, 12, 0): False,
-                       datetime(2014, 7, 1, 19, 0): True,
-                       datetime(2014, 7, 2, 0, 0): True,
-                       datetime(2014, 7, 4, 23): True,
-                       datetime(2014, 7, 5, 1): True,
-                       datetime(2014, 7, 5, 5, 0): True,
-                       datetime(2014, 7, 6, 23, 0): False,
-                       datetime(2014, 7, 7, 3, 0): False}))
+    opening_time_cases = []
+    # opening time should be affected by sign of n, not by n's value and
+    # end
+    opening_time_cases.append(([BusinessHour(), BusinessHour(n=2),
+                                BusinessHour(n=4), BusinessHour(end='10:00'),
+                                BusinessHour(n=2, end='4:00'),
+                                BusinessHour(n=4, end='15:00')], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 7, 2, 9),
+                                   datetime(2014, 7, 1, 9)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 9),
+                                   datetime(2014, 7, 1, 9)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 9),
+                                   datetime(2014, 7, 1, 9)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 9),
+                                  datetime(2014, 7, 1, 9)),
+        # if timestamp is on opening time, next opening time is
+        # as it is
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 9),
+                                  datetime(2014, 7, 2, 9)),
+        datetime(2014, 7, 2, 10): (datetime(2014, 7, 3, 9),
+                                   datetime(2014, 7, 2, 9)),
+        # 2014-07-05 is saturday
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 9),
+                                   datetime(2014, 7, 4, 9)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 7, 9),
+                                   datetime(2014, 7, 4, 9)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 9),
+                                   datetime(2014, 7, 4, 9)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 9),
+                                   datetime(2014, 7, 4, 9)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 9),
+                                  datetime(2014, 7, 4, 9)),
+        datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 8, 9),
+                                     datetime(2014, 7, 7, 9))}))
 
-        for offset, cases in tests:
-            for dt, expected in compat.iteritems(cases):
-                assert offset.onOffset(dt) == expected
+    opening_time_cases.append(([BusinessHour(start='11:15'),
+                                BusinessHour(n=2, start='11:15'),
+                                BusinessHour(n=3, start='11:15'),
+                                BusinessHour(start='11:15', end='10:00'),
+                                BusinessHour(n=2, start='11:15', end='4:00'),
+                                BusinessHour(n=3, start='11:15',
+                                             end='15:00')], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 11, 15),
+                                   datetime(2014, 6, 30, 11, 15)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 11, 15),
+                                   datetime(2014, 7, 1, 11, 15)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 11, 15),
+                                   datetime(2014, 7, 1, 11, 15)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 11, 15),
+                                  datetime(2014, 7, 1, 11, 15)),
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 11, 15),
+                                  datetime(2014, 7, 1, 11, 15)),
+        datetime(2014, 7, 2, 10): (datetime(2014, 7, 2, 11, 15),
+                                   datetime(2014, 7, 1, 11, 15)),
+        datetime(2014, 7, 2, 11, 15): (datetime(2014, 7, 2, 11, 15),
+                                       datetime(2014, 7, 2, 11, 15)),
+        datetime(2014, 7, 2, 11, 15, 1): (datetime(2014, 7, 3, 11, 15),
+                                          datetime(2014, 7, 2, 11, 15)),
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 11, 15),
+                                   datetime(2014, 7, 4, 11, 15)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 11, 15),
+                                   datetime(2014, 7, 3, 11, 15)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 11, 15),
+                                   datetime(2014, 7, 4, 11, 15)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 11, 15),
+                                   datetime(2014, 7, 4, 11, 15)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 11, 15),
+                                  datetime(2014, 7, 4, 11, 15)),
+        datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 7, 11, 15),
+                                     datetime(2014, 7, 4, 11, 15))}))
 
-    def test_opening_time(self):
-        tests = []
+    opening_time_cases.append(([BusinessHour(-1), BusinessHour(n=-2),
+                                BusinessHour(n=-4),
+                                BusinessHour(n=-1, end='10:00'),
+                                BusinessHour(n=-2, end='4:00'),
+                                BusinessHour(n=-4, end='15:00')], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 9),
+                                   datetime(2014, 7, 2, 9)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 9),
+                                   datetime(2014, 7, 2, 9)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 9),
+                                   datetime(2014, 7, 2, 9)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 1, 9),
+                                  datetime(2014, 7, 2, 9)),
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 9),
+                                  datetime(2014, 7, 2, 9)),
+        datetime(2014, 7, 2, 10): (datetime(2014, 7, 2, 9),
+                                   datetime(2014, 7, 3, 9)),
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 9),
+                                   datetime(2014, 7, 7, 9)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 9),
+                                   datetime(2014, 7, 7, 9)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 9),
+                                   datetime(2014, 7, 7, 9)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 9),
+                                   datetime(2014, 7, 7, 9)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 9),
+                                  datetime(2014, 7, 7, 9)),
+        datetime(2014, 7, 7, 9): (datetime(2014, 7, 7, 9),
+                                  datetime(2014, 7, 7, 9)),
+        datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 7, 9),
+                                     datetime(2014, 7, 8, 9))}))
 
-        # opening time should be affected by sign of n, not by n's value and
-        # end
-        tests.append((
-            [BusinessHour(), BusinessHour(n=2), BusinessHour(
-                n=4), BusinessHour(end='10:00'), BusinessHour(n=2, end='4:00'),
-             BusinessHour(n=4, end='15:00')],
-            {datetime(2014, 7, 1, 11): (datetime(2014, 7, 2, 9), datetime(
-                2014, 7, 1, 9)),
-             datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 9), datetime(
-                 2014, 7, 1, 9)),
-             datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 9), datetime(
-                 2014, 7, 1, 9)),
-             datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 9), datetime(
-                 2014, 7, 1, 9)),
-             # if timestamp is on opening time, next opening time is
-             # as it is
-             datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 9), datetime(
-                 2014, 7, 2, 9)),
-             datetime(2014, 7, 2, 10): (datetime(2014, 7, 3, 9), datetime(
-                 2014, 7, 2, 9)),
-             # 2014-07-05 is saturday
-             datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 9), datetime(
-                 2014, 7, 4, 9)),
-             datetime(2014, 7, 4, 10): (datetime(2014, 7, 7, 9), datetime(
-                 2014, 7, 4, 9)),
-             datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 9), datetime(
-                 2014, 7, 4, 9)),
-             datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 9), datetime(
-                 2014, 7, 4, 9)),
-             datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 9), datetime(
-                 2014, 7, 4, 9)),
-             datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 8, 9), datetime(
-                 2014, 7, 7, 9))}))
+    opening_time_cases.append(([BusinessHour(start='17:00', end='05:00'),
+                                BusinessHour(n=3, start='17:00',
+                                             end='03:00')], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 17),
+                                   datetime(2014, 6, 30, 17)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 17),
+                                   datetime(2014, 7, 1, 17)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 17),
+                                   datetime(2014, 7, 1, 17)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 17),
+                                  datetime(2014, 7, 1, 17)),
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 17),
+                                  datetime(2014, 7, 1, 17)),
+        datetime(2014, 7, 4, 17): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 17),
+                                   datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 3, 17)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 17),
+                                   datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 17),
+                                   datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 17),
+                                  datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 7, 17, 1): (datetime(2014, 7, 8, 17),
+                                      datetime(2014, 7, 7, 17)), }))
 
-        tests.append(([BusinessHour(start='11:15'),
-                       BusinessHour(n=2, start='11:15'),
-                       BusinessHour(n=3, start='11:15'),
-                       BusinessHour(start='11:15', end='10:00'),
-                       BusinessHour(n=2, start='11:15', end='4:00'),
-                       BusinessHour(n=3, start='11:15', end='15:00')],
-                      {datetime(2014, 7, 1, 11): (datetime(
-                          2014, 7, 1, 11, 15), datetime(2014, 6, 30, 11, 15)),
-                       datetime(2014, 7, 1, 18): (datetime(
-                           2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
-                       datetime(2014, 7, 1, 23): (datetime(
-                           2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
-                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 11, 15),
-                                                 datetime(2014, 7, 1, 11, 15)),
-                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 11, 15),
-                                                 datetime(2014, 7, 1, 11, 15)),
-                       datetime(2014, 7, 2, 10): (datetime(
-                           2014, 7, 2, 11, 15), datetime(2014, 7, 1, 11, 15)),
-                       datetime(2014, 7, 2, 11, 15): (datetime(
-                           2014, 7, 2, 11, 15), datetime(2014, 7, 2, 11, 15)),
-                       datetime(2014, 7, 2, 11, 15, 1): (datetime(
-                           2014, 7, 3, 11, 15), datetime(2014, 7, 2, 11, 15)),
-                       datetime(2014, 7, 5, 10): (datetime(
-                           2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
-                       datetime(2014, 7, 4, 10): (datetime(
-                           2014, 7, 4, 11, 15), datetime(2014, 7, 3, 11, 15)),
-                       datetime(2014, 7, 4, 23): (datetime(
-                           2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
-                       datetime(2014, 7, 6, 10): (datetime(
-                           2014, 7, 7, 11, 15), datetime(2014, 7, 4, 11, 15)),
-                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 11, 15),
-                                                 datetime(2014, 7, 4, 11, 15)),
-                       datetime(2014, 7, 7, 9, 1): (
-                           datetime(2014, 7, 7, 11, 15),
-                           datetime(2014, 7, 4, 11, 15))}))
+    opening_time_cases.append(([BusinessHour(-1, start='17:00', end='05:00'),
+                                BusinessHour(n=-2, start='17:00',
+                                             end='03:00')], {
+        datetime(2014, 7, 1, 11): (datetime(2014, 6, 30, 17),
+                                   datetime(2014, 7, 1, 17)),
+        datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 17),
+                                   datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 17),
+                                   datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 2, 8): (datetime(2014, 7, 1, 17),
+                                  datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 2, 9): (datetime(2014, 7, 1, 17),
+                                  datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 2, 16, 59): (datetime(2014, 7, 1, 17),
+                                       datetime(2014, 7, 2, 17)),
+        datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 7, 17)),
+        datetime(2014, 7, 4, 10): (datetime(2014, 7, 3, 17),
+                                   datetime(2014, 7, 4, 17)),
+        datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 7, 17)),
+        datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 17),
+                                   datetime(2014, 7, 7, 17)),
+        datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 17),
+                                  datetime(2014, 7, 7, 17)),
+        datetime(2014, 7, 7, 18): (datetime(2014, 7, 7, 17),
+                                   datetime(2014, 7, 8, 17))}))
 
-        tests.append(([BusinessHour(-1), BusinessHour(n=-2),
-                       BusinessHour(n=-4),
-                       BusinessHour(n=-1, end='10:00'),
-                       BusinessHour(n=-2, end='4:00'),
-                       BusinessHour(n=-4, end='15:00')],
-                      {datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 9),
-                                                  datetime(2014, 7, 2, 9)),
-                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 9),
-                                                  datetime(2014, 7, 2, 9)),
-                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 9),
-                                                  datetime(2014, 7, 2, 9)),
-                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 1, 9),
-                                                 datetime(2014, 7, 2, 9)),
-                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 9),
-                                                 datetime(2014, 7, 2, 9)),
-                       datetime(2014, 7, 2, 10): (datetime(2014, 7, 2, 9),
-                                                  datetime(2014, 7, 3, 9)),
-                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 9),
-                                                  datetime(2014, 7, 7, 9)),
-                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 9),
-                                                  datetime(2014, 7, 7, 9)),
-                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 9),
-                                                  datetime(2014, 7, 7, 9)),
-                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 9),
-                                                  datetime(2014, 7, 7, 9)),
-                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 9),
-                                                 datetime(2014, 7, 7, 9)),
-                       datetime(2014, 7, 7, 9): (datetime(2014, 7, 7, 9),
-                                                 datetime(2014, 7, 7, 9)),
-                       datetime(2014, 7, 7, 9, 1): (datetime(2014, 7, 7, 9),
-                                                    datetime(2014, 7, 8, 9))}))
+    @pytest.mark.parametrize('case', opening_time_cases)
+    def test_opening_time(self, case):
+        _offsets, cases = case
+        for offset in _offsets:
+            for dt, (exp_next, exp_prev) in compat.iteritems(cases):
+                assert offset._next_opening_time(dt) == exp_next
+                assert offset._prev_opening_time(dt) == exp_prev
 
-        tests.append(([BusinessHour(start='17:00', end='05:00'),
-                       BusinessHour(n=3, start='17:00', end='03:00')],
-                      {datetime(2014, 7, 1, 11): (datetime(2014, 7, 1, 17),
-                                                  datetime(2014, 6, 30, 17)),
-                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 2, 17),
-                                                  datetime(2014, 7, 1, 17)),
-                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 2, 17),
-                                                  datetime(2014, 7, 1, 17)),
-                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 2, 17),
-                                                 datetime(2014, 7, 1, 17)),
-                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 2, 17),
-                                                 datetime(2014, 7, 1, 17)),
-                       datetime(2014, 7, 4, 17): (datetime(2014, 7, 4, 17),
-                                                  datetime(2014, 7, 4, 17)),
-                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 7, 17),
-                                                  datetime(2014, 7, 4, 17)),
-                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 4, 17),
-                                                  datetime(2014, 7, 3, 17)),
-                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 7, 17),
-                                                  datetime(2014, 7, 4, 17)),
-                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 7, 17),
-                                                  datetime(2014, 7, 4, 17)),
-                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 7, 17),
-                                                 datetime(2014, 7, 4, 17)),
-                       datetime(2014, 7, 7, 17, 1): (datetime(
-                           2014, 7, 8, 17), datetime(2014, 7, 7, 17)), }))
+    apply_cases = []
+    apply_cases.append((BusinessHour(), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 10),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 9),
+        datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 2, 9, 30, 15),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 10),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 12),
+        # out of business hours
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 10),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
+        # saturday
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
+        datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
+        datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
+        datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30, 30)}))
 
-        tests.append(([BusinessHour(-1, start='17:00', end='05:00'),
-                       BusinessHour(n=-2, start='17:00', end='03:00')],
-                      {datetime(2014, 7, 1, 11): (datetime(2014, 6, 30, 17),
-                                                  datetime(2014, 7, 1, 17)),
-                       datetime(2014, 7, 1, 18): (datetime(2014, 7, 1, 17),
-                                                  datetime(2014, 7, 2, 17)),
-                       datetime(2014, 7, 1, 23): (datetime(2014, 7, 1, 17),
-                                                  datetime(2014, 7, 2, 17)),
-                       datetime(2014, 7, 2, 8): (datetime(2014, 7, 1, 17),
-                                                 datetime(2014, 7, 2, 17)),
-                       datetime(2014, 7, 2, 9): (datetime(2014, 7, 1, 17),
-                                                 datetime(2014, 7, 2, 17)),
-                       datetime(2014, 7, 2, 16, 59): (datetime(
-                           2014, 7, 1, 17), datetime(2014, 7, 2, 17)),
-                       datetime(2014, 7, 5, 10): (datetime(2014, 7, 4, 17),
-                                                  datetime(2014, 7, 7, 17)),
-                       datetime(2014, 7, 4, 10): (datetime(2014, 7, 3, 17),
-                                                  datetime(2014, 7, 4, 17)),
-                       datetime(2014, 7, 4, 23): (datetime(2014, 7, 4, 17),
-                                                  datetime(2014, 7, 7, 17)),
-                       datetime(2014, 7, 6, 10): (datetime(2014, 7, 4, 17),
-                                                  datetime(2014, 7, 7, 17)),
-                       datetime(2014, 7, 7, 5): (datetime(2014, 7, 4, 17),
-                                                 datetime(2014, 7, 7, 17)),
-                       datetime(2014, 7, 7, 18): (datetime(2014, 7, 7, 17),
-                                                  datetime(2014, 7, 8, 17))}))
+    apply_cases.append((BusinessHour(4), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 2, 9),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 11),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 12),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 15),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
+        datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
+        datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
+        datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30, 30)}))
 
-        for _offsets, cases in tests:
-            for offset in _offsets:
-                for dt, (exp_next, exp_prev) in compat.iteritems(cases):
-                    assert offset._next_opening_time(dt) == exp_next
-                    assert offset._prev_opening_time(dt) == exp_prev
+    apply_cases.append((BusinessHour(-1), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 10),
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 12),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 14),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 15),
+        datetime(2014, 7, 1, 10): datetime(2014, 6, 30, 17),
+        datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 1, 15, 30, 15),
+        datetime(2014, 7, 1, 9, 30, 15): datetime(2014, 6, 30, 16, 30, 15),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 1, 5): datetime(2014, 6, 30, 16),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 10),
+        # out of business hours
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 16),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 16),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 16),
+        # saturday
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 16),
+        datetime(2014, 7, 7, 9): datetime(2014, 7, 4, 16),
+        datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 16, 30),
+        datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 16, 30, 30)}))
 
-    def test_apply(self):
-        tests = []
+    apply_cases.append((BusinessHour(-4), {
+        datetime(2014, 7, 1, 11): datetime(2014, 6, 30, 15),
+        datetime(2014, 7, 1, 13): datetime(2014, 6, 30, 17),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 11),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 12),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 13),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 15),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 13),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 13),
+        datetime(2014, 7, 4, 18): datetime(2014, 7, 4, 13),
+        datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 13, 30),
+        datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 13, 30, 30)}))
 
-        tests.append((
-            BusinessHour(),
-            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
-             datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
-             datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
-             datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 10),
-             datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 9),
-             datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 2, 9, 30, 15),
-             datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 10),
-             datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 12),
-             # out of business hours
-             datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 10),
-             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
-             # saturday
-             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
-             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
-             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
-             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30,
-                                                        30)}))
+    apply_cases.append((BusinessHour(start='13:00', end='16:00'), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 14),
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 14),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 14),
+        datetime(2014, 7, 1, 15, 30, 15): datetime(2014, 7, 2, 13, 30, 15),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 14),
+        datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 14)}))
 
-        tests.append((BusinessHour(
-            4), {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
-                 datetime(2014, 7, 1, 13): datetime(2014, 7, 2, 9),
-                 datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 11),
-                 datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 12),
-                 datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 13),
-                 datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 15),
-                 datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 13),
-                 datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
-                 datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
-                 datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
-                 datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
-                 datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
-                 datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
-                 datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30,
-                                                            30)}))
+    apply_cases.append((BusinessHour(n=2, start='13:00', end='16:00'), {
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 15),
+        datetime(2014, 7, 2, 14): datetime(2014, 7, 3, 13),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 15),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 15),
+        datetime(2014, 7, 2, 14, 30): datetime(2014, 7, 3, 13, 30),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 15),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 15),
+        datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 15),
+        datetime(2014, 7, 4, 14, 30): datetime(2014, 7, 7, 13, 30),
+        datetime(2014, 7, 4, 14, 30, 30): datetime(2014, 7, 7, 13, 30, 30)}))
 
-        tests.append(
-            (BusinessHour(-1),
-             {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 10),
-              datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 12),
-              datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 14),
-              datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 15),
-              datetime(2014, 7, 1, 10): datetime(2014, 6, 30, 17),
-              datetime(2014, 7, 1, 16, 30, 15): datetime(
-                  2014, 7, 1, 15, 30, 15),
-              datetime(2014, 7, 1, 9, 30, 15): datetime(
-                  2014, 6, 30, 16, 30, 15),
-              datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 16),
-              datetime(2014, 7, 1, 5): datetime(2014, 6, 30, 16),
-              datetime(2014, 7, 2, 11): datetime(2014, 7, 2, 10),
-              # out of business hours
-              datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 16),
-              datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 16),
-              datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 16),
-              datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 16),
-              # saturday
-              datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 16),
-              datetime(2014, 7, 7, 9): datetime(2014, 7, 4, 16),
-              datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 16, 30),
-              datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 16, 30,
-                                                        30)}))
+    apply_cases.append((BusinessHour(n=-1, start='13:00', end='16:00'), {
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 15),
+        datetime(2014, 7, 2, 13): datetime(2014, 7, 1, 15),
+        datetime(2014, 7, 2, 14): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 2, 15): datetime(2014, 7, 2, 14),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 15),
+        datetime(2014, 7, 2, 16): datetime(2014, 7, 2, 15),
+        datetime(2014, 7, 2, 13, 30, 15): datetime(2014, 7, 1, 15, 30, 15),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 15),
+        datetime(2014, 7, 7, 11): datetime(2014, 7, 4, 15)}))
 
-        tests.append((BusinessHour(
-            -4), {datetime(2014, 7, 1, 11): datetime(2014, 6, 30, 15),
-                  datetime(2014, 7, 1, 13): datetime(2014, 6, 30, 17),
-                  datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 11),
-                  datetime(2014, 7, 1, 16): datetime(2014, 7, 1, 12),
-                  datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 13),
-                  datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 15),
-                  datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 13),
-                  datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 13),
-                  datetime(2014, 7, 2, 23): datetime(2014, 7, 2, 13),
-                  datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 13),
-                  datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 13),
-                  datetime(2014, 7, 4, 18): datetime(2014, 7, 4, 13),
-                  datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 4, 13, 30),
-                  datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 4, 13, 30,
-                                                            30)}))
+    apply_cases.append((BusinessHour(n=-3, start='10:00', end='16:00'), {
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 13),
+        datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 11),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 13),
+        datetime(2014, 7, 2, 13): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 2, 11, 30): datetime(2014, 7, 1, 14, 30),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 13),
+        datetime(2014, 7, 4, 10): datetime(2014, 7, 3, 13),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 13),
+        datetime(2014, 7, 4, 16): datetime(2014, 7, 4, 13),
+        datetime(2014, 7, 4, 12, 30): datetime(2014, 7, 3, 15, 30),
+        datetime(2014, 7, 4, 12, 30, 30): datetime(2014, 7, 3, 15, 30, 30)}))
 
-        tests.append((BusinessHour(start='13:00', end='16:00'),
-                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 14),
-                       datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
-                       datetime(2014, 7, 1, 15): datetime(2014, 7, 2, 13),
-                       datetime(2014, 7, 1, 19): datetime(2014, 7, 2, 14),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 2, 14),
-                       datetime(2014, 7, 1, 15, 30, 15): datetime(2014, 7, 2,
-                                                                  13, 30, 15),
-                       datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 14),
-                       datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 14)}))
+    apply_cases.append((BusinessHour(start='19:00', end='05:00'), {
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 20),
+        datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 20),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 20),
+        datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 20),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 20),
+        datetime(2014, 7, 2, 4, 30): datetime(2014, 7, 2, 19, 30),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 1),
+        datetime(2014, 7, 4, 10): datetime(2014, 7, 4, 20),
+        datetime(2014, 7, 4, 23): datetime(2014, 7, 5, 0),
+        datetime(2014, 7, 5, 0): datetime(2014, 7, 5, 1),
+        datetime(2014, 7, 5, 4): datetime(2014, 7, 7, 19),
+        datetime(2014, 7, 5, 4, 30): datetime(2014, 7, 7, 19, 30),
+        datetime(2014, 7, 5, 4, 30, 30): datetime(2014, 7, 7, 19, 30, 30)}))
 
-        tests.append((BusinessHour(n=2, start='13:00', end='16:00'), {
-            datetime(2014, 7, 1, 17): datetime(2014, 7, 2, 15),
-            datetime(2014, 7, 2, 14): datetime(2014, 7, 3, 13),
-            datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 15),
-            datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 15),
-            datetime(2014, 7, 2, 14, 30): datetime(2014, 7, 3, 13, 30),
-            datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 15),
-            datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 15),
-            datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 15),
-            datetime(2014, 7, 4, 14, 30): datetime(2014, 7, 7, 13, 30),
-            datetime(2014, 7, 4, 14, 30, 30): datetime(2014, 7, 7, 13, 30, 30)
-        }))
+    apply_cases.append((BusinessHour(n=-1, start='19:00', end='05:00'), {
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 4),
+        datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 20): datetime(2014, 7, 2, 5),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 4),
+        datetime(2014, 7, 2, 19, 30): datetime(2014, 7, 2, 4, 30),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 23),
+        datetime(2014, 7, 3, 6): datetime(2014, 7, 3, 4),
+        datetime(2014, 7, 4, 23): datetime(2014, 7, 4, 22),
+        datetime(2014, 7, 5, 0): datetime(2014, 7, 4, 23),
+        datetime(2014, 7, 5, 4): datetime(2014, 7, 5, 3),
+        datetime(2014, 7, 7, 19, 30): datetime(2014, 7, 5, 4, 30),
+        datetime(2014, 7, 7, 19, 30, 30): datetime(2014, 7, 5, 4, 30, 30)}))
 
-        tests.append((BusinessHour(n=-1, start='13:00', end='16:00'),
-                      {datetime(2014, 7, 2, 11): datetime(2014, 7, 1, 15),
-                       datetime(2014, 7, 2, 13): datetime(2014, 7, 1, 15),
-                       datetime(2014, 7, 2, 14): datetime(2014, 7, 1, 16),
-                       datetime(2014, 7, 2, 15): datetime(2014, 7, 2, 14),
-                       datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 15),
-                       datetime(2014, 7, 2, 16): datetime(2014, 7, 2, 15),
-                       datetime(2014, 7, 2, 13, 30, 15): datetime(2014, 7, 1,
-                                                                  15, 30, 15),
-                       datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 15),
-                       datetime(2014, 7, 7, 11): datetime(2014, 7, 4, 15)}))
+    @pytest.mark.parametrize('case', apply_cases)
+    def test_apply(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
-        tests.append((BusinessHour(n=-3, start='10:00', end='16:00'), {
-            datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 13),
-            datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 11),
-            datetime(2014, 7, 2, 8): datetime(2014, 7, 1, 13),
-            datetime(2014, 7, 2, 13): datetime(2014, 7, 1, 16),
-            datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 13),
-            datetime(2014, 7, 2, 11, 30): datetime(2014, 7, 1, 14, 30),
-            datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 13),
-            datetime(2014, 7, 4, 10): datetime(2014, 7, 3, 13),
-            datetime(2014, 7, 5, 15): datetime(2014, 7, 4, 13),
-            datetime(2014, 7, 4, 16): datetime(2014, 7, 4, 13),
-            datetime(2014, 7, 4, 12, 30): datetime(2014, 7, 3, 15, 30),
-            datetime(2014, 7, 4, 12, 30, 30): datetime(2014, 7, 3, 15, 30, 30)
-        }))
+    apply_large_n_cases = []
+    # A week later
+    apply_large_n_cases.append((BusinessHour(40), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 8, 11),
+        datetime(2014, 7, 1, 13): datetime(2014, 7, 8, 13),
+        datetime(2014, 7, 1, 15): datetime(2014, 7, 8, 15),
+        datetime(2014, 7, 1, 16): datetime(2014, 7, 8, 16),
+        datetime(2014, 7, 1, 17): datetime(2014, 7, 9, 9),
+        datetime(2014, 7, 2, 11): datetime(2014, 7, 9, 11),
+        datetime(2014, 7, 2, 8): datetime(2014, 7, 9, 9),
+        datetime(2014, 7, 2, 19): datetime(2014, 7, 10, 9),
+        datetime(2014, 7, 2, 23): datetime(2014, 7, 10, 9),
+        datetime(2014, 7, 3, 0): datetime(2014, 7, 10, 9),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 14, 9),
+        datetime(2014, 7, 4, 18): datetime(2014, 7, 14, 9),
+        datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 14, 9, 30),
+        datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 14, 9, 30, 30)}))
 
-        tests.append((BusinessHour(start='19:00', end='05:00'), {
-            datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 20),
-            datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 20),
-            datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 20),
-            datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 20),
-            datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 20),
-            datetime(2014, 7, 2, 4, 30): datetime(2014, 7, 2, 19, 30),
-            datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 1),
-            datetime(2014, 7, 4, 10): datetime(2014, 7, 4, 20),
-            datetime(2014, 7, 4, 23): datetime(2014, 7, 5, 0),
-            datetime(2014, 7, 5, 0): datetime(2014, 7, 5, 1),
-            datetime(2014, 7, 5, 4): datetime(2014, 7, 7, 19),
-            datetime(2014, 7, 5, 4, 30): datetime(2014, 7, 7, 19, 30),
-            datetime(2014, 7, 5, 4, 30, 30): datetime(2014, 7, 7, 19, 30, 30)
-        }))
+    # 3 days and 1 hour before
+    apply_large_n_cases.append((BusinessHour(-25), {
+        datetime(2014, 7, 1, 11): datetime(2014, 6, 26, 10),
+        datetime(2014, 7, 1, 13): datetime(2014, 6, 26, 12),
+        datetime(2014, 7, 1, 9): datetime(2014, 6, 25, 16),
+        datetime(2014, 7, 1, 10): datetime(2014, 6, 25, 17),
+        datetime(2014, 7, 3, 11): datetime(2014, 6, 30, 10),
+        datetime(2014, 7, 3, 8): datetime(2014, 6, 27, 16),
+        datetime(2014, 7, 3, 19): datetime(2014, 6, 30, 16),
+        datetime(2014, 7, 3, 23): datetime(2014, 6, 30, 16),
+        datetime(2014, 7, 4, 9): datetime(2014, 6, 30, 16),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 6, 18): datetime(2014, 7, 1, 16),
+        datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 1, 16, 30),
+        datetime(2014, 7, 7, 10, 30, 30): datetime(2014, 7, 2, 9, 30, 30)}))
 
-        tests.append((BusinessHour(n=-1, start='19:00', end='05:00'), {
-            datetime(2014, 7, 1, 17): datetime(2014, 7, 1, 4),
-            datetime(2014, 7, 2, 14): datetime(2014, 7, 2, 4),
-            datetime(2014, 7, 2, 8): datetime(2014, 7, 2, 4),
-            datetime(2014, 7, 2, 13): datetime(2014, 7, 2, 4),
-            datetime(2014, 7, 2, 20): datetime(2014, 7, 2, 5),
-            datetime(2014, 7, 2, 19): datetime(2014, 7, 2, 4),
-            datetime(2014, 7, 2, 19, 30): datetime(2014, 7, 2, 4, 30),
-            datetime(2014, 7, 3, 0): datetime(2014, 7, 2, 23),
-            datetime(2014, 7, 3, 6): datetime(2014, 7, 3, 4),
-            datetime(2014, 7, 4, 23): datetime(2014, 7, 4, 22),
-            datetime(2014, 7, 5, 0): datetime(2014, 7, 4, 23),
-            datetime(2014, 7, 5, 4): datetime(2014, 7, 5, 3),
-            datetime(2014, 7, 7, 19, 30): datetime(2014, 7, 5, 4, 30),
-            datetime(2014, 7, 7, 19, 30, 30): datetime(2014, 7, 5, 4, 30, 30)
-        }))
+    # 5 days and 3 hours later
+    apply_large_n_cases.append((BusinessHour(28, start='21:00', end='02:00'), {
+        datetime(2014, 7, 1, 11): datetime(2014, 7, 9, 0),
+        datetime(2014, 7, 1, 22): datetime(2014, 7, 9, 1),
+        datetime(2014, 7, 1, 23): datetime(2014, 7, 9, 21),
+        datetime(2014, 7, 2, 2): datetime(2014, 7, 10, 0),
+        datetime(2014, 7, 3, 21): datetime(2014, 7, 11, 0),
+        datetime(2014, 7, 4, 1): datetime(2014, 7, 11, 23),
+        datetime(2014, 7, 4, 2): datetime(2014, 7, 12, 0),
+        datetime(2014, 7, 4, 3): datetime(2014, 7, 12, 0),
+        datetime(2014, 7, 5, 1): datetime(2014, 7, 14, 23),
+        datetime(2014, 7, 5, 15): datetime(2014, 7, 15, 0),
+        datetime(2014, 7, 6, 18): datetime(2014, 7, 15, 0),
+        datetime(2014, 7, 7, 1): datetime(2014, 7, 15, 0),
+        datetime(2014, 7, 7, 23, 30): datetime(2014, 7, 15, 21, 30)}))
 
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
-    def test_apply_large_n(self):
-        tests = []
-
-        tests.append(
-            (BusinessHour(40),  # A week later
-             {datetime(2014, 7, 1, 11): datetime(2014, 7, 8, 11),
-              datetime(2014, 7, 1, 13): datetime(2014, 7, 8, 13),
-              datetime(2014, 7, 1, 15): datetime(2014, 7, 8, 15),
-              datetime(2014, 7, 1, 16): datetime(2014, 7, 8, 16),
-              datetime(2014, 7, 1, 17): datetime(2014, 7, 9, 9),
-              datetime(2014, 7, 2, 11): datetime(2014, 7, 9, 11),
-              datetime(2014, 7, 2, 8): datetime(2014, 7, 9, 9),
-              datetime(2014, 7, 2, 19): datetime(2014, 7, 10, 9),
-              datetime(2014, 7, 2, 23): datetime(2014, 7, 10, 9),
-              datetime(2014, 7, 3, 0): datetime(2014, 7, 10, 9),
-              datetime(2014, 7, 5, 15): datetime(2014, 7, 14, 9),
-              datetime(2014, 7, 4, 18): datetime(2014, 7, 14, 9),
-              datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 14, 9, 30),
-              datetime(2014, 7, 7, 9, 30, 30): datetime(2014, 7, 14, 9, 30,
-                                                        30)}))
-
-        tests.append(
-            (BusinessHour(-25),  # 3 days and 1 hour before
-             {datetime(2014, 7, 1, 11): datetime(2014, 6, 26, 10),
-              datetime(2014, 7, 1, 13): datetime(2014, 6, 26, 12),
-              datetime(2014, 7, 1, 9): datetime(2014, 6, 25, 16),
-              datetime(2014, 7, 1, 10): datetime(2014, 6, 25, 17),
-              datetime(2014, 7, 3, 11): datetime(2014, 6, 30, 10),
-              datetime(2014, 7, 3, 8): datetime(2014, 6, 27, 16),
-              datetime(2014, 7, 3, 19): datetime(2014, 6, 30, 16),
-              datetime(2014, 7, 3, 23): datetime(2014, 6, 30, 16),
-              datetime(2014, 7, 4, 9): datetime(2014, 6, 30, 16),
-              datetime(2014, 7, 5, 15): datetime(2014, 7, 1, 16),
-              datetime(2014, 7, 6, 18): datetime(2014, 7, 1, 16),
-              datetime(2014, 7, 7, 9, 30): datetime(2014, 7, 1, 16, 30),
-              datetime(2014, 7, 7, 10, 30, 30): datetime(2014, 7, 2, 9, 30,
-                                                         30)}))
-
-        # 5 days and 3 hours later
-        tests.append((BusinessHour(28, start='21:00', end='02:00'),
-                      {datetime(2014, 7, 1, 11): datetime(2014, 7, 9, 0),
-                       datetime(2014, 7, 1, 22): datetime(2014, 7, 9, 1),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 9, 21),
-                       datetime(2014, 7, 2, 2): datetime(2014, 7, 10, 0),
-                       datetime(2014, 7, 3, 21): datetime(2014, 7, 11, 0),
-                       datetime(2014, 7, 4, 1): datetime(2014, 7, 11, 23),
-                       datetime(2014, 7, 4, 2): datetime(2014, 7, 12, 0),
-                       datetime(2014, 7, 4, 3): datetime(2014, 7, 12, 0),
-                       datetime(2014, 7, 5, 1): datetime(2014, 7, 14, 23),
-                       datetime(2014, 7, 5, 15): datetime(2014, 7, 15, 0),
-                       datetime(2014, 7, 6, 18): datetime(2014, 7, 15, 0),
-                       datetime(2014, 7, 7, 1): datetime(2014, 7, 15, 0),
-                       datetime(2014, 7, 7, 23, 30): datetime(2014, 7, 15, 21,
-                                                              30)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('case', apply_large_n_cases)
+    def test_apply_large_n(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
     def test_apply_nanoseconds(self):
         tests = []
@@ -1350,12 +1354,6 @@ class TestBusinessHour(Base):
         for offset, cases in tests:
             for base, expected in compat.iteritems(cases):
                 assert_offset_equal(offset, base, expected)
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = self._offset()
-        offset2 = self._offset()
-        assert not offset1 != offset2
 
     def test_datetimeindex(self):
         idx1 = DatetimeIndex(start='2014-07-04 15:00', end='2014-07-08 10:00',
@@ -1395,6 +1393,8 @@ class TestBusinessHour(Base):
 
 class TestCustomBusinessHour(Base):
     _offset = CustomBusinessHour
+    holidays = ['2014-06-27', datetime(2014, 6, 30),
+                np.datetime64('2014-07-02')]
 
     def setup_method(self, method):
         # 2014 Calendar to check custom holidays
@@ -1405,8 +1405,6 @@ class TestCustomBusinessHour(Base):
         self.d = datetime(2014, 7, 1, 10, 00)
         self.offset1 = CustomBusinessHour(weekmask='Tue Wed Thu Fri')
 
-        self.holidays = ['2014-06-27', datetime(2014, 6, 30),
-                         np.datetime64('2014-07-02')]
         self.offset2 = CustomBusinessHour(holidays=self.holidays)
 
     def test_constructor_errors(self):
@@ -1419,11 +1417,10 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<CustomBusinessHour: CBH=09:00-17:00>'
@@ -1435,7 +1432,7 @@ class TestCustomBusinessHour(Base):
         assert self.d + CustomBusinessHour() * 3 == expected
         assert self.d + CustomBusinessHour(n=3) == expected
 
-    def testEQ(self):
+    def test_eq(self):
         for offset in [self.offset1, self.offset2]:
             assert offset == offset
 
@@ -1452,32 +1449,18 @@ class TestCustomBusinessHour(Base):
         assert (CustomBusinessHour(holidays=['2014-06-27']) !=
                 CustomBusinessHour(holidays=['2014-06-28']))
 
+    def test_sub(self):
+        # override the Base.test_sub implementation because self.offset2 is
+        # defined differently in this class than the test expects
+        pass
+
     def test_hash(self):
         assert hash(self.offset1) == hash(self.offset1)
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset1(self.d) == datetime(2014, 7, 1, 11)
         assert self.offset2(self.d) == datetime(2014, 7, 1, 11)
-
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d - (2 * off - off)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 5 * self.offset1 == self.d + self._offset(5)
-
-    def testMult2(self):
-        assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
 
     def testRollback1(self):
         assert self.offset1.rollback(self.d) == self.d
@@ -1518,49 +1501,51 @@ class TestCustomBusinessHour(Base):
         result = offset.rollforward(dt)
         assert result == datetime(2014, 7, 7, 9)
 
-    def test_normalize(self):
-        tests = []
+    normalize_cases = []
+    normalize_cases.append((
+        CustomBusinessHour(normalize=True, holidays=holidays),
+        {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 3),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 3),
+         datetime(2014, 7, 1, 23): datetime(2014, 7, 3),
+         datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
+         datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
+         datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
+         datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
+         datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
+         datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
 
-        tests.append((CustomBusinessHour(normalize=True,
-                                         holidays=self.holidays),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 3),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 3),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 3),
-                       datetime(2014, 7, 1, 0): datetime(2014, 7, 1),
-                       datetime(2014, 7, 4, 15): datetime(2014, 7, 4),
-                       datetime(2014, 7, 4, 15, 59): datetime(2014, 7, 4),
-                       datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7),
-                       datetime(2014, 7, 5, 23): datetime(2014, 7, 7),
-                       datetime(2014, 7, 6, 10): datetime(2014, 7, 7)}))
+    normalize_cases.append((
+        CustomBusinessHour(-1, normalize=True, holidays=holidays),
+        {datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 10): datetime(2014, 6, 26),
+         datetime(2014, 7, 1, 0): datetime(2014, 6, 26),
+         datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
+         datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
+         datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
+         datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
 
-        tests.append((CustomBusinessHour(-1, normalize=True,
-                                         holidays=self.holidays),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 16): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 10): datetime(2014, 6, 26),
-                       datetime(2014, 7, 1, 0): datetime(2014, 6, 26),
-                       datetime(2014, 7, 7, 10): datetime(2014, 7, 4),
-                       datetime(2014, 7, 7, 10, 1): datetime(2014, 7, 7),
-                       datetime(2014, 7, 5, 23): datetime(2014, 7, 4),
-                       datetime(2014, 7, 6, 10): datetime(2014, 7, 4)}))
+    normalize_cases.append((
+        CustomBusinessHour(1, normalize=True,
+                           start='17:00', end='04:00',
+                           holidays=holidays),
+        {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
+         datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
+         datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
+         datetime(2014, 7, 2, 3): datetime(2014, 7, 3),
+         datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
+         datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
+         datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
+         datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
 
-        tests.append((CustomBusinessHour(1, normalize=True, start='17:00',
-                                         end='04:00', holidays=self.holidays),
-                      {datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
-                       datetime(2014, 7, 1, 23): datetime(2014, 7, 2),
-                       datetime(2014, 7, 2, 2): datetime(2014, 7, 2),
-                       datetime(2014, 7, 2, 3): datetime(2014, 7, 3),
-                       datetime(2014, 7, 4, 23): datetime(2014, 7, 5),
-                       datetime(2014, 7, 5, 2): datetime(2014, 7, 5),
-                       datetime(2014, 7, 7, 2): datetime(2014, 7, 7),
-                       datetime(2014, 7, 7, 17): datetime(2014, 7, 7)}))
-
-        for offset, cases in tests:
-            for dt, expected in compat.iteritems(cases):
-                assert offset.apply(dt) == expected
+    @pytest.mark.parametrize('norm_cases', normalize_cases)
+    def test_normalize(self, norm_cases):
+        offset, cases = norm_cases
+        for dt, expected in compat.iteritems(cases):
+            assert offset.apply(dt) == expected
 
     def test_onOffset(self):
         tests = []
@@ -1578,75 +1563,75 @@ class TestCustomBusinessHour(Base):
             for dt, expected in compat.iteritems(cases):
                 assert offset.onOffset(dt) == expected
 
-    def test_apply(self):
-        tests = []
+    apply_cases = []
+    apply_cases.append((
+        CustomBusinessHour(holidays=holidays),
+        {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
+         datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
+         datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
+         datetime(2014, 7, 1, 19): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 9),
+         datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 3, 9, 30, 15),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 10),
+         # out of business hours
+         datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
+         datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
+         # saturday
+         datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
+         datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
+         datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
+         datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30, 30)}))
 
-        tests.append((
-            CustomBusinessHour(holidays=self.holidays),
-            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
-             datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
-             datetime(2014, 7, 1, 15): datetime(2014, 7, 1, 16),
-             datetime(2014, 7, 1, 19): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 9),
-             datetime(2014, 7, 1, 16, 30, 15): datetime(2014, 7, 3, 9, 30, 15),
-             datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 10),
-             # out of business hours
-             datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 10),
-             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 10),
-             # saturday
-             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 10),
-             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 10),
-             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 9, 30),
-             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 9, 30,
-                                                        30)}))
+    apply_cases.append((
+        CustomBusinessHour(4, holidays=holidays),
+        {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
+         datetime(2014, 7, 1, 13): datetime(2014, 7, 3, 9),
+         datetime(2014, 7, 1, 15): datetime(2014, 7, 3, 11),
+         datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 12),
+         datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
+         datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
+         datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
+         datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
+         datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30, 30)}))
 
-        tests.append((
-            CustomBusinessHour(4, holidays=self.holidays),
-            {datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
-             datetime(2014, 7, 1, 13): datetime(2014, 7, 3, 9),
-             datetime(2014, 7, 1, 15): datetime(2014, 7, 3, 11),
-             datetime(2014, 7, 1, 16): datetime(2014, 7, 3, 12),
-             datetime(2014, 7, 1, 17): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 11): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 8): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 19): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 2, 23): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 3, 0): datetime(2014, 7, 3, 13),
-             datetime(2014, 7, 5, 15): datetime(2014, 7, 7, 13),
-             datetime(2014, 7, 4, 17): datetime(2014, 7, 7, 13),
-             datetime(2014, 7, 4, 16, 30): datetime(2014, 7, 7, 12, 30),
-             datetime(2014, 7, 4, 16, 30, 30): datetime(2014, 7, 7, 12, 30,
-                                                        30)}))
+    @pytest.mark.parametrize('apply_case', apply_cases)
+    def test_apply(self, apply_case):
+        offset, cases = apply_case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    nano_cases = []
+    nano_cases.append(
+        (CustomBusinessHour(holidays=holidays),
+         {Timestamp('2014-07-01 15:00') + Nano(5):
+            Timestamp('2014-07-01 16:00') + Nano(5),
+          Timestamp('2014-07-01 16:00') + Nano(5):
+            Timestamp('2014-07-03 09:00') + Nano(5),
+          Timestamp('2014-07-01 16:00') - Nano(5):
+            Timestamp('2014-07-01 17:00') - Nano(5)}))
 
-    def test_apply_nanoseconds(self):
-        tests = []
+    nano_cases.append(
+        (CustomBusinessHour(-1, holidays=holidays),
+         {Timestamp('2014-07-01 15:00') + Nano(5):
+            Timestamp('2014-07-01 14:00') + Nano(5),
+          Timestamp('2014-07-01 10:00') + Nano(5):
+            Timestamp('2014-07-01 09:00') + Nano(5),
+          Timestamp('2014-07-01 10:00') - Nano(5):
+            Timestamp('2014-06-26 17:00') - Nano(5)}))
 
-        tests.append((CustomBusinessHour(holidays=self.holidays),
-                      {Timestamp('2014-07-01 15:00') + Nano(5): Timestamp(
-                          '2014-07-01 16:00') + Nano(5),
-                       Timestamp('2014-07-01 16:00') + Nano(5): Timestamp(
-                           '2014-07-03 09:00') + Nano(5),
-                       Timestamp('2014-07-01 16:00') - Nano(5): Timestamp(
-                           '2014-07-01 17:00') - Nano(5)}))
-
-        tests.append((CustomBusinessHour(-1, holidays=self.holidays),
-                      {Timestamp('2014-07-01 15:00') + Nano(5): Timestamp(
-                          '2014-07-01 14:00') + Nano(5),
-                       Timestamp('2014-07-01 10:00') + Nano(5): Timestamp(
-                           '2014-07-01 09:00') + Nano(5),
-                       Timestamp('2014-07-01 10:00') - Nano(5): Timestamp(
-                           '2014-06-26 17:00') - Nano(5), }))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('nano_case', nano_cases)
+    def test_apply_nanoseconds(self, nano_case):
+        offset, cases = nano_case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
 
 class TestCustomBusinessDay(Base):
@@ -1657,20 +1642,23 @@ class TestCustomBusinessDay(Base):
         self.nd = np_datetime64_compat('2008-01-01 00:00:00Z')
 
         self.offset = CDay()
+        self.offset1 = self.offset
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CDay()
-        offset2 = CDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessDay>'
         assert repr(self.offset2) == '<2 * CustomBusinessDays>'
 
-        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
+        if compat.PY37:
+            expected = '<BusinessDay: offset=datetime.timedelta(days=1)>'
+        else:
+            expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -1678,7 +1666,7 @@ class TestCustomBusinessDay(Base):
 
         assert (self.d + offset) == datetime(2008, 1, 2, 2)
 
-    def testEQ(self):
+    def test_eq(self):
         assert self.offset2 == self.offset2
 
     def test_mul(self):
@@ -1687,28 +1675,9 @@ class TestCustomBusinessDay(Base):
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testCall(self):
+    def test_call(self):
         assert self.offset2(self.d) == datetime(2008, 1, 3)
         assert self.offset2(self.nd) == datetime(2008, 1, 3)
-
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d + CDay(-2)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 10 * self.offset == self.d + CDay(10)
-
-    def testMult2(self):
-        assert self.d + (-5 * CDay(-10)) == self.d + CDay(50)
 
     def testRollback1(self):
         assert CDay(10).rollback(self.d) == self.d
@@ -1742,58 +1711,58 @@ class TestCustomBusinessDay(Base):
         result = offset.rollforward(dt)
         assert result == datetime(2012, 9, 15)
 
-    def test_onOffset(self):
-        tests = [(CDay(), datetime(2008, 1, 1), True),
-                 (CDay(), datetime(2008, 1, 5), False)]
+    on_offset_cases = [(CDay(), datetime(2008, 1, 1), True),
+                       (CDay(), datetime(2008, 1, 5), False)]
 
-        for offset, d, expected in tests:
-            assert_onOffset(offset, d, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, d, expected = case
+        assert_onOffset(offset, d, expected)
 
-    def test_apply(self):
-        tests = []
+    apply_cases = []
+    apply_cases.append((CDay(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 2),
+        datetime(2008, 1, 4): datetime(2008, 1, 7),
+        datetime(2008, 1, 5): datetime(2008, 1, 7),
+        datetime(2008, 1, 6): datetime(2008, 1, 7),
+        datetime(2008, 1, 7): datetime(2008, 1, 8)}))
 
-        tests.append((CDay(), {datetime(2008, 1, 1): datetime(2008, 1, 2),
-                               datetime(2008, 1, 4): datetime(2008, 1, 7),
-                               datetime(2008, 1, 5): datetime(2008, 1, 7),
-                               datetime(2008, 1, 6): datetime(2008, 1, 7),
-                               datetime(2008, 1, 7): datetime(2008, 1, 8)}))
+    apply_cases.append((2 * CDay(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 3),
+        datetime(2008, 1, 4): datetime(2008, 1, 8),
+        datetime(2008, 1, 5): datetime(2008, 1, 8),
+        datetime(2008, 1, 6): datetime(2008, 1, 8),
+        datetime(2008, 1, 7): datetime(2008, 1, 9)}))
 
-        tests.append((2 * CDay(), {
-            datetime(2008, 1, 1): datetime(2008, 1, 3),
-            datetime(2008, 1, 4): datetime(2008, 1, 8),
-            datetime(2008, 1, 5): datetime(2008, 1, 8),
-            datetime(2008, 1, 6): datetime(2008, 1, 8),
-            datetime(2008, 1, 7): datetime(2008, 1, 9)}
-        ))
+    apply_cases.append((-CDay(), {
+        datetime(2008, 1, 1): datetime(2007, 12, 31),
+        datetime(2008, 1, 4): datetime(2008, 1, 3),
+        datetime(2008, 1, 5): datetime(2008, 1, 4),
+        datetime(2008, 1, 6): datetime(2008, 1, 4),
+        datetime(2008, 1, 7): datetime(2008, 1, 4),
+        datetime(2008, 1, 8): datetime(2008, 1, 7)}))
 
-        tests.append((-CDay(), {
-            datetime(2008, 1, 1): datetime(2007, 12, 31),
-            datetime(2008, 1, 4): datetime(2008, 1, 3),
-            datetime(2008, 1, 5): datetime(2008, 1, 4),
-            datetime(2008, 1, 6): datetime(2008, 1, 4),
-            datetime(2008, 1, 7): datetime(2008, 1, 4),
-            datetime(2008, 1, 8): datetime(2008, 1, 7)}
-        ))
+    apply_cases.append((-2 * CDay(), {
+        datetime(2008, 1, 1): datetime(2007, 12, 28),
+        datetime(2008, 1, 4): datetime(2008, 1, 2),
+        datetime(2008, 1, 5): datetime(2008, 1, 3),
+        datetime(2008, 1, 6): datetime(2008, 1, 3),
+        datetime(2008, 1, 7): datetime(2008, 1, 3),
+        datetime(2008, 1, 8): datetime(2008, 1, 4),
+        datetime(2008, 1, 9): datetime(2008, 1, 7)}))
 
-        tests.append((-2 * CDay(), {
-            datetime(2008, 1, 1): datetime(2007, 12, 28),
-            datetime(2008, 1, 4): datetime(2008, 1, 2),
-            datetime(2008, 1, 5): datetime(2008, 1, 3),
-            datetime(2008, 1, 6): datetime(2008, 1, 3),
-            datetime(2008, 1, 7): datetime(2008, 1, 3),
-            datetime(2008, 1, 8): datetime(2008, 1, 4),
-            datetime(2008, 1, 9): datetime(2008, 1, 7)}
-        ))
+    apply_cases.append((CDay(0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 1),
+        datetime(2008, 1, 4): datetime(2008, 1, 4),
+        datetime(2008, 1, 5): datetime(2008, 1, 7),
+        datetime(2008, 1, 6): datetime(2008, 1, 7),
+        datetime(2008, 1, 7): datetime(2008, 1, 7)}))
 
-        tests.append((CDay(0), {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                                datetime(2008, 1, 4): datetime(2008, 1, 4),
-                                datetime(2008, 1, 5): datetime(2008, 1, 7),
-                                datetime(2008, 1, 6): datetime(2008, 1, 7),
-                                datetime(2008, 1, 7): datetime(2008, 1, 7)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('case', apply_cases)
+    def test_apply(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -1816,12 +1785,6 @@ class TestCustomBusinessDay(Base):
 
     def test_apply_corner(self):
         pytest.raises(Exception, CDay().apply, BMonthEnd())
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = CDay()
-        offset2 = CDay()
-        assert not offset1 != offset2
 
     def test_holidays(self):
         # Define a TradingDay offset
@@ -1862,6 +1825,7 @@ class TestCustomBusinessDay(Base):
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
@@ -1876,12 +1840,10 @@ class TestCustomBusinessDay(Base):
         _check_roundtrip(self.offset2)
         _check_roundtrip(self.offset * 2)
 
-    def test_pickle_compat_0_14_1(self):
+    def test_pickle_compat_0_14_1(self, datapath):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
-
-        pth = tm.get_data_path()
-
-        cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
+        pth = datapath('tseries', 'offsets', 'data', 'cday-0.14.1.pickle')
+        cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
 
@@ -1891,10 +1853,11 @@ class CustomBusinessMonthBase(object):
     def setup_method(self, method):
         self.d = datetime(2008, 1, 1)
 
-        self.offset = self._object()
-        self.offset2 = self._object(2)
+        self.offset = self._offset()
+        self.offset1 = self.offset
+        self.offset2 = self._offset(2)
 
-    def testEQ(self):
+    def test_eq(self):
         assert self.offset2 == self.offset2
 
     def test_mul(self):
@@ -1903,54 +1866,29 @@ class CustomBusinessMonthBase(object):
     def test_hash(self):
         assert hash(self.offset2) == hash(self.offset2)
 
-    def testRAdd(self):
-        assert self.d + self.offset2 == self.offset2 + self.d
-
-    def testSub(self):
-        off = self.offset2
-        pytest.raises(Exception, off.__sub__, self.d)
-        assert 2 * off - off == off
-
-        assert self.d - self.offset2 == self.d + self._object(-2)
-
-    def testRSub(self):
-        assert self.d - self.offset2 == (-self.offset2).apply(self.d)
-
-    def testMult1(self):
-        assert self.d + 10 * self.offset == self.d + self._object(10)
-
-    def testMult2(self):
-        assert self.d + (-5 * self._object(-10)) == self.d + self._object(50)
-
-    def test_offsets_compare_equal(self):
-        offset1 = self._object()
-        offset2 = self._object()
-        assert not offset1 != offset2
-
     def test_roundtrip_pickle(self):
         def _check_roundtrip(obj):
             unpickled = tm.round_trip_pickle(obj)
             assert unpickled == obj
 
-        _check_roundtrip(self._object())
-        _check_roundtrip(self._object(2))
-        _check_roundtrip(self._object() * 2)
+        _check_roundtrip(self._offset())
+        _check_roundtrip(self._offset(2))
+        _check_roundtrip(self._offset() * 2)
 
     def test_copy(self):
         # GH 17452
-        off = self._object(weekmask='Mon Wed Fri')
+        off = self._offset(weekmask='Mon Wed Fri')
         assert off == off.copy()
 
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
-    _object = CBMonthEnd
+    _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthEnd>'
@@ -1987,37 +1925,40 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         result = offset.rollforward(dt)
         assert result == datetime(2012, 9, 15)
 
-    def test_onOffset(self):
-        tests = [(CBMonthEnd(), datetime(2008, 1, 31), True),
-                 (CBMonthEnd(), datetime(2008, 1, 1), False)]
+    on_offset_cases = [(CBMonthEnd(), datetime(2008, 1, 31), True),
+                       (CBMonthEnd(), datetime(2008, 1, 1), False)]
 
-        for offset, d, expected in tests:
-            assert_onOffset(offset, d, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, d, expected = case
+        assert_onOffset(offset, d, expected)
 
-    def test_apply(self):
-        cbm = CBMonthEnd()
-        tests = []
+    apply_cases = []
+    apply_cases.append((CBMonthEnd(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 31),
+        datetime(2008, 2, 7): datetime(2008, 2, 29)}))
 
-        tests.append((cbm, {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                            datetime(2008, 2, 7): datetime(2008, 2, 29)}))
+    apply_cases.append((2 * CBMonthEnd(), {
+        datetime(2008, 1, 1): datetime(2008, 2, 29),
+        datetime(2008, 2, 7): datetime(2008, 3, 31)}))
 
-        tests.append((2 * cbm, {datetime(2008, 1, 1): datetime(2008, 2, 29),
-                                datetime(2008, 2, 7): datetime(2008, 3, 31)}))
+    apply_cases.append((-CBMonthEnd(), {
+        datetime(2008, 1, 1): datetime(2007, 12, 31),
+        datetime(2008, 2, 8): datetime(2008, 1, 31)}))
 
-        tests.append((-cbm, {datetime(2008, 1, 1): datetime(2007, 12, 31),
-                             datetime(2008, 2, 8): datetime(2008, 1, 31)}))
+    apply_cases.append((-2 * CBMonthEnd(), {
+        datetime(2008, 1, 1): datetime(2007, 11, 30),
+        datetime(2008, 2, 9): datetime(2007, 12, 31)}))
 
-        tests.append((-2 * cbm, {datetime(2008, 1, 1): datetime(2007, 11, 30),
-                                 datetime(2008, 2, 9): datetime(2007, 12, 31)}
-                      ))
+    apply_cases.append((CBMonthEnd(0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 31),
+        datetime(2008, 2, 7): datetime(2008, 2, 29)}))
 
-        tests.append((CBMonthEnd(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                       datetime(2008, 2, 7): datetime(2008, 2, 29)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('case', apply_cases)
+    def test_apply(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -2047,6 +1988,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 30)
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         from pandas.tseries.holiday import USFederalHolidayCalendar
         hcal = USFederalHolidayCalendar()
@@ -2057,14 +1999,13 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
-    _object = CBMonthBegin
+    _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthBegin>'
@@ -2101,36 +2042,40 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         result = offset.rollforward(dt)
         assert result == datetime(2012, 9, 15)
 
-    def test_onOffset(self):
-        tests = [(CBMonthBegin(), datetime(2008, 1, 1), True),
-                 (CBMonthBegin(), datetime(2008, 1, 31), False)]
+    on_offset_cases = [(CBMonthBegin(), datetime(2008, 1, 1), True),
+                       (CBMonthBegin(), datetime(2008, 1, 31), False)]
 
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        offset, dt, expected = case
+        assert_onOffset(offset, dt, expected)
 
-    def test_apply(self):
-        cbm = CBMonthBegin()
-        tests = []
+    apply_cases = []
+    apply_cases.append((CBMonthBegin(), {
+        datetime(2008, 1, 1): datetime(2008, 2, 1),
+        datetime(2008, 2, 7): datetime(2008, 3, 3)}))
 
-        tests.append((cbm, {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                            datetime(2008, 2, 7): datetime(2008, 3, 3)}))
+    apply_cases.append((2 * CBMonthBegin(), {
+        datetime(2008, 1, 1): datetime(2008, 3, 3),
+        datetime(2008, 2, 7): datetime(2008, 4, 1)}))
 
-        tests.append((2 * cbm, {datetime(2008, 1, 1): datetime(2008, 3, 3),
-                                datetime(2008, 2, 7): datetime(2008, 4, 1)}))
+    apply_cases.append((-CBMonthBegin(), {
+        datetime(2008, 1, 1): datetime(2007, 12, 3),
+        datetime(2008, 2, 8): datetime(2008, 2, 1)}))
 
-        tests.append((-cbm, {datetime(2008, 1, 1): datetime(2007, 12, 3),
-                             datetime(2008, 2, 8): datetime(2008, 2, 1)}))
+    apply_cases.append((-2 * CBMonthBegin(), {
+        datetime(2008, 1, 1): datetime(2007, 11, 1),
+        datetime(2008, 2, 9): datetime(2008, 1, 1)}))
 
-        tests.append((-2 * cbm, {datetime(2008, 1, 1): datetime(2007, 11, 1),
-                                 datetime(2008, 2, 9): datetime(2008, 1, 1)}))
+    apply_cases.append((CBMonthBegin(0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 1),
+        datetime(2008, 1, 7): datetime(2008, 2, 1)}))
 
-        tests.append((CBMonthBegin(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2008, 1, 7): datetime(2008, 2, 1)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('case', apply_cases)
+    def test_apply(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
     def test_apply_large_n(self):
         dt = datetime(2012, 10, 23)
@@ -2162,6 +2107,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
         assert dt + bm_offset == datetime(2012, 1, 2)
         assert dt + 2 * bm_offset == datetime(2012, 2, 3)
 
+    @pytest.mark.filterwarnings("ignore:Non:pandas.errors.PerformanceWarning")
     def test_datetimeindex(self):
         hcal = USFederalHolidayCalendar()
         cbmb = CBMonthBegin(calendar=hcal)
@@ -2171,6 +2117,9 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
 class TestWeek(Base):
     _offset = Week
+    d = Timestamp(datetime(2008, 1, 2))
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_repr(self):
         assert repr(Week(weekday=0)) == "<Week: weekday=0>"
@@ -2178,9 +2127,11 @@ class TestWeek(Base):
         assert repr(Week(n=-2, weekday=0)) == "<-2 * Weeks: weekday=0>"
 
     def test_corner(self):
-        pytest.raises(ValueError, Week, weekday=7)
-        tm.assert_raises_regex(
-            ValueError, "Day must be", Week, weekday=-1)
+        with pytest.raises(ValueError):
+            Week(weekday=7)
+
+        with pytest.raises(ValueError, match="Day must be"):
+            Week(weekday=-1)
 
     def test_isAnchored(self):
         assert Week(weekday=0).isAnchored()
@@ -2188,73 +2139,74 @@ class TestWeek(Base):
         assert not Week(2, weekday=2).isAnchored()
         assert not Week(2).isAnchored()
 
-    def test_offset(self):
-        tests = []
+    offset_cases = []
+    # not business week
+    offset_cases.append((Week(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 8),
+        datetime(2008, 1, 4): datetime(2008, 1, 11),
+        datetime(2008, 1, 5): datetime(2008, 1, 12),
+        datetime(2008, 1, 6): datetime(2008, 1, 13),
+        datetime(2008, 1, 7): datetime(2008, 1, 14)}))
 
-        tests.append((Week(),  # not business week
-                      {datetime(2008, 1, 1): datetime(2008, 1, 8),
-                       datetime(2008, 1, 4): datetime(2008, 1, 11),
-                       datetime(2008, 1, 5): datetime(2008, 1, 12),
-                       datetime(2008, 1, 6): datetime(2008, 1, 13),
-                       datetime(2008, 1, 7): datetime(2008, 1, 14)}))
+    # Mon
+    offset_cases.append((Week(weekday=0), {
+        datetime(2007, 12, 31): datetime(2008, 1, 7),
+        datetime(2008, 1, 4): datetime(2008, 1, 7),
+        datetime(2008, 1, 5): datetime(2008, 1, 7),
+        datetime(2008, 1, 6): datetime(2008, 1, 7),
+        datetime(2008, 1, 7): datetime(2008, 1, 14)}))
 
-        tests.append((Week(weekday=0),  # Mon
-                      {datetime(2007, 12, 31): datetime(2008, 1, 7),
-                       datetime(2008, 1, 4): datetime(2008, 1, 7),
-                       datetime(2008, 1, 5): datetime(2008, 1, 7),
-                       datetime(2008, 1, 6): datetime(2008, 1, 7),
-                       datetime(2008, 1, 7): datetime(2008, 1, 14)}))
+    # n=0 -> roll forward. Mon
+    offset_cases.append((Week(0, weekday=0), {
+        datetime(2007, 12, 31): datetime(2007, 12, 31),
+        datetime(2008, 1, 4): datetime(2008, 1, 7),
+        datetime(2008, 1, 5): datetime(2008, 1, 7),
+        datetime(2008, 1, 6): datetime(2008, 1, 7),
+        datetime(2008, 1, 7): datetime(2008, 1, 7)}))
 
-        tests.append((Week(0, weekday=0),  # n=0 -> roll forward. Mon
-                      {datetime(2007, 12, 31): datetime(2007, 12, 31),
-                       datetime(2008, 1, 4): datetime(2008, 1, 7),
-                       datetime(2008, 1, 5): datetime(2008, 1, 7),
-                       datetime(2008, 1, 6): datetime(2008, 1, 7),
-                       datetime(2008, 1, 7): datetime(2008, 1, 7)}))
+    # n=0 -> roll forward. Mon
+    offset_cases.append((Week(-2, weekday=1), {
+        datetime(2010, 4, 6): datetime(2010, 3, 23),
+        datetime(2010, 4, 8): datetime(2010, 3, 30),
+        datetime(2010, 4, 5): datetime(2010, 3, 23)}))
 
-        tests.append((Week(-2, weekday=1),  # n=0 -> roll forward. Mon
-                      {datetime(2010, 4, 6): datetime(2010, 3, 23),
-                       datetime(2010, 4, 8): datetime(2010, 3, 30),
-                       datetime(2010, 4, 5): datetime(2010, 3, 23)}))
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
 
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    @pytest.mark.parametrize('weekday', range(7))
+    def test_onOffset(self, weekday):
+        offset = Week(weekday=weekday)
 
-    def test_onOffset(self):
-        for weekday in range(7):
-            offset = Week(weekday=weekday)
+        for day in range(1, 8):
+            date = datetime(2008, 1, day)
 
-            for day in range(1, 8):
-                date = datetime(2008, 1, day)
-
-                if day % 7 == weekday:
-                    expected = True
-                else:
-                    expected = False
-            assert_onOffset(offset, date, expected)
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = Week()
-        offset2 = Week()
-        assert not offset1 != offset2
+            if day % 7 == weekday:
+                expected = True
+            else:
+                expected = False
+        assert_onOffset(offset, date, expected)
 
 
 class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_constructor(self):
-        tm.assert_raises_regex(ValueError, "^N cannot be 0",
-                               WeekOfMonth, n=0, week=1, weekday=1)
-        tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
-                               n=1, week=4, weekday=0)
-        tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
-                               n=1, week=-1, weekday=0)
-        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
-                               n=1, week=0, weekday=-1)
-        tm.assert_raises_regex(ValueError, "^Day", WeekOfMonth,
-                               n=1, week=0, weekday=7)
+        with pytest.raises(ValueError, match="^Week"):
+            WeekOfMonth(n=1, week=4, weekday=0)
+
+        with pytest.raises(ValueError, match="^Week"):
+            WeekOfMonth(n=1, week=-1, weekday=0)
+
+        with pytest.raises(ValueError, match="^Day"):
+            WeekOfMonth(n=1, week=0, weekday=-1)
+
+        with pytest.raises(ValueError, match="^Day"):
+            WeekOfMonth(n=1, week=0, weekday=-7)
 
     def test_repr(self):
         assert (repr(WeekOfMonth(weekday=1, week=2)) ==
@@ -2278,6 +2230,19 @@ class TestWeekOfMonth(Base):
             (-1, 2, 1, date3, datetime(2010, 12, 21)),
             (-1, 2, 1, date4, datetime(2011, 1, 18)),
 
+            (0, 0, 1, date1, datetime(2011, 1, 4)),
+            (0, 0, 1, date2, datetime(2011, 2, 1)),
+            (0, 0, 1, date3, datetime(2011, 2, 1)),
+            (0, 0, 1, date4, datetime(2011, 2, 1)),
+            (0, 1, 1, date1, datetime(2011, 1, 11)),
+            (0, 1, 1, date2, datetime(2011, 1, 11)),
+            (0, 1, 1, date3, datetime(2011, 2, 8)),
+            (0, 1, 1, date4, datetime(2011, 2, 8)),
+            (0, 0, 1, date1, datetime(2011, 1, 4)),
+            (0, 1, 1, date2, datetime(2011, 1, 11)),
+            (0, 2, 1, date3, datetime(2011, 1, 18)),
+            (0, 3, 1, date4, datetime(2011, 1, 25)),
+
             (1, 0, 0, date1, datetime(2011, 2, 7)),
             (1, 0, 0, date2, datetime(2011, 2, 7)),
             (1, 0, 0, date3, datetime(2011, 2, 7)),
@@ -2299,8 +2264,7 @@ class TestWeekOfMonth(Base):
             (2, 2, 1, date1, datetime(2011, 2, 15)),
             (2, 2, 1, date2, datetime(2011, 2, 15)),
             (2, 2, 1, date3, datetime(2011, 3, 15)),
-            (2, 2, 1, date4, datetime(2011, 3, 15)),
-        ]
+            (2, 2, 1, date4, datetime(2011, 3, 15))]
 
         for n, week, weekday, dt, expected in test_cases:
             offset = WeekOfMonth(n, week=week, weekday=weekday)
@@ -2313,32 +2277,34 @@ class TestWeekOfMonth(Base):
         result = datetime(2011, 2, 3) - WeekOfMonth(week=0, weekday=2)
         assert result == datetime(2011, 2, 2)
 
-    def test_onOffset(self):
-        test_cases = [
-            (0, 0, datetime(2011, 2, 7), True),
-            (0, 0, datetime(2011, 2, 6), False),
-            (0, 0, datetime(2011, 2, 14), False),
-            (1, 0, datetime(2011, 2, 14), True),
-            (0, 1, datetime(2011, 2, 1), True),
-            (0, 1, datetime(2011, 2, 8), False),
-        ]
+    on_offset_cases = [(0, 0, datetime(2011, 2, 7), True),
+                       (0, 0, datetime(2011, 2, 6), False),
+                       (0, 0, datetime(2011, 2, 14), False),
+                       (1, 0, datetime(2011, 2, 14), True),
+                       (0, 1, datetime(2011, 2, 1), True),
+                       (0, 1, datetime(2011, 2, 8), False)]
 
-        for week, weekday, dt, expected in test_cases:
-            offset = WeekOfMonth(week=week, weekday=weekday)
-            assert offset.onOffset(dt) == expected
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        week, weekday, dt, expected = case
+        offset = WeekOfMonth(week=week, weekday=weekday)
+        assert offset.onOffset(dt) == expected
 
 
 class TestLastWeekOfMonth(Base):
     _offset = LastWeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_constructor(self):
-        tm.assert_raises_regex(ValueError, "^N cannot be 0",
-                               LastWeekOfMonth, n=0, weekday=1)
+        with pytest.raises(ValueError, match="^N cannot be 0"):
+            LastWeekOfMonth(n=0, weekday=1)
 
-        tm.assert_raises_regex(ValueError, "^Day", LastWeekOfMonth, n=1,
-                               weekday=-1)
-        tm.assert_raises_regex(
-            ValueError, "^Day", LastWeekOfMonth, n=1, weekday=7)
+        with pytest.raises(ValueError, match="^Day"):
+            LastWeekOfMonth(n=1, weekday=-1)
+
+        with pytest.raises(ValueError, match="^Day"):
+            LastWeekOfMonth(n=1, weekday=7)
 
     def test_offset(self):
         # Saturday
@@ -2379,345 +2345,33 @@ class TestLastWeekOfMonth(Base):
         offset_sunday = LastWeekOfMonth(n=1, weekday=WeekDay.SUN)
         assert datetime(2013, 7, 31) + offset_sunday == datetime(2013, 8, 25)
 
-    def test_onOffset(self):
-        test_cases = [
-            (WeekDay.SUN, datetime(2013, 1, 27), True),
-            (WeekDay.SAT, datetime(2013, 3, 30), True),
-            (WeekDay.MON, datetime(2013, 2, 18), False),  # Not the last Mon
-            (WeekDay.SUN, datetime(2013, 2, 25), False),  # Not a SUN
-            (WeekDay.MON, datetime(2013, 2, 25), True),
-            (WeekDay.SAT, datetime(2013, 11, 30), True),
+    on_offset_cases = [
+        (WeekDay.SUN, datetime(2013, 1, 27), True),
+        (WeekDay.SAT, datetime(2013, 3, 30), True),
+        (WeekDay.MON, datetime(2013, 2, 18), False),  # Not the last Mon
+        (WeekDay.SUN, datetime(2013, 2, 25), False),  # Not a SUN
+        (WeekDay.MON, datetime(2013, 2, 25), True),
+        (WeekDay.SAT, datetime(2013, 11, 30), True),
 
-            (WeekDay.SAT, datetime(2006, 8, 26), True),
-            (WeekDay.SAT, datetime(2007, 8, 25), True),
-            (WeekDay.SAT, datetime(2008, 8, 30), True),
-            (WeekDay.SAT, datetime(2009, 8, 29), True),
-            (WeekDay.SAT, datetime(2010, 8, 28), True),
-            (WeekDay.SAT, datetime(2011, 8, 27), True),
-            (WeekDay.SAT, datetime(2019, 8, 31), True),
-        ]
+        (WeekDay.SAT, datetime(2006, 8, 26), True),
+        (WeekDay.SAT, datetime(2007, 8, 25), True),
+        (WeekDay.SAT, datetime(2008, 8, 30), True),
+        (WeekDay.SAT, datetime(2009, 8, 29), True),
+        (WeekDay.SAT, datetime(2010, 8, 28), True),
+        (WeekDay.SAT, datetime(2011, 8, 27), True),
+        (WeekDay.SAT, datetime(2019, 8, 31), True)]
 
-        for weekday, dt, expected in test_cases:
-            offset = LastWeekOfMonth(weekday=weekday)
-            assert offset.onOffset(dt) == expected
-
-
-class TestBMonthBegin(Base):
-    _offset = BMonthBegin
-
-    def test_offset(self):
-        tests = []
-
-        tests.append((BMonthBegin(),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2006, 12, 29): datetime(2007, 1, 1),
-                       datetime(2006, 12, 31): datetime(2007, 1, 1),
-                       datetime(2006, 9, 1): datetime(2006, 10, 2),
-                       datetime(2007, 1, 1): datetime(2007, 2, 1),
-                       datetime(2006, 12, 1): datetime(2007, 1, 1)}))
-
-        tests.append((BMonthBegin(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2006, 10, 2): datetime(2006, 10, 2),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2006, 12, 29): datetime(2007, 1, 1),
-                       datetime(2006, 12, 31): datetime(2007, 1, 1),
-                       datetime(2006, 9, 15): datetime(2006, 10, 2)}))
-
-        tests.append((BMonthBegin(2),
-                      {datetime(2008, 1, 1): datetime(2008, 3, 3),
-                       datetime(2008, 1, 15): datetime(2008, 3, 3),
-                       datetime(2006, 12, 29): datetime(2007, 2, 1),
-                       datetime(2006, 12, 31): datetime(2007, 2, 1),
-                       datetime(2007, 1, 1): datetime(2007, 3, 1),
-                       datetime(2006, 11, 1): datetime(2007, 1, 1)}))
-
-        tests.append((BMonthBegin(-1),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 1),
-                       datetime(2008, 6, 30): datetime(2008, 6, 2),
-                       datetime(2008, 6, 1): datetime(2008, 5, 1),
-                       datetime(2008, 3, 10): datetime(2008, 3, 3),
-                       datetime(2008, 12, 31): datetime(2008, 12, 1),
-                       datetime(2006, 12, 29): datetime(2006, 12, 1),
-                       datetime(2006, 12, 30): datetime(2006, 12, 1),
-                       datetime(2007, 1, 1): datetime(2006, 12, 1)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
-    def test_onOffset(self):
-
-        tests = [(BMonthBegin(), datetime(2007, 12, 31), False),
-                 (BMonthBegin(), datetime(2008, 1, 1), True),
-                 (BMonthBegin(), datetime(2001, 4, 2), True),
-                 (BMonthBegin(), datetime(2008, 3, 3), True)]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = BMonthBegin()
-        offset2 = BMonthBegin()
-        assert not offset1 != offset2
-
-
-class TestBMonthEnd(Base):
-    _offset = BMonthEnd
-
-    def test_offset(self):
-        tests = []
-
-        tests.append((BMonthEnd(),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 2, 29),
-                       datetime(2006, 12, 29): datetime(2007, 1, 31),
-                       datetime(2006, 12, 31): datetime(2007, 1, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 31),
-                       datetime(2006, 12, 1): datetime(2006, 12, 29)}))
-
-        tests.append((BMonthEnd(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 1, 31),
-                       datetime(2006, 12, 29): datetime(2006, 12, 29),
-                       datetime(2006, 12, 31): datetime(2007, 1, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 31)}))
-
-        tests.append((BMonthEnd(2),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 29),
-                       datetime(2008, 1, 31): datetime(2008, 3, 31),
-                       datetime(2006, 12, 29): datetime(2007, 2, 28),
-                       datetime(2006, 12, 31): datetime(2007, 2, 28),
-                       datetime(2007, 1, 1): datetime(2007, 2, 28),
-                       datetime(2006, 11, 1): datetime(2006, 12, 29)}))
-
-        tests.append((BMonthEnd(-1),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 29),
-                       datetime(2008, 6, 30): datetime(2008, 5, 30),
-                       datetime(2008, 12, 31): datetime(2008, 11, 28),
-                       datetime(2006, 12, 29): datetime(2006, 11, 30),
-                       datetime(2006, 12, 30): datetime(2006, 12, 29),
-                       datetime(2007, 1, 1): datetime(2006, 12, 29)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
-    def test_normalize(self):
-        dt = datetime(2007, 1, 1, 3)
-
-        result = dt + BMonthEnd(normalize=True)
-        expected = dt.replace(hour=0) + BMonthEnd()
-        assert result == expected
-
-    def test_onOffset(self):
-
-        tests = [(BMonthEnd(), datetime(2007, 12, 31), True),
-                 (BMonthEnd(), datetime(2008, 1, 1), False)]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
-
-    def test_offsets_compare_equal(self):
-        # root cause of #456
-        offset1 = BMonthEnd()
-        offset2 = BMonthEnd()
-        assert not offset1 != offset2
-
-
-class TestMonthBegin(Base):
-    _offset = MonthBegin
-
-    def test_offset(self):
-        tests = []
-
-        # NOTE: I'm not entirely happy with the logic here for Begin -ss
-        # see thread 'offset conventions' on the ML
-        tests.append((MonthBegin(),
-                      {datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2008, 2, 1): datetime(2008, 3, 1),
-                       datetime(2006, 12, 31): datetime(2007, 1, 1),
-                       datetime(2006, 12, 1): datetime(2007, 1, 1),
-                       datetime(2007, 1, 31): datetime(2007, 2, 1)}))
-
-        tests.append((MonthBegin(0),
-                      {datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2006, 12, 3): datetime(2007, 1, 1),
-                       datetime(2007, 1, 31): datetime(2007, 2, 1)}))
-
-        tests.append((MonthBegin(2),
-                      {datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 1, 31): datetime(2008, 3, 1),
-                       datetime(2006, 12, 31): datetime(2007, 2, 1),
-                       datetime(2007, 12, 28): datetime(2008, 2, 1),
-                       datetime(2007, 1, 1): datetime(2007, 3, 1),
-                       datetime(2006, 11, 1): datetime(2007, 1, 1)}))
-
-        tests.append((MonthBegin(-1),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 1),
-                       datetime(2008, 5, 31): datetime(2008, 5, 1),
-                       datetime(2008, 12, 31): datetime(2008, 12, 1),
-                       datetime(2006, 12, 29): datetime(2006, 12, 1),
-                       datetime(2006, 1, 2): datetime(2006, 1, 1)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
-
-class TestMonthEnd(Base):
-    _offset = MonthEnd
-
-    def test_offset(self):
-        tests = []
-
-        tests.append((MonthEnd(),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 2, 29),
-                       datetime(2006, 12, 29): datetime(2006, 12, 31),
-                       datetime(2006, 12, 31): datetime(2007, 1, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 31),
-                       datetime(2006, 12, 1): datetime(2006, 12, 31)}))
-
-        tests.append((MonthEnd(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 1, 31),
-                       datetime(2006, 12, 29): datetime(2006, 12, 31),
-                       datetime(2006, 12, 31): datetime(2006, 12, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 31)}))
-
-        tests.append((MonthEnd(2),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 29),
-                       datetime(2008, 1, 31): datetime(2008, 3, 31),
-                       datetime(2006, 12, 29): datetime(2007, 1, 31),
-                       datetime(2006, 12, 31): datetime(2007, 2, 28),
-                       datetime(2007, 1, 1): datetime(2007, 2, 28),
-                       datetime(2006, 11, 1): datetime(2006, 12, 31)}))
-
-        tests.append((MonthEnd(-1),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 31),
-                       datetime(2008, 6, 30): datetime(2008, 5, 31),
-                       datetime(2008, 12, 31): datetime(2008, 11, 30),
-                       datetime(2006, 12, 29): datetime(2006, 11, 30),
-                       datetime(2006, 12, 30): datetime(2006, 11, 30),
-                       datetime(2007, 1, 1): datetime(2006, 12, 31)}))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
-    def test_day_of_month(self):
-        dt = datetime(2007, 1, 1)
-        offset = MonthEnd()
-
-        result = dt + offset
-        assert result == Timestamp(2007, 1, 31)
-
-        result = result + offset
-        assert result == Timestamp(2007, 2, 28)
-
-    def test_normalize(self):
-        dt = datetime(2007, 1, 1, 3)
-
-        result = dt + MonthEnd(normalize=True)
-        expected = dt.replace(hour=0) + MonthEnd()
-        assert result == expected
-
-    def test_onOffset(self):
-
-        tests = [(MonthEnd(), datetime(2007, 12, 31), True),
-                 (MonthEnd(), datetime(2008, 1, 1), False)]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        weekday, dt, expected = case
+        offset = LastWeekOfMonth(weekday=weekday)
+        assert offset.onOffset(dt) == expected
 
 
 class TestSemiMonthEnd(Base):
     _offset = SemiMonthEnd
-
-    def _get_tests(self):
-        tests = []
-
-        tests.append((SemiMonthEnd(),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 15),
-                       datetime(2008, 1, 15): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 2, 15),
-                       datetime(2006, 12, 14): datetime(2006, 12, 15),
-                       datetime(2006, 12, 29): datetime(2006, 12, 31),
-                       datetime(2006, 12, 31): datetime(2007, 1, 15),
-                       datetime(2007, 1, 1): datetime(2007, 1, 15),
-                       datetime(2006, 12, 1): datetime(2006, 12, 15),
-                       datetime(2006, 12, 15): datetime(2006, 12, 31)}))
-
-        tests.append((SemiMonthEnd(day_of_month=20),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 20),
-                       datetime(2008, 1, 15): datetime(2008, 1, 20),
-                       datetime(2008, 1, 21): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 2, 20),
-                       datetime(2006, 12, 14): datetime(2006, 12, 20),
-                       datetime(2006, 12, 29): datetime(2006, 12, 31),
-                       datetime(2006, 12, 31): datetime(2007, 1, 20),
-                       datetime(2007, 1, 1): datetime(2007, 1, 20),
-                       datetime(2006, 12, 1): datetime(2006, 12, 20),
-                       datetime(2006, 12, 15): datetime(2006, 12, 20)}))
-
-        tests.append((SemiMonthEnd(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 15),
-                       datetime(2008, 1, 16): datetime(2008, 1, 31),
-                       datetime(2008, 1, 15): datetime(2008, 1, 15),
-                       datetime(2008, 1, 31): datetime(2008, 1, 31),
-                       datetime(2006, 12, 29): datetime(2006, 12, 31),
-                       datetime(2006, 12, 31): datetime(2006, 12, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 15)}))
-
-        tests.append((SemiMonthEnd(0, day_of_month=16),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 16),
-                       datetime(2008, 1, 16): datetime(2008, 1, 16),
-                       datetime(2008, 1, 15): datetime(2008, 1, 16),
-                       datetime(2008, 1, 31): datetime(2008, 1, 31),
-                       datetime(2006, 12, 29): datetime(2006, 12, 31),
-                       datetime(2006, 12, 31): datetime(2006, 12, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 16)}))
-
-        tests.append((SemiMonthEnd(2),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                       datetime(2008, 1, 31): datetime(2008, 2, 29),
-                       datetime(2006, 12, 29): datetime(2007, 1, 15),
-                       datetime(2006, 12, 31): datetime(2007, 1, 31),
-                       datetime(2007, 1, 1): datetime(2007, 1, 31),
-                       datetime(2007, 1, 16): datetime(2007, 2, 15),
-                       datetime(2006, 11, 1): datetime(2006, 11, 30)}))
-
-        tests.append((SemiMonthEnd(-1),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 31),
-                       datetime(2008, 6, 30): datetime(2008, 6, 15),
-                       datetime(2008, 12, 31): datetime(2008, 12, 15),
-                       datetime(2006, 12, 29): datetime(2006, 12, 15),
-                       datetime(2006, 12, 30): datetime(2006, 12, 15),
-                       datetime(2007, 1, 1): datetime(2006, 12, 31)}))
-
-        tests.append((SemiMonthEnd(-1, day_of_month=4),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 31),
-                       datetime(2007, 1, 4): datetime(2006, 12, 31),
-                       datetime(2008, 6, 30): datetime(2008, 6, 4),
-                       datetime(2008, 12, 31): datetime(2008, 12, 4),
-                       datetime(2006, 12, 5): datetime(2006, 12, 4),
-                       datetime(2006, 12, 30): datetime(2006, 12, 4),
-                       datetime(2007, 1, 1): datetime(2006, 12, 31)}))
-
-        tests.append((SemiMonthEnd(-2),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 15),
-                       datetime(2008, 6, 30): datetime(2008, 5, 31),
-                       datetime(2008, 3, 15): datetime(2008, 2, 15),
-                       datetime(2008, 12, 31): datetime(2008, 11, 30),
-                       datetime(2006, 12, 29): datetime(2006, 11, 30),
-                       datetime(2006, 12, 14): datetime(2006, 11, 15),
-                       datetime(2007, 1, 1): datetime(2006, 12, 15)}))
-
-        return tests
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_offset_whole_year(self):
         dates = (datetime(2007, 12, 31),
@@ -2760,28 +2414,107 @@ class TestSemiMonthEnd(Base):
         exp = DatetimeIndex(dates)
         tm.assert_index_equal(result, exp)
 
-    def test_offset(self):
-        for offset, cases in self._get_tests():
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    offset_cases = []
+    offset_cases.append((SemiMonthEnd(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 15),
+        datetime(2008, 1, 15): datetime(2008, 1, 31),
+        datetime(2008, 1, 31): datetime(2008, 2, 15),
+        datetime(2006, 12, 14): datetime(2006, 12, 15),
+        datetime(2006, 12, 29): datetime(2006, 12, 31),
+        datetime(2006, 12, 31): datetime(2007, 1, 15),
+        datetime(2007, 1, 1): datetime(2007, 1, 15),
+        datetime(2006, 12, 1): datetime(2006, 12, 15),
+        datetime(2006, 12, 15): datetime(2006, 12, 31)}))
 
-    def test_apply_index(self):
-        for offset, cases in self._get_tests():
-            s = DatetimeIndex(cases.keys())
-            result = offset.apply_index(s)
-            exp = DatetimeIndex(cases.values())
-            tm.assert_index_equal(result, exp)
+    offset_cases.append((SemiMonthEnd(day_of_month=20), {
+        datetime(2008, 1, 1): datetime(2008, 1, 20),
+        datetime(2008, 1, 15): datetime(2008, 1, 20),
+        datetime(2008, 1, 21): datetime(2008, 1, 31),
+        datetime(2008, 1, 31): datetime(2008, 2, 20),
+        datetime(2006, 12, 14): datetime(2006, 12, 20),
+        datetime(2006, 12, 29): datetime(2006, 12, 31),
+        datetime(2006, 12, 31): datetime(2007, 1, 20),
+        datetime(2007, 1, 1): datetime(2007, 1, 20),
+        datetime(2006, 12, 1): datetime(2006, 12, 20),
+        datetime(2006, 12, 15): datetime(2006, 12, 20)}))
 
-    def test_onOffset(self):
+    offset_cases.append((SemiMonthEnd(0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 15),
+        datetime(2008, 1, 16): datetime(2008, 1, 31),
+        datetime(2008, 1, 15): datetime(2008, 1, 15),
+        datetime(2008, 1, 31): datetime(2008, 1, 31),
+        datetime(2006, 12, 29): datetime(2006, 12, 31),
+        datetime(2006, 12, 31): datetime(2006, 12, 31),
+        datetime(2007, 1, 1): datetime(2007, 1, 15)}))
 
-        tests = [(datetime(2007, 12, 31), True),
-                 (datetime(2007, 12, 15), True),
-                 (datetime(2007, 12, 14), False),
-                 (datetime(2007, 12, 1), False),
-                 (datetime(2008, 2, 29), True)]
+    offset_cases.append((SemiMonthEnd(0, day_of_month=16), {
+        datetime(2008, 1, 1): datetime(2008, 1, 16),
+        datetime(2008, 1, 16): datetime(2008, 1, 16),
+        datetime(2008, 1, 15): datetime(2008, 1, 16),
+        datetime(2008, 1, 31): datetime(2008, 1, 31),
+        datetime(2006, 12, 29): datetime(2006, 12, 31),
+        datetime(2006, 12, 31): datetime(2006, 12, 31),
+        datetime(2007, 1, 1): datetime(2007, 1, 16)}))
 
-        for dt, expected in tests:
-            assert_onOffset(SemiMonthEnd(), dt, expected)
+    offset_cases.append((SemiMonthEnd(2), {
+        datetime(2008, 1, 1): datetime(2008, 1, 31),
+        datetime(2008, 1, 31): datetime(2008, 2, 29),
+        datetime(2006, 12, 29): datetime(2007, 1, 15),
+        datetime(2006, 12, 31): datetime(2007, 1, 31),
+        datetime(2007, 1, 1): datetime(2007, 1, 31),
+        datetime(2007, 1, 16): datetime(2007, 2, 15),
+        datetime(2006, 11, 1): datetime(2006, 11, 30)}))
+
+    offset_cases.append((SemiMonthEnd(-1), {
+        datetime(2007, 1, 1): datetime(2006, 12, 31),
+        datetime(2008, 6, 30): datetime(2008, 6, 15),
+        datetime(2008, 12, 31): datetime(2008, 12, 15),
+        datetime(2006, 12, 29): datetime(2006, 12, 15),
+        datetime(2006, 12, 30): datetime(2006, 12, 15),
+        datetime(2007, 1, 1): datetime(2006, 12, 31)}))
+
+    offset_cases.append((SemiMonthEnd(-1, day_of_month=4), {
+        datetime(2007, 1, 1): datetime(2006, 12, 31),
+        datetime(2007, 1, 4): datetime(2006, 12, 31),
+        datetime(2008, 6, 30): datetime(2008, 6, 4),
+        datetime(2008, 12, 31): datetime(2008, 12, 4),
+        datetime(2006, 12, 5): datetime(2006, 12, 4),
+        datetime(2006, 12, 30): datetime(2006, 12, 4),
+        datetime(2007, 1, 1): datetime(2006, 12, 31)}))
+
+    offset_cases.append((SemiMonthEnd(-2), {
+        datetime(2007, 1, 1): datetime(2006, 12, 15),
+        datetime(2008, 6, 30): datetime(2008, 5, 31),
+        datetime(2008, 3, 15): datetime(2008, 2, 15),
+        datetime(2008, 12, 31): datetime(2008, 11, 30),
+        datetime(2006, 12, 29): datetime(2006, 11, 30),
+        datetime(2006, 12, 14): datetime(2006, 11, 15),
+        datetime(2007, 1, 1): datetime(2006, 12, 15)}))
+
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
+
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_apply_index(self, case):
+        offset, cases = case
+        s = DatetimeIndex(cases.keys())
+        result = offset.apply_index(s)
+        exp = DatetimeIndex(cases.values())
+        tm.assert_index_equal(result, exp)
+
+    on_offset_cases = [(datetime(2007, 12, 31), True),
+                       (datetime(2007, 12, 15), True),
+                       (datetime(2007, 12, 14), False),
+                       (datetime(2007, 12, 1), False),
+                       (datetime(2008, 2, 29), True)]
+
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        dt, expected = case
+        assert_onOffset(SemiMonthEnd(), dt, expected)
 
     @pytest.mark.parametrize('klass,assert_func',
                              [(Series, tm.assert_series_equal),
@@ -2809,91 +2542,8 @@ class TestSemiMonthEnd(Base):
 
 class TestSemiMonthBegin(Base):
     _offset = SemiMonthBegin
-
-    def _get_tests(self):
-        tests = []
-
-        tests.append((SemiMonthBegin(),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 15),
-                       datetime(2008, 1, 15): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2006, 12, 14): datetime(2006, 12, 15),
-                       datetime(2006, 12, 29): datetime(2007, 1, 1),
-                       datetime(2006, 12, 31): datetime(2007, 1, 1),
-                       datetime(2007, 1, 1): datetime(2007, 1, 15),
-                       datetime(2006, 12, 1): datetime(2006, 12, 15),
-                       datetime(2006, 12, 15): datetime(2007, 1, 1)}))
-
-        tests.append((SemiMonthBegin(day_of_month=20),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 20),
-                       datetime(2008, 1, 15): datetime(2008, 1, 20),
-                       datetime(2008, 1, 21): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2006, 12, 14): datetime(2006, 12, 20),
-                       datetime(2006, 12, 29): datetime(2007, 1, 1),
-                       datetime(2006, 12, 31): datetime(2007, 1, 1),
-                       datetime(2007, 1, 1): datetime(2007, 1, 20),
-                       datetime(2006, 12, 1): datetime(2006, 12, 20),
-                       datetime(2006, 12, 15): datetime(2006, 12, 20)}))
-
-        tests.append((SemiMonthBegin(0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2008, 1, 16): datetime(2008, 2, 1),
-                       datetime(2008, 1, 15): datetime(2008, 1, 15),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2006, 12, 29): datetime(2007, 1, 1),
-                       datetime(2006, 12, 2): datetime(2006, 12, 15),
-                       datetime(2007, 1, 1): datetime(2007, 1, 1)}))
-
-        tests.append((SemiMonthBegin(0, day_of_month=16),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2008, 1, 16): datetime(2008, 1, 16),
-                       datetime(2008, 1, 15): datetime(2008, 1, 16),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2006, 12, 29): datetime(2007, 1, 1),
-                       datetime(2006, 12, 31): datetime(2007, 1, 1),
-                       datetime(2007, 1, 5): datetime(2007, 1, 16),
-                       datetime(2007, 1, 1): datetime(2007, 1, 1)}))
-
-        tests.append((SemiMonthBegin(2),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 15),
-                       datetime(2006, 12, 1): datetime(2007, 1, 1),
-                       datetime(2006, 12, 29): datetime(2007, 1, 15),
-                       datetime(2006, 12, 15): datetime(2007, 1, 15),
-                       datetime(2007, 1, 1): datetime(2007, 2, 1),
-                       datetime(2007, 1, 16): datetime(2007, 2, 15),
-                       datetime(2006, 11, 1): datetime(2006, 12, 1)}))
-
-        tests.append((SemiMonthBegin(-1),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 15),
-                       datetime(2008, 6, 30): datetime(2008, 6, 15),
-                       datetime(2008, 6, 14): datetime(2008, 6, 1),
-                       datetime(2008, 12, 31): datetime(2008, 12, 15),
-                       datetime(2006, 12, 29): datetime(2006, 12, 15),
-                       datetime(2006, 12, 15): datetime(2006, 12, 1),
-                       datetime(2007, 1, 1): datetime(2006, 12, 15)}))
-
-        tests.append((SemiMonthBegin(-1, day_of_month=4),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 4),
-                       datetime(2007, 1, 4): datetime(2007, 1, 1),
-                       datetime(2008, 6, 30): datetime(2008, 6, 4),
-                       datetime(2008, 12, 31): datetime(2008, 12, 4),
-                       datetime(2006, 12, 5): datetime(2006, 12, 4),
-                       datetime(2006, 12, 30): datetime(2006, 12, 4),
-                       datetime(2006, 12, 2): datetime(2006, 12, 1),
-                       datetime(2007, 1, 1): datetime(2006, 12, 4)}))
-
-        tests.append((SemiMonthBegin(-2),
-                      {datetime(2007, 1, 1): datetime(2006, 12, 1),
-                       datetime(2008, 6, 30): datetime(2008, 6, 1),
-                       datetime(2008, 6, 14): datetime(2008, 5, 15),
-                       datetime(2008, 12, 31): datetime(2008, 12, 1),
-                       datetime(2006, 12, 29): datetime(2006, 12, 1),
-                       datetime(2006, 12, 15): datetime(2006, 11, 15),
-                       datetime(2007, 1, 1): datetime(2006, 12, 1)}))
-
-        return tests
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_offset_whole_year(self):
         dates = (datetime(2007, 12, 15),
@@ -2936,27 +2586,111 @@ class TestSemiMonthBegin(Base):
         exp = DatetimeIndex(dates)
         tm.assert_index_equal(result, exp)
 
-    def test_offset(self):
-        for offset, cases in self._get_tests():
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
+    offset_cases = []
+    offset_cases.append((SemiMonthBegin(), {
+        datetime(2008, 1, 1): datetime(2008, 1, 15),
+        datetime(2008, 1, 15): datetime(2008, 2, 1),
+        datetime(2008, 1, 31): datetime(2008, 2, 1),
+        datetime(2006, 12, 14): datetime(2006, 12, 15),
+        datetime(2006, 12, 29): datetime(2007, 1, 1),
+        datetime(2006, 12, 31): datetime(2007, 1, 1),
+        datetime(2007, 1, 1): datetime(2007, 1, 15),
+        datetime(2006, 12, 1): datetime(2006, 12, 15),
+        datetime(2006, 12, 15): datetime(2007, 1, 1)}))
 
-    def test_apply_index(self):
-        for offset, cases in self._get_tests():
-            s = DatetimeIndex(cases.keys())
-            result = offset.apply_index(s)
-            exp = DatetimeIndex(cases.values())
-            tm.assert_index_equal(result, exp)
+    offset_cases.append((SemiMonthBegin(day_of_month=20), {
+        datetime(2008, 1, 1): datetime(2008, 1, 20),
+        datetime(2008, 1, 15): datetime(2008, 1, 20),
+        datetime(2008, 1, 21): datetime(2008, 2, 1),
+        datetime(2008, 1, 31): datetime(2008, 2, 1),
+        datetime(2006, 12, 14): datetime(2006, 12, 20),
+        datetime(2006, 12, 29): datetime(2007, 1, 1),
+        datetime(2006, 12, 31): datetime(2007, 1, 1),
+        datetime(2007, 1, 1): datetime(2007, 1, 20),
+        datetime(2006, 12, 1): datetime(2006, 12, 20),
+        datetime(2006, 12, 15): datetime(2006, 12, 20)}))
 
-    def test_onOffset(self):
-        tests = [(datetime(2007, 12, 1), True),
-                 (datetime(2007, 12, 15), True),
-                 (datetime(2007, 12, 14), False),
-                 (datetime(2007, 12, 31), False),
-                 (datetime(2008, 2, 15), True)]
+    offset_cases.append((SemiMonthBegin(0), {
+        datetime(2008, 1, 1): datetime(2008, 1, 1),
+        datetime(2008, 1, 16): datetime(2008, 2, 1),
+        datetime(2008, 1, 15): datetime(2008, 1, 15),
+        datetime(2008, 1, 31): datetime(2008, 2, 1),
+        datetime(2006, 12, 29): datetime(2007, 1, 1),
+        datetime(2006, 12, 2): datetime(2006, 12, 15),
+        datetime(2007, 1, 1): datetime(2007, 1, 1)}))
 
-        for dt, expected in tests:
-            assert_onOffset(SemiMonthBegin(), dt, expected)
+    offset_cases.append((SemiMonthBegin(0, day_of_month=16), {
+        datetime(2008, 1, 1): datetime(2008, 1, 1),
+        datetime(2008, 1, 16): datetime(2008, 1, 16),
+        datetime(2008, 1, 15): datetime(2008, 1, 16),
+        datetime(2008, 1, 31): datetime(2008, 2, 1),
+        datetime(2006, 12, 29): datetime(2007, 1, 1),
+        datetime(2006, 12, 31): datetime(2007, 1, 1),
+        datetime(2007, 1, 5): datetime(2007, 1, 16),
+        datetime(2007, 1, 1): datetime(2007, 1, 1)}))
+
+    offset_cases.append((SemiMonthBegin(2), {
+        datetime(2008, 1, 1): datetime(2008, 2, 1),
+        datetime(2008, 1, 31): datetime(2008, 2, 15),
+        datetime(2006, 12, 1): datetime(2007, 1, 1),
+        datetime(2006, 12, 29): datetime(2007, 1, 15),
+        datetime(2006, 12, 15): datetime(2007, 1, 15),
+        datetime(2007, 1, 1): datetime(2007, 2, 1),
+        datetime(2007, 1, 16): datetime(2007, 2, 15),
+        datetime(2006, 11, 1): datetime(2006, 12, 1)}))
+
+    offset_cases.append((SemiMonthBegin(-1), {
+        datetime(2007, 1, 1): datetime(2006, 12, 15),
+        datetime(2008, 6, 30): datetime(2008, 6, 15),
+        datetime(2008, 6, 14): datetime(2008, 6, 1),
+        datetime(2008, 12, 31): datetime(2008, 12, 15),
+        datetime(2006, 12, 29): datetime(2006, 12, 15),
+        datetime(2006, 12, 15): datetime(2006, 12, 1),
+        datetime(2007, 1, 1): datetime(2006, 12, 15)}))
+
+    offset_cases.append((SemiMonthBegin(-1, day_of_month=4), {
+        datetime(2007, 1, 1): datetime(2006, 12, 4),
+        datetime(2007, 1, 4): datetime(2007, 1, 1),
+        datetime(2008, 6, 30): datetime(2008, 6, 4),
+        datetime(2008, 12, 31): datetime(2008, 12, 4),
+        datetime(2006, 12, 5): datetime(2006, 12, 4),
+        datetime(2006, 12, 30): datetime(2006, 12, 4),
+        datetime(2006, 12, 2): datetime(2006, 12, 1),
+        datetime(2007, 1, 1): datetime(2006, 12, 4)}))
+
+    offset_cases.append((SemiMonthBegin(-2), {
+        datetime(2007, 1, 1): datetime(2006, 12, 1),
+        datetime(2008, 6, 30): datetime(2008, 6, 1),
+        datetime(2008, 6, 14): datetime(2008, 5, 15),
+        datetime(2008, 12, 31): datetime(2008, 12, 1),
+        datetime(2006, 12, 29): datetime(2006, 12, 1),
+        datetime(2006, 12, 15): datetime(2006, 11, 15),
+        datetime(2007, 1, 1): datetime(2006, 12, 1)}))
+
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_offset(self, case):
+        offset, cases = case
+        for base, expected in compat.iteritems(cases):
+            assert_offset_equal(offset, base, expected)
+
+    @pytest.mark.parametrize('case', offset_cases)
+    def test_apply_index(self, case):
+        offset, cases = case
+        s = DatetimeIndex(cases.keys())
+        result = offset.apply_index(s)
+        exp = DatetimeIndex(cases.values())
+        tm.assert_index_equal(result, exp)
+
+    on_offset_cases = [(datetime(2007, 12, 1), True),
+                       (datetime(2007, 12, 15), True),
+                       (datetime(2007, 12, 14), False),
+                       (datetime(2007, 12, 31), False),
+                       (datetime(2008, 2, 15), True)]
+
+    @pytest.mark.parametrize('case', on_offset_cases)
+    def test_onOffset(self, case):
+        dt, expected = case
+        assert_onOffset(SemiMonthBegin(), dt, expected)
 
     @pytest.mark.parametrize('klass,assert_func',
                              [(Series, tm.assert_series_equal),
@@ -2979,1279 +2713,6 @@ class TestSemiMonthBegin(Base):
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
         assert_func(result, exp)
         assert_func(result2, exp)
-
-
-class TestBQuarterBegin(Base):
-    _offset = BQuarterBegin
-
-    def test_repr(self):
-        assert (repr(BQuarterBegin()) ==
-                "<BusinessQuarterBegin: startingMonth=3>")
-        assert (repr(BQuarterBegin(startingMonth=3)) ==
-                "<BusinessQuarterBegin: startingMonth=3>")
-        assert (repr(BQuarterBegin(startingMonth=1)) ==
-                "<BusinessQuarterBegin: startingMonth=1>")
-
-    def test_isAnchored(self):
-        assert BQuarterBegin(startingMonth=1).isAnchored()
-        assert BQuarterBegin().isAnchored()
-        assert not BQuarterBegin(2, startingMonth=1).isAnchored()
-
-    def test_offset(self):
-        tests = []
-
-        tests.append((BQuarterBegin(startingMonth=1),
-                      {datetime(2008, 1, 1): datetime(2008, 4, 1),
-                       datetime(2008, 1, 31): datetime(2008, 4, 1),
-                       datetime(2008, 2, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 3, 15): datetime(2008, 4, 1),
-                       datetime(2008, 3, 31): datetime(2008, 4, 1),
-                       datetime(2008, 4, 15): datetime(2008, 7, 1),
-                       datetime(2007, 3, 15): datetime(2007, 4, 2),
-                       datetime(2007, 2, 28): datetime(2007, 4, 2),
-                       datetime(2007, 1, 1): datetime(2007, 4, 2),
-                       datetime(2007, 4, 15): datetime(2007, 7, 2),
-                       datetime(2007, 7, 1): datetime(2007, 7, 2),
-                       datetime(2007, 4, 1): datetime(2007, 4, 2),
-                       datetime(2007, 4, 2): datetime(2007, 7, 2),
-                       datetime(2008, 4, 30): datetime(2008, 7, 1), }))
-
-        tests.append((BQuarterBegin(startingMonth=2),
-                      {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                       datetime(2008, 1, 31): datetime(2008, 2, 1),
-                       datetime(2008, 1, 15): datetime(2008, 2, 1),
-                       datetime(2008, 2, 29): datetime(2008, 5, 1),
-                       datetime(2008, 3, 15): datetime(2008, 5, 1),
-                       datetime(2008, 3, 31): datetime(2008, 5, 1),
-                       datetime(2008, 4, 15): datetime(2008, 5, 1),
-                       datetime(2008, 8, 15): datetime(2008, 11, 3),
-                       datetime(2008, 9, 15): datetime(2008, 11, 3),
-                       datetime(2008, 11, 1): datetime(2008, 11, 3),
-                       datetime(2008, 4, 30): datetime(2008, 5, 1), }))
-
-        tests.append((BQuarterBegin(startingMonth=1, n=0),
-                      {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                       datetime(2007, 12, 31): datetime(2008, 1, 1),
-                       datetime(2008, 2, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 29): datetime(2008, 4, 1),
-                       datetime(2008, 1, 15): datetime(2008, 4, 1),
-                       datetime(2008, 2, 27): datetime(2008, 4, 1),
-                       datetime(2008, 3, 15): datetime(2008, 4, 1),
-                       datetime(2007, 4, 1): datetime(2007, 4, 2),
-                       datetime(2007, 4, 2): datetime(2007, 4, 2),
-                       datetime(2007, 7, 1): datetime(2007, 7, 2),
-                       datetime(2007, 4, 15): datetime(2007, 7, 2),
-                       datetime(2007, 7, 2): datetime(2007, 7, 2), }))
-
-        tests.append((BQuarterBegin(startingMonth=1, n=-1),
-                      {datetime(2008, 1, 1): datetime(2007, 10, 1),
-                       datetime(2008, 1, 31): datetime(2008, 1, 1),
-                       datetime(2008, 2, 15): datetime(2008, 1, 1),
-                       datetime(2008, 2, 29): datetime(2008, 1, 1),
-                       datetime(2008, 3, 15): datetime(2008, 1, 1),
-                       datetime(2008, 3, 31): datetime(2008, 1, 1),
-                       datetime(2008, 4, 15): datetime(2008, 4, 1),
-                       datetime(2007, 7, 3): datetime(2007, 7, 2),
-                       datetime(2007, 4, 3): datetime(2007, 4, 2),
-                       datetime(2007, 7, 2): datetime(2007, 4, 2),
-                       datetime(2008, 4, 1): datetime(2008, 1, 1), }))
-
-        tests.append((BQuarterBegin(startingMonth=1, n=2),
-                      {datetime(2008, 1, 1): datetime(2008, 7, 1),
-                       datetime(2008, 1, 15): datetime(2008, 7, 1),
-                       datetime(2008, 2, 29): datetime(2008, 7, 1),
-                       datetime(2008, 3, 15): datetime(2008, 7, 1),
-                       datetime(2007, 3, 31): datetime(2007, 7, 2),
-                       datetime(2007, 4, 15): datetime(2007, 10, 1),
-                       datetime(2008, 4, 30): datetime(2008, 10, 1), }))
-
-        for offset, cases in tests:
-            for base, expected in compat.iteritems(cases):
-                assert_offset_equal(offset, base, expected)
-
-        # corner
-        offset = BQuarterBegin(n=-1, startingMonth=1)
-        assert datetime(2007, 4, 3) + offset == datetime(2007, 4, 2)
-
-
-class TestBQuarterEnd(Base):
-    _offset = BQuarterEnd
-
-    def test_repr(self):
-        assert (repr(BQuarterEnd()) ==
-                "<BusinessQuarterEnd: startingMonth=3>")
-        assert (repr(BQuarterEnd(startingMonth=3)) ==
-                "<BusinessQuarterEnd: startingMonth=3>")
-        assert (repr(BQuarterEnd(startingMonth=1)) ==
-                "<BusinessQuarterEnd: startingMonth=1>")
-
-    def test_isAnchored(self):
-        assert BQuarterEnd(startingMonth=1).isAnchored()
-        assert BQuarterEnd().isAnchored()
-        assert not BQuarterEnd(2, startingMonth=1).isAnchored()
-
-    offset_cases = []
-    offset_cases.append((BQuarterEnd(startingMonth=1),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                         datetime(2008, 1, 31): datetime(2008, 4, 30),
-                         datetime(2008, 2, 15): datetime(2008, 4, 30),
-                         datetime(2008, 2, 29): datetime(2008, 4, 30),
-                         datetime(2008, 3, 15): datetime(2008, 4, 30),
-                         datetime(2008, 3, 31): datetime(2008, 4, 30),
-                         datetime(2008, 4, 15): datetime(2008, 4, 30),
-                         datetime(2008, 4, 30): datetime(2008, 7, 31), }))
-
-    offset_cases.append((BQuarterEnd(startingMonth=2),
-                        {datetime(2008, 1, 1): datetime(2008, 2, 29),
-                         datetime(2008, 1, 31): datetime(2008, 2, 29),
-                         datetime(2008, 2, 15): datetime(2008, 2, 29),
-                         datetime(2008, 2, 29): datetime(2008, 5, 30),
-                         datetime(2008, 3, 15): datetime(2008, 5, 30),
-                         datetime(2008, 3, 31): datetime(2008, 5, 30),
-                         datetime(2008, 4, 15): datetime(2008, 5, 30),
-                         datetime(2008, 4, 30): datetime(2008, 5, 30), }))
-
-    offset_cases.append((BQuarterEnd(startingMonth=1, n=0),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                         datetime(2008, 1, 31): datetime(2008, 1, 31),
-                         datetime(2008, 2, 15): datetime(2008, 4, 30),
-                         datetime(2008, 2, 29): datetime(2008, 4, 30),
-                         datetime(2008, 3, 15): datetime(2008, 4, 30),
-                         datetime(2008, 3, 31): datetime(2008, 4, 30),
-                         datetime(2008, 4, 15): datetime(2008, 4, 30),
-                         datetime(2008, 4, 30): datetime(2008, 4, 30), }))
-
-    offset_cases.append((BQuarterEnd(startingMonth=1, n=-1),
-                        {datetime(2008, 1, 1): datetime(2007, 10, 31),
-                         datetime(2008, 1, 31): datetime(2007, 10, 31),
-                         datetime(2008, 2, 15): datetime(2008, 1, 31),
-                         datetime(2008, 2, 29): datetime(2008, 1, 31),
-                         datetime(2008, 3, 15): datetime(2008, 1, 31),
-                         datetime(2008, 3, 31): datetime(2008, 1, 31),
-                         datetime(2008, 4, 15): datetime(2008, 1, 31),
-                         datetime(2008, 4, 30): datetime(2008, 1, 31), }))
-
-    offset_cases.append((BQuarterEnd(startingMonth=1, n=2),
-                        {datetime(2008, 1, 31): datetime(2008, 7, 31),
-                         datetime(2008, 2, 15): datetime(2008, 7, 31),
-                         datetime(2008, 2, 29): datetime(2008, 7, 31),
-                         datetime(2008, 3, 15): datetime(2008, 7, 31),
-                         datetime(2008, 3, 31): datetime(2008, 7, 31),
-                         datetime(2008, 4, 15): datetime(2008, 7, 31),
-                         datetime(2008, 4, 30): datetime(2008, 10, 31), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    def test_offset_corner_case(self):
-        # corner
-        offset = BQuarterEnd(n=-1, startingMonth=1)
-        assert datetime(2010, 1, 31) + offset == datetime(2010, 1, 29)
-
-    on_offset_cases = [
-        (BQuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
-        (BQuarterEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
-        (BQuarterEnd(1, startingMonth=1), datetime(2008, 2, 29), False),
-        (BQuarterEnd(1, startingMonth=1), datetime(2007, 3, 30), False),
-        (BQuarterEnd(1, startingMonth=1), datetime(2007, 3, 31), False),
-        (BQuarterEnd(1, startingMonth=1), datetime(2008, 4, 30), True),
-        (BQuarterEnd(1, startingMonth=1), datetime(2008, 5, 30), False),
-        (BQuarterEnd(1, startingMonth=1), datetime(2007, 6, 29), False),
-        (BQuarterEnd(1, startingMonth=1), datetime(2007, 6, 30), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2008, 1, 31), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2007, 12, 31), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2008, 2, 29), True),
-        (BQuarterEnd(1, startingMonth=2), datetime(2007, 3, 30), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2007, 3, 31), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2008, 4, 30), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2008, 5, 30), True),
-        (BQuarterEnd(1, startingMonth=2), datetime(2007, 6, 29), False),
-        (BQuarterEnd(1, startingMonth=2), datetime(2007, 6, 30), False),
-        (BQuarterEnd(1, startingMonth=3), datetime(2008, 1, 31), False),
-        (BQuarterEnd(1, startingMonth=3), datetime(2007, 12, 31), True),
-        (BQuarterEnd(1, startingMonth=3), datetime(2008, 2, 29), False),
-        (BQuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), True),
-        (BQuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), False),
-        (BQuarterEnd(1, startingMonth=3), datetime(2008, 4, 30), False),
-        (BQuarterEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
-        (BQuarterEnd(1, startingMonth=3), datetime(2007, 6, 29), True),
-        (BQuarterEnd(1, startingMonth=3), datetime(2007, 6, 30), False)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
-
-
-def makeFY5253LastOfMonthQuarter(*args, **kwds):
-    return FY5253Quarter(*args, variation="last", **kwds)
-
-
-def makeFY5253NearestEndMonthQuarter(*args, **kwds):
-    return FY5253Quarter(*args, variation="nearest", **kwds)
-
-
-def makeFY5253NearestEndMonth(*args, **kwds):
-    return FY5253(*args, variation="nearest", **kwds)
-
-
-def makeFY5253LastOfMonth(*args, **kwds):
-    return FY5253(*args, variation="last", **kwds)
-
-
-class TestFY5253LastOfMonth(Base):
-
-    def test_onOffset(self):
-
-        offset_lom_sat_aug = makeFY5253LastOfMonth(1, startingMonth=8,
-                                                   weekday=WeekDay.SAT)
-        offset_lom_sat_sep = makeFY5253LastOfMonth(1, startingMonth=9,
-                                                   weekday=WeekDay.SAT)
-
-        tests = [
-            # From Wikipedia (see:
-            # http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar#Last_Saturday_of_the_month_at_fiscal_year_end)
-            (offset_lom_sat_aug, datetime(2006, 8, 26), True),
-            (offset_lom_sat_aug, datetime(2007, 8, 25), True),
-            (offset_lom_sat_aug, datetime(2008, 8, 30), True),
-            (offset_lom_sat_aug, datetime(2009, 8, 29), True),
-            (offset_lom_sat_aug, datetime(2010, 8, 28), True),
-            (offset_lom_sat_aug, datetime(2011, 8, 27), True),
-            (offset_lom_sat_aug, datetime(2012, 8, 25), True),
-            (offset_lom_sat_aug, datetime(2013, 8, 31), True),
-            (offset_lom_sat_aug, datetime(2014, 8, 30), True),
-            (offset_lom_sat_aug, datetime(2015, 8, 29), True),
-            (offset_lom_sat_aug, datetime(2016, 8, 27), True),
-            (offset_lom_sat_aug, datetime(2017, 8, 26), True),
-            (offset_lom_sat_aug, datetime(2018, 8, 25), True),
-            (offset_lom_sat_aug, datetime(2019, 8, 31), True),
-
-            (offset_lom_sat_aug, datetime(2006, 8, 27), False),
-            (offset_lom_sat_aug, datetime(2007, 8, 28), False),
-            (offset_lom_sat_aug, datetime(2008, 8, 31), False),
-            (offset_lom_sat_aug, datetime(2009, 8, 30), False),
-            (offset_lom_sat_aug, datetime(2010, 8, 29), False),
-            (offset_lom_sat_aug, datetime(2011, 8, 28), False),
-
-            (offset_lom_sat_aug, datetime(2006, 8, 25), False),
-            (offset_lom_sat_aug, datetime(2007, 8, 24), False),
-            (offset_lom_sat_aug, datetime(2008, 8, 29), False),
-            (offset_lom_sat_aug, datetime(2009, 8, 28), False),
-            (offset_lom_sat_aug, datetime(2010, 8, 27), False),
-            (offset_lom_sat_aug, datetime(2011, 8, 26), False),
-            (offset_lom_sat_aug, datetime(2019, 8, 30), False),
-
-            # From GMCR (see for example:
-            # http://yahoo.brand.edgar-online.com/Default.aspx?
-            # companyid=3184&formtypeID=7)
-            (offset_lom_sat_sep, datetime(2010, 9, 25), True),
-            (offset_lom_sat_sep, datetime(2011, 9, 24), True),
-            (offset_lom_sat_sep, datetime(2012, 9, 29), True),
-
-        ]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
-
-    def test_apply(self):
-        offset_lom_aug_sat = makeFY5253LastOfMonth(startingMonth=8,
-                                                   weekday=WeekDay.SAT)
-        offset_lom_aug_sat_1 = makeFY5253LastOfMonth(n=1, startingMonth=8,
-                                                     weekday=WeekDay.SAT)
-
-        date_seq_lom_aug_sat = [datetime(2006, 8, 26), datetime(2007, 8, 25),
-                                datetime(2008, 8, 30), datetime(2009, 8, 29),
-                                datetime(2010, 8, 28), datetime(2011, 8, 27),
-                                datetime(2012, 8, 25), datetime(2013, 8, 31),
-                                datetime(2014, 8, 30), datetime(2015, 8, 29),
-                                datetime(2016, 8, 27)]
-
-        tests = [
-            (offset_lom_aug_sat, date_seq_lom_aug_sat),
-            (offset_lom_aug_sat_1, date_seq_lom_aug_sat),
-            (offset_lom_aug_sat, [
-                datetime(2006, 8, 25)] + date_seq_lom_aug_sat),
-            (offset_lom_aug_sat_1, [
-                datetime(2006, 8, 27)] + date_seq_lom_aug_sat[1:]),
-            (makeFY5253LastOfMonth(n=-1, startingMonth=8,
-                                   weekday=WeekDay.SAT),
-             list(reversed(date_seq_lom_aug_sat))),
-        ]
-        for test in tests:
-            offset, data = test
-            current = data[0]
-            for datum in data[1:]:
-                current = current + offset
-                assert current == datum
-
-
-class TestFY5253NearestEndMonth(Base):
-
-    def test_get_target_month_end(self):
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=8, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 8, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=12, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 12, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=2, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 2, 28))
-
-    def test_get_year_end(self):
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=8, weekday=WeekDay.SAT).get_year_end(
-            datetime(2013, 1, 1)) == datetime(2013, 8, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=8, weekday=WeekDay.SUN).get_year_end(
-            datetime(2013, 1, 1)) == datetime(2013, 9, 1))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=8, weekday=WeekDay.FRI).get_year_end(
-            datetime(2013, 1, 1)) == datetime(2013, 8, 30))
-
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
-                          variation="nearest")
-        assert (offset_n.get_year_end(datetime(2012, 1, 1)) ==
-                datetime(2013, 1, 1))
-        assert (offset_n.get_year_end(datetime(2012, 1, 10)) ==
-                datetime(2013, 1, 1))
-
-        assert (offset_n.get_year_end(datetime(2013, 1, 1)) ==
-                datetime(2013, 12, 31))
-        assert (offset_n.get_year_end(datetime(2013, 1, 2)) ==
-                datetime(2013, 12, 31))
-        assert (offset_n.get_year_end(datetime(2013, 1, 3)) ==
-                datetime(2013, 12, 31))
-        assert (offset_n.get_year_end(datetime(2013, 1, 10)) ==
-                datetime(2013, 12, 31))
-
-        JNJ = FY5253(n=1, startingMonth=12, weekday=6, variation="nearest")
-        assert (JNJ.get_year_end(datetime(2006, 1, 1)) ==
-                datetime(2006, 12, 31))
-
-    def test_onOffset(self):
-        offset_lom_aug_sat = makeFY5253NearestEndMonth(1, startingMonth=8,
-                                                       weekday=WeekDay.SAT)
-        offset_lom_aug_thu = makeFY5253NearestEndMonth(1, startingMonth=8,
-                                                       weekday=WeekDay.THU)
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
-                          variation="nearest")
-
-        tests = [
-            #    From Wikipedia (see:
-            #    http://en.wikipedia.org/wiki/4%E2%80%934%E2%80%935_calendar
-            #    #Saturday_nearest_the_end_of_month)
-            #    2006-09-02   2006 September 2
-            #    2007-09-01   2007 September 1
-            #    2008-08-30   2008 August 30    (leap year)
-            #    2009-08-29   2009 August 29
-            #    2010-08-28   2010 August 28
-            #    2011-09-03   2011 September 3
-            #    2012-09-01   2012 September 1  (leap year)
-            #    2013-08-31   2013 August 31
-            #    2014-08-30   2014 August 30
-            #    2015-08-29   2015 August 29
-            #    2016-09-03   2016 September 3  (leap year)
-            #    2017-09-02   2017 September 2
-            #    2018-09-01   2018 September 1
-            #    2019-08-31   2019 August 31
-            (offset_lom_aug_sat, datetime(2006, 9, 2), True),
-            (offset_lom_aug_sat, datetime(2007, 9, 1), True),
-            (offset_lom_aug_sat, datetime(2008, 8, 30), True),
-            (offset_lom_aug_sat, datetime(2009, 8, 29), True),
-            (offset_lom_aug_sat, datetime(2010, 8, 28), True),
-            (offset_lom_aug_sat, datetime(2011, 9, 3), True),
-
-            (offset_lom_aug_sat, datetime(2016, 9, 3), True),
-            (offset_lom_aug_sat, datetime(2017, 9, 2), True),
-            (offset_lom_aug_sat, datetime(2018, 9, 1), True),
-            (offset_lom_aug_sat, datetime(2019, 8, 31), True),
-
-            (offset_lom_aug_sat, datetime(2006, 8, 27), False),
-            (offset_lom_aug_sat, datetime(2007, 8, 28), False),
-            (offset_lom_aug_sat, datetime(2008, 8, 31), False),
-            (offset_lom_aug_sat, datetime(2009, 8, 30), False),
-            (offset_lom_aug_sat, datetime(2010, 8, 29), False),
-            (offset_lom_aug_sat, datetime(2011, 8, 28), False),
-
-            (offset_lom_aug_sat, datetime(2006, 8, 25), False),
-            (offset_lom_aug_sat, datetime(2007, 8, 24), False),
-            (offset_lom_aug_sat, datetime(2008, 8, 29), False),
-            (offset_lom_aug_sat, datetime(2009, 8, 28), False),
-            (offset_lom_aug_sat, datetime(2010, 8, 27), False),
-            (offset_lom_aug_sat, datetime(2011, 8, 26), False),
-            (offset_lom_aug_sat, datetime(2019, 8, 30), False),
-
-            # From Micron, see:
-            # http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
-            (offset_lom_aug_thu, datetime(2012, 8, 30), True),
-            (offset_lom_aug_thu, datetime(2011, 9, 1), True),
-
-            (offset_n, datetime(2012, 12, 31), False),
-            (offset_n, datetime(2013, 1, 1), True),
-            (offset_n, datetime(2013, 1, 2), False),
-        ]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
-
-    def test_apply(self):
-        date_seq_nem_8_sat = [datetime(2006, 9, 2), datetime(2007, 9, 1),
-                              datetime(2008, 8, 30), datetime(2009, 8, 29),
-                              datetime(2010, 8, 28), datetime(2011, 9, 3)]
-
-        JNJ = [datetime(2005, 1, 2), datetime(2006, 1, 1),
-               datetime(2006, 12, 31), datetime(2007, 12, 30),
-               datetime(2008, 12, 28), datetime(2010, 1, 3),
-               datetime(2011, 1, 2), datetime(2012, 1, 1),
-               datetime(2012, 12, 30)]
-
-        DEC_SAT = FY5253(n=-1, startingMonth=12, weekday=5,
-                         variation="nearest")
-
-        tests = [
-            (makeFY5253NearestEndMonth(startingMonth=8,
-                                       weekday=WeekDay.SAT),
-             date_seq_nem_8_sat),
-            (makeFY5253NearestEndMonth(n=1, startingMonth=8,
-                                       weekday=WeekDay.SAT),
-             date_seq_nem_8_sat),
-            (makeFY5253NearestEndMonth(startingMonth=8, weekday=WeekDay.SAT),
-             [datetime(2006, 9, 1)] + date_seq_nem_8_sat),
-            (makeFY5253NearestEndMonth(n=1, startingMonth=8,
-                                       weekday=WeekDay.SAT),
-             [datetime(2006, 9, 3)] + date_seq_nem_8_sat[1:]),
-            (makeFY5253NearestEndMonth(n=-1, startingMonth=8,
-                                       weekday=WeekDay.SAT),
-             list(reversed(date_seq_nem_8_sat))),
-            (makeFY5253NearestEndMonth(n=1, startingMonth=12,
-                                       weekday=WeekDay.SUN), JNJ),
-            (makeFY5253NearestEndMonth(n=-1, startingMonth=12,
-                                       weekday=WeekDay.SUN),
-             list(reversed(JNJ))),
-            (makeFY5253NearestEndMonth(n=1, startingMonth=12,
-                                       weekday=WeekDay.SUN),
-             [datetime(2005, 1, 2), datetime(2006, 1, 1)]),
-            (makeFY5253NearestEndMonth(n=1, startingMonth=12,
-                                       weekday=WeekDay.SUN),
-             [datetime(2006, 1, 2), datetime(2006, 12, 31)]),
-            (DEC_SAT, [datetime(2013, 1, 15), datetime(2012, 12, 29)])
-        ]
-        for test in tests:
-            offset, data = test
-            current = data[0]
-            for datum in data[1:]:
-                current = current + offset
-                assert current == datum
-
-
-class TestFY5253LastOfMonthQuarter(Base):
-
-    def test_isAnchored(self):
-        assert makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4).isAnchored()
-        assert makeFY5253LastOfMonthQuarter(
-            weekday=WeekDay.SAT, startingMonth=3,
-            qtr_with_extra_week=4).isAnchored()
-        assert not makeFY5253LastOfMonthQuarter(
-            2, startingMonth=1, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4).isAnchored()
-
-    def test_equality(self):
-        assert (makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4) == makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SAT, qtr_with_extra_week=4))
-        assert (makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4) != makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SUN, qtr_with_extra_week=4))
-        assert (makeFY5253LastOfMonthQuarter(
-            startingMonth=1, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4) != makeFY5253LastOfMonthQuarter(
-            startingMonth=2, weekday=WeekDay.SAT, qtr_with_extra_week=4))
-
-    def test_offset(self):
-        offset = makeFY5253LastOfMonthQuarter(1, startingMonth=9,
-                                              weekday=WeekDay.SAT,
-                                              qtr_with_extra_week=4)
-        offset2 = makeFY5253LastOfMonthQuarter(2, startingMonth=9,
-                                               weekday=WeekDay.SAT,
-                                               qtr_with_extra_week=4)
-        offset4 = makeFY5253LastOfMonthQuarter(4, startingMonth=9,
-                                               weekday=WeekDay.SAT,
-                                               qtr_with_extra_week=4)
-
-        offset_neg1 = makeFY5253LastOfMonthQuarter(-1, startingMonth=9,
-                                                   weekday=WeekDay.SAT,
-                                                   qtr_with_extra_week=4)
-        offset_neg2 = makeFY5253LastOfMonthQuarter(-2, startingMonth=9,
-                                                   weekday=WeekDay.SAT,
-                                                   qtr_with_extra_week=4)
-
-        GMCR = [datetime(2010, 3, 27), datetime(2010, 6, 26),
-                datetime(2010, 9, 25), datetime(2010, 12, 25),
-                datetime(2011, 3, 26), datetime(2011, 6, 25),
-                datetime(2011, 9, 24), datetime(2011, 12, 24),
-                datetime(2012, 3, 24), datetime(2012, 6, 23),
-                datetime(2012, 9, 29), datetime(2012, 12, 29),
-                datetime(2013, 3, 30), datetime(2013, 6, 29)]
-
-        assert_offset_equal(offset, base=GMCR[0], expected=GMCR[1])
-        assert_offset_equal(offset, base=GMCR[0] + relativedelta(days=-1),
-                            expected=GMCR[0])
-        assert_offset_equal(offset, base=GMCR[1], expected=GMCR[2])
-
-        assert_offset_equal(offset2, base=GMCR[0], expected=GMCR[2])
-        assert_offset_equal(offset4, base=GMCR[0], expected=GMCR[4])
-
-        assert_offset_equal(offset_neg1, base=GMCR[-1], expected=GMCR[-2])
-        assert_offset_equal(offset_neg1,
-                            base=GMCR[-1] + relativedelta(days=+1),
-                            expected=GMCR[-1])
-        assert_offset_equal(offset_neg2, base=GMCR[-1], expected=GMCR[-3])
-
-        date = GMCR[0] + relativedelta(days=-1)
-        for expected in GMCR:
-            assert_offset_equal(offset, date, expected)
-            date = date + offset
-
-        date = GMCR[-1] + relativedelta(days=+1)
-        for expected in reversed(GMCR):
-            assert_offset_equal(offset_neg1, date, expected)
-            date = date + offset_neg1
-
-    def test_onOffset(self):
-        lomq_aug_sat_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=8,
-                                                      weekday=WeekDay.SAT,
-                                                      qtr_with_extra_week=4)
-        lomq_sep_sat_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=9,
-                                                      weekday=WeekDay.SAT,
-                                                      qtr_with_extra_week=4)
-
-        tests = [
-            # From Wikipedia
-            (lomq_aug_sat_4, datetime(2006, 8, 26), True),
-            (lomq_aug_sat_4, datetime(2007, 8, 25), True),
-            (lomq_aug_sat_4, datetime(2008, 8, 30), True),
-            (lomq_aug_sat_4, datetime(2009, 8, 29), True),
-            (lomq_aug_sat_4, datetime(2010, 8, 28), True),
-            (lomq_aug_sat_4, datetime(2011, 8, 27), True),
-            (lomq_aug_sat_4, datetime(2019, 8, 31), True),
-
-            (lomq_aug_sat_4, datetime(2006, 8, 27), False),
-            (lomq_aug_sat_4, datetime(2007, 8, 28), False),
-            (lomq_aug_sat_4, datetime(2008, 8, 31), False),
-            (lomq_aug_sat_4, datetime(2009, 8, 30), False),
-            (lomq_aug_sat_4, datetime(2010, 8, 29), False),
-            (lomq_aug_sat_4, datetime(2011, 8, 28), False),
-
-            (lomq_aug_sat_4, datetime(2006, 8, 25), False),
-            (lomq_aug_sat_4, datetime(2007, 8, 24), False),
-            (lomq_aug_sat_4, datetime(2008, 8, 29), False),
-            (lomq_aug_sat_4, datetime(2009, 8, 28), False),
-            (lomq_aug_sat_4, datetime(2010, 8, 27), False),
-            (lomq_aug_sat_4, datetime(2011, 8, 26), False),
-            (lomq_aug_sat_4, datetime(2019, 8, 30), False),
-
-            # From GMCR
-            (lomq_sep_sat_4, datetime(2010, 9, 25), True),
-            (lomq_sep_sat_4, datetime(2011, 9, 24), True),
-            (lomq_sep_sat_4, datetime(2012, 9, 29), True),
-
-            (lomq_sep_sat_4, datetime(2013, 6, 29), True),
-            (lomq_sep_sat_4, datetime(2012, 6, 23), True),
-            (lomq_sep_sat_4, datetime(2012, 6, 30), False),
-
-            (lomq_sep_sat_4, datetime(2013, 3, 30), True),
-            (lomq_sep_sat_4, datetime(2012, 3, 24), True),
-
-            (lomq_sep_sat_4, datetime(2012, 12, 29), True),
-            (lomq_sep_sat_4, datetime(2011, 12, 24), True),
-
-            # INTC (extra week in Q1)
-            # See: http://www.intc.com/releasedetail.cfm?ReleaseID=542844
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2011, 4, 2), True),
-
-            # see: http://google.brand.edgar-online.com/?sym=INTC&formtypeID=7
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2012, 12, 29), True),
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2011, 12, 31), True),
-            (makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                          weekday=WeekDay.SAT,
-                                          qtr_with_extra_week=1),
-             datetime(2010, 12, 25), True),
-        ]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
-
-    def test_year_has_extra_week(self):
-        # End of long Q1
-        assert makeFY5253LastOfMonthQuarter(
-            1, startingMonth=12, weekday=WeekDay.SAT,
-            qtr_with_extra_week=1).year_has_extra_week(datetime(2011, 4, 2))
-
-        # Start of long Q1
-        assert makeFY5253LastOfMonthQuarter(
-            1, startingMonth=12, weekday=WeekDay.SAT,
-            qtr_with_extra_week=1).year_has_extra_week(datetime(2010, 12, 26))
-
-        # End of year before year with long Q1
-        assert not makeFY5253LastOfMonthQuarter(
-            1, startingMonth=12, weekday=WeekDay.SAT,
-            qtr_with_extra_week=1).year_has_extra_week(datetime(2010, 12, 25))
-
-        for year in [x
-                     for x in range(1994, 2011 + 1)
-                     if x not in [2011, 2005, 2000, 1994]]:
-            assert not makeFY5253LastOfMonthQuarter(
-                1, startingMonth=12, weekday=WeekDay.SAT,
-                qtr_with_extra_week=1).year_has_extra_week(
-                datetime(year, 4, 2))
-
-        # Other long years
-        assert makeFY5253LastOfMonthQuarter(
-            1, startingMonth=12, weekday=WeekDay.SAT,
-            qtr_with_extra_week=1).year_has_extra_week(datetime(2005, 4, 2))
-
-        assert makeFY5253LastOfMonthQuarter(
-            1, startingMonth=12, weekday=WeekDay.SAT,
-            qtr_with_extra_week=1).year_has_extra_week(datetime(2000, 4, 2))
-
-        assert makeFY5253LastOfMonthQuarter(
-            1, startingMonth=12, weekday=WeekDay.SAT,
-            qtr_with_extra_week=1).year_has_extra_week(datetime(1994, 4, 2))
-
-    def test_get_weeks(self):
-        sat_dec_1 = makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                                 weekday=WeekDay.SAT,
-                                                 qtr_with_extra_week=1)
-        sat_dec_4 = makeFY5253LastOfMonthQuarter(1, startingMonth=12,
-                                                 weekday=WeekDay.SAT,
-                                                 qtr_with_extra_week=4)
-
-        assert sat_dec_1.get_weeks(datetime(2011, 4, 2)) == [14, 13, 13, 13]
-        assert sat_dec_4.get_weeks(datetime(2011, 4, 2)) == [13, 13, 13, 14]
-        assert sat_dec_1.get_weeks(datetime(2010, 12, 25)) == [13, 13, 13, 13]
-
-
-class TestFY5253NearestEndMonthQuarter(Base):
-
-    def test_onOffset(self):
-
-        offset_nem_sat_aug_4 = makeFY5253NearestEndMonthQuarter(
-            1, startingMonth=8, weekday=WeekDay.SAT,
-            qtr_with_extra_week=4)
-        offset_nem_thu_aug_4 = makeFY5253NearestEndMonthQuarter(
-            1, startingMonth=8, weekday=WeekDay.THU,
-            qtr_with_extra_week=4)
-        offset_n = FY5253(weekday=WeekDay.TUE, startingMonth=12,
-                          variation="nearest")
-
-        tests = [
-            # From Wikipedia
-            (offset_nem_sat_aug_4, datetime(2006, 9, 2), True),
-            (offset_nem_sat_aug_4, datetime(2007, 9, 1), True),
-            (offset_nem_sat_aug_4, datetime(2008, 8, 30), True),
-            (offset_nem_sat_aug_4, datetime(2009, 8, 29), True),
-            (offset_nem_sat_aug_4, datetime(2010, 8, 28), True),
-            (offset_nem_sat_aug_4, datetime(2011, 9, 3), True),
-
-            (offset_nem_sat_aug_4, datetime(2016, 9, 3), True),
-            (offset_nem_sat_aug_4, datetime(2017, 9, 2), True),
-            (offset_nem_sat_aug_4, datetime(2018, 9, 1), True),
-            (offset_nem_sat_aug_4, datetime(2019, 8, 31), True),
-
-            (offset_nem_sat_aug_4, datetime(2006, 8, 27), False),
-            (offset_nem_sat_aug_4, datetime(2007, 8, 28), False),
-            (offset_nem_sat_aug_4, datetime(2008, 8, 31), False),
-            (offset_nem_sat_aug_4, datetime(2009, 8, 30), False),
-            (offset_nem_sat_aug_4, datetime(2010, 8, 29), False),
-            (offset_nem_sat_aug_4, datetime(2011, 8, 28), False),
-
-            (offset_nem_sat_aug_4, datetime(2006, 8, 25), False),
-            (offset_nem_sat_aug_4, datetime(2007, 8, 24), False),
-            (offset_nem_sat_aug_4, datetime(2008, 8, 29), False),
-            (offset_nem_sat_aug_4, datetime(2009, 8, 28), False),
-            (offset_nem_sat_aug_4, datetime(2010, 8, 27), False),
-            (offset_nem_sat_aug_4, datetime(2011, 8, 26), False),
-            (offset_nem_sat_aug_4, datetime(2019, 8, 30), False),
-
-            # From Micron, see:
-            # http://google.brand.edgar-online.com/?sym=MU&formtypeID=7
-            (offset_nem_thu_aug_4, datetime(2012, 8, 30), True),
-            (offset_nem_thu_aug_4, datetime(2011, 9, 1), True),
-
-            # See: http://google.brand.edgar-online.com/?sym=MU&formtypeID=13
-            (offset_nem_thu_aug_4, datetime(2013, 5, 30), True),
-            (offset_nem_thu_aug_4, datetime(2013, 2, 28), True),
-            (offset_nem_thu_aug_4, datetime(2012, 11, 29), True),
-            (offset_nem_thu_aug_4, datetime(2012, 5, 31), True),
-            (offset_nem_thu_aug_4, datetime(2007, 3, 1), True),
-            (offset_nem_thu_aug_4, datetime(1994, 3, 3), True),
-
-            (offset_n, datetime(2012, 12, 31), False),
-            (offset_n, datetime(2013, 1, 1), True),
-            (offset_n, datetime(2013, 1, 2), False)
-        ]
-
-        for offset, dt, expected in tests:
-            assert_onOffset(offset, dt, expected)
-
-    def test_offset(self):
-        offset = makeFY5253NearestEndMonthQuarter(1, startingMonth=8,
-                                                  weekday=WeekDay.THU,
-                                                  qtr_with_extra_week=4)
-
-        MU = [datetime(2012, 5, 31),
-              datetime(2012, 8, 30), datetime(2012, 11, 29),
-              datetime(2013, 2, 28), datetime(2013, 5, 30)]
-
-        date = MU[0] + relativedelta(days=-1)
-        for expected in MU:
-            assert_offset_equal(offset, date, expected)
-            date = date + offset
-
-        assert_offset_equal(offset,
-                            datetime(2012, 5, 31),
-                            datetime(2012, 8, 30))
-        assert_offset_equal(offset,
-                            datetime(2012, 5, 30),
-                            datetime(2012, 5, 31))
-
-        offset2 = FY5253Quarter(weekday=5, startingMonth=12, variation="last",
-                                qtr_with_extra_week=4)
-
-        assert_offset_equal(offset2,
-                            datetime(2013, 1, 15),
-                            datetime(2013, 3, 30))
-
-
-class TestQuarterBegin(Base):
-
-    def test_repr(self):
-        assert (repr(QuarterBegin()) ==
-                "<QuarterBegin: startingMonth=3>")
-        assert (repr(QuarterBegin(startingMonth=3)) ==
-                "<QuarterBegin: startingMonth=3>")
-        assert (repr(QuarterBegin(startingMonth=1)) ==
-                "<QuarterBegin: startingMonth=1>")
-
-    def test_isAnchored(self):
-        assert QuarterBegin(startingMonth=1).isAnchored()
-        assert QuarterBegin().isAnchored()
-        assert not QuarterBegin(2, startingMonth=1).isAnchored()
-
-    offset_cases = []
-    offset_cases.append((QuarterBegin(startingMonth=1),
-                        {datetime(2007, 12, 1): datetime(2008, 1, 1),
-                         datetime(2008, 1, 1): datetime(2008, 4, 1),
-                         datetime(2008, 2, 15): datetime(2008, 4, 1),
-                         datetime(2008, 2, 29): datetime(2008, 4, 1),
-                         datetime(2008, 3, 15): datetime(2008, 4, 1),
-                         datetime(2008, 3, 31): datetime(2008, 4, 1),
-                         datetime(2008, 4, 15): datetime(2008, 7, 1),
-                         datetime(2008, 4, 1): datetime(2008, 7, 1), }))
-
-    offset_cases.append((QuarterBegin(startingMonth=2),
-                        {datetime(2008, 1, 1): datetime(2008, 2, 1),
-                         datetime(2008, 1, 31): datetime(2008, 2, 1),
-                         datetime(2008, 1, 15): datetime(2008, 2, 1),
-                         datetime(2008, 2, 29): datetime(2008, 5, 1),
-                         datetime(2008, 3, 15): datetime(2008, 5, 1),
-                         datetime(2008, 3, 31): datetime(2008, 5, 1),
-                         datetime(2008, 4, 15): datetime(2008, 5, 1),
-                         datetime(2008, 4, 30): datetime(2008, 5, 1), }))
-
-    offset_cases.append((QuarterBegin(startingMonth=1, n=0),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                         datetime(2008, 12, 1): datetime(2009, 1, 1),
-                         datetime(2008, 1, 1): datetime(2008, 1, 1),
-                         datetime(2008, 2, 15): datetime(2008, 4, 1),
-                         datetime(2008, 2, 29): datetime(2008, 4, 1),
-                         datetime(2008, 3, 15): datetime(2008, 4, 1),
-                         datetime(2008, 3, 31): datetime(2008, 4, 1),
-                         datetime(2008, 4, 15): datetime(2008, 7, 1),
-                         datetime(2008, 4, 30): datetime(2008, 7, 1), }))
-
-    offset_cases.append((QuarterBegin(startingMonth=1, n=-1),
-                        {datetime(2008, 1, 1): datetime(2007, 10, 1),
-                         datetime(2008, 1, 31): datetime(2008, 1, 1),
-                         datetime(2008, 2, 15): datetime(2008, 1, 1),
-                         datetime(2008, 2, 29): datetime(2008, 1, 1),
-                         datetime(2008, 3, 15): datetime(2008, 1, 1),
-                         datetime(2008, 3, 31): datetime(2008, 1, 1),
-                         datetime(2008, 4, 15): datetime(2008, 4, 1),
-                         datetime(2008, 4, 30): datetime(2008, 4, 1),
-                         datetime(2008, 7, 1): datetime(2008, 4, 1)}))
-
-    offset_cases.append((QuarterBegin(startingMonth=1, n=2),
-                        {datetime(2008, 1, 1): datetime(2008, 7, 1),
-                         datetime(2008, 2, 15): datetime(2008, 7, 1),
-                         datetime(2008, 2, 29): datetime(2008, 7, 1),
-                         datetime(2008, 3, 15): datetime(2008, 7, 1),
-                         datetime(2008, 3, 31): datetime(2008, 7, 1),
-                         datetime(2008, 4, 15): datetime(2008, 10, 1),
-                         datetime(2008, 4, 1): datetime(2008, 10, 1), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    def test_offset_corner_case(self):
-        # corner
-        offset = QuarterBegin(n=-1, startingMonth=1)
-        assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 1)
-
-
-class TestQuarterEnd(Base):
-    _offset = QuarterEnd
-
-    def test_repr(self):
-        assert (repr(QuarterEnd()) ==
-                "<QuarterEnd: startingMonth=3>")
-        assert (repr(QuarterEnd(startingMonth=3)) ==
-                "<QuarterEnd: startingMonth=3>")
-        assert (repr(QuarterEnd(startingMonth=1)) ==
-                "<QuarterEnd: startingMonth=1>")
-
-    def test_isAnchored(self):
-        assert QuarterEnd(startingMonth=1).isAnchored()
-        assert QuarterEnd().isAnchored()
-        assert not QuarterEnd(2, startingMonth=1).isAnchored()
-
-    offset_cases = []
-    offset_cases.append((QuarterEnd(startingMonth=1),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                         datetime(2008, 1, 31): datetime(2008, 4, 30),
-                         datetime(2008, 2, 15): datetime(2008, 4, 30),
-                         datetime(2008, 2, 29): datetime(2008, 4, 30),
-                         datetime(2008, 3, 15): datetime(2008, 4, 30),
-                         datetime(2008, 3, 31): datetime(2008, 4, 30),
-                         datetime(2008, 4, 15): datetime(2008, 4, 30),
-                         datetime(2008, 4, 30): datetime(2008, 7, 31), }))
-
-    offset_cases.append((QuarterEnd(startingMonth=2),
-                        {datetime(2008, 1, 1): datetime(2008, 2, 29),
-                         datetime(2008, 1, 31): datetime(2008, 2, 29),
-                         datetime(2008, 2, 15): datetime(2008, 2, 29),
-                         datetime(2008, 2, 29): datetime(2008, 5, 31),
-                         datetime(2008, 3, 15): datetime(2008, 5, 31),
-                         datetime(2008, 3, 31): datetime(2008, 5, 31),
-                         datetime(2008, 4, 15): datetime(2008, 5, 31),
-                         datetime(2008, 4, 30): datetime(2008, 5, 31), }))
-
-    offset_cases.append((QuarterEnd(startingMonth=1, n=0),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 31),
-                         datetime(2008, 1, 31): datetime(2008, 1, 31),
-                         datetime(2008, 2, 15): datetime(2008, 4, 30),
-                         datetime(2008, 2, 29): datetime(2008, 4, 30),
-                         datetime(2008, 3, 15): datetime(2008, 4, 30),
-                         datetime(2008, 3, 31): datetime(2008, 4, 30),
-                         datetime(2008, 4, 15): datetime(2008, 4, 30),
-                         datetime(2008, 4, 30): datetime(2008, 4, 30), }))
-
-    offset_cases.append((QuarterEnd(startingMonth=1, n=-1),
-                        {datetime(2008, 1, 1): datetime(2007, 10, 31),
-                         datetime(2008, 1, 31): datetime(2007, 10, 31),
-                         datetime(2008, 2, 15): datetime(2008, 1, 31),
-                         datetime(2008, 2, 29): datetime(2008, 1, 31),
-                         datetime(2008, 3, 15): datetime(2008, 1, 31),
-                         datetime(2008, 3, 31): datetime(2008, 1, 31),
-                         datetime(2008, 4, 15): datetime(2008, 1, 31),
-                         datetime(2008, 4, 30): datetime(2008, 1, 31),
-                         datetime(2008, 7, 1): datetime(2008, 4, 30)}))
-
-    offset_cases.append((QuarterEnd(startingMonth=1, n=2),
-                        {datetime(2008, 1, 31): datetime(2008, 7, 31),
-                         datetime(2008, 2, 15): datetime(2008, 7, 31),
-                         datetime(2008, 2, 29): datetime(2008, 7, 31),
-                         datetime(2008, 3, 15): datetime(2008, 7, 31),
-                         datetime(2008, 3, 31): datetime(2008, 7, 31),
-                         datetime(2008, 4, 15): datetime(2008, 7, 31),
-                         datetime(2008, 4, 30): datetime(2008, 10, 31), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    def test_offset_corner_case(self):
-        # corner
-        offset = QuarterEnd(n=-1, startingMonth=1)
-        assert datetime(2010, 2, 1) + offset == datetime(2010, 1, 31)
-
-    on_offset_cases = [
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 1, 31), True),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 12, 31), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 2, 29), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 3, 30), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 3, 31), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 4, 30), True),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 5, 30), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2008, 5, 31), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 6, 29), False),
-        (QuarterEnd(1, startingMonth=1), datetime(2007, 6, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 1, 31), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 12, 31), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 2, 29), True),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 3, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 3, 31), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 4, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 5, 30), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2008, 5, 31), True),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 6, 29), False),
-        (QuarterEnd(1, startingMonth=2), datetime(2007, 6, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 1, 31), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 12, 31), True),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 2, 29), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 3, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 3, 31), True),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 4, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 5, 30), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2008, 5, 31), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 6, 29), False),
-        (QuarterEnd(1, startingMonth=3), datetime(2007, 6, 30), True)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
-
-
-class TestBYearBegin(Base):
-    _offset = BYearBegin
-
-    def test_misspecified(self):
-        pytest.raises(ValueError, BYearBegin, month=13)
-        pytest.raises(ValueError, BYearEnd, month=13)
-
-    offset_cases = []
-    offset_cases.append((BYearBegin(),
-                        {datetime(2008, 1, 1): datetime(2009, 1, 1),
-                         datetime(2008, 6, 30): datetime(2009, 1, 1),
-                         datetime(2008, 12, 31): datetime(2009, 1, 1),
-                         datetime(2011, 1, 1): datetime(2011, 1, 3),
-                         datetime(2011, 1, 3): datetime(2012, 1, 2),
-                         datetime(2005, 12, 30): datetime(2006, 1, 2),
-                         datetime(2005, 12, 31): datetime(2006, 1, 2)}))
-
-    offset_cases.append((BYearBegin(0),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                         datetime(2008, 6, 30): datetime(2009, 1, 1),
-                         datetime(2008, 12, 31): datetime(2009, 1, 1),
-                         datetime(2005, 12, 30): datetime(2006, 1, 2),
-                         datetime(2005, 12, 31): datetime(2006, 1, 2), }))
-
-    offset_cases.append((BYearBegin(-1),
-                        {datetime(2007, 1, 1): datetime(2006, 1, 2),
-                         datetime(2009, 1, 4): datetime(2009, 1, 1),
-                         datetime(2009, 1, 1): datetime(2008, 1, 1),
-                         datetime(2008, 6, 30): datetime(2008, 1, 1),
-                         datetime(2008, 12, 31): datetime(2008, 1, 1),
-                         datetime(2006, 12, 29): datetime(2006, 1, 2),
-                         datetime(2006, 12, 30): datetime(2006, 1, 2),
-                         datetime(2006, 1, 1): datetime(2005, 1, 3), }))
-
-    offset_cases.append((BYearBegin(-2),
-                        {datetime(2007, 1, 1): datetime(2005, 1, 3),
-                         datetime(2007, 6, 30): datetime(2006, 1, 2),
-                         datetime(2008, 12, 31): datetime(2007, 1, 1), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-
-class TestYearBegin(Base):
-    _offset = YearBegin
-
-    def test_misspecified(self):
-        pytest.raises(ValueError, YearBegin, month=13)
-
-    offset_cases = []
-    offset_cases.append((YearBegin(),
-                        {datetime(2008, 1, 1): datetime(2009, 1, 1),
-                         datetime(2008, 6, 30): datetime(2009, 1, 1),
-                         datetime(2008, 12, 31): datetime(2009, 1, 1),
-                         datetime(2005, 12, 30): datetime(2006, 1, 1),
-                         datetime(2005, 12, 31): datetime(2006, 1, 1), }))
-
-    offset_cases.append((YearBegin(0),
-                        {datetime(2008, 1, 1): datetime(2008, 1, 1),
-                         datetime(2008, 6, 30): datetime(2009, 1, 1),
-                         datetime(2008, 12, 31): datetime(2009, 1, 1),
-                         datetime(2005, 12, 30): datetime(2006, 1, 1),
-                         datetime(2005, 12, 31): datetime(2006, 1, 1), }))
-
-    offset_cases.append((YearBegin(3),
-                        {datetime(2008, 1, 1): datetime(2011, 1, 1),
-                         datetime(2008, 6, 30): datetime(2011, 1, 1),
-                         datetime(2008, 12, 31): datetime(2011, 1, 1),
-                         datetime(2005, 12, 30): datetime(2008, 1, 1),
-                         datetime(2005, 12, 31): datetime(2008, 1, 1), }))
-
-    offset_cases.append((YearBegin(-1),
-                        {datetime(2007, 1, 1): datetime(2006, 1, 1),
-                         datetime(2007, 1, 15): datetime(2007, 1, 1),
-                         datetime(2008, 6, 30): datetime(2008, 1, 1),
-                         datetime(2008, 12, 31): datetime(2008, 1, 1),
-                         datetime(2006, 12, 29): datetime(2006, 1, 1),
-                         datetime(2006, 12, 30): datetime(2006, 1, 1),
-                         datetime(2007, 1, 1): datetime(2006, 1, 1), }))
-
-    offset_cases.append((YearBegin(-2),
-                        {datetime(2007, 1, 1): datetime(2005, 1, 1),
-                         datetime(2008, 6, 30): datetime(2007, 1, 1),
-                         datetime(2008, 12, 31): datetime(2007, 1, 1), }))
-
-    offset_cases.append((YearBegin(month=4),
-                        {datetime(2007, 4, 1): datetime(2008, 4, 1),
-                         datetime(2007, 4, 15): datetime(2008, 4, 1),
-                         datetime(2007, 3, 1): datetime(2007, 4, 1),
-                         datetime(2007, 12, 15): datetime(2008, 4, 1),
-                         datetime(2012, 1, 31): datetime(2012, 4, 1), }))
-
-    offset_cases.append((YearBegin(0, month=4),
-                        {datetime(2007, 4, 1): datetime(2007, 4, 1),
-                         datetime(2007, 3, 1): datetime(2007, 4, 1),
-                         datetime(2007, 12, 15): datetime(2008, 4, 1),
-                         datetime(2012, 1, 31): datetime(2012, 4, 1), }))
-
-    offset_cases.append((YearBegin(4, month=4),
-                        {datetime(2007, 4, 1): datetime(2011, 4, 1),
-                         datetime(2007, 4, 15): datetime(2011, 4, 1),
-                         datetime(2007, 3, 1): datetime(2010, 4, 1),
-                         datetime(2007, 12, 15): datetime(2011, 4, 1),
-                         datetime(2012, 1, 31): datetime(2015, 4, 1), }))
-
-    offset_cases.append((YearBegin(-1, month=4),
-                        {datetime(2007, 4, 1): datetime(2006, 4, 1),
-                         datetime(2007, 3, 1): datetime(2006, 4, 1),
-                         datetime(2007, 12, 15): datetime(2007, 4, 1),
-                         datetime(2012, 1, 31): datetime(2011, 4, 1), }))
-
-    offset_cases.append((YearBegin(-3, month=4),
-                        {datetime(2007, 4, 1): datetime(2004, 4, 1),
-                         datetime(2007, 3, 1): datetime(2004, 4, 1),
-                         datetime(2007, 12, 15): datetime(2005, 4, 1),
-                         datetime(2012, 1, 31): datetime(2009, 4, 1), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    on_offset_cases = [(YearBegin(), datetime(2007, 1, 3), False),
-                       (YearBegin(), datetime(2008, 1, 1), True),
-                       (YearBegin(), datetime(2006, 12, 31), False),
-                       (YearBegin(), datetime(2006, 1, 2), False)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
-
-
-class TestBYearEndLagged(Base):
-
-    def test_bad_month_fail(self):
-        pytest.raises(Exception, BYearEnd, month=13)
-        pytest.raises(Exception, BYearEnd, month=0)
-
-    offset_cases = []
-    offset_cases.append((BYearEnd(month=6),
-                         {datetime(2008, 1, 1): datetime(2008, 6, 30),
-                          datetime(2007, 6, 30): datetime(2008, 6, 30)}, ))
-
-    offset_cases.append((BYearEnd(n=-1, month=6),
-                        {datetime(2008, 1, 1): datetime(2007, 6, 29),
-                         datetime(2007, 6, 30): datetime(2007, 6, 29)}, ))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert base + offset == expected
-
-    def test_roll(self):
-        offset = BYearEnd(month=6)
-        date = datetime(2009, 11, 30)
-
-        assert offset.rollforward(date) == datetime(2010, 6, 30)
-        assert offset.rollback(date) == datetime(2009, 6, 30)
-
-    on_offset_cases = [(BYearEnd(month=2), datetime(2007, 2, 28), True),
-                       (BYearEnd(month=6), datetime(2007, 6, 30), False)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
-
-
-class TestBYearEnd(Base):
-    _offset = BYearEnd
-
-    offset_cases = []
-    offset_cases.append((BYearEnd(),
-                        {datetime(2008, 1, 1): datetime(2008, 12, 31),
-                         datetime(2008, 6, 30): datetime(2008, 12, 31),
-                         datetime(2008, 12, 31): datetime(2009, 12, 31),
-                         datetime(2005, 12, 30): datetime(2006, 12, 29),
-                         datetime(2005, 12, 31): datetime(2006, 12, 29), }))
-
-    offset_cases.append((BYearEnd(0),
-                        {datetime(2008, 1, 1): datetime(2008, 12, 31),
-                         datetime(2008, 6, 30): datetime(2008, 12, 31),
-                         datetime(2008, 12, 31): datetime(2008, 12, 31),
-                         datetime(2005, 12, 31): datetime(2006, 12, 29), }))
-
-    offset_cases.append((BYearEnd(-1),
-                        {datetime(2007, 1, 1): datetime(2006, 12, 29),
-                         datetime(2008, 6, 30): datetime(2007, 12, 31),
-                         datetime(2008, 12, 31): datetime(2007, 12, 31),
-                         datetime(2006, 12, 29): datetime(2005, 12, 30),
-                         datetime(2006, 12, 30): datetime(2006, 12, 29),
-                         datetime(2007, 1, 1): datetime(2006, 12, 29), }))
-
-    offset_cases.append((BYearEnd(-2),
-                        {datetime(2007, 1, 1): datetime(2005, 12, 30),
-                         datetime(2008, 6, 30): datetime(2006, 12, 29),
-                         datetime(2008, 12, 31): datetime(2006, 12, 29), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    on_offset_cases = [(BYearEnd(), datetime(2007, 12, 31), True),
-                       (BYearEnd(), datetime(2008, 1, 1), False),
-                       (BYearEnd(), datetime(2006, 12, 31), False),
-                       (BYearEnd(), datetime(2006, 12, 29), True)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
-
-
-class TestYearEnd(Base):
-    _offset = YearEnd
-
-    def test_misspecified(self):
-        pytest.raises(ValueError, YearEnd, month=13)
-
-    offset_cases = []
-    offset_cases.append((YearEnd(),
-                        {datetime(2008, 1, 1): datetime(2008, 12, 31),
-                         datetime(2008, 6, 30): datetime(2008, 12, 31),
-                         datetime(2008, 12, 31): datetime(2009, 12, 31),
-                         datetime(2005, 12, 30): datetime(2005, 12, 31),
-                         datetime(2005, 12, 31): datetime(2006, 12, 31), }))
-
-    offset_cases.append((YearEnd(0),
-                        {datetime(2008, 1, 1): datetime(2008, 12, 31),
-                         datetime(2008, 6, 30): datetime(2008, 12, 31),
-                         datetime(2008, 12, 31): datetime(2008, 12, 31),
-                         datetime(2005, 12, 30): datetime(2005, 12, 31), }))
-
-    offset_cases.append((YearEnd(-1),
-                        {datetime(2007, 1, 1): datetime(2006, 12, 31),
-                         datetime(2008, 6, 30): datetime(2007, 12, 31),
-                         datetime(2008, 12, 31): datetime(2007, 12, 31),
-                         datetime(2006, 12, 29): datetime(2005, 12, 31),
-                         datetime(2006, 12, 30): datetime(2005, 12, 31),
-                         datetime(2007, 1, 1): datetime(2006, 12, 31), }))
-
-    offset_cases.append((YearEnd(-2),
-                        {datetime(2007, 1, 1): datetime(2005, 12, 31),
-                         datetime(2008, 6, 30): datetime(2006, 12, 31),
-                         datetime(2008, 12, 31): datetime(2006, 12, 31), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    on_offset_cases = [(YearEnd(), datetime(2007, 12, 31), True),
-                       (YearEnd(), datetime(2008, 1, 1), False),
-                       (YearEnd(), datetime(2006, 12, 31), True),
-                       (YearEnd(), datetime(2006, 12, 29), False)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
-
-
-class TestYearEndDiffMonth(Base):
-
-    offset_cases = []
-    offset_cases.append((YearEnd(month=3),
-                        {datetime(2008, 1, 1): datetime(2008, 3, 31),
-                         datetime(2008, 2, 15): datetime(2008, 3, 31),
-                         datetime(2008, 3, 31): datetime(2009, 3, 31),
-                         datetime(2008, 3, 30): datetime(2008, 3, 31),
-                         datetime(2005, 3, 31): datetime(2006, 3, 31),
-                         datetime(2006, 7, 30): datetime(2007, 3, 31)}))
-
-    offset_cases.append((YearEnd(0, month=3),
-                        {datetime(2008, 1, 1): datetime(2008, 3, 31),
-                         datetime(2008, 2, 28): datetime(2008, 3, 31),
-                         datetime(2008, 3, 31): datetime(2008, 3, 31),
-                         datetime(2005, 3, 30): datetime(2005, 3, 31), }))
-
-    offset_cases.append((YearEnd(-1, month=3),
-                        {datetime(2007, 1, 1): datetime(2006, 3, 31),
-                         datetime(2008, 2, 28): datetime(2007, 3, 31),
-                         datetime(2008, 3, 31): datetime(2007, 3, 31),
-                         datetime(2006, 3, 29): datetime(2005, 3, 31),
-                         datetime(2006, 3, 30): datetime(2005, 3, 31),
-                         datetime(2007, 3, 1): datetime(2006, 3, 31), }))
-
-    offset_cases.append((YearEnd(-2, month=3),
-                        {datetime(2007, 1, 1): datetime(2005, 3, 31),
-                         datetime(2008, 6, 30): datetime(2007, 3, 31),
-                         datetime(2008, 3, 31): datetime(2006, 3, 31), }))
-
-    @pytest.mark.parametrize('case', offset_cases)
-    def test_offset(self, case):
-        offset, cases = case
-        for base, expected in compat.iteritems(cases):
-            assert_offset_equal(offset, base, expected)
-
-    on_offset_cases = [(YearEnd(month=3), datetime(2007, 3, 31), True),
-                       (YearEnd(month=3), datetime(2008, 1, 1), False),
-                       (YearEnd(month=3), datetime(2006, 3, 31), True),
-                       (YearEnd(month=3), datetime(2006, 3, 29), False)]
-
-    @pytest.mark.parametrize('case', on_offset_cases)
-    def test_onOffset(self, case):
-        offset, dt, expected = case
-        assert_onOffset(offset, dt, expected)
 
 
 def test_Easter():
@@ -4287,35 +2748,19 @@ class TestOffsetNames(object):
         assert Week(weekday=4).freqstr == 'W-FRI'
 
         assert LastWeekOfMonth(weekday=WeekDay.SUN).freqstr == "LWOM-SUN"
-        assert (makeFY5253LastOfMonthQuarter(
-            weekday=1, startingMonth=3,
-            qtr_with_extra_week=4).freqstr == "REQ-L-MAR-TUE-4")
-        assert (makeFY5253NearestEndMonthQuarter(
-            weekday=1, startingMonth=3,
-            qtr_with_extra_week=3).freqstr == "REQ-N-MAR-TUE-3")
 
 
 def test_get_offset():
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [
         ('B', BDay()), ('b', BDay()), ('bm', BMonthEnd()),
         ('Bm', BMonthEnd()), ('W-MON', Week(weekday=0)),
         ('W-TUE', Week(weekday=1)), ('W-WED', Week(weekday=2)),
-        ('W-THU', Week(weekday=3)), ('W-FRI', Week(weekday=4)),
-        ("RE-N-DEC-MON", makeFY5253NearestEndMonth(weekday=0,
-                                                   startingMonth=12)),
-        ("RE-L-DEC-TUE", makeFY5253LastOfMonth(weekday=1, startingMonth=12)),
-        ("REQ-L-MAR-TUE-4", makeFY5253LastOfMonthQuarter(
-            weekday=1, startingMonth=3, qtr_with_extra_week=4)),
-        ("REQ-L-DEC-MON-3", makeFY5253LastOfMonthQuarter(
-            weekday=0, startingMonth=12, qtr_with_extra_week=3)),
-        ("REQ-N-DEC-MON-3", makeFY5253NearestEndMonthQuarter(
-            weekday=0, startingMonth=12, qtr_with_extra_week=3)),
-    ]
+        ('W-THU', Week(weekday=3)), ('W-FRI', Week(weekday=4))]
 
     for name, expected in pairs:
         offset = get_offset(name)
@@ -4326,71 +2771,8 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             get_offset(name)
-
-
-class TestParseTimeString(object):
-
-    def test_parse_time_string(self):
-        (date, parsed, reso) = parse_time_string('4Q1984')
-        (date_lower, parsed_lower, reso_lower) = parse_time_string('4q1984')
-        assert date == date_lower
-        assert parsed == parsed_lower
-        assert reso == reso_lower
-
-    def test_parse_time_quarter_w_dash(self):
-        # https://github.com/pandas-dev/pandas/issue/9688
-        pairs = [('1988-Q2', '1988Q2'), ('2Q-1988', '2Q1988'), ]
-
-        for dashed, normal in pairs:
-            (date_dash, parsed_dash, reso_dash) = parse_time_string(dashed)
-            (date, parsed, reso) = parse_time_string(normal)
-
-            assert date_dash == date
-            assert parsed_dash == parsed
-            assert reso_dash == reso
-
-        pytest.raises(DateParseError, parse_time_string, "-2Q1992")
-        pytest.raises(DateParseError, parse_time_string, "2-Q1992")
-        pytest.raises(DateParseError, parse_time_string, "4-4Q1992")
-
-
-def test_get_standard_freq():
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('W')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('1w')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('W', 1))
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('WeEk')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        fstr = get_standard_freq('5Q')
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq('5q')
-
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            get_standard_freq('5QuarTer')
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        assert fstr == get_standard_freq(('q', 5))
-
-
-def test_quarterly_dont_normalize():
-    date = datetime(2012, 3, 31, 5, 30)
-
-    offsets = (QuarterBegin, QuarterEnd, BQuarterEnd, BQuarterBegin)
-
-    for klass in offsets:
-        result = date + klass()
-        assert (result.time() == date.time())
 
 
 class TestOffsetAliases(object):
@@ -4433,7 +2815,7 @@ class TestOffsetAliases(object):
             code, stride = get_freq_code('3' + k)
             assert isinstance(code, int)
             assert stride == 3
-            assert k == _get_freq_str(code)
+            assert k == get_freq_str(code)
 
 
 def test_dateoffset_misc():
@@ -4596,7 +2978,7 @@ class TestDST(object):
                     t.minute == tstart.minute and
                     t.second == tstart.second)
         elif offset_name in self.valid_date_offsets_singular:
-            # expect the signular offset value to match between tstart and t
+            # expect the singular offset value to match between tstart and t
             datepart_offset = getattr(t, offset_name
                                       if offset_name != 'weekday' else
                                       'dayofweek')
@@ -4620,7 +3002,7 @@ class TestDST(object):
             hrs_pre = utc_offsets['utc_offset_daylight']
             hrs_post = utc_offsets['utc_offset_standard']
 
-            if dateutil.__version__ < LooseVersion('2.6.0'):
+            if LooseVersion(dateutil.__version__) < LooseVersion('2.6.0'):
                 # buggy ambiguous behavior in 2.6.0
                 # GH 14621
                 # https://github.com/dateutil/dateutil/issues/321
@@ -4628,7 +3010,7 @@ class TestDST(object):
                     n=3, tstart=self._make_timestamp(self.ts_pre_fallback,
                                                      hrs_pre, tz),
                     expected_utc_offset=hrs_post)
-            elif dateutil.__version__ > LooseVersion('2.6.0'):
+            elif LooseVersion(dateutil.__version__) > LooseVersion('2.6.0'):
                 # fixed, but skip the test
                 continue
 
@@ -4643,7 +3025,7 @@ class TestDST(object):
                 expected_utc_offset=hrs_post)
 
     def test_fallback_singular(self):
-        # in the case of signular offsets, we dont neccesarily know which utc
+        # in the case of singular offsets, we don't necessarily know which utc
         # offset the new Timestamp will wind up in (the tz for 1 month may be
         # different from 1 second) so we don't specify an expected_utc_offset
         for tz, utc_offsets in self.timezone_utc_offsets.items():
@@ -4683,3 +3065,189 @@ class TestDST(object):
         first = Timestamp(test_values[0], tz='US/Eastern') + offset()
         second = Timestamp(test_values[1], tz='US/Eastern')
         assert first == second
+
+
+# ---------------------------------------------------------------------
+def test_get_offset_day_error():
+    # subclass of _BaseOffset must override _day_opt attribute, or we should
+    # get a NotImplementedError
+
+    with pytest.raises(NotImplementedError):
+        DateOffset()._get_offset_day(datetime.now())
+
+
+def test_valid_default_arguments(offset_types):
+    # GH#19142 check that the calling the constructors without passing
+    # any keyword arguments produce valid offsets
+    cls = offset_types
+    cls()
+
+
+@pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
+def test_valid_month_attributes(kwd, month_classes):
+    # GH#18226
+    cls = month_classes
+    # check that we cannot create e.g. MonthEnd(weeks=3)
+    with pytest.raises(TypeError):
+        cls(**{kwd: 3})
+
+
+@pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
+def test_valid_relativedelta_kwargs(kwd):
+    # Check that all the arguments specified in liboffsets.relativedelta_kwds
+    # are in fact valid relativedelta keyword args
+    DateOffset(**{kwd: 1})
+
+
+@pytest.mark.parametrize('kwd', sorted(list(liboffsets.relativedelta_kwds)))
+def test_valid_tick_attributes(kwd, tick_classes):
+    # GH#18226
+    cls = tick_classes
+    # check that we cannot create e.g. Hour(weeks=3)
+    with pytest.raises(TypeError):
+        cls(**{kwd: 3})
+
+
+def test_validate_n_error():
+    with pytest.raises(TypeError):
+        DateOffset(n='Doh!')
+
+    with pytest.raises(TypeError):
+        MonthBegin(n=timedelta(1))
+
+    with pytest.raises(TypeError):
+        BDay(n=np.array([1, 2], dtype=np.int64))
+
+
+def test_require_integers(offset_types):
+    cls = offset_types
+    with pytest.raises(ValueError):
+        cls(n=1.5)
+
+
+def test_tick_normalize_raises(tick_classes):
+    # check that trying to create a Tick object with normalize=True raises
+    # GH#21427
+    cls = tick_classes
+    with pytest.raises(ValueError):
+        cls(n=3, normalize=True)
+
+
+def test_weeks_onoffset():
+    # GH#18510 Week with weekday = None, normalize = False should always
+    # be onOffset
+    offset = Week(n=2, weekday=None)
+    ts = Timestamp('1862-01-13 09:03:34.873477378+0210', tz='Africa/Lusaka')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+    # negative n
+    offset = Week(n=2, weekday=None)
+    ts = Timestamp('1856-10-24 16:18:36.556360110-0717', tz='Pacific/Easter')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_weekofmonth_onoffset():
+    # GH#18864
+    # Make sure that nanoseconds don't trip up onOffset (and with it apply)
+    offset = WeekOfMonth(n=2, week=2, weekday=0)
+    ts = Timestamp('1916-05-15 01:14:49.583410462+0422', tz='Asia/Qyzylorda')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+    # negative n
+    offset = WeekOfMonth(n=-3, week=1, weekday=0)
+    ts = Timestamp('1980-12-08 03:38:52.878321185+0500', tz='Asia/Oral')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_last_week_of_month_on_offset():
+    # GH#19036, GH#18977 _adjust_dst was incorrect for LastWeekOfMonth
+    offset = LastWeekOfMonth(n=4, weekday=6)
+    ts = Timestamp('1917-05-27 20:55:27.084284178+0200',
+                   tz='Europe/Warsaw')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow
+
+    # negative n
+    offset = LastWeekOfMonth(n=-4, weekday=5)
+    ts = Timestamp('2005-08-27 05:01:42.799392561-0500',
+                   tz='America/Rainy_River')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow
+
+
+class TestCalendarDay(object):
+
+    def test_add_across_dst_scalar(self):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        result = ts + CalendarDay(1)
+        assert result == expected
+
+        result = result - CalendarDay(1)
+        assert result == ts
+
+    @pytest.mark.parametrize('box', [DatetimeIndex, Series])
+    def test_add_across_dst_array(self, box):
+        # GH 22274
+        ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
+        expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
+        arr = box([ts])
+        expected = box([expected])
+        result = arr + CalendarDay(1)
+        tm.assert_equal(result, expected)
+
+        result = result - CalendarDay(1)
+        tm.assert_equal(arr, result)
+
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2018-11-03 01:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2018-11-03 01:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_AmbiguousTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.AmbiguousTimeError):
+            arg + CalendarDay(1)
+
+    @pytest.mark.parametrize('arg', [
+        Timestamp("2019-03-09 02:00:00", tz='US/Pacific'),
+        DatetimeIndex([Timestamp("2019-03-09 02:00:00", tz='US/Pacific')])
+    ])
+    def test_raises_NonExistentTimeError(self, arg):
+        # GH 22274
+        with pytest.raises(pytz.NonExistentTimeError):
+            arg + CalendarDay(1)
+
+    @pytest.mark.parametrize('arg, exp', [
+        [1, 2],
+        [-1, 0],
+        [-5, -4]
+    ])
+    def test_arithmetic(self, arg, exp):
+        # GH 22274
+        result = CalendarDay(1) + CalendarDay(arg)
+        expected = CalendarDay(exp)
+        assert result == expected
+
+    @pytest.mark.parametrize('arg', [
+        timedelta(1),
+        Day(1),
+        Timedelta(1),
+        TimedeltaIndex([timedelta(1)])
+    ])
+    def test_invalid_arithmetic(self, arg):
+        # GH 22274
+        # CalendarDay (relative time) cannot be added to Timedelta-like objects
+        # (absolute time)
+        with pytest.raises(TypeError):
+            CalendarDay(1) + arg

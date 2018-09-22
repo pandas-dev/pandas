@@ -131,7 +131,7 @@ def test_readjson_chunks_closes(chunksize):
             lines=True, chunksize=chunksize, compression=None)
         reader.read()
         assert reader.open_stream.closed, "didn't close stream with \
-            chunksize = %s" % chunksize
+            chunksize = {chunksize}".format(chunksize=chunksize)
 
 
 @pytest.mark.parametrize("chunksize", [0, -1, 2.2, "foo"])
@@ -165,4 +165,5 @@ def test_readjson_chunks_multiple_empty_lines(chunksize):
     test = pd.read_json(j, lines=True, chunksize=chunksize)
     if chunksize is not None:
         test = pd.concat(test)
-    tm.assert_frame_equal(orig, test, obj="chunksize: %s" % chunksize)
+    tm.assert_frame_equal(
+        orig, test, obj="chunksize: {chunksize}".format(chunksize=chunksize))

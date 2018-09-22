@@ -1,185 +1,79 @@
-from .pandas_vb_common import *
 import pandas as pd
 import numpy as np
 
-
-class DataframeRolling(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 100000
-        self.Ns = 10000
-        self.df = pd.DataFrame({'a': np.random.random(self.N)})
-        self.dfs = pd.DataFrame({'a': np.random.random(self.Ns)})
-        self.wins = 10
-        self.winl = 1000
-
-    def time_rolling_quantile_0(self):
-        (self.df.rolling(self.wins).quantile(0.0))
-
-    def time_rolling_quantile_1(self):
-        (self.df.rolling(self.wins).quantile(1.0))
-
-    def time_rolling_quantile_median(self):
-        (self.df.rolling(self.wins).quantile(0.5))
-
-    def time_rolling_median(self):
-        (self.df.rolling(self.wins).median())
-
-    def time_rolling_mean(self):
-        (self.df.rolling(self.wins).mean())
-
-    def time_rolling_max(self):
-        (self.df.rolling(self.wins).max())
-
-    def time_rolling_min(self):
-        (self.df.rolling(self.wins).min())
-
-    def time_rolling_std(self):
-        (self.df.rolling(self.wins).std())
-
-    def time_rolling_count(self):
-        (self.df.rolling(self.wins).count())
-
-    def time_rolling_skew(self):
-        (self.df.rolling(self.wins).skew())
-
-    def time_rolling_kurt(self):
-        (self.df.rolling(self.wins).kurt())
-
-    def time_rolling_sum(self):
-        (self.df.rolling(self.wins).sum())
-
-    def time_rolling_corr(self):
-        (self.dfs.rolling(self.wins).corr())
-
-    def time_rolling_cov(self):
-        (self.dfs.rolling(self.wins).cov())
-        
-    def time_rolling_quantile_0_l(self):
-        (self.df.rolling(self.winl).quantile(0.0))
-
-    def time_rolling_quantile_1_l(self):
-        (self.df.rolling(self.winl).quantile(1.0))
-
-    def time_rolling_quantile_median_l(self):
-        (self.df.rolling(self.winl).quantile(0.5))
-
-    def time_rolling_median_l(self):
-        (self.df.rolling(self.winl).median())
-
-    def time_rolling_mean_l(self):
-        (self.df.rolling(self.winl).mean())
-
-    def time_rolling_max_l(self):
-        (self.df.rolling(self.winl).max())
-
-    def time_rolling_min_l(self):
-        (self.df.rolling(self.winl).min())
-
-    def time_rolling_std_l(self):
-        (self.df.rolling(self.wins).std())
-
-    def time_rolling_count_l(self):
-        (self.df.rolling(self.wins).count())
-
-    def time_rolling_skew_l(self):
-        (self.df.rolling(self.wins).skew())
-
-    def time_rolling_kurt_l(self):
-        (self.df.rolling(self.wins).kurt())
-
-    def time_rolling_sum_l(self):
-        (self.df.rolling(self.wins).sum())
+from .pandas_vb_common import setup  # noqa
 
 
-class SeriesRolling(object):
-    goal_time = 0.2
+class Methods(object):
 
-    def setup(self):
-        self.N = 100000
-        self.Ns = 10000
-        self.df = pd.DataFrame({'a': np.random.random(self.N)})
-        self.dfs = pd.DataFrame({'a': np.random.random(self.Ns)})
-        self.sr = self.df.a
-        self.srs = self.dfs.a
-        self.wins = 10
-        self.winl = 1000
+    sample_time = 0.2
+    params = (['DataFrame', 'Series'],
+              [10, 1000],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
-    def time_rolling_quantile_0(self):
-        (self.sr.rolling(self.wins).quantile(0.0))
+    def setup(self, constructor, window, dtype, method):
+        N = 10**5
+        arr = (100 * np.random.random(N)).astype(dtype)
+        self.roll = getattr(pd, constructor)(arr).rolling(window)
 
-    def time_rolling_quantile_1(self):
-        (self.sr.rolling(self.wins).quantile(1.0))
+    def time_rolling(self, constructor, window, dtype, method):
+        getattr(self.roll, method)()
 
-    def time_rolling_quantile_median(self):
-        (self.sr.rolling(self.wins).quantile(0.5))
 
-    def time_rolling_median(self):
-        (self.sr.rolling(self.wins).median())
+class VariableWindowMethods(Methods):
+    sample_time = 0.2
+    params = (['DataFrame', 'Series'],
+              ['50s', '1h', '1d'],
+              ['int', 'float'],
+              ['median', 'mean', 'max', 'min', 'std', 'count', 'skew', 'kurt',
+               'sum'])
+    param_names = ['contructor', 'window', 'dtype', 'method']
 
-    def time_rolling_mean(self):
-        (self.sr.rolling(self.wins).mean())
+    def setup(self, constructor, window, dtype, method):
+        N = 10**5
+        arr = (100 * np.random.random(N)).astype(dtype)
+        index = pd.date_range('2017-01-01', periods=N, freq='5s')
+        self.roll = getattr(pd, constructor)(arr, index=index).rolling(window)
 
-    def time_rolling_max(self):
-        (self.sr.rolling(self.wins).max())
 
-    def time_rolling_min(self):
-        (self.sr.rolling(self.wins).min())
+class Pairwise(object):
 
-    def time_rolling_std(self):
-        (self.sr.rolling(self.wins).std())
+    sample_time = 0.2
+    params = ([10, 1000, None],
+              ['corr', 'cov'],
+              [True, False])
+    param_names = ['window', 'method', 'pairwise']
 
-    def time_rolling_count(self):
-        (self.sr.rolling(self.wins).count())
+    def setup(self, window, method, pairwise):
+        N = 10**4
+        arr = np.random.random(N)
+        self.df = pd.DataFrame(arr)
 
-    def time_rolling_skew(self):
-        (self.sr.rolling(self.wins).skew())
+    def time_pairwise(self, window, method, pairwise):
+        if window is None:
+            r = self.df.expanding()
+        else:
+            r = self.df.rolling(window=window)
+        getattr(r, method)(self.df, pairwise=pairwise)
 
-    def time_rolling_kurt(self):
-        (self.sr.rolling(self.wins).kurt())
 
-    def time_rolling_sum(self):
-        (self.sr.rolling(self.wins).sum())
+class Quantile(object):
+    sample_time = 0.2
+    params = (['DataFrame', 'Series'],
+              [10, 1000],
+              ['int', 'float'],
+              [0, 0.5, 1],
+              ['linear', 'nearest', 'lower', 'higher', 'midpoint'])
+    param_names = ['constructor', 'window', 'dtype', 'percentile']
 
-    def time_rolling_corr(self):
-        (self.srs.rolling(self.wins).corr())
+    def setup(self, constructor, window, dtype, percentile, interpolation):
+        N = 10 ** 5
+        arr = np.random.random(N).astype(dtype)
+        self.roll = getattr(pd, constructor)(arr).rolling(window)
 
-    def time_rolling_cov(self):
-        (self.srs.rolling(self.wins).cov())
-        
-    def time_rolling_quantile_0_l(self):
-        (self.sr.rolling(self.winl).quantile(0.0))
-
-    def time_rolling_quantile_1_l(self):
-        (self.sr.rolling(self.winl).quantile(1.0))
-
-    def time_rolling_quantile_median_l(self):
-        (self.sr.rolling(self.winl).quantile(0.5))
-
-    def time_rolling_median_l(self):
-        (self.sr.rolling(self.winl).median())
-
-    def time_rolling_mean_l(self):
-        (self.sr.rolling(self.winl).mean())
-
-    def time_rolling_max_l(self):
-        (self.sr.rolling(self.winl).max())
-
-    def time_rolling_min_l(self):
-        (self.sr.rolling(self.winl).min())
-
-    def time_rolling_std_l(self):
-        (self.sr.rolling(self.wins).std())
-
-    def time_rolling_count_l(self):
-        (self.sr.rolling(self.wins).count())
-
-    def time_rolling_skew_l(self):
-        (self.sr.rolling(self.wins).skew())
-
-    def time_rolling_kurt_l(self):
-        (self.sr.rolling(self.wins).kurt())
-
-    def time_rolling_sum_l(self):
-        (self.sr.rolling(self.wins).sum())
+    def time_quantile(self, constructor, window, dtype, percentile,
+                      interpolation):
+        self.roll.quantile(percentile, interpolation=interpolation)

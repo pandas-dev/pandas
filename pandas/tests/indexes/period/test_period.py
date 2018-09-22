@@ -3,17 +3,17 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util._test_decorators as td
 from pandas.util import testing as tm
-from pandas import (PeriodIndex, period_range, notna, DatetimeIndex, NaT,
-                    Index, Period, Int64Index, Series, DataFrame, date_range,
-                    offsets, compat)
+from pandas import (PeriodIndex, period_range, DatetimeIndex, NaT,
+                    Index, Period, Series, DataFrame, date_range,
+                    offsets)
 
 from ..datetimelike import DatetimeLike
 
 
 class TestPeriodIndex(DatetimeLike):
     _holder = PeriodIndex
-    _multiprocess_can_split_ = True
 
     def setup_method(self, method):
         self.indices = dict(index=tm.makePeriodIndex(10),
@@ -24,84 +24,18 @@ class TestPeriodIndex(DatetimeLike):
     def create_index(self):
         return period_range('20130101', periods=5, freq='D')
 
-    def test_astype(self):
-        # GH 13149, GH 13209
-        idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
-
-        result = idx.astype(object)
-        expected = Index([Period('2016-05-16', freq='D')] +
-                         [Period(NaT, freq='D')] * 3, dtype='object')
-        tm.assert_index_equal(result, expected)
-
-        result = idx.astype(int)
-        expected = Int64Index([16937] + [-9223372036854775808] * 3,
-                              dtype=np.int64)
-        tm.assert_index_equal(result, expected)
-
-        idx = period_range('1990', '2009', freq='A')
-        result = idx.astype('i8')
-        tm.assert_index_equal(result, Index(idx.asi8))
-        tm.assert_numpy_array_equal(result.values, idx.asi8)
-
-    def test_astype_raises(self):
-        # GH 13149, GH 13209
-        idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq='D')
-
-        pytest.raises(ValueError, idx.astype, str)
-        pytest.raises(ValueError, idx.astype, float)
-        pytest.raises(ValueError, idx.astype, 'timedelta64')
-        pytest.raises(ValueError, idx.astype, 'timedelta64[ns]')
-
     def test_pickle_compat_construction(self):
         pass
 
-    def test_pickle_round_trip(self):
-        for freq in ['D', 'M', 'A']:
-            idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq=freq)
-            result = tm.round_trip_pickle(idx)
-            tm.assert_index_equal(result, idx)
+    @pytest.mark.parametrize('freq', ['D', 'M', 'A'])
+    def test_pickle_round_trip(self, freq):
+        idx = PeriodIndex(['2016-05-16', 'NaT', NaT, np.NaN], freq=freq)
+        result = tm.round_trip_pickle(idx)
+        tm.assert_index_equal(result, idx)
 
     def test_where(self):
-        i = self.create_index()
-        result = i.where(notna(i))
-        expected = i
-        tm.assert_index_equal(result, expected)
-
-        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
-                            freq='D')
-        result = i.where(notna(i2))
-        expected = i2
-        tm.assert_index_equal(result, expected)
-
-    def test_where_array_like(self):
-        i = self.create_index()
-        cond = [False] + [True] * (len(i) - 1)
-        klasses = [list, tuple, np.array, Series]
-        expected = pd.PeriodIndex([pd.NaT] + i[1:].tolist(), freq='D')
-
-        for klass in klasses:
-            result = i.where(klass(cond))
-            tm.assert_index_equal(result, expected)
-
-    def test_where_other(self):
-
-        i = self.create_index()
-        for arr in [np.nan, pd.NaT]:
-            result = i.where(notna(i), other=np.nan)
-            expected = i
-            tm.assert_index_equal(result, expected)
-
-        i2 = i.copy()
-        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
-                            freq='D')
-        result = i.where(notna(i2), i2)
-        tm.assert_index_equal(result, i2)
-
-        i2 = i.copy()
-        i2 = pd.PeriodIndex([pd.NaT, pd.NaT] + i[2:].tolist(),
-                            freq='D')
-        result = i.where(notna(i2), i2.values)
-        tm.assert_index_equal(result, i2)
+        # This is handled in test_indexing
+        pass
 
     def test_repeat(self):
         # GH10183
@@ -210,7 +144,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._values, exp)
+        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
         idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
 
@@ -218,7 +152,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([492, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._values, exp)
+        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
         idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
 
@@ -227,7 +161,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.values, exp)
         tm.assert_numpy_array_equal(idx.get_values(), exp)
         exp = np.array([14975, -9223372036854775808], dtype=np.int64)
-        tm.assert_numpy_array_equal(idx._values, exp)
+        tm.assert_numpy_array_equal(idx._ndarray_values, exp)
 
     def test_period_index_length(self):
         pi = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
@@ -389,25 +323,6 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, exp_idx)
 
-    def test_asobject_like(self):
-        idx = pd.PeriodIndex([], freq='M')
-
-        exp = np.array([], dtype=object)
-        tm.assert_numpy_array_equal(idx.asobject.values, exp)
-        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
-
-        idx = pd.PeriodIndex(['2011-01', pd.NaT], freq='M')
-
-        exp = np.array([pd.Period('2011-01', freq='M'), pd.NaT], dtype=object)
-        tm.assert_numpy_array_equal(idx.asobject.values, exp)
-        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
-
-        exp = np.array([pd.Period('2011-01-01', freq='D'), pd.NaT],
-                       dtype=object)
-        idx = pd.PeriodIndex(['2011-01-01', pd.NaT], freq='D')
-        tm.assert_numpy_array_equal(idx.asobject.values, exp)
-        tm.assert_numpy_array_equal(idx._mpl_repr(), exp)
-
     def test_is_(self):
         create_index = lambda: PeriodIndex(freq='A', start='1/1/2001',
                                            end='12/1/2009')
@@ -425,13 +340,6 @@ class TestPeriodIndex(DatetimeLike):
         assert not index.is_(index.asfreq('A'))
         assert not index.is_(index - 2)
         assert not index.is_(index - 0)
-
-    def test_comp_period(self):
-        idx = period_range('2007-01', periods=20, freq='M')
-
-        result = idx < idx[10]
-        exp = idx.values < idx.values[10]
-        tm.assert_numpy_array_equal(result, exp)
 
     def test_contains(self):
         rng = period_range('2007-01', freq='M', periods=10)
@@ -459,13 +367,16 @@ class TestPeriodIndex(DatetimeLike):
             period_range('2011-1-1', '2012-1-1', 'B')
 
     def test_start_time(self):
+        # GH 17157
         index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
         expected_index = date_range('2016-01-01', end='2016-05-31', freq='MS')
         tm.assert_index_equal(index.start_time, expected_index)
 
     def test_end_time(self):
+        # GH 17157
         index = PeriodIndex(freq='M', start='2016-01-01', end='2016-05-31')
         expected_index = date_range('2016-01-01', end='2016-05-31', freq='M')
+        expected_index = expected_index.shift(1, freq='D').shift(-1, freq='ns')
         tm.assert_index_equal(index.end_time, expected_index)
 
     def test_index_duplicate_periods(self):
@@ -500,78 +411,13 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
-    def test_shift_gh8083(self):
-
-        # test shift for PeriodIndex
-        # GH8083
-        drange = self.create_index()
-        result = drange.shift(1)
-        expected = PeriodIndex(['2013-01-02', '2013-01-03', '2013-01-04',
-                                '2013-01-05', '2013-01-06'], freq='D')
-        tm.assert_index_equal(result, expected)
-
     def test_shift(self):
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='A', start='1/1/2002', end='12/1/2010')
+        # This is tested in test_arithmetic
+        pass
 
-        tm.assert_index_equal(pi1.shift(0), pi1)
-
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(1), pi2)
-
-        pi1 = PeriodIndex(freq='A', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='A', start='1/1/2000', end='12/1/2008')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(-1), pi2)
-
-        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='M', start='2/1/2001', end='1/1/2010')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(1), pi2)
-
-        pi1 = PeriodIndex(freq='M', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='M', start='12/1/2000', end='11/1/2009')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(-1), pi2)
-
-        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='D', start='1/2/2001', end='12/2/2009')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(1), pi2)
-
-        pi1 = PeriodIndex(freq='D', start='1/1/2001', end='12/1/2009')
-        pi2 = PeriodIndex(freq='D', start='12/31/2000', end='11/30/2009')
-        assert len(pi1) == len(pi2)
-        tm.assert_index_equal(pi1.shift(-1), pi2)
-
-    def test_shift_nat(self):
-        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
-                           '2011-04'], freq='M', name='idx')
-        result = idx.shift(1)
-        expected = PeriodIndex(['2011-02', '2011-03', 'NaT',
-                                '2011-05'], freq='M', name='idx')
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-
+    @td.skip_if_32bit
     def test_ndarray_compat_properties(self):
-        if compat.is_platform_32bit():
-            pytest.skip("skipping on 32bit")
         super(TestPeriodIndex, self).test_ndarray_compat_properties()
-
-    def test_shift_ndarray(self):
-        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
-                           '2011-04'], freq='M', name='idx')
-        result = idx.shift(np.array([1, 2, 3, 4]))
-        expected = PeriodIndex(['2011-02', '2011-04', 'NaT',
-                                '2011-08'], freq='M', name='idx')
-        tm.assert_index_equal(result, expected)
-
-        idx = PeriodIndex(['2011-01', '2011-02', 'NaT',
-                           '2011-04'], freq='M', name='idx')
-        result = idx.shift(np.array([1, -2, 3, -4]))
-        expected = PeriodIndex(['2011-02', '2010-12', 'NaT',
-                                '2010-12'], freq='M', name='idx')
-        tm.assert_index_equal(result, expected)
 
     def test_negative_ordinals(self):
         Period(ordinal=-1000, freq='A')
@@ -692,17 +538,22 @@ class TestPeriodIndex(DatetimeLike):
         assert new_prng.freqstr == 'M'
 
     def test_map(self):
-        index = PeriodIndex([2005, 2007, 2009], freq='A')
-        result = index.map(lambda x: x + 1)
-        expected = index + 1
-        tm.assert_index_equal(result, expected)
+        # test_map_dictlike generally tests
 
+        index = PeriodIndex([2005, 2007, 2009], freq='A')
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self(self, how):
+    def test_join_self(self, join_type):
         index = period_range('1/1/2000', periods=10)
-        joined = index.join(index, how=how)
+        joined = index.join(index, how=join_type)
         assert index is joined
+
+    def test_insert(self):
+        # GH 18295 (test missing)
+        expected = PeriodIndex(
+            ['2017Q1', pd.NaT, '2017Q2', '2017Q3', '2017Q4'], freq='Q')
+        for na in (np.nan, pd.NaT, None):
+            result = period_range('2017Q1', periods=4, freq='Q').insert(1, na)
+            tm.assert_index_equal(result, expected)

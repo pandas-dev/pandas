@@ -8,9 +8,6 @@ from pandas import PeriodIndex, Series, DataFrame
 
 class TestPeriodIndex(object):
 
-    def setup_method(self, method):
-        pass
-
     def test_asfreq(self):
         pi1 = PeriodIndex(freq='A', start='1/1/2001', end='1/1/2001')
         pi2 = PeriodIndex(freq='Q', start='1/1/2001', end='1/1/2001')
@@ -85,21 +82,21 @@ class TestPeriodIndex(object):
         expected = PeriodIndex(['2011Q1', '2011Q1', 'NaT', '2011Q2'], freq='Q')
         tm.assert_index_equal(result, expected)
 
-    def test_asfreq_mult_pi(self):
+    @pytest.mark.parametrize('freq', ['D', '3D'])
+    def test_asfreq_mult_pi(self, freq):
         pi = PeriodIndex(['2001-01', '2001-02', 'NaT', '2001-03'], freq='2M')
 
-        for freq in ['D', '3D']:
-            result = pi.asfreq(freq)
-            exp = PeriodIndex(['2001-02-28', '2001-03-31', 'NaT',
-                               '2001-04-30'], freq=freq)
-            tm.assert_index_equal(result, exp)
-            assert result.freq == exp.freq
+        result = pi.asfreq(freq)
+        exp = PeriodIndex(['2001-02-28', '2001-03-31', 'NaT',
+                           '2001-04-30'], freq=freq)
+        tm.assert_index_equal(result, exp)
+        assert result.freq == exp.freq
 
-            result = pi.asfreq(freq, how='S')
-            exp = PeriodIndex(['2001-01-01', '2001-02-01', 'NaT',
-                               '2001-03-01'], freq=freq)
-            tm.assert_index_equal(result, exp)
-            assert result.freq == exp.freq
+        result = pi.asfreq(freq, how='S')
+        exp = PeriodIndex(['2001-01-01', '2001-02-01', 'NaT',
+                           '2001-03-01'], freq=freq)
+        tm.assert_index_equal(result, exp)
+        assert result.freq == exp.freq
 
     def test_asfreq_combined_pi(self):
         pi = pd.PeriodIndex(['2001-01-01 00:00', '2001-01-02 02:00', 'NaT'],

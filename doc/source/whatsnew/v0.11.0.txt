@@ -33,7 +33,7 @@ three types of multi-axis indexing.
 
   See more at :ref:`Selection by Label <indexing.label>`
 
-- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of the axis), will raise ``IndexError`` when the requested indicies are out of bounds. Allowed inputs are:
+- ``.iloc`` is strictly integer position based (from ``0`` to ``length-1`` of the axis), will raise ``IndexError`` when the requested indices are out of bounds. Allowed inputs are:
 
   - An integer e.g. ``5``
   - A list or array of integers ``[4, 3, 0]``
@@ -44,7 +44,7 @@ three types of multi-axis indexing.
 
 - ``.ix`` supports mixed integer and label based access. It is primarily label based, but will fallback to integer positional access. ``.ix`` is the most general and will support
   any of the inputs to ``.loc`` and ``.iloc``, as well as support for floating point label schemes. ``.ix`` is especially useful when dealing with mixed positional and label
-  based hierarchial indexes.
+  based hierarchical indexes.
 
   As using integer slices with ``.ix`` have different behavior depending on whether the slice
   is interpreted as position based or label based, it's usually better to be
@@ -76,7 +76,7 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    df1.dtypes
    df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
                          B = Series(randn(8)),
-                         C = Series(randn(8),dtype='uint8') ))
+                         C = Series(range(8),dtype='uint8') ))
    df2
    df2.dtypes
 
@@ -88,7 +88,7 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
 Dtype Conversion
 ~~~~~~~~~~~~~~~~
 
-This is lower-common-denomicator upcasting, meaning you get the dtype which can accomodate all of the types
+This is lower-common-denominator upcasting, meaning you get the dtype which can accommodate all of the types
 
 .. ipython:: python
 
@@ -193,7 +193,7 @@ Furthermore ``datetime64[ns]`` columns are created by default, when passed datet
    df.loc[df.index[2:4], ['A','timestamp']] = np.nan
    df
 
-Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`` to ``np.nan``
+Astype conversion on ``datetime64[ns]`` to ``object``, implicitly converts ``NaT`` to ``np.nan``
 
 .. ipython:: python
 
@@ -211,7 +211,7 @@ Astype conversion on ``datetime64[ns]`` to ``object``, implicity converts ``NaT`
 API changes
 ~~~~~~~~~~~
 
-  - Added to_series() method to indicies, to facilitate the creation of indexers
+  - Added to_series() method to indices, to facilitate the creation of indexers
     (:issue:`3275`)
 
   - ``HDFStore``

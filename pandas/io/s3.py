@@ -3,7 +3,7 @@ from pandas import compat
 try:
     import s3fs
     from botocore.exceptions import NoCredentialsError
-except:
+except ImportError:
     raise ImportError("The s3fs library is required to handle s3 files")
 
 if compat.PY3:
@@ -19,11 +19,15 @@ def _strip_schema(url):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None):
+                           compression=None, mode=None):
+
+    if mode is None:
+        mode = 'rb'
+
     fs = s3fs.S3FileSystem(anon=False)
     try:
-        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer))
-    except (OSError, NoCredentialsError):
+        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
+    except (compat.FileNotFoundError, NoCredentialsError):
         # boto3 has troubles when trying to access a public file
         # when credentialed...
         # An OSError is raised if you have credentials, but they
@@ -31,5 +35,5 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
         # A NoCredentialsError is raised if you don't have creds
         # for that bucket.
         fs = s3fs.S3FileSystem(anon=True)
-        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer))
-    return filepath_or_buffer, None, compression
+        filepath_or_buffer = fs.open(_strip_schema(filepath_or_buffer), mode)
+    return filepath_or_buffer, None, compression, True

@@ -4,8 +4,10 @@ ExcelFormatter is tested implicitly in pandas/tests/io/test_excel.py
 """
 
 import pytest
+import pandas.util.testing as tm
 
 from pandas.io.formats.excel import CSSToExcelConverter
+from pandas.io.formats.css import CSSWarning
 
 
 @pytest.mark.parametrize('css,expected', [
@@ -170,6 +172,9 @@ from pandas.io.formats.excel import CSSToExcelConverter
      {'alignment': {'wrap_text': False}}),
     ('white-space: normal',
      {'alignment': {'wrap_text': True}}),
+    # NUMBER FORMAT
+    ('number-format: 0%',
+     {'number_format': {'format_code': '0%'}}),
 ])
 def test_css_to_excel(css, expected):
     convert = CSSToExcelConverter()
@@ -212,3 +217,61 @@ def test_css_to_excel_multiple():
 def test_css_to_excel_inherited(css, inherited, expected):
     convert = CSSToExcelConverter(inherited)
     assert expected == convert(css)
+
+
+@pytest.mark.parametrize("input_color,output_color", (
+    [(name, rgb) for name, rgb in CSSToExcelConverter.NAMED_COLORS.items()] +
+    [("#" + rgb, rgb) for rgb in CSSToExcelConverter.NAMED_COLORS.values()] +
+    [("#F0F", "FF00FF"), ("#ABC", "AABBCC")])
+)
+def test_css_to_excel_good_colors(input_color, output_color):
+    # see gh-18392
+    css = ("border-top-color: {color}; "
+           "border-right-color: {color}; "
+           "border-bottom-color: {color}; "
+           "border-left-color: {color}; "
+           "background-color: {color}; "
+           "color: {color}").format(color=input_color)
+
+    expected = dict()
+
+    expected["fill"] = {
+        "patternType": "solid",
+        "fgColor": output_color
+    }
+
+    expected["font"] = {
+        "color": output_color
+    }
+
+    expected["border"] = {
+        k: {
+            "color": output_color,
+        } for k in ("top", "right", "bottom", "left")
+    }
+
+    with tm.assert_produces_warning(None):
+        convert = CSSToExcelConverter()
+        assert expected == convert(css)
+
+
+@pytest.mark.parametrize("input_color", [None, "not-a-color"])
+def test_css_to_excel_bad_colors(input_color):
+    # see gh-18392
+    css = ("border-top-color: {color}; "
+           "border-right-color: {color}; "
+           "border-bottom-color: {color}; "
+           "border-left-color: {color}; "
+           "background-color: {color}; "
+           "color: {color}").format(color=input_color)
+
+    expected = dict()
+
+    if input_color is not None:
+        expected["fill"] = {
+            "patternType": "solid"
+        }
+
+    with tm.assert_produces_warning(CSSWarning):
+        convert = CSSToExcelConverter()
+        assert expected == convert(css)

@@ -11,7 +11,8 @@ from numpy import nan
 import numpy as np
 
 from pandas import (DataFrame, Series, Timestamp, date_range, compat,
-                    option_context)
+                    option_context, Categorical)
+from pandas.core.arrays import IntervalArray, integer_array
 from pandas.compat import StringIO
 import pandas as pd
 
@@ -67,10 +68,10 @@ class TestDataFrameBlockInternals(TestData):
         for letter in range(ord('A'), ord('Z')):
             self.frame[chr(letter)] = chr(letter)
 
-    def test_as_matrix_consolidate(self):
+    def test_values_consolidate(self):
         self.frame['E'] = 7.
         assert not self.frame._data.is_consolidated()
-        _ = self.frame.as_matrix()  # noqa
+        _ = self.frame.values  # noqa
         assert self.frame._data.is_consolidated()
 
     def test_modify_values(self):
@@ -91,50 +92,50 @@ class TestDataFrameBlockInternals(TestData):
         self.frame[self.frame > 1] = 2
         assert_almost_equal(expected, self.frame.values)
 
-    def test_as_matrix_numeric_cols(self):
+    def test_values_numeric_cols(self):
         self.frame['foo'] = 'bar'
 
-        values = self.frame.as_matrix(['A', 'B', 'C', 'D'])
+        values = self.frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-    def test_as_matrix_lcd(self):
+    def test_values_lcd(self):
 
         # mixed lcd
-        values = self.mixed_float.as_matrix(['A', 'B', 'C', 'D'])
+        values = self.mixed_float[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-        values = self.mixed_float.as_matrix(['A', 'B', 'C'])
+        values = self.mixed_float[['A', 'B', 'C']].values
         assert values.dtype == np.float32
 
-        values = self.mixed_float.as_matrix(['C'])
+        values = self.mixed_float[['C']].values
         assert values.dtype == np.float16
 
         # GH 10364
         # B uint64 forces float because there are other signed int types
-        values = self.mixed_int.as_matrix(['A', 'B', 'C', 'D'])
+        values = self.mixed_int[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-        values = self.mixed_int.as_matrix(['A', 'D'])
+        values = self.mixed_int[['A', 'D']].values
         assert values.dtype == np.int64
 
         # B uint64 forces float because there are other signed int types
-        values = self.mixed_int.as_matrix(['A', 'B', 'C'])
+        values = self.mixed_int[['A', 'B', 'C']].values
         assert values.dtype == np.float64
 
         # as B and C are both unsigned, no forcing to float is needed
-        values = self.mixed_int.as_matrix(['B', 'C'])
+        values = self.mixed_int[['B', 'C']].values
         assert values.dtype == np.uint64
 
-        values = self.mixed_int.as_matrix(['A', 'C'])
+        values = self.mixed_int[['A', 'C']].values
         assert values.dtype == np.int32
 
-        values = self.mixed_int.as_matrix(['C', 'D'])
+        values = self.mixed_int[['C', 'D']].values
         assert values.dtype == np.int64
 
-        values = self.mixed_int.as_matrix(['A'])
+        values = self.mixed_int[['A']].values
         assert values.dtype == np.int32
 
-        values = self.mixed_int.as_matrix(['C'])
+        values = self.mixed_int[['C']].values
         assert values.dtype == np.uint8
 
     def test_constructor_with_convert(self):
@@ -233,31 +234,12 @@ class TestDataFrameBlockInternals(TestData):
 
         # convert from a numpy array of non-ns timedelta64
         arr = np.array([1, 2, 3], dtype='timedelta64[s]')
-        s = Series(arr)
-        expected = Series(pd.timedelta_range('00:00:01', periods=3, freq='s'))
-        assert_series_equal(s, expected)
-
         df = DataFrame(index=range(3))
         df['A'] = arr
         expected = DataFrame({'A': pd.timedelta_range('00:00:01', periods=3,
                                                       freq='s')},
                              index=range(3))
         assert_frame_equal(df, expected)
-
-        # convert from a numpy array of non-ns datetime64
-        # note that creating a numpy datetime64 is in LOCAL time!!!!
-        # seems to work for M8[D], but not for M8[s]
-
-        s = Series(np.array(['2013-01-01', '2013-01-02',
-                             '2013-01-03'], dtype='datetime64[D]'))
-        assert_series_equal(s, Series(date_range('20130101', periods=3,
-                                                 freq='D')))
-
-        # s = Series(np.array(['2013-01-01 00:00:01','2013-01-01
-        # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]'))
-
-        # assert_series_equal(s,date_range('20130101
-        # 00:00:01',period=3,freq='s'))
 
         expected = DataFrame({
             'dt1': Timestamp('20130101'),
@@ -424,8 +406,8 @@ starting,ending,measure
         result = df.get_dtype_counts()
         expected = Series({'int64': 1, 'float64': 1,
                            datetime64name: 1, objectname: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         assert_series_equal(result, expected)
 
         df = DataFrame({'a': 1., 'b': 2, 'c': 'foo',
@@ -455,6 +437,17 @@ starting,ending,measure
         expected = df
         assert_frame_equal(result, expected)
 
+    def test_get_numeric_data_extension_dtype(self):
+        # GH 22290
+        df = DataFrame({
+            'A': integer_array([-10, np.nan, 0, 10, 20, 30], dtype='Int64'),
+            'B': Categorical(list('abcabc')),
+            'C': integer_array([0, 1, 2, 3, np.nan, 5], dtype='UInt8'),
+            'D': IntervalArray.from_breaks(range(7))})
+        result = df._get_numeric_data()
+        expected = df.loc[:, ['A', 'C']]
+        assert_frame_equal(result, expected)
+
     def test_convert_objects(self):
 
         oops = self.mixed_frame.T.T
@@ -467,7 +460,7 @@ starting,ending,measure
         self.mixed_frame['I'] = '1'
 
         # add in some items that will be nan
-        l = len(self.mixed_frame)
+        length = len(self.mixed_frame)
         self.mixed_frame['J'] = '1.'
         self.mixed_frame['K'] = '1'
         self.mixed_frame.loc[0:5, ['J', 'K']] = 'garbled'
@@ -476,8 +469,8 @@ starting,ending,measure
         assert converted['I'].dtype == 'int64'
         assert converted['J'].dtype == 'float64'
         assert converted['K'].dtype == 'float64'
-        assert len(converted['J'].dropna()) == l - 5
-        assert len(converted['K'].dropna()) == l - 5
+        assert len(converted['J'].dropna()) == length - 5
+        assert len(converted['K'].dropna()) == length - 5
 
         # via astype
         converted = self.mixed_frame.copy()

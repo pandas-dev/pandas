@@ -16,6 +16,8 @@ from pandas.util import testing as tm
 
 class TestPartialSetting(object):
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -156,8 +158,9 @@ class TestPartialSetting(object):
         df_orig = DataFrame(np.random.randn(8, 4), index=dates,
                             columns=['A', 'B', 'C', 'D'])
 
-        expected = pd.concat([df_orig, DataFrame(
-            {'A': 7}, index=[dates[-1] + 1])])
+        expected = pd.concat([df_orig,
+                              DataFrame({'A': 7}, index=[dates[-1] + 1])],
+                             sort=True)
         df = df_orig.copy()
         df.loc[dates[-1] + 1, 'A'] = 7
         tm.assert_frame_equal(df, expected)
@@ -403,6 +406,7 @@ class TestPartialSetting(object):
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix")
     def test_partial_set_invalid(self):
 
         # GH 4940
@@ -440,10 +444,9 @@ class TestPartialSetting(object):
         df = orig.copy()
         with catch_warnings(record=True):
             df.loc['a', :] = df.ix[0]
-            exp = orig.append(pd.Series(df.ix[0], name='a'))
+            exp = orig.append(Series(df.ix[0], name='a'))
         tm.assert_frame_equal(df, exp)
-        tm.assert_index_equal(df.index,
-                              pd.Index(orig.index.tolist() + ['a']))
+        tm.assert_index_equal(df.index, Index(orig.index.tolist() + ['a']))
         assert df.index.dtype == 'object'
 
     def test_partial_set_empty_series(self):
@@ -495,8 +498,7 @@ class TestPartialSetting(object):
         # these work as they don't really change
         # anything but the index
         # GH5632
-        expected = DataFrame(columns=['foo'], index=pd.Index(
-            [], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
 
         def f():
             df = DataFrame()
@@ -519,8 +521,7 @@ class TestPartialSetting(object):
 
         tm.assert_frame_equal(f(), expected)
 
-        expected = DataFrame(columns=['foo'],
-                             index=pd.Index([], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
         expected['foo'] = expected['foo'].astype('float64')
 
         def f():
@@ -539,17 +540,16 @@ class TestPartialSetting(object):
 
         def f():
             df = DataFrame()
-            tm.assert_index_equal(df.index, pd.Index([], dtype='object'))
+            tm.assert_index_equal(df.index, Index([], dtype='object'))
             df['foo'] = range(len(df))
             return df
 
-        expected = DataFrame(columns=['foo'],
-                             index=pd.Index([], dtype='int64'))
+        expected = DataFrame(columns=['foo'], index=Index([], dtype='int64'))
         expected['foo'] = expected['foo'].astype('float64')
         tm.assert_frame_equal(f(), expected)
 
         df = DataFrame()
-        tm.assert_index_equal(df.columns, pd.Index([], dtype=object))
+        tm.assert_index_equal(df.columns, Index([], dtype=object))
         df2 = DataFrame()
         df2[1] = Series([1], index=['foo'])
         df.loc[:, 1] = Series([1], index=['foo'])
@@ -576,7 +576,7 @@ class TestPartialSetting(object):
         # GH5720, GH5744
         # don't create rows when empty
         expected = DataFrame(columns=['A', 'B', 'New'],
-                             index=pd.Index([], dtype='int64'))
+                             index=Index([], dtype='int64'))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['New'] = expected['New'].astype('float64')
@@ -599,7 +599,7 @@ class TestPartialSetting(object):
         y = df[df.A > 5]
         result = y.reindex(columns=['A', 'B', 'C'])
         expected = DataFrame(columns=['A', 'B', 'C'],
-                             index=pd.Index([], dtype='int64'))
+                             index=Index([], dtype='int64'))
         expected['A'] = expected['A'].astype('int64')
         expected['B'] = expected['B'].astype('float64')
         expected['C'] = expected['C'].astype('float64')

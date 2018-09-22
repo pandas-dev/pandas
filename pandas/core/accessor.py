@@ -5,19 +5,22 @@ accessor.py contains base classes for implementing accessor properties
 that can be mixed into or pinned onto other pandas classes.
 
 """
-from pandas.core.common import AbstractMethodError
+import warnings
+
+from pandas.util._decorators import Appender
 
 
 class DirNamesMixin(object):
     _accessors = frozenset([])
-    _deprecations = frozenset([])
+    _deprecations = frozenset(
+        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
     def _dir_deletions(self):
         """ delete unwanted __dir__ for this object """
         return self._accessors | self._deprecations
 
     def _dir_additions(self):
-        """ add addtional __dir__ for this object """
+        """ add additional __dir__ for this object """
         rv = set()
         for accessor in self._accessors:
             try:
@@ -37,37 +40,8 @@ class DirNamesMixin(object):
         return sorted(rv)
 
 
-class AccessorProperty(object):
-    """Descriptor for implementing accessor properties like Series.str
-    """
-
-    def __init__(self, accessor_cls, construct_accessor=None):
-        self.accessor_cls = accessor_cls
-        self.construct_accessor = (construct_accessor or
-                                   accessor_cls._make_accessor)
-        self.__doc__ = accessor_cls.__doc__
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            # this ensures that Series.str.<method> is well defined
-            return self.accessor_cls
-        return self.construct_accessor(instance)
-
-    def __set__(self, instance, value):
-        raise AttributeError("can't set attribute")
-
-    def __delete__(self, instance):
-        raise AttributeError("can't delete attribute")
-
-
 class PandasDelegate(object):
     """ an abstract base class for delegating methods/properties """
-
-    @classmethod
-    def _make_accessor(cls, data):
-        raise AbstractMethodError("_make_accessor should be implemented"
-                                  "by subclass and return an instance"
-                                  "of `cls`.")
 
     def _delegate_property_get(self, name, *args, **kwargs):
         raise TypeError("You cannot access the "
@@ -129,3 +103,171 @@ class PandasDelegate(object):
             # don't overwrite existing methods/properties
             if overwrite or not hasattr(cls, name):
                 setattr(cls, name, f)
+
+
+def delegate_names(delegate, accessors, typ, overwrite=False):
+    """
+    Add delegated names to a class using a class decorator.  This provides
+    an alternative usage to directly calling `_add_delegate_accessors`
+    below a class definition.
+
+    Parameters
+    ----------
+    delegate : the class to get methods/properties & doc-strings
+    acccessors : string list of accessors to add
+    typ : 'property' or 'method'
+    overwrite : boolean, default False
+       overwrite the method/property in the target class if it exists
+
+    Returns
+    -------
+    decorator
+
+    Examples
+    --------
+    @delegate_names(Categorical, ["categories", "ordered"], "property")
+    class CategoricalAccessor(PandasDelegate):
+        [...]
+    """
+    def add_delegate_accessors(cls):
+        cls._add_delegate_accessors(delegate, accessors, typ,
+                                    overwrite=overwrite)
+        return cls
+
+    return add_delegate_accessors
+
+
+# Ported with modifications from xarray
+# https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
+# 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
+# 2. We use a UserWarning instead of a custom Warning
+
+class CachedAccessor(object):
+    """Custom property-like object (descriptor) for caching accessors.
+
+    Parameters
+    ----------
+    name : str
+        The namespace this will be accessed under, e.g. ``df.foo``
+    accessor : cls
+        The class with the extension methods. The class' __init__ method
+        should expect one of a ``Series``, ``DataFrame`` or ``Index`` as
+        the single argument ``data``
+    """
+    def __init__(self, name, accessor):
+        self._name = name
+        self._accessor = accessor
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            # we're accessing the attribute of the class, i.e., Dataset.geo
+            return self._accessor
+        accessor_obj = self._accessor(obj)
+        # Replace the property with the accessor object. Inspired by:
+        # http://www.pydanny.com/cached-property.html
+        # We need to use object.__setattr__ because we overwrite __setattr__ on
+        # NDFrame
+        object.__setattr__(obj, self._name, accessor_obj)
+        return accessor_obj
+
+
+def _register_accessor(name, cls):
+    def decorator(accessor):
+        if hasattr(cls, name):
+            warnings.warn(
+                'registration of accessor {!r} under name {!r} for type '
+                '{!r} is overriding a preexisting attribute with the same '
+                'name.'.format(accessor, name, cls),
+                UserWarning,
+                stacklevel=2)
+        setattr(cls, name, CachedAccessor(name, accessor))
+        cls._accessors.add(name)
+        return accessor
+    return decorator
+
+
+_doc = """Register a custom accessor on %(klass)s objects.
+
+Parameters
+----------
+name : str
+    Name under which the accessor should be registered. A warning is issued
+    if this name conflicts with a preexisting attribute.
+
+Notes
+-----
+When accessed, your accessor will be initialized with the pandas object
+the user is interacting with. So the signature must be
+
+.. code-block:: python
+
+    def __init__(self, pandas_object):
+
+For consistency with pandas methods, you should raise an ``AttributeError``
+if the data passed to your accessor has an incorrect dtype.
+
+>>> pd.Series(['a', 'b']).dt
+Traceback (most recent call last):
+...
+AttributeError: Can only use .dt accessor with datetimelike values
+
+Examples
+--------
+
+In your library code::
+
+    import pandas as pd
+
+    @pd.api.extensions.register_dataframe_accessor("geo")
+    class GeoAccessor(object):
+        def __init__(self, pandas_obj):
+            self._obj = pandas_obj
+
+        @property
+        def center(self):
+            # return the geographic center point of this DataFrame
+            lat = self._obj.latitude
+            lon = self._obj.longitude
+            return (float(lon.mean()), float(lat.mean()))
+
+        def plot(self):
+            # plot this array's data on a map, e.g., using Cartopy
+            pass
+
+Back in an interactive IPython session:
+
+    >>> ds = pd.DataFrame({'longitude': np.linspace(0, 10),
+    ...                    'latitude': np.linspace(0, 20)})
+    >>> ds.geo.center
+    (5.0, 10.0)
+    >>> ds.geo.plot()
+    # plots data on a map
+
+See also
+--------
+%(others)s
+"""
+
+
+@Appender(_doc % dict(klass="DataFrame",
+                      others=("register_series_accessor, "
+                              "register_index_accessor")))
+def register_dataframe_accessor(name):
+    from pandas import DataFrame
+    return _register_accessor(name, DataFrame)
+
+
+@Appender(_doc % dict(klass="Series",
+                      others=("register_dataframe_accessor, "
+                              "register_index_accessor")))
+def register_series_accessor(name):
+    from pandas import Series
+    return _register_accessor(name, Series)
+
+
+@Appender(_doc % dict(klass="Index",
+                      others=("register_dataframe_accessor, "
+                              "register_series_accessor")))
+def register_index_accessor(name):
+    from pandas import Index
+    return _register_accessor(name, Index)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import numpy as np
 import pandas as pd
 from pandas.core.dtypes import generic as gt
@@ -18,6 +18,7 @@ class TestABCClasses(object):
     df = pd.DataFrame({'names': ['a', 'b', 'c']}, index=multi_index)
     sparse_series = pd.Series([1, 2, 3]).to_sparse()
     sparse_array = pd.SparseArray(np.random.randn(10))
+    sparse_frame = pd.SparseDataFrame({'a': [1, -1, None]})
 
     def test_abc_types(self):
         assert isinstance(pd.Index(['a', 'b', 'c']), gt.ABCIndex)
@@ -34,9 +35,11 @@ class TestABCClasses(object):
         assert isinstance(pd.Series([1, 2, 3]), gt.ABCSeries)
         assert isinstance(self.df, gt.ABCDataFrame)
         with catch_warnings(record=True):
+            simplefilter('ignore', FutureWarning)
             assert isinstance(self.df.to_panel(), gt.ABCPanel)
         assert isinstance(self.sparse_series, gt.ABCSparseSeries)
         assert isinstance(self.sparse_array, gt.ABCSparseArray)
+        assert isinstance(self.sparse_frame, gt.ABCSparseDataFrame)
         assert isinstance(self.categorical, gt.ABCCategorical)
         assert isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCPeriod)
 
@@ -45,6 +48,8 @@ class TestABCClasses(object):
                           gt.ABCDateOffset)
         assert not isinstance(pd.Period('2012', freq='A-DEC'),
                               gt.ABCDateOffset)
+        assert isinstance(pd.Interval(0, 1.5), gt.ABCInterval)
+        assert not isinstance(pd.Period('2012', freq='A-DEC'), gt.ABCInterval)
 
 
 def test_setattr_warnings():

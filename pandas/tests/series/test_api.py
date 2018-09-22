@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 from collections import OrderedDict
+import warnings
+import pydoc
 
 import pytest
 
@@ -10,8 +12,9 @@ import pandas as pd
 from pandas import Index, Series, DataFrame, date_range
 from pandas.core.indexes.datetimes import Timestamp
 
-from pandas.compat import range
-from pandas import compat
+from pandas.compat import range, lzip, isidentifier, string_types
+from pandas import (compat, Categorical, period_range, timedelta_range,
+                    DatetimeIndex, PeriodIndex, TimedeltaIndex)
 import pandas.io.formats.printing as printing
 from pandas.util.testing import (assert_series_equal,
                                  ensure_clean)
@@ -195,6 +198,11 @@ class SharedWithSparse(object):
         )
         self._assert_series_equal(result, expected)
 
+    def test_from_array_deprecated(self):
+
+        with tm.assert_produces_warning(FutureWarning):
+            self.series_klass.from_array([1, 2, 3])
+
 
 class TestSeriesMisc(TestData, SharedWithSparse):
 
@@ -210,7 +218,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert 'dt' not in dir(s)
         assert 'cat' not in dir(s)
 
-        # similiarly for .dt
+        # similarly for .dt
         s = Series(date_range('1/1/2015', periods=5))
         assert 'dt' in dir(s)
         assert 'str' not in dir(s)
@@ -228,6 +236,48 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         assert 'cat' in dir(s)
         assert 'str' not in dir(s)
         assert 'dt' in dir(s)  # as it is a datetime categorical
+
+    def test_tab_completion_with_categorical(self):
+        # test the tab completion display
+        ok_for_cat = ['categories', 'codes', 'ordered', 'set_categories',
+                      'add_categories', 'remove_categories',
+                      'rename_categories', 'reorder_categories',
+                      'remove_unused_categories', 'as_ordered', 'as_unordered']
+
+        def get_dir(s):
+            results = [r for r in s.cat.__dir__() if not r.startswith('_')]
+            return list(sorted(set(results)))
+
+        s = Series(list('aabbcde')).astype('category')
+        results = get_dir(s)
+        tm.assert_almost_equal(results, list(sorted(set(ok_for_cat))))
+
+    @pytest.mark.parametrize("index", [
+        tm.makeUnicodeIndex(10),
+        tm.makeStringIndex(10),
+        tm.makeCategoricalIndex(10),
+        Index(['foo', 'bar', 'baz'] * 2),
+        tm.makeDateIndex(10),
+        tm.makePeriodIndex(10),
+        tm.makeTimedeltaIndex(10),
+        tm.makeIntIndex(10),
+        tm.makeUIntIndex(10),
+        tm.makeIntIndex(10),
+        tm.makeFloatIndex(10),
+        Index([True, False]),
+        Index(['a{}'.format(i) for i in range(101)]),
+        pd.MultiIndex.from_tuples(lzip('ABCD', 'EFGH')),
+        pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
+    def test_index_tab_completion(self, index):
+        # dir contains string-like values of the Index.
+        s = pd.Series(index=index)
+        dir_s = dir(s)
+        for i, x in enumerate(s.index.unique(level=0)):
+            if i < 100:
+                assert (not isinstance(x, string_types) or
+                        not isidentifier(x) or x in dir_s)
+            else:
+                assert x not in dir_s
 
     def test_not_hashable(self):
         s_empty = Series()
@@ -336,7 +386,8 @@ class TestSeriesMisc(TestData, SharedWithSparse):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        Series.index  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(Series.index)
 
     def test_numpy_unique(self):
         # it works!
@@ -374,19 +425,23 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         # compress
         # GH 6658
         s = Series([0, 1., -1], index=list('abc'))
-        result = np.compress(s > 0, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s > 0, s)
         tm.assert_series_equal(result, Series([1.], index=['b']))
 
-        result = np.compress(s < -1, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s < -1, s)
         # result empty Index(dtype=object) as the same as original
         exp = Series([], dtype='float64', index=Index([], dtype='object'))
         tm.assert_series_equal(result, exp)
 
         s = Series([0, 1., -1], index=[.1, .2, .3])
-        result = np.compress(s > 0, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s > 0, s)
         tm.assert_series_equal(result, Series([1.], index=[.2]))
 
-        result = np.compress(s < -1, s)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = np.compress(s < -1, s)
         # result empty Float64Index as the same as original
         exp = Series([], dtype='float64', index=Index([], dtype='float64'))
         tm.assert_series_equal(result, exp)
@@ -422,3 +477,289 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):
                 list(ip.Completer.completions('s.', 1))
+
+
+class TestCategoricalSeries(object):
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: x.cat.set_categories([1, 2, 3]),
+            lambda x: x.cat.reorder_categories([2, 3, 1], ordered=True),
+            lambda x: x.cat.rename_categories([1, 2, 3]),
+            lambda x: x.cat.remove_unused_categories(),
+            lambda x: x.cat.remove_categories([2]),
+            lambda x: x.cat.add_categories([4]),
+            lambda x: x.cat.as_ordered(),
+            lambda x: x.cat.as_unordered(),
+        ])
+    def test_getname_categorical_accessor(self, method):
+        # GH 17509
+        s = Series([1, 2, 3], name='A').astype('category')
+        expected = 'A'
+        result = method(s).name
+        assert result == expected
+
+    def test_cat_accessor(self):
+        s = Series(Categorical(["a", "b", np.nan, "a"]))
+        tm.assert_index_equal(s.cat.categories, Index(["a", "b"]))
+        assert not s.cat.ordered, False
+
+        exp = Categorical(["a", "b", np.nan, "a"], categories=["b", "a"])
+        s.cat.set_categories(["b", "a"], inplace=True)
+        tm.assert_categorical_equal(s.values, exp)
+
+        res = s.cat.set_categories(["b", "a"])
+        tm.assert_categorical_equal(res.values, exp)
+
+        s[:] = "a"
+        s = s.cat.remove_unused_categories()
+        tm.assert_index_equal(s.cat.categories, Index(["a"]))
+
+    def test_cat_accessor_api(self):
+        # GH 9322
+        from pandas.core.arrays.categorical import CategoricalAccessor
+        assert Series.cat is CategoricalAccessor
+        s = Series(list('aabbcde')).astype('category')
+        assert isinstance(s.cat, CategoricalAccessor)
+
+        invalid = Series([1])
+        with tm.assert_raises_regex(AttributeError,
+                                    "only use .cat accessor"):
+            invalid.cat
+        assert not hasattr(invalid, 'cat')
+
+    def test_cat_accessor_no_new_attributes(self):
+        # https://github.com/pandas-dev/pandas/issues/10673
+        c = Series(list('aabbcde')).astype('category')
+        with tm.assert_raises_regex(AttributeError,
+                                    "You cannot add any new attribute"):
+            c.cat.xlabel = "a"
+
+    def test_categorical_delegations(self):
+
+        # invalid accessor
+        pytest.raises(AttributeError, lambda: Series([1, 2, 3]).cat)
+        tm.assert_raises_regex(
+            AttributeError,
+            r"Can only use .cat accessor with a 'category' dtype",
+            lambda: Series([1, 2, 3]).cat)
+        pytest.raises(AttributeError, lambda: Series(['a', 'b', 'c']).cat)
+        pytest.raises(AttributeError, lambda: Series(np.arange(5.)).cat)
+        pytest.raises(AttributeError,
+                      lambda: Series([Timestamp('20130101')]).cat)
+
+        # Series should delegate calls to '.categories', '.codes', '.ordered'
+        # and the methods '.set_categories()' 'drop_unused_categories()' to the
+        # categorical# -*- coding: utf-8 -*-
+        s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
+        exp_categories = Index(["a", "b", "c"])
+        tm.assert_index_equal(s.cat.categories, exp_categories)
+        s.cat.categories = [1, 2, 3]
+        exp_categories = Index([1, 2, 3])
+        tm.assert_index_equal(s.cat.categories, exp_categories)
+
+        exp_codes = Series([0, 1, 2, 0], dtype='int8')
+        tm.assert_series_equal(s.cat.codes, exp_codes)
+
+        assert s.cat.ordered
+        s = s.cat.as_unordered()
+        assert not s.cat.ordered
+        s.cat.as_ordered(inplace=True)
+        assert s.cat.ordered
+
+        # reorder
+        s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
+        exp_categories = Index(["c", "b", "a"])
+        exp_values = np.array(["a", "b", "c", "a"], dtype=np.object_)
+        s = s.cat.set_categories(["c", "b", "a"])
+        tm.assert_index_equal(s.cat.categories, exp_categories)
+        tm.assert_numpy_array_equal(s.values.__array__(), exp_values)
+        tm.assert_numpy_array_equal(s.__array__(), exp_values)
+
+        # remove unused categories
+        s = Series(Categorical(["a", "b", "b", "a"], categories=["a", "b", "c"
+                                                                 ]))
+        exp_categories = Index(["a", "b"])
+        exp_values = np.array(["a", "b", "b", "a"], dtype=np.object_)
+        s = s.cat.remove_unused_categories()
+        tm.assert_index_equal(s.cat.categories, exp_categories)
+        tm.assert_numpy_array_equal(s.values.__array__(), exp_values)
+        tm.assert_numpy_array_equal(s.__array__(), exp_values)
+
+        # This method is likely to be confused, so test that it raises an error
+        # on wrong inputs:
+        def f():
+            s.set_categories([4, 3, 2, 1])
+
+        pytest.raises(Exception, f)
+        # right: s.cat.set_categories([4,3,2,1])
+
+        # GH18862 (let Series.cat.rename_categories take callables)
+        s = Series(Categorical(["a", "b", "c", "a"], ordered=True))
+        result = s.cat.rename_categories(lambda x: x.upper())
+        expected = Series(Categorical(["A", "B", "C", "A"],
+                                      categories=["A", "B", "C"],
+                                      ordered=True))
+        tm.assert_series_equal(result, expected)
+
+    def test_str_accessor_api_for_categorical(self):
+        # https://github.com/pandas-dev/pandas/issues/10661
+        from pandas.core.strings import StringMethods
+        s = Series(list('aabb'))
+        s = s + " " + s
+        c = s.astype('category')
+        assert isinstance(c.str, StringMethods)
+
+        # str functions, which need special arguments
+        special_func_defs = [
+            ('cat', (list("zyxw"),), {"sep": ","}),
+            ('center', (10,), {}),
+            ('contains', ("a",), {}),
+            ('count', ("a",), {}),
+            ('decode', ("UTF-8",), {}),
+            ('encode', ("UTF-8",), {}),
+            ('endswith', ("a",), {}),
+            ('extract', ("([a-z]*) ",), {"expand": False}),
+            ('extract', ("([a-z]*) ",), {"expand": True}),
+            ('extractall', ("([a-z]*) ",), {}),
+            ('find', ("a",), {}),
+            ('findall', ("a",), {}),
+            ('index', (" ",), {}),
+            ('ljust', (10,), {}),
+            ('match', ("a"), {}),  # deprecated...
+            ('normalize', ("NFC",), {}),
+            ('pad', (10,), {}),
+            ('partition', (" ",), {"expand": False}),  # not default
+            ('partition', (" ",), {"expand": True}),  # default
+            ('repeat', (3,), {}),
+            ('replace', ("a", "z"), {}),
+            ('rfind', ("a",), {}),
+            ('rindex', (" ",), {}),
+            ('rjust', (10,), {}),
+            ('rpartition', (" ",), {"expand": False}),  # not default
+            ('rpartition', (" ",), {"expand": True}),  # default
+            ('slice', (0, 1), {}),
+            ('slice_replace', (0, 1, "z"), {}),
+            ('split', (" ",), {"expand": False}),  # default
+            ('split', (" ",), {"expand": True}),  # not default
+            ('startswith', ("a",), {}),
+            ('wrap', (2,), {}),
+            ('zfill', (10,), {})
+        ]
+        _special_func_names = [f[0] for f in special_func_defs]
+
+        # * get, join: they need a individual elements of type lists, but
+        #   we can't make a categorical with lists as individual categories.
+        #   -> `s.str.split(" ").astype("category")` will error!
+        # * `translate` has different interfaces for py2 vs. py3
+        _ignore_names = ["get", "join", "translate"]
+
+        str_func_names = [f for f in dir(s.str) if not (
+            f.startswith("_") or
+            f in _special_func_names or
+            f in _ignore_names)]
+
+        func_defs = [(f, (), {}) for f in str_func_names]
+        func_defs.extend(special_func_defs)
+
+        for func, args, kwargs in func_defs:
+            res = getattr(c.str, func)(*args, **kwargs)
+            exp = getattr(s.str, func)(*args, **kwargs)
+
+            if isinstance(res, DataFrame):
+                tm.assert_frame_equal(res, exp)
+            else:
+                tm.assert_series_equal(res, exp)
+
+        invalid = Series([1, 2, 3]).astype('category')
+        with tm.assert_raises_regex(AttributeError,
+                                    "Can only use .str "
+                                    "accessor with string"):
+            invalid.str
+        assert not hasattr(invalid, 'str')
+
+    def test_dt_accessor_api_for_categorical(self):
+        # https://github.com/pandas-dev/pandas/issues/10661
+        from pandas.core.indexes.accessors import Properties
+
+        s_dr = Series(date_range('1/1/2015', periods=5, tz="MET"))
+        c_dr = s_dr.astype("category")
+
+        s_pr = Series(period_range('1/1/2015', freq='D', periods=5))
+        c_pr = s_pr.astype("category")
+
+        s_tdr = Series(timedelta_range('1 days', '10 days'))
+        c_tdr = s_tdr.astype("category")
+
+        # only testing field (like .day)
+        # and bool (is_month_start)
+        get_ops = lambda x: x._datetimelike_ops
+
+        test_data = [
+            ("Datetime", get_ops(DatetimeIndex), s_dr, c_dr),
+            ("Period", get_ops(PeriodIndex), s_pr, c_pr),
+            ("Timedelta", get_ops(TimedeltaIndex), s_tdr, c_tdr)]
+
+        assert isinstance(c_dr.dt, Properties)
+
+        special_func_defs = [
+            ('strftime', ("%Y-%m-%d",), {}),
+            ('tz_convert', ("EST",), {}),
+            ('round', ("D",), {}),
+            ('floor', ("D",), {}),
+            ('ceil', ("D",), {}),
+            ('asfreq', ("D",), {}),
+            # ('tz_localize', ("UTC",), {}),
+        ]
+        _special_func_names = [f[0] for f in special_func_defs]
+
+        # the series is already localized
+        _ignore_names = ['tz_localize', 'components']
+
+        for name, attr_names, s, c in test_data:
+            func_names = [f
+                          for f in dir(s.dt)
+                          if not (f.startswith("_") or f in attr_names or f in
+                                  _special_func_names or f in _ignore_names)]
+
+            func_defs = [(f, (), {}) for f in func_names]
+            for f_def in special_func_defs:
+                if f_def[0] in dir(s.dt):
+                    func_defs.append(f_def)
+
+            for func, args, kwargs in func_defs:
+                with warnings.catch_warnings():
+                    if func == 'to_period':
+                        # dropping TZ
+                        warnings.simplefilter("ignore", UserWarning)
+                    res = getattr(c.dt, func)(*args, **kwargs)
+                    exp = getattr(s.dt, func)(*args, **kwargs)
+
+                if isinstance(res, DataFrame):
+                    tm.assert_frame_equal(res, exp)
+                elif isinstance(res, Series):
+                    tm.assert_series_equal(res, exp)
+                else:
+                    tm.assert_almost_equal(res, exp)
+
+            for attr in attr_names:
+                try:
+                    res = getattr(c.dt, attr)
+                    exp = getattr(s.dt, attr)
+                except Exception as e:
+                    print(name, attr)
+                    raise e
+
+            if isinstance(res, DataFrame):
+                tm.assert_frame_equal(res, exp)
+            elif isinstance(res, Series):
+                tm.assert_series_equal(res, exp)
+            else:
+                tm.assert_almost_equal(res, exp)
+
+        invalid = Series([1, 2, 3]).astype('category')
+        with tm.assert_raises_regex(
+                AttributeError, "Can only use .dt accessor with datetimelike"):
+            invalid.dt
+        assert not hasattr(invalid, 'str')

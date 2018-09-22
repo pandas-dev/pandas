@@ -9,12 +9,13 @@ from pandas.compat import string_types, string_and_binary_types
 # numpy versioning
 _np_version = np.__version__
 _nlv = LooseVersion(_np_version)
-_np_version_under1p10 = _nlv < '1.10'
-_np_version_under1p11 = _nlv < '1.11'
-_np_version_under1p12 = _nlv < '1.12'
-_np_version_under1p13 = _nlv < '1.13'
-_np_version_under1p14 = _nlv < '1.14'
-_np_version_under1p15 = _nlv < '1.15'
+_np_version_under1p10 = _nlv < LooseVersion('1.10')
+_np_version_under1p11 = _nlv < LooseVersion('1.11')
+_np_version_under1p12 = _nlv < LooseVersion('1.12')
+_np_version_under1p13 = _nlv < LooseVersion('1.13')
+_np_version_under1p14 = _nlv < LooseVersion('1.14')
+_np_version_under1p15 = _nlv < LooseVersion('1.15')
+
 
 if _nlv < '1.9':
     raise ImportError('this version of pandas is incompatible with '

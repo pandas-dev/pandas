@@ -21,6 +21,7 @@
 .ipynb_checkpoints
 .tags
 .cache/
+.vscode/
 
 # Compiled source #
 ###################
@@ -60,6 +61,9 @@ dist
 .coverage
 coverage.xml
 coverage_html_report
+*.pytest_cache
+# hypothesis test database
+.hypothesis/
 
 # OS generated files #
 ######################
@@ -87,8 +91,8 @@ scikits
 *.c
 *.cpp
 
-# Performance Testing #
-#######################
+# Unit / Performance Testing #
+##############################
 asv_bench/env/
 asv_bench/html/
 asv_bench/results/
@@ -106,4 +110,5 @@ doc/build/html/index.html
 doc/tmp.sv
 doc/source/styled.xlsx
 doc/source/templates/
+env/
 doc/source/savefig/

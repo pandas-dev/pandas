@@ -9,50 +9,53 @@ from pandas.core.dtypes.dtypes import (DatetimeTZDtype, PeriodDtype,
 
 import pandas.core.dtypes.common as com
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 
 class TestPandasDtype(object):
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
-    def test_invalid_dtype_error(self):
-        msg = 'not understood'
-        invalid_list = [pd.Timestamp, 'pd.Timestamp', list]
-        for dtype in invalid_list:
-            with tm.assert_raises_regex(TypeError, msg):
-                com.pandas_dtype(dtype)
+    @pytest.mark.parametrize('box', [pd.Timestamp, 'pd.Timestamp', list])
+    def test_invalid_dtype_error(self, box):
+        with tm.assert_raises_regex(TypeError, 'not understood'):
+            com.pandas_dtype(box)
 
-        valid_list = [object, 'float64', np.object_, np.dtype('object'), 'O',
-                      np.float64, float, np.dtype('float64')]
-        for dtype in valid_list:
-            com.pandas_dtype(dtype)
+    @pytest.mark.parametrize('dtype', [
+        object, 'float64', np.object_, np.dtype('object'), 'O',
+        np.float64, float, np.dtype('float64')])
+    def test_pandas_dtype_valid(self, dtype):
+        assert com.pandas_dtype(dtype) == dtype
 
-    def test_numpy_dtype(self):
-        for dtype in ['M8[ns]', 'm8[ns]', 'object', 'float64', 'int64']:
-            assert com.pandas_dtype(dtype) == np.dtype(dtype)
+    @pytest.mark.parametrize('dtype', [
+        'M8[ns]', 'm8[ns]', 'object', 'float64', 'int64'])
+    def test_numpy_dtype(self, dtype):
+        assert com.pandas_dtype(dtype) == np.dtype(dtype)
 
     def test_numpy_string_dtype(self):
         # do not parse freq-like string as period dtype
         assert com.pandas_dtype('U') == np.dtype('U')
         assert com.pandas_dtype('S') == np.dtype('S')
 
-    def test_datetimetz_dtype(self):
-        for dtype in ['datetime64[ns, US/Eastern]',
-                      'datetime64[ns, Asia/Tokyo]',
-                      'datetime64[ns, UTC]']:
-            assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
-            assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
-            assert com.pandas_dtype(dtype) == dtype
+    @pytest.mark.parametrize('dtype', [
+        'datetime64[ns, US/Eastern]',
+        'datetime64[ns, Asia/Tokyo]',
+        'datetime64[ns, UTC]'])
+    def test_datetimetz_dtype(self, dtype):
+        assert com.pandas_dtype(dtype) is DatetimeTZDtype(dtype)
+        assert com.pandas_dtype(dtype) == DatetimeTZDtype(dtype)
+        assert com.pandas_dtype(dtype) == dtype
 
     def test_categorical_dtype(self):
         assert com.pandas_dtype('category') == CategoricalDtype()
 
-    def test_period_dtype(self):
-        for dtype in ['period[D]', 'period[3M]', 'period[U]',
-                      'Period[D]', 'Period[3M]', 'Period[U]']:
-            assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
-            assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
-            assert com.pandas_dtype(dtype) == dtype
+    @pytest.mark.parametrize('dtype', [
+        'period[D]', 'period[3M]', 'period[U]',
+        'Period[D]', 'Period[3M]', 'Period[U]'])
+    def test_period_dtype(self, dtype):
+        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) == dtype
 
 
 dtypes = dict(datetime_tz=com.pandas_dtype('datetime64[ns, US/Eastern]'),
@@ -79,25 +82,18 @@ def test_dtype_equal(name1, dtype1, name2, dtype2):
         assert not com.is_dtype_equal(dtype1, dtype2)
 
 
-def test_dtype_equal_strict():
-
-    # we are strict on kind equality
-    for dtype in [np.int8, np.int16, np.int32]:
-        assert not com.is_dtype_equal(np.int64, dtype)
-
-    for dtype in [np.float32]:
-        assert not com.is_dtype_equal(np.float64, dtype)
-
-    # strict w.r.t. PeriodDtype
-    assert not com.is_dtype_equal(PeriodDtype('D'), PeriodDtype('2D'))
-
-    # strict w.r.t. datetime64
-    assert not com.is_dtype_equal(
-        com.pandas_dtype('datetime64[ns, US/Eastern]'),
-        com.pandas_dtype('datetime64[ns, CET]'))
-
-    # see gh-15941: no exception should be raised
-    assert not com.is_dtype_equal(None, None)
+@pytest.mark.parametrize("dtype1,dtype2", [
+    (np.int8, np.int64),
+    (np.int16, np.int64),
+    (np.int32, np.int64),
+    (np.float32, np.float64),
+    (PeriodDtype("D"), PeriodDtype("2D")),  # PeriodType
+    (com.pandas_dtype("datetime64[ns, US/Eastern]"),
+     com.pandas_dtype("datetime64[ns, CET]")),  # Datetime
+    (None, None)  # gh-15941: no exception should be raised.
+])
+def test_dtype_equal_strict(dtype1, dtype2):
+    assert not com.is_dtype_equal(dtype1, dtype2)
 
 
 def get_is_dtype_funcs():
@@ -132,21 +128,22 @@ def test_is_object():
     assert not com.is_object_dtype([1, 2, 3])
 
 
-def test_is_sparse():
+@pytest.mark.parametrize("check_scipy", [
+    False, pytest.param(True, marks=td.skip_if_no_scipy)
+])
+def test_is_sparse(check_scipy):
     assert com.is_sparse(pd.SparseArray([1, 2, 3]))
     assert com.is_sparse(pd.SparseSeries([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 
-    # This test will only skip if the previous assertions
-    # pass AND scipy is not installed.
-    sparse = pytest.importorskip("scipy.sparse")
-    assert not com.is_sparse(sparse.bsr_matrix([1, 2, 3]))
+    if check_scipy:
+        import scipy.sparse
+        assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
+@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    tm._skip_if_no_scipy()
-
     from scipy.sparse import bsr_matrix
     assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
 
@@ -501,7 +498,10 @@ def test_is_bool_dtype():
     assert com.is_bool_dtype(pd.Index([True, False]))
 
 
-def test_is_extension_type():
+@pytest.mark.parametrize("check_scipy", [
+    False, pytest.param(True, marks=td.skip_if_no_scipy)
+])
+def test_is_extension_type(check_scipy):
     assert not com.is_extension_type([1, 2, 3])
     assert not com.is_extension_type(np.array([1, 2, 3]))
     assert not com.is_extension_type(pd.DatetimeIndex([1, 2, 3]))
@@ -517,10 +517,9 @@ def test_is_extension_type():
     s = pd.Series([], dtype=dtype)
     assert com.is_extension_type(s)
 
-    # This test will only skip if the previous assertions
-    # pass AND scipy is not installed.
-    sparse = pytest.importorskip("scipy.sparse")
-    assert not com.is_extension_type(sparse.bsr_matrix([1, 2, 3]))
+    if check_scipy:
+        import scipy.sparse
+        assert not com.is_extension_type(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
 def test_is_complex_dtype():
@@ -531,6 +530,19 @@ def test_is_complex_dtype():
 
     assert com.is_complex_dtype(np.complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
+
+
+def test_is_offsetlike():
+    assert com.is_offsetlike(np.array([pd.DateOffset(month=3),
+                                       pd.offsets.Nano()]))
+    assert com.is_offsetlike(pd.offsets.MonthEnd())
+    assert com.is_offsetlike(pd.Index([pd.DateOffset(second=1)]))
+
+    assert not com.is_offsetlike(pd.Timedelta(1))
+    assert not com.is_offsetlike(np.array([1 + 1j, 5]))
+
+    # mixed case
+    assert not com.is_offsetlike(np.array([pd.DateOffset(), pd.Timestamp(0)]))
 
 
 @pytest.mark.parametrize('input_param,result', [
@@ -551,8 +563,8 @@ def test_is_complex_dtype():
     (pd.CategoricalIndex(['a', 'b']), CategoricalDtype(['a', 'b'])),
     (CategoricalDtype(), CategoricalDtype()),
     (CategoricalDtype(['a', 'b']), CategoricalDtype()),
-    (pd.DatetimeIndex([1, 2]), np.dtype('<M8[ns]')),
-    (pd.DatetimeIndex([1, 2]).dtype, np.dtype('<M8[ns]')),
+    (pd.DatetimeIndex([1, 2]), np.dtype('=M8[ns]')),
+    (pd.DatetimeIndex([1, 2]).dtype, np.dtype('=M8[ns]')),
     ('<M8[ns]', np.dtype('<M8[ns]')),
     ('datetime64[ns, Europe/London]', DatetimeTZDtype('ns', 'Europe/London')),
     (pd.SparseSeries([1, 2], dtype='int32'), np.dtype('int32')),

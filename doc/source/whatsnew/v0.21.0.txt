@@ -372,6 +372,12 @@ Additionally, support has been dropped for Python 3.4 (:issue:`15251`).
 Sum/Prod of all-NaN or empty Series/DataFrames is now consistently NaN
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+
+   The changes described here have been partially reverted. See
+   the :ref:`v0.22.0 Whatsnew <whatsnew_0220>` for more.
+
+
 The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
 whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
 
@@ -888,16 +894,13 @@ imported. Matplotlib plot methods (``plt.plot``, ``ax.plot``, ...), will not
 nicely format the x-axis for ``DatetimeIndex`` or ``PeriodIndex`` values. You
 must explicitly register these methods:
 
-.. ipython:: python
-
-   from pandas.tseries import converter
-   converter.register()
-
-   fig, ax = plt.subplots()
-   plt.plot(pd.date_range('2017', periods=6), range(6))
-
 Pandas built-in ``Series.plot`` and ``DataFrame.plot`` *will* register these
-converters on first-use (:issue:17710).
+converters on first-use (:issue:`17710`).
+
+.. note::
+
+  This change has been temporarily reverted in pandas 0.21.1,
+  for more details see :ref:`here <whatsnew_0211.converters>`.
 
 .. _whatsnew_0210.api:
 
@@ -932,7 +935,7 @@ Deprecations
 - :func:`read_excel()` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with ``.to_excel()`` (:issue:`10559`).
 - :func:`read_excel()` has deprecated ``parse_cols`` in favor of ``usecols`` for consistency with :func:`read_csv` (:issue:`4988`)
 - :func:`read_csv()` has deprecated the ``tupleize_cols`` argument. Column tuples will always be converted to a ``MultiIndex`` (:issue:`17060`)
-- :meth:`DataFrame.to_csv` has deprecated the ``tupleize_cols`` argument. Multi-index columns will be always written as rows in the CSV file (:issue:`17060`)
+- :meth:`DataFrame.to_csv` has deprecated the ``tupleize_cols`` argument. MultiIndex columns will be always written as rows in the CSV file (:issue:`17060`)
 - The ``convert`` parameter has been deprecated in the ``.take()`` method, as it was not being respected (:issue:`16948`)
 - ``pd.options.html.border`` has been deprecated in favor of ``pd.options.display.html.border`` (:issue:`15793`).
 - :func:`SeriesGroupBy.nth` has deprecated ``True`` in favor of ``'all'`` for its kwarg ``dropna`` (:issue:`11038`).
@@ -1044,7 +1047,7 @@ Conversion
 - Bug in :attr:`Timestamp.weekday_name` returning a UTC-based weekday name when localized to a timezone (:issue:`17354`)
 - Bug in ``Timestamp.replace`` when replacing ``tzinfo`` around DST changes (:issue:`15683`)
 - Bug in ``Timedelta`` construction and arithmetic that would not propagate the ``Overflow`` exception (:issue:`17367`)
-- Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (`DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
+- Bug in :meth:`~DataFrame.astype` converting to object dtype when passed extension type classes (``DatetimeTZDtype``, ``CategoricalDtype``) rather than instances. Now a ``TypeError`` is raised when a class is passed (:issue:`17780`).
 - Bug in :meth:`to_numeric` in which elements were not always being coerced to numeric when ``errors='coerce'`` (:issue:`17007`, :issue:`17125`)
 - Bug in ``DataFrame`` and ``Series`` constructors where ``range`` objects are converted to ``int32`` dtype on Windows instead of ``int64`` (:issue:`16804`)
 

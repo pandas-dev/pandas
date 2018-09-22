@@ -12,6 +12,7 @@ from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
@@ -22,8 +23,6 @@ from pandas.plotting._tools import _flatten
 """
 This is a common base class used for various plotting tests
 """
-
-tm._skip_if_no_mpl()
 
 
 def _skip_if_no_scipy_gaussian_kde():
@@ -43,6 +42,7 @@ def _ok_for_gaussian_kde(kind):
     return plotting._compat._mpl_ge_1_5_0()
 
 
+@td.skip_if_no_mpl
 class TestPlotBase(object):
 
     def setup_method(self, method):
@@ -56,6 +56,7 @@ class TestPlotBase(object):
         self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
         self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
         self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
+        self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -73,11 +74,6 @@ class TestPlotBase(object):
         else:
             self.default_figsize = (8.0, 6.0)
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
-        # common test data
-        from pandas import read_csv
-        base = os.path.join(os.path.dirname(curpath()), os.pardir)
-        path = os.path.join(base, 'tests', 'data', 'iris.csv')
-        self.iris = read_csv(path)
 
         n = 100
         with tm.RNGContext(42):

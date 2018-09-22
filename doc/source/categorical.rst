@@ -19,10 +19,11 @@ Categorical Data
 This is an introduction to pandas categorical data type, including a short comparison
 with R's ``factor``.
 
-`Categoricals` are a pandas data type, which correspond to categorical variables in
-statistics: a variable, which can take on only a limited, and usually fixed,
-number of possible values (`categories`; `levels` in R). Examples are gender, social class,
-blood types, country affiliations, observation time or ratings via Likert scales.
+`Categoricals` are a pandas data type corresponding to categorical variables in
+statistics. A categorical variable takes on a limited, and usually fixed,
+number of possible values (`categories`; `levels` in R). Examples are gender, 
+social class, blood type, country affiliation, observation time or rating via 
+Likert scales.
 
 In contrast to statistical categorical variables, categorical data might have an order (e.g.
 'strongly agree' vs 'agree' or 'first observation' vs. 'second observation'), but numerical
@@ -40,24 +41,29 @@ The categorical data type is useful in the following cases:
 * The lexical order of a variable is not the same as the logical order ("one", "two", "three").
   By converting to a categorical and specifying an order on the categories, sorting and
   min/max will use the logical order instead of the lexical order, see :ref:`here <categorical.sort>`.
-* As a signal to other python libraries that this column should be treated as a categorical
+* As a signal to other Python libraries that this column should be treated as a categorical
   variable (e.g. to use suitable statistical methods or plot types).
 
 See also the :ref:`API docs on categoricals<api.categorical>`.
 
+.. _categorical.objectcreation:
+
 Object Creation
 ---------------
 
-Categorical `Series` or columns in a `DataFrame` can be created in several ways:
+Series Creation
+~~~~~~~~~~~~~~~
 
-By specifying ``dtype="category"`` when constructing a `Series`:
+Categorical ``Series`` or columns in a ``DataFrame`` can be created in several ways:
+
+By specifying ``dtype="category"`` when constructing a ``Series``:
 
 .. ipython:: python
 
     s = pd.Series(["a","b","c","a"], dtype="category")
     s
 
-By converting an existing `Series` or column to a ``category`` dtype:
+By converting an existing ``Series`` or column to a ``category`` dtype:
 
 .. ipython:: python
 
@@ -65,19 +71,18 @@ By converting an existing `Series` or column to a ``category`` dtype:
     df["B"] = df["A"].astype('category')
     df
 
-By using some special functions:
+By using special functions, such as :func:`~pandas.cut`, which groups data into
+discrete bins. See the :ref:`example on tiling <reshaping.tile.cut>` in the docs.
 
 .. ipython:: python
 
     df = pd.DataFrame({'value': np.random.randint(0, 100, 20)})
-    labels = [ "{0} - {1}".format(i, i + 9) for i in range(0, 100, 10) ]
+    labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
 
     df['group'] = pd.cut(df.value, range(0, 105, 10), right=False, labels=labels)
     df.head(10)
 
-See :ref:`documentation <reshaping.tile.cut>` for :func:`~pandas.cut`.
-
-By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to a `DataFrame`.
+By passing a :class:`pandas.Categorical` object to a ``Series`` or assigning it to a ``DataFrame``.
 
 .. ipython:: python
 
@@ -89,10 +94,60 @@ By passing a :class:`pandas.Categorical` object to a `Series` or assigning it to
     df["B"] = raw_cat
     df
 
-Anywhere above we passed a keyword ``dtype='category'``, we used the default behavior of
+Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
 
-1. categories are inferred from the data
-2. categories are unordered.
+.. ipython:: python
+
+    df.dtypes
+
+DataFrame Creation
+~~~~~~~~~~~~~~~~~~
+
+Similar to the previous section where a single column was converted to categorical, all columns in a
+``DataFrame`` can be batch converted to categorical either during or after construction.
+
+This can be done during construction by specifying ``dtype="category"`` in the ``DataFrame`` constructor:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')}, dtype="category")
+    df.dtypes
+
+Note that the categories present in each column differ; the conversion is done column by column, so
+only labels present in a given column are categories:
+
+.. ipython:: python
+
+    df['A']
+    df['B']
+
+
+.. versionadded:: 0.23.0
+
+Analogously, all columns in an existing ``DataFrame`` can be batch converted using :meth:`DataFrame.astype`:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    df_cat = df.astype('category')
+    df_cat.dtypes
+
+This conversion is likewise done column by column:
+
+.. ipython:: python
+
+    df_cat['A']
+    df_cat['B']
+
+
+Controlling Behavior
+~~~~~~~~~~~~~~~~~~~~
+
+In the examples above where we passed ``dtype='category'``, we used the default 
+behavior:
+
+1. Categories are inferred from the data.
+2. Categories are unordered.
 
 To control those behaviors, instead of passing ``'category'``, use an instance
 of :class:`~pandas.api.types.CategoricalDtype`.
@@ -107,24 +162,39 @@ of :class:`~pandas.api.types.CategoricalDtype`.
     s_cat = s.astype(cat_type)
     s_cat
 
-Categorical data has a specific ``category`` :ref:`dtype <basics.dtypes>`:
+Similarly, a ``CategoricalDtype`` can be used with a ``DataFrame`` to ensure that categories
+are consistent among all columns.
 
 .. ipython:: python
 
-    df.dtypes
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    cat_type = CategoricalDtype(categories=list('abcd'),
+                                ordered=True)
+    df_cat = df.astype(cat_type)
+    df_cat['A']
+    df_cat['B']
 
 .. note::
 
-    In contrast to R's `factor` function, categorical data is not converting input values to
-    strings and categories will end up the same data type as the original values.
+    To perform table-wise conversion, where all labels in the entire ``DataFrame`` are used as
+    categories for each column, the ``categories`` parameter can be determined programmatically by
+    ``categories = pd.unique(df.values.ravel())``.
 
-.. note::
+If you already have ``codes`` and ``categories``, you can use the 
+:func:`~pandas.Categorical.from_codes` constructor to save the factorize step 
+during normal constructor mode:
 
-    In contrast to R's `factor` function, there is currently no way to assign/change labels at
-    creation time. Use `categories` to change the categories after creation time.
+.. ipython:: python
 
-To get back to the original Series or `numpy` array, use ``Series.astype(original_dtype)`` or
-``np.asarray(categorical)``:
+    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
+    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
+
+
+Regaining Original Data
+~~~~~~~~~~~~~~~~~~~~~~~
+
+To get back to the original ``Series`` or NumPy array, use 
+``Series.astype(original_dtype)`` or ``np.asarray(categorical)``:
 
 .. ipython:: python
 
@@ -135,13 +205,15 @@ To get back to the original Series or `numpy` array, use ``Series.astype(origina
     s2.astype(str)
     np.asarray(s2)
 
-If you have already `codes` and `categories`, you can use the :func:`~pandas.Categorical.from_codes`
-constructor to save the factorize step during normal constructor mode:
+.. note::
 
-.. ipython:: python
+    In contrast to R's `factor` function, categorical data is not converting input values to
+    strings; categories will end up the same data type as the original values.
 
-    splitter = np.random.choice([0,1], 5, p=[0.5,0.5])
-    s = pd.Series(pd.Categorical.from_codes(splitter, categories=["train", "test"]))
+.. note::
+
+    In contrast to R's `factor` function, there is currently no way to assign/change labels at
+    creation time. Use `categories` to change the categories after creation time.
 
 .. _categorical.categoricaldtype:
 
@@ -171,7 +243,7 @@ by default.
 
 A :class:`~pandas.api.types.CategoricalDtype` can be used in any place pandas
 expects a `dtype`. For example :func:`pandas.read_csv`,
-:func:`pandas.DataFrame.astype`, or in the Series constructor.
+:func:`pandas.DataFrame.astype`, or in the ``Series`` constructor.
 
 .. note::
 
@@ -185,8 +257,8 @@ Equality Semantics
 ~~~~~~~~~~~~~~~~~~
 
 Two instances of :class:`~pandas.api.types.CategoricalDtype` compare equal
-whenever they have the same categories and orderedness. When comparing two
-unordered categoricals, the order of the ``categories`` is not considered
+whenever they have the same categories and order. When comparing two
+unordered categoricals, the order of the ``categories`` is not considered.
 
 .. ipython:: python
 
@@ -198,7 +270,7 @@ unordered categoricals, the order of the ``categories`` is not considered
    # Unequal, since the second CategoricalDtype is ordered
    c1 == CategoricalDtype(['a',  'b', 'c'], ordered=True)
 
-All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
+All instances of ``CategoricalDtype`` compare equal to the string ``'category'``.
 
 .. ipython:: python
 
@@ -215,8 +287,8 @@ All instances of ``CategoricalDtype`` compare equal to the string ``'category'``
 Description
 -----------
 
-Using ``.describe()`` on categorical data will produce similar output to a `Series` or
-`DataFrame` of type ``string``.
+Using :meth:`~DataFrame.describe` on categorical data will produce similar 
+output to a ``Series`` or ``DataFrame`` of type ``string``.
 
 .. ipython:: python
 
@@ -230,10 +302,10 @@ Using ``.describe()`` on categorical data will produce similar output to a `Seri
 Working with categories
 -----------------------
 
-Categorical data has a `categories` and a `ordered` property, which list their possible values and
-whether the ordering matters or not. These properties are exposed as ``s.cat.categories`` and
-``s.cat.ordered``. If you don't manually specify categories and ordering, they are inferred from the
-passed in values.
+Categorical data has a `categories` and a `ordered` property, which list their 
+possible values and whether the ordering matters or not. These properties are 
+exposed as ``s.cat.categories`` and ``s.cat.ordered``. If you don't manually 
+specify categories and ordering, they are inferred from the passed arguments.
 
 .. ipython:: python
 
@@ -251,13 +323,13 @@ It's also possible to pass in the categories in a specific order:
 
 .. note::
 
-    New categorical data are NOT automatically ordered. You must explicitly pass ``ordered=True`` to
-    indicate an ordered ``Categorical``.
+    New categorical data are **not** automatically ordered. You must explicitly 
+    pass ``ordered=True`` to indicate an ordered ``Categorical``.
 
 
 .. note::
 
-    The result of ``Series.unique()`` is not always the same as ``Series.cat.categories``,
+    The result of :meth:`~Series.unique` is not always the same as ``Series.cat.categories``,
     because ``Series.unique()`` has a couple of guarantees, namely that it returns categories
     in the order of appearance, and it only includes values that are actually present.
 
@@ -275,8 +347,10 @@ It's also possible to pass in the categories in a specific order:
 Renaming categories
 ~~~~~~~~~~~~~~~~~~~
 
-Renaming categories is done by assigning new values to the ``Series.cat.categories`` property or
-by using the :func:`Categorical.rename_categories` method:
+Renaming categories is done by assigning new values to the 
+``Series.cat.categories`` property or by using the 
+:meth:`~pandas.Categorical.rename_categories` method:
+
 
 .. ipython:: python
 
@@ -284,10 +358,10 @@ by using the :func:`Categorical.rename_categories` method:
     s
     s.cat.categories = ["Group %s" % g for g in s.cat.categories]
     s
-    s.cat.rename_categories([1,2,3])
+    s = s.cat.rename_categories([1,2,3])
     s
     # You can also pass a dict-like object to map the renaming
-    s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
+    s = s.cat.rename_categories({1: 'x', 2: 'y', 3: 'z'})
     s
 
 .. note::
@@ -296,8 +370,8 @@ by using the :func:`Categorical.rename_categories` method:
 
 .. note::
 
-    Be aware that assigning new categories is an inplace operations, while most other operation
-    under ``Series.cat`` per default return a new Series of dtype `category`.
+    Be aware that assigning new categories is an inplace operation, while most other operations
+    under ``Series.cat`` per default return a new ``Series`` of dtype `category`.
 
 Categories must be unique or a `ValueError` is raised:
 
@@ -320,7 +394,8 @@ Categories must also not be ``NaN`` or a `ValueError` is raised:
 Appending new categories
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Appending categories can be done by using the :func:`Categorical.add_categories` method:
+Appending categories can be done by using the 
+:meth:`~pandas.Categorical.add_categories` method:
 
 .. ipython:: python
 
@@ -331,8 +406,9 @@ Appending categories can be done by using the :func:`Categorical.add_categories`
 Removing categories
 ~~~~~~~~~~~~~~~~~~~
 
-Removing categories can be done by using the :func:`Categorical.remove_categories` method. Values
-which are removed are replaced by ``np.nan``.:
+Removing categories can be done by using the 
+:meth:`~pandas.Categorical.remove_categories` method. Values which are removed 
+are replaced by ``np.nan``.:
 
 .. ipython:: python
 
@@ -353,8 +429,10 @@ Removing unused categories can also be done:
 Setting categories
 ~~~~~~~~~~~~~~~~~~
 
-If you want to do remove and add new categories in one step (which has some speed advantage),
-or simply set the categories to a predefined scale, use :func:`Categorical.set_categories`.
+If you want to do remove and add new categories in one step (which has some 
+speed advantage), or simply set the categories to a predefined scale, 
+use :meth:`~pandas.Categorical.set_categories`.
+
 
 .. ipython:: python
 
@@ -366,7 +444,7 @@ or simply set the categories to a predefined scale, use :func:`Categorical.set_c
 .. note::
     Be aware that :func:`Categorical.set_categories` cannot know whether some category is omitted
     intentionally or because it is misspelled or (under Python3) due to a type difference (e.g.,
-    numpys S1 dtype and python strings). This can result in surprising behaviour!
+    NumPy S1 dtype and Python strings). This can result in surprising behaviour!
 
 Sorting and Order
 -----------------
@@ -374,7 +452,7 @@ Sorting and Order
 .. _categorical.sort:
 
 If categorical data is ordered (``s.cat.ordered == True``), then the order of the categories has a
-meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a `TypeError`.
+meaning and certain operations are possible. If the categorical is unordered, ``.min()/.max()`` will raise a ``TypeError``.
 
 .. ipython:: python
 
@@ -411,8 +489,8 @@ This is even true for strings and numeric data:
 Reordering
 ~~~~~~~~~~
 
-Reordering the categories is possible via the :func:`Categorical.reorder_categories` and
-the :func:`Categorical.set_categories` methods. For :func:`Categorical.reorder_categories`, all
+Reordering the categories is possible via the :meth:`Categorical.reorder_categories` and
+the :meth:`Categorical.set_categories` methods. For :meth:`Categorical.reorder_categories`, all
 old categories must be included in the new categories and no new categories are allowed. This will
 necessarily make the sort order the same as the categories order.
 
@@ -428,16 +506,16 @@ necessarily make the sort order the same as the categories order.
 .. note::
 
     Note the difference between assigning new categories and reordering the categories: the first
-    renames categories and therefore the individual values in the `Series`, but if the first
+    renames categories and therefore the individual values in the ``Series``, but if the first
     position was sorted last, the renamed value will still be sorted last. Reordering means that the
     way values are sorted is different afterwards, but not that individual values in the
-    `Series` are changed.
+    ``Series`` are changed.
 
 .. note::
 
-    If the `Categorical` is not ordered, ``Series.min()`` and ``Series.max()`` will raise
+    If the ``Categorical`` is not ordered, :meth:`Series.min` and :meth:`Series.max` will raise
     ``TypeError``. Numeric operations like ``+``, ``-``, ``*``, ``/`` and operations based on them
-    (e.g. ``Series.median()``, which would need to compute the mean between two values if the length
+    (e.g. :meth:`Series.median`, which would need to compute the mean between two values if the length
     of an array is even) do not work and raise a ``TypeError``.
 
 Multi Column Sorting
@@ -464,19 +542,19 @@ Comparisons
 
 Comparing categorical data with other objects is possible in three cases:
 
- * comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
-   ...) of the same length as the categorical data.
- * all comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
-   another categorical Series, when ``ordered==True`` and the `categories` are the same.
- * all comparisons of a categorical data to a scalar.
+* Comparing equality (``==`` and ``!=``) to a list-like object (list, Series, array,
+  ...) of the same length as the categorical data.
+* All comparisons (``==``, ``!=``, ``>``, ``>=``, ``<``, and ``<=``) of categorical data to
+  another categorical Series, when ``ordered==True`` and the `categories` are the same.
+* All comparisons of a categorical data to a scalar.
 
 All other comparisons, especially "non-equality" comparisons of two categoricals with different
-categories or a categorical with any list-like object, will raise a TypeError.
+categories or a categorical with any list-like object, will raise a ``TypeError``.
 
 .. note::
 
-    Any "non-equality" comparisons of categorical data with a `Series`, `np.array`, `list` or
-    categorical data with different categories or ordering will raise an `TypeError` because custom
+    Any "non-equality" comparisons of categorical data with a ``Series``, ``np.array``, ``list`` or
+    categorical data with different categories or ordering will raise a ``TypeError`` because custom
     categories ordering could be interpreted in two ways: one with taking into account the
     ordering and one without.
 
@@ -546,11 +624,11 @@ When you compare two unordered categoricals with the same categories, the order 
 Operations
 ----------
 
-Apart from ``Series.min()``, ``Series.max()`` and ``Series.mode()``, the following operations are
-possible with categorical data:
+Apart from :meth:`Series.min`, :meth:`Series.max` and :meth:`Series.mode`, the 
+following operations are possible with categorical data:
 
-`Series` methods like `Series.value_counts()` will use all categories, even if some categories are not
-present in the data:
+``Series`` methods like :meth:`Series.value_counts` will use all categories, 
+even if some categories are not present in the data:
 
 .. ipython:: python
 
@@ -588,8 +666,8 @@ that only values already in `categories` can be assigned.
 Getting
 ~~~~~~~
 
-If the slicing operation returns either a `DataFrame` or a column of type `Series`,
-the ``category`` dtype is preserved.
+If the slicing operation returns either a ``DataFrame`` or a column of type 
+``Series``, the ``category`` dtype is preserved.
 
 .. ipython:: python
 
@@ -602,8 +680,8 @@ the ``category`` dtype is preserved.
     df.loc["h":"j","cats"]
     df[df["cats"] == "b"]
 
-An example where the category type is not preserved is if you take one single row: the
-resulting `Series` is of dtype ``object``:
+An example where the category type is not preserved is if you take one single 
+row: the resulting ``Series`` is of dtype ``object``:
 
 .. ipython:: python
 
@@ -620,10 +698,11 @@ of length "1".
     df.at["h","cats"] # returns a string
 
 .. note::
-    This is a difference to R's `factor` function, where ``factor(c(1,2,3))[1]``
+    The is in contrast to R's `factor` function, where ``factor(c(1,2,3))[1]``
     returns a single value `factor`.
 
-To get a single value `Series` of type ``category`` pass in a list with a single value:
+To get a single value ``Series`` of type ``category``, you pass in a list with 
+a single value:
 
 .. ipython:: python
 
@@ -632,8 +711,8 @@ To get a single value `Series` of type ``category`` pass in a list with a single
 String and datetime accessors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The accessors  ``.dt`` and ``.str`` will work if the ``s.cat.categories`` are of an appropriate
-type:
+The accessors  ``.dt`` and ``.str`` will work if the ``s.cat.categories`` are of
+an appropriate type:
 
 
 .. ipython:: python
@@ -676,8 +755,8 @@ That means, that the returned values from methods and properties on the accessor
 Setting
 ~~~~~~~
 
-Setting values in a categorical column (or `Series`) works as long as the value is included in the
-`categories`:
+Setting values in a categorical column (or ``Series``) works as long as the 
+value is included in the `categories`:
 
 .. ipython:: python
 
@@ -704,7 +783,7 @@ Setting values by assigning categorical data will also check that the `categorie
     except ValueError as e:
         print("ValueError: " + str(e))
 
-Assigning a `Categorical` to parts of a column of other types will use the values:
+Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
 
@@ -719,7 +798,7 @@ Assigning a `Categorical` to parts of a column of other types will use the value
 Merging
 ~~~~~~~
 
-You can concat two `DataFrames` containing categorical data together,
+You can concat two ``DataFrames`` containing categorical data together,
 but the categories of these categoricals need to be the same:
 
 .. ipython:: python
@@ -731,7 +810,7 @@ but the categories of these categoricals need to be the same:
     res
     res.dtypes
 
-In this case the categories are not the same and so an error is raised:
+In this case the categories are not the same, and therefore an error is raised:
 
 .. ipython:: python
 
@@ -754,10 +833,10 @@ Unioning
 
 .. versionadded:: 0.19.0
 
-If you want to combine categoricals that do not necessarily have
-the same categories, the ``union_categoricals`` function will
-combine a list-like of categoricals. The new categories
-will be the union of the categories being combined.
+If you want to combine categoricals that do not necessarily have the same 
+categories, the :func:`~pandas.api.types.union_categoricals` function will
+combine a list-like of categoricals. The new categories will be the union of 
+the categories being combined.
 
 .. ipython:: python
 
@@ -805,8 +884,9 @@ using the ``ignore_ordered=True`` argument.
     b = pd.Categorical(["c", "b", "a"], ordered=True)
     union_categoricals([a, b], ignore_order=True)
 
-``union_categoricals`` also works with a ``CategoricalIndex``, or ``Series`` containing
-categorical data, but note that the resulting array will always be a plain ``Categorical``
+:func:`~pandas.api.types.union_categoricals` also works with a 
+``CategoricalIndex``, or ``Series`` containing categorical data, but note that 
+the resulting array will always be a plain ``Categorical``:
 
 .. ipython:: python
 
@@ -956,7 +1036,7 @@ Differences to R's `factor`
 
 The following differences to R's factor functions can be observed:
 
-* R's `levels` are named `categories`
+* R's `levels` are named `categories`.
 * R's `levels` are always of type string, while `categories` in pandas can be of any dtype.
 * It's not possible to specify labels at creation time. Use ``s.cat.rename_categories(new_labels)``
   afterwards.
@@ -1009,10 +1089,10 @@ an ``object`` dtype is a constant times the length of the data.
 `Categorical` is not a `numpy` array
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Currently, categorical data and the underlying `Categorical` is implemented as a python
-object and not as a low-level `numpy` array dtype. This leads to some problems.
+Currently, categorical data and the underlying ``Categorical`` is implemented as a Python
+object and not as a low-level NumPy array dtype. This leads to some problems.
 
-`numpy` itself doesn't know about the new `dtype`:
+NumPy itself doesn't know about the new `dtype`:
 
 .. ipython:: python
 
@@ -1041,7 +1121,7 @@ To check if a Series contains Categorical data, use ``hasattr(s, 'cat')``:
     hasattr(pd.Series(['a'], dtype='category'), 'cat')
     hasattr(pd.Series(['a']), 'cat')
 
-Using `numpy` functions on a `Series` of type ``category`` should not work as `Categoricals`
+Using NumPy functions on a ``Series`` of type ``category`` should not work as `Categoricals`
 are not numeric data (even in the case that ``.categories`` is numeric).
 
 .. ipython:: python
@@ -1080,7 +1160,7 @@ and allows efficient indexing and storage of an index with a large number of dup
 See the :ref:`advanced indexing docs <indexing.categoricalindex>` for a more detailed
 explanation.
 
-Setting the index will create a ``CategoricalIndex``
+Setting the index will create a ``CategoricalIndex``:
 
 .. ipython:: python
 
@@ -1095,8 +1175,9 @@ Setting the index will create a ``CategoricalIndex``
 Side Effects
 ~~~~~~~~~~~~
 
-Constructing a `Series` from a `Categorical` will not copy the input `Categorical`. This
-means that changes to the `Series` will in most cases change the original `Categorical`:
+Constructing a ``Series`` from a ``Categorical`` will not copy the input 
+``Categorical``. This means that changes to the ``Series`` will in most cases 
+change the original ``Categorical``:
 
 .. ipython:: python
 
@@ -1109,7 +1190,7 @@ means that changes to the `Series` will in most cases change the original `Categ
     df["cat"].cat.categories = [1,2,3,4,5]
     cat
 
-Use ``copy=True`` to prevent such a behaviour or simply don't reuse `Categoricals`:
+Use ``copy=True`` to prevent such a behaviour or simply don't reuse ``Categoricals``:
 
 .. ipython:: python
 
@@ -1120,6 +1201,6 @@ Use ``copy=True`` to prevent such a behaviour or simply don't reuse `Categorical
     cat
 
 .. note::
-    This also happens in some cases when you supply a `numpy` array instead of a `Categorical`:
-    using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behaviour, while using
+    This also happens in some cases when you supply a NumPy array instead of a ``Categorical``:
+    using an int array (e.g. ``np.array([1,2,3,4])``) will exhibit the same behavior, while using
     a string array (e.g. ``np.array(["a","b","c","a"])``) will not.

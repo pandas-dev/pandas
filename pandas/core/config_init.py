@@ -11,9 +11,9 @@ module is imported, register them here rather then in the module.
 """
 import pandas.core.config as cf
 from pandas.core.config import (is_int, is_bool, is_text, is_instance_factory,
-                                is_one_of_factory, get_default_val,
-                                is_callable)
+                                is_one_of_factory, is_callable)
 from pandas.io.formats.console import detect_console_encoding
+from pandas.io.formats.terminal import is_terminal
 
 # compute
 
@@ -170,11 +170,6 @@ pc_show_dimensions_doc = """
     frame is truncated (e.g. not display all rows and/or columns)
 """
 
-pc_line_width_doc = """
-: int
-    Deprecated.
-"""
-
 pc_east_asian_width_doc = """
 : boolean
     Whether to use the Unicode East Asian Width to calculate the display text
@@ -213,6 +208,12 @@ html.border has been deprecated, use display.html.border instead
 (currently both are identical)
 """
 
+pc_html_use_mathjax_doc = """\
+: boolean
+    When True, Jupyter notebook will process table contents using MathJax,
+    rendering mathematical expressions enclosed by the dollar symbol.
+    (default: True)
+"""
 
 pc_width_doc = """
 : int
@@ -221,11 +222,6 @@ pc_width_doc = """
     the width.
     Note that the IPython notebook, IPython qtconsole, or IDLE do not run in a
     terminal and hence it is not possible to correctly detect the width.
-"""
-
-pc_height_doc = """
-: int
-    Deprecated.
 """
 
 pc_chop_threshold_doc = """
@@ -319,7 +315,11 @@ with cf.config_prefix('display'):
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)
     cf.register_option('max_colwidth', 50, max_colwidth_doc, validator=is_int)
-    cf.register_option('max_columns', 20, pc_max_cols_doc,
+    if is_terminal():
+        max_cols = 0  # automatically determine optimal number of columns
+    else:
+        max_cols = 20  # cannot determine optimal number of columns
+    cf.register_option('max_columns', max_cols, pc_max_cols_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('large_repr', 'truncate', pc_large_repr_doc,
                        validator=is_one_of_factory(['truncate', 'info']))
@@ -344,13 +344,8 @@ with cf.config_prefix('display'):
                        validator=is_one_of_factory([True, False, 'truncate']))
     cf.register_option('chop_threshold', None, pc_chop_threshold_doc)
     cf.register_option('max_seq_items', 100, pc_max_seq_items)
-    cf.register_option('height', 60, pc_height_doc,
-                       validator=is_instance_factory([type(None), int]))
     cf.register_option('width', 80, pc_width_doc,
                        validator=is_instance_factory([type(None), int]))
-    # redirected to width, make defval identical
-    cf.register_option('line_width', get_default_val('display.width'),
-                       pc_line_width_doc)
     cf.register_option('memory_usage', True, pc_memory_usage_doc,
                        validator=is_one_of_factory([None, True,
                                                     False, 'deep']))
@@ -374,6 +369,8 @@ with cf.config_prefix('display'):
                        validator=is_bool, cb=table_schema_cb)
     cf.register_option('html.border', 1, pc_html_border_doc,
                        validator=is_int)
+    cf.register_option('html.use_mathjax', True, pc_html_use_mathjax_doc,
+                       validator=is_bool)
 
 with cf.config_prefix('html'):
     cf.register_option('border', 1, pc_html_border_doc,
@@ -480,3 +477,29 @@ with cf.config_prefix('io.parquet'):
     cf.register_option(
         'engine', 'auto', parquet_engine_doc,
         validator=is_one_of_factory(['auto', 'pyarrow', 'fastparquet']))
+
+# --------
+# Plotting
+# ---------
+
+register_converter_doc = """
+: bool
+    Whether to register converters with matplotlib's units registry for
+    dates, times, datetimes, and Periods. Toggling to False will remove
+    the converters, restoring any converters that pandas overwrote.
+"""
+
+
+def register_converter_cb(key):
+    from pandas.plotting import register_matplotlib_converters
+    from pandas.plotting import deregister_matplotlib_converters
+
+    if cf.get_option(key):
+        register_matplotlib_converters()
+    else:
+        deregister_matplotlib_converters()
+
+
+with cf.config_prefix("plotting.matplotlib"):
+    cf.register_option("register_converters", True, register_converter_doc,
+                       validator=bool, cb=register_converter_cb)

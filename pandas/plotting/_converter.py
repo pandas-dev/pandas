@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime, timedelta
 import datetime as pydt
 import numpy as np
@@ -9,6 +10,9 @@ import matplotlib.dates as dates
 
 from matplotlib.ticker import Formatter, AutoLocator, Locator
 from matplotlib.transforms import nonsingular
+
+from pandas._libs import tslibs
+from pandas._libs.tslibs import resolution
 
 from pandas.core.dtypes.common import (
     is_float, is_integer,
@@ -22,13 +26,11 @@ from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.compat import lrange
 import pandas.compat as compat
-import pandas._libs.lib as lib
 import pandas.core.common as com
 from pandas.core.index import Index
 
 from pandas.core.indexes.datetimes import date_range
 import pandas.core.tools.datetimes as tools
-from pandas._libs.tslibs import resolution
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import FreqGroup
 from pandas.core.indexes.period import Period, PeriodIndex
@@ -45,14 +47,96 @@ SEC_PER_DAY = SEC_PER_HOUR * HOURS_PER_DAY
 
 MUSEC_PER_DAY = 1e6 * SEC_PER_DAY
 
+_WARN = True  # Global for whether pandas has registered the units explicitly
+_mpl_units = {}  # Cache for units overwritten by us
 
-def register():
-    units.registry[lib.Timestamp] = DatetimeConverter()
-    units.registry[Period] = PeriodConverter()
-    units.registry[pydt.datetime] = DatetimeConverter()
-    units.registry[pydt.date] = DatetimeConverter()
-    units.registry[pydt.time] = TimeConverter()
-    units.registry[np.datetime64] = DatetimeConverter()
+
+def get_pairs():
+    pairs = [
+        (tslibs.Timestamp, DatetimeConverter),
+        (Period, PeriodConverter),
+        (pydt.datetime, DatetimeConverter),
+        (pydt.date, DatetimeConverter),
+        (pydt.time, TimeConverter),
+        (np.datetime64, DatetimeConverter),
+    ]
+    return pairs
+
+
+def register(explicit=True):
+    """Register Pandas Formatters and Converters with matplotlib
+
+    This function modifies the global ``matplotlib.units.registry``
+    dictionary. Pandas adds custom converters for
+
+    * pd.Timestamp
+    * pd.Period
+    * np.datetime64
+    * datetime.datetime
+    * datetime.date
+    * datetime.time
+
+    See Also
+    --------
+    deregister_matplotlib_converter
+    """
+    # Renamed in pandas.plotting.__init__
+    global _WARN
+
+    if explicit:
+        _WARN = False
+
+    pairs = get_pairs()
+    for type_, cls in pairs:
+        converter = cls()
+        if type_ in units.registry:
+            previous = units.registry[type_]
+            _mpl_units[type_] = previous
+        units.registry[type_] = converter
+
+
+def deregister():
+    """Remove pandas' formatters and converters
+
+    Removes the custom converters added by :func:`register`. This
+    attempts to set the state of the registry back to the state before
+    pandas registered its own units. Converters for pandas' own types like
+    Timestamp and Period are removed completely. Converters for types
+    pandas overwrites, like ``datetime.datetime``, are restored to their
+    original value.
+
+    See Also
+    --------
+    deregister_matplotlib_converters
+    """
+    # Renamed in pandas.plotting.__init__
+    for type_, cls in get_pairs():
+        # We use type to catch our classes directly, no inheritance
+        if type(units.registry.get(type_)) is cls:
+            units.registry.pop(type_)
+
+    # restore the old keys
+    for unit, formatter in _mpl_units.items():
+        if type(formatter) not in {DatetimeConverter, PeriodConverter,
+                                   TimeConverter}:
+            # make it idempotent by excluding ours.
+            units.registry[unit] = formatter
+
+
+def _check_implicitly_registered():
+    global _WARN
+
+    if _WARN:
+        msg = ("Using an implicitly registered datetime converter for a "
+               "matplotlib plotting method. The converter was registered "
+               "by pandas on import. Future versions of pandas will require "
+               "you to explicitly register matplotlib converters.\n\n"
+               "To register the converters:\n\t"
+               ">>> from pandas.plotting import register_matplotlib_converters"
+               "\n\t"
+               ">>> register_matplotlib_converters()")
+        warnings.warn(msg, FutureWarning)
+        _WARN = False
 
 
 def _to_ordinalf(tm):
@@ -107,19 +191,39 @@ class TimeFormatter(Formatter):
         self.locs = locs
 
     def __call__(self, x, pos=0):
-        fmt = '%H:%M:%S'
+        """
+        Return the time of day as a formatted string.
+
+        Parameters
+        ----------
+        x : float
+            The time of day specified as seconds since 00:00 (midnight),
+            with up to microsecond precision.
+        pos
+            Unused
+
+        Returns
+        -------
+        str
+            A string in HH:MM:SS.mmmuuu format. Microseconds,
+            milliseconds and seconds are only displayed if non-zero.
+        """
+        fmt = '%H:%M:%S.%f'
         s = int(x)
-        ms = int((x - s) * 1e3)
-        us = int((x - s) * 1e6 - ms)
+        msus = int(round((x - s) * 1e6))
+        ms = msus // 1000
+        us = msus % 1000
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         _, h = divmod(h, 24)
         if us != 0:
-            fmt += '.%6f'
+            return pydt.time(h, m, s, msus).strftime(fmt)
         elif ms != 0:
-            fmt += '.%3f'
+            return pydt.time(h, m, s, msus).strftime(fmt)[:-3]
+        elif s != 0:
+            return pydt.time(h, m, s).strftime('%H:%M:%S')
 
-        return pydt.time(h, m, s, us).strftime(fmt)
+        return pydt.time(h, m).strftime('%H:%M')
 
 
 # Period Conversion
@@ -141,16 +245,16 @@ class PeriodConverter(dates.DateConverter):
         if not hasattr(axis, 'freq'):
             raise TypeError('Axis must have `freq` set to convert to Periods')
         valid_types = (compat.string_types, datetime,
-                       Period, pydt.date, pydt.time)
+                       Period, pydt.date, pydt.time, np.datetime64)
         if (isinstance(values, valid_types) or is_integer(values) or
                 is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq)._values
+            return values.asfreq(axis.freq)._ndarray_values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         if is_period_arraylike(values):
-            return PeriodIndex(values, freq=axis.freq)._values
+            return PeriodIndex(values, freq=axis.freq)._ndarray_values
         if isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -160,7 +264,7 @@ def get_datevalue(date, freq):
     if isinstance(date, Period):
         return date.asfreq(freq).ordinal
     elif isinstance(date, (compat.string_types, datetime,
-                           pydt.date, pydt.time)):
+                           pydt.date, pydt.time, np.datetime64)):
         return Period(date, freq).ordinal
     elif (is_integer(date) or is_float(date) or
           (isinstance(date, (np.ndarray, Index)) and (date.size == 1))):
@@ -190,6 +294,7 @@ class DatetimeConverter(dates.DateConverter):
     @staticmethod
     def convert(values, unit, axis):
         # values might be a 1-d array, or a list-like of arrays.
+        _check_implicitly_registered()
         if is_nested_list_like(values):
             values = [DatetimeConverter._convert_1d(v, unit, axis)
                       for v in values]
@@ -208,18 +313,22 @@ class DatetimeConverter(dates.DateConverter):
         if isinstance(values, (datetime, pydt.date)):
             return _dt_to_float_ordinal(values)
         elif isinstance(values, np.datetime64):
-            return _dt_to_float_ordinal(lib.Timestamp(values))
+            return _dt_to_float_ordinal(tslibs.Timestamp(values))
         elif isinstance(values, pydt.time):
             return dates.date2num(values)
         elif (is_integer(values) or is_float(values)):
             return values
         elif isinstance(values, compat.string_types):
             return try_parse(values)
-        elif isinstance(values, (list, tuple, np.ndarray, Index)):
+        elif isinstance(values, (list, tuple, np.ndarray, Index, ABCSeries)):
+            if isinstance(values, ABCSeries):
+                # https://github.com/matplotlib/matplotlib/issues/11391
+                # Series was skipped. Convert to DatetimeIndex to get asi8
+                values = Index(values)
             if isinstance(values, Index):
                 values = values.values
             if not isinstance(values, np.ndarray):
-                values = com._asarray_tuplesafe(values)
+                values = com.asarray_tuplesafe(values)
 
             if is_integer_dtype(values) or is_float_dtype(values):
                 return values
@@ -274,6 +383,7 @@ class PandasAutoDateLocator(dates.AutoDateLocator):
 
     def get_locator(self, dmin, dmax):
         'Pick the best locator based on a distance.'
+        _check_implicitly_registered()
         delta = relativedelta(dmax, dmin)
 
         num_days = (delta.years * 12.0 + delta.months) * 31.0 + delta.days
@@ -315,6 +425,7 @@ class MilliSecondLocator(dates.DateLocator):
 
     def __call__(self):
         # if no data have been set, this will tank with a ValueError
+        _check_implicitly_registered()
         try:
             dmin, dmax = self.viewlim_to_dt()
         except ValueError:
@@ -363,7 +474,8 @@ class MilliSecondLocator(dates.DateLocator):
         tz = self.tz.tzname(None)
         st = _from_ordinal(dates.date2num(dmin))  # strip tz
         ed = _from_ordinal(dates.date2num(dmax))
-        all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).asobject
+        all_dates = date_range(start=st, end=ed,
+                               freq=freq, tz=tz).astype(object)
 
         try:
             if len(all_dates) > 0:
@@ -535,7 +647,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(span,
                     dtype=[('val', np.int64), ('maj', bool),
                            ('min', bool), ('fmt', '|S20')])
-    info['val'][:] = dates_._values
+    info['val'][:] = dates_._ndarray_values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True
     # .. and set some shortcuts
@@ -917,6 +1029,8 @@ class TimeSeries_DateLocator(Locator):
     def __call__(self):
         'Return the locations of the ticks.'
         # axis calls Locator.set_axis inside set_m<xxxx>_formatter
+        _check_implicitly_registered()
+
         vi = tuple(self.axis.get_view_interval())
         if vi != self.plot_obj.view_interval:
             self.plot_obj.date_axis_info = None
@@ -994,13 +1108,15 @@ class TimeSeries_DateFormatter(Formatter):
                                  info)
         else:
             format = np.compress(info['maj'], info)
-        self.formatdict = dict([(x, f) for (x, _, _, f) in format])
+        self.formatdict = {x: f for (x, _, _, f) in format}
         return self.formatdict
 
     def set_locs(self, locs):
         'Sets the locations of the ticks'
         # don't actually use the locs. This is just needed to work with
         # matplotlib. Force to use vmin, vmax
+        _check_implicitly_registered()
+
         self.locs = locs
 
         (vmin, vmax) = vi = tuple(self.axis.get_view_interval())
@@ -1012,6 +1128,8 @@ class TimeSeries_DateFormatter(Formatter):
         self._set_default_format(vmin, vmax)
 
     def __call__(self, x, pos=0):
+        _check_implicitly_registered()
+
         if self.formatdict is None:
             return ''
         else:
@@ -1042,6 +1160,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
         return s
 
     def __call__(self, x, pos=0):
+        _check_implicitly_registered()
         (vmin, vmax) = tuple(self.axis.get_view_interval())
         n_decimals = int(np.ceil(np.log10(100 * 1e9 / (vmax - vmin))))
         if n_decimals > 9:

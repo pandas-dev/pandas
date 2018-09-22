@@ -6,5 +6,6 @@ scanner:
 pycodestyle:
     max-line-length: 79
     ignore:  # Errors and warnings to ignore
-        - E731
-        - E402
+        - E402,  # module level import not at top of file
+        - E731,  # do not assign a lambda expression, use a def
+        - W503   # line break before binary operator

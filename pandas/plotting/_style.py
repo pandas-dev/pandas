@@ -44,12 +44,12 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             if isinstance(colors, compat.string_types):
                 colors = list(colors)
         elif color_type == 'random':
-            from pandas.core.common import _random_state
+            import pandas.core.common as com
 
             def random_color(column):
                 """ Returns a random color represented as a list of length 3"""
                 # GH17525 use common._random_state to avoid resetting the seed
-                rs = _random_state(column)
+                rs = com.random_state(column)
                 return rs.rand(3).tolist()
 
             colors = lmap(random_color, lrange(num_colors))
@@ -67,9 +67,9 @@ def _get_standard_colors(num_colors=None, colormap=None, color_type='default',
             except ValueError:
                 return False
 
-        # check whether the string can be convertable to single color
+        # check whether the string can be convertible to single color
         maybe_single_color = _maybe_valid_colors([colors])
-        # check whether each character can be convertable to colors
+        # check whether each character can be convertible to colors
         maybe_color_cycle = _maybe_valid_colors(list(colors))
         if maybe_single_color and maybe_color_cycle and len(colors) > 1:
             # Special case for single str 'CN' match and convert to hex
