@@ -6,6 +6,8 @@ import numpy as np
 import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
+from pandas.util.testing import capture_stderr
+
 
 class GoodDocStrings(object):
     """
@@ -360,6 +362,15 @@ class BadSummaries(object):
         which is not correct.
         """
 
+    def two_paragraph_multi_line(self):
+        """
+        Extends beyond one line
+        which is not correct.
+
+        Extends beyond one line, which in itself is correct but the
+        previous short summary should still be an issue.
+        """
+
 
 class BadParameters(object):
     """
@@ -518,10 +529,12 @@ class TestValidator(object):
 
         return base_path
 
+    @capture_stderr
     def test_good_class(self):
         assert validate_one(self._import_path(
             klass='GoodDocStrings')) == 0
 
+    @capture_stderr
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains', 'mode'])
@@ -529,10 +542,12 @@ class TestValidator(object):
         assert validate_one(self._import_path(
             klass='GoodDocStrings', func=func)) == 0
 
+    @capture_stderr
     def test_bad_class(self):
         assert validate_one(self._import_path(
             klass='BadGenericDocStrings')) > 0
 
+    @capture_stderr
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_generic_functions(self, func):
@@ -550,7 +565,9 @@ class TestValidator(object):
         ('BadSummaries', 'no_capitalization',
          ('Summary must start with infinitive verb',)),
         ('BadSummaries', 'multi_line',
-         ('a short summary in a single line should be present',)),
+         ('Summary should fit in a single line.',)),
+        ('BadSummaries', 'two_paragraph_multi_line',
+         ('Summary should fit in a single line.',)),
         # Parameters tests
         ('BadParameters', 'missing_params',
          ('Parameters {**kwargs} not documented',)),

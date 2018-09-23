@@ -359,6 +359,7 @@ class TestnanopsDataFrame(object):
 
     def test_nanmedian(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             self.check_funs(nanops.nanmedian, np.median, allow_complex=False,
                             allow_str=False, allow_date=False,
                             allow_tdelta=True, allow_obj='convert')
@@ -394,12 +395,14 @@ class TestnanopsDataFrame(object):
 
     def test_nanmin(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._minmax_wrap, func=np.min)
             self.check_funs(nanops.nanmin, func,
                             allow_str=False, allow_obj=False)
 
     def test_nanmax(self):
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._minmax_wrap, func=np.max)
             self.check_funs(nanops.nanmax, func,
                             allow_str=False, allow_obj=False)
@@ -417,6 +420,7 @@ class TestnanopsDataFrame(object):
 
     def test_nanargmax(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._argminmax_wrap, func=np.argmax)
             self.check_funs(nanops.nanargmax, func,
                             allow_str=False, allow_obj=False,
@@ -424,6 +428,7 @@ class TestnanopsDataFrame(object):
 
     def test_nanargmin(self):
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", RuntimeWarning)
             func = partial(self._argminmax_wrap, func=np.argmin)
             self.check_funs(nanops.nanargmin, func, allow_str=False,
                             allow_obj=False)
