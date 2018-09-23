@@ -61,6 +61,12 @@ Excel
    read_excel
    ExcelFile.parse
 
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   ExcelWriter
+
 JSON
 ~~~~
 

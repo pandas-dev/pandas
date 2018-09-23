@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import warnings
 from itertools import product
 import pytest
 
@@ -218,7 +217,7 @@ def test_get_duplicates():
         mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
         assert not mi.has_duplicates
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             # Deprecated - see GH20239
             assert mi.get_duplicates().equals(MultiIndex.from_arrays([[], []]))
 
@@ -234,7 +233,7 @@ def test_get_duplicates():
             assert len(mi) == (n + 1) * (m + 1)
             assert not mi.has_duplicates
 
-            with warnings.catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning):
                 # Deprecated - see GH20239
                 assert mi.get_duplicates().equals(MultiIndex.from_arrays(
                     [[], []]))

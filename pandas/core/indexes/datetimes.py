@@ -43,8 +43,7 @@ from pandas.tseries.offsets import (
     generate_range, CDay, prefix_mapping)
 
 from pandas.core.tools.timedeltas import to_timedelta
-from pandas.util._decorators import (
-    Appender, cache_readonly, deprecate_kwarg, Substitution)
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 import pandas.core.common as com
 import pandas.tseries.offsets as offsets
 import pandas.core.tools.datetimes as tools
@@ -861,8 +860,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 if isinstance(this, DatetimeIndex):
                     this._tz = timezones.tz_standardize(tz)
 
-        if this.freq is None:
-            this.freq = to_offset(this.inferred_freq)
         return this
 
     def join(self, other, how='left', level=None, return_indexers=False,
@@ -1375,7 +1372,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if isinstance(value, (np.ndarray, Index)):
             value = np.array(value, dtype=_NS_DTYPE, copy=False)
