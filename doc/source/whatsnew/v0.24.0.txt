@@ -191,7 +191,6 @@ Other Enhancements
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
-- :func:`~DataFrame.to_dict` with orient on index and a non-unique index will raise a ValueError instead of losing data (:issue:`22801`).
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
@@ -803,6 +802,7 @@ Reshaping
 - Bug in :meth:`DataFrame.replace` raises ``RecursionError`` when replacing empty lists (:issue:`22083`)
 - Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
+- Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with ``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
 
 Build Changes
 ^^^^^^^^^^^^^
