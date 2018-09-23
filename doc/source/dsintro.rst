@@ -366,12 +366,55 @@ dictionary.
 
 .. _basics.dataframe.from_series:
 
-From a Series
-~~~~~~~~~~~~~
+From a Pandas Series
+~~~~~~~~~~~~~~~~~~~~
 
 The result will be a DataFrame with the same index as the input Series, and
 with one column whose name is the original name of the Series (only if no other
 column name provided).
+
+.. ipython:: python
+
+   df = pd.DataFrame()
+   df
+   x1 = pd.Series([1,2,3,4], index=[1,2,3,4])
+   x1
+   df['A'] = x1
+   df
+   x2 = pd.Series([5,5], index=[1, 3])
+   x2
+   df['B'] = x2
+   df
+   lst = [9, 9, 9, 9]
+   x3 = pd.Series(lst, df.index)
+   x3
+   x4 = df['C']
+   df['D'] = pd.Series(df['C']+1, df.index)
+   df
+
+From a Numpy Series
+~~~~~~~~~~~~~~~~~~~
+
+Numpy series is list or list of lists with no index.
+
+.. ipython:: python
+
+    x1 = np.random.randint(0, 10, (5))
+    x1
+    x2 = np.random.randint(-1.0, 10, (5))
+    x2
+    df1 = pd.DataFrame(x1, columns=['A'])
+    df1
+    df2 = pd.DataFrame([[x[0], x[1]] for x in zip(x1, x2)], columns=['B','C'])
+    df2
+    df3 = pd.DataFrame(np.random.randint(100, 999, (5, 2)), columns=['A', 'B'])
+    df3
+    x1 = np.random.rand(5, 2)
+    x1
+    df3['A'] = x1
+    df3
+    df3[['A', 'B']] = x1
+    df3
 
 **Missing Data**
 
@@ -381,6 +424,17 @@ represent missing values. Alternatively, you may pass a ``numpy.MaskedArray``
 as the data argument to the DataFrame constructor, and its masked entries will
 be considered missing.
 
+.. ipython:: python
+
+   df = pd.DataFrame()
+   df
+   x1 = pd.Series([1,2,3,4], index=[1,2,3,4])
+   x1
+   df['A'] = x1
+   df
+   x2 = pd.Series([1, np.nan, np.nan, 4], df.index)
+   x2
+   
 Alternate Constructors
 ~~~~~~~~~~~~~~~~~~~~~~
 
