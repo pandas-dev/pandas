@@ -613,6 +613,34 @@ class DataFrame(NDFrame):
         """
         return len(self.index), len(self.columns)
 
+    @property
+    def _is_homogeneous(self):
+        """
+        Whether all the columns in a DataFrame have the same type.
+
+        Returns
+        -------
+        bool
+
+        Examples
+        --------
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous
+        True
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous
+        False
+
+        Items with the same type but different sizes are considered
+        different types.
+
+        >>> DataFrame({"A": np.array([1, 2], dtype=np.int32),
+        ...            "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous
+        False
+        """
+        if self._data.any_extension_types:
+            return len({block.dtype for block in self._data.blocks}) == 1
+        else:
+            return not self._data.is_mixed_type
+
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
@@ -1874,7 +1902,7 @@ class DataFrame(NDFrame):
         to_feather(self, fname)
 
     def to_parquet(self, fname, engine='auto', compression='snappy',
-                   **kwargs):
+                   index=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -1896,6 +1924,13 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+        index : bool, default None
+            If ``True``, include the dataframe's index(es) in the file output.
+            If ``False``, they will not be written to the file. If ``None``,
+            the behavior depends on the chosen engine.
+
+            .. versionadded:: 0.24.0
+
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
@@ -1924,7 +1959,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
-                   compression=compression, **kwargs)
+                   compression=compression, index=index, **kwargs)
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
@@ -3245,7 +3280,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        kwargs : keyword, value pairs
+        **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
@@ -3255,7 +3290,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
             A new DataFrame with the new columns in addition to
             all the existing columns.
 
@@ -3275,48 +3310,34 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+        >>> df = pd.DataFrame({'temp_c': [17.0, 25.0]},
+        ...                   index=['Portland', 'Berkeley'])
+        >>> df
+                  temp_c
+        Portland    17.0
+        Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
+        >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        >>> df.assign(ln_A = lambda x: np.log(x.A))
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
+        Alternatively, the same behavior can be achieved by directly
+        referencing an existing Series or sequence:
+        >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        Where the value already exists and is inserted:
-
-        >>> newcol = np.log(df['A'])
-        >>> df.assign(ln_A=newcol)
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
-
-        Where the keyword arguments depend on each other
-
-        >>> df = pd.DataFrame({'A': [1, 2, 3]})
-
-        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
-            A  B  C
-         0  1  1  2
-         1  2  2  4
-         2  3  3  6
+        In Python 3.6+, you can create multiple columns within the same assign
+        where one of the columns depends on another one defined within the same
+        assign:
+        >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
+        ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+                  temp_c  temp_f  temp_k
+        Portland    17.0    62.6  290.15
+        Berkeley    25.0    77.0  298.15
         """
         data = self.copy()
 
