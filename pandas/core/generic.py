@@ -3342,13 +3342,31 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         other : Object
-        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}
+        method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
+            method to use for filling holes in reindexed DataFrame.
+            Please note: this is only applicable to DataFrames/Series with a
+            monotonically increasing/decreasing index.
+
+            * default: don't fill gaps
+            * pad / ffill: propagate last valid observation forward to next
+              valid
+            * backfill / bfill: use next valid observation to fill gap
+            * nearest: use nearest valid observations to fill gap
+
         copy : boolean, default True
+            Return a new object, even if the passed indexes are the same
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
-            Maximum distance between labels of the other object and this
-            object for inexact matches. Can be list-like.
+            Maximum distance between original and new labels for inexact
+            matches. The values of the index at the matching locations most
+            satisfy the equation ``abs(index[indexer] - target) <= tolerance``.
+
+            Tolerance may be a scalar value, which applies the same tolerance
+            to all values, or list-like, which applies variable tolerance per
+            element. List-like includes list, tuple, array, Series, and must be
+            the same size as the index and its dtype must exactly match the
+            index's type.
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
