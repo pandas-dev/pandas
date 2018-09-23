@@ -95,9 +95,9 @@ class TestDataFrameApply():
         assert_series_equal(result, expected)
 
         # 2476
-        xp = DataFrame(index=['a'])
-        rs = xp.apply(lambda x: x['a'], axis=1)
-        assert_frame_equal(xp, rs)
+        expected = DataFrame(index=['a'])
+        result = expected.apply(lambda x: x['a'], axis=1)
+        assert_frame_equal(expected, result)
 
     def test_apply_with_reduce_empty(self, empty_frame):
         # reduce with an empty DataFrame
@@ -126,12 +126,13 @@ class TestDataFrameApply():
     def test_apply_standard_nonunique(self):
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        rs = df.apply(lambda s: s[0], axis=1)
-        xp = Series([1, 4, 7], ['a', 'a', 'c'])
-        assert_series_equal(rs, xp)
 
-        rs = df.T.apply(lambda s: s[0], axis=0)
-        assert_series_equal(rs, xp)
+        result = df.apply(lambda s: s[0], axis=1)
+        expected = Series([1, 4, 7], ['a', 'a', 'c'])
+        assert_series_equal(result, expected)
+
+        result = df.T.apply(lambda s: s[0], axis=0)
+        assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('func', ['sum', 'mean', 'min', 'max', 'std'])
     @pytest.mark.parametrize('args,kwds', [
@@ -265,13 +266,13 @@ class TestDataFrameApply():
             is_reduction = not isinstance(test_res, np.ndarray)
 
             def _checkit(axis=0, raw=False):
-                res = df.apply(f, axis=axis, raw=raw)
+                result = df.apply(f, axis=axis, raw=raw)
                 if is_reduction:
                     agg_axis = df._get_agg_axis(axis)
-                    assert isinstance(res, Series)
-                    assert res.index is agg_axis
+                    assert isinstance(result, Series)
+                    assert result.index is agg_axis
                 else:
-                    assert isinstance(res, DataFrame)
+                    assert isinstance(result, DataFrame)
 
             _checkit()
             _checkit(axis=1)
@@ -298,16 +299,16 @@ class TestDataFrameApply():
             return (x - sub) / divide
 
         result = float_frame.apply(add_some, howmuch=2)
-        exp = float_frame.apply(lambda x: x + 2)
-        assert_frame_equal(result, exp)
+        expected = float_frame.apply(lambda x: x + 2)
+        assert_frame_equal(result, expected)
 
         result = float_frame.apply(agg_and_add, howmuch=2)
-        exp = float_frame.apply(lambda x: x.mean() + 2)
-        assert_series_equal(result, exp)
+        expected = float_frame.apply(lambda x: x.mean() + 2)
+        assert_series_equal(result, expected)
 
-        res = float_frame.apply(subtract_and_divide, args=(2,), divide=2)
-        exp = float_frame.apply(lambda x: (x - 2.) / 2.)
-        assert_frame_equal(res, exp)
+        result = float_frame.apply(subtract_and_divide, args=(2,), divide=2)
+        expected = float_frame.apply(lambda x: (x - 2.) / 2.)
+        assert_frame_equal(result, expected)
 
     def test_apply_yield_list(self, float_frame):
         result = float_frame.apply(list)
@@ -529,12 +530,12 @@ class TestDataFrameApply():
                            'd': [pd.Period('2011-01-01', freq='M'),
                                  pd.Period('2011-01-02', freq='M')]})
 
-        res = df.applymap(lambda x: '{0}'.format(x.__class__.__name__))
-        exp = pd.DataFrame({'a': ['Timestamp', 'Timestamp'],
-                            'b': ['Timestamp', 'Timestamp'],
-                            'c': ['Timedelta', 'Timedelta'],
-                            'd': ['Period', 'Period']})
-        tm.assert_frame_equal(res, exp)
+        result = df.applymap(lambda x: '{0}'.format(x.__class__.__name__))
+        expected = pd.DataFrame({'a': ['Timestamp', 'Timestamp'],
+                                 'b': ['Timestamp', 'Timestamp'],
+                                 'c': ['Timedelta', 'Timedelta'],
+                                 'd': ['Period', 'Period']})
+        tm.assert_frame_equal(result, expected)
 
     def test_frame_apply_dont_convert_datetime64(self):
         from pandas.tseries.offsets import BDay
