@@ -477,6 +477,13 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
@@ -489,6 +496,17 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the flooring resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """)
     ceil = _make_nat_func('ceil',  # noqa:E128
         """
@@ -497,6 +515,17 @@ class NaTType(_NaT):
         Parameters
         ----------
         freq : a freq string indicating the ceiling resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """)
 
     tz_convert = _make_nat_func('tz_convert',  # noqa:E128
