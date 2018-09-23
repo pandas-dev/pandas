@@ -7455,10 +7455,10 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        values : iterable, Series, DataFrame or dictionary
+        values : iterable, Series, DataFrame or dict
             The result will only be true at a location if all the
             labels match. If `values` is a Series, that's the index. If
-            `values` is a dictionary, the keys must be the column names,
+            `values` is a dict, the keys must be the column names,
             which must match. If `values` is a DataFrame,
             then both the index and column labels must match.
 
@@ -7468,36 +7468,44 @@ class DataFrame(NDFrame):
             DataFrame of boolean showing whether each element in the DataFrame
             is contained in values.
 
+        See Also
+        --------
+        DataFrame.eq: Equality test for DataFrame.
+        Series.isin: Equivalent method on Series.
+
         Examples
         --------
+
+        >>> df = pd.DataFrame({'num_legs': [2, 4], 'num_wings': [2, 0]},
+        ...                   index=['falcon', 'dog'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
+
         When ``values`` is a list:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df.isin([1, 3, 12, 'a'])
-               A      B
-        0   True   True
-        1  False  False
-        2   True  False
+        >>> df.isin([2])
+                num_legs  num_wings
+        falcon      True       True
+        dog        False      False
 
-        When ``values`` is a dict. Note that B doesn't match the 1 here.
+        When ``values`` is a dict.
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
-        >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
-               A      B
-        0   True  False
-        1  False   True
-        2   True   True
+        >>> df.isin({'num_wings': [0, 3], 'num_legs': [0]})
+                num_legs  num_wings
+        falcon     False      False
+        dog        False       True
 
-        When ``values`` is a Series or DataFrame. Column A in `df2` has a
-        3, but not at index 1.
+        When ``values`` is a Series or DataFrame. Note that 'falcon' does not
+        match based on the number of legs in df2.
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
+        >>> df2 = pd.DataFrame({'num_legs': [8, 0, 2], 'num_wings': [0, 2, 2]},
+        ...                    index=['spider', 'falcon', 'parrot'])
         >>> df.isin(df2)
-               A      B
-        0   True  False
-        1  False  False
-        2   True   True
+                num_legs  num_wings
+        falcon     False       True
+        dog        False      False
         """
         if isinstance(values, dict):
             from pandas.core.reshape.concat import concat
