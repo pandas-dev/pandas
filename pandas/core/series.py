@@ -2056,8 +2056,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.autocorr(lag=2)
         -0.9999999999999999
 
-        **Warning**
-
         If the pearson correlation is not well defined, then 'NaN' is returned.
 
         >>> s = pd.Series([1, 0, 0, 0])
