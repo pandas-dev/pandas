@@ -4561,11 +4561,12 @@ class DataFrame(NDFrame):
             return Series(duplicated(ids, keep=keep), index=self.index)
 
         # return_inverse = True
-        isdup_array, inv_array = duplicated(ids, keep=keep,
-                                            return_inverse=True)
-        isdup = Series(isdup_array, index=self.index)
-        inv = Series(self.loc[~isdup_array].index[inv_array], index=self.index)
-        return isdup, inv
+        isduplicated_array, inverse_array = duplicated(ids, keep=keep,
+                                                       return_inverse=True)
+        isduplicated = Series(isduplicated_array, index=self.index)
+        inverse = Series(self.loc[~isduplicated_array].index[inverse_array],
+                         index=self.index)
+        return isduplicated, inverse
 
     # ----------------------------------------------------------------------
     # Sorting

@@ -1257,10 +1257,10 @@ class IndexOpsMixin(object):
 
         if isinstance(self, ABCIndexClass):
             if self.is_unique:
-                isdup = np.zeros(len(self), dtype=np.bool)
+                isduplicate = np.zeros(len(self), dtype=np.bool)
                 if not return_inverse:
-                    return isdup
-                return isdup, np.arange(len(self))
+                    return isduplicate
+                return isduplicate, np.arange(len(self))
             # core.algorithms.duplicated has the same output signature as
             # Index.duplicated -> no need to distinguish cases here
             return duplicated(self, keep=keep, return_inverse=return_inverse)
@@ -1271,13 +1271,14 @@ class IndexOpsMixin(object):
                                      index=self.index).__finalize__(self)
 
         # return_inverse = True
-        isdup_array, inv_array = duplicated(self, keep=keep,
-                                            return_inverse=True)
-        isdup = self._constructor(isdup_array,
-                                  index=self.index).__finalize__(self)
-        inv = self._constructor(self.loc[~isdup_array].index[inv_array],
-                                index=self.index)
-        return isdup, inv
+        isduplicate_array, inverse_array = duplicated(self, keep=keep,
+                                                      return_inverse=True)
+        isduplicate = self._constructor(isduplicate_array,
+                                        index=self.index).__finalize__(self)
+        inverse = self._constructor(
+            self.loc[~isduplicate_array].index[inverse_array],
+            index=self.index)
+        return isduplicate, inverse
 
     # ----------------------------------------------------------------------
     # abstracts
