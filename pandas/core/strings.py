@@ -2245,6 +2245,7 @@ class StringMethods(NoNewAttributesMixin):
         # if join is None, _get_series_list already aligned indexes
         join = 'left' if join is None else join
 
+        # align if required
         if any(not data.index.equals(x.index) for x in others):
             # Need to add keys for uniqueness in case of duplicate columns
             others = concat(others, axis=1,
