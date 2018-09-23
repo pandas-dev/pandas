@@ -186,6 +186,7 @@ Other Enhancements
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
+- :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
@@ -679,6 +680,7 @@ Timezones
 - Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
 - Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where an ``AmbiguousTimeError`` or ``NonExistentTimeError`` would raise if a timezone aware timeseries ended on a DST transition (:issue:`19375`, :issue:`10117`)
 
 Offsets
 ^^^^^^^
@@ -816,6 +818,4 @@ Other
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
--
--
 -

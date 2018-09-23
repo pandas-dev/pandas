@@ -5,6 +5,7 @@ import locale
 import calendar
 import unicodedata
 import pytest
+import pytz
 
 from datetime import datetime, time, date
 
@@ -94,42 +95,6 @@ class TestSeriesDatetimeValues(TestData):
                                                  .tz_convert('US/Eastern'))
             expected = Series(exp_values, index=s.index, name='xxx')
             tm.assert_series_equal(result, expected)
-
-        # round
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
-                                   '2012-01-01 12:01:00',
-                                   '2012-01-01 08:00:00']), name='xxx')
-        result = s.dt.round('D')
-        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02',
-                                          '2012-01-01']), name='xxx')
-        tm.assert_series_equal(result, expected)
-
-        # round with tz
-        result = (s.dt.tz_localize('UTC')
-                   .dt.tz_convert('US/Eastern')
-                   .dt.round('D'))
-        exp_values = pd.to_datetime(['2012-01-01', '2012-01-01',
-                                     '2012-01-01']).tz_localize('US/Eastern')
-        expected = Series(exp_values, name='xxx')
-        tm.assert_series_equal(result, expected)
-
-        # floor
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
-                                   '2012-01-01 12:01:00',
-                                   '2012-01-01 08:00:00']), name='xxx')
-        result = s.dt.floor('D')
-        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01',
-                                          '2012-01-01']), name='xxx')
-        tm.assert_series_equal(result, expected)
-
-        # ceil
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
-                                   '2012-01-01 12:01:00',
-                                   '2012-01-01 08:00:00']), name='xxx')
-        result = s.dt.ceil('D')
-        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02',
-                                          '2012-01-02']), name='xxx')
-        tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
         s = Series(date_range('20130101', periods=5, tz='US/Eastern'),
@@ -260,6 +225,64 @@ class TestSeriesDatetimeValues(TestData):
         with pd.option_context('chained_assignment', 'raise'):
             with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
+
+    @pytest.mark.parametrize('method, dates', [
+        ['round', ['2012-01-02', '2012-01-02', '2012-01-01']],
+        ['floor', ['2012-01-01', '2012-01-01', '2012-01-01']],
+        ['ceil', ['2012-01-02', '2012-01-02', '2012-01-02']]
+    ])
+    def test_dt_round(self, method, dates):
+        # round
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
+        result = getattr(s.dt, method)('D')
+        expected = Series(pd.to_datetime(dates), name='xxx')
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_round_tz(self):
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
+        result = (s.dt.tz_localize('UTC')
+                  .dt.tz_convert('US/Eastern')
+                  .dt.round('D'))
+
+        exp_values = pd.to_datetime(['2012-01-01', '2012-01-01',
+                                     '2012-01-01']).tz_localize('US/Eastern')
+        expected = Series(exp_values, name='xxx')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('method', ['ceil', 'round', 'floor'])
+    def test_dt_round_tz_ambiguous(self, method):
+        # GH 18946 round near DST
+        df1 = pd.DataFrame([
+            pd.to_datetime('2017-10-29 02:00:00+02:00', utc=True),
+            pd.to_datetime('2017-10-29 02:00:00+01:00', utc=True),
+            pd.to_datetime('2017-10-29 03:00:00+01:00', utc=True)
+        ],
+            columns=['date'])
+        df1['date'] = df1['date'].dt.tz_convert('Europe/Madrid')
+        # infer
+        result = getattr(df1.date.dt, method)('H', ambiguous='infer')
+        expected = df1['date']
+        tm.assert_series_equal(result, expected)
+
+        # bool-array
+        result = getattr(df1.date.dt, method)(
+            'H', ambiguous=[True, False, False]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # NaT
+        result = getattr(df1.date.dt, method)('H', ambiguous='NaT')
+        expected = df1['date'].copy()
+        expected.iloc[0:2] = pd.NaT
+        tm.assert_series_equal(result, expected)
+
+        # raise
+        with pytest.raises(pytz.AmbiguousTimeError):
+            getattr(df1.date.dt, method)('H', ambiguous='raise')
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
