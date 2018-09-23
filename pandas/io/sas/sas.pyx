@@ -244,8 +244,8 @@ cdef class Parser(object):
         self.parser = parser
         self.header_length = self.parser.header_length
         self.column_count = parser.column_count
-        self.lengths = parser._column_data_lengths
-        self.offsets = parser._column_data_offsets
+        self.lengths = parser.column_data_lengths()
+        self.offsets = parser.column_data_offsets()
         self.byte_chunk = parser._byte_chunk
         self.string_chunk = parser._string_chunk
         self.row_length = parser.row_length
@@ -257,7 +257,7 @@ cdef class Parser(object):
         # page indicators
         self.update_next_page()
 
-        column_types = parser.column_types
+        column_types = parser.column_types()
 
         # map column types
         for j in range(self.column_count):
@@ -375,7 +375,7 @@ cdef class Parser(object):
                     if done:
                         return True
                 return False
-            elif self.current_page_type == page_data_type:
+            elif self.current_page_type & page_data_type == page_data_type:
                 self.process_byte_array_with_data(
                     bit_offset + subheader_pointers_offset +
                     self.current_row_on_page_index * self.row_length,
@@ -437,7 +437,7 @@ cdef class Parser(object):
             elif column_types[j] == column_type_string:
                 # string
                 string_chunk[js, current_row] = np.array(source[start:(
-                    start + lngt)]).tostring().rstrip()
+                    start + lngt)]).tostring().rstrip(b"\x00 ")
                 js += 1
 
         self.current_row_on_page_index += 1

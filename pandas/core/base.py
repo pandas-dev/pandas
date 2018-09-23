@@ -24,8 +24,7 @@ import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import function as nv
 from pandas.compat import PYPY, OrderedDict
-from pandas.util._decorators import (Appender, cache_readonly,
-                                     deprecate_kwarg, Substitution)
+from pandas.util._decorators import Appender, cache_readonly, Substitution
 
 from pandas.core.accessor import DirNamesMixin
 
@@ -665,6 +664,21 @@ class IndexOpsMixin(object):
                                 "definition self")
 
     @property
+    def _is_homogeneous(self):
+        """Whether the object has a single dtype.
+
+        By definition, Series and Index are always considered homogeneous.
+        A MultiIndex may or may not be homogeneous, depending on the
+        dtypes of the levels.
+
+        See Also
+        --------
+        DataFrame._is_homogeneous
+        MultiIndex._is_homogeneous
+        """
+        return True
+
+    @property
     def shape(self):
         """ return a tuple of the shape of the underlying data """
         return self._values.shape
@@ -1228,7 +1242,6 @@ class IndexOpsMixin(object):
 
     @Substitution(klass='IndexOpsMixin')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='key', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)

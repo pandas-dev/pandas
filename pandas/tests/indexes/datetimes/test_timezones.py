@@ -429,24 +429,24 @@ class TestDatetimeIndexTimezones(object):
         with pytest.raises(pytz.NonExistentTimeError):
             rng.tz_localize(tz)
 
-    def test_dti_tz_localize_roundtrip(self, tz_aware_fixture):
+    @pytest.mark.parametrize('idx', [
+        date_range(start='2014-01-01', end='2014-12-31', freq='M'),
+        date_range(start='2014-01-01', end='2014-12-31', freq='CD'),
+        date_range(start='2014-01-01', end='2014-03-01', freq='H'),
+        date_range(start='2014-08-01', end='2014-10-31', freq='T')
+    ])
+    def test_dti_tz_localize_roundtrip(self, tz_aware_fixture, idx):
         tz = tz_aware_fixture
+        localized = idx.tz_localize(tz)
+        expected = date_range(start=idx[0], end=idx[-1], freq=idx.freq,
+                              tz=tz)
+        tm.assert_index_equal(localized, expected)
+        with pytest.raises(TypeError):
+            localized.tz_localize(tz)
 
-        idx1 = date_range(start='2014-01-01', end='2014-12-31', freq='M')
-        idx2 = date_range(start='2014-01-01', end='2014-12-31', freq='D')
-        idx3 = date_range(start='2014-01-01', end='2014-03-01', freq='H')
-        idx4 = date_range(start='2014-08-01', end='2014-10-31', freq='T')
-        for idx in [idx1, idx2, idx3, idx4]:
-            localized = idx.tz_localize(tz)
-            expected = date_range(start=idx[0], end=idx[-1], freq=idx.freq,
-                                  tz=tz)
-            tm.assert_index_equal(localized, expected)
-            with pytest.raises(TypeError):
-                localized.tz_localize(tz)
-
-            reset = localized.tz_localize(None)
-            tm.assert_index_equal(reset, idx)
-            assert reset.tzinfo is None
+        reset = localized.tz_localize(None)
+        tm.assert_index_equal(reset, idx)
+        assert reset.tzinfo is None
 
     def test_dti_tz_localize_naive(self):
         rng = date_range('1/1/2011', periods=100, freq='H')
@@ -1033,7 +1033,9 @@ class TestDateRange(object):
         assert (dr.hour == 0).all()
 
         dr = date_range('2012-11-02', periods=10, tz=tzstr)
-        assert (dr.hour == 0).all()
+        result = dr.hour
+        expected = Index([0, 0, 0, 23, 23, 23, 23, 23, 23, 23])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
     def test_date_range_timezone_str_argument(self, tzstr):

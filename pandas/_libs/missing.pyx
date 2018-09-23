@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from cpython cimport PyFloat_Check, PyComplex_Check
-
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
@@ -23,8 +21,9 @@ cdef int64_t NPY_NAT = util.get_nat()
 
 cdef inline bint _check_all_nulls(object val):
     """ utility to check if a value is any type of null """
-    cdef bint res
-    if PyFloat_Check(val) or PyComplex_Check(val):
+    res: bint
+
+    if isinstance(val, (float, complex)):
         res = val != val
     elif val is NaT:
         res = 1
@@ -117,7 +116,7 @@ cpdef bint checknull_old(object val):
 
 cdef inline bint _check_none_nan_inf_neginf(object val):
     try:
-        return val is None or (PyFloat_Check(val) and
+        return val is None or (isinstance(val, float) and
                                (val != val or val == INF or val == NEGINF))
     except ValueError:
         return False

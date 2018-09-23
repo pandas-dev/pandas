@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal, is_datetime64_ns_dtype,
     is_datetime64_dtype, is_interval_dtype,
     is_datetime64_any_dtype, is_string_dtype,
-    _coerce_to_dtype)
+    _coerce_to_dtype, is_bool_dtype)
 import pandas.util.testing as tm
 
 
@@ -125,6 +125,18 @@ class TestCategoricalDtype(Base):
         categories = [(1, 'a'), (2, 'b'), (3, 'c')]
         result = CategoricalDtype(categories)
         assert all(result.categories == categories)
+
+    @pytest.mark.parametrize("categories, expected", [
+        ([True, False], True),
+        ([True, False, None], True),
+        ([True, False, "a", "b'"], False),
+        ([0, 1], False),
+    ])
+    def test_is_boolean(self, categories, expected):
+        cat = Categorical(categories)
+        assert cat.dtype._is_boolean is expected
+        assert is_bool_dtype(cat) is expected
+        assert is_bool_dtype(cat.dtype) is expected
 
 
 class TestDatetimeTZDtype(Base):
