@@ -1163,13 +1163,12 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            if self.index.unique().size == self.index.size:
-                return into_c((t[0], dict(zip(self.columns, t[1:])))
-                              for t in self.itertuples())
-            else:
+            if not self.index.is_unique:
                 raise ValueError(
                     "DataFrame index must be unique for orient='index'."
                 )
+            return into_c((t[0], dict(zip(self.columns, t[1:])))
+                          for t in self.itertuples())
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
