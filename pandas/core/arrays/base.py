@@ -717,23 +717,17 @@ class ExtensionOpsMixin(object):
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwargs):
+    def _reduce(self, name, skipna=True, **kwargs):
         """Return a scalar result of performing the op
 
         Parameters
         ----------
-        op : callable
-            function to apply to the array
         name : str
             name of the function
         axis : int, default 0
             axis over which to apply, defined as 0 currently
         skipna : bool, default True
             if True, skip NaN values
-        numeric_only : bool, optional
-            if True, only perform numeric ops
-        filter_type : str, optional
         kwargs : dict
 
         Returns

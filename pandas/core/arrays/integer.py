@@ -8,6 +8,7 @@ from pandas.util._decorators import cache_readonly
 from pandas.compat import u, range, string_types
 from pandas.compat import set_function_name
 
+from pandas.core import nanops
 from pandas.core.dtypes.cast import astype_nansafe
 from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
@@ -529,8 +530,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
 
-    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
-                filter_type=None, **kwds):
+    def _reduce(self, name, axis=0, skipna=True, **kwargs):
         data = self._data
         mask = self._mask
 
@@ -539,6 +539,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             data = self._data.astype('float64')
             data[mask] = self._na_value
 
+        op = getattr(nanops, 'nan' + name)
         result = op(data, axis=axis, skipna=skipna)
 
         # if we have a boolean op, provide coercion back to a bool
