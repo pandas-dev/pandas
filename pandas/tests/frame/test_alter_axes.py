@@ -234,13 +234,13 @@ class TestDataFrameAlterAxes():
         with tm.assert_raises_regex(KeyError, 'X'):
             df.set_index([df['A'], df['B'], 'X'], drop=drop, append=append)
 
-        rgx = 'The parameter "keys" may only contain a combination of.*'
+        msg = 'The parameter "keys" may only contain a combination of.*'
         # forbidden type, e.g. set
-        with tm.assert_raises_regex(TypeError, rgx):
+        with tm.assert_raises_regex(TypeError, msg):
             df.set_index(set(df['A']), drop=drop, append=append)
 
         # forbidden type in list, e.g. set
-        with tm.assert_raises_regex(TypeError, rgx):
+        with tm.assert_raises_regex(TypeError, msg):
             df.set_index(['A', df['A'], set(df['A'])],
                          drop=drop, append=append)
 
