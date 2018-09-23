@@ -17,7 +17,7 @@ from pandas.tests.frame.common import _check_mixed_float, _check_mixed_int
 
 class TestFrameComparisons(object):
     def test_flex_comparison_nat(self):
-        # gh-15697, gh-22163 df.eq(pd.NaT) should behave like df == pd.NaT,
+        # GH 15697, GH 22163 df.eq(pd.NaT) should behave like df == pd.NaT,
         # and _definitely_ not be NaN
         df = pd.DataFrame([pd.NaT])
 
@@ -35,7 +35,7 @@ class TestFrameComparisons(object):
         assert result.iloc[0, 0].item() is True
 
     def test_mixed_comparison(self):
-        # gh-13128, gh-22163 != datetime64 vs non-dt64 should be False,
+        # GH 13128, GH 22163 != datetime64 vs non-dt64 should be False,
         # not raise TypeError
         # (this appears to be fixed before #22163, not sure when)
         df = pd.DataFrame([['1989-08-01', 1], ['1989-08-01', 2]])
@@ -48,7 +48,7 @@ class TestFrameComparisons(object):
         assert result.all().all()
 
     def test_df_boolean_comparison_error(self):
-        # gh-4576
+        # GH 4576
         # boolean comparisons with a tuple/list give unexpected results
         df = pd.DataFrame(np.arange(6).reshape((3, 2)))
 
@@ -77,7 +77,7 @@ class TestFrameComparisons(object):
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
     def test_df_flex_cmp_constant_return_types(self, opname):
-        # gh-15077, non-empty DataFrame
+        # GH 15077, non-empty DataFrame
         df = pd.DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
         const = 2
 
@@ -86,7 +86,7 @@ class TestFrameComparisons(object):
 
     @pytest.mark.parametrize('opname', ['eq', 'ne', 'gt', 'lt', 'ge', 'le'])
     def test_df_flex_cmp_constant_return_types_empty(self, opname):
-        # gh-15077 empty DataFrame
+        # GH 15077 empty DataFrame
         df = pd.DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
         const = 2
 
@@ -100,7 +100,7 @@ class TestFrameComparisons(object):
 
 class TestFrameFlexArithmetic(object):
     def test_df_add_td64_columnwise(self):
-        # gh-22534 Check that column-wise addition broadcasts correctly
+        # GH 22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range('2016-01-01', periods=10)
         tdi = pd.timedelta_range('1', periods=10)
         tser = pd.Series(tdi)
@@ -112,7 +112,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, expected)
 
     def test_df_add_flex_filled_mixed_dtypes(self):
-        # gh-19611
+        # GH 19611
         dti = pd.date_range('2016-01-01', periods=3)
         ser = pd.Series(['1 Day', 'NaT', '2 Days'], dtype='timedelta64[ns]')
         df = pd.DataFrame({'A': dti, 'B': ser})
@@ -224,7 +224,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(df.div(row), df / row)
         tm.assert_frame_equal(df.div(col, axis=0), (df.T / col).T)
 
-        # broadcasting issue in gh-7325
+        # broadcasting issue in GH 7325
         df = pd.DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype='int64')
         expected = pd.DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
         result = df.div(df[0], axis='index')
@@ -236,7 +236,7 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, expected)
 
     def test_arith_flex_zero_len_raises(self):
-        # gh-19522 passing fill_value to frame flex arith methods should
+        # GH 19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
         ser_len0 = pd.Series([])
         df_len0 = pd.DataFrame([], columns=['A', 'B'])
@@ -251,7 +251,7 @@ class TestFrameFlexArithmetic(object):
 
 class TestFrameArithmetic(object):
     def test_df_bool_mul_int(self):
-        # gh-22047, gh-22163 multiplication by 1 should result in int dtype,
+        # GH 22047, GH 22163 multiplication by 1 should result in int dtype,
         # not object dtype
         df = pd.DataFrame([[False, True], [False, False]])
         result = df * 1

@@ -262,7 +262,7 @@ class TestDataFrameAnalytics():
             tm.assert_frame_equal(result, expected)
 
     def test_corr_cov_independent_index_column(self):
-        # gh-14617
+        # GH 14617
         df = pd.DataFrame(np.random.randn(4 * 10).reshape(10, 4),
                           columns=list("abcd"))
         for method in ['cov', 'corr']:
@@ -271,7 +271,7 @@ class TestDataFrameAnalytics():
             assert result.index.equals(result.columns)
 
     def test_corr_invalid_method(self):
-        # gh-22298
+        # GH 22298
         df = pd. DataFrame(np.random.normal(size=(10, 2)))
         msg = ("method must be either 'pearson', 'spearman', "
                "or 'kendall'")
@@ -387,7 +387,7 @@ class TestDataFrameAnalytics():
         assert c1 < 1
 
     def test_corrwith_mixed_dtypes(self):
-        # gh-18570
+        # GH 18570
         df = pd.DataFrame({'a': [1, 4, 3, 2], 'b': [4, 6, 7, 3],
                            'c': ['a', 'b', 'c', 'd']})
         s = pd.Series([0, 6, 7, 3])
@@ -420,7 +420,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_describe_bool_frame(self):
-        # gh-13891
+        # GH 13891
         df = pd.DataFrame({
             'bool_data_1': [False, False, True, True],
             'bool_data_2': [False, True, True, True]
@@ -483,7 +483,7 @@ class TestDataFrameAnalytics():
         tm.assert_numpy_array_equal(result["cat"].values, result["s"].values)
 
     def test_describe_categorical_columns(self):
-        # gh-11558
+        # GH 11558
         columns = pd.CategoricalIndex(['int1', 'int2', 'obj'],
                                       ordered=True, name='XXX')
         df = DataFrame({'int1': [10, 20, 30, 40, 50],
@@ -529,7 +529,7 @@ class TestDataFrameAnalytics():
         assert result.columns.tz == expected.columns.tz
 
     def test_describe_timedelta_values(self):
-        # gh-6145
+        # GH 6145
         t1 = pd.timedelta_range('1 days', freq='D', periods=5)
         t2 = pd.timedelta_range('1 hours', freq='H', periods=5)
         df = pd.DataFrame({'t1': t1, 't2': t2})
@@ -566,7 +566,7 @@ class TestDataFrameAnalytics():
         assert repr(result) == exp_repr
 
     def test_describe_tz_values(self, tz_naive_fixture):
-        # gh-21332
+        # GH 21332
         tz = tz_naive_fixture
         s1 = Series(range(5))
         start = Timestamp(2018, 1, 1)
@@ -588,7 +588,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_reduce_mixed_frame(self):
-        # gh-6806
+        # GH 6806
         df = DataFrame({
             'bool_data': [True, True, False, False, False],
             'int_data': [10, 20, 30, 40, 50],
@@ -615,7 +615,7 @@ class TestDataFrameAnalytics():
         ct2 = frame.count(0)
         assert isinstance(ct2, Series)
 
-        # gh-423
+        # GH 423
         df = DataFrame(index=lrange(10))
         result = df.count(1)
         expected = Series(0, index=df.index)
@@ -662,7 +662,7 @@ class TestDataFrameAnalytics():
     @pytest.mark.parametrize('method', ['sum', 'mean', 'prod', 'var',
                                         'std', 'skew', 'min', 'max'])
     def test_stat_operators_attempt_obj_array(self, method):
-        # gh-676
+        # GH 676
         data = {
             'a': [-0.00049987540199591344, -0.0016467257772919831,
                   0.00067695870775883013],
@@ -804,7 +804,7 @@ class TestDataFrameAnalytics():
     @pytest.mark.parametrize(
         "meth", ['sem', 'var', 'std'])
     def test_numeric_only_flag(self, meth):
-        # gh-9201
+        # GH 9201
         df1 = DataFrame(np.random.randn(5, 3), columns=['foo', 'bar', 'baz'])
         # set one entry to a number in str format
         df1.loc[0, 'foo'] = '100'
@@ -830,7 +830,7 @@ class TestDataFrameAnalytics():
     @pytest.mark.parametrize('op', ['mean', 'std', 'var',
                                     'skew', 'kurt', 'sem'])
     def test_mixed_ops(self, op):
-        # gh-16116
+        # GH 16116
         df = DataFrame({'int': [1, 2, 3, 4],
                         'float': [1., 2., 3., 4.],
                         'str': ['a', 'b', 'c', 'd']})
@@ -1086,7 +1086,7 @@ class TestDataFrameAnalytics():
                            timedelta(days=-1)], index=['A', 'B'])
         tm.assert_series_equal(result, expected)
 
-        # gh-3106
+        # GH 3106
         df = DataFrame({'time': date_range('20130102', periods=5),
                         'time2': date_range('20130105', periods=5)})
         df['off1'] = df['time2'] - df['time']
@@ -1369,12 +1369,12 @@ class TestDataFrameAnalytics():
         (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
 
         # # Mix
-        # gh-21484
+        # GH 21484
         # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
         #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
     ])
     def test_any_all_np_func(self, func, data, expected):
-        # gh-19976
+        # GH 19976
         data = DataFrame(data)
         result = func(data)
         assert isinstance(result, np.bool_)
@@ -1386,7 +1386,7 @@ class TestDataFrameAnalytics():
         assert result.item() is expected
 
     def test_any_all_object(self):
-        # gh-19976
+        # GH 19976
         result = np.all(DataFrame(columns=['a', 'b'])).item()
         assert result is True
 
@@ -1408,7 +1408,7 @@ class TestDataFrameAnalytics():
     # Isin
 
     def test_isin(self):
-        # gh-4211
+        # GH 4211
         df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
                         'ids2': ['a', 'n', 'c', 'n']},
                        index=['foo', 'bar', 'baz', 'qux'])
@@ -1420,7 +1420,7 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
     def test_isin_empty(self, empty):
-        # gh-16991
+        # GH 16991
         df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})
         expected = DataFrame(False, df.index, df.columns)
 
@@ -1446,7 +1446,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_isin_with_string_scalar(self):
-        # gh-4763
+        # GH 4763
         df = DataFrame({'vals': [1, 2, 3, 4], 'ids': ['a', 'b', 'f', 'n'],
                         'ids2': ['a', 'n', 'c', 'n']},
                        index=['foo', 'bar', 'baz', 'qux'])
@@ -1472,7 +1472,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_isin_tuples(self):
-        # gh-16394
+        # GH 16394
         df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
         df['C'] = list(zip(df['A'], df['B']))
         result = df['C'].isin([(1, 'a')])
@@ -1542,7 +1542,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(result, expected)
 
     def test_isin_empty_datetimelike(self):
-        # gh-15473
+        # GH 15473
         df1_ts = DataFrame({'date':
                             pd.to_datetime(['2014-01-01', '2014-01-02'])})
         df1_td = DataFrame({'date':
@@ -1564,7 +1564,7 @@ class TestDataFrameAnalytics():
 
     # Rounding
     def test_round(self):
-        # gh-2665
+        # GH 2665
 
         # Test that rounding an empty DataFrame does nothing
         df = DataFrame()
@@ -1667,7 +1667,7 @@ class TestDataFrameAnalytics():
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
 
         # named columns
-        # gh-11986
+        # GH 11986
         decimals = 2
         expected_rounded = DataFrame(
             {'col1': [1.12, 2.12, 3.12], 'col2': [1.23, 2.23, 3.23]})
@@ -1682,7 +1682,7 @@ class TestDataFrameAnalytics():
                                expected_rounded['col1'])
 
     def test_numpy_round(self):
-        # gh-12600
+        # GH 12600
         df = DataFrame([[1.53, 1.36], [0.06, 7.01]])
         out = np.round(df, decimals=0)
         expected = DataFrame([[2., 1.], [0., 7.]])
@@ -1693,7 +1693,7 @@ class TestDataFrameAnalytics():
             np.round(df, decimals=0, out=df)
 
     def test_round_mixed_type(self):
-        # gh-11885
+        # GH 11885
         df = DataFrame({'col1': [1.1, 2.2, 3.3, 4.4],
                         'col2': ['1', 'a', 'c', 'f'],
                         'col3': date_range('20111111', periods=4)})
@@ -1708,7 +1708,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(df.round({'col3': 1}), df)
 
     def test_round_issue(self):
-        # gh-11611
+        # GH 11611
 
         df = pd.DataFrame(np.random.random([3, 3]), columns=['A', 'B', 'C'],
                           index=['first', 'second', 'third'])
@@ -1725,7 +1725,7 @@ class TestDataFrameAnalytics():
             pytest.skip("build in round cannot be overridden "
                         "prior to Python 3")
 
-        # gh-11763
+        # GH 11763
         # Here's the test frame we'll be working with
         df = DataFrame(
             {'col1': [1.123, 2.123, 3.123], 'col2': [1.234, 2.234, 3.234]})
@@ -1736,7 +1736,7 @@ class TestDataFrameAnalytics():
         tm.assert_frame_equal(round(df), expected_rounded)
 
     def test_pct_change(self):
-        # gh-11150
+        # GH 11150
         pnl = DataFrame([np.arange(0, 40, 10), np.arange(0, 40, 10), np.arange(
             0, 40, 10)]).astype(np.float64)
         pnl.iat[1, 0] = np.nan
@@ -1769,7 +1769,7 @@ class TestDataFrameAnalytics():
         assert (float_frame.values == original.values).all()
 
     def test_inplace_clip(self, float_frame):
-        # gh-15388
+        # GH 15388
         median = float_frame.median().median()
         frame_copy = float_frame.copy()
 
@@ -1785,7 +1785,7 @@ class TestDataFrameAnalytics():
         assert not (frame_copy.values != median).any()
 
     def test_dataframe_clip(self):
-        # gh-2747
+        # GH 2747
         df = DataFrame(np.random.randn(1000, 2))
 
         for lb, ub in [(-1, 1), (1, -1)]:
@@ -1812,7 +1812,7 @@ class TestDataFrameAnalytics():
 
     @pytest.mark.parametrize("inplace", [True, False])
     def test_clip_against_series(self, inplace):
-        # gh-6966
+        # GH 6966
 
         df = DataFrame(np.random.randn(1000, 2))
         lb = Series(np.random.randn(1000))
@@ -1847,7 +1847,7 @@ class TestDataFrameAnalytics():
     ])
     def test_clip_against_list_like(self, simple_frame,
                                     inplace, lower, axis, res):
-        # gh-15390
+        # GH 15390
         original = simple_frame.copy(deep=True)
 
         result = original.clip(lower=lower, upper=[5, 6, 7],
@@ -1878,12 +1878,12 @@ class TestDataFrameAnalytics():
 
     def test_clip_with_na_args(self, float_frame):
         """Should process np.nan argument as None """
-        # gh-17276
+        # GH 17276
         tm.assert_frame_equal(float_frame.clip(np.nan), float_frame)
         tm.assert_frame_equal(float_frame.clip(upper=np.nan, lower=np.nan),
                               float_frame)
 
-        # gh-19992
+        # GH 19992
         df = DataFrame({'col_0': [1, 2, 3], 'col_1': [4, 5, 6],
                         'col_2': [7, 8, 9]})
 
@@ -1956,7 +1956,7 @@ class TestDataFrameAnalytics():
         _np_version_under1p12,
         reason="unpredictable return types under numpy < 1.12")
     def test_matmul(self):
-        # matmul test is for gh-10259
+        # matmul test is for GH 10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
         b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
@@ -2070,7 +2070,7 @@ class TestNLargestNSmallest(object):
         ['b', 'c', 'c']])
     @pytest.mark.parametrize('n', range(1, 11))
     def test_n(self, df_strings, nselect_method, n, order):
-        # gh-10393
+        # GH 10393
         df = df_strings
         if 'b' in order:
 
@@ -2103,7 +2103,7 @@ class TestNLargestNSmallest(object):
         df.nlargest(2, list(set(df) - {'category_string', 'string'}))
 
     def test_n_identical_values(self):
-        # gh-15297
+        # GH 15297
         df = pd.DataFrame({'a': [1] * 5, 'b': [1, 2, 3, 4, 5]})
 
         result = df.nlargest(3, 'a')
@@ -2125,7 +2125,7 @@ class TestNLargestNSmallest(object):
         ['c', 'b']])
     @pytest.mark.parametrize('n', range(1, 6))
     def test_n_duplicate_index(self, df_duplicates, n, order):
-        # gh-13412
+        # GH 13412
 
         df = df_duplicates
         result = df.nsmallest(n, order)
@@ -2137,7 +2137,7 @@ class TestNLargestNSmallest(object):
         tm.assert_frame_equal(result, expected)
 
     def test_duplicate_keep_all_ties(self):
-        # gh-16818
+        # GH 16818
         df = pd.DataFrame({'a': [5, 4, 4, 2, 3, 3, 3, 3],
                            'b': [10, 9, 8, 7, 5, 50, 10, 20]})
         result = df.nlargest(4, 'a', keep='all')
@@ -2154,7 +2154,7 @@ class TestNLargestNSmallest(object):
 
     def test_series_broadcasting(self):
         # smoke test for numpy warnings
-        # gh-16378, gh-16306
+        # GH 16378, GH 16306
         df = DataFrame([1.0, 1.0, 1.0])
         df_nan = DataFrame({'A': [np.nan, 2.0, np.nan]})
         s = Series([1, 1, 1])
@@ -2166,7 +2166,7 @@ class TestNLargestNSmallest(object):
                 getattr(df, op)(s_nan, axis=0)
 
     def test_series_nat_conversion(self):
-        # gh-18521
+        # GH 18521
         # Check rank does not mutate DataFrame
         df = DataFrame(np.random.randn(10, 3), dtype='float64')
         expected = df.copy()
