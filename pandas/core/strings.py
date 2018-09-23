@@ -5,6 +5,7 @@ from pandas.compat import zip
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
+    ensure_object,
     is_bool_dtype,
     is_categorical_dtype,
     is_object_dtype,
@@ -36,13 +37,13 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()
 
 
-def interleave_sep(all_cols, sep):
-    '''
+def interleave_sep(list_of_columns, sep):
+    """
     Auxiliary function for :meth:`str.cat`
 
     Parameters
     ----------
-    all_cols : list of numpy arrays
+    list_of_columns : list of numpy arrays
         List of arrays to be concatenated with sep
     sep : string
         The separator string for concatenating the columns
@@ -51,12 +52,12 @@ def interleave_sep(all_cols, sep):
     -------
     list
         The list of arrays interleaved with sep; to be fed to np.sum
-    '''
+    """
     if sep == '':
         # no need to add empty strings
-        return all_cols
-    result = [sep] * (2 * len(all_cols) - 1)
-    result[::2] = all_cols
+        return list_of_columns
+    result = [sep] * (2 * len(list_of_columns) - 1)
+    result[::2] = list_of_columns
     return result
 
 
@@ -2207,12 +2208,12 @@ class StringMethods(NoNewAttributesMixin):
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            data = data.astype(object).values
+            data = ensure_object(data)
             mask = isna(data)
-            if mask.any():
-                if na_rep is None:
-                    return sep.join(data[~mask])
-                return sep.join(np.where(mask, na_rep, data))
+            if na_rep is None and mask.any():
+                data = data[~mask]
+            elif na_rep is not None and mask.any():
+                data = np.where(mask, na_rep, data)
             return sep.join(data)
 
         try:
@@ -2251,11 +2252,13 @@ class StringMethods(NoNewAttributesMixin):
             data, others = data.align(others, join=join)
             others = [others[x] for x in others]  # again list of Series
 
-        all_cols = [x.astype(object).values for x in [data] + others]
+        all_cols = [ensure_object(x) for x in [data] + others]
         masks = np.array([isna(x) for x in all_cols])
         union_mask = np.logical_or.reduce(masks, axis=0)
 
         if na_rep is None and union_mask.any():
+            # no na_rep means NaNs for all rows where any column has a NaN
+            # only necessary if there are actually any NaNs
             result = np.empty(len(data), dtype=object)
             np.putmask(result, union_mask, np.nan)
 
@@ -2264,11 +2267,12 @@ class StringMethods(NoNewAttributesMixin):
 
             result[not_masked] = np.sum(all_cols, axis=0)
         elif na_rep is not None and union_mask.any():
-            # fill NaNs
-            all_cols = [np.where(masks[i], na_rep, all_cols[i])
-                        for i in range(len(all_cols))]
+            # fill NaNs with na_rep in case there are actually any NaNs
+            all_cols = [np.where(mask, na_rep, col)
+                        for mask, col in zip(masks, all_cols)]
             result = np.sum(interleave_sep(all_cols, sep), axis=0)
-        else:  # no NaNs
+        else:
+            # no NaNs - can just concatenate
             result = np.sum(interleave_sep(all_cols, sep), axis=0)
 
         if isinstance(self._orig, Index):
