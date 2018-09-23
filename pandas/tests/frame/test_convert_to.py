@@ -71,6 +71,10 @@ class TestDataFrameConvertTo(TestData):
         tm.assert_dict_equal(test_data_mixed.to_dict(orient='split'),
                              expected_split_mixed)
 
+    def test_to_dict_index_not_unique_with_index_orient(self):
+        df = DataFrame({'A': [0, 1], 'A': [1,2]})
+        pytest.raises(ValueError, df.to_dict, orient='index')
+
     def test_to_dict_invalid_orient(self):
         df = DataFrame({'A': [0, 1]})
         pytest.raises(ValueError, df.to_dict, orient='xinvalid')
