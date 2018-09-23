@@ -37,28 +37,29 @@ _cpython_optimized_decoders = _cpython_optimized_encoders + (
 _shared_docs = dict()
 
 
-def interleave_sep(list_of_columns, sep):
+def cat_core(list_of_columns, sep):
     """
     Auxiliary function for :meth:`str.cat`
 
     Parameters
     ----------
     list_of_columns : list of numpy arrays
-        List of arrays to be concatenated with sep
+        List of arrays to be concatenated with sep;
+        these arrays may not contain NaNs!
     sep : string
         The separator string for concatenating the columns
 
     Returns
     -------
-    list
-        The list of arrays interleaved with sep; to be fed to np.sum
+    nd.array
+        The concatenation of list_of_columns with sep
     """
     if sep == '':
         # no need to add empty strings
-        return list_of_columns
-    result = [sep] * (2 * len(list_of_columns) - 1)
-    result[::2] = list_of_columns
-    return result
+        return np.sum(list_of_columns, axis=0)
+    list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
+    list_with_sep[::2] = list_of_columns
+    return np.sum(list_with_sep, axis=0)
 
 
 def _na_map(f, arr, na_result=np.nan, dtype=object):
@@ -2263,17 +2264,16 @@ class StringMethods(NoNewAttributesMixin):
             np.putmask(result, union_mask, np.nan)
 
             not_masked = ~union_mask
-            all_cols = interleave_sep([x[not_masked] for x in all_cols], sep)
-
-            result[not_masked] = np.sum(all_cols, axis=0)
+            result[not_masked] = cat_core([x[not_masked] for x in all_cols],
+                                          sep)
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
             all_cols = [np.where(mask, na_rep, col)
                         for mask, col in zip(masks, all_cols)]
-            result = np.sum(interleave_sep(all_cols, sep), axis=0)
+            result = cat_core(all_cols, sep)
         else:
             # no NaNs - can just concatenate
-            result = np.sum(interleave_sep(all_cols, sep), axis=0)
+            result = cat_core(all_cols, sep)
 
         if isinstance(self._orig, Index):
             result = Index(result, name=self._orig.name)
