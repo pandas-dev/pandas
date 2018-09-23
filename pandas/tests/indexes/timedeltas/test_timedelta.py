@@ -1,5 +1,3 @@
-import warnings
-
 import pytest
 
 import numpy as np
@@ -147,7 +145,7 @@ class TestTimedeltaIndex(DatetimeLike):
         idx = TimedeltaIndex(['1 day', '2 day', '2 day', '3 day', '3day',
                               '4day'])
 
-        with warnings.catch_warnings(record=True):
+        with tm.assert_produces_warning(FutureWarning):
             # Deprecated - see GH20239
             result = idx.get_duplicates()
 

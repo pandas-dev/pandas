@@ -1,5 +1,3 @@
-from warnings import catch_warnings
-
 import pytest
 
 import numpy as np
@@ -366,22 +364,22 @@ class TestChaining(object):
         result4 = df['A'].iloc[2]
         check(result4, expected)
 
+    @pytest.mark.filterwarnings("ignore::DeprecationWarning")
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_cache_updating(self):
         # GH 4939, make sure to update the cache on setitem
 
         df = tm.makeDataFrame()
         df['A']  # cache series
-        with catch_warnings(record=True):
-            df.ix["Hello Friend"] = df.ix[0]
+        df.ix["Hello Friend"] = df.ix[0]
         assert "Hello Friend" in df['A'].index
         assert "Hello Friend" in df['B'].index
 
-        with catch_warnings(record=True):
-            panel = tm.makePanel()
-            panel.ix[0]  # get first item into cache
-            panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
-            assert "A+1" in panel.ix[0].columns
-            assert "A+1" in panel.ix[1].columns
+        panel = tm.makePanel()
+        panel.ix[0]  # get first item into cache
+        panel.ix[:, :, 'A+1'] = panel.ix[:, :, 'A'] + 1
+        assert "A+1" in panel.ix[0].columns
+        assert "A+1" in panel.ix[1].columns
 
         # 5216
         # make sure that we don't try to set a dead cache

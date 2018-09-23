@@ -3,21 +3,23 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - blosc
+  - beautifulsoup4
   - bottleneck
-  - fastparquet
-  - feather-format
+  - dateutil
+  - gcsfs
+  - html5lib
+  - jinja2=2.8
+  - lxml
   - matplotlib
   - numexpr
-  - numpy=1.14*
-  - openpyxl
-  - pyarrow
+  - numpy=1.12*
+  - openpyxl=2.5.5
   - pytables
-  - python-dateutil
-  - python=3.6.*
+  - python=2.7.*
   - pytz
+  - s3fs
   - scipy
-  - thrift=0.10*
+  - sqlalchemy
   - xlrd
   - xlsxwriter
   - xlwt
@@ -25,3 +27,5 @@ dependencies:
   - cython>=0.28.2
   - pytest
   - pytest-xdist
+  - moto
+  - hypothesis>=3.58.0
