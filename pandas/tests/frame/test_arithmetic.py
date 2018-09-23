@@ -138,13 +138,13 @@ class TestFrameFlexArithmetic(object):
             return getattr(operator, op)(x, y)
 
         result = getattr(float_frame, op)(2 * float_frame)
-        exp = f(float_frame, 2 * float_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(float_frame, 2 * float_frame)
+        tm.assert_frame_equal(result, expected)
 
         # vs mix float
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
-        exp = f(mixed_float_frame, 2 * mixed_float_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(mixed_float_frame, 2 * mixed_float_frame)
+        tm.assert_frame_equal(result, expected)
         _check_mixed_float(result, dtype=dict(C=None))
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
@@ -154,7 +154,7 @@ class TestFrameFlexArithmetic(object):
 
         # vs mix int
         result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
-        exp = f(mixed_int_frame, 2 + mixed_int_frame)
+        expected = f(mixed_int_frame, 2 + mixed_int_frame)
 
         # no overflow in the uint
         dtype = None
@@ -162,19 +162,19 @@ class TestFrameFlexArithmetic(object):
             dtype = dict(B='uint64', C=None)
         elif op in ['__add__', '__mul__']:
             dtype = dict(C=None)
-        tm.assert_frame_equal(result, exp)
+        tm.assert_frame_equal(result, expected)
         _check_mixed_int(result, dtype=dtype)
 
         # vs mix float
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
-        exp = f(mixed_float_frame, 2 * mixed_float_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(mixed_float_frame, 2 * mixed_float_frame)
+        tm.assert_frame_equal(result, expected)
         _check_mixed_float(result, dtype=dict(C=None))
 
         # vs plain int
         result = getattr(int_frame, op)(2 * int_frame)
-        exp = f(int_frame, 2 * int_frame)
-        tm.assert_frame_equal(result, exp)
+        expected = f(int_frame, 2 * int_frame)
+        tm.assert_frame_equal(result, expected)
 
     def test_arith_flex_frame_corner(self, all_arithmetic_operators,
                                      float_frame):
