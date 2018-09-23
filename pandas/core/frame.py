@@ -728,35 +728,50 @@ class DataFrame(NDFrame):
         """
         Iterator over (column name, Series) pairs.
 
-        Iterates over columns as key, value dict-like pairs with columns name as keys and Series as values.
+        Iterates over the DataFrame columns, returning a tuple with the column name and the content as a Series.
 
-        Returns
-        -------
-        it : generator
-            A generator that iterates over the columns of the frame.
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
 
-        See also
+        See Also
         --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
-        ...                   index=['a', 'b'])
+        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'bear', 'bear', 'marsupial'],
+        ...                   'pop': [300000, 200000, 1864, 22000, 80000]},
+        ...                   index=['black', 'brown', 'panda', 'polar', 'koala'])
         >>> df
-           col1 col2
-        a     1  0.1
-        b     2  0.2
-        >>> for col in df.iteritems():
-        ...     print(col)
+                species   pop
+        black 	bear 	  300000
+        brown 	bear 	  200000
+        panda 	bear 	  1864
+        polar 	bear 	  22000
+        koala 	marsupial 80000
+        >>> for label, content in df.iteritems():
+        ...     print('label:', label)
+        ...     print('content:', content)
         ...
-        ('col1', a   1
-        b   2
-        Name: col1, dtype: int64)
-        ('col2', a   0.1
-        b   0.2
-        Name: col2, dtype: float64)
+        label: species
+        content: black        bear
+        brown        bear
+        panda        bear
+        polar        bear
+        koala   marsupial
+        Name: species, dtype: object
+        label: pop
+        content: black   300000
+        brown   200000
+        panda     1864
+        polar    22000
+        koala    80000
+        Name: pop, dtype: int64
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
