@@ -479,8 +479,8 @@ class TestDataFrameAnalytics():
 
         cat = Series(Categorical(["a", "b", "c", "c"]))
         df3 = DataFrame({"cat": cat, "s": ["a", "b", "c", "c"]})
-        res = df3.describe()
-        tm.assert_numpy_array_equal(res["cat"].values, res["s"].values)
+        result = df3.describe()
+        tm.assert_numpy_array_equal(result["cat"].values, result["s"].values)
 
     def test_describe_categorical_columns(self):
         # GH 11558
@@ -551,8 +551,8 @@ class TestDataFrameAnalytics():
                              index=['count', 'mean', 'std', 'min', '25%',
                                     '50%', '75%', 'max'])
 
-        res = df.describe()
-        tm.assert_frame_equal(res, expected)
+        result = df.describe()
+        tm.assert_frame_equal(result, expected)
 
         exp_repr = ("                           t1                      t2\n"
                     "count                       5                       5\n"
@@ -563,7 +563,7 @@ class TestDataFrameAnalytics():
                     "50%           3 days 00:00:00         0 days 03:00:00\n"
                     "75%           4 days 00:00:00         0 days 04:00:00\n"
                     "max           5 days 00:00:00         0 days 05:00:00")
-        assert repr(res) == exp_repr
+        assert repr(result) == exp_repr
 
     def test_describe_tz_values(self, tz_naive_fixture):
         # GH 21332
@@ -584,8 +584,8 @@ class TestDataFrameAnalytics():
                                     'last', 'mean', 'std', 'min', '25%', '50%',
                                     '75%', 'max']
                              )
-        res = df.describe(include='all')
-        tm.assert_frame_equal(res, expected)
+        result = df.describe(include='all')
+        tm.assert_frame_equal(result, expected)
 
     def test_reduce_mixed_frame(self):
         # GH 6806
@@ -1201,7 +1201,6 @@ class TestDataFrameAnalytics():
         float_string_frame.var(1)
         float_string_frame.mean(1)
         float_string_frame.skew(1)
-
 
     # TODO: Ensure warning isn't emitted in the first place
     @pytest.mark.filterwarnings("ignore:All-NaN:RuntimeWarning")
