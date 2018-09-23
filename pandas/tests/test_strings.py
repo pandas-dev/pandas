@@ -567,27 +567,24 @@ class TestStringMethods(object):
         assert result.dtype == np.bool_
         tm.assert_numpy_array_equal(result, expected)
 
-        # na
-        values = Series(['om', 'foo', np.nan])
-        res = values.str.contains('foo', na="foo")
-        assert res.loc[2] == "foo"
-
         # na for category
         values = Series(["a", "b", "c", "a", np.nan], dtype="category")
-        result = values.str.contains('a', na=True)
+        result = values.str.contains('a', na=True).astype(object)
         expected = Series([True, False, False, True, True], dtype=np.object_)
         assert isinstance(result, Series)
         tm.assert_series_equal(result, expected)
-        result = values.str.contains('a', na=False)
+
+        result = values.str.contains('a', na=False).astype(object)
         expected = Series([True, False, False, True, False], dtype=np.object_)
         tm.assert_series_equal(result, expected)
 
         # na for objects
         values = Series(["a", "b", "c", "a", np.nan])
-        result = values.str.contains('a', na=True)
+        result = values.str.contains('a', na=True).astype(object)
         expected = Series([True, False, False, True, True], dtype=np.object_)
         tm.assert_series_equal(result, expected)
-        result = values.str.contains('a', na=False)
+
+        result = values.str.contains('a', na=False).astype(object)
         expected = Series([True, False, False, True, False], dtype=np.object_)
         tm.assert_series_equal(result, expected)
 
