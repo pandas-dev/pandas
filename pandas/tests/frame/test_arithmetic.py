@@ -128,14 +128,14 @@ class TestFrameFlexArithmetic(object):
 
     def test_arith_flex_frame(self, all_arithmetic_operators, float_frame,
                               mixed_float_frame):
+        # one instance of parametrized fixture
+        op = all_arithmetic_operators
 
-        op = all_arithmetic_operators  # one instance of parametrized fixture
-        if op.startswith('__r'):
-            # get op without "r" and invert it
-            tmp = getattr(operator, op[:2] + op[3:])
-            f = lambda x, y: tmp(y, x)
-        else:
-            f = getattr(operator, op)
+        def f(x, y):
+            if op.startswith('__r'):
+                # get op without "r" and invert it
+                return getattr(operator, op.replace('__r', '__'))(y, x)
+            return getattr(operator, op)(x, y)
 
         result = getattr(float_frame, op)(2 * float_frame)
         exp = f(float_frame, 2 * float_frame)
@@ -149,14 +149,8 @@ class TestFrameFlexArithmetic(object):
 
     @pytest.mark.parametrize('op', ['__add__', '__sub__', '__mul__'])
     def test_arith_flex_frame_mixed(self, op, int_frame, mixed_int_frame,
-                                    float_frame, mixed_float_frame):
-
-        if op.startswith('__r'):
-            # get op without "r" and invert it
-            tmp = getattr(operator, op[:2] + op[3:])
-            f = lambda x, y: tmp(y, x)
-        else:
-            f = getattr(operator, op)
+                                    mixed_float_frame):
+        f = getattr(operator, op)
 
         # vs mix int
         result = getattr(mixed_int_frame, op)(2 + mixed_int_frame)
@@ -184,7 +178,7 @@ class TestFrameFlexArithmetic(object):
 
     def test_arith_flex_frame_corner(self, all_arithmetic_operators,
                                      float_frame):
-
+        # one instance of parametrized fixture
         op = all_arithmetic_operators
 
         # Check that arrays with dim >= 3 raise
