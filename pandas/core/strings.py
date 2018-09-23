@@ -2210,11 +2210,11 @@ class StringMethods(NoNewAttributesMixin):
         # concatenate Series/Index with itself if no "others"
         if others is None:
             data = ensure_object(data)
-            mask = isna(data)
-            if na_rep is None and mask.any():
-                data = data[~mask]
-            elif na_rep is not None and mask.any():
-                data = np.where(mask, na_rep, data)
+            na_mask = isna(data)
+            if na_rep is None and na_mask.any():
+                data = data[~na_mask]
+            elif na_rep is not None and na_mask.any():
+                data = np.where(na_mask, na_rep, data)
             return sep.join(data)
 
         try:
@@ -2254,8 +2254,8 @@ class StringMethods(NoNewAttributesMixin):
             others = [others[x] for x in others]  # again list of Series
 
         all_cols = [ensure_object(x) for x in [data] + others]
-        masks = np.array([isna(x) for x in all_cols])
-        union_mask = np.logical_or.reduce(masks, axis=0)
+        na_masks = np.array([isna(x) for x in all_cols])
+        union_mask = np.logical_or.reduce(na_masks, axis=0)
 
         if na_rep is None and union_mask.any():
             # no na_rep means NaNs for all rows where any column has a NaN
@@ -2268,8 +2268,8 @@ class StringMethods(NoNewAttributesMixin):
                                           sep)
         elif na_rep is not None and union_mask.any():
             # fill NaNs with na_rep in case there are actually any NaNs
-            all_cols = [np.where(mask, na_rep, col)
-                        for mask, col in zip(masks, all_cols)]
+            all_cols = [np.where(nm, na_rep, col)
+                        for nm, col in zip(na_masks, all_cols)]
             result = cat_core(all_cols, sep)
         else:
             # no NaNs - can just concatenate
