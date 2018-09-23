@@ -8,10 +8,8 @@ from pandas import (offsets, Series, notna,
 
 import pandas.util.testing as tm
 
-from .common import TestData
 
-
-class TestSeriesAsof(TestData):
+class TestSeriesAsof():
 
     def test_basic(self):
 
