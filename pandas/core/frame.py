@@ -3833,7 +3833,8 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         keys : str or list of str or array
-            Column label or list of column labels / arrays that will form the new index.
+            Column label or list of column labels / arrays that will
+            form the new index.
         drop : boolean, default True
             Delete columns to be used as the new index.
         append : boolean, default False
