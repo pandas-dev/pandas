@@ -1163,7 +1163,7 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            if np.unique(self.index).size == len(self.index):
+            if df.index.unique().size == df.index.size:
                 return into_c((t[0], dict(zip(self.columns, t[1:])))
                               for t in self.itertuples())
             else:
