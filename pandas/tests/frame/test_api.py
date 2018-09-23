@@ -366,9 +366,9 @@ class SharedWithSparse(object):
     def test_repr_with_mi_nat(self, float_string_frame):
         df = self.klass({'X': [1, 2]},
                         index=[[pd.NaT, pd.Timestamp('20130101')], ['a', 'b']])
-        res = repr(df)
-        exp = '              X\nNaT        a  1\n2013-01-01 b  2'
-        assert res == exp
+        result = repr(df)
+        expected = '              X\nNaT        a  1\n2013-01-01 b  2'
+        assert result == expected
 
     def test_iteritems_names(self, float_string_frame):
         for k, v in compat.iteritems(float_string_frame):
