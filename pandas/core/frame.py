@@ -3825,22 +3825,30 @@ class DataFrame(NDFrame):
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
         """
+        An index is created with existing columns.
+
         Set the DataFrame index (row labels) using one or more existing
-        columns. By default yields a new object.
+        columns. The index can replace the existing index or expand on it.
 
         Parameters
         ----------
-        keys : column label or list of column labels / arrays
+        keys : str or list of str or array
+            Column label or list of column labels / arrays that will form the new index.
         drop : boolean, default True
-            Delete columns to be used as the new index
+            Delete columns to be used as the new index.
         append : boolean, default False
-            Whether to append columns to existing index
+            Whether to append columns to existing index.
         inplace : boolean, default False
-            Modify the DataFrame in place (do not create a new object)
+            Modify the DataFrame in place (do not create a new object).
         verify_integrity : boolean, default False
             Check the new index for duplicates. Otherwise defer the check until
             necessary. Setting to False will improve the performance of this
-            method
+            method.
+
+        Returns
+        -------
+        DataFrame
+            Changed row labels.
 
         See Also
         --------
@@ -3852,22 +3860,17 @@ class DataFrame(NDFrame):
         --------
         >>> df = pd.DataFrame({'month': [1, 4, 7, 10],
         ...                    'year': [2012, 2014, 2013, 2014],
-        ...                    'sale':[55, 40, 84, 31]})
-           month  sale  year
-        0  1      55    2012
-        1  4      40    2014
-        2  7      84    2013
-        3  10     31    2014
+        ...                    'sale': [55, 40, 84, 31]})
 
         Set the index to become the 'month' column:
 
         >>> df.set_index('month')
-               sale  year
+               year  sale
         month
-        1      55    2012
-        4      40    2014
-        7      84    2013
-        10     31    2014
+        1      2012    55
+        4      2014    40
+        7      2013    84
+        10     2014    31
 
         Create a multi-index using columns 'year' and 'month':
 
@@ -3888,10 +3891,6 @@ class DataFrame(NDFrame):
         2  2014  4      40
         3  2013  7      84
         4  2014  10     31
-
-        Returns
-        -------
-        dataframe : DataFrame
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not isinstance(keys, list):
@@ -3959,6 +3958,8 @@ class DataFrame(NDFrame):
     def reset_index(self, level=None, drop=False, inplace=False, col_level=0,
                     col_fill=''):
         """
+        An existing index is modified.
+
         For DataFrame with multi-level index, return new DataFrame with
         labeling information in the columns under the index names, defaulting
         to 'level_0', 'level_1', etc. if any are None. For a standard index,
@@ -3969,12 +3970,12 @@ class DataFrame(NDFrame):
         ----------
         level : int, str, tuple, or list, default None
             Only remove the given levels from the index. Removes all levels by
-            default
+            default.
         drop : boolean, default False
             Do not try to insert index into dataframe columns. This resets
             the index to the default integer index.
         inplace : boolean, default False
-            Modify the DataFrame in place (do not create a new object)
+            Modify the DataFrame in place (do not create a new object).
         col_level : int or str, default 0
             If the columns have multiple levels, determines which level the
             labels are inserted into. By default it is inserted into the first
@@ -3985,7 +3986,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        resetted : DataFrame
+        DataFrame
+            Changed row labels.
 
         See Also
         --------

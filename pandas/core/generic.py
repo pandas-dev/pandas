@@ -3342,8 +3342,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         other : Object
+            Its row and column indices are used to define the new indices
+            of this object.
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
-            method to use for filling holes in reindexed DataFrame.
+            Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
@@ -3354,7 +3356,7 @@ class NDFrame(PandasObject, SelectionMixin):
             * nearest: use nearest valid observations to fill gap
 
         copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
+            Return a new object, even if the passed indexes are the same.
         limit : int, default None
             Maximum number of consecutive labels to fill for inexact matches.
         tolerance : optional
@@ -3776,10 +3778,12 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.reindex(**{axis_name: new_axis})
 
     _shared_docs['reindex'] = """
+        An index is modified.
+
         Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
-        copy=False
+        copy=False.
 
         Parameters
         ----------
@@ -3789,7 +3793,7 @@ class NDFrame(PandasObject, SelectionMixin):
             avoid duplicating data
         %(optional_axis)s
         method : {None, 'backfill'/'bfill', 'pad'/'ffill', 'nearest'}, optional
-            method to use for filling holes in reindexed DataFrame.
+            Method to use for filling holes in reindexed DataFrame.
             Please note: this is only applicable to DataFrames/Series with a
             monotonically increasing/decreasing index.
 
@@ -3800,15 +3804,15 @@ class NDFrame(PandasObject, SelectionMixin):
             * nearest: use nearest valid observations to fill gap
 
         copy : boolean, default True
-            Return a new object, even if the passed indexes are the same
+            Return a new object, even if the passed indexes are the same.
         level : int or name
             Broadcast across a level, matching Index values on the
-            passed MultiIndex level
+            passed MultiIndex level.
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
-            "compatible" value
+            "compatible" value.
         limit : int, default None
-            Maximum number of consecutive elements to forward or backward fill
+            Maximum number of consecutive elements to forward or backward fill.
         tolerance : optional
             Maximum distance between original and new labels for inexact
             matches. The values of the index at the matching locations most
@@ -3919,12 +3923,12 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    index=date_index)
         >>> df2
                     prices
-        2010-01-01     100
-        2010-01-02     101
+        2010-01-01   100.0
+        2010-01-02   101.0
         2010-01-03     NaN
-        2010-01-04     100
-        2010-01-05      89
-        2010-01-06      88
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
 
         Suppose we decide to expand the dataframe to cover a wider
         date range.
@@ -3935,12 +3939,12 @@ class NDFrame(PandasObject, SelectionMixin):
         2009-12-29     NaN
         2009-12-30     NaN
         2009-12-31     NaN
-        2010-01-01     100
-        2010-01-02     101
+        2010-01-01   100.0
+        2010-01-02   101.0
         2010-01-03     NaN
-        2010-01-04     100
-        2010-01-05      89
-        2010-01-06      88
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
         2010-01-07     NaN
 
         The index entries that did not have a value in the original data frame
@@ -3953,15 +3957,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> df2.reindex(date_index2, method='bfill')
                     prices
-        2009-12-29     100
-        2009-12-30     100
-        2009-12-31     100
-        2010-01-01     100
-        2010-01-02     101
+        2009-12-29   100.0
+        2009-12-30   100.0
+        2009-12-31   100.0
+        2010-01-01   100.0
+        2010-01-02   101.0
         2010-01-03     NaN
-        2010-01-04     100
-        2010-01-05      89
-        2010-01-06      88
+        2010-01-04   100.0
+        2010-01-05    89.0
+        2010-01-06    88.0
         2010-01-07     NaN
 
         Please note that the ``NaN`` value present in the original dataframe
