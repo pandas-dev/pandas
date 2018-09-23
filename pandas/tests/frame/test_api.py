@@ -192,7 +192,7 @@ class SharedWithSparse(object):
             assert isinstance(v, self.klass._constructor_sliced)
 
     def test_items(self):
-        # GH 17213, GH 13918
+        # gh-17213, gh-13918
         cols = ['a', 'b', 'c']
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=cols)
         for c, (k, v) in zip(cols, df.items()):
@@ -213,7 +213,7 @@ class SharedWithSparse(object):
             self._assert_series_equal(v, exp)
 
     def test_iterrows_iso8601(self):
-        # GH 19671
+        # gh-19671
         if self.klass == SparseDataFrame:
             pytest.xfail(reason='SparseBlock datetime type not implemented.')
 
@@ -266,7 +266,7 @@ class SharedWithSparse(object):
 
     def test_sequence_like_with_categorical(self):
 
-        # GH 7839
+        # gh-7839
         # make sure can iterate
         df = DataFrame({"id": [1, 2, 3, 4, 5, 6],
                         "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
@@ -354,7 +354,7 @@ class SharedWithSparse(object):
         assert_series_equal(result, expected)
 
     def test_class_axis(self):
-        # GH 18147
+        # gh-18147
         # no exception and no empty docstring
         assert pydoc.getdoc(DataFrame.index)
         assert pydoc.getdoc(DataFrame.columns)
@@ -418,7 +418,7 @@ class TestDataFrameMisc(SharedWithSparse):
         assert (float_frame.values[:, 0] == 5).all()
 
     def test_as_matrix_deprecated(self, float_frame):
-        # GH 18458
+        # gh-18458
         with tm.assert_produces_warning(FutureWarning):
             cols = float_frame.columns.tolist()
             result = float_frame.as_matrix(columns=cols)
@@ -439,7 +439,7 @@ class TestDataFrameMisc(SharedWithSparse):
         assert (float_frame.values[5:10] == 5).all()
 
     def test_inplace_return_self(self):
-        # GH 1893
+        # gh-1893
 
         data = DataFrame({'a': ['foo', 'bar', 'baz', 'qux'],
                           'b': [0, 0, 1, 1],
@@ -503,7 +503,7 @@ class TestDataFrameMisc(SharedWithSparse):
         _check_f(d.copy(), f)
 
     def test_tab_complete_warning(self, ip):
-        # GH 16409
+        # gh-16409
         pytest.importorskip('IPython', minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
