@@ -1167,7 +1167,9 @@ class DataFrame(NDFrame):
                 return into_c((t[0], dict(zip(self.columns, t[1:])))
                               for t in self.itertuples())
             else:
-                raise ValueError("DataFrame index must be unique for orient='index'.")
+                raise ValueError(
+                    "DataFrame index must be unique for orient='index'."
+                )
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
