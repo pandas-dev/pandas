@@ -7827,7 +7827,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        wh : same type as caller
+        Series or DataFrame
 
         Notes
         -----
@@ -7836,9 +7836,9 @@ class NDFrame(PandasObject, SelectionMixin):
         element is used; otherwise the corresponding element from
         ``other`` is used.
 
-        The signature for :func:`DataFrame.where` or
-        :func:`DataFrame.where` differs from :func:`numpy.where`.s
-        Roughly ``df1.where(m, df2)`` is equivalent to
+        The signature for :func:`Series.where` or
+        :func:`DataFrame.where` differs from :func:`numpy.where`.
+        Roughly ``DataFrame.where(m, df2)`` is equivalent to
         ``np.where(m, df1, df2)``.
 
         For further details and examples see the ``%(name)s`` documentation in
@@ -7847,9 +7847,9 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         :func:`DataFrame.%(name_other)s` : Return an object of same shape as
-            caller
+            caller.
         :func:`Series.%(name_other)s` : Return an object of same shape as
-            caller
+            caller.
 
         Examples
         --------
