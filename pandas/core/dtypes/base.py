@@ -106,6 +106,25 @@ class _DtypeOpsMixin(object):
         """
         return False
 
+    @property
+    def _is_boolean(self):
+        # type: () -> bool
+        """
+        Whether this dtype should be considered boolean.
+
+        By default, ExtensionDtypes are assumed to be non-numeric.
+        Setting this to True will affect the behavior of several places,
+        e.g.
+
+        * is_bool
+        * boolean indexing
+
+        Returns
+        -------
+        bool
+        """
+        return False
+
 
 class ExtensionDtype(_DtypeOpsMixin):
     """A custom data type, to be paired with an ExtensionArray.
@@ -125,6 +144,7 @@ class ExtensionDtype(_DtypeOpsMixin):
     pandas operations
 
     * _is_numeric
+    * _is_boolean
 
     Optionally one can override construct_array_type for construction
     with the name of this dtype via the Registry. See

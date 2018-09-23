@@ -17,6 +17,10 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+- :func:`DataFrame.to_parquet` now accepts ``index`` as an argument, allowing
+the user to override the engine's default behavior to include or omit the
+dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
+
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support
@@ -182,10 +186,11 @@ Other Enhancements
 - :func:`to_timedelta` now supports iso-formated timedelta strings (:issue:`21877`)
 - :class:`Series` and :class:`DataFrame` now support :class:`Iterable` in constructor (:issue:`2193`)
 - :class:`DatetimeIndex` gained :attr:`DatetimeIndex.timetz` attribute. Returns local time with timezone information. (:issue:`21358`)
+- :meth:`round`, :meth:`ceil`, and meth:`floor` for :class:`DatetimeIndex` and :class:`Timestamp` now support an ``ambiguous`` argument for handling datetimes that are rounded to ambiguous times (:issue:`18946`)
 - :class:`Resampler` now is iterable like :class:`GroupBy` (:issue:`15314`).
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
-
+- New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
@@ -485,6 +490,7 @@ ExtensionType Changes
 - ``ExtensionArray`` has gained the abstract methods ``.dropna()`` (:issue:`21185`)
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
+- An ``ExtensionArray`` with a boolean dtype now works correctly as a boolean indexer. :meth:`pandas.api.types.is_bool_dtype` now properly considers them boolean (:issue:`22326`)
 - Added ``ExtensionDtype._is_numeric`` for controlling whether an extension dtype is considered numeric (:issue:`22290`).
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
 - Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
@@ -561,6 +567,7 @@ Deprecations
 - :meth:`Series.str.cat` has deprecated using arbitrary list-likes *within* list-likes. A list-like container may still contain
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
+- :func:`DatetimeIndex.shift` now accepts ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
 
 .. _whatsnew_0240.prior_deprecations:
 
@@ -616,6 +623,8 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :meth:`Categorical.from_codes` where ``NaN`` values in ``codes`` were silently converted to ``0`` (:issue:`21767`). In the future this will raise a ``ValueError``. Also changes the behavior of ``.from_codes([1.1, 2.0])``.
+- Bug when indexing with a boolean-valued ``Categorical``. Now a boolean-valued ``Categorical`` is treated as a boolean mask (:issue:`22665`)
+- Constructing a :class:`CategoricalIndex` with empty values and boolean categories was raising a ``ValueError`` after a change to dtype coercion (:issue:`22702`).
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -671,6 +680,7 @@ Timezones
 - Bug when setting a new value with :meth:`DataFrame.loc` with a :class:`DatetimeIndex` with a DST transition (:issue:`18308`, :issue:`20724`)
 - Bug in :meth:`DatetimeIndex.unique` that did not re-localize tz-aware dates correctly (:issue:`21737`)
 - Bug when indexing a :class:`Series` with a DST transition (:issue:`21846`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where an ``AmbiguousTimeError`` or ``NonExistentTimeError`` would raise if a timezone aware timeseries ended on a DST transition (:issue:`19375`, :issue:`10117`)
 
 Offsets
 ^^^^^^^
@@ -723,6 +733,7 @@ Indexing
 - ``Float64Index.get_loc`` now raises ``KeyError`` when boolean key passed. (:issue:`19087`)
 - Bug in :meth:`DataFrame.loc` when indexing with an :class:`IntervalIndex` (:issue:`19977`)
 - :class:`Index` no longer mangles ``None``, ``NaN`` and ``NaT``, i.e. they are treated as three different keys. However, for numeric Index all three are still coerced to a ``NaN`` (:issue:`22332`)
+- Bug in `scalar in Index` if scalar is a float while the ``Index`` is of integer dtype (:issue:`22085`)
 
 Missing
 ^^^^^^^
@@ -749,6 +760,7 @@ I/O
 - :func:`read_sas()` will parse numbers in sas7bdat-files that have width less than 8 bytes correctly. (:issue:`21616`)
 - :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
+- Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 
 Plotting
 ^^^^^^^^
@@ -807,6 +819,4 @@ Other
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
--
--
 -
