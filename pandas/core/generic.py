@@ -3354,13 +3354,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        Like calling `.reindex(index=other.index, columns=other.columns,
-                               method=...)`
+        Like calling `.reindex(index=other.index, columns=other.columns, ...)`
 
         Returns
         -------
-        Object
-            same object type as input, but with changed indices on each axis
+        Same object type as input, but with changed indices on each axis.
 
         See Also
         --------
