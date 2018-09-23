@@ -89,8 +89,8 @@ class TestSparseSeriesFormatting(object):
 
         result = repr(s)
         dtype = '' if use_32bit_repr else ', dtype=int32'
-        exp = ("0    0\n1    1\n2    0\n3    0\n4    1\n"
-               "5    0\ndtype: int64\nBlockIndex\n"
+        exp = ("0   0\n1   1\n2   0\n3   0\n4   1\n"
+               "5   0\ndtype: int64\nBlockIndex\n"
                "Block locations: array([1, 4]{0})\n"
                "Block lengths: array([1, 1]{0})".format(dtype))
         assert result == exp
@@ -98,7 +98,7 @@ class TestSparseSeriesFormatting(object):
         with option_context("display.max_rows", 3,
                             "display.show_dimensions", False):
             result = repr(s)
-            exp = ("0    0\n    ..\n5    0\n"
+            exp = ("0   0 \n    ..\n5   0 \n"
                    "dtype: int64\nBlockIndex\n"
                    "Block locations: array([1, 4]{0})\n"
                    "Block lengths: array([1, 1]{0})".format(dtype))
