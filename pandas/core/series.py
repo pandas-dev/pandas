@@ -2023,7 +2023,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Compute the lag-N autocorrelation.
 
-        This method computes the pearson correlation between
+        This method computes the Pearson correlation between
         the Series and its shifted self.
 
         Parameters
@@ -2034,7 +2034,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         float
-            The pearson correlation between self and self.shift(lag).
+            The Pearson correlation between self and self.shift(lag).
 
         See Also
         --------
@@ -2046,7 +2046,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        If the pearson correlation is not well defined return 'NaN'.
+        If the Pearson correlation is not well defined return 'NaN'.
 
         Examples
         --------
@@ -2056,7 +2056,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.autocorr(lag=2)
         -0.9999999999999999
 
-        If the pearson correlation is not well defined, then 'NaN' is returned.
+        If the Pearson correlation is not well defined, then 'NaN' is returned.
 
         >>> s = pd.Series([1, 0, 0, 0])
         >>> s.autocorr()
