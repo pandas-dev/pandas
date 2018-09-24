@@ -9,6 +9,7 @@ import re
 import sys
 from datetime import datetime
 from collections import OrderedDict
+from io import TextIOWrapper
 
 import pytest
 import numpy as np
@@ -1609,3 +1610,11 @@ j,-inF"""
         val = sys.stderr.getvalue()
         assert 'Skipping line 3' in val
         assert 'Skipping line 5' in val
+
+    def test_buffer_rd_bytes_bad_unicode(self):
+        # Regression test for #22748
+        t = BytesIO(b"\xB0")
+        if PY3:
+            t = TextIOWrapper(t, encoding='ascii', errors='surrogateescape')
+        with pytest.raises(UnicodeError):
+            pd.read_csv(t, encoding='UTF-8')
