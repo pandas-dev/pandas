@@ -277,7 +277,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except TypeError:
             return result
 
-    def _ensure_localized(self, result, ambiguous='raise'):
+    def _ensure_localized(self, result, ambiguous='raise', from_utc=False):
         """
         ensure that we are re-localized
 
@@ -289,6 +289,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result : DatetimeIndex / i8 ndarray
         ambiguous : str, bool, or bool-ndarray
             default 'raise'
+        from_utc : bool
 
         Returns
         -------
@@ -299,7 +300,10 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         if getattr(self, 'tz', None) is not None:
             if not isinstance(result, ABCIndexClass):
                 result = self._simple_new(result)
-            result = result.tz_localize(self.tz, ambiguous=ambiguous)
+            if from_utc:
+                result = result.tz_localize('UTC').tz_convert(self.tz)
+            else:
+                result = result.tz_localize(self.tz, ambiguous=ambiguous)
         return result
 
     def _box_values_as_index(self):
@@ -622,11 +626,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
-        other = _ensure_datetimelike_to_i8(other)
-        values = _ensure_datetimelike_to_i8(self)
+        other = _ensure_datetimelike_to_i8(other, to_utc=True)
+        values = _ensure_datetimelike_to_i8(self, to_utc=True)
         result = np.where(cond, values, other).astype('i8')
 
-        result = self._ensure_localized(result)
+        result = self._ensure_localized(result, from_utc=True)
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
@@ -695,14 +699,17 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
 
 
-def _ensure_datetimelike_to_i8(other):
+def _ensure_datetimelike_to_i8(other, to_utc=False):
     """ helper for coercing an input scalar or array to i8 """
     if is_scalar(other) and isna(other):
         other = iNaT
     elif isinstance(other, ABCIndexClass):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
-            other = other.tz_localize(None).asi8
+            if to_utc:
+                other = other.tz_convert('UTC').asi8
+            else:
+                other = other.tz_localize(None).asi8
         else:
             other = other.asi8
     else:
