@@ -1269,7 +1269,7 @@ class TestDataFrameFormatting(object):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
-
+        # GH 16839, GH 13032
         df = DataFrame({'x': [11, 22], 'y': [33, -44], 'z': ['AAA', '   ']})
 
         df_s = df.to_string(index=False)
@@ -1286,6 +1286,7 @@ class TestDataFrameFormatting(object):
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
+        # GH 13998, GH 22505
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
