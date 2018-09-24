@@ -9512,6 +9512,7 @@ class NDFrame(PandasObject, SelectionMixin):
         path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
             a string.
+
             .. versionchanged:: 0.24.0
                 Was previously named "path" for Series.
         sep : str, default ','
@@ -9525,6 +9526,7 @@ class NDFrame(PandasObject, SelectionMixin):
         header : bool or list of str, default True
             Write out the column names. If a list of strings is given it is
             assumed to be aliases for the column names.
+
             .. versionchanged:: 0.24.0
                 Previously defaulted to False for Series.
         index : bool, default True
@@ -9546,6 +9548,7 @@ class NDFrame(PandasObject, SelectionMixin):
             is path-like, then detect compression from the following
             extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
             compression).
+
             .. versionchanged:: 0.24.0
                'infer' option added and set to default.
         quoting : optional constant from csv module
@@ -9563,6 +9566,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Write MultiIndex columns as a list of tuples (if True) or in
             the new, expanded format, where each MultiIndex column is a row
             in the CSV (if False).
+
             .. deprecated:: 0.21.0
                This argument will be removed and will always write each row
                of the multi-index as a separate row in the CSV file.
@@ -9586,7 +9590,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         pandas.read_csv : Load a CSV file into a DataFrame.
-        pandas.to_excel: Load an Excel file into a DataFrame.
+        pandas.to_excel : Load an Excel file into a DataFrame.
 
         Examples
         --------
