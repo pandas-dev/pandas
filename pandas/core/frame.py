@@ -7465,13 +7465,14 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-            DataFrame of boolean showing whether each element in the DataFrame
+            DataFrame of booleans showing whether each element in the DataFrame
             is contained in values.
 
         See Also
         --------
         DataFrame.eq: Equality test for DataFrame.
         Series.isin: Equivalent method on Series.
+        Series.str.isin:
 
         Examples
         --------
@@ -7490,15 +7491,17 @@ class DataFrame(NDFrame):
         falcon      True       True
         dog        False      False
 
-        When ``values`` is a dict.
+        When ``values`` is a dict, we can pass values to check for each
+        column separately:
 
         >>> df.isin({'num_wings': [0, 3], 'num_legs': [0]})
                 num_legs  num_wings
         falcon     False      False
         dog        False       True
 
-        When ``values`` is a Series or DataFrame. Note that 'falcon' does not
-        match based on the number of legs in df2.
+        When ``values`` is a Series or DataFrame the index and column must
+        match. Note that 'falcon' does not match based on the number of legs
+        in df2.
 
         >>> df2 = pd.DataFrame({'num_legs': [8, 0, 2], 'num_wings': [0, 2, 2]},
         ...                    index=['spider', 'falcon', 'parrot'])
