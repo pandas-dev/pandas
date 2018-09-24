@@ -224,14 +224,29 @@ def json_normalize(data, record_path=None, meta=None,
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
-    def _extract(obj, path, seen_meta, level):
-        recs = _pull_field(obj, path[0])
+    def _extract(obj, field, seen_meta, level):
+        """
+        Extract field from obj.
+        The result is stored in `records`, `lengths`, and `meta_vals`.
+
+        Parameters
+        ----------
+        obj : dict
+            Unserialized JSON object
+        field : string
+            The field to extract from obj
+        seen_meta : dict
+            The dict of meta values that have been visited
+        level: int
+            The current level
+        """
+        recs = _pull_field(obj, field)
 
         # For repeating the metadata later
         lengths.append(len(recs))
 
         for val, key in zip(meta, meta_keys):
-            if level + 1 > len(val):
+            if level >= len(val):
                 meta_val = seen_meta[key]
             else:
                 try:
@@ -259,9 +274,9 @@ def json_normalize(data, record_path=None, meta=None,
                                    seen_meta, level=level + 1)
         elif isinstance(data, list):
             for obj in data:
-                _extract(obj, path, seen_meta, level)
+                _extract(obj, path[0], seen_meta, level)
         else:
-            _extract(data, path, seen_meta, level)
+            _extract(data, path[0], seen_meta, level)
 
     _recursive_extract(data, record_path, {}, level=0)
 

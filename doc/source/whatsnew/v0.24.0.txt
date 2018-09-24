@@ -763,6 +763,7 @@ I/O
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 - Bug in :func:`to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
+- Bug in :func:`json_normalize` that caused it to raise ``TypeError`` when ``record_path`` has a sequence of dicts along its path (:issue:`22706`)
 
 Plotting
 ^^^^^^^^
