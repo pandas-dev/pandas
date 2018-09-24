@@ -580,7 +580,7 @@ class NaTType(_NaT):
             - 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone
 
-              .. versionadded:: 0.19.0
+              .. depreciated:: 0.24.0
 
         Returns
         -------
