@@ -150,7 +150,11 @@ void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
         return NULL;
     } else if (!PyBytes_Check(result)) {
         tmp = PyUnicode_AsUTF8String(result);
-        Py_XDECREF(result);
+        Py_DECREF(result);
+        if (tmp == NULL) {
+            PyGILState_Release(state);
+            return NULL;
+        }
         result = tmp;
     }
 
