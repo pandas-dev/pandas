@@ -33,7 +33,7 @@ cdef class {{name}}Engine(IndexEngine):
     _dtype = '{{dtype}}'
 
     def _call_monotonic(self, values):
-        return algos.is_monotonic_{{dtype}}(values, timelike=False)
+        return algos.is_monotonic(values, timelike=False)
 
     def get_backfill_indexer(self, other, limit=None):
         return algos.backfill_{{dtype}}(self._get_index_values(),
