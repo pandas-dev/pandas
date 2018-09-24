@@ -184,27 +184,30 @@ class TestDatetimeIndexOps(object):
     def test_round_int64(self, start, index_freq, periods, rounding_freq):
         dt = DatetimeIndex(start=start, freq=index_freq, periods=periods)
         unit = to_offset(rounding_freq).nanos
+
         # test floor
-        result = dt.floor(rounding_freq).asi8
-        diff = dt.asi8 - result
-        mod = result % unit
+        result = dt.floor(rounding_freq)
+        diff = dt.asi8 - result.asi8
+        mod = result.asi8 % unit
         assert (mod == 0).all(), "floor not a %s multiple" % (rounding_freq, )
         assert (0 <= diff).all() and (diff < unit).all(), "floor error"
+
         # test ceil
-        result = dt.ceil(rounding_freq).asi8
-        diff = result - dt.asi8
-        mod = result % unit
+        result = dt.ceil(rounding_freq)
+        diff = result.asi8 - dt.asi8
+        mod = result.asi8 % unit
         assert (mod == 0).all(), "ceil not a %s multiple" % (rounding_freq, )
         assert (0 <= diff).all() and (diff < unit).all(), "ceil error"
+
         # test round
-        result = dt.round(rounding_freq).asi8
-        diff = abs(result - dt.asi8)
-        mod = result % unit
+        result = dt.round(rounding_freq)
+        diff = abs(result.asi8 - dt.asi8)
+        mod = result.asi8 % unit
         assert (mod == 0).all(), "round not a %s multiple" % (rounding_freq, )
         assert (diff <= unit // 2).all(), "round error"
         if unit % 2 == 0:
             assert (
-                result[diff == unit // 2] % 2 == 0
+                result.asi8[diff == unit // 2] % 2 == 0
             ).all(), "round half to even error"
 
     # ----------------------------------------------------------------

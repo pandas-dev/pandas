@@ -176,14 +176,17 @@ class TestTimestampUnaryOps(object):
         """
         dt = Timestamp(timestamp)
         unit = to_offset(freq).nanos
+
         # test floor
         result = dt.floor(freq)
         assert result.value % unit == 0, "floor not a %s multiple" % (freq, )
         assert 0 <= dt.value - result.value < unit, "floor error"
+
         # test ceil
         result = dt.ceil(freq)
         assert result.value % unit == 0, "ceil not a %s multiple" % (freq, )
         assert 0 <= result.value - dt.value < unit, "ceil error"
+
         # test round
         result = dt.round(freq)
         assert result.value % unit == 0, "round not a %s multiple" % (freq, )

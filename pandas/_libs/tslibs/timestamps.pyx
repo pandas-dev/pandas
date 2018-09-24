@@ -60,6 +60,38 @@ cdef inline object create_timestamp_from_ts(int64_t value,
 
 @enum.unique
 class RoundTo(enum.Enum):
+    """
+    enumeration defining the available rounding modes
+
+    Attributes
+    ----------
+    MINUS_INFTY
+        round towards -∞, or floor [2]_
+    PLUS_INFTY
+        round towards +∞, or ceil [3]_
+    NEAREST_HALF_EVEN
+        round to nearest, tie-break half to even [6]_
+    NEAREST_HALF_MINUS_INFTY
+        round to nearest, tie-break half to -∞ [5]_
+    NEAREST_HALF_PLUS_INFTY
+        round to nearest, tie-break half to +∞ [4]_
+
+
+    References
+    ----------
+    .. [1] "Rounding - Wikipedia"
+           https://en.wikipedia.org/wiki/Rounding
+    .. [2] "Rounding down"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_down
+    .. [3] "Rounding up"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_up
+    .. [4] "Round half up"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_up
+    .. [5] "Round half down"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_down
+    .. [6] "Round half to even"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
+    """
     MINUS_INFTY = 0
     PLUS_INFTY = 1
     NEAREST_HALF_EVEN = 2
