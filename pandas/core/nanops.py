@@ -1,12 +1,16 @@
-import itertools
 import functools
+import itertools
 import operator
 import warnings
 from distutils.version import LooseVersion
 
 import numpy as np
+
+import pandas.core.common as com
 from pandas import compat
 from pandas._libs import tslibs, lib
+from pandas.core.config import get_option
+from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.common import (
     _get_dtype,
     is_float, is_scalar,
@@ -17,10 +21,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype, is_timedelta64_dtype,
     is_datetime_or_timedelta_dtype,
     is_int_or_datetime_dtype, is_any_int_dtype)
-from pandas.core.dtypes.cast import _int64_max, maybe_upcast_putmask
 from pandas.core.dtypes.missing import isna, notna, na_value_for_dtype
-from pandas.core.config import get_option
-import pandas.core.common as com
 
 _BOTTLENECK_INSTALLED = False
 _MIN_BOTTLENECK_VERSION = '1.0.0'
@@ -200,16 +201,18 @@ def _get_fill_value(dtype, fill_value=None, fill_value_typ=None):
 
 
 def _get_values(values, skipna, fill_value=None, fill_value_typ=None,
-                isfinite=False, copy=True):
+                isfinite=False, copy=True, mask=None):
     """ utility to get the values view, mask, dtype
     if necessary copy and mask using the specified fill_value
     copy = True will force the copy
     """
     values = com.values_from_object(values)
-    if isfinite:
-        mask = _isfinite(values)
-    else:
-        mask = isna(values)
+
+    if mask is None:
+        if isfinite:
+            mask = _isfinite(values)
+        else:
+            mask = isna(values)
 
     dtype = values.dtype
     dtype_ok = _na_ok_dtype(dtype)
@@ -315,19 +318,21 @@ def _na_for_min_count(values, axis):
         return result
 
 
-def nanany(values, axis=None, skipna=True):
-    values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna)
+def nanany(values, axis=None, skipna=True, mask=None):
+    values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna,
+                                         mask=mask)
     return values.any(axis)
 
 
-def nanall(values, axis=None, skipna=True):
-    values, mask, dtype, _ = _get_values(values, skipna, True, copy=skipna)
+def nanall(values, axis=None, skipna=True, mask=None):
+    values, mask, dtype, _ = _get_values(values, skipna, True, copy=skipna,
+                                         mask=mask)
     return values.all(axis)
 
 
 @disallow('M8')
-def nansum(values, axis=None, skipna=True, min_count=0):
-    values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
+def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
+    values, mask, dtype, dtype_max = _get_values(values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
         dtype_sum = dtype
@@ -341,9 +346,8 @@ def nansum(values, axis=None, skipna=True, min_count=0):
 
 @disallow('M8')
 @bottleneck_switch()
-def nanmean(values, axis=None, skipna=True):
-    values, mask, dtype, dtype_max = _get_values(values, skipna, 0)
-
+def nanmean(values, axis=None, skipna=True, mask=None):
+    values, mask, dtype, dtype_max = _get_values(values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     dtype_count = np.float64
     if is_integer_dtype(dtype) or is_timedelta64_dtype(dtype):
@@ -367,15 +371,14 @@ def nanmean(values, axis=None, skipna=True):
 
 @disallow('M8')
 @bottleneck_switch()
-def nanmedian(values, axis=None, skipna=True):
-
+def nanmedian(values, axis=None, skipna=True, mask=None):
     def get_median(x):
         mask = notna(x)
         if not skipna and not mask.all():
             return np.nan
         return np.nanmedian(x[mask])
 
-    values, mask, dtype, dtype_max = _get_values(values, skipna)
+    values, mask, dtype, dtype_max = _get_values(values, skipna, mask=mask)
     if not is_float_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -439,7 +442,6 @@ def nanstd(values, axis=None, skipna=True, ddof=1):
 @disallow('M8')
 @bottleneck_switch(ddof=1)
 def nanvar(values, axis=None, skipna=True, ddof=1):
-
     values = com.values_from_object(values)
     dtype = values.dtype
     mask = isna(values)
@@ -465,7 +467,7 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
     avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values)**2)
+    sqr = _ensure_numeric((avg - values) ** 2)
     np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d
 
@@ -520,22 +522,24 @@ nanmax = _nanminmax('max', fill_value_typ='-inf')
 
 
 @disallow('O')
-def nanargmax(values, axis=None, skipna=True):
+def nanargmax(values, axis=None, skipna=True, mask=None):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf')
+    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf',
+                                         mask=mask)
     result = values.argmax(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
 
 
 @disallow('O')
-def nanargmin(values, axis=None, skipna=True):
+def nanargmin(values, axis=None, skipna=True, mask=None):
     """
     Returns -1 in the NA case
     """
-    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf')
+    values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf',
+                                         mask=mask)
     result = values.argmin(axis)
     result = _maybe_arg_null_out(result, axis, mask, skipna)
     return result
@@ -636,7 +640,7 @@ def nankurt(values, axis=None, skipna=True):
     with np.errstate(invalid='ignore', divide='ignore'):
         adj = 3 * (count - 1) ** 2 / ((count - 2) * (count - 3))
         numer = count * (count + 1) * (count - 1) * m4
-        denom = (count - 2) * (count - 3) * m2**2
+        denom = (count - 2) * (count - 3) * m2 ** 2
 
     # floating point error
     #
