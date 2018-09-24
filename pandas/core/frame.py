@@ -7472,6 +7472,8 @@ class DataFrame(NDFrame):
         --------
         DataFrame.eq: Equality test for DataFrame.
         Series.isin: Equivalent method on Series.
+        Series.str.contains: Test if pattern or regex is contained within a
+            string of a Series or Index.
 
         Examples
         --------
