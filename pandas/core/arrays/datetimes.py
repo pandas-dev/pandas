@@ -661,7 +661,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             - 'coerce' will return NaT if the timestamp can not be converted
               to the specified time zone
 
-            .. versionadded:: 0.19.0
+            .. depreciated:: 0.24.0
 
         Returns
         -------
