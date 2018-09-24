@@ -7472,7 +7472,6 @@ class DataFrame(NDFrame):
         --------
         DataFrame.eq: Equality test for DataFrame.
         Series.isin: Equivalent method on Series.
-        Series.str.isin:
 
         Examples
         --------
