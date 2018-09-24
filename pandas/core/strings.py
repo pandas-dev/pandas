@@ -1872,7 +1872,8 @@ class StringMethods(NoNewAttributesMixin):
         # so make it possible to skip this step as the method already did this
         # before the transformation...
         if use_codes and self._is_categorical:
-            result = take_1d(result, self._orig.cat.codes, fill_value=fill_value)
+            result = take_1d(result, self._orig.cat.codes,
+                             fill_value=fill_value)
 
         if not hasattr(result, 'ndim') or not hasattr(result, 'dtype'):
             return result
