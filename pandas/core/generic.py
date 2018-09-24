@@ -8288,6 +8288,11 @@ class NDFrame(PandasObject, SelectionMixin):
             See Notes.
         axis : %(axes_single_arg)s
 
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
+
         Notes
         -----
         If freq is specified then the index values are shifted but the data
@@ -9508,80 +9513,100 @@ class NDFrame(PandasObject, SelectionMixin):
                quotechar='"', line_terminator='\n', chunksize=None,
                tupleize_cols=None, date_format=None, doublequote=True,
                escapechar=None, decimal='.'):
-        r"""Write object to a comma-separated values (csv) file
+        r"""
+        Write object to a comma-separated values (csv) file.
+
+        .. versionchanged:: 0.24.0
+            The order of arguments for Series was changed.
 
         Parameters
         ----------
-        path_or_buf : string or file handle, default None
+        path_or_buf : str or file handle, default None
             File path or object, if None is provided the result is returned as
             a string.
             .. versionchanged:: 0.24.0
                 Was previously named "path" for Series.
-        sep : character, default ','
-            Field delimiter for the output file.
-        na_rep : string, default ''
-            Missing data representation
-        float_format : string, default None
-            Format string for floating point numbers
+        sep : str, default ','
+            String of length 1. Field delimiter for the output file.
+        na_rep : str, default ''
+            Missing data representation.
+        float_format : str, default None
+            Format string for floating point numbers.
         columns : sequence, optional
-            Columns to write
-        header : boolean or list of string, default True
+            Columns to write.
+        header : bool or list of str, default True
             Write out the column names. If a list of strings is given it is
-            assumed to be aliases for the column names
+            assumed to be aliases for the column names.
             .. versionchanged:: 0.24.0
                 Previously defaulted to False for Series.
-        index : boolean, default True
-            Write row names (index)
-        index_label : string or sequence, or False, default None
+        index : bool, default True
+            Write row names (index).
+        index_label : str or sequence, or False, default None
             Column label for index column(s) if desired. If None is given, and
             `header` and `index` are True, then the index names are used. A
-            sequence should be given if the object uses MultiIndex.  If
+            sequence should be given if the object uses MultiIndex. If
             False do not print fields for index names. Use index_label=False
-            for easier importing in R
+            for easier importing in R.
         mode : str
-            Python write mode, default 'w'
-        encoding : string, optional
+            Python write mode, default 'w'.
+        encoding : str, optional
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                      default 'infer'
-            If 'infer' and `path_or_buf` is path-like, then detect compression
-            from the following extensions: '.gz', '.bz2', '.zip' or '.xz'
-            (otherwise no compression).
-
+        compression : str, default 'infer'
+            Compression mode among the following possible values: {'infer',
+            'gzip', 'bz2', 'zip', 'xz', None}. If 'infer' and `path_or_buf`
+            is path-like, then detect compression from the following
+            extensions: '.gz', '.bz2', '.zip' or '.xz'. (otherwise no
+            compression).
             .. versionchanged:: 0.24.0
-               'infer' option added and set to default
+               'infer' option added and set to default.
+        quoting : optional constant from csv module
+            Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
+            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
+            will treat them as non-numeric.
+        quotechar : str, default '\"'
+            String of length 1. Character used to quote fields.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
-            file
-        quoting : optional constant from csv module
-            defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
-            then floats are converted to strings and thus csv.QUOTE_NONNUMERIC
-            will treat them as non-numeric
-        quotechar : string (length 1), default '\"'
-            character used to quote fields
-        doublequote : boolean, default True
-            Control quoting of `quotechar` inside a field
-        escapechar : string (length 1), default None
-            character used to escape `sep` and `quotechar` when appropriate
+            file.
         chunksize : int or None
-            rows to write at a time
-        tupleize_cols : boolean, default False
-            .. deprecated:: 0.21.0
-               This argument will be removed and will always write each row
-               of the multi-index as a separate row in the CSV file.
-
+            Rows to write at a time.
+        tupleize_cols : bool, default False
             Write MultiIndex columns as a list of tuples (if True) or in
             the new, expanded format, where each MultiIndex column is a row
             in the CSV (if False).
-        date_format : string, default None
-            Format string for datetime objects
-        decimal: string, default '.'
+            .. deprecated:: 0.21.0
+               This argument will be removed and will always write each row
+               of the multi-index as a separate row in the CSV file.
+        date_format : str, default None
+            Format string for datetime objects.
+        doublequote : bool, default True
+            Control quoting of `quotechar` inside a field.
+        escapechar : str, default None
+            String of length 1. Character used to escape `sep` and `quotechar`
+            when appropriate.
+        decimal : str, default '.'
             Character recognized as decimal separator. E.g. use ',' for
-            European data
+            European data.
 
-        .. versionchanged:: 0.24.0
-            The order of arguments for Series was changed.
+        Returns
+        -------
+        None or str
+            If path_or_buf is None, returns the resulting csv format as a
+            string. Otherwise returns None.
+
+        See Also
+        --------
+        pandas.read_csv : Load a CSV file into a DataFrame.
+        pandas.to_excel: Load an Excel file into a DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'name': ['Raphael', 'Donatello'],
+        ...                    'mask': ['red', 'purple'],
+        ...                    'weapon': ['sai', 'bo staff']})
+        >>> df.to_csv(index=False)
+        'name,mask,weapon\nRaphael,red,sai\nDonatello,purple,bo staff\n'
         """
 
         df = self if isinstance(self, ABCDataFrame) else self.to_frame()
@@ -9683,15 +9708,15 @@ axis : {0 or 'index', 1 or 'columns', None}, default 0
       original index.
     * None : reduce all axes, return a scalar.
 
+bool_only : boolean, default None
+    Include only boolean columns. If None, will attempt to use everything,
+    then use only boolean data. Not implemented for Series.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s.
-bool_only : boolean, default None
-    Include only boolean columns. If None, will attempt to use everything,
-    then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
