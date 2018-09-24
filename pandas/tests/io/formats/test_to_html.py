@@ -23,6 +23,20 @@ except (ImportError, AttributeError):
 
 
 def expected_html(datapath, name):
+    """
+    Read HTML file from formats data directory.
+
+    Parameters
+    ----------
+    datapath : pytest fixture
+        The datapath fixture injected into a test by pytest.
+    name : str
+        The name of the HTML file without the suffix.
+
+    Returns
+    -------
+    str : contents of HTML file.
+    """
     filename = '.'.join([name, 'html'])
     filepath = datapath('io', 'formats', 'data', filename)
     with open(filepath) as f:
