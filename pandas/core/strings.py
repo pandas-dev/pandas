@@ -1332,23 +1332,57 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index up to width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in `fillchar`.
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
-        Additional character for filling, default is whitespace
+        Side from which to fill resulting string.
+    fillchar : str, default ' '
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    padded : Series/Index of objects
-    """
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object.
 
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='left')``.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='right')``.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='both')``.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+        character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
+
+    Examples
+    --------
+    >>> s = pd.Series(["caribou", "tiger"])
+    >>> s
+    0    caribou
+    1      tiger
+    dtype: object
+
+    >>> s.str.pad(width=10)
+    0       caribou
+    1         tiger
+    dtype: object
+
+    >>> s.str.pad(width=10, side='right', fillchar='-')
+    0    caribou---
+    1    tiger-----
+    dtype: object
+
+    >>> s.str.pad(width=10, side='both', fillchar='-')
+    0    -caribou--
+    1    --tiger---
+    dtype: object
+    """
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))
