@@ -970,7 +970,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if not isinstance(key, (list, Series, np.ndarray, Series)):
                 try:
-                    key = list(key)
+                    if isinstance(key, compat.string_types):
+                        key = [key]
+                    else:
+                        key = list(key)
                 except Exception:
                     key = [key]
 
