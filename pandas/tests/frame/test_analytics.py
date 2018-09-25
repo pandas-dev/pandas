@@ -803,9 +803,8 @@ class TestDataFrameAnalytics():
         assert kurt.name is None
         assert kurt2.name == 'bar'
 
-    # underscores added to distinguish argument names from fixture names
-    def _check_stat_op(self, name, alternative, main_frame, float_frame_,
-                       float_string_frame_, has_skipna=True,
+    def _check_stat_op(self, name, alternative, main_frame, float_frame,
+                       float_string_frame, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
                        check_dates=False, check_less_precise=False,
                        skipna_alternative=None):
@@ -860,18 +859,18 @@ class TestDataFrameAnalytics():
         # bad axis
         tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
         # make sure works on mixed-type frame
-        getattr(float_string_frame_, name)(axis=0)
-        getattr(float_string_frame_, name)(axis=1)
+        getattr(float_string_frame, name)(axis=0)
+        getattr(float_string_frame, name)(axis=1)
 
         if has_numeric_only:
-            getattr(float_string_frame_, name)(axis=0, numeric_only=True)
-            getattr(float_string_frame_, name)(axis=1, numeric_only=True)
-            getattr(float_frame_, name)(axis=0, numeric_only=False)
-            getattr(float_frame_, name)(axis=1, numeric_only=False)
+            getattr(float_string_frame, name)(axis=0, numeric_only=True)
+            getattr(float_string_frame, name)(axis=1, numeric_only=True)
+            getattr(float_frame, name)(axis=0, numeric_only=False)
+            getattr(float_frame, name)(axis=1, numeric_only=False)
 
         # all NA case
         if has_skipna:
-            all_na = float_frame_ * np.NaN
+            all_na = float_frame * np.NaN
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name in ['sum', 'prod']:
