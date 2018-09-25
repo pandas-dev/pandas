@@ -786,9 +786,10 @@ class DataFrame(NDFrame):
 
         Yields
         ------
-        it : generator
-            A generator which iterates over the columns of the DataFrame and whose values
-            consist of the column name as a label and the column entries as a Series.
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
 
         See Also
         --------
