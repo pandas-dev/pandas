@@ -68,6 +68,7 @@
       <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
   </td>
+</tr>
 <tr>
   <td>Coverage</td>
   <td>
