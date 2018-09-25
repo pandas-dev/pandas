@@ -9,7 +9,7 @@ from pandas.core.dtypes.generic import ABCCategorical, ABCSeries
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like,
     is_interval_dtype,
     is_scalar)
@@ -24,11 +24,23 @@ from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
+from pandas.core.arrays.categorical import Categorical, contains
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 
+@accessor.delegate_names(
+    delegate=Categorical,
+    accessors=["rename_categories",
+               "reorder_categories",
+               "add_categories",
+               "remove_categories",
+               "remove_unused_categories",
+               "set_categories",
+               "as_ordered", "as_unordered",
+               "min", "max"],
+    typ='method', overwrite=True)
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
 
@@ -84,11 +96,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             name = data.name
 
         if isinstance(data, ABCCategorical):
-            data = cls._create_categorical(cls, data, categories, ordered,
+            data = cls._create_categorical(data, categories, ordered,
                                            dtype)
         elif isinstance(data, CategoricalIndex):
             data = data._data
-            data = cls._create_categorical(cls, data, categories, ordered,
+            data = cls._create_categorical(data, categories, ordered,
                                            dtype)
         else:
 
@@ -98,7 +110,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(cls, data, categories, ordered,
+            data = cls._create_categorical(data, categories, ordered,
                                            dtype)
 
         if copy:
@@ -125,7 +137,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex
         """
 
-        from pandas.core.arrays import Categorical
         if categories is None:
             categories = self.categories
         if ordered is None:
@@ -133,11 +144,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if name is None:
             name = self.name
         cat = Categorical.from_codes(codes, categories=categories,
-                                     ordered=self.ordered)
+                                     ordered=ordered)
         return CategoricalIndex(cat, name=name)
 
-    @staticmethod
-    def _create_categorical(self, data, categories=None, ordered=None,
+    @classmethod
+    def _create_categorical(cls, data, categories=None, ordered=None,
                             dtype=None):
         """
         *this is an internal non-public method*
@@ -155,14 +166,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         -------
         Categorical
         """
-        if (isinstance(data, (ABCSeries, type(self))) and
+        if (isinstance(data, (cls, ABCSeries)) and
                 is_categorical_dtype(data)):
             data = data.values
 
         if not isinstance(data, ABCCategorical):
             if ordered is None and dtype is None:
                 ordered = False
-            from pandas.core.arrays import Categorical
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
@@ -170,7 +180,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 data = data.set_categories(categories, ordered=ordered)
             elif ordered is not None and ordered != data.ordered:
                 data = data.set_ordered(ordered)
-            if isinstance(dtype, CategoricalDtype):
+            if isinstance(dtype, CategoricalDtype) and dtype != data.dtype:
                 # we want to silently ignore dtype='category'
                 data = data._set_dtype(dtype)
         return data
@@ -180,7 +190,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                     dtype=None, **kwargs):
         result = object.__new__(cls)
 
-        values = cls._create_categorical(cls, values, categories, ordered,
+        values = cls._create_categorical(values, categories, ordered,
                                          dtype=dtype)
         result._data = values
         result.name = name
@@ -237,7 +247,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if not is_list_like(values):
                 values = [values]
             other = CategoricalIndex(self._create_categorical(
-                self, other, categories=self.categories, ordered=self.ordered))
+                other, dtype=self.dtype))
             if not other.isin(values).all():
                 raise TypeError("cannot append a non-category item to a "
                                 "CategoricalIndex")
@@ -323,21 +333,15 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
-        hash(key)
+        # if key is a NaN, check if any NaN is in self.
+        if isna(key):
+            return self.hasnans
 
-        if self.categories._defer_to_indexing:
-            return key in self.categories
-
-        return key in self.values
+        return contains(self, key, container=self._engine)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
-
-        if self.categories._defer_to_indexing:
-            return self.categories.contains(key)
-
-        return key in self.values
+        return key in self
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
@@ -432,7 +436,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> monotonic_index.get_loc('b')
         slice(1, 3, None)
 
-        >>> non_monotonic_index = p.dCategoricalIndex(list('abcb'))
+        >>> non_monotonic_index = pd.CategoricalIndex(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
@@ -447,7 +451,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         know what you're doing
         """
         try:
-            k = com._values_from_object(key)
+            k = com.values_from_object(key)
             k = self._convert_scalar_indexer(k, kind='getitem')
             indexer = self.get_loc(k)
             return series.iloc[indexer]
@@ -467,10 +471,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        from pandas.core.arrays import Categorical
-        cat = Categorical(values,
-                          categories=self.categories,
-                          ordered=self.ordered)
+        cat = Categorical(values, dtype=self.dtype)
         return self._shallow_copy(cat, **self._get_attributes_dict())
 
     def reindex(self, target, method=None, level=None, limit=None,
@@ -497,7 +498,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             raise NotImplementedError("argument limit is not implemented for "
                                       "CategoricalIndex.reindex")
 
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if not is_categorical_dtype(target) and not target.is_unique:
             raise ValueError("cannot reindex with a non-unique indexer")
@@ -562,7 +563,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         from pandas.core.arrays.categorical import _recode_for_categories
 
         method = missing.clean_reindex_fill_method(method)
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if self.is_unique and self.equals(target):
             return np.arange(len(self), dtype='intp')
@@ -591,18 +592,23 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 codes = self.categories.get_indexer(target)
 
         indexer, _ = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer)
+        return ensure_platform_int(indexer)
 
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
-        target = ibase._ensure_index(target)
+        target = ibase.ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
-            target = target.categories
+            # Indexing on codes is more efficient if categories are the same:
+            if target.categories is self.categories:
+                target = target.codes
+                indexer, missing = self._engine.get_indexer_non_unique(target)
+                return ensure_platform_int(indexer), missing
+            target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
-        return _ensure_platform_int(indexer), missing
+        return ensure_platform_int(indexer), missing
 
     @Appender(_index_shared_docs['_convert_scalar_indexer'])
     def _convert_scalar_indexer(self, key, kind=None):
@@ -632,7 +638,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['_convert_arr_indexer'])
     def _convert_arr_indexer(self, keyarr):
-        keyarr = com._asarray_tuplesafe(keyarr)
+        keyarr = com.asarray_tuplesafe(keyarr)
 
         if self.categories._defer_to_indexing:
             return keyarr
@@ -647,7 +653,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         nv.validate_take(tuple(), kwargs)
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         taken = self._assert_take_fillable(self.codes, indices,
                                            allow_fill=allow_fill,
                                            fill_value=fill_value,
@@ -801,8 +807,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                     other = other._values
                 elif isinstance(other, Index):
                     other = self._create_categorical(
-                        self, other._values, categories=self.categories,
-                        ordered=self.ordered)
+                        other._values, dtype=self.dtype)
 
                 if isinstance(other, (ABCCategorical, np.ndarray,
                                       ABCSeries)):
@@ -841,25 +846,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return res
         return CategoricalIndex(res, name=self.name)
 
-    @classmethod
-    def _add_accessors(cls):
-        """ add in Categorical accessor methods """
-
-        from pandas.core.arrays import Categorical
-        CategoricalIndex._add_delegate_accessors(
-            delegate=Categorical, accessors=["rename_categories",
-                                             "reorder_categories",
-                                             "add_categories",
-                                             "remove_categories",
-                                             "remove_unused_categories",
-                                             "set_categories",
-                                             "as_ordered", "as_unordered",
-                                             "min", "max"],
-            typ='method', overwrite=True)
-
 
 CategoricalIndex._add_numeric_methods_add_sub_disabled()
 CategoricalIndex._add_numeric_methods_disabled()
 CategoricalIndex._add_logical_methods_disabled()
 CategoricalIndex._add_comparison_methods()
-CategoricalIndex._add_accessors()

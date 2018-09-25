@@ -22,36 +22,36 @@ Group By: split-apply-combine
 By "group by" we are referring to a process involving one or more of the following
 steps:
 
- - **Splitting** the data into groups based on some criteria.
- - **Applying** a function to each group independently.
- - **Combining** the results into a data structure.
+* **Splitting** the data into groups based on some criteria.
+* **Applying** a function to each group independently.
+* **Combining** the results into a data structure.
 
 Out of these, the split step is the most straightforward. In fact, in many
 situations we may wish to split the data set into groups and do something with
 those groups. In the apply step, we might wish to one of the
 following:
 
- - **Aggregation**: compute a summary statistic (or statistics) for each
-   group. Some examples:
+* **Aggregation**: compute a summary statistic (or statistics) for each
+  group. Some examples:
 
-    - Compute group sums or means.
-    - Compute group sizes / counts.
+    * Compute group sums or means.
+    * Compute group sizes / counts.
 
- - **Transformation**: perform some group-specific computations and return a
-   like-indexed object. Some examples:
+* **Transformation**: perform some group-specific computations and return a
+  like-indexed object. Some examples:
 
-    - Standardize data (zscore) within a group.
-    - Filling NAs within groups with a value derived from each group.
+    * Standardize data (zscore) within a group.
+    * Filling NAs within groups with a value derived from each group.
 
- - **Filtration**: discard some groups, according to a group-wise computation
-   that evaluates True or False. Some examples:
+* **Filtration**: discard some groups, according to a group-wise computation
+  that evaluates True or False. Some examples:
 
-    - Discard data that belongs to groups with only a few members.
-    - Filter out data based on the group sum or mean.
+    * Discard data that belongs to groups with only a few members.
+    * Filter out data based on the group sum or mean.
 
- - Some combination of the above: GroupBy will examine the results of the apply
-   step and try to return a sensibly combined result if it doesn't fit into
-   either of the above two categories.
+* Some combination of the above: GroupBy will examine the results of the apply
+  step and try to return a sensibly combined result if it doesn't fit into
+  either of the above two categories.
 
 Since the set of object instance methods on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
@@ -88,27 +88,24 @@ object (more on what the GroupBy object is later), you may do the following:
 
 The mapping can be specified many different ways:
 
-  - A Python function, to be called on each of the axis labels.
-  - A list or NumPy array of the same length as the selected axis.
-  - A dict or ``Series``, providing a ``label -> group name`` mapping.
-  - For ``DataFrame`` objects, a string indicating a column to be used to group.
-    Of course ``df.groupby('A')`` is just syntactic sugar for
-    ``df.groupby(df['A'])``, but it makes life simpler.
-  - For ``DataFrame`` objects, a string indicating an index level to be used to
-    group.
-  - A list of any of the above things.
+* A Python function, to be called on each of the axis labels.
+* A list or NumPy array of the same length as the selected axis.
+* A dict or ``Series``, providing a ``label -> group name`` mapping.
+* For ``DataFrame`` objects, a string indicating a column to be used to group.
+  Of course ``df.groupby('A')`` is just syntactic sugar for
+  ``df.groupby(df['A'])``, but it makes life simpler.
+* For ``DataFrame`` objects, a string indicating an index level to be used to
+  group.
+* A list of any of the above things.
 
 Collectively we refer to the grouping objects as the **keys**. For example,
 consider the following ``DataFrame``:
 
 .. note::
 
-   .. versionadded:: 0.20
-
    A string passed to ``groupby`` may refer to either a column or an index level.
-   If a string matches both a column name and an index level name then a warning is
-   issued and the column takes precedence. This will result in an ambiguity error
-   in a future version.
+   If a string matches both a column name and an index level name, a
+   ``ValueError`` will be raised.
 
 .. ipython:: python
 
@@ -389,7 +386,7 @@ This is mainly syntactic sugar for the alternative and much more verbose:
 Additionally this method avoids recomputing the internal grouping information
 derived from the passed key.
 
-.. _groupby.iterating:
+.. _groupby.iterating-label:
 
 Iterating through groups
 ------------------------
@@ -415,8 +412,7 @@ In the case of grouping by multiple keys, the group name will be a tuple:
       ...:        print(group)
       ...:
 
-It's standard Python-fu but remember you can unpack the tuple in the for loop
-statement if you wish: ``for (k1, k2), group in grouped:``.
+See :ref:`timeseries.iterating-label`.
 
 Selecting a group
 -----------------
@@ -680,8 +676,7 @@ match the shape of the input array.
    data_range = lambda x: x.max() - x.min()
    ts.groupby(key).transform(data_range)
 
-Alternatively the built-in methods can be could be used to produce the same
-outputs
+Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
@@ -994,7 +989,7 @@ is only interesting over one column (here ``colname``), it may be filtered
 Handling of (un)observed Categorical values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When using a ``Categorical`` grouper (as a single grouper, or as part of multipler groupers), the ``observed`` keyword
+When using a ``Categorical`` grouper (as a single grouper, or as part of multiple groupers), the ``observed`` keyword
 controls whether to return a cartesian product of all possible groupers values (``observed=False``) or only those
 that are observed groupers (``observed=True``).
 
@@ -1010,7 +1005,7 @@ Show only the observed values:
 
    pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=True).count()
 
-The returned dtype of the grouped will *always* include *all* of the catergories that were grouped.
+The returned dtype of the grouped will *always* include *all* of the categories that were grouped.
 
 .. ipython:: python
 

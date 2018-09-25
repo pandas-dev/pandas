@@ -2,7 +2,7 @@ name: pandas
 channels:
   - defaults
 dependencies:
-  - cython
+  - cython>=0.28.2
   - nomkl
   - numpy
   - python-dateutil
@@ -11,3 +11,5 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - pip:
+    - hypothesis>=3.58.0

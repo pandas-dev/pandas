@@ -4,10 +4,10 @@ channels:
   - conda-forge
 dependencies:
   - bottleneck=1.0.0
-  - cython=0.24
+  - cython=0.28.2
   - lxml
   - matplotlib=1.4.3
-  - numpy=1.9.2
+  - numpy=1.9.3
   - openpyxl=2.4.0
   - python-dateutil
   - python-blosc
@@ -22,6 +22,7 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - hypothesis>=3.58.0
   - pip:
     - html5lib==1.0b2
     - beautifulsoup4==4.2.1

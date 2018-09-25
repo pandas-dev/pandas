@@ -27,11 +27,11 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_timedelta64_dtype,
     is_list_like,
-    _ensure_float64,
+    ensure_float64,
     is_scalar)
 
-from pandas.core.base import (PandasObject, SelectionMixin,
-                              GroupByMixin)
+from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.groupby.base import GroupByMixin
 import pandas.core.common as com
 import pandas._libs.window as _window
 
@@ -208,9 +208,9 @@ class _Window(PandasObject, SelectionMixin):
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
         if is_float_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif is_integer_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError("ops for {action} for this "
                                       "dtype {dtype} are not "
@@ -219,7 +219,7 @@ class _Window(PandasObject, SelectionMixin):
                                           dtype=values.dtype))
         else:
             try:
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -265,7 +265,7 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import _ensure_index
+        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -286,7 +286,7 @@ class _Window(PandasObject, SelectionMixin):
 
             if self._selection is not None:
 
-                selection = _ensure_index(self._selection)
+                selection = ensure_index(self._selection)
 
                 # need to reorder to include original location of
                 # the on column (if its not already there)
@@ -602,8 +602,8 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
-            if window < 0:
-                raise ValueError("window must be non-negative")
+            if window <= 0:
+                raise ValueError("window must be > 0 ")
             try:
                 import scipy.signal as sig
             except ImportError:
@@ -625,7 +625,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 
@@ -665,7 +665,7 @@ class Window(_Window):
 
         Returns
         -------
-        y : type of input argument
+        y : same type as input argument
 
         """
         window = self._prep_window(**kwargs)
@@ -857,7 +857,7 @@ class _Rolling(_Window):
                 def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
                     # ensure we are only rolling on floats
-                    arg = _ensure_float64(arg)
+                    arg = ensure_float64(arg)
                     return cfunc(arg,
                                  window, minp, indexi, closed, **kwargs)
 
@@ -933,7 +933,8 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index=index)
+        # Validate the index
+        self._get_index(index=index)
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -1391,19 +1392,113 @@ class _Rolling_and_Expanding(_Rolling):
                                    _get_cov, pairwise=bool(pairwise))
 
     _shared_docs['corr'] = dedent("""
-    %(name)s sample correlation
+    Calculate %(name)s correlation.
 
     Parameters
     ----------
     other : Series, DataFrame, or ndarray, optional
-        if not supplied then will default to self and produce pairwise output
+        If not supplied then will default to self.
     pairwise : bool, default None
-        If False then only matching columns between self and other will be
-        used and the output will be a DataFrame.
-        If True then all pairwise combinations will be calculated and the
-        output will be a MultiIndex DataFrame in the case of DataFrame inputs.
-        In the case of missing elements, only complete pairwise observations
-        will be used.""")
+        Calculate pairwise combinations of columns within a
+        DataFrame. If `other` is not specified, defaults to `True`,
+        otherwise defaults to `False`.
+        Not relevant for :class:`~pandas.Series`.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the
+        %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.corr : Equivalent method for Series
+    DataFrame.corr : Equivalent method for DataFrame
+    %(name)s.cov : Similar method to calculate covariance
+    numpy.corrcoef : NumPy Pearson's correlation calculation
+
+    Notes
+    -----
+    This function uses Pearson's definition of correlation
+    (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
+
+    When `other` is not specified, the output will be self correlation (e.g.
+    all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
+    set to `True`.
+
+    Function will return `NaN`s for correlations of equal valued sequences;
+    this is the result of a 0/0 division error.
+
+    When `pairwise` is set to `False`, only matching columns between `self` and
+    `other` will be used.
+
+    When `pairwise` is set to `True`, the output will be a MultiIndex DataFrame
+    with the original index on the first level, and the `other` DataFrame
+    columns on the second level.
+
+    In the case of missing elements, only complete pairwise observations
+    will be used.
+
+    Examples
+    --------
+    The below example shows a rolling calculation with a window size of
+    four matching the equivalent function call using `numpy.corrcoef`.
+
+    >>> v1 = [3, 3, 3, 5, 8]
+    >>> v2 = [3, 4, 4, 4, 8]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> # numpy returns a 2X2 array, the correlation coefficient
+    >>> # is the number at entry [0][1]
+    >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
+    0.333333
+    >>> print(fmt.format(np.corrcoef(v1[1:], v2[1:])[0][1]))
+    0.916949
+    >>> s1 = pd.Series(v1)
+    >>> s2 = pd.Series(v2)
+    >>> s1.rolling(4).corr(s2)
+    0         NaN
+    1         NaN
+    2         NaN
+    3    0.333333
+    4    0.916949
+    dtype: float64
+
+    The below example shows a similar rolling calculation on a
+    DataFrame using the pairwise option.
+
+    >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
+    [46., 31.], [50., 36.]])
+    >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
+    [[1.         0.6263001]
+     [0.6263001  1.       ]]
+    >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
+    [[1.         0.5553681]
+     [0.5553681  1.        ]]
+    >>> df = pd.DataFrame(matrix, columns=['X','Y'])
+    >>> df
+          X     Y
+    0  51.0  35.0
+    1  49.0  30.0
+    2  47.0  32.0
+    3  46.0  31.0
+    4  50.0  36.0
+    >>> df.rolling(4).corr(pairwise=True)
+                X         Y
+    0 X       NaN       NaN
+      Y       NaN       NaN
+    1 X       NaN       NaN
+      Y       NaN       NaN
+    2 X       NaN       NaN
+      Y       NaN       NaN
+    3 X  1.000000  0.626300
+      Y  0.626300  1.000000
+    4 X  1.000000  0.555368
+      Y  0.555368  1.000000
+""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
@@ -1672,7 +1767,6 @@ class Rolling(_Rolling_and_Expanding):
                                         ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Rolling, self).corr(other=other, pairwise=pairwise,
@@ -1732,7 +1826,7 @@ class Expanding(_Rolling_and_Expanding):
     Examples
     --------
 
-    >>> df = DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
          B
     0  0.0
     1  1.0
@@ -1932,7 +2026,6 @@ class Expanding(_Rolling_and_Expanding):
                                           ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['corr'])
     def corr(self, other=None, pairwise=None, **kwargs):
         return super(Expanding, self).corr(other=other, pairwise=pairwise,
@@ -2017,7 +2110,7 @@ class EWM(_Rolling):
     Examples
     --------
 
-    >>> df = DataFrame({'B': [0, 1, 2, np.nan, 4]})
+    >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]})
          B
     0  0.0
     1  1.0
@@ -2139,7 +2232,7 @@ class EWM(_Rolling):
 
         Returns
         -------
-        y : type of input argument
+        y : same type as input argument
 
         """
         blocks, obj, index = self._create_blocks()
@@ -2294,11 +2387,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         X, Y = arg1.align(arg2, join='outer')
                     X = X + 0 * Y
                     Y = Y + 0 * X
 
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
@@ -2375,7 +2470,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com._count_not_none(comass, span, halflife, alpha)
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha "
                          "are mutually exclusive")

@@ -30,9 +30,8 @@ class CompressionTests(object):
             expected = self.read_csv(self.csv1)
 
         with tm.ensure_clean('test_file.zip') as path:
-            tmp = zipfile.ZipFile(path, mode='w')
-            tmp.writestr('test_file', data)
-            tmp.close()
+            with zipfile.ZipFile(path, mode='w') as tmp:
+                tmp.writestr('test_file', data)
 
             result = self.read_csv(path, compression='zip')
             tm.assert_frame_equal(result, expected)
@@ -47,10 +46,9 @@ class CompressionTests(object):
 
         with tm.ensure_clean('combined_zip.zip') as path:
             inner_file_names = ['test_file', 'second_file']
-            tmp = zipfile.ZipFile(path, mode='w')
-            for file_name in inner_file_names:
-                tmp.writestr(file_name, data)
-            tmp.close()
+            with zipfile.ZipFile(path, mode='w') as tmp:
+                for file_name in inner_file_names:
+                    tmp.writestr(file_name, data)
 
             tm.assert_raises_regex(ValueError, 'Multiple files',
                                    self.read_csv, path, compression='zip')
@@ -60,8 +58,8 @@ class CompressionTests(object):
                                    compression='infer')
 
         with tm.ensure_clean() as path:
-            tmp = zipfile.ZipFile(path, mode='w')
-            tmp.close()
+            with zipfile.ZipFile(path, mode='w') as tmp:
+                pass
 
             tm.assert_raises_regex(ValueError, 'Zero files',
                                    self.read_csv, path, compression='zip')
@@ -84,9 +82,8 @@ class CompressionTests(object):
             expected = self.read_csv(self.csv1)
 
         with tm.ensure_clean() as path:
-            tmp = compress_method(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
+            with compress_method(path, mode='wb') as tmp:
+                tmp.write(data)
 
             result = self.read_csv(path, compression=compress_type)
             tm.assert_frame_equal(result, expected)
@@ -100,9 +97,8 @@ class CompressionTests(object):
                 tm.assert_frame_equal(result, expected)
 
         with tm.ensure_clean('test.{}'.format(ext)) as path:
-            tmp = compress_method(path, mode='wb')
-            tmp.write(data)
-            tmp.close()
+            with compress_method(path, mode='wb') as tmp:
+                tmp.write(data)
             result = self.read_csv(path, compression='infer')
             tm.assert_frame_equal(result, expected)
 
@@ -120,9 +116,9 @@ class CompressionTests(object):
 
                 tm.assert_frame_equal(expected, df)
 
-    def test_read_csv_compressed_utf16_example(self):
+    def test_read_csv_compressed_utf16_example(self, datapath):
         # GH18071
-        path = tm.get_data_path('utf16_ex_small.zip')
+        path = datapath('io', 'parser', 'data', 'utf16_ex_small.zip')
 
         result = self.read_csv(path, encoding='utf-16',
                                compression='zip', sep='\t')

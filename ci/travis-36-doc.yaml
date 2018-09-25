@@ -6,10 +6,11 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - cython
+  - cython>=0.28.2
   - fastparquet
   - feather-format
   - html5lib
+  - hypothesis>=3.58.0
   - ipykernel
   - ipython
   - ipywidgets
@@ -21,7 +22,7 @@ dependencies:
   - notebook
   - numexpr
   - numpy=1.13*
-  - openpyxl
+  - openpyxl=2.5.5
   - pandoc
   - pyqt
   - pytables
@@ -36,6 +37,7 @@ dependencies:
   - sphinx
   - sqlalchemy
   - statsmodels
+  - tzlocal
   - xarray
   - xlrd
   - xlsxwriter

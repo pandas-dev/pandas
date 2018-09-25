@@ -1526,6 +1526,27 @@ class TestMergeDtypes(object):
             result = B.merge(A, left_on='Y', right_on='X')
             assert_frame_equal(result, expected[['Y', 'X']])
 
+    def test_merge_incompat_infer_boolean_object(self):
+        # GH21119: bool + object bool merge OK
+        df1 = DataFrame({'key': Series([True, False], dtype=object)})
+        df2 = DataFrame({'key': [True, False]})
+
+        expected = DataFrame({'key': [True, False]}, dtype=object)
+        result = pd.merge(df1, df2, on='key')
+        assert_frame_equal(result, expected)
+        result = pd.merge(df2, df1, on='key')
+        assert_frame_equal(result, expected)
+
+        # with missing value
+        df1 = DataFrame({'key': Series([True, False, np.nan], dtype=object)})
+        df2 = DataFrame({'key': [True, False]})
+
+        expected = DataFrame({'key': [True, False]}, dtype=object)
+        result = pd.merge(df1, df2, on='key')
+        assert_frame_equal(result, expected)
+        result = pd.merge(df2, df1, on='key')
+        assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize('df1_vals, df2_vals', [
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),
@@ -1538,6 +1559,8 @@ class TestMergeDtypes(object):
             pd.date_range('20130101', periods=3, tz='US/Eastern')),
         ([0, 1, 2], Series(['a', 'b', 'a']).astype('category')),
         ([0.0, 1.0, 2.0], Series(['a', 'b', 'a']).astype('category')),
+        # TODO ([0, 1], pd.Series([False, True], dtype=bool)),
+        ([0, 1], pd.Series([False, True], dtype=object))
     ])
     def test_merge_incompat_dtypes(self, df1_vals, df2_vals):
         # GH 9780, GH 15800
@@ -1864,3 +1887,33 @@ def test_merge_index_types(index):
         OrderedDict([('left_data', [1, 2]), ('right_data', [1.0, 2.0])]),
         index=index)
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nms,nm", [
+    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], 'B'),
+    (None, None, None, True, True, ['outer', 'inner'], 'B'),
+    (None, ['outer', 'inner'], None, False, True, None, 'B'),
+    (None, None, ['outer', 'inner'], True, False, None, 'B'),
+    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], None),
+    (None, None, None, True, True, ['outer', 'inner'], None),
+    (None, ['outer', 'inner'], None, False, True, None, None),
+    (None, None, ['outer', 'inner'], True, False, None, None)])
+def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
+    # GH 21220
+    a = pd.DataFrame({"A": [1, 2, 3, 4]},
+                     index=pd.MultiIndex.from_product([['a', 'b'], [0, 1]],
+                     names=['outer', 'inner']))
+    b = pd.Series([1, 2, 3, 4],
+                  index=pd.MultiIndex.from_product([['a', 'b'], [1, 2]],
+                  names=['outer', 'inner']), name=nm)
+    expected = pd.DataFrame({"A": [2, 4], "B": [1, 3]},
+                            index=pd.MultiIndex.from_product([['a', 'b'], [1]],
+                            names=nms))
+    if nm is not None:
+        result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
+                          left_index=left_index, right_index=right_index)
+        tm.assert_frame_equal(result, expected)
+    else:
+        with tm.assert_raises_regex(ValueError, 'a Series without a name'):
+            result = pd.merge(a, b, on=on, left_on=left_on, right_on=right_on,
+                              left_index=left_index, right_index=right_index)

@@ -124,9 +124,9 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` when the table had ``MultiIndex`` columns, and a list of strings was passed in for ``header`` (:issue:`5539`)
 - Bug in parsing integer datetime-like columns with specified format in ``read_sql`` (:issue:`17855`).
 - Bug in :meth:`DataFrame.to_msgpack` when serializing data of the ``numpy.bool_`` datatype (:issue:`18390`)
-- Bug in :func:`read_json` not decoding when reading line deliminted JSON from S3 (:issue:`17200`)
+- Bug in :func:`read_json` not decoding when reading line delimited JSON from S3 (:issue:`17200`)
 - Bug in :func:`pandas.io.json.json_normalize` to avoid modification of ``meta`` (:issue:`18610`)
-- Bug in :func:`to_latex` where repeated multi-index values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
+- Bug in :func:`to_latex` where repeated MultiIndex values were not printed even though a higher level index differed from the previous row (:issue:`14484`)
 - Bug when reading NaN-only categorical columns in :class:`HDFStore` (:issue:`18413`)
 - Bug in :meth:`DataFrame.to_latex` with ``longtable=True`` where a latex multicolumn always spanned over three columns (:issue:`17959`)
 
@@ -139,7 +139,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in ``DataFrame.resample(...).apply(...)`` when there is a callable that returns different columns (:issue:`15169`)
-- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequecy is 12h or higher (:issue:`15549`)
+- Bug in ``DataFrame.resample(...)`` when there is a time change (DST) and resampling frequency is 12h or higher (:issue:`15549`)
 - Bug in ``pd.DataFrameGroupBy.count()`` when counting over a datetimelike column (:issue:`13393`)
 - Bug in ``rolling.var`` where calculation is inaccurate with a zero-valued array (:issue:`18430`)
 

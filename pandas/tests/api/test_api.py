@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sys
-from warnings import catch_warnings
 
 import pytest
 import pandas as pd
@@ -15,7 +14,7 @@ class Base(object):
         # ignored ones
         # compare vs the expected
 
-        result = sorted([f for f in dir(namespace) if not f.startswith('_')])
+        result = sorted(f for f in dir(namespace) if not f.startswith('_'))
         if ignored is not None:
             result = sorted(list(set(result) - set(ignored)))
 
@@ -35,7 +34,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['datetools', 'parser', 'json', 'lib', 'tslib']
+    deprecated_modules = ['parser', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -127,19 +126,6 @@ class TestTesting(Base):
         self.check(testing, self.funcs)
 
 
-class TestDatetoolsDeprecation(object):
-
-    def test_deprecation_access_func(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.datetools.to_datetime('2016-01-01')
-
-    def test_deprecation_access_obj(self):
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            pd.datetools.monthEnd
-
-
 class TestTopLevelDeprecations(object):
 
     # top-level API deprecations
@@ -186,32 +172,25 @@ class TestTopLevelDeprecations(object):
                 s.close()
 
 
-class TestJson(object):
-
-    def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.json.dumps([])
-
-
 class TestParser(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.parser.na_values
+        pd.parser.na_values
 
 
 class TestLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.lib.infer_dtype('foo')
+        pd.lib.infer_dtype('foo')
 
 
 class TestTSLib(object):
 
+    @pytest.mark.filterwarnings("ignore")
     def test_deprecation_access_func(self):
-        with catch_warnings(record=True):
-            pd.tslib.Timestamp('20160101')
+        pd.tslib.Timestamp('20160101')
 
 
 class TestTypes(object):

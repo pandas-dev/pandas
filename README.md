@@ -56,8 +56,8 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://ci.appveyor.com/project/pandas-dev/pandas">
-    <img src="https://ci.appveyor.com/api/projects/status/86vn83mxgnl4xf1s/branch/master?svg=true" alt="appveyor build status" />
+    <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
+      <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
   </td>
 </tr>
@@ -89,7 +89,7 @@
 
 
 
-## What is it
+## What is it?
 
 **pandas** is a Python package providing fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both

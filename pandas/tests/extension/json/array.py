@@ -13,24 +13,33 @@ hack around pandas by using UserDicts.
 import collections
 import itertools
 import numbers
-import random
-import string
 import sys
 
 import numpy as np
 
+from pandas import compat
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
-    type = collections.Mapping
+    type = compat.Mapping
     name = 'json'
     try:
         na_value = collections.UserDict()
     except AttributeError:
         # source compatibility with Py2.
         na_value = {}
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        return JSONArray
 
     @classmethod
     def construct_from_string(cls, string):
@@ -44,10 +53,11 @@ class JSONDtype(ExtensionDtype):
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
 
-    def __init__(self, values):
+    def __init__(self, values, dtype=None, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
-                raise TypeError
+                raise TypeError("All values must be of type " +
+                                str(self.dtype.type))
         self.data = values
 
         # Some aliases for common attribute names to ensure pandas supports
@@ -58,7 +68,7 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -70,7 +80,7 @@ class JSONArray(ExtensionArray):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
             return self._from_sequence([x for x, m in zip(self, item) if m])
-        elif isinstance(item, collections.Iterable):
+        elif isinstance(item, compat.Iterable):
             # fancy indexing
             return type(self)([self.data[i] for i in item])
         else:
@@ -82,7 +92,7 @@ class JSONArray(ExtensionArray):
             self.data[key] = value
         else:
             if not isinstance(value, (type(self),
-                                      collections.Sequence)):
+                                      compat.Sequence)):
                 # broadcast value
                 value = itertools.cycle([value])
 
@@ -151,7 +161,7 @@ class JSONArray(ExtensionArray):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
         return type(self)([
-            dict(x) for x in list(set(tuple(d.items()) for d in self.data))
+            dict(x) for x in list({tuple(d.items()) for d in self.data})
         ])
 
     @classmethod
@@ -167,12 +177,5 @@ class JSONArray(ExtensionArray):
         # Disable NumPy's shape inference by including an empty tuple...
         # If all the elemnts of self are the same size P, NumPy will
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
-        frozen = [()] + list(tuple(x.items()) for x in self)
+        frozen = [()] + [tuple(x.items()) for x in self]
         return np.array(frozen, dtype=object)[1:]
-
-
-def make_data():
-    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
-    return [collections.UserDict([
-        (random.choice(string.ascii_letters), random.randint(0, 100))
-        for _ in range(random.randint(0, 10))]) for _ in range(100)]
