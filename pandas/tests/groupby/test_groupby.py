@@ -3,7 +3,6 @@ from __future__ import print_function
 
 import pytest
 
-from warnings import catch_warnings
 from datetime import datetime
 from decimal import Decimal
 
@@ -508,30 +507,30 @@ def test_frame_multi_key_function_list():
 
 
 @pytest.mark.parametrize('op', [lambda x: x.sum(), lambda x: x.mean()])
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_groupby_multiple_columns(df, op):
     data = df
     grouped = data.groupby(['A', 'B'])
 
-    with catch_warnings(record=True):
-        result1 = op(grouped)
+    result1 = op(grouped)
 
-        expected = defaultdict(dict)
-        for n1, gp1 in data.groupby('A'):
-            for n2, gp2 in gp1.groupby('B'):
-                expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
-        expected = dict((k, DataFrame(v))
-                        for k, v in compat.iteritems(expected))
-        expected = Panel.fromDict(expected).swapaxes(0, 1)
-        expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
+    expected = defaultdict(dict)
+    for n1, gp1 in data.groupby('A'):
+        for n2, gp2 in gp1.groupby('B'):
+            expected[n1][n2] = op(gp2.loc[:, ['C', 'D']])
+    expected = {k: DataFrame(v)
+                for k, v in compat.iteritems(expected)}
+    expected = Panel.fromDict(expected).swapaxes(0, 1)
+    expected.major_axis.name, expected.minor_axis.name = 'A', 'B'
 
-        # a little bit crude
-        for col in ['C', 'D']:
-            result_col = op(grouped[col])
-            exp = expected[col]
-            pivoted = result1[col].unstack()
-            pivoted2 = result_col.unstack()
-            assert_frame_equal(pivoted.reindex_like(exp), exp)
-            assert_frame_equal(pivoted2.reindex_like(exp), exp)
+    # a little bit crude
+    for col in ['C', 'D']:
+        result_col = op(grouped[col])
+        exp = expected[col]
+        pivoted = result1[col].unstack()
+        pivoted2 = result_col.unstack()
+        assert_frame_equal(pivoted.reindex_like(exp), exp)
+        assert_frame_equal(pivoted2.reindex_like(exp), exp)
 
     # test single series works the same
     result = data['C'].groupby([data['A'], data['B']]).mean()
@@ -1032,6 +1031,8 @@ def test_groupby_mixed_type_columns():
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Ensure warning isn't emitted in the first place
+@pytest.mark.filterwarnings("ignore:Mean of:RuntimeWarning")
 def test_cython_grouper_series_bug_noncontig():
     arr = np.empty((100, 100))
     arr.fill(np.nan)
@@ -1181,11 +1182,11 @@ def test_groupby_nat_exclude():
         pytest.raises(KeyError, grouped.get_group, pd.NaT)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_sparse_friendly(df):
     sdf = df[['C', 'D']].to_sparse()
-    with catch_warnings(record=True):
-        panel = tm.makePanel()
-        tm.add_nans(panel)
+    panel = tm.makePanel()
+    tm.add_nans(panel)
 
     def _check_work(gp):
         gp.mean()
@@ -1201,29 +1202,29 @@ def test_sparse_friendly(df):
     # _check_work(panel.groupby(lambda x: x.month, axis=1))
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 def test_panel_groupby():
-    with catch_warnings(record=True):
-        panel = tm.makePanel()
-        tm.add_nans(panel)
-        grouped = panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
-                                axis='items')
-        agged = grouped.mean()
-        agged2 = grouped.agg(lambda x: x.mean('items'))
+    panel = tm.makePanel()
+    tm.add_nans(panel)
+    grouped = panel.groupby({'ItemA': 0, 'ItemB': 0, 'ItemC': 1},
+                            axis='items')
+    agged = grouped.mean()
+    agged2 = grouped.agg(lambda x: x.mean('items'))
 
-        tm.assert_panel_equal(agged, agged2)
+    tm.assert_panel_equal(agged, agged2)
 
-        tm.assert_index_equal(agged.items, Index([0, 1]))
+    tm.assert_index_equal(agged.items, Index([0, 1]))
 
-        grouped = panel.groupby(lambda x: x.month, axis='major')
-        agged = grouped.mean()
+    grouped = panel.groupby(lambda x: x.month, axis='major')
+    agged = grouped.mean()
 
-        exp = Index(sorted(list(set(panel.major_axis.month))))
-        tm.assert_index_equal(agged.major_axis, exp)
+    exp = Index(sorted(list(set(panel.major_axis.month))))
+    tm.assert_index_equal(agged.major_axis, exp)
 
-        grouped = panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
-                                axis='minor')
-        agged = grouped.mean()
-        tm.assert_index_equal(agged.minor_axis, Index([0, 1]))
+    grouped = panel.groupby({'A': 0, 'B': 0, 'C': 1, 'D': 1},
+                            axis='minor')
+    agged = grouped.mean()
+    tm.assert_index_equal(agged.minor_axis, Index([0, 1]))
 
 
 def test_groupby_2d_malformed():
@@ -1260,17 +1261,17 @@ def test_groupby_sort_multi():
                     'd': np.random.randn(3)})
 
     tups = lmap(tuple, df[['a', 'b', 'c']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['a', 'b', 'c'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[1, 2, 0]])
 
     tups = lmap(tuple, df[['c', 'a', 'b']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['c', 'a', 'b'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups)
 
     tups = lmap(tuple, df[['b', 'c', 'a']].values)
-    tups = com._asarray_tuplesafe(tups)
+    tups = com.asarray_tuplesafe(tups)
     result = df.groupby(['b', 'c', 'a'], sort=True).sum()
     tm.assert_numpy_array_equal(result.index.values, tups[[2, 1, 0]])
 
@@ -1282,7 +1283,7 @@ def test_groupby_sort_multi():
 
     def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
         tups = lmap(tuple, df[keys].values)
-        tups = com._asarray_tuplesafe(tups)
+        tups = com.asarray_tuplesafe(tups)
         expected = f(df.groupby(tups)[field])
         for k, v in compat.iteritems(expected):
             assert (result[k] == v)

@@ -27,11 +27,11 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     is_timedelta64_dtype,
     is_list_like,
-    _ensure_float64,
+    ensure_float64,
     is_scalar)
 
-from pandas.core.base import (PandasObject, SelectionMixin,
-                              GroupByMixin)
+from pandas.core.base import PandasObject, SelectionMixin
+from pandas.core.groupby.base import GroupByMixin
 import pandas.core.common as com
 import pandas._libs.window as _window
 
@@ -208,9 +208,9 @@ class _Window(PandasObject, SelectionMixin):
         # GH #12373 : rolling functions error on float32 data
         # make sure the data is coerced to float64
         if is_float_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif is_integer_dtype(values.dtype):
-            values = _ensure_float64(values)
+            values = ensure_float64(values)
         elif needs_i8_conversion(values.dtype):
             raise NotImplementedError("ops for {action} for this "
                                       "dtype {dtype} are not "
@@ -219,7 +219,7 @@ class _Window(PandasObject, SelectionMixin):
                                           dtype=values.dtype))
         else:
             try:
-                values = _ensure_float64(values)
+                values = ensure_float64(values)
             except (ValueError, TypeError):
                 raise TypeError("cannot handle this type -> {0}"
                                 "".format(values.dtype))
@@ -265,7 +265,7 @@ class _Window(PandasObject, SelectionMixin):
         """
 
         from pandas import Series, concat
-        from pandas.core.index import _ensure_index
+        from pandas.core.index import ensure_index
 
         final = []
         for result, block in zip(results, blocks):
@@ -286,7 +286,7 @@ class _Window(PandasObject, SelectionMixin):
 
             if self._selection is not None:
 
-                selection = _ensure_index(self._selection)
+                selection = ensure_index(self._selection)
 
                 # need to reorder to include original location of
                 # the on column (if its not already there)
@@ -625,7 +625,7 @@ class Window(_Window):
 
         window = self._get_window()
         if isinstance(window, (list, tuple, np.ndarray)):
-            return com._asarray_tuplesafe(window).astype(float)
+            return com.asarray_tuplesafe(window).astype(float)
         elif is_integer(window):
             import scipy.signal as sig
 
@@ -857,7 +857,7 @@ class _Rolling(_Window):
                 def func(arg, window, min_periods=None, closed=None):
                     minp = check_minp(min_periods, window)
                     # ensure we are only rolling on floats
-                    arg = _ensure_float64(arg)
+                    arg = ensure_float64(arg)
                     return cfunc(arg,
                                  window, minp, indexi, closed, **kwargs)
 
@@ -933,7 +933,8 @@ class _Rolling_and_Expanding(_Rolling):
     def count(self):
 
         blocks, obj, index = self._create_blocks()
-        index, indexi = self._get_index(index=index)
+        # Validate the index
+        self._get_index(index=index)
 
         window = self._get_window()
         window = min(window, len(obj)) if not self.center else window
@@ -2386,11 +2387,13 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
                     if not arg2.columns.is_unique:
                         raise ValueError("'arg2' columns are not unique")
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         X, Y = arg1.align(arg2, join='outer')
                     X = X + 0 * Y
                     Y = Y + 0 * X
 
                     with warnings.catch_warnings(record=True):
+                        warnings.simplefilter("ignore", RuntimeWarning)
                         res_columns = arg1.columns.union(arg2.columns)
                     for col in res_columns:
                         if col in X and col in Y:
@@ -2467,7 +2470,7 @@ def _flex_binary_moment(arg1, arg2, f, pairwise=False):
 
 
 def _get_center_of_mass(comass, span, halflife, alpha):
-    valid_count = com._count_not_none(comass, span, halflife, alpha)
+    valid_count = com.count_not_none(comass, span, halflife, alpha)
     if valid_count > 1:
         raise ValueError("comass, span, halflife, and alpha "
                          "are mutually exclusive")

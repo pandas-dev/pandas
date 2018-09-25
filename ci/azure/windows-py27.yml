@@ -1,0 +1,45 @@
+parameters:
+  name: ''
+  vmImage: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  strategy:
+    maxParallel: 11
+    matrix:
+      py36_np14:
+        ENV_FILE: ci/azure-windows-27.yml
+        CONDA_PY: "27"
+        CONDA_ENV: pandas
+
+  steps:
+    - task: CondaEnvironment@1
+      inputs:
+        updateConda: no
+        packageSpecs: ''
+
+    # Need to install VC 9.0 only for Python 2.7
+    # Once we understand how to do tasks conditional on build matrix variables
+    # we could merge this into azure-windows.yml
+    - powershell: |
+        $wc = New-Object net.webclient
+        $wc.Downloadfile("https://download.microsoft.com/download/7/9/6/796EF2E4-801B-4FC4-AB28-B59FBF6D907B/VCForPython27.msi", "VCForPython27.msi")
+        Start-Process "VCForPython27.msi" /qn -Wait
+      displayName: 'Install VC 9.0'
+
+    - script: |
+        ci\\incremental\\setup_conda_environment.cmd
+      displayName: 'Before Install'
+    - script: |
+        ci\\incremental\\build.cmd
+      displayName: 'Build'
+    - script: |
+        call activate %CONDA_ENV%
+        pytest --junitxml=test-data.xml --skip-slow --skip-network pandas -n 2 -r sxX --strict %*
+      displayName: 'Test'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-data.xml'
+        testRunTitle: 'Windows 27'

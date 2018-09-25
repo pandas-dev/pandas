@@ -6,7 +6,6 @@ HTML IO.
 import os
 import re
 import numbers
-import collections
 
 from distutils.version import LooseVersion
 
@@ -14,6 +13,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
 from pandas.io.common import _is_url, urlopen, _validate_header_arg
 from pandas.io.parsers import TextParser
+from pandas import compat
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
@@ -859,7 +859,7 @@ def _validate_flavor(flavor):
         flavor = 'lxml', 'bs4'
     elif isinstance(flavor, string_types):
         flavor = flavor,
-    elif isinstance(flavor, collections.Iterable):
+    elif isinstance(flavor, compat.Iterable):
         if not all(isinstance(flav, string_types) for flav in flavor):
             raise TypeError('Object of type {typ!r} is not an iterable of '
                             'strings'
@@ -1029,7 +1029,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
-    display_only : bool, default True
+    displayed_only : bool, default True
         Whether elements with "display: none" should be parsed
 
         .. versionadded:: 0.23.0

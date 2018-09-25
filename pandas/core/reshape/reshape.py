@@ -1,6 +1,6 @@
 # pylint: disable=E1101,E1103
 # pylint: disable=W0703,W0622,W0613,W0201
-from pandas.compat import range, text_type, zip
+from pandas.compat import range, text_type, zip, u, PY2
 from pandas import compat
 from functools import partial
 import itertools
@@ -8,7 +8,7 @@ import itertools
 import numpy as np
 
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_list_like, is_bool_dtype,
     needs_i8_conversion, is_sparse, is_object_dtype)
 from pandas.core.dtypes.cast import maybe_promote
@@ -141,7 +141,7 @@ class _Unstacker(object):
         ngroups = len(obs_ids)
 
         indexer = _algos.groupsort_indexer(comp_index, ngroups)[0]
-        indexer = _ensure_platform_int(indexer)
+        indexer = ensure_platform_int(indexer)
 
         self.sorted_values = algos.take_nd(self.values, indexer, axis=0)
         self.sorted_labels = [l.take(indexer) for l in to_sort]
@@ -156,7 +156,7 @@ class _Unstacker(object):
         comp_index, obs_ids = get_compressed_ids(remaining_labels, level_sizes)
         ngroups = len(obs_ids)
 
-        comp_index = _ensure_platform_int(comp_index)
+        comp_index = ensure_platform_int(comp_index)
         stride = self.index.levshape[self.level] + self.lift
         self.full_shape = ngroups, stride
 
@@ -381,97 +381,6 @@ def _unstack_multiple(data, clocs, fill_value=None):
         unstacked.columns = new_columns
 
     return unstacked
-
-
-def pivot(self, index=None, columns=None, values=None):
-    """
-    See DataFrame.pivot
-    """
-    if values is None:
-        cols = [columns] if index is None else [index, columns]
-        append = index is None
-        indexed = self.set_index(cols, append=append)
-    else:
-        if index is None:
-            index = self.index
-        else:
-            index = self[index]
-        index = MultiIndex.from_arrays([index, self[columns]])
-
-        if is_list_like(values) and not isinstance(values, tuple):
-            # Exclude tuple because it is seen as a single column name
-            indexed = self._constructor(self[values].values, index=index,
-                                        columns=values)
-        else:
-            indexed = self._constructor_sliced(self[values].values,
-                                               index=index)
-    return indexed.unstack(columns)
-
-
-def pivot_simple(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : ndarray
-        Labels to use to make new frame's index
-    columns : ndarray
-        Labels to use to make new frame's columns
-    values : ndarray
-        Values to use for populating new frame's values
-
-    Notes
-    -----
-    Obviously, all 3 of the input arguments must have the same length
-
-    Returns
-    -------
-    DataFrame
-
-    See also
-    --------
-    DataFrame.pivot_table : generalization of pivot that can handle
-        duplicate values for one index/column pair
-    """
-    if (len(index) != len(columns)) or (len(columns) != len(values)):
-        raise AssertionError('Length of index, columns, and values must be the'
-                             ' same')
-
-    if len(index) == 0:
-        return DataFrame(index=[])
-
-    hindex = MultiIndex.from_arrays([index, columns])
-    series = Series(values.ravel(), index=hindex)
-    series = series.sort_index(level=0)
-    return series.unstack()
-
-
-def _slow_pivot(index, columns, values):
-    """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
-
-    Parameters
-    ----------
-    index : string or object
-        Column name to use to make new frame's index
-    columns : string or object
-        Column name to use to make new frame's columns
-    values : string or object
-        Column name to use for populating new frame's values
-
-    Could benefit from some Cython here.
-    """
-    tree = {}
-    for i, (idx, col) in enumerate(zip(index, columns)):
-        if col not in tree:
-            tree[col] = {}
-        branch = tree[col]
-        branch[idx] = values[i]
-
-    return DataFrame(tree)
 
 
 def unstack(obj, level, fill_value=None):
@@ -923,13 +832,23 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
 
     number_of_cols = len(levels)
 
-    if prefix is not None:
-        dummy_strs = [u'{prefix}{sep}{level}' if isinstance(v, text_type)
-                      else '{prefix}{sep}{level}' for v in levels]
-        dummy_cols = [dummy_str.format(prefix=prefix, sep=prefix_sep, level=v)
-                      for dummy_str, v in zip(dummy_strs, levels)]
-    else:
+    if prefix is None:
         dummy_cols = levels
+    else:
+
+        # PY2 embedded unicode, gh-22084
+        def _make_col_name(prefix, prefix_sep, level):
+            fstr = '{prefix}{prefix_sep}{level}'
+            if PY2 and (isinstance(prefix, text_type) or
+                        isinstance(prefix_sep, text_type) or
+                        isinstance(level, text_type)):
+                fstr = u(fstr)
+            return fstr.format(prefix=prefix,
+                               prefix_sep=prefix_sep,
+                               level=level)
+
+        dummy_cols = [_make_col_name(prefix, prefix_sep, level)
+                      for level in levels]
 
     if isinstance(data, Series):
         index = data.index
@@ -940,10 +859,11 @@ def _get_dummies_1d(data, prefix, prefix_sep='_', dummy_na=False,
         sparse_series = {}
         N = len(data)
         sp_indices = [[] for _ in range(len(dummy_cols))]
-        for ndx, code in enumerate(codes):
-            if code == -1:
-                # Blank entries if not dummy_na and code == -1, #GH4446
-                continue
+        mask = codes != -1
+        codes = codes[mask]
+        n_idx = np.arange(N)[mask]
+
+        for ndx, code in zip(n_idx, codes):
             sp_indices[code].append(ndx)
 
         if drop_first:

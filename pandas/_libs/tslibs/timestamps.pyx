@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -7,7 +6,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t
 cnp.import_array()
 
 from datetime import time as datetime_time
@@ -17,8 +16,7 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array,
-                   INT64_MAX)
+                   is_integer_object, is_string_object, is_array)
 
 cimport ccalendar
 from conversion import tz_localize_to_utc, normalize_i8_timestamps
@@ -29,7 +27,7 @@ from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct)
+                          npy_datetimestruct, dt64_to_dtstruct)
 from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -45,7 +43,7 @@ _no_input = object()
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
-                                            pandas_datetimestruct dts,
+                                            npy_datetimestruct dts,
                                             object tz, object freq):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
@@ -342,7 +340,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            ndarray out
+            int8_t out[1]
             int month_kw
 
         freq = self.freq
@@ -362,7 +360,7 @@ cdef class _Timestamp(datetime):
     cpdef _get_date_name_field(self, object field, object locale):
         cdef:
             int64_t val
-            ndarray out
+            object[:] out
 
         val = self._maybe_convert_value_to_local()
         out = get_date_name_field(np.array([val], dtype=np.int64),
@@ -406,6 +404,15 @@ cdef class _Timestamp(datetime):
     @property
     def asm8(self):
         return np.datetime64(self.value, 'ns')
+
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
@@ -649,7 +656,7 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
-    def _round(self, freq, rounder):
+    def _round(self, freq, rounder, ambiguous='raise'):
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -661,10 +668,10 @@ class Timestamp(_Timestamp):
         r = round_ns(value, rounder, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
-            result = result.tz_localize(self.tz)
+            result = result.tz_localize(self.tz, ambiguous=ambiguous)
         return result
 
-    def round(self, freq):
+    def round(self, freq, ambiguous='raise'):
         """
         Round the Timestamp to the specified resolution
 
@@ -675,32 +682,61 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.round)
+        return self._round(freq, np.round, ambiguous)
 
-    def floor(self, freq):
+    def floor(self, freq, ambiguous='raise'):
         """
         return a new Timestamp floored to this resolution
 
         Parameters
         ----------
         freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-    def ceil(self, freq):
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+        return self._round(freq, np.floor, ambiguous)
+
+    def ceil(self, freq, ambiguous='raise'):
         """
         return a new Timestamp ceiled to this resolution
 
         Parameters
         ----------
         freq : a freq string indicating the ceiling resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.ceil)
+        return self._round(freq, np.ceil, ambiguous)
 
     @property
     def tz(self):
@@ -729,6 +765,12 @@ class Timestamp(_Timestamp):
         Return an period of which this timestamp is an observation.
         """
         from pandas import Period
+
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn("Converting to Period representation will "
+                          "drop timezone information.",
+                          UserWarning)
 
         if freq is None:
             freq = self.freq
@@ -964,7 +1006,7 @@ class Timestamp(_Timestamp):
         """
 
         cdef:
-            pandas_datetimestruct dts
+            npy_datetimestruct dts
             int64_t value, value_tz, offset
             object _tzinfo, result, k, v
             datetime ts_input
@@ -1094,7 +1136,7 @@ class Timestamp(_Timestamp):
 
 
 # Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 # the smallest value we could actually represent is
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution

@@ -487,7 +487,17 @@ def test_agg_structs_series(structure, expected):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="GH-18869: agg func not called on empty groups.")
+@pytest.mark.parametrize('observed', [
+    True,
+    pytest.param(False,
+                 marks=pytest.mark.xfail(reason="GH#18869: agg func not "
+                                                "called on empty groups.",
+                                         strict=True)),
+    pytest.param(None,
+                 marks=pytest.mark.xfail(reason="GH#18869: agg func not "
+                                                "called on empty groups.",
+                                         strict=True))
+])
 def test_agg_category_nansum(observed):
     categories = ['a', 'b', 'c']
     df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
@@ -502,3 +512,14 @@ def test_agg_category_nansum(observed):
     if observed:
         expected = expected[expected != 0]
     tm.assert_series_equal(result, expected)
+
+
+def test_agg_list_like_func():
+    # GH 18473
+    df = pd.DataFrame({'A': [str(x) for x in range(3)],
+                       'B': [str(x) for x in range(3)]})
+    grouped = df.groupby('A', as_index=False, sort=False)
+    result = grouped.agg({'B': lambda x: list(x)})
+    expected = pd.DataFrame({'A': [str(x) for x in range(3)],
+                             'B': [[str(x)] for x in range(3)]})
+    tm.assert_frame_equal(result, expected)

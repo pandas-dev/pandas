@@ -11,6 +11,16 @@ import copy
 import itertools
 import warnings
 import os
+from distutils.version import LooseVersion
+
+import numpy as np
+
+from pandas._libs import algos, lib, writers as libwriters
+from pandas._libs.tslibs import timezones
+
+from pandas.errors import PerformanceWarning
+from pandas import compat
+from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 
 from pandas.core.dtypes.common import (
     is_list_like,
@@ -18,22 +28,15 @@ from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_datetime64_dtype,
-    _ensure_object,
-    _ensure_int64,
-    _ensure_platform_int)
+    ensure_object,
+    ensure_int64,
+    ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
 
-import numpy as np
-from pandas import (Series, DataFrame, Panel, Index,
-                    MultiIndex, Int64Index, isna, concat, to_datetime,
-                    SparseSeries, SparseDataFrame, PeriodIndex,
-                    DatetimeIndex, TimedeltaIndex)
 from pandas.core import config
-from pandas.io.common import _stringify_path
+from pandas.core.config import get_option
 from pandas.core.sparse.array import BlockIndex, IntIndex
 from pandas.core.base import StringMixin
-from pandas.io.formats.printing import adjoin, pprint_thing
-from pandas.errors import PerformanceWarning
 import pandas.core.common as com
 from pandas.core.algorithms import match, unique
 from pandas.core.arrays.categorical import (Categorical,
@@ -41,16 +44,16 @@ from pandas.core.arrays.categorical import (Categorical,
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
-from pandas.core.index import _ensure_index
-from pandas import compat
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
-from pandas.core.config import get_option
+from pandas.core.index import ensure_index
 from pandas.core.computation.pytables import Expr, maybe_expression
 
-from pandas._libs import algos, lib, writers as libwriters
-from pandas._libs.tslibs import timezones
+from pandas.io.common import _stringify_path
+from pandas.io.formats.printing import adjoin, pprint_thing
 
-from distutils.version import LooseVersion
+from pandas import (Series, DataFrame, Panel, Index,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
+                    SparseSeries, SparseDataFrame, PeriodIndex,
+                    DatetimeIndex, TimedeltaIndex)
 
 # versioning attribute
 _version = '0.15.2'
@@ -2472,7 +2475,8 @@ class GenericFixed(Fixed):
         if klass == DatetimeIndex:
             def f(values, freq=None, tz=None):
                 # data are already in UTC, localize and convert if tz present
-                result = DatetimeIndex._simple_new(values, None, freq=freq)
+                result = DatetimeIndex._simple_new(values.values, None,
+                                                   freq=freq)
                 if tz is not None:
                     result = result.tz_localize('UTC').tz_convert(tz)
                 return result
@@ -3721,8 +3725,8 @@ class Table(Fixed):
                         elif field in axis_values:
 
                             # we need to filter on this dimension
-                            values = _ensure_index(getattr(obj, field).values)
-                            filt = _ensure_index(filt)
+                            values = ensure_index(getattr(obj, field).values)
+                            filt = ensure_index(filt)
 
                             # hack until we support reversed dim flags
                             if isinstance(obj, DataFrame):
@@ -3888,8 +3892,8 @@ class LegacyTable(Table):
         if len(unique(key)) == len(key):
 
             sorter, _ = algos.groupsort_indexer(
-                _ensure_int64(key), np.prod(N))
-            sorter = _ensure_platform_int(sorter)
+                ensure_int64(key), np.prod(N))
+            sorter = ensure_platform_int(sorter)
 
             # create the objs
             for c in self.values_axes:
@@ -3931,10 +3935,10 @@ class LegacyTable(Table):
                 tuple_index = long_index.values
 
                 unique_tuples = unique(tuple_index)
-                unique_tuples = com._asarray_tuplesafe(unique_tuples)
+                unique_tuples = com.asarray_tuplesafe(unique_tuples)
 
                 indexer = match(unique_tuples, tuple_index)
-                indexer = _ensure_platform_int(indexer)
+                indexer = ensure_platform_int(indexer)
 
                 new_index = long_index.take(indexer)
                 new_values = lp.values.take(indexer, axis=0)
@@ -4232,7 +4236,7 @@ class AppendableFrameTable(AppendableTable):
         for a in self.values_axes:
 
             # we could have a multi-index constructor here
-            # _ensure_index doesn't recognized our list-of-tuples here
+            # ensure_index doesn't recognized our list-of-tuples here
             if info.get('type') == 'MultiIndex':
                 cols = MultiIndex.from_tuples(a.values)
             else:
@@ -4433,18 +4437,18 @@ class AppendablePanelTable(AppendableTable):
 
 def _reindex_axis(obj, axis, labels, other=None):
     ax = obj._get_axis(axis)
-    labels = _ensure_index(labels)
+    labels = ensure_index(labels)
 
     # try not to reindex even if other is provided
     # if it equals our current index
     if other is not None:
-        other = _ensure_index(other)
+        other = ensure_index(other)
     if (other is None or labels.equals(other)) and labels.equals(ax):
         return obj
 
-    labels = _ensure_index(labels.unique())
+    labels = ensure_index(labels.unique())
     if other is not None:
-        labels = _ensure_index(other.unique()) & labels
+        labels = ensure_index(other.unique()) & labels
     if not labels.equals(ax):
         slicer = [slice(None, None)] * obj.ndim
         slicer[axis] = labels
@@ -4652,7 +4656,7 @@ def _convert_string_array(data, encoding, errors, itemsize=None):
 
     # create the sized dtype
     if itemsize is None:
-        ensured = _ensure_object(data.ravel())
+        ensured = ensure_object(data.ravel())
         itemsize = libwriters.max_len_string_array(ensured)
 
     data = np.asarray(data, dtype="S%d" % itemsize)
@@ -4684,7 +4688,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None,
     encoding = _ensure_encoding(encoding)
     if encoding is not None and len(data):
 
-        itemsize = libwriters.max_len_string_array(_ensure_object(data))
+        itemsize = libwriters.max_len_string_array(ensure_object(data))
         if compat.PY3:
             dtype = "U{0}".format(itemsize)
         else:

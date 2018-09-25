@@ -8,6 +8,14 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
+import hypothesis
+
+
+hypothesis.settings.register_profile(
+    "ci",
+    suppress_health_check=(hypothesis.HealthCheck.too_slow,)
+)
+hypothesis.settings.load_profile("ci")
 
 
 def pytest_addoption(parser):
@@ -60,6 +68,26 @@ def spmatrix(request):
     return getattr(sparse, request.param + '_matrix')
 
 
+@pytest.fixture(params=[0, 1, 'index', 'columns'],
+                ids=lambda x: "axis {!r}".format(x))
+def axis(request):
+    """
+     Fixture for returning the axis numbers of a DataFrame.
+     """
+    return request.param
+
+
+axis_frame = axis
+
+
+@pytest.fixture(params=[0, 'index'], ids=lambda x: "axis {!r}".format(x))
+def axis_series(request):
+    """
+     Fixture for returning the axis numbers of a Series.
+     """
+    return request.param
+
+
 @pytest.fixture
 def ip():
     """
@@ -101,6 +129,38 @@ def all_arithmetic_operators(request):
     Fixture for dunder names for common arithmetic operations
     """
     return request.param
+
+
+_cython_table = pd.core.base.SelectionMixin._cython_table.items()
+
+
+@pytest.fixture(params=list(_cython_table))
+def cython_table_items(request):
+    return request.param
+
+
+def _get_cython_table_params(ndframe, func_names_and_expected):
+    """combine frame, functions from SelectionMixin._cython_table
+    keys and expected result.
+
+    Parameters
+    ----------
+    ndframe : DataFrame or Series
+    func_names_and_expected : Sequence of two items
+        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The second item is the expected return value
+
+    Returns
+    -------
+    results : list
+        List of three items (DataFrame, function, expected result)
+    """
+    results = []
+    for func_name, expected in func_names_and_expected:
+        results.append((ndframe, func_name, expected))
+        results += [(ndframe, func, expected) for func, name in _cython_table
+                    if name == func_name]
+    return results
 
 
 @pytest.fixture(params=['__eq__', '__ne__', '__le__',
@@ -226,6 +286,18 @@ def nulls_fixture(request):
 nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 
 
+@pytest.fixture(params=[None, np.nan, pd.NaT])
+def unique_nulls_fixture(request):
+    """
+    Fixture for each null type in pandas, each null type exactly once
+    """
+    return request.param
+
+
+# Generate cartesian product of unique_nulls_fixture:
+unique_nulls_fixture2 = unique_nulls_fixture
+
+
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',
              'dateutil/Asia/Singapore']
 
@@ -248,7 +320,19 @@ def tz_aware_fixture(request):
     return request.param
 
 
-@pytest.fixture(params=[str, 'str', 'U'])
+UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+
+FLOAT_DTYPES = [float, "float32", "float64"]
+COMPLEX_DTYPES = [complex, "complex64", "complex128"]
+STRING_DTYPES = [str, 'str', 'U']
+
+ALL_REAL_DTYPES = FLOAT_DTYPES + ALL_INT_DTYPES
+ALL_NUMPY_DTYPES = ALL_REAL_DTYPES + COMPLEX_DTYPES + STRING_DTYPES
+
+
+@pytest.fixture(params=STRING_DTYPES)
 def string_dtype(request):
     """Parametrized fixture for string dtypes.
 
@@ -259,7 +343,7 @@ def string_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=[float, "float32", "float64"])
+@pytest.fixture(params=FLOAT_DTYPES)
 def float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -271,7 +355,7 @@ def float_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=[complex, "complex64", "complex128"])
+@pytest.fixture(params=COMPLEX_DTYPES)
 def complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
@@ -281,11 +365,6 @@ def complex_dtype(request):
     """
 
     return request.param
-
-
-UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
-SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
-ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 
 
 @pytest.fixture(params=SIGNED_INT_DTYPES)
@@ -334,6 +413,51 @@ def any_int_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=ALL_REAL_DTYPES)
+def any_real_dtype(request):
+    """
+    Parameterized fixture for any (purely) real numeric dtypes.
+
+    * int8
+    * uint8
+    * int16
+    * uint16
+    * int32
+    * uint32
+    * int64
+    * uint64
+    * float32
+    * float64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_NUMPY_DTYPES)
+def any_numpy_dtype(request):
+    """
+    Parameterized fixture for all numpy dtypes.
+
+    * int8
+    * uint8
+    * int16
+    * uint16
+    * int32
+    * uint32
+    * int64
+    * uint64
+    * float32
+    * float64
+    * complex64
+    * complex128
+    * str
+    * 'str'
+    * 'U'
+    """
+
+    return request.param
+
+
 @pytest.fixture
 def mock():
     """
@@ -346,3 +470,37 @@ def mock():
         return importlib.import_module("unittest.mock")
     else:
         return pytest.importorskip("mock")
+
+
+# ----------------------------------------------------------------
+# Global setup for tests using Hypothesis
+
+from hypothesis import strategies as st
+
+# Registering these strategies makes them globally available via st.from_type,
+# which is use for offsets in tests/tseries/offsets/test_offsets_properties.py
+for name in 'MonthBegin MonthEnd BMonthBegin BMonthEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-99, 99),
+        normalize=st.booleans(),
+    ))
+
+for name in 'YearBegin YearEnd BYearBegin BYearEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-5, 5),
+        normalize=st.booleans(),
+        month=st.integers(min_value=1, max_value=12),
+    ))
+
+for name in 'QuarterBegin QuarterEnd BQuarterBegin BQuarterEnd'.split():
+    cls = getattr(pd.tseries.offsets, name)
+    st.register_type_strategy(cls, st.builds(
+        cls,
+        n=st.integers(-24, 24),
+        normalize=st.booleans(),
+        startingMonth=st.integers(min_value=1, max_value=12)
+    ))

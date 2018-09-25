@@ -433,8 +433,29 @@ class TestLocaleUtils(object):
         del cls.locales
         del cls.current_locale
 
+    def test_can_set_locale_valid_set(self):
+        # Setting the default locale should return True
+        assert tm.can_set_locale('') is True
+
+    def test_can_set_locale_invalid_set(self):
+        # Setting an invalid locale should return False
+        assert tm.can_set_locale('non-existent_locale') is False
+
+    def test_can_set_locale_invalid_get(self, monkeypatch):
+        # In some cases, an invalid locale can be set,
+        # but a subsequent getlocale() raises a ValueError
+        # See GH 22129
+
+        def mockgetlocale():
+            raise ValueError()
+
+        with monkeypatch.context() as m:
+            m.setattr(locale, 'getlocale', mockgetlocale)
+            assert tm.can_set_locale('') is False
+
     def test_get_locales(self):
         # all systems should have at least a single locale
+        # GH9744
         assert len(tm.get_locales()) > 0
 
     def test_get_locales_prefix(self):

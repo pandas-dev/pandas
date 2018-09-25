@@ -23,10 +23,9 @@ CParserError = ParserError
 # common NA values
 # no longer excluding inf representations
 # '1.#INF','-1.#INF', '1.#INF000000',
-_NA_VALUES = set([
-    '-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
-    'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan', '-nan', ''
-])
+_NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
+              'N/A', 'n/a', 'NA', '#NA', 'NULL', 'null', 'NaN', '-NaN', 'nan',
+              '-nan', ''}
 
 
 if compat.PY3:
@@ -387,6 +386,8 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         # ZIP Compression
         elif compression == 'zip':
             zf = BytesZipFile(path_or_buf, mode)
+            # Ensure the container is closed as well.
+            handles.append(zf)
             if zf.mode == 'w':
                 f = zf
             elif zf.mode == 'r':

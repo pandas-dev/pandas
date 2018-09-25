@@ -9,13 +9,16 @@ https://support.sas.com/techsup/technote/ts140.pdf
 """
 
 from datetime import datetime
-import pandas as pd
-from pandas.io.common import get_filepath_or_buffer, BaseIterator
-from pandas import compat
 import struct
-import numpy as np
-from pandas.util._decorators import Appender
 import warnings
+
+import numpy as np
+
+from pandas.util._decorators import Appender
+from pandas import compat
+
+from pandas.io.common import get_filepath_or_buffer, BaseIterator
+import pandas as pd
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
                   "000000000000000000000000000000  ")
@@ -177,10 +180,6 @@ def _parse_float_vec(vec):
     # Start by setting first half of ieee number to first half of IBM
     # number sans exponent
     ieee1 = xport1 & 0x00ffffff
-
-    # Get the second half of the ibm number into the second half of
-    # the ieee number
-    ieee2 = xport2
 
     # The fraction bit to the left of the binary point in the ieee
     # format was set and the number was shifted 0, 1, 2, or 3

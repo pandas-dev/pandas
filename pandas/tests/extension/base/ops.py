@@ -3,10 +3,12 @@ import pytest
 import operator
 
 import pandas as pd
+from pandas.core import ops
 from .base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
+
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip('_')
         try:
@@ -21,9 +23,9 @@ class BaseOpsUtil(BaseExtensionTests):
     def check_opname(self, s, op_name, other, exc=NotImplementedError):
         op = self.get_op_from_name(op_name)
 
-        self._check_op(s, op, other, exc)
+        self._check_op(s, op, other, op_name, exc)
 
-    def _check_op(self, s, op, other, exc=NotImplementedError):
+    def _check_op(self, s, op, other, op_name, exc=NotImplementedError):
         if exc is None:
             result = op(s, other)
             expected = s.combine(other, op)
@@ -32,26 +34,48 @@ class BaseOpsUtil(BaseExtensionTests):
             with pytest.raises(exc):
                 op(s, other)
 
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        # divmod has multiple return values, so check separatly
+        if exc is None:
+            result_div, result_mod = op(s, other)
+            if op is divmod:
+                expected_div, expected_mod = s // other, s % other
+            else:
+                expected_div, expected_mod = other // s, other % s
+            self.assert_series_equal(result_div, expected_div)
+            self.assert_series_equal(result_mod, expected_mod)
+        else:
+            with pytest.raises(exc):
+                divmod(s, other)
+
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
     """Various Series and DataFrame arithmetic ops methods."""
 
-    def test_arith_scalar(self, data, all_arithmetic_operators):
-        # scalar
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+        # series & scalar
         op_name = all_arithmetic_operators
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=TypeError)
 
-    def test_arith_array(self, data, all_arithmetic_operators):
+    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
+        # frame & scalar
+        op_name = all_arithmetic_operators
+        df = pd.DataFrame({'A': data})
+        self.check_opname(df, op_name, data[0], exc=TypeError)
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         # ndarray & other series
         op_name = all_arithmetic_operators
         s = pd.Series(data)
-        self.check_opname(s, op_name, [s.iloc[0]] * len(s), exc=TypeError)
+        self.check_opname(s, op_name, pd.Series([s.iloc[0]] * len(s)),
+                          exc=TypeError)
 
     def test_divmod(self, data):
         s = pd.Series(data)
-        self._check_op(s, divmod, 1, exc=TypeError)
-        self._check_op(1, divmod, s, exc=TypeError)
+        self._check_divmod_op(s, divmod, 1, exc=TypeError)
+        self._check_divmod_op(1, ops.rdivmod, s, exc=TypeError)
 
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
@@ -90,5 +114,5 @@ class BaseComparisonOpsTests(BaseOpsUtil):
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
         s = pd.Series(data)
-        other = [0] * len(data)
+        other = pd.Series([data[0]] * len(data))
         self._compare_other(s, data, op_name, other)

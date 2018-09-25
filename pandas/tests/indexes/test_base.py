@@ -3,7 +3,7 @@
 import pytest
 
 from datetime import datetime, timedelta
-
+from decimal import Decimal
 from collections import defaultdict
 
 import pandas.util.testing as tm
@@ -13,7 +13,8 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY35, PY36, PYPY, StringIO)
+                           text_type, zip, PY3, PY35, PY36, StringIO)
+import math
 import operator
 import numpy as np
 
@@ -21,7 +22,7 @@ from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
                     PeriodIndex, RangeIndex, isna)
-from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
+from pandas.core.index import _get_combined_index, ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
 
@@ -329,7 +330,7 @@ class TestIndex(Base):
     ])
     def test_constructor_simple_new(self, vals, dtype):
         index = Index(vals, name=dtype)
-        result = index._simple_new(index, dtype)
+        result = index._simple_new(index.values, dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("vals", [
@@ -491,8 +492,9 @@ class TestIndex(Base):
         with tm.assert_raises_regex(OverflowError, msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
-    @pytest.mark.xfail(reason="see gh-21311: Index "
-                              "doesn't enforce dtype argument")
+    @pytest.mark.xfail(reason="see GH#21311: Index "
+                              "doesn't enforce dtype argument",
+                       strict=True)
     def test_constructor_cast(self):
         msg = "could not convert string to float"
         with tm.assert_raises_regex(ValueError, msg):
@@ -558,8 +560,9 @@ class TestIndex(Base):
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
     def test_insert_missing(self, nulls_fixture):
-        # GH 18295 (test missing)
-        expected = Index(['a', np.nan, 'b', 'c'])
+        # GH 22295
+        # test there is no mangling of NA values
+        expected = Index(['a', nulls_fixture, 'b', 'c'])
         result = Index(list('abc')).insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
@@ -712,6 +715,8 @@ class TestIndex(Base):
         pytest.raises(IndexError, index.__getitem__, empty_farr)
 
     @pytest.mark.parametrize("itm", [101, 'no_int'])
+    # FutureWarning from non-tuple sequence of nd indexing
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_getitem_error(self, indices, itm):
         with pytest.raises(IndexError):
             indices[itm]
@@ -864,12 +869,46 @@ class TestIndex(Base):
         expected = Index(['1a', '1b', '1c'])
         tm.assert_index_equal('1' + index, expected)
 
-    def test_sub(self):
+    def test_sub_fail(self):
         index = self.strIndex
         pytest.raises(TypeError, lambda: index - 'a')
         pytest.raises(TypeError, lambda: index - index)
         pytest.raises(TypeError, lambda: index - index.tolist())
         pytest.raises(TypeError, lambda: index.tolist() - index)
+
+    def test_sub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(0), Decimal(1)])
+
+        result = index - Decimal(1)
+        tm.assert_index_equal(result, expected)
+
+        result = index - pd.Index([Decimal(1), Decimal(1)])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            index - 'foo'
+
+        with pytest.raises(TypeError):
+            index - np.array([2, 'foo'])
+
+    def test_rsub_object(self):
+        # GH#19369
+        index = pd.Index([Decimal(1), Decimal(2)])
+        expected = pd.Index([Decimal(1), Decimal(0)])
+
+        result = Decimal(2) - index
+        tm.assert_index_equal(result, expected)
+
+        result = np.array([Decimal(2), Decimal(2)]) - index
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            'foo' - index
+
+        with pytest.raises(TypeError):
+            np.array([True, pd.Timestamp.now()]) - index
 
     def test_map_identity_mapping(self):
         # GH 12766
@@ -1328,6 +1367,21 @@ class TestIndex(Base):
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_get_indexer_with_NA_values(self, unique_nulls_fixture,
+                                        unique_nulls_fixture2):
+        # GH 22332
+        # check pairwise, that no pair of na values
+        # is mangled
+        if unique_nulls_fixture is unique_nulls_fixture2:
+            return  # skip it, values are not unique
+        arr = np.array([unique_nulls_fixture,
+                        unique_nulls_fixture2], dtype=np.object)
+        index = pd.Index(arr, dtype=np.object)
+        result = index.get_indexer([unique_nulls_fixture,
+                                    unique_nulls_fixture2, 'Unknown'])
+        expected = np.array([0, 1, -1], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
     def test_get_loc(self, method):
         index = pd.Index([0, 1, 2])
@@ -1421,7 +1475,8 @@ class TestIndex(Base):
         assert index2.slice_locs(8.5, 1.5) == (2, 6)
         assert index2.slice_locs(10.5, -1) == (0, n)
 
-    @pytest.mark.xfail(reason="Assertions were not correct - see GH 20915")
+    @pytest.mark.xfail(reason="Assertions were not correct - see GH#20915",
+                       strict=True)
     def test_slice_ints_with_floats_raises(self):
         # int slicing with floats
         # GH 4892, these are all TypeErrors
@@ -1627,9 +1682,13 @@ class TestIndex(Base):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
 
-        if PYPY and nulls_fixture is np.nan:  # np.nan is float('nan') on PyPy
+        # all nans are the same
+        if (isinstance(nulls_fixture, float) and
+                isinstance(nulls_fixture2, float) and
+                math.isnan(nulls_fixture) and
+                math.isnan(nulls_fixture2)):
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
-                [float('nan')]), np.array([False, True]))
+                [nulls_fixture2]), np.array([False, True]))
 
         elif nulls_fixture is nulls_fixture2:  # should preserve NA type
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
@@ -2361,15 +2420,6 @@ class TestMixedIntIndex(Base):
         result = index.repeat(repeats)
         tm.assert_index_equal(result, expected)
 
-    def test_repeat_warns_n_keyword(self):
-        index = pd.Index([1, 2, 3])
-        expected = pd.Index([1, 1, 2, 2, 3, 3])
-
-        with tm.assert_produces_warning(FutureWarning):
-            result = index.repeat(n=2)
-
-        tm.assert_index_equal(result, expected)
-
     @pytest.mark.parametrize("index", [
         pd.Index([np.nan]), pd.Index([np.nan, 1]),
         pd.Index([1, 2, np.nan]), pd.Index(['a', 'b', np.nan]),
@@ -2455,7 +2505,7 @@ class TestIndexUtils(object):
                     names=['L1', 'L2'])),
     ])
     def test_ensure_index_from_sequences(self, data, names, expected):
-        result = _ensure_index_from_sequences(data, names)
+        result = ensure_index_from_sequences(data, names)
         tm.assert_index_equal(result, expected)
 
 
