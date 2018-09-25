@@ -778,7 +778,7 @@ class DataFrame(NDFrame):
         return Styler(self)
 
     def iteritems(self):
-        """
+        r"""
         Iterator over (column name, Series) pairs.
 
         Iterates over the DataFrame columns, returning a tuple with the column name and the content as a Series.
@@ -809,15 +809,15 @@ class DataFrame(NDFrame):
         koala 	marsupial 80000
         >>> for label, content in df.iteritems():
         ...     print('label:', label)
-        ...     print('content:', content, sep='\\n', end='\\n')
+        ...     print('content:', content, sep='\n', end='\n')
         ...
         label: species
         content:
-        black        bear
-        brown        bear
-        panda        bear
-        polar        bear
-        koala   marsupial
+        black         bear
+        brown         bear
+        panda         bear
+        polar         bear
+        koala    marsupial
         Name: species, dtype: object
         label: population
         content:
