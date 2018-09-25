@@ -809,7 +809,7 @@ class DataFrame(NDFrame):
         koala 	marsupial 80000
         >>> for label, content in df.iteritems():
         ...     print('label:', label)
-        ...     print('content:', content, sep='\n', end='\n')
+        ...     print('content:', content, sep='\\n', end='\\n')
         ...
         label: species
         content:
@@ -819,14 +819,14 @@ class DataFrame(NDFrame):
         polar        bear
         koala   marsupial
         Name: species, dtype: object
-        label: pop
+        label: population
         content:
         black   300000
         brown   200000
         panda     1864
         polar    22000
         koala    80000
-        Name: pop, dtype: int64
+        Name: population, dtype: int64
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
