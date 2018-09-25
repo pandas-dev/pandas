@@ -2727,9 +2727,6 @@ class PythonParser(ParserBase):
                            'cannot be processed in Python\'s '
                            'native csv library at the moment, '
                            'so please pass in engine=\'c\' instead')
-                elif 'newline inside string' in msg:
-                    msg = ('EOF inside string starting with '
-                           'line ' + str(row_num))
 
                 if self.skipfooter > 0:
                     reason = ('Error could possibly be due to '

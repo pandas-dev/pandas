@@ -9,6 +9,7 @@ import csv
 import pandas.util.testing as tm
 
 from pandas import DataFrame
+from pandas.errors import ParserError
 from pandas.compat import PY3, StringIO, u
 
 
@@ -151,3 +152,19 @@ class QuotingTests(object):
         if PY3:
             result = self.read_csv(StringIO(data), quotechar=u('\u0001'))
             tm.assert_frame_equal(result, expected)
+
+    def test_unbalanced_quoting(self):
+        # see gh-22789.
+        data = "a,b,c\n1,2,\"3"
+
+        if self.engine == "c":
+            regex = "EOF inside string starting at row 1"
+        else:
+            regex = "unexpected end of data"
+
+        with tm.assert_raises_regex(ParserError, regex):
+            self.read_csv(StringIO(data))
+
+        expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
+        data = self.read_csv(StringIO(data + '"'))
+        tm.assert_frame_equal(data, expected)
