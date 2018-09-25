@@ -368,6 +368,37 @@ is the case with :attr:`Period.end_time`, for example
 
    p.end_time
 
+.. _whatsnew_0240.api_breaking.frame_to_dict_index_orient:
+
+Raise ValueError in ``DataFrame.to_dict(orient='index')``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with 
+``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
+
+Previous Behavior:
+
+Calling :func:`DataFrame.to_dict` resulted in data loss when ``orient='index'``
+for non-unique indexes
+
+.. code-block:: ipython
+
+   In [2]: df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+   
+   In [3]: df.to_dict(orient='index')
+   Out [3]: {'A': {'a': 2.0, 'b': 0.75}}
+
+Current Behavior:
+
+Calling :func:`DataFrame.to_dict` will now result in a ValueError being raised
+when ``orient='index'`` for non-unique index values
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1, 2], 'b': [0.5, 0.75]}, index=['A', 'A'])
+   
+   df.to_dict(orient='index')
+
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
@@ -804,7 +835,7 @@ Reshaping
 - Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
-- Bug in :func:`DataFrame.to_dict` raises ``ValueError`` when used with ``orient='index'`` and a non-unique index instead of losing data (:issue:`22801`)
+-
 
 Build Changes
 ^^^^^^^^^^^^^
