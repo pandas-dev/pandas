@@ -625,6 +625,7 @@ def test_as_index_series_return_frame(df):
 
 
 def test_as_index_series_column_slice_raises(df):
+    # GH15072
     grouped = df.groupby('A', as_index=False)
     msg = "Column\(s\) C already selected"
 
