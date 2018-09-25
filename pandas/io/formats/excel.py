@@ -505,12 +505,13 @@ class ExcelFormatter(object):
         if self.index:
             # check aliases
             # if list only take first as this is not a MultiIndex
-            if (self.index_label and
+            if (self.index_label is not None and
                     isinstance(self.index_label, (list, tuple, np.ndarray,
                                                   Index))):
                 index_label = self.index_label[0]
             # if string good to go
-            elif self.index_label and isinstance(self.index_label, str):
+            elif (self.index_label is not None and
+                    isinstance(self.index_label, str)):
                 index_label = self.index_label
             else:
                 index_label = self.df.index.names[0]
@@ -548,7 +549,7 @@ class ExcelFormatter(object):
         if self.index:
             index_labels = self.df.index.names
             # check for aliases
-            if (self.index_label and
+            if (self.index_label is not None and
                     isinstance(self.index_label, (list, tuple, np.ndarray,
                                                   Index))):
                 index_labels = self.index_label
