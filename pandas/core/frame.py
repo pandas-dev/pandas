@@ -7485,17 +7485,18 @@ class DataFrame(NDFrame):
         falcon         2          2
         dog            4          0
 
-        When ``values`` is a list:
+        When ``values`` is a list check whether every value in the DataFrame
+        is present in the list (which animals have 0 or 2 legs or wings)
 
-        >>> df.isin([2])
+        >>> df.isin([0, 2])
                 num_legs  num_wings
         falcon      True       True
-        dog        False      False
+        dog        False       True
 
         When ``values`` is a dict, we can pass values to check for each
         column separately:
 
-        >>> df.isin({'num_wings': [0, 3], 'num_legs': [0]})
+        >>> df.isin({'num_wings': [0, 3]})
                 num_legs  num_wings
         falcon     False      False
         dog        False       True
@@ -7504,11 +7505,11 @@ class DataFrame(NDFrame):
         match. Note that 'falcon' does not match based on the number of legs
         in df2.
 
-        >>> df2 = pd.DataFrame({'num_legs': [8, 0, 2], 'num_wings': [0, 2, 2]},
-        ...                    index=['spider', 'falcon', 'parrot'])
-        >>> df.isin(df2)
+        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        ...                      index=['spider', 'falcon'])
+        >>> df.isin(other)
                 num_legs  num_wings
-        falcon     False       True
+        falcon      True       True
         dog        False      False
         """
         if isinstance(values, dict):
