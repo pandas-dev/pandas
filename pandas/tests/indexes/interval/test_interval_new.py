@@ -12,13 +12,6 @@ pytestmark = pytest.mark.skip(reason="new indexing tests for issue 16316")
 
 class TestIntervalIndex(object):
 
-    def _compare_tuple_of_numpy_array(self, result, expected):
-        lidx, ridx = result
-        lidx_expected, ridx_expected = expected
-
-        tm.assert_numpy_array_equal(lidx, lidx_expected)
-        tm.assert_numpy_array_equal(ridx, ridx_expected)
-
     @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
     @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
     def test_get_loc_interval(self, idx_side, side):
