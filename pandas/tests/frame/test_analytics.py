@@ -80,15 +80,6 @@ def _check_stat_op(name, alternative, main_frame, float_frame,
 
     # bad axis
     tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
-    # make sure works on mixed-type frame
-    getattr(float_string_frame, name)(axis=0)
-    getattr(float_string_frame, name)(axis=1)
-
-    if has_numeric_only:
-        getattr(float_string_frame, name)(axis=0, numeric_only=True)
-        getattr(float_string_frame, name)(axis=1, numeric_only=True)
-        getattr(float_frame, name)(axis=0, numeric_only=False)
-        getattr(float_frame, name)(axis=1, numeric_only=False)
 
     # all NA case
     if has_skipna:
@@ -101,6 +92,16 @@ def _check_stat_op(name, alternative, main_frame, float_frame,
             tm.assert_series_equal(r0, expected)
             expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
             tm.assert_series_equal(r1, expected)
+
+    # make sure works on mixed-type frame
+    getattr(float_string_frame, name)(axis=0)
+    getattr(float_string_frame, name)(axis=1)
+
+    if has_numeric_only:
+        getattr(float_string_frame, name)(axis=0, numeric_only=True)
+        getattr(float_string_frame, name)(axis=1, numeric_only=True)
+        getattr(float_frame, name)(axis=0, numeric_only=False)
+        getattr(float_frame, name)(axis=1, numeric_only=False)
 
 
 def _check_bool_op(name, alternative, frame, float_string_frame,
@@ -134,6 +135,18 @@ def _check_bool_op(name, alternative, frame, float_string_frame,
     # bad axis
     pytest.raises(ValueError, f, axis=2)
 
+    # all NA case
+    if has_skipna:
+        all_na = frame * np.NaN
+        r0 = getattr(all_na, name)(axis=0)
+        r1 = getattr(all_na, name)(axis=1)
+        if name == 'any':
+            assert not r0.any()
+            assert not r1.any()
+        else:
+            assert r0.all()
+            assert r1.all()
+
     # make sure works on mixed-type frame
     mixed = float_string_frame
     mixed['_bool_'] = np.random.randn(len(mixed)) > 0
@@ -152,18 +165,6 @@ def _check_bool_op(name, alternative, frame, float_string_frame,
         getattr(mixed, name)(axis=1, bool_only=True)
         getattr(frame, name)(axis=0, bool_only=False)
         getattr(frame, name)(axis=1, bool_only=False)
-
-    # all NA case
-    if has_skipna:
-        all_na = frame * np.NaN
-        r0 = getattr(all_na, name)(axis=0)
-        r1 = getattr(all_na, name)(axis=1)
-        if name == 'any':
-            assert not r0.any()
-            assert not r1.any()
-        else:
-            assert r0.all()
-            assert r1.all()
 
 
 class TestDataFrameAnalytics():
