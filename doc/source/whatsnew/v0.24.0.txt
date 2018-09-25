@@ -704,7 +704,7 @@ Numeric
 Strings
 ^^^^^^^
 
--
+- Bug in :class:`StringMethods` where `str_contains()` was not filling missing values with given argument for na for a categorical Series (:issue:`22158`)
 -
 -
 
