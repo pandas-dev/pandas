@@ -781,14 +781,14 @@ class DataFrame(NDFrame):
         r"""
         Iterator over (column name, Series) pairs.
 
-        Iterates over the DataFrame columns, returning a tuple with the column name and the content as a Series.
+        Iterates over the DataFrame columns, returning a tuple with the column name
+        and the content as a Series.
 
         Yields
         ------
-        label : object
-            The column names for the DataFrame being iterated over.
-        content : Series
-            The column entries belonging to each label, as a Series.
+        it : generator
+            A generator which iterates over the columns of the DataFrame and whose values
+            consist of the column name as a label and the column entries as a Series.
 
         See Also
         --------
@@ -797,13 +797,11 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'bear', 'bear', 'marsupial'],
-        ...                   'population': [300000, 200000, 1864, 22000, 80000]},
-        ...                   index=['black', 'brown', 'panda', 'polar', 'koala'])
+        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'marsupial'],
+        ...                   'population': [1864, 22000, 80000]},
+        ...                   index=['panda', 'polar', 'koala'])
         >>> df
                 species   population
-        black 	bear 	  300000
-        brown 	bear 	  200000
         panda 	bear 	  1864
         polar 	bear 	  22000
         koala 	marsupial 80000
@@ -813,16 +811,12 @@ class DataFrame(NDFrame):
         ...
         label: species
         content:
-        black         bear
-        brown         bear
         panda         bear
         polar         bear
         koala    marsupial
         Name: species, dtype: object
         label: population
         content:
-        black   300000
-        brown   200000
         panda     1864
         polar    22000
         koala    80000
