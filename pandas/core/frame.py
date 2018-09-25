@@ -1085,7 +1085,8 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        result : collections.Mapping like {column -> {index -> value}}
+        collections.Mapping
+            like {column -> {index -> value}}
 
         See Also
         --------
@@ -1122,7 +1123,7 @@ class DataFrame(NDFrame):
         [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
 
         >>> df.to_dict('index')
-        {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
+        {'a': {'col1': 1, 'col2': 0.5}, 'b': {'col1': 2, 'col2': 0.75}}
 
         You can also specify the mapping type.
 

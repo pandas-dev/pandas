@@ -21,7 +21,7 @@ if [ "$DOCTEST" ]; then
 
     # DataFrame / Series docstrings
     pytest --doctest-modules -v pandas/core/frame.py \
-        -k"-axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_dict -to_stata"
+        -k"-axes -combine -isin -itertuples -join -nlargest -nsmallest -nunique -pivot_table -quantile -query -reindex -reindex_axis -replace -round -set_index -stack -to_stata"
 
     if [ $? -ne "0" ]; then
         RET=1
