@@ -538,116 +538,116 @@ DataFrame.mul : Multiply DataFrames.
 DataFrame.div : Divide DataFrames (float division).
 DataFrame.truediv : Divide DataFrames (float division).
 DataFrame.floordiv : Divide DataFrames (integer division).
-DataFrame.mod : Calculate modulo (remainder after division) of
-    DataFrames.
-DataFrame.pow : Calculate exponential power of DataFrames.
+DataFrame.mod : Calculate modulo (remainder after division).
+DataFrame.pow : Calculate exponential power.
 
 Examples
 --------
->>> df = pd.DataFrame({{'A': [4, 6, 8],
-...                    'B': [3, 5, 9]}})
+>>> df = pd.DataFrame({{'angles': [0, 3, 4],
+...                    'degrees': [360, 180, 360]}},
+...                   index=[ 'circle', 'triangle', 'rectangle'])
 >>> df
-   A  B
-0  4  3
-1  6  5
-2  8  9
+           angles  degrees
+circle          0      360
+triangle        3      180
+rectangle       4      360
 
 Add a scalar with operator version which return the same
 results.
 
->>> df + 5
-    A   B
-0   9   8
-1  11  10
-2  13  14
+>>> df + 1
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
 
->>> df.add(5)
-    A   B
-0   9   8
-1  11  10
-2  13  14
+>>> df.add(1)
+           angles  degrees
+circle          1      361
+triangle        4      181
+rectangle       5      361
 
 Divide by constant with reverse version.
 
 >>> df.div(10)
-     A    B
-0  0.4  0.3
-1  0.6  0.5
-2  0.8  0.9
+           angles  degrees
+circle        0.0     36.0
+triangle      0.3     18.0
+rectangle     0.4     36.0
 
 >>> df.rdiv(10)
-          A         B
-0  2.500000  3.333333
-1  1.666667  2.000000
-2  1.250000  1.111111
+             angles   degrees
+circle          inf  0.027778
+triangle   3.333333  0.055556
+rectangle  2.500000  0.027778
 
 Subtract a list and Series by axis with operator version.
 
 >>> df - [1, 2]
-   A  B
-0  3  1
-1  5  3
-2  7  7
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
 
 >>> df.sub([1, 2], axis='columns')
-   A  B
-0  3  1
-1  5  3
-2  7  7
+           angles  degrees
+circle         -1      358
+triangle        2      178
+rectangle       3      358
 
->>> df.sub(pd.Series([1, 2, 4]), axis='index')
-   A  B
-0  3  2
-1  4  3
-2  4  5
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']), 
+...        axis='index')
+           angles  degrees
+circle         -1      359
+triangle        2      179
+rectangle       3      359
 
 Multiply a DataFrame of different shape with operator version.
 
->>> other = pd.DataFrame({{'A': [2, 5, 3, 1]}})
+>>> other = pd.DataFrame({{'angles': [0, 3, 4]}},
+...                      index=['circle', 'triangle', 'rectangle'])
 >>> other
-   A
-0  2
-1  5
-2  3
-3  1
+           angles
+circle          0
+triangle        3
+rectangle       4
 
 >>> df * other
-      A   B
-0   8.0 NaN
-1  30.0 NaN
-2  24.0 NaN
-3   NaN NaN
+           angles  degrees
+circle          0      NaN
+triangle        9      NaN
+rectangle      16      NaN
 
 >>> df.mul(other, fill_value=0)
-      A    B
-0   8.0  0.0
-1  30.0  0.0
-2  24.0  0.0
-3   0.0  NaN
+           angles  degrees
+circle          0      0.0
+triangle        9      0.0
+rectangle      16      0.0
 
 Divide by a MultiIndex by level.
 
->>> df_multindex = pd.DataFrame({{'A': [2, 4, 6, 8, 3, 4],
-...                              'B': [1, 3, 5, 7, 5, 6]}},
-...                              index = [['Q1', 'Q1', 'Q1', 'Q2', 'Q2', 'Q2'],
-...                                       [0, 1, 2, 0, 1, 2]])
+>>> df_multindex = pd.DataFrame({{'angles': [0, 3, 4, 4, 5, 6],
+...                              'degrees': [360, 180, 360, 360, 540, 720]}},
+...                             index = [['A', 'A', 'A', 'B', 'B', 'B'],
+...                                      ['circle', 'triangle', 'rectangle',
+...                                       'square', 'pentagon', 'hexagon']])
 >>> df_multindex
-      A  B
-Q1 0  2  1
-   1  4  3
-   2  6  5
-Q2 0  8  7
-   1  3  5
-   2  4  6
+             angles  degrees
+A circle          0      360
+  triangle        3      180
+  rectangle       4      360
+B square          4      360
+  pentagon        5      540
+  hexagon         6      720
 
->>> df.div(df_multindex, level=1)
-             A         B
-Q1 0  2.000000  3.000000
-   1  1.500000  1.666667
-   2  1.333333  1.800000
-Q2 0  0.500000  0.428571
-   1  2.000000  1.000000
-   2  2.000000  1.500000
+>>> df.div(df_multindex, level=1, fill_value=0)
+             angles  degrees
+A circle        NaN      1.0
+  triangle      1.0      1.0
+  rectangle     1.0      1.0
+B square        0.0      0.0
+  pentagon      0.0      0.0
+  hexagon       0.0      0.0
 """
 
 _flex_comp_doc_FRAME = """
