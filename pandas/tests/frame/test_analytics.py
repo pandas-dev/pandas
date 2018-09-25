@@ -25,145 +25,145 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 
-    def _check_stat_op(self, name, alternative, main_frame, float_frame,
-                       float_string_frame, has_skipna=True,
-                       has_numeric_only=False, check_dtype=True,
-                       check_dates=False, check_less_precise=False,
-                       skipna_alternative=None):
+def _check_stat_op(self, name, alternative, main_frame, float_frame,
+                   float_string_frame, has_skipna=True,
+                   has_numeric_only=False, check_dtype=True,
+                   check_dates=False, check_less_precise=False,
+                   skipna_alternative=None):
 
-        f = getattr(main_frame, name)
+    f = getattr(main_frame, name)
 
-        if check_dates:
-            df = DataFrame({'b': date_range('1/1/2001', periods=2)})
-            _f = getattr(df, name)
-            result = _f()
-            assert isinstance(result, Series)
+    if check_dates:
+        df = DataFrame({'b': date_range('1/1/2001', periods=2)})
+        _f = getattr(df, name)
+        result = _f()
+        assert isinstance(result, Series)
 
-            df['a'] = lrange(len(df))
-            result = getattr(df, name)()
-            assert isinstance(result, Series)
-            assert len(result)
+        df['a'] = lrange(len(df))
+        result = getattr(df, name)()
+        assert isinstance(result, Series)
+        assert len(result)
 
-        if has_skipna:
-            def wrapper(x):
-                return alternative(x.values)
+    if has_skipna:
+        def wrapper(x):
+            return alternative(x.values)
 
-            skipna_wrapper = tm._make_skipna_wrapper(alternative,
-                                                     skipna_alternative)
-            result0 = f(axis=0, skipna=False)
-            result1 = f(axis=1, skipna=False)
-            tm.assert_series_equal(result0, main_frame.apply(wrapper),
-                                   check_dtype=check_dtype,
-                                   check_less_precise=check_less_precise)
-            # HACK: win32
-            tm.assert_series_equal(result1, main_frame.apply(wrapper, axis=1),
-                                   check_dtype=False,
-                                   check_less_precise=check_less_precise)
-        else:
-            skipna_wrapper = alternative
-
-        result0 = f(axis=0)
-        result1 = f(axis=1)
-        tm.assert_series_equal(result0, main_frame.apply(skipna_wrapper),
+        skipna_wrapper = tm._make_skipna_wrapper(alternative,
+                                                 skipna_alternative)
+        result0 = f(axis=0, skipna=False)
+        result1 = f(axis=1, skipna=False)
+        tm.assert_series_equal(result0, main_frame.apply(wrapper),
                                check_dtype=check_dtype,
                                check_less_precise=check_less_precise)
+        # HACK: win32
+        tm.assert_series_equal(result1, main_frame.apply(wrapper, axis=1),
+                               check_dtype=False,
+                               check_less_precise=check_less_precise)
+    else:
+        skipna_wrapper = alternative
+
+    result0 = f(axis=0)
+    result1 = f(axis=1)
+    tm.assert_series_equal(result0, main_frame.apply(skipna_wrapper),
+                           check_dtype=check_dtype,
+                           check_less_precise=check_less_precise)
+    if name in ['sum', 'prod']:
+        expected = main_frame.apply(skipna_wrapper, axis=1)
+        tm.assert_series_equal(result1, expected, check_dtype=False,
+                               check_less_precise=check_less_precise)
+
+    # check dtypes
+    if check_dtype:
+        lcd_dtype = main_frame.values.dtype
+        assert lcd_dtype == result0.dtype
+        assert lcd_dtype == result1.dtype
+
+    # bad axis
+    tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
+    # make sure works on mixed-type frame
+    getattr(float_string_frame, name)(axis=0)
+    getattr(float_string_frame, name)(axis=1)
+
+    if has_numeric_only:
+        getattr(float_string_frame, name)(axis=0, numeric_only=True)
+        getattr(float_string_frame, name)(axis=1, numeric_only=True)
+        getattr(float_frame, name)(axis=0, numeric_only=False)
+        getattr(float_frame, name)(axis=1, numeric_only=False)
+
+    # all NA case
+    if has_skipna:
+        all_na = float_frame * np.NaN
+        r0 = getattr(all_na, name)(axis=0)
+        r1 = getattr(all_na, name)(axis=1)
         if name in ['sum', 'prod']:
-            expected = main_frame.apply(skipna_wrapper, axis=1)
-            tm.assert_series_equal(result1, expected, check_dtype=False,
-                                   check_less_precise=check_less_precise)
-
-        # check dtypes
-        if check_dtype:
-            lcd_dtype = main_frame.values.dtype
-            assert lcd_dtype == result0.dtype
-            assert lcd_dtype == result1.dtype
-
-        # bad axis
-        tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
-        # make sure works on mixed-type frame
-        getattr(float_string_frame, name)(axis=0)
-        getattr(float_string_frame, name)(axis=1)
-
-        if has_numeric_only:
-            getattr(float_string_frame, name)(axis=0, numeric_only=True)
-            getattr(float_string_frame, name)(axis=1, numeric_only=True)
-            getattr(float_frame, name)(axis=0, numeric_only=False)
-            getattr(float_frame, name)(axis=1, numeric_only=False)
-
-        # all NA case
-        if has_skipna:
-            all_na = float_frame * np.NaN
-            r0 = getattr(all_na, name)(axis=0)
-            r1 = getattr(all_na, name)(axis=1)
-            if name in ['sum', 'prod']:
-                unit = int(name == 'prod')
-                expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
-                tm.assert_series_equal(r0, expected)
-                expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
-                tm.assert_series_equal(r1, expected)
+            unit = int(name == 'prod')
+            expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
+            tm.assert_series_equal(r0, expected)
+            expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
+            tm.assert_series_equal(r1, expected)
 
 
-    def _check_bool_op(self, name, alternative, frame, float_string_frame,
-                       has_skipna=True, has_bool_only=False):
+def _check_bool_op(self, name, alternative, frame, float_string_frame,
+                   has_skipna=True, has_bool_only=False):
 
-        f = getattr(frame, name)
+    f = getattr(frame, name)
 
-        if has_skipna:
-            def skipna_wrapper(x):
-                nona = x.dropna().values
-                return alternative(nona)
+    if has_skipna:
+        def skipna_wrapper(x):
+            nona = x.dropna().values
+            return alternative(nona)
 
-            def wrapper(x):
-                return alternative(x.values)
+        def wrapper(x):
+            return alternative(x.values)
 
-            result0 = f(axis=0, skipna=False)
-            result1 = f(axis=1, skipna=False)
-            tm.assert_series_equal(result0, frame.apply(wrapper))
-            tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
-                                   check_dtype=False)  # HACK: win32
+        result0 = f(axis=0, skipna=False)
+        result1 = f(axis=1, skipna=False)
+        tm.assert_series_equal(result0, frame.apply(wrapper))
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
+                               check_dtype=False)  # HACK: win32
+    else:
+        skipna_wrapper = alternative
+        wrapper = alternative
+
+    result0 = f(axis=0)
+    result1 = f(axis=1)
+    tm.assert_series_equal(result0, frame.apply(skipna_wrapper))
+    tm.assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
+                           check_dtype=False)
+
+    # bad axis
+    pytest.raises(ValueError, f, axis=2)
+
+    # make sure works on mixed-type frame
+    mixed = float_string_frame
+    mixed['_bool_'] = np.random.randn(len(mixed)) > 0
+    getattr(mixed, name)(axis=0)
+    getattr(mixed, name)(axis=1)
+
+    class NonzeroFail(object):
+
+        def __nonzero__(self):
+            raise ValueError
+
+    mixed['_nonzero_fail_'] = NonzeroFail()
+
+    if has_bool_only:
+        getattr(mixed, name)(axis=0, bool_only=True)
+        getattr(mixed, name)(axis=1, bool_only=True)
+        getattr(frame, name)(axis=0, bool_only=False)
+        getattr(frame, name)(axis=1, bool_only=False)
+
+    # all NA case
+    if has_skipna:
+        all_na = frame * np.NaN
+        r0 = getattr(all_na, name)(axis=0)
+        r1 = getattr(all_na, name)(axis=1)
+        if name == 'any':
+            assert not r0.any()
+            assert not r1.any()
         else:
-            skipna_wrapper = alternative
-            wrapper = alternative
-
-        result0 = f(axis=0)
-        result1 = f(axis=1)
-        tm.assert_series_equal(result0, frame.apply(skipna_wrapper))
-        tm.assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
-                               check_dtype=False)
-
-        # bad axis
-        pytest.raises(ValueError, f, axis=2)
-
-        # make sure works on mixed-type frame
-        mixed = float_string_frame
-        mixed['_bool_'] = np.random.randn(len(mixed)) > 0
-        getattr(mixed, name)(axis=0)
-        getattr(mixed, name)(axis=1)
-
-        class NonzeroFail(object):
-
-            def __nonzero__(self):
-                raise ValueError
-
-        mixed['_nonzero_fail_'] = NonzeroFail()
-
-        if has_bool_only:
-            getattr(mixed, name)(axis=0, bool_only=True)
-            getattr(mixed, name)(axis=1, bool_only=True)
-            getattr(frame, name)(axis=0, bool_only=False)
-            getattr(frame, name)(axis=1, bool_only=False)
-
-        # all NA case
-        if has_skipna:
-            all_na = frame * np.NaN
-            r0 = getattr(all_na, name)(axis=0)
-            r1 = getattr(all_na, name)(axis=1)
-            if name == 'any':
-                assert not r0.any()
-                assert not r1.any()
-            else:
-                assert r0.all()
-                assert r1.all()
+            assert r0.all()
+            assert r1.all()
 
 
 class TestDataFrameAnalytics():
