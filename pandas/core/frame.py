@@ -798,10 +798,10 @@ class DataFrame(NDFrame):
         Examples
         --------
         >>> df = pd.DataFrame({'species': ['bear', 'bear', 'bear', 'bear', 'marsupial'],
-        ...                   'pop': [300000, 200000, 1864, 22000, 80000]},
+        ...                   'population': [300000, 200000, 1864, 22000, 80000]},
         ...                   index=['black', 'brown', 'panda', 'polar', 'koala'])
         >>> df
-                species   pop
+                species   population
         black 	bear 	  300000
         brown 	bear 	  200000
         panda 	bear 	  1864
@@ -809,17 +809,19 @@ class DataFrame(NDFrame):
         koala 	marsupial 80000
         >>> for label, content in df.iteritems():
         ...     print('label:', label)
-        ...     print('content:', content)
+        ...     print('content:', content, sep='\n', end='\n')
         ...
         label: species
-        content: black        bear
+        content:
+        black        bear
         brown        bear
         panda        bear
         polar        bear
         koala   marsupial
         Name: species, dtype: object
         label: pop
-        content: black   300000
+        content:
+        black   300000
         brown   200000
         panda     1864
         polar    22000
