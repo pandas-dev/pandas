@@ -809,7 +809,7 @@ class DataFrame(NDFrame):
         koala 	marsupial 80000
         >>> for label, content in df.iteritems():
         ...     print('label:', label)
-        ...     print('content:', content, sep='\n', end='\n')
+        ...     print('content:', content, sep='\n')
         ...
         label: species
         content:
