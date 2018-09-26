@@ -245,8 +245,8 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) {selection} already selected'
-                            .format(selection=self._selection))
+            raise IndexError('Column(s) {selection} already selected'
+                             .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):

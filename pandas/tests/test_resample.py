@@ -2485,6 +2485,22 @@ class TestPeriodIndex(Base):
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
+    def test_resample_nonexistent_time_bin_edge(self):
+        # GH 19375
+        index = date_range('2017-03-12', '2017-03-12 1:45:00', freq='15T')
+        s = Series(np.zeros(len(index)), index=index)
+        expected = s.tz_localize('US/Pacific')
+        result = expected.resample('900S').mean()
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_ambiguous_time_bin_edge(self):
+        # GH 10117
+        idx = pd.date_range("2014-10-25 22:00:00", "2014-10-26 00:30:00",
+                            freq="30T", tz="Europe/London")
+        expected = Series(np.zeros(len(idx)), index=idx)
+        result = expected.resample('30T').mean()
+        tm.assert_series_equal(result, expected)
+
     def test_fill_method_and_how_upsample(self):
         # GH2073
         s = Series(np.arange(9, dtype='int64'),
