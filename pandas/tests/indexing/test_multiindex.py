@@ -738,8 +738,8 @@ class TestMultiIndexBasic(object):
         (MultiIndex.from_product([(1, 2), (3, 4)]), True),
         (MultiIndex.from_product([('a', 'b'), (1, 2)]), False),
     ])
-    def test_multiindex_is_homogeneous(self, data, expected):
-        assert data._is_homogeneous is expected
+    def test_multiindex_is_homogeneous_type(self, data, expected):
+        assert data._is_homogeneous_type is expected
 
 
 class TestMultiIndexSlicers(object):
