@@ -4567,6 +4567,9 @@ dtypes, including extension dtypes such as datetime with tz.
 Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
+* The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
+  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
+  force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
@@ -4629,6 +4632,41 @@ Read only certain columns of a parquet file.
    import os
    os.remove('example_pa.parquet')
    os.remove('example_fp.parquet')
+
+
+Handling Indexes
+''''''''''''''''
+
+Serializing a ``DataFrame`` to parquet may include the implicit index as one or
+more columns in the output file. Thus, this code:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet', engine='pyarrow')
+
+creates a parquet file with *three* columns if you use ``pyarrow`` for serialization:
+``a``, ``b``, and ``__index_level_0__``. If you're using ``fastparquet``, the
+index `may or may not <https://fastparquet.readthedocs.io/en/latest/api.html#fastparquet.write>`_
+be written to the file.
+
+This unexpected extra column causes some databases like Amazon Redshift to reject
+the file, because that column doesn't exist in the target table.
+
+If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
+:func:`~pandas.DataFrame.to_parquet`:
+
+.. ipython:: python
+
+    df.to_parquet('test.parquet', index=False)
+
+This creates a parquet file with just the two expected columns, ``a`` and ``b``.
+If your ``DataFrame`` has a custom index, you won't get it back when you load
+this file into a ``DataFrame``.
+
+Passing ``index=True`` will *always* write the index, even if that's not the
+underlying engine's default behavior.
+
 
 .. _io.sql:
 

@@ -1910,10 +1910,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         other : Series
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarray
+                and returning a float
+                .. versionadded:: 0.24.0
+
         min_periods : int, optional
             Minimum number of observations needed to have a valid result
 
@@ -1921,12 +1925,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         correlation : float
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> histogram_intersection = lambda a, b: np.minimum(a, b
+        ... ).sum().round(decimals=1)
+        >>> s1 = pd.Series([.2, .0, .6, .2])
+        >>> s2 = pd.Series([.3, .6, .0, .1])
+        >>> s1.corr(s2, method=histogram_intersection)
+        0.3
         """
         this, other = self.align(other, join='inner', copy=False)
         if len(this) == 0:
             return np.nan
 
-        if method in ['pearson', 'spearman', 'kendall']:
+        if method in ['pearson', 'spearman', 'kendall'] or callable(method):
             return nanops.nancorr(this.values, other.values, method=method,
                                   min_periods=min_periods)
 
@@ -2021,7 +2035,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def autocorr(self, lag=1):
         """
-        Lag-N autocorrelation
+        Compute the lag-N autocorrelation.
+
+        This method computes the Pearson correlation between
+        the Series and its shifted self.
 
         Parameters
         ----------
@@ -2030,7 +2047,34 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        autocorr : float
+        float
+            The Pearson correlation between self and self.shift(lag).
+
+        See Also
+        --------
+        Series.corr : Compute the correlation between two Series.
+        Series.shift : Shift index by desired number of periods.
+        DataFrame.corr : Compute pairwise correlation of columns.
+        DataFrame.corrwith : Compute pairwise correlation between rows or
+            columns of two DataFrame objects.
+
+        Notes
+        -----
+        If the Pearson correlation is not well defined return 'NaN'.
+
+        Examples
+        --------
+        >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
+        >>> s.autocorr()
+        0.1035526330902407
+        >>> s.autocorr(lag=2)
+        -0.9999999999999999
+
+        If the Pearson correlation is not well defined, then 'NaN' is returned.
+
+        >>> s = pd.Series([1, 0, 0, 0])
+        >>> s.autocorr()
+        nan
         """
         return self.corr(self.shift(lag))
 
