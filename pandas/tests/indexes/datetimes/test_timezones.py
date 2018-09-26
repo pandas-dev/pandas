@@ -595,10 +595,16 @@ class TestDatetimeIndexTimezones(object):
     @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_dti_tz_localize_errors_deprecation(self):
         # GH 22644
+        tz = 'Europe/Warsaw'
         n = 60
         dti = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            dti.tz_localize('UTC', errors='coerce')
+            with pytest.raises(ValueError):
+                dti.tz_localize(tz, errors='foo')
+            # make sure errors='coerce' gets mapped correctly to nonexistent
+            result = dti.tz_localize(tz, errors='coerce')
+            expected = dti.tz_localize(tz, nonexistent='NaT')
+            tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
     # DatetimeIndex.normalize

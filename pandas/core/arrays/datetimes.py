@@ -661,7 +661,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             - 'coerce' will return NaT if the timestamp can not be converted
               to the specified time zone
 
-            .. depreciated:: 0.24.0
+            .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -708,6 +708,13 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                           "removed in a future release. Use the ambiguous or "
                           "nonexistent argument instead.", FutureWarning,
                           stacklevel=2)
+            if errors == 'coerce':
+                nonexistent = 'NaT'
+            elif errors == 'raise':
+                nonexistent = 'raise'
+            else:
+                raise ValueError("The errors argument must be either coerce "
+                                 "or raise.")
         if self.tz is not None:
             if tz is None:
                 new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)

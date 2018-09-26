@@ -458,8 +458,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
                 if tz is not None:
                     # shift for localize_tso
                     ts = tz_localize_to_utc(np.array([ts], dtype='i8'), tz,
-                                            ambiguous='raise',
-                                            errors='raise')[0]
+                                            ambiguous='raise')[0]
 
         except OutOfBoundsDatetime:
             # GH#19382 for just-barely-OutOfBounds falling back to dateutil
@@ -826,7 +825,7 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
-                       object nonexistent=None, object errors='raise'):
+                       object nonexistent=None, object errors=None):
     """
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -842,7 +841,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
         .. versionadded:: 0.24.0
 
-    errors : {"raise", "coerce"}, default "raise"
+    errors : {"raise", "coerce"}, default None
 
          .. deprecated:: 0.24.0
 
@@ -861,11 +860,9 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
-        bint is_coerce = errors == 'coerce', is_raise = errors == 'raise'
+        bint is_coerce = errors == 'coerce'
 
     # Vectorized version of DstTzInfo.localize
-    assert is_coerce or is_raise
-
     if tz == UTC or tz is None:
         return vals
 
@@ -896,7 +893,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ambiguous_array = np.asarray(ambiguous)
 
     if is_string_object(nonexistent):
-        if nonexistent == 'NaT':
+        if nonexistent == 'NaT' or is_coerce:
             fill_nonexist = True
         elif nonexistent == 'shift':
             shift = True
@@ -1015,7 +1012,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                 new_local = val + (HOURS_NS - remaining_minutes)
                 delta_idx = trans.searchsorted(new_local, side='right') - 1
                 result[i] = new_local - deltas[delta_idx]
-            elif fill_nonexist or is_coerce:
+            elif fill_nonexist:
                 result[i] = NPY_NAT
             else:
                 stamp = _render_tstamp(val)

@@ -35,11 +35,18 @@ class TestSeriesTimezones(object):
 
     @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_tz_localize_errors_deprecation(self):
-        rng = date_range('1/1/2011', periods=100, freq='H')
+        # GH 22644
+        tz = 'Europe/Warsaw'
+        n = 60
+        rng = date_range(start='2015-03-29 02:00:00', periods=n, freq='min')
         ts = Series(rng)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # GH 22644
-            ts.dt.tz_localize('UTC', errors='coerce')
+            with pytest.raises(ValueError):
+                ts.dt.tz_localize(tz, errors='foo')
+            # make sure errors='coerce' gets mapped correctly to nonexistent
+            result = ts.dt.tz_localize(tz, errors='coerce')
+            expected = ts.dt.tz_localize(tz, nonexistent='NaT')
+            tm.assert_series_equal(result, expected)
 
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous

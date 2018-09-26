@@ -949,7 +949,13 @@ class Timestamp(_Timestamp):
                           "removed in a future release. Use the ambiguous or "
                           "nonexistent argument instead.", FutureWarning,
                           stacklevel=2)
-
+            if errors == 'coerce':
+                nonexistent = 'NaT'
+            elif errors == 'raise':
+                nonexistent = 'raise'
+            else:
+                raise ValueError("The errors argument must be either coerce "
+                                 "or raise.")
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)

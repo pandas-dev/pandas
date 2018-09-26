@@ -97,6 +97,19 @@ class TestTimestampTZOperations(object):
         with pytest.raises(AmbiguousTimeError):
             ts.tz_localize('US/Pacific', errors='coerce')
 
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
+    def test_tz_localize_errors_depreciation(self):
+        # GH 22644
+        tz = 'Europe/Warsaw'
+        ts = Timestamp('2015-03-29 02:00:00')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            with pytest.raises(ValueError):
+                ts.tz_localize(tz, errors='foo')
+            # make sure errors='coerce' gets mapped correctly to nonexistent
+            result = ts.tz_localize(tz, errors='coerce')
+            expected = ts.tz_localize(tz, nonexistent='NaT')
+            assert result is expected
+
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
     def test_tz_localize_roundtrip(self, stamp, tz_aware_fixture):
