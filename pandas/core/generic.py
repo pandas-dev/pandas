@@ -1219,10 +1219,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3  6
 
         >>> mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
-                                            names=['let','num'])
+        ...                                 names=['let','num'])
         >>> df = pd.DataFrame({'x': [i for i in range(len(mi))],
-                               'y' : [i*10 for i in range(len(mi))]},
-                               index=mi)
+        ...                    'y' : [i*10 for i in range(len(mi))]},
+        ...                    index=mi)
         >>> df.rename_axis(index={'num' : 'n'})
                x   y
         let n
