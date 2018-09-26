@@ -145,7 +145,7 @@ class TestDataFrameAnalytics(TestData):
         mask = np.tril(np.ones_like(result,
                                     dtype=np.bool),
                        k=-1)
-        expected = pd.DataFrame(np.ones_like(corr_mat)).where(mask)
+        expected = pd.DataFrame(np.ones_like(result)).where(mask)
         tm.assert_frame_equal(result, expected)
 
     def test_corr_triu(self):
@@ -155,9 +155,8 @@ class TestDataFrameAnalytics(TestData):
         mask = np.triu(np.ones_like(result,
                                     dtype=np.bool),
                        k=1)
-        expected = pd.DataFrame(np.ones_like(corr_mat)).where(mask)
+        expected = pd.DataFrame(np.ones_like(result)).where(mask)
         tm.assert_frame_equal(result, expected)
-
 
     def test_cov(self):
         # min_periods no NAs (corner case)
