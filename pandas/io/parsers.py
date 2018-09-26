@@ -2301,6 +2301,7 @@ class PythonParser(ParserBase):
 
     def _exclude_implicit_index(self, alldata):
         names = self._maybe_dedup_names(self.orig_names)
+
         if self._implicit_index:
             excl_indices = self.index_col
 
@@ -2381,6 +2382,7 @@ class PythonParser(ParserBase):
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
+
                     while self.line_pos <= hr:
                         line = self._next_line()
 
@@ -2550,8 +2552,7 @@ class PythonParser(ParserBase):
         if len(self.buf) > 0:
             return self.buf[0]
         else:
-            s = self._next_line()
-            return s
+            return self._next_line()
 
     def _check_for_bom(self, first_row):
         """
@@ -2679,7 +2680,6 @@ class PythonParser(ParserBase):
 
         self.line_pos += 1
         self.buf.append(line)
-
         return line
 
     def _alert_malformed(self, msg, row_num):

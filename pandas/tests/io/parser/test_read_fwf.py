@@ -223,7 +223,6 @@ bar2,12,13,14,15
                              [5, np.nan, 10.]])
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (4, 9), (9, 25)],
                       comment='#')
-        print(df.values, expected)
         tm.assert_almost_equal(df.values, expected)
 
     def test_1000_fwf(self):
