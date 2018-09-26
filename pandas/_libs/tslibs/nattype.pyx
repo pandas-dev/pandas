@@ -573,14 +573,14 @@ class NaTType(_NaT):
 
             .. versionadded:: 0.24.0
 
-        errors : 'raise', 'coerce', default 'raise'
+        errors : 'raise', 'coerce', default None
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
                or to DST time)
             - 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone
 
-              .. depreciated:: 0.24.0
+              .. deprecated:: 0.24.0
 
         Returns
         -------

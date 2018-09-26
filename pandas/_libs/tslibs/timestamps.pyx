@@ -897,7 +897,7 @@ class Timestamp(_Timestamp):
         return bool(ccalendar.is_leapyear(self.year))
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
-                    errors='raise'):
+                    errors=None):
         """
         Convert naive Timestamp to local time zone, or remove
         timezone from tz-aware Timestamp.
@@ -923,14 +923,14 @@ class Timestamp(_Timestamp):
 
             .. versionadded:: 0.24.0
 
-        errors : 'raise', 'coerce', default 'raise'
+        errors : 'raise', 'coerce', default None
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
                or to DST time)
             - 'coerce' will return NaT if the timestamp can not be converted
               into the specified timezone
 
-              .. depreciated:: 0.24.0
+              .. deprecated:: 0.24.0
 
         Returns
         -------
@@ -944,7 +944,7 @@ class Timestamp(_Timestamp):
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
-        if errors != 'raise':
+        if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
                           "removed in a future release. Use the ambiguous or "
                           "nonexistent argument instead.", FutureWarning,

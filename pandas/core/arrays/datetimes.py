@@ -617,7 +617,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         return self._shallow_copy(tz=tz)
 
     def tz_localize(self, tz, ambiguous='raise', nonexistent='raise',
-                    errors='raise'):
+                    errors=None):
         """
         Localize tz-naive Datetime Array/Index to tz-aware
         Datetime Array/Index.
@@ -653,7 +653,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             .. versionadded:: 0.24.0
 
-        errors : {'raise', 'coerce'}, default 'raise'
+        errors : {'raise', 'coerce'}, default None
 
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
               valid in the specified time zone (e.g. due to a transition from
@@ -703,7 +703,7 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2018-03-03 09:00:00'],
                       dtype='datetime64[ns]', freq='D')
         """
-        if errors != 'raise':
+        if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
                           "removed in a future release. Use the ambiguous or "
                           "nonexistent argument instead.", FutureWarning,

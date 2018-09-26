@@ -844,7 +844,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     errors : {"raise", "coerce"}, default "raise"
 
-         .. depreciated:: 0.24.0
+         .. deprecated:: 0.24.0
 
     Returns
     -------
