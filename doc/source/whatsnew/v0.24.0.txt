@@ -613,7 +613,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :meth:`Categorical.from_codes` where ``NaN`` values in ``codes`` were silently converted to ``0`` (:issue:`21767`). In the future this will raise a ``ValueError``. Also changes the behavior of ``.from_codes([1.1, 2.0])``.
-- Bug in :meth:`Categorical.sort_values` where ``NaN`` values were always positioned in front regardless of ``na_position`` value. (:issue:`22556`). `test_stata.py` was incorrectly passing using default ``na_position='last'``.
+- Bug in :meth:`Categorical.sort_values` where ``NaN`` values were always positioned in front regardless of ``na_position`` value. (:issue:`22556`).
 
 Datetimelike
 ^^^^^^^^^^^^
