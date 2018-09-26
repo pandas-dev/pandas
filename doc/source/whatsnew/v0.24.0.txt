@@ -646,7 +646,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
 - Bug in :class:`DatetimeIndex` where frequency was being set if original frequency was ``None`` (:issue:`22150`)
-- Bug in rounding methods of :class:`DatetimeIndex` (:meth:`~DatetimeIndex.round`, :meth:`~DatetimeIndex.ceil`, :meth:`~DatetimeIndex.floor`) and :class:`Timestamp` (:meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, :meth:`~Timestamp.floor`) could give raise to loss of precision (:issue:`22591`)
+- Bug in rounding methods of :class:`DatetimeIndex` (:meth:`~DatetimeIndex.round`, :meth:`~DatetimeIndex.ceil`, :meth:`~DatetimeIndex.floor`) and :class:`Timestamp` (:meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, :meth:`~Timestamp.floor`) could give rise to loss of precision (:issue:`22591`)
 
 Timedelta
 ^^^^^^^^^
