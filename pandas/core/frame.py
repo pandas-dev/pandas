@@ -6667,7 +6667,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson', min_periods=1):
+    def corr(self, method='pearson', min_periods=1, tri=None):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -6685,6 +6685,12 @@ class DataFrame(NDFrame):
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
             and spearman correlation
+
+        tri : {'upper', 'lower'} or None, default : None
+            Whether or not to return the upper / lower triangular
+            correlation matrix
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -6741,7 +6747,23 @@ class DataFrame(NDFrame):
                              "'spearman', or 'kendall', '{method}' "
                              "was supplied".format(method=method))
 
-        return self._constructor(correl, index=idx, columns=cols)
+        corr_mat = self._constructor(correl, index=idx, columns=cols)
+
+        if tri is not None:
+            mask = np.tril(np.ones_like(correl,
+                                        dtype=np.bool),
+                           k=-1)
+
+            if tri == 'lower':
+                return corr_mat.where(mask)
+            elif tri == 'upper':
+                return corr_mat.where(mask.T)
+            else:
+                raise ValueError("tri must be either 'lower', "
+                                 "or 'upper', '{tri_method}' "
+                                 "was supplied".format(tri_method=tri))
+        else:
+            return corr_mat
 
     def cov(self, min_periods=None):
         """

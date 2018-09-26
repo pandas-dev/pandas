@@ -21,6 +21,7 @@ New features
 the user to override the engine's default behavior to include or omit the
 dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
+- :meth:`DataFrame.corr` now accepts an argument indicating whether or not a triangular correlation matrix should be returned (:issue:`22840`)
 
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
