@@ -138,6 +138,12 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             df.corr(method="____")
 
+    def test_corr_tri(self):
+        # GH PR
+        df = pd.DataFrame(np.random.normal(size=(100, 5)))
+        corr_mat = df.corr(tri=True)
+        assert corr_mat.notnull().sum().sum() == 10
+
     def test_cov(self):
         # min_periods no NAs (corner case)
         expected = self.frame.cov()
