@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import warnings
-
 import cython
 from cython import Py_ssize_t
 
@@ -841,7 +839,12 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         If arraylike, must have the same length as vals
     nonexistent : str, bool, or arraylike
         If arraylike, must have the same length as vals
+
+        .. versionadded:: 0.24.0
+
     errors : {"raise", "coerce"}, default "raise"
+
+         .. depreciated:: 0.24.0
 
     Returns
     -------
@@ -862,11 +865,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
 
     # Vectorized version of DstTzInfo.localize
     assert is_coerce or is_raise
-
-    if is_coerce:
-        warnings.warn("the errors argument is deprecated, will be removed "
-                      "in a future release. Use the ambiguous or nonexistent "
-                      "argument instead.", DeprecationWarning)
 
     if tz == UTC or tz is None:
         return vals

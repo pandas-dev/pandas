@@ -2353,7 +2353,7 @@ constructor as well as ``tz_localize``.
 .. _timeseries.timezone_nonexsistent:
 
 Nonexistent Times when Localizing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A DST transition may also shift the local time ahead by 1 hour creating nonexistent
 local times. The behavior of localizing a timeseries with nonexistent times

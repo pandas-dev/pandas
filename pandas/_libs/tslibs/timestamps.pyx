@@ -944,6 +944,12 @@ class Timestamp(_Timestamp):
         if ambiguous == 'infer':
             raise ValueError('Cannot infer offset with only one time.')
 
+        if errors != 'raise':
+            warnings.warn("The errors argument is deprecated and will be "
+                          "removed in a future release. Use the ambiguous or "
+                          "nonexistent argument instead.", FutureWarning,
+                          stacklevel=2)
+
         if self.tzinfo is None:
             # tz naive, localize
             tz = maybe_get_tz(tz)

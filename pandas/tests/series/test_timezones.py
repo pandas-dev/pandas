@@ -33,6 +33,14 @@ class TestSeriesTimezones(object):
         tm.assert_raises_regex(TypeError, 'Already tz-aware',
                                ts.tz_localize, 'US/Eastern')
 
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
+    def test_tz_localize_errors_deprecation(self):
+        rng = date_range('1/1/2011', periods=100, freq='H')
+        ts = Series(rng)
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # GH 22644
+            ts.dt.tz_localize('UTC', errors='coerce')
+
     def test_series_tz_localize_ambiguous_bool(self):
         # make sure that we are correctly accepting bool values as ambiguous
 

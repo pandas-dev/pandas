@@ -79,6 +79,7 @@ class TestTimestampTZOperations(object):
         ('2015-03-08 02:30', 'US/Pacific'),
         ('2015-03-29 02:00', 'Europe/Paris'),
         ('2015-03-29 02:30', 'Europe/Belgrade')])
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
     def test_tz_localize_nonexistent(self, stamp, tz):
         # GH#13057
         ts = Timestamp(stamp)
@@ -86,7 +87,8 @@ class TestTimestampTZOperations(object):
             ts.tz_localize(tz)
         with pytest.raises(NonExistentTimeError):
             ts.tz_localize(tz, errors='raise')
-        with tm.assert_produces_warning(DeprecationWarning):
+        # GH 22644
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert ts.tz_localize(tz, errors='coerce') is NaT
 
     def test_tz_localize_errors_ambiguous(self):

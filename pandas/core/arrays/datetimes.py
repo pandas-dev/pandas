@@ -703,6 +703,11 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
                        '2018-03-03 09:00:00'],
                       dtype='datetime64[ns]', freq='D')
         """
+        if errors != 'raise':
+            warnings.warn("The errors argument is deprecated and will be "
+                          "removed in a future release. Use the ambiguous or "
+                          "nonexistent argument instead.", FutureWarning,
+                          stacklevel=2)
         if self.tz is not None:
             if tz is None:
                 new_dates = conversion.tz_convert(self.asi8, 'UTC', self.tz)
