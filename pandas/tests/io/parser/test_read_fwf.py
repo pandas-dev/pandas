@@ -440,6 +440,8 @@ cc\tdd """
         data_expected = '''A,B
 
 C,D'''
-        expected = read_csv(StringIO(data_expected), header=None, skip_blank_lines=True)
-        result = read_fwf(StringIO(data_expected), colspecs=[(0, 1), (2, 3)], header=None, skip_blank_lines=True)
+        expected = read_csv(StringIO(data_expected),
+                            header=None, skip_blank_lines=True)
+        result = read_fwf(StringIO(data_expected), colspecs=[(0, 1), (2, 3)],
+                          header=None, skip_blank_lines=True)
         tm.assert_frame_equal(result, expected)

@@ -2775,13 +2775,19 @@ class PythonParser(ParserBase):
 
         ret = []
         for l in lines:
-            # Remove blank lines if they're not headers of the form ['', '', ... ]
-            if not self.line_pos == 0 and ''.join([str(x) for x in l]).strip() != '':
+            # Remove blank lines if they're not headers of the
+            # form ['', '', ... ]
+            if not self.line_pos == 0\
+                    and ''.join([str(x) for x in l]).strip() != '':
                 ret.append(l)
-            # Remove header lines that are empty or with only one whitespace value
-            elif self.line_pos == 0 and (len(l) > 1 or len(l) == 1 and
-                    (not isinstance(l[0], compat.string_types) or
-                     l[0].strip())):
+            # Remove header lines that are empty or with only one
+            # whitespace value
+            elif self.line_pos == 0\
+                    and (
+                        len(l) > 1 or len(l) == 1
+                        and (not isinstance(l[0],
+                             compat.string_types) or l[0].strip())
+                    ):
                 ret.append(l)
         return ret
 
