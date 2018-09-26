@@ -223,6 +223,7 @@ bar2,12,13,14,15
                              [5, np.nan, 10.]])
         df = read_fwf(StringIO(data), colspecs=[(0, 3), (4, 9), (9, 25)],
                       comment='#')
+        print(df.values, expected)
         tm.assert_almost_equal(df.values, expected)
 
     def test_1000_fwf(self):
@@ -433,4 +434,12 @@ cc\tdd """
         result = read_fwf(StringIO(test_data), widths=[3, 3],
                           header=None, skiprows=[0])
 
+        tm.assert_frame_equal(result, expected)
+
+    def test_skip_blanklines(self):
+        data_expected = '''A,B
+
+C,D'''
+        expected = read_csv(StringIO(data_expected), header=None, skip_blank_lines=True)
+        result = read_fwf(StringIO(data_expected), colspecs=[(0, 1), (2, 3)], header=None, skip_blank_lines=True)
         tm.assert_frame_equal(result, expected)

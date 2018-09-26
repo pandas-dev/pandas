@@ -2301,7 +2301,6 @@ class PythonParser(ParserBase):
 
     def _exclude_implicit_index(self, alldata):
         names = self._maybe_dedup_names(self.orig_names)
-
         if self._implicit_index:
             excl_indices = self.index_col
 
@@ -2382,7 +2381,6 @@ class PythonParser(ParserBase):
             for level, hr in enumerate(header):
                 try:
                     line = self._buffered_line()
-
                     while self.line_pos <= hr:
                         line = self._next_line()
 
@@ -2552,7 +2550,8 @@ class PythonParser(ParserBase):
         if len(self.buf) > 0:
             return self.buf[0]
         else:
-            return self._next_line()
+            s = self._next_line()
+            return s
 
     def _check_for_bom(self, first_row):
         """
@@ -2680,6 +2679,7 @@ class PythonParser(ParserBase):
 
         self.line_pos += 1
         self.buf.append(line)
+
         return line
 
     def _alert_malformed(self, msg, row_num):
@@ -2778,8 +2778,11 @@ class PythonParser(ParserBase):
 
         ret = []
         for l in lines:
-            # Remove empty lines and lines with only one whitespace value
-            if (len(l) > 1 or len(l) == 1 and
+            # Remove blank lines if they're not headers of the form ['', '', ... ]
+            if not self.line_pos == 0 and ''.join([str(x) for x in l]).strip() != '':
+                ret.append(l)
+            # Remove header lines that are empty or with only one whitespace value
+            elif self.line_pos == 0 and (len(l) > 1 or len(l) == 1 and
                     (not isinstance(l[0], compat.string_types) or
                      l[0].strip())):
                 ret.append(l)
