@@ -186,7 +186,7 @@ Previously, only ``gzip`` compression was supported. By default, compression of
 URLs and paths are now inferred using their file extensions. Additionally,
 support for bz2 compression in the python 2 C-engine improved (:issue:`14874`).
 
-.. code-block:::: python
+.. code-block:: python
 
    url = 'https://github.com/{repo}/raw/{branch}/{path}'.format(
        repo = 'pandas-dev/pandas',
