@@ -505,13 +505,11 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
 .. ipython:: python
 
    df = pd.DataFrame({'A' : [1, 1, 2, 2], 'B' : [1, -1, 1, 2]})
-
    gb = df.groupby('A')
 
    def replace(g):
-      mask = g < 0
-      g.loc[mask] = g[~mask].mean()
-      return g
+       mask = g < 0
+       return g.where(mask, g[~mask].mean())
 
    gb.transform(replace)
 

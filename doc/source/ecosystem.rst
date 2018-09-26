@@ -73,8 +73,8 @@ large data to thin clients.
 `seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Seaborn is a Python visualization library based on `matplotlib
-<http://matplotlib.org>`__.  It provides a high-level, dataset-oriented
+Seaborn is a Python visualization library based on
+`matplotlib <http://matplotlib.org>`__. It provides a high-level, dataset-oriented
 interface for creating attractive statistical graphics. The plotting functions
 in seaborn understand pandas objects and leverage pandas grouping operations
 internally to support concise specification of complex visualizations. Seaborn
@@ -140,7 +140,7 @@ which are utilized by Jupyter Notebook for displaying
 (Note: HTML tables may or may not be
 compatible with non-HTML Jupyter output formats.)
 
-See :ref:`Options and Settings <options>` and :ref:`<options.available>`
+See :ref:`Options and Settings <options>` and :ref:`options.available <available>`
 for pandas ``display.`` settings.
 
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__
@@ -169,7 +169,7 @@ or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
 Most pandas classes, methods and data attributes can be autocompleted in
 Spyder's `Editor <https://docs.spyder-ide.org/editor.html>`__ and
 `IPython Console <https://docs.spyder-ide.org/ipythonconsole.html>`__,
-and Spyder's `Help pane<https://docs.spyder-ide.org/help.html>`__ can retrieve
+and Spyder's `Help pane <https://docs.spyder-ide.org/help.html>`__ can retrieve
 and render Numpydoc documentation on pandas objects in rich text with Sphinx
 both automatically and on-demand.
 

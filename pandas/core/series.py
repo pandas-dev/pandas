@@ -2065,10 +2065,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
         >>> s = pd.Series([0.25, 0.5, 0.2, -0.05])
-        >>> s.autocorr()
-        0.1035526330902407
-        >>> s.autocorr(lag=2)
-        -0.9999999999999999
+        >>> s.autocorr()  # doctest: +ELLIPSIS
+        0.10355...
+        >>> s.autocorr(lag=2)  # doctest: +ELLIPSIS
+        -0.99999...
 
         If the Pearson correlation is not well defined, then 'NaN' is returned.
 
@@ -2789,6 +2789,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
+
             - ``first`` : take the first occurrences based on the index order
             - ``last`` : take the last occurrences based on the index order
             - ``all`` : keep all occurrences. This can result in a Series of
@@ -2884,6 +2885,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
+
             - ``first`` : take the first occurrences based on the index order
             - ``last`` : take the last occurrences based on the index order
             - ``all`` : keep all occurrences. This can result in a Series of

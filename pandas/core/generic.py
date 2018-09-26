@@ -2060,10 +2060,12 @@ class NDFrame(PandasObject, SelectionMixin):
             like.
 
             .. versionadded:: 0.19.0
-        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None},
-                       default 'infer'
+
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}
+
             A string representing the compression to use in the output file,
-            only used when the first argument is a filename.
+            only used when the first argument is a filename. By default, the
+            compression is inferred from the filename.
 
             .. versionadded:: 0.21.0
             .. versionchanged:: 0.24.0
@@ -9514,7 +9516,9 @@ class NDFrame(PandasObject, SelectionMixin):
             a string.
 
             .. versionchanged:: 0.24.0
-                Was previously named "path" for Series.
+
+               Was previously named "path" for Series.
+
         sep : str, default ','
             String of length 1. Field delimiter for the output file.
         na_rep : str, default ''
@@ -9528,7 +9532,9 @@ class NDFrame(PandasObject, SelectionMixin):
             assumed to be aliases for the column names.
 
             .. versionchanged:: 0.24.0
-                Previously defaulted to False for Series.
+
+               Previously defaulted to False for Series.
+
         index : bool, default True
             Write row names (index).
         index_label : str or sequence, or False, default None
@@ -9550,7 +9556,9 @@ class NDFrame(PandasObject, SelectionMixin):
             compression).
 
             .. versionchanged:: 0.24.0
+
                'infer' option added and set to default.
+
         quoting : optional constant from csv module
             Defaults to csv.QUOTE_MINIMAL. If you have set a `float_format`
             then floats are converted to strings and thus csv.QUOTE_NONNUMERIC

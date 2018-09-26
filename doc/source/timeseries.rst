@@ -753,18 +753,28 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 Iterating through groups
 ------------------------
 
-With the :ref:`Resampler` object in hand, iterating through the grouped data is very
+With the ``Resampler`` object in hand, iterating through the grouped data is very
 natural and functions similarly to :py:func:`itertools.groupby`:
 
 .. ipython:: python
 
-   resampled = df.resample('H')
+   small = pd.Series(
+       range(6),
+       index=pd.to_datetime(['2017-01-01T00:00:00',
+                             '2017-01-01T00:30:00',
+                             '2017-01-01T00:31:00',
+                             '2017-01-01T01:00:00',
+                             '2017-01-01T03:00:00',
+                             '2017-01-01T03:05:00'])
+   )
+   resampled = small.resample('H')
 
    for name, group in resampled:
-       print(name)
-       print(group)
+       print("Group: ", name)
+       print("-" * 27)
+       print(group, end="\n\n")
 
-See :ref:`groupby.iterating-label`.
+See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
 
 .. _timeseries.components:
 
@@ -910,26 +920,22 @@ It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
 These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
-(hour, minute, etc) information by default. To reset time, use ``normalize=True`` 
-when creating the offset instance. If ``normalize=True``, the result is 
-normalized after the function is applied.
-
+(hour, minute, etc) information by default. To reset time, use ``normalize``
+before or after applying the operation (depending on whether you want the
+time information included in the operation.
 
 .. ipython:: python
 
+   ts = pd.Timestamp('2014-01-01 09:00')
    day = Day()
-   day.apply(pd.Timestamp('2014-01-01 09:00'))
+   day.apply(ts)
+   day.apply(ts).normalize()
 
-   day = Day(normalize=True)
-   day.apply(pd.Timestamp('2014-01-01 09:00'))
-
+   ts = pd.Timestamp('2014-01-01 22:00')
    hour = Hour()
-   hour.apply(pd.Timestamp('2014-01-01 22:00'))
-
-   hour = Hour(normalize=True)
-   hour.apply(pd.Timestamp('2014-01-01 22:00'))
-   hour.apply(pd.Timestamp('2014-01-01 23:00'))
-
+   hour.apply(ts)
+   hour.apply(ts).normalize()
+   hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
 
 .. _timeseries.dayvscalendarday:
 
@@ -1488,6 +1494,7 @@ time. The method for this is :meth:`~Series.shift`, which is available on all of
 the pandas objects.
 
 .. ipython:: python
+
    ts = pd.Series(range(len(rng)), index=rng)
    ts = ts[:5]
    ts.shift(1)

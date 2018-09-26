@@ -1073,6 +1073,7 @@ class Styler(object):
             percent of the cell's width.
         align : {'left', 'zero',' mid'}, default 'left'
             How to align the bars with the cells.
+
             - 'left' : the min value starts at the left of the cell.
             - 'zero' : a value of zero is located at the center of the cell.
             - 'mid' : the center of the cell is at (max-min)/2, or
