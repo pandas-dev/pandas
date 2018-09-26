@@ -232,10 +232,10 @@ class DocBuilder:
                      '-b{}'.format(kind),
                      '-{}'.format(
                          'v' * self.verbosity) if self.verbosity else '',
-                     '-d\'{}\''.format(os.path.join(BUILD_PATH, 'doctrees')),
+                     '-d"{}"'.format(os.path.join(BUILD_PATH, 'doctrees')),
                      '-Dexclude_patterns={}'.format(self.exclude_patterns),
-                     '\'{}\''.format(SOURCE_PATH),
-                     '\'{}\''.format(os.path.join(BUILD_PATH, kind)))
+                     '"{}"'.format(SOURCE_PATH),
+                     '"{}"'.format(os.path.join(BUILD_PATH, kind)))
 
     def _open_browser(self):
         base_url = os.path.join('file://', DOC_PATH, 'build', 'html')
