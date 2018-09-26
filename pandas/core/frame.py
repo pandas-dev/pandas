@@ -1090,54 +1090,54 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_dict: create a DataFrame from a dictionary
-        DataFrame.to_json: convert a DataFrame to JSON format
+        DataFrame.from_dict: Create a DataFrame from a dictionary.
+        DataFrame.to_json: Convert a DataFrame to JSON format.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'col1': [1, 2],
-        ...                    'col2': [0.5, 0.75]},
-        ...                   index=['a', 'b'])
+        >>> df = pd.DataFrame({'legs': [4, 2],
+        ...                    'wings': [0, 2]},
+        ...                   index=['cat', 'falcon'])
         >>> df
-           col1  col2
-        a     1   0.50
-        b     2   0.75
+                legs  wings
+        cat        4      0
+        falcon     2      2
         >>> df.to_dict()
-        {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
+        {'legs': {'cat': 4, 'falcon': 2}, 'wings': {'cat': 0, 'falcon': 2}}
 
         You can specify the return orientation.
 
         >>> df.to_dict('series')
-        {'col1': a    1
-                 b    2
-                 Name: col1, dtype: int64,
-         'col2': a    0.50
-                 b    0.75
-                 Name: col2, dtype: float64}
+        {'legs': cat       4
+                 falcon    2
+         Name: legs, dtype: int64,
+         'wings': cat       0
+                  falcon    2
+         Name: wings, dtype: int64}
 
         >>> df.to_dict('split')
-        {'index': ['a', 'b'], 'columns': ['col1', 'col2'],
-         'data': [[1.0, 0.5], [2.0, 0.75]]}
+        {'index': ['cat', 'falcon'], 'columns': ['legs', 'wings'],
+        'data': [[4, 0], [2, 2]]}
 
         >>> df.to_dict('records')
-        [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+        [{'legs': 4, 'wings': 0}, {'legs': 2, 'wings': 2}]
 
         >>> df.to_dict('index')
-        {'a': {'col1': 1, 'col2': 0.5}, 'b': {'col1': 2, 'col2': 0.75}}
+        {'cat': {'legs': 4, 'wings': 0}, 'falcon': {'legs': 2, 'wings': 2}}
 
         You can also specify the mapping type.
 
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
-                     ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+        OrderedDict([('legs', OrderedDict([('cat', 4), ('falcon', 2)])),
+                     ('wings', OrderedDict([('cat', 0), ('falcon', 2)]))])
 
         If you want a `defaultdict`, you need to initialize it:
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
-         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
+        [defaultdict(<class 'list'>, {'legs': 4, 'wings': 0}),
+         defaultdict(<class 'list'>, {'legs': 2, 'wings': 2})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
