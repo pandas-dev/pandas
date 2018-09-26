@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import operator
-import sys
-
 import cython
 
 import numpy as np
