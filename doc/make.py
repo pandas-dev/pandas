@@ -135,12 +135,6 @@ class DocBuilder:
             try:
                 obj = pandas  # noqa: F821
                 for name in single_doc.split('.'):
-                    try:
-                        # for names not in the top-level namespace by default,
-                        # e.g. pandas.io.formats.style.Styler
-                        importlib.import_module('.'.join([obj.__name__, name]))
-                    except ModuleNotFoundError:
-                        pass
                     obj = getattr(obj, name)
             except AttributeError:
                 raise ValueError('Single document not understood, it should '
