@@ -535,4 +535,3 @@ def test_unary_op(op, fill_value):
     result = op(sparray)
     expected = pd.SparseArray(op(arr), fill_value=op(fill_value))
     tm.assert_sp_array_equal(result, expected)
-
