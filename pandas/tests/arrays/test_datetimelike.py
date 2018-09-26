@@ -5,7 +5,7 @@ import pandas as pd
 
 from pandas.core.arrays.datetimes import DatetimeArrayMixin
 from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
-from pandas.core.arrays.period import PeriodArrayMixin
+from pandas.core.arrays.period import PeriodArray
 
 
 class TestDatetimeArray(object):
@@ -55,7 +55,7 @@ class TestPeriodArray(object):
 
     def test_from_pi(self):
         pi = pd.period_range('2016', freq='Q', periods=3)
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
         assert list(arr) == list(pi)
 
         # Check that Index.__new__ knows what to do with TimedeltaArray
@@ -65,7 +65,7 @@ class TestPeriodArray(object):
 
     def test_astype_object(self):
         pi = pd.period_range('2016', freq='Q', periods=3)
-        arr = PeriodArrayMixin(pi)
+        arr = PeriodArray(pi)
         asobj = arr.astype('O')
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'

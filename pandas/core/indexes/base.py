@@ -303,8 +303,19 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return result
 
+        elif (is_period_dtype(data) or
+              (dtype is not None and is_period_dtype(dtype))):
+            # TODO: ensure is_period_dtype for PeriodArray
+            from pandas import PeriodIndex
+            result = PeriodIndex(data, copy=copy, name=name, **kwargs)
+            if dtype is not None and _o_dtype == dtype:
+                return Index(result.to_pytimedelta(), dtype=_o_dtype)
+            else:
+                return result
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
+            import pdb; pdb.set_trace()
             data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
 

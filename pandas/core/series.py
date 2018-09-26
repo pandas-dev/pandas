@@ -2326,7 +2326,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             # if the type is compatible with the calling EA
             try:
                 new_values = self._values._from_sequence(new_values)
-            except TypeError:
+            except Exception:
                 pass
 
         return self._constructor(new_values, index=new_index, name=new_name)

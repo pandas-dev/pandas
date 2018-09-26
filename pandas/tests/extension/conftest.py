@@ -31,11 +31,11 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
-def data_repeated():
+def data_repeated(data):
     """Return different versions of data for count times"""
     def gen(count):
         for _ in range(count):
-            yield NotImplementedError
+            yield data
     yield gen
 
 

@@ -364,6 +364,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             if not ascending:
                 sorted_values = sorted_values[::-1]
 
+            sorted_values = self._maybe_box_as_values(sorted_values,
+                                                      **attribs)
+
             return self._simple_new(sorted_values, **attribs)
 
     @Appender(_index_shared_docs['take'] % _index_doc_kwargs)
@@ -676,7 +679,12 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             return _concat._concat_datetimetz(to_concat, name)
         else:
             new_data = np.concatenate([c.asi8 for c in to_concat])
+
+        new_data = self._maybe_box_as_values(new_data, **attribs)
         return self._simple_new(new_data, **attribs)
+
+    def _maybe_box_as_values(self, values, **attribs):
+        return values
 
     def astype(self, dtype, copy=True):
         if is_object_dtype(dtype):
@@ -697,10 +705,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
 def _ensure_datetimelike_to_i8(other):
     """ helper for coercing an input scalar or array to i8 """
+    from pandas.core.arrays import PeriodArray
+
     if is_scalar(other) and isna(other):
         other = iNaT
-    elif isinstance(other, ABCIndexClass):
+    elif isinstance(other, (PeriodArray, ABCIndexClass)):
         # convert tz if needed
+        # TODO: Ensure PeriodArray.tz_localize
         if getattr(other, 'tz', None) is not None:
             other = other.tz_localize(None).asi8
         else:

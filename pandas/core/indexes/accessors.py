@@ -270,12 +270,12 @@ class TimedeltaProperties(Properties):
         return self._get_values().inferred_freq
 
 
-@delegate_names(delegate=PeriodIndex,
-                accessors=PeriodIndex._datetimelike_ops,
-                typ="property")
-@delegate_names(delegate=PeriodIndex,
-                accessors=PeriodIndex._datetimelike_methods,
-                typ="method")
+# @delegate_names(delegate=PeriodIndex,
+#                 accessors=PeriodIndex._datetimelike_ops,
+#                 typ="property")
+# @delegate_names(delegate=PeriodIndex,
+#                 accessors=PeriodIndex._datetimelike_methods,
+#                 typ="method")
 class PeriodProperties(Properties):
     """
     Accessor object for datetimelike properties of the Series values.
