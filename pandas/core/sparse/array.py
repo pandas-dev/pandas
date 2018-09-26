@@ -1080,8 +1080,6 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
     # ------------------------------------------------------------------------
     # Ufuncs
     # ------------------------------------------------------------------------
-    def __abs__(self):
-        return np.abs(self)
 
     def __array_wrap__(self, array, context=None):
         from pandas.core.dtypes.generic import ABCSparseSeries
@@ -1145,9 +1143,26 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         else:
             return type(self)(result)
 
+    def __abs__(self):
+        return np.abs(self)
+
+    def __invert__(self):
+        pass
+
     # ------------------------------------------------------------------------
     # Ops
     # ------------------------------------------------------------------------
+
+    @classmethod
+    def _create_unary_method(cls, op):
+        def sparse_unary_method(self):
+            fill_value = op(np.array(self.fill_value)).item()
+            values = op(self.sp_values)
+            dtype = SparseDtype(values.dtype, fill_value)
+            return cls._simple_new(values, self.sp_index, dtype)
+
+        name = '__{name}__'.format(name=op.__name__)
+        return compat.set_function_name(sparse_unary_method, name, cls)
 
     @classmethod
     def _create_arithmetic_method(cls, op):
@@ -1236,6 +1251,18 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         name = '__{name}__'.format(name=op.__name__)
         return compat.set_function_name(cmp_method, name, cls)
 
+    @classmethod
+    def _add_unary_ops(cls):
+        cls.__pos__ = cls._create_unary_method(operator.pos)
+        cls.__neg__ = cls._create_unary_method(operator.neg)
+        cls.__invert__ = cls._create_unary_method(operator.invert)
+
+    @classmethod
+    def _add_comparison_ops(cls):
+        cls.__and__ = cls._create_comparison_method(operator.and_)
+        cls.__or__ = cls._create_comparison_method(operator.or_)
+        super(SparseArray, cls)._add_comparison_ops()
+
     # ----------
     # Formatting
     # -----------
@@ -1248,8 +1275,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
 
 SparseArray._add_arithmetic_ops()
 SparseArray._add_comparison_ops()
-SparseArray.__and__ = SparseArray._create_comparison_method(operator.and_)
-SparseArray.__or__ = SparseArray._create_comparison_method(operator.or_)
+SparseArray._add_unary_ops()
 
 
 def _maybe_to_dense(obj):
