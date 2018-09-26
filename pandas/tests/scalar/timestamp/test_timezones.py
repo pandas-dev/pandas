@@ -105,10 +105,11 @@ class TestTimestampTZOperations(object):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             with pytest.raises(ValueError):
                 ts.tz_localize(tz, errors='foo')
-            # make sure errors='coerce' gets mapped correctly to nonexistent
+        # make sure errors='coerce' gets mapped correctly to nonexistent
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ts.tz_localize(tz, errors='coerce')
-            expected = ts.tz_localize(tz, nonexistent='NaT')
-            assert result is expected
+        expected = ts.tz_localize(tz, nonexistent='NaT')
+        assert result is expected
 
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
