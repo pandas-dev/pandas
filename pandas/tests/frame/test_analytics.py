@@ -140,15 +140,24 @@ class TestDataFrameAnalytics(TestData):
 
     def test_corr_tril(self):
         # GH PR #22840
-        df = pd.DataFrame(np.random.normal(size=(100, 5)))
-        corr_mat = df.corr(tri='lower')
-        assert corr_mat.notnull().sum().sum() == 10
+        df = pd.DataFrame(np.array([np.arange(100)] * 5).T)
+        result = df.corr(tri='lower')
+        mask = np.tril(np.ones_like(result,
+                                    dtype=np.bool),
+                       k=-1)
+        expected = pd.DataFrame(np.ones_like(corr_mat)).where(mask)
+        tm.assert_frame_equal(result, expected)
 
     def test_corr_triu(self):
         # GH PR #22840
-        df = pd.DataFrame(np.random.normal(size=(100, 5)))
-        corr_mat = df.corr(tri='upper')
-        assert corr_mat.notnull().sum().sum() == 10
+        df = pd.DataFrame(np.array([np.arange(100)] * 5).T)
+        result = df.corr(tri='upper')
+        mask = np.triu(np.ones_like(result,
+                                    dtype=np.bool),
+                       k=1)
+        expected = pd.DataFrame(np.ones_like(corr_mat)).where(mask)
+        tm.assert_frame_equal(result, expected)
+
 
     def test_cov(self):
         # min_periods no NAs (corner case)

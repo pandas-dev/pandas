@@ -6750,7 +6750,7 @@ class DataFrame(NDFrame):
         corr_mat = self._constructor(correl, index=idx, columns=cols)
 
         if tri is not None:
-            mask = np.tril(np.ones_like(corr_mat,
+            mask = np.tril(np.ones_like(correl,
                                         dtype=np.bool),
                            k=-1)
 
