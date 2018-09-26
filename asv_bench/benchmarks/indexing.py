@@ -15,7 +15,7 @@ class NumericSeriesIndexing(object):
         (Int64Index, Float64Index),
         ('unique_monotonic_inc', 'nonunique_monotonic_inc'),
     ]
-    param_names = ['index dtype', 'index structure']
+    param_names = ['index_dtype', 'index_structure']
 
     def setup(self, index, index_structure):
         N = 10**6
@@ -87,7 +87,7 @@ class NonNumericSeriesIndexing(object):
         ('string', 'datetime'),
         ('unique_monotonic_inc', 'nonunique_monotonic_inc'),
     ]
-    param_names = ['index dtype', 'index structure']
+    param_names = ['index_dtype', 'index_structure']
 
     def setup(self, index, index_structure):
         N = 10**6
