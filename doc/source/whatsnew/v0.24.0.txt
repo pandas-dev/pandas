@@ -20,6 +20,8 @@ New features
 - :func:`DataFrame.to_parquet` now accepts ``index`` as an argument, allowing
 the user to override the engine's default behavior to include or omit the
 dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
+- :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
+
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
@@ -251,7 +253,6 @@ UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
 
 .. code-block:: ipython
 
-
     In [2]: pd.to_datetime("2015-11-18 15:30:00+05:30")
     Out[2]: Timestamp('2015-11-18 10:00:00')
 
@@ -289,6 +290,7 @@ Passing ``utc=True`` will mimic the previous behavior but will correctly indicat
 that the dates have been converted to UTC
 
 .. ipython:: python
+
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api_breaking.calendarday:
@@ -455,7 +457,7 @@ Previous Behavior:
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
 
-.. _whatsnew_0240.api.timedelta64_subtract_nan
+.. _whatsnew_0240.api.timedelta64_subtract_nan:
 
 Addition/Subtraction of ``NaN`` from :class:`DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -466,9 +468,10 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 ``Series`` behavior (:issue:`22163`)
 
 .. ipython:: python
+   :okexcept:
 
-    df = pd.DataFrame([pd.Timedelta(days=1)])
-    df - np.nan
+   df = pd.DataFrame([pd.Timedelta(days=1)])
+   df - np.nan
 
 Previous Behavior:
 
@@ -498,6 +501,7 @@ ExtensionType Changes
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
+- Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
 
 .. _whatsnew_0240.api.incompatibilities:
@@ -762,6 +766,7 @@ I/O
 - :func:`read_sas()` will correctly parse sas7bdat files with many columns (:issue:`22628`)
 - :func:`read_sas()` will correctly parse sas7bdat files with data page types having also bit 7 set (so page type is 128 + 256 = 384) (:issue:`16615`)
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
+- Bug in :func:`to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 
 Plotting
 ^^^^^^^^
@@ -782,6 +787,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to ``loffset`` kwarg (:issue:`7687`).
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
+- :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
 
 Sparse
 ^^^^^^
@@ -819,6 +825,7 @@ Other
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
+- :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
 -
