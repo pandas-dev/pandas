@@ -369,7 +369,7 @@ b &       b &     b \\
 
         escaped_expected = r'''\begin{tabular}{lll}
 \toprule
-{} & co\$e\textasciicircumx\$ & co\textasciicircuml1 \\
+{} & co\$e\textasciicircum x\$ & co\textasciicircum l1 \\
 \midrule
 a &       a &     a \\
 b &       b &     b \\
@@ -378,6 +378,22 @@ b &       b &     b \\
 '''
 
         assert unescaped_result == unescaped_expected
+        assert escaped_result == escaped_expected
+
+    def test_to_latex_special_escape(self):
+        df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
+
+        escaped_result = df.to_latex()
+        escaped_expected = r"""\begin{tabular}{ll}
+\toprule
+{} &       0 \\
+\midrule
+0 &   a\textbackslash b\textbackslash c \\
+1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
+2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+\bottomrule
+\end{tabular}
+"""
         assert escaped_result == escaped_expected
 
     def test_to_latex_longtable(self, frame):
@@ -447,9 +463,9 @@ b &       b &     b \\
 4 &  \_ \\
 5 &  \{ \\
 6 &  \} \\
-7 &  \textasciitilde \\
-8 &  \textasciicircum \\
-9 &  \textbackslash \\
+7 &  \textasciitilde  \\
+8 &  \textasciicircum  \\
+9 &  \textbackslash  \\
 \bottomrule
 \end{tabular}
 """

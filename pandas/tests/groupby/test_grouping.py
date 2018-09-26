@@ -4,12 +4,11 @@
 
 import pytest
 
-from warnings import catch_warnings
 from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series, CategoricalIndex)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
                                  assert_series_equal, assert_almost_equal)
-from pandas.core.groupby.groupby import Grouping
+from pandas.core.groupby.grouper import Grouping
 from pandas.compat import lrange, long
 
 from pandas import compat
@@ -251,7 +250,7 @@ class TestGrouping():
         by_columns.columns = pd.Index(by_columns.columns, dtype=np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
-    def test_groupby_categorical_index_and_columns(self):
+    def test_groupby_categorical_index_and_columns(self, observed):
         # GH18432
         columns = ['A', 'B', 'A', 'B']
         categories = ['B', 'A']
@@ -260,17 +259,26 @@ class TestGrouping():
                                        categories=categories,
                                        ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
-        result = df.groupby(axis=1, level=0).sum()
+        result = df.groupby(axis=1, level=0, observed=observed).sum()
         expected_data = 2 * np.ones((5, 2), int)
-        expected_columns = CategoricalIndex(categories,
-                                            categories=categories,
-                                            ordered=True)
+
+        if observed:
+            # if we are not-observed we undergo a reindex
+            # so need to adjust the output as our expected sets us up
+            # to be non-observed
+            expected_columns = CategoricalIndex(['A', 'B'],
+                                                categories=categories,
+                                                ordered=True)
+        else:
+            expected_columns = CategoricalIndex(categories,
+                                                categories=categories,
+                                                ordered=True)
         expected = DataFrame(data=expected_data, columns=expected_columns)
         assert_frame_equal(result, expected)
 
         # test transposed version
         df = DataFrame(data.T, index=cat_columns)
-        result = df.groupby(axis=0, level=0).sum()
+        result = df.groupby(axis=0, level=0, observed=observed).sum()
         expected = DataFrame(data=expected_data.T, index=expected_columns)
         assert_frame_equal(result, expected)
 
@@ -525,21 +533,38 @@ class TestGrouping():
         exp_labels = np.array([2, 2, 2, 0, 0, 1, 1, 3, 3, 3], dtype=np.intp)
         assert_almost_equal(grouped.grouper.labels[0], exp_labels)
 
+    def test_list_grouper_with_nat(self):
+        # GH 14715
+        df = pd.DataFrame({'date': pd.date_range('1/1/2011',
+                                                 periods=365, freq='D')})
+        df.iloc[-1] = pd.NaT
+        grouper = pd.Grouper(key='date', freq='AS')
+
+        # Grouper in a list grouping
+        result = df.groupby([grouper])
+        expected = {pd.Timestamp('2011-01-01'): pd.Index(list(range(364)))}
+        tm.assert_dict_equal(result.groups, expected)
+
+        # Test case without a list
+        result = df.groupby(grouper)
+        expected = {pd.Timestamp('2011-01-01'): 365}
+        tm.assert_dict_equal(result.groups, expected)
+
 
 # get_group
 # --------------------------------
 
 class TestGetGroup():
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_get_group(self):
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            grouped = wp.groupby(lambda x: x.month, axis='major')
+        wp = tm.makePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
 
-            gp = grouped.get_group(1)
-            expected = wp.reindex(
-                major=[x for x in wp.major_axis if x.month == 1])
-            assert_panel_equal(gp, expected)
+        gp = grouped.get_group(1)
+        expected = wp.reindex(
+            major=[x for x in wp.major_axis if x.month == 1])
+        assert_panel_equal(gp, expected)
 
         # GH 5267
         # be datelike friendly
@@ -572,11 +597,11 @@ class TestGetGroup():
         pytest.raises(ValueError,
                       lambda: g.get_group(('foo', 'bar', 'baz')))
 
-    def test_get_group_empty_bins(self):
+    def test_get_group_empty_bins(self, observed):
 
         d = pd.DataFrame([3, 1, 7, 6])
         bins = [0, 5, 10, 15]
-        g = d.groupby(pd.cut(d[0], bins))
+        g = d.groupby(pd.cut(d[0], bins), observed=observed)
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'
@@ -717,18 +742,18 @@ class TestIteration():
         for key, group in grouped:
             pass
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_multi_iter_panel(self):
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
-                                 axis=1)
+        wp = tm.makePanel()
+        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
+                             axis=1)
 
-            for (month, wd), group in grouped:
-                exp_axis = [x
-                            for x in wp.major_axis
-                            if x.month == month and x.weekday() == wd]
-                expected = wp.reindex(major=exp_axis)
-                assert_panel_equal(group, expected)
+        for (month, wd), group in grouped:
+            exp_axis = [x
+                        for x in wp.major_axis
+                        if x.month == month and x.weekday() == wd]
+            expected = wp.reindex(major=exp_axis)
+            assert_panel_equal(group, expected)
 
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))

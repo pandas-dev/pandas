@@ -38,12 +38,14 @@ from unicodedata import east_asian_width
 import struct
 import inspect
 from collections import namedtuple
+import collections
 
 PY2 = sys.version_info[0] == 2
-PY3 = (sys.version_info[0] >= 3)
-PY35 = (sys.version_info >= (3, 5))
-PY36 = (sys.version_info >= (3, 6))
-PYPY = (platform.python_implementation() == 'PyPy')
+PY3 = sys.version_info[0] >= 3
+PY35 = sys.version_info >= (3, 5)
+PY36 = sys.version_info >= (3, 6)
+PY37 = sys.version_info >= (3, 7)
+PYPY = platform.python_implementation() == 'PyPy'
 
 try:
     import __builtin__ as builtins
@@ -134,6 +136,11 @@ if PY3:
 
     from importlib import reload
     reload = reload
+    Hashable = collections.abc.Hashable
+    Iterable = collections.abc.Iterable
+    Mapping = collections.abc.Mapping
+    Sequence = collections.abc.Sequence
+    Sized = collections.abc.Sized
 
 else:
     # Python 2
@@ -188,6 +195,12 @@ else:
     lfilter = builtins.filter
 
     reload = builtins.reload
+
+    Hashable = collections.Hashable
+    Iterable = collections.Iterable
+    Mapping = collections.Mapping
+    Sequence = collections.Sequence
+    Sized = collections.Sized
 
 if PY2:
     def iteritems(obj, **kw):
@@ -425,7 +438,7 @@ parse_date = _date_parser.parse
 
 # In Python 3.7, the private re._pattern_type is removed.
 # Python 3.5+ have typing.re.Pattern
-if PY35:
+if PY36:
     import typing
     re_type = typing.re.Pattern
 else:

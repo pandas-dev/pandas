@@ -45,3 +45,14 @@ class BaseConstructorsTests(BaseExtensionTests):
         msg = 'Length of passed values is 3, index implies 5'
         with tm.assert_raises_regex(ValueError, msg):
             pd.Series(data[:3], index=[0, 1, 2, 3, 4])
+
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        dtype = data.dtype
+
+        expected = pd.Series(data)
+        result = pd.Series(list(data), dtype=dtype)
+        self.assert_series_equal(result, expected)
+
+        result = pd.Series(list(data), dtype=str(dtype))
+        self.assert_series_equal(result, expected)

@@ -12,7 +12,8 @@ from pandas.util._decorators import Appender
 
 class DirNamesMixin(object):
     _accessors = frozenset([])
-    _deprecations = frozenset(['asobject'])
+    _deprecations = frozenset(
+        ['asobject', 'base', 'data', 'flags', 'itemsize', 'strides'])
 
     def _dir_deletions(self):
         """ delete unwanted __dir__ for this object """
@@ -102,6 +103,38 @@ class PandasDelegate(object):
             # don't overwrite existing methods/properties
             if overwrite or not hasattr(cls, name):
                 setattr(cls, name, f)
+
+
+def delegate_names(delegate, accessors, typ, overwrite=False):
+    """
+    Add delegated names to a class using a class decorator.  This provides
+    an alternative usage to directly calling `_add_delegate_accessors`
+    below a class definition.
+
+    Parameters
+    ----------
+    delegate : the class to get methods/properties & doc-strings
+    acccessors : string list of accessors to add
+    typ : 'property' or 'method'
+    overwrite : boolean, default False
+       overwrite the method/property in the target class if it exists
+
+    Returns
+    -------
+    decorator
+
+    Examples
+    --------
+    @delegate_names(Categorical, ["categories", "ordered"], "property")
+    class CategoricalAccessor(PandasDelegate):
+        [...]
+    """
+    def add_delegate_accessors(cls):
+        cls._add_delegate_accessors(delegate, accessors, typ,
+                                    overwrite=overwrite)
+        return cls
+
+    return add_delegate_accessors
 
 
 # Ported with modifications from xarray

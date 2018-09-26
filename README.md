@@ -10,7 +10,7 @@
 <tr>
   <td>Latest Release</td>
   <td>
-    <a href="https://pypi.python.org/pypi/pandas/">
+    <a href="https://pypi.org/project/pandas/">
     <img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" />
     </a>
   </td>
@@ -25,7 +25,7 @@
 <tr>
   <td>Package Status</td>
   <td>
-		<a href="https://pypi.python.org/pypi/pandas/">
+		<a href="https://pypi.org/project/pandas/">
 		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
 		</a>
 </tr>
@@ -56,8 +56,8 @@
 <tr>
   <td></td>
   <td>
-    <a href="https://ci.appveyor.com/project/pandas-dev/pandas">
-    <img src="https://ci.appveyor.com/api/projects/status/86vn83mxgnl4xf1s/branch/master?svg=true" alt="appveyor build status" />
+    <a href="https://dev.azure.com/pandas-dev/pandas/_build/latest?definitionId=1&branch=master">
+      <img src="https://dev.azure.com/pandas-dev/pandas/_apis/build/status/pandas-dev.pandas?branch=master" alt="Azure Pipelines build status" />
     </a>
   </td>
 </tr>
@@ -89,7 +89,7 @@
 
 
 
-## What is it
+## What is it?
 
 **pandas** is a Python package providing fast, flexible, and expressive data
 structures designed to make working with "relational" or "labeled" data both
@@ -158,7 +158,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](https://pypi.python.org/pypi/pandas) and on conda.
+package index](https://pypi.org/project/pandas) and on conda.
 
 ```sh
 # conda
@@ -171,7 +171,7 @@ pip install pandas
 ```
 
 ## Dependencies
-- [NumPy](http://www.numpy.org): 1.9.0 or higher
+- [NumPy](https://www.numpy.org): 1.9.0 or higher
 - [python-dateutil](https://labix.org/python-dateutil): 2.5.0 or higher
 - [pytz](https://pythonhosted.org/pytz): 2011k or higher
 
@@ -233,7 +233,7 @@ All contributions, bug reports, bug fixes, documentation improvements, enhanceme
 
 A detailed overview on how to contribute can be found in the **[contributing guide.](https://pandas.pydata.org/pandas-docs/stable/contributing.html)**
 
-If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [Difficulty Novice](https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22) where you could start out.
+If you are simply looking to start working with the pandas codebase, navigate to the [GitHub “issues” tab](https://github.com/pandas-dev/pandas/issues) and start looking through interesting issues. There are a number of issues listed under [Docs](https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open) and [good first issue](https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open) where you could start out.
 
 You can also triage issues which may include reproducing bug reports, or asking for vital information such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to pandas on CodeTriage](https://www.codetriage.com/pandas-dev/pandas).
 

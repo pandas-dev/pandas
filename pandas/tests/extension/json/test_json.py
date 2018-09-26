@@ -1,5 +1,7 @@
 import operator
 import collections
+import random
+import string
 
 import pytest
 
@@ -8,9 +10,16 @@ import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
 from pandas.tests.extension import base
 
-from .array import JSONArray, JSONDtype, make_data
+from .array import JSONArray, JSONDtype
 
 pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
+
+
+def make_data():
+    # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer
+    return [collections.UserDict([
+        (random.choice(string.ascii_letters), random.randint(0, 100))
+        for _ in range(random.randint(0, 10))]) for _ in range(100)]
 
 
 @pytest.fixture
@@ -32,7 +41,7 @@ def data():
     while len(data[0]) == len(data[1]):
         data = make_data()
 
-    return JSONArray(make_data())
+    return JSONArray(data)
 
 
 @pytest.fixture
@@ -130,7 +139,12 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-    pass
+
+    # TODO: Should this be pytest.mark.skip?
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
@@ -142,10 +156,12 @@ class TestGetitem(BaseJSON, base.BaseGetitemTests):
 
 
 class TestMissing(BaseJSON, base.BaseMissingTests):
+    # TODO: Should this be pytest.mark.skip?
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
+    # TODO: Should this be pytest.mark.skip?
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_frame(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
@@ -187,9 +203,18 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super(TestMethods, self).test_sort_values_missing(
             data_missing_for_sorting, ascending)
 
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_le(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_add(self, data_repeated):
+        pass
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
-    @pytest.mark.xfail
+    # TODO: Should this be pytest.mark.skip?
+    @pytest.mark.xfail(reason="failing on np.array(self, dtype=str)")
     def test_astype_str(self):
         """This currently fails in NumPy on np.array(self, dtype=str) with
 
@@ -230,3 +255,12 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping
         )
+
+
+class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
+    def test_error(self, data, all_arithmetic_operators):
+        pass
+
+
+class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass

@@ -21,6 +21,18 @@ class TestTimedeltaArithmetic(object):
         with pytest.raises(OverflowError):
             pd.Timestamp('1700-01-01') + timedelta(days=13 * 19999)
 
+    def test_array_timedelta_floordiv(self):
+        # https://github.com/pandas-dev/pandas/issues/19761
+        ints = pd.date_range('2012-10-08', periods=4, freq='D').view('i8')
+        msg = r"Use 'array // timedelta.value'"
+        with tm.assert_produces_warning(FutureWarning) as m:
+            result = ints // pd.Timedelta(1, unit='s')
+
+        assert msg in str(m[0].message)
+        expected = np.array([1349654400, 1349740800, 1349827200, 1349913600],
+                            dtype='i8')
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_ops_error_str(self):
         # GH 13624
         td = Timedelta('1 day')
@@ -93,6 +105,16 @@ class TestTimedeltaComparison(object):
 
 
 class TestTimedeltas(object):
+
+    @pytest.mark.parametrize("unit, value, expected", [
+        ('us', 9.999, 9999), ('ms', 9.999999, 9999999),
+        ('s', 9.999999999, 9999999999)])
+    def test_rounding_on_int_unit_construction(self, unit, value, expected):
+        # GH 12690
+        result = Timedelta(value, unit=unit)
+        assert result.value == expected
+        result = Timedelta(str(value) + unit)
+        assert result.value == expected
 
     def test_total_seconds_scalar(self):
         # see gh-10939
@@ -210,6 +232,11 @@ class TestTimedeltas(object):
         assert tup.milliseconds == 999
         assert tup.microseconds == 999
         assert tup.nanoseconds == 0
+
+    def test_iso_conversion(self):
+        # GH #21877
+        expected = Timedelta(1, unit='s')
+        assert to_timedelta('P0DT0H0M1S') == expected
 
     def test_nat_converters(self):
         assert to_timedelta('nat', box=False).astype('int64') == iNaT
@@ -566,3 +593,17 @@ class TestTimedeltas(object):
         result = s.dt.components
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
+
+
+@pytest.mark.parametrize('value, expected', [
+    (Timedelta('10S'), True),
+    (Timedelta('-10S'), True),
+    (Timedelta(10, unit='ns'), True),
+    (Timedelta(0, unit='ns'), False),
+    (Timedelta(-10, unit='ns'), True),
+    (Timedelta(None), True),
+    (pd.NaT, True),
+])
+def test_truthiness(value, expected):
+    # https://github.com/pandas-dev/pandas/issues/21484
+    assert bool(value) is expected

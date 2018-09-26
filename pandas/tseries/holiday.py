@@ -1,6 +1,7 @@
 import warnings
 
 from pandas import DateOffset, DatetimeIndex, Series, Timestamp
+from pandas.errors import PerformanceWarning
 from pandas.compat import add_metaclass
 from datetime import datetime, timedelta
 from dateutil.relativedelta import MO, TU, WE, TH, FR, SA, SU  # noqa
@@ -143,12 +144,11 @@ class Holiday(object):
         Examples
         --------
         >>> from pandas.tseries.holiday import Holiday, nearest_workday
-        >>> from pandas import DateOffset
         >>> from dateutil.relativedelta import MO
         >>> USMemorialDay = Holiday('MemorialDay', month=5, day=24,
-                                    offset=DateOffset(weekday=MO(1)))
+                                    offset=pd.DateOffset(weekday=MO(1)))
         >>> USLaborDay = Holiday('Labor Day', month=9, day=1,
-                            offset=DateOffset(weekday=MO(1)))
+                                offset=pd.DateOffset(weekday=MO(1)))
         >>> July3rd = Holiday('July 3rd', month=7, day=3,)
         >>> NewYears = Holiday('New Years Day', month=1,  day=1,
                                observance=nearest_workday),
@@ -282,7 +282,8 @@ class Holiday(object):
 
                 # if we are adding a non-vectorized value
                 # ignore the PerformanceWarnings:
-                with warnings.catch_warnings(record=True):
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", PerformanceWarning)
                     dates += offset
         return dates
 

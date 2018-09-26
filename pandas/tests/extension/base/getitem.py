@@ -117,6 +117,41 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data[slice(1)]  # scalar
         assert isinstance(result, type(data))
 
+    def test_get(self, data):
+        # GH 20882
+        s = pd.Series(data, index=[2 * i for i in range(len(data))])
+        assert s.get(4) == s.iloc[2]
+
+        result = s.get([4, 6])
+        expected = s.iloc[[2, 3]]
+        self.assert_series_equal(result, expected)
+
+        result = s.get(slice(2))
+        expected = s.iloc[[0, 1]]
+        self.assert_series_equal(result, expected)
+
+        assert s.get(-1) is None
+        assert s.get(s.index.max() + 1) is None
+
+        s = pd.Series(data[:6], index=list('abcdef'))
+        assert s.get('c') == s.iloc[2]
+
+        result = s.get(slice('b', 'd'))
+        expected = s.iloc[[1, 2, 3]]
+        self.assert_series_equal(result, expected)
+
+        result = s.get('Z')
+        assert result is None
+
+        assert s.get(4) == s.iloc[4]
+        assert s.get(-1) == s.iloc[-1]
+        assert s.get(len(s)) is None
+
+        # GH 21257
+        s = pd.Series(data)
+        s2 = s[::2]
+        assert s2.get(1) is None
+
     def test_take_sequence(self, data):
         result = pd.Series(data)[[0, 1, 3]]
         assert result.iloc[0] == data[0]
@@ -178,7 +213,7 @@ class BaseGetitemTests(BaseExtensionTests):
         s = pd.Series(data)
         result = s.take([0, -1])
         expected = pd.Series(
-            data._from_sequence([data[0], data[len(data) - 1]]),
+            data._from_sequence([data[0], data[len(data) - 1]], dtype=s.dtype),
             index=[0, len(data) - 1])
         self.assert_series_equal(result, expected)
 
@@ -191,12 +226,14 @@ class BaseGetitemTests(BaseExtensionTests):
         n = len(data)
         result = s.reindex([-1, 0, n])
         expected = pd.Series(
-            data._from_sequence([na_value, data[0], na_value]),
+            data._from_sequence([na_value, data[0], na_value],
+                                dtype=s.dtype),
             index=[-1, 0, n])
         self.assert_series_equal(result, expected)
 
         result = s.reindex([n, n + 1])
-        expected = pd.Series(data._from_sequence([na_value, na_value]),
+        expected = pd.Series(data._from_sequence([na_value, na_value],
+                                                 dtype=s.dtype),
                              index=[n, n + 1])
         self.assert_series_equal(result, expected)
 

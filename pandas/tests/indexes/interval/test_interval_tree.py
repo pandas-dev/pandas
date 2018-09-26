@@ -7,11 +7,6 @@ from pandas._libs.interval import IntervalTree
 import pandas.util.testing as tm
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(
     scope='class', params=['int32', 'int64', 'float32', 'float64', 'uint64'])
 def dtype(request):

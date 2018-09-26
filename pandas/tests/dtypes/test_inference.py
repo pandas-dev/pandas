@@ -5,7 +5,7 @@ These the test the public routines exposed in types/common.py
 related to inference and not otherwise tested in types/test_common.py
 
 """
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import collections
 import re
 from datetime import datetime, date, timedelta, time
@@ -20,7 +20,8 @@ from pandas import (Series, Index, DataFrame, Timedelta,
                     DatetimeIndex, TimedeltaIndex, Timestamp,
                     Panel, Period, Categorical, isna, Interval,
                     DateOffset)
-from pandas.compat import u, PY2, PY3, StringIO, lrange
+from pandas import compat
+from pandas.compat import u, PY2, StringIO, lrange
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
     is_timedelta64_dtype,
@@ -35,8 +36,8 @@ from pandas.core.dtypes.common import (
     is_bool,
     is_scalar,
     is_scipy_sparse,
-    _ensure_int32,
-    _ensure_categorical)
+    ensure_int32,
+    ensure_categorical)
 from pandas.util import testing as tm
 import pandas.util._test_decorators as td
 
@@ -66,14 +67,15 @@ def test_is_sequence():
     "ll",
     [
         [], [1], (1, ), (1, 2), {'a': 1},
-        set([1, 'a']), Series([1]),
-        Series([]), Series(['a']).str])
+        {1, 'a'}, Series([1]),
+        Series([]), Series(['a']).str,
+        np.array([2])])
 def test_is_list_like_passes(ll):
     assert inference.is_list_like(ll)
 
 
 @pytest.mark.parametrize(
-    "ll", [1, '2', object(), str])
+    "ll", [1, '2', object(), str, np.array(2)])
 def test_is_list_like_fails(ll):
     assert not inference.is_list_like(ll)
 
@@ -96,7 +98,7 @@ def test_is_array_like():
 
 
 @pytest.mark.parametrize('inner', [
-    [], [1], (1, ), (1, 2), {'a': 1}, set([1, 'a']), Series([1]),
+    [], [1], (1, ), (1, 2), {'a': 1}, {1, 'a'}, Series([1]),
     Series([]), Series(['a']).str, (x for x in range(5))
 ])
 @pytest.mark.parametrize('outer', [
@@ -128,7 +130,7 @@ def test_is_dict_like_fails(ll):
     assert not inference.is_dict_like(ll)
 
 
-def test_is_file_like():
+def test_is_file_like(mock):
     class MockFile(object):
         pass
 
@@ -166,10 +168,7 @@ def test_is_file_like():
     # Iterator but no read / write attributes
     data = [1, 2, 3]
     assert not is_file(data)
-
-    if PY3:
-        from unittest import mock
-        assert not is_file(mock.Mock())
+    assert not is_file(mock.Mock())
 
 
 @pytest.mark.parametrize(
@@ -228,7 +227,7 @@ def test_is_hashable():
             pass
 
         c = OldStyleClass()
-        assert not isinstance(c, collections.Hashable)
+        assert not isinstance(c, compat.Hashable)
         assert inference.is_hashable(c)
         hash(c)  # this will not raise
 
@@ -295,7 +294,7 @@ class TestInference(object):
         # see gh-13274
         infinities = ['inf', 'inF', 'iNf', 'Inf',
                       'iNF', 'InF', 'INf', 'INF']
-        na_values = set(['', 'NULL', 'nan'])
+        na_values = {'', 'NULL', 'nan'}
 
         pos = np.array(['inf'], dtype=np.float64)
         neg = np.array(['-inf'], dtype=np.float64)
@@ -334,7 +333,7 @@ class TestInference(object):
         # see gh-13314
         data = np.array(['1.200', '-999.000', '4.500'], dtype=object)
         expected = np.array([1.2, np.nan, 4.5], dtype=np.float64)
-        nan_values = set([-999, -999.0])
+        nan_values = {-999, -999.0}
 
         out = lib.maybe_convert_numeric(data, nan_values, coerce)
         tm.assert_numpy_array_equal(out, expected)
@@ -387,7 +386,7 @@ class TestInference(object):
 
     def test_convert_numeric_uint64_nan_values(self, coerce):
         arr = np.array([2**63, 2**63 + 1], dtype=object)
-        na_values = set([2**63])
+        na_values = {2**63}
 
         expected = (np.array([np.nan, 2**63 + 1], dtype=float)
                     if coerce else arr.copy())
@@ -1160,6 +1159,7 @@ class TestIsScalar(object):
             assert not is_scalar(zerodim)
             assert is_scalar(lib.item_from_zerodim(zerodim))
 
+    @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
     def test_is_scalar_numpy_arrays(self):
         assert not is_scalar(np.array([]))
         assert not is_scalar(np.array([[]]))
@@ -1178,6 +1178,7 @@ class TestIsScalar(object):
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             assert not is_scalar(Panel())
             assert not is_scalar(Panel([[[1]]]))
         assert not is_scalar(Index([]))
@@ -1212,6 +1213,7 @@ def test_nan_to_nat_conversions():
 
 
 @td.skip_if_no_scipy
+@pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 def test_is_scipy_sparse(spmatrix):  # noqa: F811
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
@@ -1219,19 +1221,19 @@ def test_is_scipy_sparse(spmatrix):  # noqa: F811
 
 def test_ensure_int32():
     values = np.arange(10, dtype=np.int32)
-    result = _ensure_int32(values)
+    result = ensure_int32(values)
     assert (result.dtype == np.int32)
 
     values = np.arange(10, dtype=np.int64)
-    result = _ensure_int32(values)
+    result = ensure_int32(values)
     assert (result.dtype == np.int32)
 
 
 def test_ensure_categorical():
     values = np.arange(10, dtype=np.int32)
-    result = _ensure_categorical(values)
+    result = ensure_categorical(values)
     assert (result.dtype == 'category')
 
     values = Categorical(values)
-    result = _ensure_categorical(values)
+    result = ensure_categorical(values)
     tm.assert_categorical_equal(result, values)

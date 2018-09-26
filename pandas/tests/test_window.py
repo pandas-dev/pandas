@@ -41,7 +41,7 @@ def win_types(request):
     return request.param
 
 
-@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian', 'slepian'])
+@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian'])
 def win_types_special(request):
     return request.param
 
@@ -105,7 +105,6 @@ class TestApi(Base):
     def tests_skip_nuisance(self):
 
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
-
         r = df.rolling(window=3)
         result = r[['A', 'B']].sum()
         expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
@@ -113,9 +112,12 @@ class TestApi(Base):
                              columns=list('AB'))
         tm.assert_frame_equal(result, expected)
 
-        expected = concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
-        result = r.sum()
-        tm.assert_frame_equal(result, expected, check_like=True)
+    def test_skip_sum_object_raises(self):
+        df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
+        r = df.rolling(window=3)
+
+        with tm.assert_raises_regex(TypeError, 'cannot handle this type'):
+            r.sum()
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
@@ -151,6 +153,8 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
         with catch_warnings(record=True):
+            # using a dict with renaming
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean', 'sum': 'sum'}})
         expected = concat([a_mean, a_sum], axis=1)
         expected.columns = pd.MultiIndex.from_tuples([('A', 'mean'),
@@ -158,6 +162,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.aggregate({'A': {'mean': 'mean',
                                         'sum': 'sum'},
                                   'B': {'mean2': 'mean',
@@ -221,11 +226,13 @@ class TestApi(Base):
         expected.columns = pd.MultiIndex.from_tuples([('ra', 'mean'), (
             'ra', 'std'), ('rb', 'mean'), ('rb', 'std')])
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r[['A', 'B']].agg({'A': {'ra': ['mean', 'std']},
                                         'B': {'rb': ['mean', 'std']}})
         tm.assert_frame_equal(result, expected, check_like=True)
 
         with catch_warnings(record=True):
+            warnings.simplefilter("ignore", FutureWarning)
             result = r.agg({'A': {'ra': ['mean', 'std']},
                             'B': {'rb': ['mean', 'std']}})
         expected.columns = pd.MultiIndex.from_tuples([('A', 'ra', 'mean'), (
@@ -276,6 +283,7 @@ class TestApi(Base):
         tm.assert_frame_equal(result, expected)
 
     @td.skip_if_no_scipy
+    @pytest.mark.filterwarnings("ignore:can't resolve:ImportWarning")
     def test_window_with_args(self):
         # make sure that we are aggregating window functions correctly with arg
         r = Series(np.random.randn(100)).rolling(window=10, min_periods=1,
@@ -307,6 +315,7 @@ class TestApi(Base):
         assert s3.name == 'foo'
 
 
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestWindow(Base):
 
     def setup_method(self, method):
@@ -387,8 +396,8 @@ class TestRolling(Base):
         c(window=2, min_periods=1, center=False)
 
         # GH 13383
-        c(0)
         with pytest.raises(ValueError):
+            c(0)
             c(-1)
 
         # not valid
@@ -407,7 +416,6 @@ class TestRolling(Base):
         # GH 13383
         o = getattr(self, which)
         c = o.rolling
-        c(0, win_type='boxcar')
         with pytest.raises(ValueError):
             c(-1, win_type='boxcar')
 
@@ -463,6 +471,60 @@ class TestRolling(Base):
         with pytest.raises(ValueError):
             df.rolling(window=3, closed='neither')
 
+    @pytest.mark.parametrize("input_dtype", ['int', 'float'])
+    @pytest.mark.parametrize("func,closed,expected", [
+        ('min', 'right', [0.0, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ('min', 'both', [0.0, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ('min', 'neither', [np.nan, 0, 0, 1, 2, 3, 4, 5, 6, 7]),
+        ('min', 'left', [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, 6]),
+        ('max', 'right', [0.0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ('max', 'both', [0.0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        ('max', 'neither', [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8]),
+        ('max', 'left', [np.nan, 0, 1, 2, 3, 4, 5, 6, 7, 8])
+    ])
+    def test_closed_min_max_datetime(self, input_dtype,
+                                     func, closed,
+                                     expected):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10).astype(input_dtype),
+                        index=pd.date_range('2000', periods=10))
+
+        result = getattr(ser.rolling('3D', closed=closed), func)()
+        expected = pd.Series(expected, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+    def test_closed_uneven(self):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+
+        # uneven
+        ser = ser.drop(index=ser.index[[1, 5]])
+        result = ser.rolling('3D', closed='left').min()
+        expected = pd.Series([np.nan, 0, 0, 2, 3, 4, 6, 6],
+                             index=ser.index)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("func,closed,expected", [
+        ('min', 'right', [np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
+        ('min', 'both', [np.nan, 0, 0, 0, 1, 2, 3, 4, 5, np.nan]),
+        ('min', 'neither', [np.nan, np.nan, 0, 1, 2, 3, 4, 5, np.nan, np.nan]),
+        ('min', 'left', [np.nan, np.nan, 0, 0, 1, 2, 3, 4, 5, np.nan]),
+        ('max', 'right', [np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan, np.nan]),
+        ('max', 'both', [np.nan, 1, 2, 3, 4, 5, 6, 6, 6, np.nan]),
+        ('max', 'neither', [np.nan, np.nan, 1, 2, 3, 4, 5, 6, np.nan, np.nan]),
+        ('max', 'left', [np.nan, np.nan, 1, 2, 3, 4, 5, 6, 6, np.nan])
+    ])
+    def test_closed_min_max_minp(self, func, closed, expected):
+        # see gh-21704
+        ser = pd.Series(data=np.arange(10),
+                        index=pd.date_range('2000', periods=10))
+        ser[ser.index[-3:]] = np.nan
+        result = getattr(ser.rolling('3D', min_periods=2, closed=closed),
+                         func)()
+        expected = pd.Series(expected, index=ser.index)
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize('roller', ['1s', 1])
     def tests_empty_df_rolling(self, roller):
         # GH 15819 Verifies that datetime and integer rolling windows can be
@@ -509,6 +571,14 @@ class TestRolling(Base):
 
         tm.assert_index_equal(result.columns, df.columns)
         assert result.index.names == [None, '1', '2']
+
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = klass([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.rolling(2))
 
 
 class TestExpanding(Base):
@@ -558,8 +628,9 @@ class TestExpanding(Base):
     @pytest.mark.parametrize(
         'expander',
         [1, pytest.param('ls', marks=pytest.mark.xfail(
-                         reason='GH 16425 expanding with '
-                                'offset not supported'))])
+                         reason='GH#16425 expanding with '
+                                'offset not supported',
+                         strict=True))])
     def test_empty_df_expanding(self, expander):
         # GH 15819 Verifies that datetime and integer expanding windows can be
         # applied to empty DataFrames
@@ -587,6 +658,14 @@ class TestExpanding(Base):
         result = x.expanding(min_periods=1).sum()
         expected = pd.Series([np.nan])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = klass([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.expanding(2))
 
 
 class TestEWM(Base):
@@ -868,6 +947,7 @@ class TestDtype_datetime64UTC(DatetimeLike):
                     "datetime64[ns, UTC] is not supported ATM")
 
 
+@pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
 class TestMoments(Base):
 
     def setup_method(self, method):
@@ -1061,8 +1141,7 @@ class TestMoments(Base):
         kwds = {
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
-            'general_gaussian': {'power': 2., 'width': 2.},
-            'slepian': {'width': 0.5}}
+            'general_gaussian': {'power': 2., 'width': 2.}}
 
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
@@ -1072,8 +1151,6 @@ class TestMoments(Base):
                          13.65671, 12.01002, np.nan, np.nan],
             'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 11.73161,
                                  13.08516, 12.95111, 12.74577, np.nan, np.nan],
-            'slepian': [np.nan, np.nan, 9.81073, 10.89359, 11.70284, 12.88331,
-                        12.96079, 12.77008, np.nan, np.nan],
             'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 12.75129,
                        12.90702, 12.83757, np.nan, np.nan]
         }
@@ -1832,6 +1909,7 @@ class TestPairwise(object):
         for (df, result) in zip(self.df1s, results):
             if result is not None:
                 with catch_warnings(record=True):
+                    warnings.simplefilter("ignore", RuntimeWarning)
                     # we can have int and str columns
                     expected_index = df.index.union(self.df2.index)
                     expected_columns = df.columns.union(self.df2.columns)
@@ -1923,7 +2001,7 @@ _consistency_data = _create_consistency_data()
 
 def _rolling_consistency_cases():
     for window in [1, 2, 3, 10, 20]:
-        for min_periods in set([0, 1, 2, 3, 4, window]):
+        for min_periods in {0, 1, 2, 3, 4, window}:
             if min_periods and (min_periods > window):
                 continue
             for center in [False, True]:
@@ -2091,10 +2169,9 @@ class TestMomentsConsistency(Base):
                                              (mean_x * mean_y))
 
     @pytest.mark.slow
-    @pytest.mark.parametrize(
-        'min_periods, adjust, ignore_na', product([0, 1, 2, 3, 4],
-                                                  [True, False],
-                                                  [False, True]))
+    @pytest.mark.parametrize('min_periods', [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize('adjust', [True, False])
+    @pytest.mark.parametrize('ignore_na', [True, False])
     def test_ewm_consistency(self, min_periods, adjust, ignore_na):
         def _weights(s, com, adjust, ignore_na):
             if isinstance(s, DataFrame):
@@ -2454,8 +2531,8 @@ class TestMomentsConsistency(Base):
         frame2.values[:] = np.random.randn(*frame2.shape)
 
         res3 = getattr(self.frame.rolling(window=10), method)(frame2)
-        exp = DataFrame(dict((k, getattr(self.frame[k].rolling(
-            window=10), method)(frame2[k])) for k in self.frame))
+        exp = DataFrame({k: getattr(self.frame[k].rolling(
+            window=10), method)(frame2[k]) for k in self.frame})
         tm.assert_frame_equal(res3, exp)
 
     def test_ewmcov(self):
@@ -3172,6 +3249,28 @@ class TestGrouperGrouping(object):
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(
             lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_apply_mutability(self):
+        # GH 14013
+        df = pd.DataFrame({'A': ['foo'] * 3 + ['bar'] * 3, 'B': [1] * 6})
+        g = df.groupby('A')
+
+        mi = pd.MultiIndex.from_tuples([('bar', 3), ('bar', 4), ('bar', 5),
+                                        ('foo', 0), ('foo', 1), ('foo', 2)])
+
+        mi.names = ['A', None]
+        # Grouped column should not be a part of the output
+        expected = pd.DataFrame([np.nan, 2., 2.] * 2, columns=['B'], index=mi)
+
+        result = g.rolling(window=2).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Call an arbitrary function on the groupby
+        g.sum()
+
+        # Make sure nothing has been mutated
+        result = g.rolling(window=2).sum()
         tm.assert_frame_equal(result, expected)
 
     def test_expanding(self):

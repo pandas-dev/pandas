@@ -5,6 +5,7 @@ blosc
 bottleneck
 fastparquet
 feather-format
+gcsfs
 html5lib
 ipython>=5.6.0
 ipykernel
@@ -13,7 +14,7 @@ lxml
 matplotlib
 nbsphinx
 numexpr
-openpyxl
+openpyxl=2.5.5
 pyarrow
 pymysql
 tables
@@ -23,6 +24,7 @@ s3fs
 scipy
 seaborn
 sqlalchemy
+statsmodels
 xarray
 xlrd
 xlsxwriter

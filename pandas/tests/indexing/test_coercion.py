@@ -580,12 +580,11 @@ class TestWhereCoercion(CoercionBase):
         values = pd.Series(pd.date_range(fill_val, periods=4))
         if fill_val.tz:
             exp = pd.Series([pd.Timestamp('2011-01-01'),
-                             pd.Timestamp('2012-01-02 05:00'),
+                             pd.Timestamp('2012-01-02 00:00', tz='US/Eastern'),
                              pd.Timestamp('2011-01-03'),
-                             pd.Timestamp('2012-01-04 05:00')])
-            self._assert_where_conversion(obj, cond, values, exp,
-                                          'datetime64[ns]')
-            pytest.xfail("ToDo: do not coerce to UTC, must be object")
+                             pd.Timestamp('2012-01-04 00:00',
+                                          tz='US/Eastern')])
+            self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
         exp = pd.Series([pd.Timestamp('2011-01-01'), values[1],
                          pd.Timestamp('2011-01-03'), values[3]])
