@@ -7,13 +7,13 @@ with float64 data
 
 import numpy as np
 import warnings
-import collections
 
 from pandas.core.dtypes.common import (
     is_scalar,
 )
 from pandas.core.dtypes.missing import isna, notna, is_integer
 
+from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.core.index import Index
 from pandas.core.series import Series
@@ -86,7 +86,7 @@ class SparseSeries(Series):
             if index is not None:
                 data = data.reindex(index)
 
-        elif isinstance(data, collections.Mapping):
+        elif isinstance(data, compat.Mapping):
             data, index = Series()._init_dict(data, index=index)
 
         elif is_scalar(data) and index is not None:

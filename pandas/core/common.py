@@ -15,7 +15,7 @@ from pandas._libs import lib, tslibs
 from pandas import compat
 from pandas.compat import iteritems, PY36, OrderedDict
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndex, ABCIndexClass, ABCSparseArray
+    ABCSeries, ABCIndex, ABCIndexClass
 )
 from pandas.core.dtypes.common import (
     is_integer, is_bool_dtype, is_extension_array_dtype, is_array_like
