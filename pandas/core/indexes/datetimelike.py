@@ -287,10 +287,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Parameters
         ----------
         arg : DatetimeIndex / i8 ndarray
-        ambiguous : str, bool, or bool-ndarray
-            default 'raise'
-        from_utc : bool
-            default False
+        ambiguous : str, bool, or bool-ndarray, default 'raise'
+        from_utc : bool, default False
             If True, localize the i8 ndarray to UTC first before converting to
             the appropriate tz. If False, localize directly to the tz.
 
@@ -709,8 +707,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
     Parameters
     ----------
     other : 1d array
-    to_utc : bool
-        default False
+    to_utc : bool, default False
         If True, convert the values to UTC before extracting the i8 values
         If False, extract the i8 values directly.
 

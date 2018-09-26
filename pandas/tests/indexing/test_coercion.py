@@ -613,7 +613,8 @@ class TestWhereCoercion(CoercionBase):
 
         self._assert_where_conversion(obj, cond, values, exp, exp_dtype)
 
-    @pytest.mark.xfail(reason="ToDo: do not ignore timezone, must be object")
+    @pytest.mark.xfail(
+        reason="GH 22839: do not ignore timezone, must be object")
     def test_where_index_datetimetz(self):
         fill_val = pd.Timestamp('2012-01-01', tz='US/Eastern')
         exp_dtype = np.object
