@@ -551,7 +551,7 @@ Other API Changes
 - :class:`pandas.io.formats.style.Styler` supports a ``number-format`` property when using :meth:`~pandas.io.formats.style.Styler.to_excel` (:issue:`22015`)
 - :meth:`DataFrame.corr` and :meth:`Series.corr` now raise a ``ValueError`` along with a helpful error message instead of a ``KeyError`` when supplied with an invalid method (:issue:`22298`)
 - :meth:`shift` will now always return a copy, instead of the previous behaviour of returning self when shifting by 0 (:issue:`22397`)
-- :meth:`DataFrame.set_index` now raises a ``TypeError`` for incorrect types, has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
+- :meth:`DataFrame.set_index` now allows all one-dimensional list-likes, raises a ``TypeError`` for incorrect types, has an improved ``KeyError`` message, and will not fail on duplicate column names with ``drop=True``. (:issue:`22484`)
 
 .. _whatsnew_0240.deprecations:
 

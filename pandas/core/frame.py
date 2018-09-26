@@ -60,7 +60,8 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
-from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
+from pandas.core.dtypes.generic import (ABCSeries, ABCIndexClass,
+                                        ABCMultiIndex, ABCDataFrame)
 from pandas.core.dtypes.missing import isna, notna
 
 
@@ -3915,16 +3916,18 @@ class DataFrame(NDFrame):
 
         missing = []
         for x in keys:
-            if not (is_scalar(x) or isinstance(x, tuple)):
-                if not isinstance(x, (ABCSeries, ABCIndexClass, ABCMultiIndex,
-                                      list, np.ndarray)):
-                    raise TypeError('The parameter "keys" may only contain a '
-                                    'combination of the following: valid '
-                                    'column keys, Series, Index, MultiIndex, '
-                                    'list or np.ndarray')
-            else:
-                if x not in self:
-                    missing.append(x)
+            if (is_scalar(x) or isinstance(x, tuple)) and x in self:
+                continue
+            elif is_scalar(x) and x not in self:
+                # a tuple gets tried as column key first;
+                # otherwise considered as a list-like; i.e. not missing
+                missing.append(x)
+            elif (not is_list_like(x) or isinstance(x, set)
+                  or isinstance(x, ABCDataFrame)
+                  or (isinstance(x, np.ndarray) and x.ndim > 1)):
+                raise TypeError('The parameter "keys" may only contain a '
+                                'combination of valid column keys and '
+                                'one-dimensional list-likes')
 
         if missing:
             raise KeyError('{}'.format(missing))
@@ -3950,14 +3953,17 @@ class DataFrame(NDFrame):
                 for n in range(col.nlevels):
                     arrays.append(col._get_level_values(n))
                 names.extend(col.names)
-            elif isinstance(col, ABCIndexClass):
-                # Index but not MultiIndex (treated above)
+            elif isinstance(col, (ABCIndexClass, ABCSeries)):
+                # if Index then not MultiIndex (treated above)
                 arrays.append(col)
                 names.append(col.name)
-            elif isinstance(col, ABCSeries):
-                arrays.append(col._values)
-                names.append(col.name)
             elif isinstance(col, (list, np.ndarray)):
+                arrays.append(col)
+                names.append(None)
+            elif (is_list_like(col)
+                  and not (isinstance(col, tuple) and col in self)):
+                # all other list-likes (but avoid valid column keys)
+                col = list(col)  # ensure iterator do not get read twice etc.
                 arrays.append(col)
                 names.append(None)
             # from here, col can only be a column label
