@@ -132,8 +132,8 @@ class TestFrameFlexArithmetic(object):
         op = all_arithmetic_operators
 
         def f(x, y):
+            # r-versions not in operator-stdlib; get op without "r" and invert
             if op.startswith('__r'):
-                # get op without "r" and invert it
                 return getattr(operator, op.replace('__r', '__'))(y, x)
             return getattr(operator, op)(x, y)
 
@@ -176,8 +176,8 @@ class TestFrameFlexArithmetic(object):
         exp = f(int_frame, 2 * int_frame)
         tm.assert_frame_equal(result, exp)
 
-    def test_arith_flex_frame_corner(self, all_arithmetic_operators,
-                                     float_frame):
+    def test_arith_flex_frame_raise(self, all_arithmetic_operators,
+                                    float_frame):
         # one instance of parametrized fixture
         op = all_arithmetic_operators
 
@@ -187,6 +187,8 @@ class TestFrameFlexArithmetic(object):
             msg = "Unable to coerce to Series/DataFrame"
             with tm.assert_raises_regex(ValueError, msg):
                 getattr(float_frame, op)(arr)
+
+    def test_arith_flex_frame_corner(self, float_frame):
 
         const_add = float_frame.add(1)
         tm.assert_frame_equal(const_add, float_frame + 1)
