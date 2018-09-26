@@ -1404,7 +1404,7 @@ class _Rolling_and_Expanding(_Rolling):
         otherwise defaults to `False`.
         Not relevant for :class:`~pandas.Series`.
     **kwargs
-        Under Review.
+        Unused.
 
     Returns
     -------
@@ -1430,7 +1430,7 @@ class _Rolling_and_Expanding(_Rolling):
     all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise`
     set to `True`.
 
-    Function will return `NaN`s for correlations of equal valued sequences;
+    Function will return ``NaN`` for correlations of equal valued sequences;
     this is the result of a 0/0 division error.
 
     When `pairwise` is set to `False`, only matching columns between `self` and
@@ -1446,7 +1446,7 @@ class _Rolling_and_Expanding(_Rolling):
     Examples
     --------
     The below example shows a rolling calculation with a window size of
-    four matching the equivalent function call using `numpy.corrcoef`.
+    four matching the equivalent function call using :meth:`numpy.corrcoef`.
 
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
