@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from itertools import product
 import pytest
 import warnings
@@ -313,6 +314,53 @@ class TestApi(Base):
         s3 = s.rolling(20).sum()
         assert s2.name == 'foo'
         assert s3.name == 'foo'
+
+    @pytest.mark.parametrize("func,window_size,expected_vals", [
+        ('rolling', 2, [[np.nan, np.nan, np.nan, np.nan],
+                        [15., 20., 25., 20.],
+                        [25., 30., 35., 30.],
+                        [np.nan, np.nan, np.nan, np.nan],
+                        [20., 30., 35., 30.],
+                        [35., 40., 60., 40.],
+                        [60., 80., 85., 80]]),
+        ('expanding', None, [[10., 10., 20., 20.],
+                             [15., 20., 25., 20.],
+                             [20., 30., 30., 20.],
+                             [10., 10., 30., 30.],
+                             [20., 30., 35., 30.],
+                             [26.666667, 40., 50., 30.],
+                             [40., 80., 60., 30.]])])
+    def test_multiple_agg_funcs(self, func, window_size, expected_vals):
+        # GH 15072
+        df = pd.DataFrame([
+            ['A', 10, 20],
+            ['A', 20, 30],
+            ['A', 30, 40],
+            ['B', 10, 30],
+            ['B', 30, 40],
+            ['B', 40, 80],
+            ['B', 80, 90]], columns=['stock', 'low', 'high'])
+
+        f = getattr(df.groupby('stock'), func)
+        if window_size:
+            window = f(window_size)
+        else:
+            window = f()
+
+        index = pd.MultiIndex.from_tuples([
+            ('A', 0), ('A', 1), ('A', 2),
+            ('B', 3), ('B', 4), ('B', 5), ('B', 6)], names=['stock', None])
+        columns = pd.MultiIndex.from_tuples([
+            ('low', 'mean'), ('low', 'max'), ('high', 'mean'),
+            ('high', 'min')])
+        expected = pd.DataFrame(expected_vals, index=index, columns=columns)
+
+        result = window.agg(OrderedDict((
+            ('low', ['mean', 'max']),
+            ('high', ['mean', 'min']),
+        )))
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.filterwarnings("ignore:can't resolve package:ImportWarning")
