@@ -253,7 +253,6 @@ UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
 
 .. code-block:: ipython
 
-
     In [2]: pd.to_datetime("2015-11-18 15:30:00+05:30")
     Out[2]: Timestamp('2015-11-18 10:00:00')
 
@@ -291,6 +290,7 @@ Passing ``utc=True`` will mimic the previous behavior but will correctly indicat
 that the dates have been converted to UTC
 
 .. ipython:: python
+
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api_breaking.calendarday:
@@ -485,7 +485,7 @@ Previous Behavior:
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
 
-.. _whatsnew_0240.api.timedelta64_subtract_nan
+.. _whatsnew_0240.api.timedelta64_subtract_nan:
 
 Addition/Subtraction of ``NaN`` from :class:`DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -496,9 +496,10 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 ``Series`` behavior (:issue:`22163`)
 
 .. ipython:: python
+   :okexcept:
 
-    df = pd.DataFrame([pd.Timedelta(days=1)])
-    df - np.nan
+   df = pd.DataFrame([pd.Timedelta(days=1)])
+   df - np.nan
 
 Previous Behavior:
 
