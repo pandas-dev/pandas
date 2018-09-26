@@ -138,10 +138,16 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             df.corr(method="____")
 
-    def test_corr_tri(self):
-        # GH PR
+    def test_corr_tril(self):
+        # GH PR #22840
         df = pd.DataFrame(np.random.normal(size=(100, 5)))
-        corr_mat = df.corr(tri=True)
+        corr_mat = df.corr(tri='lower')
+        assert corr_mat.notnull().sum().sum() == 10
+
+    def test_corr_triu(self):
+        # GH PR #22840
+        df = pd.DataFrame(np.random.normal(size=(100, 5)))
+        corr_mat = df.corr(tri='upper')
         assert corr_mat.notnull().sum().sum() == 10
 
     def test_cov(self):
