@@ -135,6 +135,29 @@ class SparseSeries(Series):
         self.name = getattr(obj, 'name', None)
         self.fill_value = getattr(obj, 'fill_value', None)
 
+    # unary ops
+    # TODO: See if this can be shared
+    def __pos__(self):
+        result = self.values.__pos__()
+        return self._constructor(result, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=result.fill_value,
+                                 copy=False).__finalize__(self)
+
+    def __neg__(self):
+        result = self.values.__neg__()
+        return self._constructor(result, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=result.fill_value,
+                                 copy=False).__finalize__(self)
+
+    def __invert__(self):
+        result = self.values.__invert__()
+        return self._constructor(result, index=self.index,
+                                 sparse_index=self.sp_index,
+                                 fill_value=result.fill_value,
+                                 copy=False).__finalize__(self)
+
     @property
     def block(self):
         warnings.warn("SparseSeries.block is deprecated.", FutureWarning,

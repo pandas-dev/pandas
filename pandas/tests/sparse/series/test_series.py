@@ -645,6 +645,32 @@ class TestSparseSeries(SharedWithSparse):
             _check_inplace_op(getattr(operator, "i%s" % op),
                               getattr(operator, op))
 
+    @pytest.mark.parametrize("values, op, fill_value", [
+        ([True, False, False, True], operator.invert, True),
+        ([True, False, False, True], operator.invert, False),
+        ([0, 1, 2, 3], operator.pos, 0),
+        ([0, 1, 2, 3], operator.neg, 0),
+        ([0, np.nan, 2, 3], operator.pos, np.nan),
+        ([0, np.nan, 2, 3], operator.neg, np.nan),
+    ])
+    def test_unary_operators(self, values, op, fill_value):
+        # https://github.com/pandas-dev/pandas/issues/22835
+        values = np.asarray(values)
+        if op is operator.invert:
+            new_fill_value = not fill_value
+        else:
+            new_fill_value = op(fill_value)
+        s = SparseSeries(values,
+                         fill_value=fill_value,
+                         index=['a', 'b', 'c', 'd'],
+                         name='name')
+        result = op(s)
+        expected = SparseSeries(op(values),
+                                fill_value=new_fill_value,
+                                index=['a', 'b', 'c', 'd'],
+                                name='name')
+        tm.assert_sp_series_equal(result, expected)
+
     def test_abs(self):
         s = SparseSeries([1, 2, -3], name='x')
         expected = SparseSeries([1, 2, 3], name='x')
