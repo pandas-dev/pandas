@@ -361,14 +361,44 @@ class TestAppendColumnsIndex(object):
 
     @pytest.mark.parametrize('index2', indexes, ids=cls_name)
     @pytest.mark.parametrize('index1', indexes, ids=cls_name)
-    def test_preserve_index_values(self, sort, index1, index2):
+    def test_preserve_index_values_without_sort(self, index1, index2):
+        # When appending indexes of different types, we want
+        # the resulting index to preserve the exact indexes
+        # values.
+
+        # Related to GH13626
+        from pandas.core.dtypes.generic import (
+            ABCDatetimeIndex, ABCMultiIndex, ABCTimedeltaIndex
+        )
+        if isinstance(index1, ABCMultiIndex):
+            if isinstance(index2, ABCDatetimeIndex):
+                pytest.xfail("MultiIndex + DatetimeIndex produces bad value")
+            if isinstance(index2, ABCTimedeltaIndex):
+                pytest.xfail("MultiIndex + TimedeltaIndex produces bad value")
+
+        df1 = pd.DataFrame([[1, 2, 3]], columns=index1)
+        df2 = pd.DataFrame([[4, 5, 6]], columns=index2, index=[1])
+        result = df1.append(df2, sort=False)
+        for value in index1:
+            assert value in result.columns
+        for value in index2:
+            assert value in result.columns
+
+    @pytest.mark.parametrize(
+        'index1, index2',
+        [(i1, i2)
+            for group in index_sort_groups
+            for i1, i2 in product(group, repeat=2)],
+        ids=cls_name
+    )
+    def test_preserve_index_values_with_sort(self, index1, index2):
         # When appending indexes of different types, we want
         # the resulting index to preserve the exact indexes
         # values.
 
         df1 = pd.DataFrame([[1, 2, 3]], columns=index1)
         df2 = pd.DataFrame([[4, 5, 6]], columns=index2, index=[1])
-        result = df1.append(df2, sort=sort)
+        result = df1.append(df2, sort=True)
         for value in index1:
             assert value in result.columns
         for value in index2:
@@ -558,6 +588,12 @@ class TestAppendColumnsIndex(object):
         # We should be able to append to a DataFrame
         # regardless of the type of its index.
 
+        # TODO: check end of append and create tests (empty / IntervalIndex)
+        # TODO: implement different way for df.append([])
+        from pandas.core.dtypes.generic import ABCIntervalIndex
+        if isinstance(index1, ABCIntervalIndex):
+            pytest.xfail("Cannot do df[interval] for IntervalIndex")
+
         # the code below should not raise any exceptions
         df1 = pd.DataFrame([[1, 2, 3]], columns=index1)
         df2 = pd.DataFrame([[4, 5, 6]], columns=index2, index=[1])
@@ -575,6 +611,12 @@ class TestAppendColumnsIndex(object):
     def test_index_types_with_possible_sort(self, index1, index2):
         # When the result of joining two indexes is sortable,
         # we should not raise any exceptions.
+
+        # TODO: check end of append and create tests (empty / IntervalIndex)
+        # TODO: implement different way for df.append([])
+        from pandas.core.dtypes.generic import ABCIntervalIndex
+        if isinstance(index1, ABCIntervalIndex):
+            pytest.xfail("Cannot do df[interval] for IntervalIndex")
 
         df1 = pd.DataFrame([[1, 2, 3]], columns=index1)
         df2 = pd.DataFrame([[4, 5, 6]], columns=index2, index=[1])
@@ -595,7 +637,13 @@ class TestAppendColumnsIndex(object):
         # When the result of joining two indexes is not sortable,
         # we should raise an exception.
 
-        err_msg = r'The resulting columns could not be sorted.*'  # TODO
+        # TODO: check end of append and create tests (empty / IntervalIndex)
+        # TODO: implement different way for df.append([])
+        from pandas.core.dtypes.generic import ABCIntervalIndex
+        if isinstance(index1, ABCIntervalIndex):
+            pytest.xfail("Cannot do df[interval] for IntervalIndex")
+
+        err_msg = r'The resulting columns could not be sorted\..*'
 
         df1 = pd.DataFrame([[1, 2, 3]], columns=index1)
         df2 = pd.DataFrame([[4, 5, 6]], columns=index2, index=[1])
@@ -661,6 +709,22 @@ class TestAppendRowsIndex(object):
         # When appending indexes of different types, we want
         # the resulting index to preserve the exact indexes
         # values.
+
+        # Related to GH13626
+        from pandas.core.dtypes.generic import (
+            ABCDatetimeIndex, ABCMultiIndex, ABCTimedeltaIndex
+        )
+        if isinstance(index1, ABCMultiIndex):
+            if isinstance(index2, ABCDatetimeIndex):
+                pytest.xfail("MultiIndex + DatetimeIndex produces bad value")
+            if isinstance(index2, ABCTimedeltaIndex):
+                pytest.xfail("MultiIndex + TimedeltaIndex produces bad value")
+
+        # Concat raises a TypeError when appending a CategoricalIndex
+        # with another type
+        from pandas.core.dtypes.generic import ABCCategoricalIndex
+        if isinstance(index1, ABCCategoricalIndex):
+            pytest.xfail("Cannot have a CategoricalIndex append to another typ")
 
         df1 = pd.DataFrame([[1, 2, 3]], index=index1[:1])
         df2 = pd.DataFrame([[4, 5, 6]], index=index2[:1])

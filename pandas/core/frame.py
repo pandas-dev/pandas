@@ -6420,11 +6420,41 @@ class DataFrame(NDFrame):
         _obj_type = kwargs['_obj_type']
         _item_type = kwargs.get('_item_type')
 
+        from pandas.core.indexes.api import (
+            CannotSortError,
+            _normalize_dataframes,
+        )
         from pandas.core.reshape.concat import concat
 
+        # The default value of sort in version 0.23.0 is None.
+        # The behavior when this was the value is very
+        # varied and changes according to input type, columns index
+        # type, whether a reindex is necessary or not, etc.
+        #
+        # The code below is a try to reproduce the old behavior,
+        # but note that this is deprecated.
+        #
+        # TODO: handle sort=None here
+
+        # The behavior of concat is a bit problematic as it is. To get around
+        # this, we prepare the DataFrames before feeding them into concat.
         to_concat = [self] + other
-        result = concat(to_concat, ignore_index=ignore_index,
+        try:
+            to_concat_norm = _normalize_dataframes(to_concat, sort=sort)
+        except CannotSortError:
+            raise TypeError("The resulting columns could not be sorted."
+                            " You can try setting sort=False or use"
+                            " compatible index types.")
+        result = concat(to_concat_norm, ignore_index=ignore_index,
                         verify_integrity=verify_integrity, sort=sort)
+
+        # preserve base DataFrame indexes names
+        # XXX: how will this work with MultiIndex (?)
+        result.columns.name = self.columns.name
+        if not ignore_index:
+            result.index.name = self.index.name
+
+        # the conditionals below will be refactored or removed
 
         if sort is None:
             # The sorting behaviour for None was weird.
@@ -6452,19 +6482,6 @@ class DataFrame(NDFrame):
             else:
                 sort = True
 
-        if not sort:
-            # Concat sorts the column indexes if they are 'special'.
-            # We don't want this behaviour if sort is False.
-            result_idx = self.columns
-            for frame in other:
-                column_idx = frame.columns
-                idx_diff = column_idx.difference(result_idx)
-                try:
-                    result_idx = result_idx.append(idx_diff)
-                except TypeError:
-                    result_idx = result_idx.astype(object).append(idx_diff)
-            result = result.reindex(columns=result_idx, copy=False)
-
         if result.shape[0] == 1:
             # If we got only one row of result, this means that
             # the resulting dtypes can match the dframe where
@@ -6478,16 +6495,6 @@ class DataFrame(NDFrame):
             base_columns = base_frame.columns
             base_dtypes = base_frame.dtypes
             result[base_columns] = result[base_columns].astype(base_dtypes)
-
-        if not ignore_index:
-            # We want to keep the index name of the original dframe (self).
-            # Rename the index after concat erases it.
-            result.index.name = self.index.name
-
-        # keep the same column index name as
-        # the original dframe (self)
-        # XXX: will this break anything in MultiIndex?
-        result.columns.name = self.columns.name
 
         return result
 

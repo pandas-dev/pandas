@@ -1,11 +1,20 @@
 import textwrap
 import warnings
 
-from pandas.core.indexes.base import (Index,
-                                      _new_Index,
-                                      ensure_index,
-                                      ensure_index_from_sequences,
-                                      InvalidIndexError)  # noqa
+from pandas.core.dtypes.generic import (
+    ABCCategoricalIndex,
+    ABCIntervalIndex,
+    ABCMultiIndex,
+    ABCPeriodIndex,
+)
+from pandas.core.indexes.base import (
+    Index,
+    _new_Index,
+    ensure_index,
+    ensure_index_from_sequences,
+    CannotSortError,
+    InvalidIndexError
+)
 from pandas.core.indexes.category import CategoricalIndex  # noqa
 from pandas.core.indexes.multi import MultiIndex  # noqa
 from pandas.core.indexes.interval import IntervalIndex  # noqa
@@ -160,3 +169,125 @@ def _all_indexes_same(indexes):
         if not first.equals(index):
             return False
     return True
+
+
+def _normalize_dataframes(frame_list, verify_inputs=True, sort=False):
+    """Normalize the columns from a list of DataFrames
+
+    First, an index is created by merging all the original columns. Then,
+    all columns are reindexed to match this new index.
+
+    Parameters
+    ----------
+    index_list: list of Index objects
+    verify_inputs: boolean, default True
+        Verify if the input indexes contain overlapping values.
+    sort: boolean, default False
+        Order result index. If False, values will come in the order they
+        appear.
+
+    Raises
+    ------
+    CannotSortError
+        When sort=True and the result index is not sortable.
+    InvalidIndexError
+        When verify_inputs=True and 1+ of the indexes contain duplicates.
+    """
+    orig_columns = [df.columns for df in frame_list]
+    merged_columns = _merge_index_list(orig_columns, verify_inputs, sort)
+    return [_reindex(df, merged_columns, axis=1) for df in frame_list]
+
+
+def _merge_index_list(index_list, verify_inputs=True, sort=False):
+    """Merge a list of indexes into one big index
+
+    Parameters
+    ----------
+    index_list: list of Index objects
+    verify_inputs: boolean, default True
+        Verify if the input indexes contain overlapping values.
+    sort: boolean, default False
+        Order result index. If False, values will come in the order they
+        appear.
+
+    Raises
+    ------
+    CannotSortError
+        When sort=True and the result index is not sortable.
+    InvalidIndexError
+        When verify_inputs=True and 1+ of the indexes contain duplicates.
+
+    Examples
+    --------
+    """
+    if verify_inputs:
+        if any([ix.has_duplicates for ix in index_list]):
+            raise InvalidIndexError("Input index has duplicate values")
+
+    result = index_list[0]
+    for idx in index_list[1:]:
+        result = _merge_indexes(result, idx)
+
+    return result if not sort else _sort_index(result)
+
+
+def _merge_indexes(index1, index2):
+    """Merge two indexes together
+    """
+
+    # lots of exception handling because we want to allow any
+    # indexes types to be merged together
+
+    try:
+        difference = index2.difference(index1)
+    except (TypeError, ValueError):
+        if isinstance(index2, (ABCIntervalIndex, ABCPeriodIndex)):
+            index2 = index2.astype(object)
+            difference = index2.difference(index1)
+        else:
+            raise
+
+    try:
+        return index1.append(difference)
+    except TypeError:
+        if isinstance(index1, ABCCategoricalIndex):
+            index1 = index1.astype(object)
+            return index1.append(difference)
+        raise
+
+
+def _sort_index(index):
+    """Sort index and raises when not possible
+    """
+    try:
+        return index.sort_values()
+    except TypeError:
+        raise CannotSortError
+
+
+def _reindex(df, new_index, axis=0):
+    """Reindex df axis to match new_index
+
+    Parameters
+    ----------
+
+    df: a DataFrame object
+    new_index: an Index object
+    axis: int or str, default 0
+
+    Notes
+    -----
+
+    Works the same as DataFrame.reindex, but handles IntervalIndex and
+    MultiIndex errors.
+    """
+    try:
+        return df.reindex(columns=new_index, copy=False)
+    except TypeError:
+        if isinstance(df.columns, ABCIntervalIndex):
+            df.columns = df.columns.astype(object)
+        elif isinstance(df.columns, ABCMultiIndex):
+            df.columns = df.columns.values
+        else:
+            raise
+        return df.reindex(columns=new_index, copy=False)

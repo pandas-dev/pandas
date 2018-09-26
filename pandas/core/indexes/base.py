@@ -158,6 +158,10 @@ def _make_arithmetic_op(op, cls):
     return set_function_name(index_arithmetic_method, name, cls)
 
 
+class CannotSortError(Exception):
+    pass
+
+
 class InvalidIndexError(Exception):
     pass
 
