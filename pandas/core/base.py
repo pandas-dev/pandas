@@ -664,7 +664,7 @@ class IndexOpsMixin(object):
                                 "definition self")
 
     @property
-    def _is_homogeneous(self):
+    def _is_homogeneous_type(self):
         """Whether the object has a single dtype.
 
         By definition, Series and Index are always considered homogeneous.
@@ -673,8 +673,8 @@ class IndexOpsMixin(object):
 
         See Also
         --------
-        DataFrame._is_homogeneous
-        MultiIndex._is_homogeneous
+        DataFrame._is_homogeneous_type
+        MultiIndex._is_homogeneous_type
         """
         return True
 
