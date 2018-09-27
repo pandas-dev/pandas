@@ -85,9 +85,11 @@ class TestTimestampTZOperations(object):
         ts = Timestamp(stamp)
         with pytest.raises(NonExistentTimeError):
             ts.tz_localize(tz)
-        with pytest.raises(NonExistentTimeError):
-            ts.tz_localize(tz, errors='raise')
         # GH 22644
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            pytest.raises(
+                NonExistentTimeError, ts.tz_localize(tz, errors='raise')
+            )
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert ts.tz_localize(tz, errors='coerce') is NaT
 
@@ -103,8 +105,7 @@ class TestTimestampTZOperations(object):
         tz = 'Europe/Warsaw'
         ts = Timestamp('2015-03-29 02:00:00')
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            with pytest.raises(ValueError):
-                ts.tz_localize(tz, errors='foo')
+            pytest.raises(ValueError, ts.tz_localize(tz, errors='foo'))
         # make sure errors='coerce' gets mapped correctly to nonexistent
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ts.tz_localize(tz, errors='coerce')
