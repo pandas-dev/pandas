@@ -193,6 +193,7 @@ class MultiIndex(Index):
     set_levels
     set_labels
     to_frame
+    to_index
     is_lexsorted
     sortlevel
     droplevel
@@ -1195,6 +1196,22 @@ class MultiIndex(Index):
         if index:
             result.index = self
         return result
+
+    def to_index(self):
+        """
+        Convert a MultiIndex to an Index of Tuples containing the level values.
+
+        .. versionadded:: 0.24.0
+
+        Returns
+        -------
+        Index : an Index with the MultiIndex data represented in Tuples.
+
+        See also
+        --------
+        Index
+        """
+        return Index(self.values, tupleize_cols=False)
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
