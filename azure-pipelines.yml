@@ -114,7 +114,7 @@ jobs:
   - bash: grep -R --include="*.py*" -E "from pandas.core.common import " pandas ; [ $? == 0 ]
     displayName: 'Check for non-standard imports'
     continueOnError: 'true'
-  - script: "! grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/"
+  - script: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     displayName: 'Check for pytest warns'
     continueOnError: 'true'
   # Check for the following code in testing: `np.testing` and `np.array_equal`
