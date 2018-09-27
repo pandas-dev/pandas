@@ -6483,18 +6483,16 @@ class DataFrame(NDFrame):
                 sort = True
 
         if result.shape[0] == 1:
-            # If we got only one row of result, this means that
-            # the resulting dtypes can match the dframe where
-            # they come from.
-            #
-            # Concat achieves this behaviour when concatenating
-            # an empty DataFrame, but not if it has some columns.
-            #
-            # This is a hack for retrieving the dtypes back.
-            base_frame = [frame for frame in to_concat if frame.shape[0] == 1][0]
-            base_columns = base_frame.columns
-            base_dtypes = base_frame.dtypes
-            result[base_columns] = result[base_columns].astype(base_dtypes)
+            from pandas.core.dtypes.cast import find_common_type
+
+            # Reindexing the columns created an artificial float64 where it
+            # was not needed. We can convert the columns back to the expected
+            # type.
+
+            for col in result:
+                types = [df[col].dtype for df in to_concat if col in df]
+                common_type = find_common_type(types)
+                result[col] = result[col].astype(common_type)
 
         return result
 
