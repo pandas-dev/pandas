@@ -53,11 +53,8 @@ jobs:
   - script: flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
     displayName: 'Linting *.pyx code'
     continueOnError: true
-  - script: flake8 pandas/src --filename=*.pxi.in --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
-    displayName: 'Linting *.pxi.in'
-    continueOnError: 'true'
-  - script: flake8 pandas/_libs --filename=*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
-    displayName: 'Linting *.pxd'
+  - script: flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
+    displayName: 'Linting *.pxd and *.pxi.in'
     continueOnError: 'true'
   - script: flake8 setup.py --ignore=E402,E731,E741,W503
     displayName: 'Linting setup.py'
@@ -65,7 +62,7 @@ jobs:
   - script: flake8 scripts --filename=*.py --ignore=C408,E402,E731,E741,W503
     displayName: 'Linting scripts'
     continueOnError: 'true'
-  - script: flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
+  - script: flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
     displayName: 'Linting asv benchmarks'
     continueOnError: 'true'
   - script: flake8 doc/make.py doc/source/conf.py --ignore=E402,E731,E741,W503
@@ -85,17 +82,13 @@ jobs:
   # we can lint all header files since they aren't "generated" like C files are.
   # TODO the next 3 commands are the same changing just the path, we should avoid repeating
   # them, and have kind of loop thing
-  - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/*.h
-    displayName: 'Linting *.c and *.h (*.h)'
-    continueOnError: 'true'
-  - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/parser
-    displayName: 'Linting *.c and *.h (parser)'
-    continueOnError: 'true'
-  - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/ujson
-    displayName: 'Linting *.c and *.h (ujson)'
-    continueOnError: 'true'
-  - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/tslibs/src/datetime
-    displayName: 'Linting  pandas/_libs/tslibs/src/datetime'
+  - script: |
+    cpplint --quiet --extensions=c,h --headers=h --recursive
+    --filter=-readability/casting,-runtime/int,-build/include_subdir
+    pandas/_libs/src/*.h
+    pandas/_libs/src/parser pandas/_libs/ujson
+    pandas/_libs/tslibs/src/datetime
+    displayName: 'Linting *.c and *.h'
 
 - job: 'Checks'
   continueOnError: 'true'  # XXX this doesn't seem to be working, specifying in each step
@@ -130,16 +123,16 @@ jobs:
   - script: grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/ ; [ $? != 0 ]
     displayName: 'Check for backticks incorrectly rendering because of missing spaces'
     continueOnError: 'true'
-  # TODO the next 2 commands are the same changing just the path, we should avoid repeating
-  # them, and have kind of loop thing
   # TODO SPHINX_DIRECTIVES should be defined as a variable, as it was in lint.sh. Not
   # sure yet how to define variables with the output of a sctipt, will take care of it later
   # SPHINX_DIRECTIVES=$(echo \
   #   "autosummary|contents|currentmodule|deprecated|function|image|"\
   #   "important|include|ipython|literalinclude|math|module|note|raw|"\
   #   "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
-  - script: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ; [ $? != 0 ]
-    displayName: 'Check for incorrect sphinx directives (./pandas)'
-    continueOnError: 'true'
-  - script: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source ; [ $? != 0 ]
-    displayName: 'Check for incorrect sphinx directives (./doc/source)'
+  - script: |
+    grep -R --include="*.py" --include="*.pyx" --include="*.rst"
+    -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]"
+    ./pandas
+    ./doc/source
+    ; [ $? != 0 ]
+    displayName: 'Check for incorrect sphinx directives'
