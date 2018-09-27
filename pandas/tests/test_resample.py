@@ -279,12 +279,13 @@ class TestResampleAPI(object):
 
     # TODO: once GH 14008 is fixed, move these tests into
     # `Base` test class
-    def test_agg(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_agg(self, freq):
         # test with all three Resampler apis and TimeGrouper
 
         np.random.seed(1234)
         index = date_range(datetime(2005, 1, 1),
-                           datetime(2005, 1, 10), freq='D')
+                           datetime(2005, 1, 10), freq=freq)
         index.name = 'date'
         df = DataFrame(np.random.rand(10, 2), columns=list('AB'), index=index)
         df_col = df.reset_index()
@@ -369,12 +370,13 @@ class TestResampleAPI(object):
                                                       ('r2', 'B', 'mean'),
                                                       ('r2', 'B', 'sum')])
 
-    def test_agg_misc(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_agg_misc(self, freq):
         # test with all three Resampler apis and TimeGrouper
 
         np.random.seed(1234)
         index = date_range(datetime(2005, 1, 1),
-                           datetime(2005, 1, 10), freq='D')
+                           datetime(2005, 1, 10), freq=freq)
         index.name = 'date'
         df = DataFrame(np.random.rand(10, 2), columns=list('AB'), index=index)
         df_col = df.reset_index()
@@ -473,11 +475,12 @@ class TestResampleAPI(object):
 
             pytest.raises(KeyError, f)
 
-    def test_agg_nested_dicts(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_agg_nested_dicts(self, freq):
 
         np.random.seed(1234)
         index = date_range(datetime(2005, 1, 1),
-                           datetime(2005, 1, 10), freq='D')
+                           datetime(2005, 1, 10), freq=freq)
         index.name = 'date'
         df = DataFrame(np.random.rand(10, 2), columns=list('AB'), index=index)
         df_col = df.reset_index()
@@ -531,10 +534,11 @@ class TestResampleAPI(object):
                                     'y': ['median'],
                                     'z': ['sum']})
 
-    def test_selection_api_validation(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_selection_api_validation(self, freq):
         # GH 13500
         index = date_range(datetime(2005, 1, 1),
-                           datetime(2005, 1, 10), freq='D')
+                           datetime(2005, 1, 10), freq=freq)
 
         rng = np.arange(len(index), dtype=np.int64)
         df = DataFrame({'date': index, 'a': rng},
@@ -1064,10 +1068,11 @@ class TestDatetimeIndex(Base):
         ]}, index=date_range('2014-11-08', freq='17s', periods=2))
         assert_frame_equal(result, expected)
 
-    def test_resample_basic_from_daily(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_basic_from_daily(self, freq):
         # from daily
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D', name='index')
+                            end=datetime(2005, 1, 10), freq=freq, name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -1120,10 +1125,11 @@ class TestDatetimeIndex(Base):
         assert result.iloc[5] == s['1/9/2005']
         assert result.index.name == 'index'
 
-    def test_resample_upsampling_picked_but_not_correct(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_upsampling_picked_but_not_correct(self, freq):
 
         # Test for issue #3020
-        dates = date_range('01-Jan-2014', '05-Jan-2014', freq='D')
+        dates = date_range('01-Jan-2014', '05-Jan-2014', freq=freq)
         series = Series(1, index=dates)
 
         result = series.resample('D').mean()
@@ -1137,7 +1143,7 @@ class TestDatetimeIndex(Base):
         s = Series(np.arange(1., 6), index=[datetime.datetime(
             1975, 1, i, 12, 0) for i in range(1, 6)])
         expected = Series(np.arange(1., 6), index=date_range(
-            '19750101', periods=5, freq='D'))
+            '19750101', periods=5, freq=freq))
 
         result = s.resample('D').count()
         assert_series_equal(result, Series(1, index=expected.index))
@@ -1170,7 +1176,8 @@ class TestDatetimeIndex(Base):
     @pytest.mark.parametrize('loffset', [timedelta(minutes=1),
                                          '1min', Minute(1),
                                          np.timedelta64(1, 'm')])
-    def test_resample_loffset(self, loffset):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_loffset(self, loffset, freq):
         # GH 7687
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
         s = Series(np.random.randn(14), index=rng)
@@ -1185,7 +1192,7 @@ class TestDatetimeIndex(Base):
 
         # from daily
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D')
+                            end=datetime(2005, 1, 10), freq=freq)
         ser = Series(np.random.rand(len(dti)), dti)
 
         # to weekly
@@ -1228,10 +1235,11 @@ class TestDatetimeIndex(Base):
 
         assert_series_equal(result, expected)
 
-    def test_resample_upsample(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_upsample(self, freq):
         # from daily
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D', name='index')
+                            end=datetime(2005, 1, 10), freq=freq, name='index')
 
         s = Series(np.random.rand(len(dti)), dti)
 
@@ -1376,9 +1384,10 @@ class TestDatetimeIndex(Base):
             Period(year=2000, quarter=i + 1, freq='Q') for i in range(4)]
         assert_frame_equal(result, expected)
 
-    def test_resample_reresample(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_reresample(self, freq):
         dti = DatetimeIndex(start=datetime(2005, 1, 1),
-                            end=datetime(2005, 1, 10), freq='D')
+                            end=datetime(2005, 1, 10), freq=freq)
         s = Series(np.random.rand(len(dti)), dti)
         bs = s.resample('B', closed='right', label='right').mean()
         result = bs.resample('8H').mean()
@@ -1522,15 +1531,16 @@ class TestDatetimeIndex(Base):
             expected = ts.resample(freq, closed='left', label='left').mean()
             assert_series_equal(result, expected)
 
-    def test_resample_single_group(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_single_group(self, freq):
         mysum = lambda x: x.sum()
 
-        rng = date_range('2000-1-1', '2000-2-10', freq='D')
+        rng = date_range('2000-1-1', '2000-2-10', freq=freq)
         ts = Series(np.random.randn(len(rng)), index=rng)
         assert_series_equal(ts.resample('M').sum(),
                             ts.resample('M').apply(mysum))
 
-        rng = date_range('2000-1-1', '2000-1-10', freq='D')
+        rng = date_range('2000-1-1', '2000-1-10', freq=freq)
         ts = Series(np.random.randn(len(rng)), index=rng)
         assert_series_equal(ts.resample('M').sum(),
                             ts.resample('M').apply(mysum))
@@ -1702,7 +1712,8 @@ class TestDatetimeIndex(Base):
 
         assert_series_equal(result, exp)
 
-    def test_resample_anchored_intraday(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_anchored_intraday(self, freq):
         # #1471, #1458
 
         rng = date_range('1/1/2012', '4/1/2012', freq='100min')
@@ -1715,7 +1726,7 @@ class TestDatetimeIndex(Base):
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('M', closed='left').mean()
-        exp = df.tshift(1, freq='D').resample('M', kind='period').mean()
+        exp = df.tshift(1, freq=freq).resample('M', kind='period').mean()
         exp = exp.to_timestamp(how='end')
 
         exp.index = exp.index + Timedelta(1, 'ns') - Timedelta(1, 'D')
@@ -1731,8 +1742,8 @@ class TestDatetimeIndex(Base):
         tm.assert_frame_equal(result, expected)
 
         result = df.resample('Q', closed='left').mean()
-        expected = df.tshift(1, freq='D').resample('Q', kind='period',
-                                                   closed='left').mean()
+        expected = df.tshift(1, freq=freq).resample('Q', kind='period',
+                                                    closed='left').mean()
         expected = expected.to_timestamp(how='end')
         expected.index += Timedelta(1, 'ns') - Timedelta(1, 'D')
         tm.assert_frame_equal(result, expected)
@@ -1924,7 +1935,8 @@ class TestDatetimeIndex(Base):
             result = df.groupby(pd.Grouper(freq='M', key='A')).count()
             assert_frame_equal(result, expected)
 
-    def test_resample_nunique(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_nunique(self, freq):
 
         # GH 12352
         df = DataFrame({
@@ -1933,9 +1945,9 @@ class TestDatetimeIndex(Base):
             'DATE': {Timestamp('2015-06-05 00:00:00'): '2015-06-05',
                      Timestamp('2015-06-08 00:00:00'): '2015-06-08'}})
         r = df.resample('D')
-        g = df.groupby(pd.Grouper(freq='D'))
-        expected = df.groupby(pd.Grouper(freq='D')).ID.apply(lambda x:
-                                                             x.nunique())
+        g = df.groupby(pd.Grouper(freq=freq))
+        expected = df.groupby(pd.Grouper(freq=freq)).ID.apply(lambda x:
+                                                              x.nunique())
         assert expected.name == 'ID'
 
         for t in [r, g]:
@@ -1945,7 +1957,7 @@ class TestDatetimeIndex(Base):
         result = df.ID.resample('D').nunique()
         assert_series_equal(result, expected)
 
-        result = df.ID.groupby(pd.Grouper(freq='D')).nunique()
+        result = df.ID.groupby(pd.Grouper(freq=freq)).nunique()
         assert_series_equal(result, expected)
 
     def test_resample_nunique_with_date_gap(self):
@@ -2617,7 +2629,8 @@ class TestPeriodIndex(Base):
         expected = ts.asfreq('W-THU').ffill()
         assert_series_equal(result, expected)
 
-    def test_resample_tz_localized(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_resample_tz_localized(self, freq):
         dr = date_range(start='2012-4-13', end='2012-5-1')
         ts = Series(lrange(len(dr)), dr)
 
@@ -2644,7 +2657,7 @@ class TestPeriodIndex(Base):
         s = Series([1, 2], index=idx)
 
         result = s.resample('D', closed='right', label='right').mean()
-        ex_index = date_range('2001-09-21', periods=1, freq='D',
+        ex_index = date_range('2001-09-21', periods=1, freq=freq,
                               tz='Australia/Sydney')
         expected = Series([1.5], index=ex_index)
 
@@ -3126,9 +3139,10 @@ class TestResamplerGrouper(object):
         result = g.apply(f)
         assert_frame_equal(result, expected)
 
-    def test_apply_with_mutated_index(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_apply_with_mutated_index(self, freq):
         # GH 15169
-        index = pd.date_range('1-1-2015', '12-31-15', freq='D')
+        index = pd.date_range('1-1-2015', '12-31-15', freq=freq)
         df = DataFrame(data={'col1': np.random.rand(len(index))}, index=index)
 
         def f(x):
@@ -3291,7 +3305,8 @@ class TestTimeGrouper(object):
                                         "instance of %r" % name):
                 df.groupby(TimeGrouper('D'))
 
-    def test_aaa_group_order(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_aaa_group_order(self, freq):
         # GH 12840
         # check TimeGrouper perform stable sorts
         n = 20
@@ -3300,7 +3315,7 @@ class TestTimeGrouper(object):
         df['key'] = [datetime(2013, 1, 1), datetime(2013, 1, 2),
                      datetime(2013, 1, 3), datetime(2013, 1, 4),
                      datetime(2013, 1, 5)] * 4
-        grouped = df.groupby(TimeGrouper(key='key', freq='D'))
+        grouped = df.groupby(TimeGrouper(key='key', freq=freq))
 
         tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 1)),
                               df[::5])
@@ -3313,7 +3328,8 @@ class TestTimeGrouper(object):
         tm.assert_frame_equal(grouped.get_group(datetime(2013, 1, 5)),
                               df[4::5])
 
-    def test_aggregate_normal(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_aggregate_normal(self, freq):
         # check TimeGrouper's aggregation is identical as normal groupby
 
         n = 20
@@ -3327,18 +3343,18 @@ class TestTimeGrouper(object):
                         datetime(2013, 1, 5)] * 4
 
         normal_grouped = normal_df.groupby('key')
-        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq=freq))
 
         for func in ['min', 'max', 'prod', 'var', 'std', 'mean']:
             expected = getattr(normal_grouped, func)()
             dt_result = getattr(dt_grouped, func)()
-            expected.index = date_range(start='2013-01-01', freq='D',
+            expected.index = date_range(start='2013-01-01', freq=freq,
                                         periods=5, name='key')
             assert_frame_equal(expected, dt_result)
 
         for func in ['count', 'sum']:
             expected = getattr(normal_grouped, func)()
-            expected.index = date_range(start='2013-01-01', freq='D',
+            expected.index = date_range(start='2013-01-01', freq=freq,
                                         periods=5, name='key')
             dt_result = getattr(dt_grouped, func)()
             assert_frame_equal(expected, dt_result)
@@ -3346,7 +3362,7 @@ class TestTimeGrouper(object):
         # GH 7453
         for func in ['size']:
             expected = getattr(normal_grouped, func)()
-            expected.index = date_range(start='2013-01-01', freq='D',
+            expected.index = date_range(start='2013-01-01', freq=freq,
                                         periods=5, name='key')
             dt_result = getattr(dt_grouped, func)()
             assert_series_equal(expected, dt_result)
@@ -3354,7 +3370,7 @@ class TestTimeGrouper(object):
         # GH 7453
         for func in ['first', 'last']:
             expected = getattr(normal_grouped, func)()
-            expected.index = date_range(start='2013-01-01', freq='D',
+            expected.index = date_range(start='2013-01-01', freq=freq,
                                         periods=5, name='key')
             dt_result = getattr(dt_grouped, func)()
             assert_frame_equal(expected, dt_result)
@@ -3405,7 +3421,8 @@ class TestTimeGrouper(object):
         ('prod', 1),
         ('count', 0),
     ])
-    def test_aggregate_with_nat(self, func, fill_value):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_aggregate_with_nat(self, func, fill_value, freq):
         # check TimeGrouper's aggregation is identical as normal groupby
         # if NaT is included, 'var', 'std', 'mean', 'first','last'
         # and 'nth' doesn't work yet
@@ -3420,7 +3437,7 @@ class TestTimeGrouper(object):
                         datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
 
         normal_grouped = normal_df.groupby('key')
-        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq=freq))
 
         normal_result = getattr(normal_grouped, func)()
         dt_result = getattr(dt_grouped, func)()
@@ -3429,12 +3446,13 @@ class TestTimeGrouper(object):
                         columns=['A', 'B', 'C', 'D'])
         expected = normal_result.append(pad)
         expected = expected.sort_index()
-        expected.index = date_range(start='2013-01-01', freq='D',
+        expected.index = date_range(start='2013-01-01', freq=freq,
                                     periods=5, name='key')
         assert_frame_equal(expected, dt_result)
         assert dt_result.index.name == 'key'
 
-    def test_aggregate_with_nat_size(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_aggregate_with_nat_size(self, freq):
         # GH 9925
         n = 20
         data = np.random.randn(n, 4).astype('int64')
@@ -3446,7 +3464,7 @@ class TestTimeGrouper(object):
                         datetime(2013, 1, 4), datetime(2013, 1, 5)] * 4
 
         normal_grouped = normal_df.groupby('key')
-        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq='D'))
+        dt_grouped = dt_df.groupby(TimeGrouper(key='key', freq=freq))
 
         normal_result = normal_grouped.size()
         dt_result = dt_grouped.size()
@@ -3454,7 +3472,7 @@ class TestTimeGrouper(object):
         pad = Series([0], index=[3])
         expected = normal_result.append(pad)
         expected = expected.sort_index()
-        expected.index = date_range(start='2013-01-01', freq='D',
+        expected.index = date_range(start='2013-01-01', freq=freq,
                                     periods=5, name='key')
         assert_series_equal(expected, dt_result)
         assert dt_result.index.name == 'key'

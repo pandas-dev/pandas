@@ -72,9 +72,10 @@ class TestMultiLevel(Base):
         result = a['A'].append(b['A'])
         tm.assert_series_equal(result, self.frame['A'])
 
-    def test_append_index(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    def test_append_index(self, freq):
         idx1 = Index([1.1, 1.2, 1.3])
-        idx2 = pd.date_range('2011-01-01', freq='D', periods=3,
+        idx2 = pd.date_range('2011-01-01', freq=freq, periods=3,
                              tz='Asia/Tokyo')
         idx3 = Index(['A', 'B', 'C'])
 
@@ -2240,75 +2241,76 @@ Thur,Lunch,Yes,51.51,17"""
         tm.assert_index_equal(df.index.get_level_values(1), idx2)
         tm.assert_index_equal(df.index.get_level_values(2), idx3)
 
-    def test_reset_index_datetime(self):
+    @pytest.mark.parametrize('freq', ['CD', 'D'])
+    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo', 'US/Eastern'])
+    def test_reset_index_datetime(self, freq, tz):
         # GH 3950
-        for tz in ['UTC', 'Asia/Tokyo', 'US/Eastern']:
-            idx1 = pd.date_range('1/1/2011', periods=5, freq='D', tz=tz,
-                                 name='idx1')
-            idx2 = Index(range(5), name='idx2', dtype='int64')
-            idx = MultiIndex.from_arrays([idx1, idx2])
-            df = DataFrame(
-                {'a': np.arange(5, dtype='int64'),
-                 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
+        idx1 = pd.date_range('1/1/2011', periods=5, freq=freq, tz=tz,
+                             name='idx1')
+        idx2 = Index(range(5), name='idx2', dtype='int64')
+        idx = MultiIndex.from_arrays([idx1, idx2])
+        df = DataFrame(
+            {'a': np.arange(5, dtype='int64'),
+             'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
 
-            expected = DataFrame({'idx1': [datetime.datetime(2011, 1, 1),
-                                           datetime.datetime(2011, 1, 2),
-                                           datetime.datetime(2011, 1, 3),
-                                           datetime.datetime(2011, 1, 4),
-                                           datetime.datetime(2011, 1, 5)],
-                                  'idx2': np.arange(5, dtype='int64'),
-                                  'a': np.arange(5, dtype='int64'),
-                                  'b': ['A', 'B', 'C', 'D', 'E']},
-                                 columns=['idx1', 'idx2', 'a', 'b'])
-            expected['idx1'] = expected['idx1'].apply(
-                lambda d: Timestamp(d, tz=tz))
+        expected = DataFrame({'idx1': [datetime.datetime(2011, 1, 1),
+                                       datetime.datetime(2011, 1, 2),
+                                       datetime.datetime(2011, 1, 3),
+                                       datetime.datetime(2011, 1, 4),
+                                       datetime.datetime(2011, 1, 5)],
+                              'idx2': np.arange(5, dtype='int64'),
+                              'a': np.arange(5, dtype='int64'),
+                              'b': ['A', 'B', 'C', 'D', 'E']},
+                             columns=['idx1', 'idx2', 'a', 'b'])
+        expected['idx1'] = expected['idx1'].apply(
+            lambda d: Timestamp(d, tz=tz))
 
-            tm.assert_frame_equal(df.reset_index(), expected)
+        tm.assert_frame_equal(df.reset_index(), expected)
 
-            idx3 = pd.date_range('1/1/2012', periods=5, freq='MS',
-                                 tz='Europe/Paris', name='idx3')
-            idx = MultiIndex.from_arrays([idx1, idx2, idx3])
-            df = DataFrame(
-                {'a': np.arange(5, dtype='int64'),
-                 'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
+        idx3 = pd.date_range('1/1/2012', periods=5, freq='MS',
+                             tz='Europe/Paris', name='idx3')
+        idx = MultiIndex.from_arrays([idx1, idx2, idx3])
+        df = DataFrame(
+            {'a': np.arange(5, dtype='int64'),
+             'b': ['A', 'B', 'C', 'D', 'E']}, index=idx)
 
-            expected = DataFrame({'idx1': [datetime.datetime(2011, 1, 1),
-                                           datetime.datetime(2011, 1, 2),
-                                           datetime.datetime(2011, 1, 3),
-                                           datetime.datetime(2011, 1, 4),
-                                           datetime.datetime(2011, 1, 5)],
-                                  'idx2': np.arange(5, dtype='int64'),
-                                  'idx3': [datetime.datetime(2012, 1, 1),
-                                           datetime.datetime(2012, 2, 1),
-                                           datetime.datetime(2012, 3, 1),
-                                           datetime.datetime(2012, 4, 1),
-                                           datetime.datetime(2012, 5, 1)],
-                                  'a': np.arange(5, dtype='int64'),
-                                  'b': ['A', 'B', 'C', 'D', 'E']},
-                                 columns=['idx1', 'idx2', 'idx3', 'a', 'b'])
-            expected['idx1'] = expected['idx1'].apply(
-                lambda d: Timestamp(d, tz=tz))
-            expected['idx3'] = expected['idx3'].apply(
-                lambda d: Timestamp(d, tz='Europe/Paris'))
-            tm.assert_frame_equal(df.reset_index(), expected)
+        expected = DataFrame({'idx1': [datetime.datetime(2011, 1, 1),
+                                       datetime.datetime(2011, 1, 2),
+                                       datetime.datetime(2011, 1, 3),
+                                       datetime.datetime(2011, 1, 4),
+                                       datetime.datetime(2011, 1, 5)],
+                              'idx2': np.arange(5, dtype='int64'),
+                              'idx3': [datetime.datetime(2012, 1, 1),
+                                       datetime.datetime(2012, 2, 1),
+                                       datetime.datetime(2012, 3, 1),
+                                       datetime.datetime(2012, 4, 1),
+                                       datetime.datetime(2012, 5, 1)],
+                              'a': np.arange(5, dtype='int64'),
+                              'b': ['A', 'B', 'C', 'D', 'E']},
+                             columns=['idx1', 'idx2', 'idx3', 'a', 'b'])
+        expected['idx1'] = expected['idx1'].apply(
+            lambda d: Timestamp(d, tz=tz))
+        expected['idx3'] = expected['idx3'].apply(
+            lambda d: Timestamp(d, tz='Europe/Paris'))
+        tm.assert_frame_equal(df.reset_index(), expected)
 
-            # GH 7793
-            idx = MultiIndex.from_product([['a', 'b'], pd.date_range(
-                '20130101', periods=3, tz=tz)])
-            df = DataFrame(
-                np.arange(6, dtype='int64').reshape(
-                    6, 1), columns=['a'], index=idx)
+        # GH 7793
+        idx = MultiIndex.from_product([['a', 'b'], pd.date_range(
+            '20130101', periods=3, tz=tz)])
+        df = DataFrame(
+            np.arange(6, dtype='int64').reshape(
+                6, 1), columns=['a'], index=idx)
 
-            expected = DataFrame({'level_0': 'a a a b b b'.split(),
-                                  'level_1': [
-                                  datetime.datetime(2013, 1, 1),
-                                  datetime.datetime(2013, 1, 2),
-                                  datetime.datetime(2013, 1, 3)] * 2,
-                                  'a': np.arange(6, dtype='int64')},
-                                 columns=['level_0', 'level_1', 'a'])
-            expected['level_1'] = expected['level_1'].apply(
-                lambda d: Timestamp(d, freq='D', tz=tz))
-            tm.assert_frame_equal(df.reset_index(), expected)
+        expected = DataFrame({'level_0': 'a a a b b b'.split(),
+                              'level_1': [
+                              datetime.datetime(2013, 1, 1),
+                              datetime.datetime(2013, 1, 2),
+                              datetime.datetime(2013, 1, 3)] * 2,
+                              'a': np.arange(6, dtype='int64')},
+                             columns=['level_0', 'level_1', 'a'])
+        expected['level_1'] = expected['level_1'].apply(
+            lambda d: Timestamp(d, freq=freq, tz=tz))
+        tm.assert_frame_equal(df.reset_index(), expected)
 
     def test_reset_index_period(self):
         # GH 7746

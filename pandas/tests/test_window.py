@@ -3548,16 +3548,18 @@ class TestRollingTS(object):
         result = df.rolling('2s', on='C')[['A', 'B', 'C']].sum()
         tm.assert_frame_equal(result, expected)
 
-    def test_basic_regular(self):
+    @pytest.mark.parametrize('freq', ['D', 'CD'])
+    def test_basic_regular(self, freq):
 
         df = self.regular.copy()
 
-        df.index = pd.date_range('20130101', periods=5, freq='D')
+        df.index = pd.date_range('20130101', periods=5, freq=freq)
         expected = df.rolling(window=1, min_periods=1).sum()
         result = df.rolling(window='1D').sum()
         tm.assert_frame_equal(result, expected)
 
-        df.index = pd.date_range('20130101', periods=5, freq='2D')
+        freq = '2' + freq
+        df.index = pd.date_range('20130101', periods=5, freq=freq)
         expected = df.rolling(window=1, min_periods=1).sum()
         result = df.rolling(window='2D', min_periods=1).sum()
         tm.assert_frame_equal(result, expected)

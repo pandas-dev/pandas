@@ -951,11 +951,30 @@ calendar time arithmetic. :class:`CalendarDay` is useful preserving calendar day
 semantics with date times with have day light savings transitions, i.e. :class:`CalendarDay`
 will preserve the hour before the day light savings transition.
 
+Addition with :class:`CalendarDay`:
+
 .. ipython:: python
 
    ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
    ts + pd.offsets.Day(1)
    ts + pd.offsets.CalendarDay(1)
+
+Creating a :func:`date_range`:
+
+.. ipython:: python
+
+   start = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   pd.date_range(start, freq='D', periods=3)
+   pd.date_range(start, freq='CD', periods=3)
+
+Resampling a timeseries:
+
+.. ipython:: python
+
+   idx = pd.date_range("2016-10-30", freq='H', periods=4*24, tz='Europe/Helsinki')
+   s = pd.Series(range(len(idx)), index=idx)
+   s.resample('D').count()
+   s.resample('CD').count()
 
 
 Parametric Offsets
