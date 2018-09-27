@@ -319,12 +319,64 @@ def _na_for_min_count(values, axis):
 
 
 def nanany(values, axis=None, skipna=True, mask=None):
+    """
+    Check if any elements along an axis evaluate to True.
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Returns
+    -------
+    result : bool
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2])
+    >>> nanops.nanany(s)
+    True
+
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([np.nan])
+    >>> nanops.nanany(s)
+    False
+    """
     values, mask, dtype, _ = _get_values(values, skipna, False, copy=skipna,
                                          mask=mask)
     return values.any(axis)
 
 
 def nanall(values, axis=None, skipna=True, mask=None):
+    """
+    Check if all elements along an axis evaluate to True.
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Returns
+    -------
+    result : bool
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2, np.nan])
+    >>> nanops.nanall(s)
+    True
+
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 0])
+    >>> nanops.nanall(s)
+    False
+    """
     values, mask, dtype, _ = _get_values(values, skipna, True, copy=skipna,
                                          mask=mask)
     return values.all(axis)
@@ -332,6 +384,24 @@ def nanall(values, axis=None, skipna=True, mask=None):
 
 @disallow('M8')
 def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
+    """
+    Sum the elements along an axis ignoring NaNs
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    min_count: int
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2, np.nan])
+    >>> nanops.nansum(s)
+    3.0
+    """
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     if is_float_dtype(dtype):
@@ -347,6 +417,23 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
 @disallow('M8')
 @bottleneck_switch()
 def nanmean(values, axis=None, skipna=True, mask=None):
+    """
+    Compute the mean of the element along an axis ignoring NaNs
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2, np.nan])
+    >>> nanops.nanmean(s)
+    1.5
+    """
     values, mask, dtype, dtype_max = _get_values(values, skipna, 0, mask=mask)
     dtype_sum = dtype_max
     dtype_count = np.float64
@@ -372,6 +459,21 @@ def nanmean(values, axis=None, skipna=True, mask=None):
 @disallow('M8')
 @bottleneck_switch()
 def nanmedian(values, axis=None, skipna=True, mask=None):
+    """
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, np.nan, 2, 2])
+    >>> nanops.nanmedian(s)
+    2.0
+    """
     def get_median(x):
         mask = notna(x)
         if not skipna and not mask.all():
@@ -434,17 +536,53 @@ def _get_counts_nanvar(mask, axis, ddof, dtype=float):
 
 @disallow('M8')
 @bottleneck_switch(ddof=1)
-def nanstd(values, axis=None, skipna=True, ddof=1):
-    result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof))
+def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
+    """
+    Compute the standard deviation along given axis while ignoring NaNs
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, np.nan, 2, 3])
+    >>> nanops.nanstd(s)
+    1.0
+    """
+    result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof,
+                            mask=mask))
     return _wrap_results(result, values.dtype)
 
 
 @disallow('M8')
 @bottleneck_switch(ddof=1)
-def nanvar(values, axis=None, skipna=True, ddof=1):
+def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
+    """
+    Compute the variance along given axis while ignoring NaNs
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, np.nan, 2, 3])
+    >>> nanops.nanvar(s)
+    1.0
+    """
     values = com.values_from_object(values)
     dtype = values.dtype
-    mask = isna(values)
+    if mask is None:
+        mask = isna(values)
     if is_any_int_dtype(values):
         values = values.astype('f8')
         values[mask] = np.nan
@@ -480,12 +618,31 @@ def nanvar(values, axis=None, skipna=True, ddof=1):
 
 
 @disallow('M8', 'm8')
-def nansem(values, axis=None, skipna=True, ddof=1):
+def nansem(values, axis=None, skipna=True, ddof=1, mask=None):
+    """
+    Compute the standard error in the mean along given axis while ignoring NaNs
+
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, np.nan, 2, 3])
+    >>> nanops.nansem(s)
+     0.5773502691896258
+    """
+
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
-    nanvar(values, axis, skipna, ddof=ddof)
+    nanvar(values, axis, skipna, ddof=ddof, mask=mask)
 
-    mask = isna(values)
+    if mask is None:
+        mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
     count, _ = _get_counts_nanvar(mask, axis, ddof, values.dtype)
@@ -524,7 +681,23 @@ nanmax = _nanminmax('max', fill_value_typ='-inf')
 @disallow('O')
 def nanargmax(values, axis=None, skipna=True, mask=None):
     """
-    Returns -1 in the NA case
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2, 3, np.nan, 4])
+    >>> nanops.nanargmax(s)
+    4
+
+    Returns
+    --------
+    The index of max value in specified axis or -1 in the NA case
     """
     values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf',
                                          mask=mask)
@@ -536,7 +709,23 @@ def nanargmax(values, axis=None, skipna=True, mask=None):
 @disallow('O')
 def nanargmin(values, axis=None, skipna=True, mask=None):
     """
-    Returns -1 in the NA case
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2, 3, np.nan, 4])
+    >>> nanops.nanargmin(s)
+    0
+
+    Returns
+    --------
+    The index of min value in specified axis or -1 in the NA case
     """
     values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf',
                                          mask=mask)
@@ -546,17 +735,30 @@ def nanargmin(values, axis=None, skipna=True, mask=None):
 
 
 @disallow('M8', 'm8')
-def nanskew(values, axis=None, skipna=True):
+def nanskew(values, axis=None, skipna=True, mask=None):
     """ Compute the sample skewness.
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G1. The algorithm computes this coefficient directly
     from the second and third central moment.
 
-    """
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
 
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1,np.nan, 1, 2])
+    >>> nanops.nanskew(s)
+    1.7320508075688787
+    """
     values = com.values_from_object(values)
-    mask = isna(values)
+    if mask is None:
+        mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
         count = _get_counts(mask, axis)
@@ -605,16 +807,31 @@ def nanskew(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nankurt(values, axis=None, skipna=True):
-    """ Compute the sample excess kurtosis.
+def nankurt(values, axis=None, skipna=True, mask=None):
+    """
+    Compute the sample excess kurtosis
 
     The statistic computed here is the adjusted Fisher-Pearson standardized
     moment coefficient G2, computed directly from the second and fourth
     central moment.
 
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1,np.nan, 1, 3, 2])
+    >>> nanops.nankurt(s)
+    -1.2892561983471076
     """
     values = com.values_from_object(values)
-    mask = isna(values)
+    if mask is None:
+        mask = isna(values)
     if not is_float_dtype(values.dtype):
         values = values.astype('f8')
         count = _get_counts(mask, axis)
@@ -672,8 +889,29 @@ def nankurt(values, axis=None, skipna=True):
 
 
 @disallow('M8', 'm8')
-def nanprod(values, axis=None, skipna=True, min_count=0):
-    mask = isna(values)
+def nanprod(values, axis=None, skipna=True, min_count=0, mask=None):
+    """
+    Parameters
+    ----------
+    values : ndarray
+    axis : int
+    skipna : bool
+    min_count: int
+    mask : ndarray nan-mask if known
+
+    Examples
+    --------
+    >>> import pandas.core.nanops as nanops
+    >>> s = pd.Series([1, 2, 3, np.nan])
+    >>> nanops.nanprod(s)
+    6.0
+
+    Returns
+    --------
+    The product of all elements on a given axis. ( NaNs are treated as 1)
+    """
+    if mask is None:
+        mask = isna(values)
     if skipna and not is_any_int_dtype(values):
         values = values.copy()
         values[mask] = 1
