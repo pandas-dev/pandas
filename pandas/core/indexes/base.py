@@ -315,7 +315,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
-            import pdb; pdb.set_trace()
             data = np.asarray(data)
             if not (dtype is None or is_object_dtype(dtype)):
 
