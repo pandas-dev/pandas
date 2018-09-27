@@ -25,7 +25,7 @@ jobs:
     vmImage: vs2017-win2017
 
 - job: 'Linting'
-  continueOnError: true
+  continueOnError: 'true'
   pool:
     vmImage: ubuntu-16.04
   steps:
@@ -35,7 +35,7 @@ jobs:
       architecture: 'x64'
   - script: python -m pip install flake8
     displayName: 'Installing flake8'
-    continueOnError: false
+    continueOnError: 'false'
   # We're ignoring the following codes across the board
   #E402,  # module level import not at top of file
   #E731,  # do not assign a lambda expression, use a def
@@ -70,7 +70,7 @@ jobs:
 
   - script: python -m pip install cpplint
     displayName: 'Installing cpplint'
-    continueOnError: false
+    continueOnError: 'false'
   # readability/casting: Warnings about C casting instead of C++ casting
   # runtime/int: Warnings about using C number types instead of C++ ones
   # build/include_subdir: Warnings about prefacing included header files with directory
@@ -91,7 +91,7 @@ jobs:
     displayName: 'Linting  pandas/_libs/tslibs/src/datetime'
 
 - job: 'Checks'
-  continueOnError: true
+  continueOnError: 'true'
   pool:
     vmImage: ubuntu-16.04
   steps:
