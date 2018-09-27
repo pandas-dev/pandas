@@ -2777,8 +2777,8 @@ class PythonParser(ParserBase):
         for l in lines:
             # Remove empty lines and lines with only one whitespace value
             if (len(l) > 1 or len(l) == 1 and
-                (not isinstance(l[0], compat.string_types) or
-                 l[0].strip())):
+                    (not isinstance(l[0], compat.string_types) or
+                     l[0].strip())):
                 ret.append(l)
         return ret
 
