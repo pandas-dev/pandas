@@ -111,10 +111,10 @@ jobs:
       versionSpec: '3.7'
       architecture: 'x64'
   # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-  - bash: grep -R --include="*.py*" -E "from pandas.core.common import " pandas || echo 'Check OK'
+  - bash: grep -R --include="*.py*" -E "from pandas.core.common import " pandas ; [ $? == 0 ]
     displayName: 'Check for non-standard imports'
     continueOnError: 'true'
-  - bash: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/ || echo 'Check OK'
+  - script: "! grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/"
     displayName: 'Check for pytest warns'
     continueOnError: 'true'
   # Check for the following code in testing: `np.testing` and `np.array_equal`
