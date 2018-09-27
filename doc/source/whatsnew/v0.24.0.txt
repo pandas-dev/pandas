@@ -534,6 +534,7 @@ Datetimelike API Changes
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 - :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
 - :meth:`DatetimeIndex.to_period` and :meth:`Timestamp.to_period` will issue a warning when timezone information will be lost (:issue:`21333`)
+- :meth:`DataFrame.to_sql` now writes timezone aware datetime data (``datetime64[ns, tz]`` dtype) as timezone unaware local timestamps instead of timezone unaware UTC timestamps for database dialects that don't support the ``TIMESTAMP WITH TIME ZONE`` type. See the :ref:`io.sql_datetime_data` for implications (:issue:`9086`).
 
 .. _whatsnew_0240.api.other:
 
