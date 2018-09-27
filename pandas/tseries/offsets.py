@@ -2182,6 +2182,7 @@ class Day(SingleConstructorOffset):
 
         .. deprecated:: 0.24.0
         """
+        # TODO: Maybe add the deprecation warning here?
         return delta_to_nanoseconds(self.n * self._inc)
 
 
