@@ -838,7 +838,7 @@ def period_range(start=None, end=None, periods=None, freq='D', name=None):
         Right bound for generating periods
     periods : integer, default None
         Number of periods to generate
-    freq : string or DateOffset, default 'D'
+    freq : string or DateOffset, default 'D' (calendar daily)
         Frequency alias
     name : string, default None
         Name of the resulting PeriodIndex

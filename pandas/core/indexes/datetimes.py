@@ -1589,7 +1589,7 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
         Right bound for generating dates.
     periods : integer, optional
         Number of periods to generate.
-    freq : str or DateOffset, default 'D'
+    freq : str or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
