@@ -527,13 +527,12 @@ result : DataFrame
 """
 
 _flex_doc_FRAME = """
-{desc} of dataframe and other, element-wise (binary operator `{op_name}`
-and reverse version `{reverse}`).
+{desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
-Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
-arithmetic operators.
+With reverse version, `{reverse}`. Among flexible wrappers (`add`, `sub`,
+`mul`, `div`, `mod`, `pow`) to arithmetic operators.
 
-Equivalent to `+`, `-`, `*`, `/`, `//`, `%`, **` but with support to
+Equivalent to `+`, `-`, `*`, `/`, `//`, `%`, `**` but with support to
 substitute a fill_value for missing data in one of the inputs.
 
 Parameters
@@ -626,7 +625,7 @@ circle         -1      358
 triangle        2      178
 rectangle       3      358
 
->>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']), 
+>>> df.sub(pd.Series([1, 1, 1], index=['circle', 'triangle', 'rectangle']),
 ...        axis='index')
            angles  degrees
 circle         -1      359
