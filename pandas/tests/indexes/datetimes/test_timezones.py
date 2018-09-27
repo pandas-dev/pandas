@@ -431,7 +431,7 @@ class TestDatetimeIndexTimezones(object):
 
     @pytest.mark.parametrize('idx', [
         date_range(start='2014-01-01', end='2014-12-31', freq='M'),
-        date_range(start='2014-01-01', end='2014-12-31', freq='CD'),
+        date_range(start='2014-01-01', end='2014-12-31', freq='D'),
         date_range(start='2014-01-01', end='2014-03-01', freq='H'),
         date_range(start='2014-08-01', end='2014-10-31', freq='T')
     ])
@@ -1034,7 +1034,7 @@ class TestDateRange(object):
 
         dr = date_range('2012-11-02', periods=10, tz=tzstr)
         result = dr.hour
-        expected = Index([0, 0, 0, 23, 23, 23, 23, 23, 23, 23])
+        expected = Index([0] * 10)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
