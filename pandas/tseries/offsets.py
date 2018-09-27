@@ -2171,6 +2171,19 @@ class Day(SingleConstructorOffset):
         """
         return i + self.n * self._inc
 
+    @property
+    def nanos(self):
+        """
+        Return the number of nanoseconds of this offset.
+
+        Note: This is a patch to allow Timedeltas to interact with Day offsets
+        during the depreciation cycle. Remove this method after full
+        deprecation.
+
+        .. deprecated:: 0.24.0
+        """
+        return delta_to_nanoseconds(self.n * self._inc)
+
 
 # ---------------------------------------------------------------------
 # Ticks
