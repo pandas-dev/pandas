@@ -2775,19 +2775,10 @@ class PythonParser(ParserBase):
 
         ret = []
         for l in lines:
-            # Remove blank lines if they're not headers of the
-            # form ['', '', ... ]
-            if not self.line_pos == 0\
-                    and ''.join([str(x) for x in l]).strip() != '':
-                ret.append(l)
-            # Remove header lines that are empty or with only one
-            # whitespace value
-            elif self.line_pos == 0\
-                    and (
-                        len(l) > 1 or len(l) == 1
-                        and (not isinstance(l[0],
-                             compat.string_types) or l[0].strip())
-                    ):
+            # Remove empty lines and lines with only one whitespace value
+            if (len(l) > 1 or len(l) == 1 and
+                (not isinstance(l[0], compat.string_types) or
+                 l[0].strip())):
                 ret.append(l)
         return ret
 
@@ -3477,3 +3468,22 @@ class FixedWidthFieldParser(PythonParser):
     def _make_reader(self, f):
         self.data = FixedWidthReader(f, self.colspecs, self.delimiter,
                                      self.comment, self.skiprows)
+
+    def _remove_empty_lines(self, lines):
+        ret = []
+        for l in lines:
+            # Remove blank lines if they're not headers of the
+            # form ['', '', ... ]
+            if not self.line_pos == 0\
+                    and ''.join([str(x) for x in l]).strip() != '':
+                ret.append(l)
+            # Remove header lines that are empty or with only one
+            # whitespace value
+            elif self.line_pos == 0 \
+                    and (
+                        len(l) > 1 or len(l) == 1
+                        and (not isinstance(l[0],
+                             compat.string_types) or l[0].strip())
+                    ):
+                ret.append(l)
+        return ret
