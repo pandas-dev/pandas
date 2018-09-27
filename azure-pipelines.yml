@@ -65,10 +65,6 @@ jobs:
   - script: flake8 scripts --filename=*.py --ignore=C408,E402,E731,E741,W503
     displayName: 'Linting scripts'
     continueOnError: 'true'
-  # TODO I think flake8 the scripts directory already checks the scripts/tests
-  # will remove later
-  #- script: flake8 scripts/tests --filename=*.py
-  #  displayName: 'Linting scripts tests'
   - script: flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
     displayName: 'Linting asv benchmarks'
     continueOnError: 'true'
@@ -114,7 +110,7 @@ jobs:
   - script: grep -R --include="*.py*" -E "from pandas.core.common import " pandas ; [ $? != 0 ]
     displayName: 'Check for non-standard imports'
     continueOnError: 'true'
-  - script: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+  - script: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/ ; [ $? != 0 ]
     displayName: 'Check for pytest warns'
     continueOnError: 'true'
   # Check for the following code in testing: `np.testing` and `np.array_equal`
