@@ -603,3 +603,25 @@ class TestDatetimeIndex(object):
         # GH#20464
         index = DatetimeIndex(['1/3/2000', 'NaT'])
         assert index.get_loc(pd.NaT) == 1
+
+    @pytest.mark.parametrize('ind1', [[True] * 5, pd.Index([True] * 5)])
+    @pytest.mark.parametrize('ind2', [[True, False, True, False, False],
+                                      pd.Index([True, False, True, False,
+                                                False])])
+    def test_getitem_bool_index_all(self, ind1, ind2):
+        # GH#22533
+        idx = pd.date_range('2011-01-01', '2011-01-05', freq='D', name='idx')
+        tm.assert_index_equal(idx[ind1], idx)
+
+        expected = pd.DatetimeIndex(['2011-01-01', '2011-01-03'], name='idx')
+        tm.assert_index_equal(idx[ind2], expected)
+
+    @pytest.mark.parametrize('ind1', [[True], pd.Index([True])])
+    @pytest.mark.parametrize('ind2', [[False], pd.Index([False])])
+    def test_getitem_bool_index_single(self, ind1, ind2):
+        # GH#22533
+        idx = pd.DatetimeIndex(['2011-01-01'], name='idx')
+        tm.assert_index_equal(idx[ind1], idx)
+
+        expected = pd.DatetimeIndex([], name='idx')
+        tm.assert_index_equal(idx[ind2], expected)

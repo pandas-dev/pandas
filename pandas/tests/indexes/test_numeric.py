@@ -839,6 +839,28 @@ class TestInt64Index(NumericInt):
         tm.assert_numpy_array_equal(lidx, elidx)
         tm.assert_numpy_array_equal(ridx, eridx)
 
+    @pytest.mark.parametrize('ind1', [[True] * 5, pd.Index([True] * 5)])
+    @pytest.mark.parametrize('ind2', [[True, False, True, False, False],
+                                      pd.Index([True, False, True, False,
+                                                False])])
+    def test_getitem_bool_index_all(self, ind1, ind2):
+        # GH#22533
+        idx = pd.Int64Index([1, 2, 3, 4, 5], name='idx')
+        tm.assert_index_equal(idx[ind1], idx)
+
+        expected = pd.Int64Index([1, 3], name='idx')
+        tm.assert_index_equal(idx[ind2], expected)
+
+    @pytest.mark.parametrize('ind1', [[True], pd.Index([True])])
+    @pytest.mark.parametrize('ind2', [[False], pd.Index([False])])
+    def test_getitem_bool_index_single(self, ind1, ind2):
+        # GH#22533
+        idx = pd.Int64Index([1], name='idx')
+        tm.assert_index_equal(idx[ind1], idx)
+
+        expected = pd.Int64Index([], name='idx')
+        tm.assert_index_equal(idx[ind2], expected)
+
 
 class TestUInt64Index(NumericInt):
 
