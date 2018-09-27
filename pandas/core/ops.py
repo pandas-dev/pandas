@@ -1665,6 +1665,8 @@ def dispatch_to_series(left, right, func, str_rep=None, axis=None):
                     for i in range(len(a.columns))}
 
     elif isinstance(right, ABCSeries) and axis == "columns":
+        # We only get here if called via left._combine_match_columns,
+        # in which case we specifically want to operate row-by-row
         assert right.index.equals(left.columns)
 
         def column_op(a, b):
