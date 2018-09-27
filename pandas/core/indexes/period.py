@@ -407,15 +407,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def _formatter_func(self):
         return lambda x: "'%s'" % x
 
-    def _format_attrs(self):
-        # TODO: this is (always?) redundant with dtype
-        attrs = super(DatetimeIndexOpsMixin, self)._format_attrs()
-        freq = self.freqstr
-        if freq is not None:
-            freq = "'%s'" % freq
-        attrs.append(('freq', freq))
-        return attrs
-
     def asof_locs(self, where, mask):
         """
         where : array of timestamps
