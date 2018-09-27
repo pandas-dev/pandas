@@ -100,21 +100,21 @@ jobs:
       versionSpec: '3.7'
       architecture: 'x64'
   # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-  - script: grep -R --include="*.py*" -E "from pandas.core.common import " pandas
+  - script: ! grep -R --include="*.py*" -E "from pandas.core.common import " pandas
     displayName: 'Check for non-standard imports'
-  - script: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+  - script: ! grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     displayName: 'Check for pytest warns'
   # Check for the following code in testing: `np.testing` and `np.array_equal`
-  - script: grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
+  - script: ! grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
     displayName: 'Check for invalid testing'
   # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
-  - script: grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
+  - script: ! grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
     displayName: 'Check for invalid EA testing'
-  - script: grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+  - script: ! grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     displayName: 'Check for deprecated messages without sphinx directive'
-  - script: grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+  - script: ! grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
     displayName: 'Check for old-style classes'
-  - script: grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
+  - script: ! grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     displayName: 'Check for backticks incorrectly rendering because of missing spaces'
   # TODO the next 2 commands are the same changing just the path, we should avoid repeating
   # them, and have kind of loop thing
@@ -124,7 +124,7 @@ jobs:
   #   "autosummary|contents|currentmodule|deprecated|function|image|"\
   #   "important|include|ipython|literalinclude|math|module|note|raw|"\
   #   "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
-  - script: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas
+  - script: ! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas
     displayName: 'Check for incorrect sphinx directives (./pandas)'
-  - script: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source
+  - script: ! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source
     displayName: 'Check for incorrect sphinx directives (./doc/source)'
