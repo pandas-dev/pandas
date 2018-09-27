@@ -508,11 +508,10 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         -------
         shifted : Period Array/Index
         """
-        # TODO: ensure we match EA semantics, not PeriodIndex
-        values = self._ndarray_values + periods * self.freq.n
-        if self.hasnans:
-            values[self._isnan] = iNaT
-        return self._shallow_copy(values=values)
+        # TODO: remove from DatetimeLikeArrayMixin
+        # The semantics for Index.shift differ from EA.shift
+        # then just call super.
+        return ExtensionArray.shift(self, periods)
 
     def _maybe_convert_timedelta(self, other):
         """

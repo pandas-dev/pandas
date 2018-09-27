@@ -337,8 +337,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """
         # TODO: docs
         # Note, this differs from the definition of ExtensionArray.shift
-        # 1. EA.shift takes a single `periods` argument, this accepts array
-        # 2. This accepts a `freq` argument
         # so we don't dispatch
         values = self._ndarray_values + n * self.freq.n
         if self.hasnans:
