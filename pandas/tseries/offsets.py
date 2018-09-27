@@ -41,7 +41,7 @@ __all__ = ['Day', 'BusinessDay', 'BDay', 'CustomBusinessDay', 'CDay',
            'LastWeekOfMonth', 'FY5253Quarter', 'FY5253',
            'Week', 'WeekOfMonth', 'Easter',
            'Hour', 'Minute', 'Second', 'Milli', 'Micro', 'Nano',
-           'DateOffset', 'CalendarDay']
+           'DateOffset']
 
 # convert to/from datetime/timestamp to allow invalid Timestamp ranges to
 # pass thru
@@ -2124,14 +2124,15 @@ class Easter(DateOffset):
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 
-class CalendarDay(SingleConstructorOffset):
+class Day(SingleConstructorOffset):
     """
-    Calendar day offset. Respects calendar arithmetic as opposed to Day which
-    respects absolute time.
+    Day offset representing a calendar day. Respects calendar day arithmetic
+    in the midst of daylight savings time transitions; therefore, Day does not
+    necessarily equate to 24 hours.
     """
     _adjust_dst = True
     _inc = Timedelta(days=1)
-    _prefix = 'CD'
+    _prefix = 'D'
     _attributes = frozenset(['n', 'normalize'])
 
     def __init__(self, n=1, normalize=False):
@@ -2140,11 +2141,11 @@ class CalendarDay(SingleConstructorOffset):
     @apply_wraps
     def apply(self, other):
         """
-        Apply scalar arithmetic with CalendarDay offset. Incoming datetime
+        Apply scalar arithmetic with Day offset. Incoming datetime
         objects can be tz-aware or naive.
         """
         if type(other) == type(self):
-            # Add other CalendarDays
+            # Add other Days
             return type(self)(self.n + other.n, normalize=self.normalize)
         tzinfo = getattr(other, 'tzinfo', None)
         if tzinfo is not None:
@@ -2160,12 +2161,12 @@ class CalendarDay(SingleConstructorOffset):
             return as_timestamp(other)
         except TypeError:
             raise TypeError("Cannot perform arithmetic between {other} and "
-                            "CalendarDay".format(other=type(other)))
+                            "Day".format(other=type(other)))
 
     @apply_index_wraps
     def apply_index(self, i):
         """
-        Apply the CalendarDay offset to a DatetimeIndex. Incoming DatetimeIndex
+        Apply the Day offset to a DatetimeIndex. Incoming DatetimeIndex
         objects are assumed to be tz_naive
         """
         return i + self.n * self._inc
@@ -2300,11 +2301,6 @@ def _delta_to_tick(delta):
             return Micro(nanos // 1000)
         else:  # pragma: no cover
             return Nano(nanos)
-
-
-class Day(Tick):
-    _inc = Timedelta(days=1)
-    _prefix = 'D'
 
 
 class Hour(Tick):
@@ -2455,5 +2451,4 @@ prefix_mapping = {offset._prefix: offset for offset in [
     WeekOfMonth,               # 'WOM'
     FY5253,
     FY5253Quarter,
-    CalendarDay                # 'CD'
 ]}
