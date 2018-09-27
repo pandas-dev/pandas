@@ -27,8 +27,7 @@ from pandas.core.tools.datetimes import parse_time_string
 from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex, Timedelta
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                        DIFFERENT_FREQ_INDEX,
-                                        _validate_end_alias)
+                                        DIFFERENT_FREQ_INDEX)
 from pandas._libs.tslibs import resolution, period
 
 from pandas.core.arrays.period import PeriodArray
@@ -146,6 +145,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
+    _delegated_to = PeriodArray
 
     # define my properties & methods for delegation
     _other_ops = []
@@ -285,6 +285,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def shape(self):
         # Avoid materializing self._values
         return self._data.shape
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
+        return self._data._format_native_types(na_rep=na_rep,
+                                               date_format=date_format)
     # ------------------------------------------------------------------------
     # Dispatch and Wrap
 
@@ -515,29 +519,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         -------
         DatetimeIndex
         """
-        how = _validate_end_alias(how)
-
-        end = how == 'E'
-        if end:
-            if freq == 'B':
-                # roll forward to ensure we land on B date
-                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
-                return self.to_timestamp(how='start') + adjust
-            else:
-                adjust = Timedelta(1, 'ns')
-                return (self + 1).to_timestamp(how='start') - adjust
-
-        if freq is None:
-            base, mult = _gfc(self.freq)
-            freq = frequencies.get_to_timestamp_base(base)
-        else:
-            freq = Period._maybe_convert_freq(freq)
-
-        base, mult = _gfc(freq)
-        new_data = self.asfreq(freq, how)
-
-        new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
-        return DatetimeIndex(new_data, freq='infer', name=self.name)
+        result = self._data.to_timestamp(freq=freq, how=how)
+        return DatetimeIndex(result, freq='infer', name=self.name)
 
     @property
     def inferred_type(self):
@@ -780,25 +763,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             rawarr = PeriodIndex._from_ordinals(rawarr, freq=self.freq,
                                                 name=self.name)
         return rawarr
-
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-
-        values = self.astype(object).values
-
-        if date_format:
-            formatter = lambda dt: dt.strftime(date_format)
-        else:
-            formatter = lambda dt: u'%s' % dt
-
-        if self.hasnans:
-            mask = self._isnan
-            values[mask] = na_rep
-            imask = ~mask
-            values[imask] = np.array([formatter(dt) for dt
-                                      in values[imask]])
-        else:
-            values = np.array([formatter(dt) for dt in values])
-        return values
 
     def __setstate__(self, state):
         """Necessary for making this object picklable"""

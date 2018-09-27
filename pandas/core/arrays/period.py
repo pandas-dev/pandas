@@ -4,11 +4,13 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import Timedelta
 from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
 from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
-    get_period_field_arr, period_asfreq_arr)
+    get_period_field_arr, period_asfreq_arr,
+    _validate_end_alias)
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
@@ -565,6 +567,62 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         raise TypeError('{0}(...) must be called with a collection of some '
                         'kind, {1} was passed'.format(cls.__name__,
                                                       repr(data)))
+
+    def _format_native_types(self, na_rep=u'NaT', date_format=None):
+        values = self.astype(object)
+
+        if date_format:
+            formatter = lambda dt: dt.strftime(date_format)
+        else:
+            formatter = lambda dt: u'%s' % dt
+
+        if self.hasnans:
+            mask = self._isnan
+            values[mask] = na_rep
+            imask = ~mask
+            values[imask] = np.array([formatter(dt) for dt
+                                      in values[imask]])
+        else:
+            values = np.array([formatter(dt) for dt in values])
+        return values
+
+    # Delegation...
+    def strftime(self, date_format):
+        return self._format_native_types(date_format=date_format)
+
+    def to_timestamp(self, freq=None, how='start'):
+        how = _validate_end_alias(how)
+
+        end = how == 'E'
+        if end:
+            if freq == 'B':
+                # roll forward to ensure we land on B date
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + 1).to_timestamp(how='start') - adjust
+
+        if freq is None:
+            base, mult = _gfc(self.freq)
+            freq = frequencies.get_to_timestamp_base(base)
+        else:
+            freq = Period._maybe_convert_freq(freq)
+
+        base, mult = _gfc(freq)
+        new_data = self.asfreq(freq, how)
+
+        new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
+                                                  base)
+        return new_data
+
+    @property
+    def start_time(self):
+        return self.to_timestamp(how='start')
+
+    @property
+    def end_time(self):
+        return self.to_timestamp(how='end')
 
 
 PeriodArray._add_comparison_ops()
