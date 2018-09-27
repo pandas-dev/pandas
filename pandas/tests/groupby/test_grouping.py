@@ -4,7 +4,6 @@
 
 import pytest
 
-from warnings import catch_warnings
 from pandas import (date_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series, CategoricalIndex)
 from pandas.util.testing import (assert_panel_equal, assert_frame_equal,
@@ -557,15 +556,15 @@ class TestGrouping():
 
 class TestGetGroup():
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_get_group(self):
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            grouped = wp.groupby(lambda x: x.month, axis='major')
+        wp = tm.makePanel()
+        grouped = wp.groupby(lambda x: x.month, axis='major')
 
-            gp = grouped.get_group(1)
-            expected = wp.reindex(
-                major=[x for x in wp.major_axis if x.month == 1])
-            assert_panel_equal(gp, expected)
+        gp = grouped.get_group(1)
+        expected = wp.reindex(
+            major=[x for x in wp.major_axis if x.month == 1])
+        assert_panel_equal(gp, expected)
 
         # GH 5267
         # be datelike friendly
@@ -743,18 +742,18 @@ class TestIteration():
         for key, group in grouped:
             pass
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_multi_iter_panel(self):
-        with catch_warnings(record=True):
-            wp = tm.makePanel()
-            grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
-                                 axis=1)
+        wp = tm.makePanel()
+        grouped = wp.groupby([lambda x: x.month, lambda x: x.weekday()],
+                             axis=1)
 
-            for (month, wd), group in grouped:
-                exp_axis = [x
-                            for x in wp.major_axis
-                            if x.month == month and x.weekday() == wd]
-                expected = wp.reindex(major=exp_axis)
-                assert_panel_equal(group, expected)
+        for (month, wd), group in grouped:
+            exp_axis = [x
+                        for x in wp.major_axis
+                        if x.month == month and x.weekday() == wd]
+            expected = wp.reindex(major=exp_axis)
+            assert_panel_equal(group, expected)
 
     def test_dictify(self, df):
         dict(iter(df.groupby('A')))

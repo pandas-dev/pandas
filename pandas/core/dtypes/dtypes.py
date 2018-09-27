@@ -462,6 +462,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """Whether the categories have an ordered relationship"""
         return self._ordered
 
+    @property
+    def _is_boolean(self):
+        from pandas.core.dtypes.common import is_bool_dtype
+
+        return is_bool_dtype(self.categories)
+
 
 class DatetimeTZDtypeType(type):
     """

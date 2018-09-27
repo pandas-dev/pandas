@@ -860,8 +860,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 if isinstance(this, DatetimeIndex):
                     this._tz = timezones.tz_standardize(tz)
 
-        if this.freq is None:
-            this.freq = to_offset(this.inferred_freq)
         return this
 
     def join(self, other, how='left', level=None, return_indexers=False,

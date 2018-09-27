@@ -92,6 +92,7 @@ class TestDatetimeParsingWrappers(object):
             assert result1 == expected
 
 
+@pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
@@ -160,6 +161,8 @@ class TestGuessDatetimeFormat(object):
             ('2011-1-1 00:00:00', '%Y-%m-%d %H:%M:%S'),
             ('2011-1-1 0:0:0', '%Y-%m-%d %H:%M:%S'),
             ('2011-1-3T00:00:0', '%Y-%m-%dT%H:%M:%S')])
+    # https://github.com/pandas-dev/pandas/issues/21322 for _timelex
+    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
     def test_guess_datetime_format_nopadding(self, string, format):
         # GH 11142
         result = parsing._guess_datetime_format(string)

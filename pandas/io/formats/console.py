@@ -21,7 +21,7 @@ def detect_console_encoding():
     encoding = None
     try:
         encoding = sys.stdout.encoding or sys.stdin.encoding
-    except AttributeError:
+    except (AttributeError, IOError):
         pass
 
     # try again for something better

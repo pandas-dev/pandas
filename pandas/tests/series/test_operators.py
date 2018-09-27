@@ -14,6 +14,7 @@ from pandas import (Index, Series, DataFrame, isna, bdate_range,
                     NaT, date_range, timedelta_range, Categorical)
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.core.nanops as nanops
+from pandas.core import ops
 
 from pandas.compat import range
 from pandas import compat
@@ -601,6 +602,42 @@ class TestSeriesOperators(TestData):
 
         expected = Series(expected, name=0)
         result = (dt2.to_frame() - dt.to_frame())[0]
+        assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('op', [
+        operator.and_,
+        operator.or_,
+        operator.xor,
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=ValueError, strict=True)),
+        pytest.param(ops.rxor,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=TypeError, strict=True))
+    ])
+    def test_bool_ops_with_index(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Series([op(ser[n], idx1[n]) for n in range(len(ser))])
+
+        result = op(ser, idx1)
+        assert_series_equal(result, expected)
+
+        expected = Series([op(ser[n], idx2[n]) for n in range(len(ser))],
+                          dtype=bool)
+
+        result = op(ser, idx2)
         assert_series_equal(result, expected)
 
     def test_operators_bitwise(self):
