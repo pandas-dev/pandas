@@ -2076,9 +2076,8 @@ class GroupBy(_GroupBy):
                                                      limit=limit, freq=freq,
                                                      axis=axis))
         if fill_method:
-            new = copy.copy(self)
+            new = self
             new.obj = getattr(new, fill_method)(limit=limit)
-            new._reset_cache()
         else:
             new = self
 
@@ -3948,14 +3947,11 @@ class SeriesGroupBy(GroupBy):
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
         """Calcuate pct_change of each value to previous entry in group"""
         if fill_method:
-            new = SeriesGroupBy(self.obj, grouper=self.grouper)
-            new.obj = getattr(new, fill_method)(limit=limit)
-            new._reset_cache()
-        else:
-            new = self
+            self.obj = getattr(self, fill_method)(limit=limit)
+            self._reset_cache('_selected_obj')
 
-        shifted = new.shift(periods=periods, freq=freq)
-        return (new.obj / shifted) - 1
+        shifted = self.shift(periods=periods, freq=freq)
+        return (self.obj / shifted) - 1
 
 
 class NDFrameGroupBy(GroupBy):

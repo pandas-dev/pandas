@@ -722,7 +722,6 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
 
 
 @pytest.mark.parametrize("test_series", [True, False])
-@pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, None, None), (1, None, 1),
     (1, 'ffill', None), (1, 'ffill', 1),
@@ -730,15 +729,12 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
     (-1, 'ffill', None), (-1, 'ffill', 1),
     (-1, 'bfill', None), (-1, 'bfill', 1),
 ])
-def test_pct_change(test_series, shuffle, periods, fill_method, limit):
+def test_pct_change(test_series, periods, fill_method, limit):
     # GH  21200, 21621
     vals = [3, np.nan, np.nan, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ['a', 'b']
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({'key': key_v, 'vals': vals * 2})
-    if shuffle:
-        order = np.random.RandomState(seed=42).permutation(len(df))
-        df = df.reindex(order).reset_index(drop=True)
 
     if fill_method:
         df_g = getattr(df.groupby('key'), fill_method)(limit=limit)
@@ -747,18 +743,17 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
         grp = df.groupby('key')
 
     expected = grp['vals'].obj / grp['vals'].shift(periods) - 1
-    expected = expected.to_frame('vals')
 
     if test_series:
         result = df.groupby('key')['vals'].pct_change(periods=periods,
                                                       fill_method=fill_method,
                                                       limit=limit)
-        tm.assert_series_equal(result, expected.loc[:, 'vals'])
+        tm.assert_series_equal(result, expected)
     else:
         result = df.groupby('key').pct_change(periods=periods,
                                               fill_method=fill_method,
                                               limit=limit)
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected.to_frame('vals'))
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
