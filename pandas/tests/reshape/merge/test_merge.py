@@ -607,15 +607,15 @@ class TestMerge(object):
             '2017-10-29 01:00', periods=4, freq='H', tz='Europe/Madrid'),
             columns=['date'])
         df1['value'] = 1
-        df2 = pd.DataFrame([
-            pd.to_datetime('2017-10-29 03:00:00'),
-            pd.to_datetime('2017-10-29 04:00:00'),
-            pd.to_datetime('2017-10-29 05:00:00')
-        ],
-            columns=['date'])
+        df2 = pd.DataFrame({
+            'date': pd.to_datetime([
+                '2017-10-29 03:00:00', '2017-10-29 04:00:00',
+                '2017-10-29 05:00:00'
+            ]),
+            'value': 2
+        })
         df2['date'] = df2['date'].dt.tz_localize('UTC').dt.tz_convert(
             'Europe/Madrid')
-        df2['value'] = 2
         result = pd.merge(df1, df2, how='outer', on='date')
         expected = pd.DataFrame({
             'date': pd.date_range(
