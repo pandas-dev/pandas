@@ -111,27 +111,27 @@ jobs:
       versionSpec: '3.7'
       architecture: 'x64'
   # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-  - bash: grep -R --include="*.py*" -E "from pandas.core.common import " pandas ; [ $? == 0 ]
+  - script: grep -R --include="*.py*" -E "from pandas.core.common import " pandas ; [ $? != 0 ]
     displayName: 'Check for non-standard imports'
     continueOnError: 'true'
   - script: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     displayName: 'Check for pytest warns'
     continueOnError: 'true'
   # Check for the following code in testing: `np.testing` and `np.array_equal`
-  - bash: grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/ || echo 'Check OK'
+  - script: grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/ ; [ $? != 0 ]
     displayName: 'Check for invalid testing'
     continueOnError: 'true'
   # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
-  - bash: grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base || echo 'Check OK'
+  - script: grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base ; [ $? != 0 ]
     displayName: 'Check for invalid EA testing'
     continueOnError: 'true'
-  - bash: grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas || echo 'Check OK'
+  - script: grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas ; [ $? != 0 ]
     displayName: 'Check for deprecated messages without sphinx directive'
     continueOnError: 'true'
-  - bash: grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts || echo 'Check OK'
+  - script: grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts ; [ $? != 0 ]
     displayName: 'Check for old-style classes'
     continueOnError: 'true'
-  - bash: grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/ || echo 'Check OK'
+  - script: grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/ ; [ $? != 0 ]
     displayName: 'Check for backticks incorrectly rendering because of missing spaces'
     continueOnError: 'true'
   # TODO the next 2 commands are the same changing just the path, we should avoid repeating
@@ -142,8 +142,8 @@ jobs:
   #   "autosummary|contents|currentmodule|deprecated|function|image|"\
   #   "important|include|ipython|literalinclude|math|module|note|raw|"\
   #   "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
-  - bash: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas || echo 'Check OK'
+  - script: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas ; [ $? != 0 ]
     displayName: 'Check for incorrect sphinx directives (./pandas)'
     continueOnError: 'true'
-  - bash: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source || echo 'Check OK'
+  - script: grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source ; [ $? != 0 ]
     displayName: 'Check for incorrect sphinx directives (./doc/source)'

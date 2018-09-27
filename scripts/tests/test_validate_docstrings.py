@@ -7,7 +7,7 @@ import validate_docstrings
 validate_one = validate_docstrings.validate_one
 
 from pandas.util.testing import capture_stderr
-
+# FIXME adding this line, and making it longer than 80 characters, so the linting fail, and it shows whether this directory is really being tested twice
 
 class GoodDocStrings(object):
     """
