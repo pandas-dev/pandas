@@ -653,9 +653,9 @@ def nansem(values, axis=None, skipna=True, ddof=1, mask=None):
 
 def _nanminmax(meth, fill_value_typ):
     @bottleneck_switch()
-    def reduction(values, axis=None, skipna=True):
+    def reduction(values, axis=None, skipna=True, mask=None):
         values, mask, dtype, dtype_max = _get_values(
-            values, skipna, fill_value_typ=fill_value_typ, )
+            values, skipna, fill_value_typ=fill_value_typ, mask=mask)
 
         if ((axis is not None and values.shape[axis] == 0) or
                 values.size == 0):
