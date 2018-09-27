@@ -782,8 +782,8 @@ class DataFrame(NDFrame):
         r"""
         Iterator over (column name, Series) pairs.
 
-        Iterates over the DataFrame columns, returning a tuple with the column name
-        and the content as a Series.
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
 
         Yields
         ------
@@ -794,8 +794,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
 
         Examples
         --------
