@@ -112,6 +112,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     All elements in the PeriodArray have the same `freq`.
     """
     _attributes = ["freq"]
+    _typ = "period"  # ABCPeriodArray
     # --------------------------------------------------------------------
     # Constructors
 

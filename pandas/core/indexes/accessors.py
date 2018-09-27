@@ -1,12 +1,5 @@
 """
 datetimelike delegation
-
-Hmm OK.
-
-We want a couple of dispatches...
-
--
-
 """
 
 import numpy as np
@@ -53,7 +46,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
         else:
             if is_period_arraylike(data):
-                return PeriodArray(data, copy=False, name=self.name)
+                return PeriodArray(data, copy=False)
             if is_datetime_arraylike(data):
                 return DatetimeIndex(data, copy=False, name=self.name)
 
