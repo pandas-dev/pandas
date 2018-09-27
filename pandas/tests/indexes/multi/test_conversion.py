@@ -169,3 +169,10 @@ def test_to_series_with_arguments(idx):
     assert s.values is not idx.values
     assert s.index is not idx
     assert s.name != idx.name
+
+
+def test_to_index(idx):
+    expected = pd.Index([('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
+                         ('baz', 'two'), ('qux', 'one'), ('qux', 'two')])
+    result = idx.to_index()
+    tm.assert_index_equal(result, expected)
