@@ -25,7 +25,7 @@ jobs:
     vmImage: vs2017-win2017
 
 - job: 'Linting'
-  continueOnError: 'true'
+  continueOnError: 'true'  # XXX this doesn't seem to be working, specifying in each step
   pool:
     vmImage: ubuntu-16.04
   steps:
@@ -55,18 +55,23 @@ jobs:
     continueOnError: true
   - script: flake8 pandas/src --filename=*.pxi.in --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     displayName: 'Linting *.pxi.in'
+    continueOnError: 'true'
   - script: flake8 pandas/_libs --filename=*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     displayName: 'Linting *.pxd'
+    continueOnError: 'true'
   - script: flake8 setup.py --ignore=E402,E731,E741,W503
     displayName: 'Linting setup.py'
+    continueOnError: 'true'
   - script: flake8 scripts --filename=*.py --ignore=C408,E402,E731,E741,W503
     displayName: 'Linting scripts'
+    continueOnError: 'true'
   # TODO I think flake8 the scripts directory already checks the scripts/tests
   # will remove later
   #- script: flake8 scripts/tests --filename=*.py
   #  displayName: 'Linting scripts tests'
   - script: flake8 asv_bench/benchmarks/  --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
     displayName: 'Linting asv benchmarks'
+    continueOnError: 'true'
   - script: flake8 doc/make.py doc/source/conf.py --ignore=E402,E731,E741,W503
     displayName: 'Linting doc scripts'
 
@@ -85,15 +90,18 @@ jobs:
   # them, and have kind of loop thing
   - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/*.h
     displayName: 'Linting *.c and *.h (*.h)'
+    continueOnError: 'true'
   - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/parser
     displayName: 'Linting *.c and *.h (parser)'
+    continueOnError: 'true'
   - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/src/ujson
     displayName: 'Linting *.c and *.h (ujson)'
+    continueOnError: 'true'
   - script: cpplint --quiet --extensions=c,h --headers=h --filter=-readability/casting,-runtime/int,-build/include_subdir --recursive pandas/_libs/tslibs/src/datetime
     displayName: 'Linting  pandas/_libs/tslibs/src/datetime'
 
 - job: 'Checks'
-  continueOnError: 'true'
+  continueOnError: 'true'  # XXX this doesn't seem to be working, specifying in each step
   pool:
     vmImage: ubuntu-16.04
   steps:
@@ -102,22 +110,29 @@ jobs:
       versionSpec: '3.7'
       architecture: 'x64'
   # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
-  - script: \! grep -R --include="*.py*" -E "from pandas.core.common import " pandas
+  - bash: \! grep -R --include="*.py*" -E "from pandas.core.common import " pandas
     displayName: 'Check for non-standard imports'
-  - script: \! grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
+    continueOnError: 'true'
+  - bash: \! grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/
     displayName: 'Check for pytest warns'
+    continueOnError: 'true'
   # Check for the following code in testing: `np.testing` and `np.array_equal`
-  - script: \! grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
+  - bash: \! grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/
     displayName: 'Check for invalid testing'
+    continueOnError: 'true'
   # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
-  - script: \! grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
+  - bash: \! grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
     displayName: 'Check for invalid EA testing'
-  - script: \! grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
+    continueOnError: 'true'
+  - bash: \! grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas
     displayName: 'Check for deprecated messages without sphinx directive'
-  - script: \! grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+    continueOnError: 'true'
+  - bash: \! grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
     displayName: 'Check for old-style classes'
-  - script: \! grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
+    continueOnError: 'true'
+  - bash: \! grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/
     displayName: 'Check for backticks incorrectly rendering because of missing spaces'
+    continueOnError: 'true'
   # TODO the next 2 commands are the same changing just the path, we should avoid repeating
   # them, and have kind of loop thing
   # TODO SPHINX_DIRECTIVES should be defined as a variable, as it was in lint.sh. Not
@@ -126,7 +141,8 @@ jobs:
   #   "autosummary|contents|currentmodule|deprecated|function|image|"\
   #   "important|include|ipython|literalinclude|math|module|note|raw|"\
   #   "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
-  - script: \! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas
+  - bash: \! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./pandas
     displayName: 'Check for incorrect sphinx directives (./pandas)'
-  - script: \! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source
+    continueOnError: 'true'
+  - bash: \! grep -R --include="*.py" --include="*.pyx" --include="*.rst" -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]" ./doc/source
     displayName: 'Check for incorrect sphinx directives (./doc/source)'
