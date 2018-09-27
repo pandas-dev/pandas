@@ -109,10 +109,9 @@ from pandas.core.config import get_option
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
-    axis="""
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        - 0 or 'index': apply function to each column.
-        - 1 or 'columns': apply function to each row.""",
+    axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.""",
     optional_by="""
         by : str or list of str
             Name or list of names to sort by.
@@ -138,12 +137,11 @@ _numeric_only_doc = """numeric_only : boolean, default None
 """
 
 _merge_doc = """
-Merge DataFrame or named Series objects by performing a database-style join
-operation by columns or indexes.
+Merge DataFrame or named Series objects with a database-style join.
 
-If joining columns on columns, the DataFrame indexes *will be
-ignored*. Otherwise if joining indexes on indexes or indexes on a column or
-columns, the index will be passed on.
+The join is done on columns or indexes. If joining columns on
+columns, the DataFrame indexes *will be ignored*. Otherwise if joining indexes
+on indexes or indexes on a column or columns, the index will be passed on.
 
 Parameters
 ----------%s
@@ -153,13 +151,13 @@ how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     Type of merge to be performed.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
-      preserve key order
+      preserve key order.
     * right: use only keys from right frame, similar to a SQL right outer join;
-      preserve key order
+      preserve key order.
     * outer: use union of keys from both frames, similar to a SQL full outer
-      join; sort keys lexicographically
+      join; sort keys lexicographically.
     * inner: use intersection of keys from both frames, similar to a SQL inner
-      join; preserve the order of the left keys
+      join; preserve the order of the left keys.
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -172,22 +170,23 @@ right_on : label or list, or array-like
     Column or index level names to join on in the right DataFrame. Can also
     be an array or list of arrays of the length of the right DataFrame.
     These arrays are treated as if they are columns.
-left_index : boolean, default False
+left_index : bool, default False
     Use the index from the left DataFrame as the join key(s). If it is a
     MultiIndex, the number of keys in the other DataFrame (either the index
     or a number of columns) must match the number of levels.
-right_index : boolean, default False
+right_index : bool, default False
     Use the index from the right DataFrame as the join key. Same caveats as
     left_index.
-sort : boolean, default False
+sort : bool, default False
     Sort the join keys lexicographically in the result DataFrame. If False,
     the order of the join keys depends on the join type (how keyword).
-suffixes : 2-length sequence (tuple, list, ...)
+suffixes : tuple of (str, str), default ('_x', '_y')
     Suffix to apply to overlapping column names in the left and right
-    side, respectively.
-copy : boolean, default True
+    side, respectively. To raise an exception on overlapping columns use
+    (False, False).
+copy : bool, default True
     If False, avoid copy if possible.
-indicator : boolean or string, default False
+indicator : bool or str, default False
     If True, adds a column to output DataFrame called "_merge" with
     information on the source of each row.
     If string, column with information on source of each row will be added to
@@ -197,7 +196,7 @@ indicator : boolean or string, default False
     "right_only" for observations whose merge key only appears in 'right'
     DataFrame, and "both" if the observation's merge key is found in both.
 
-validate : string, default None
+validate : str, optional
     If specified, checks if merge is of specified type.
 
     * "one_to_one" or "1:1": check if merge keys are unique in both
@@ -213,6 +212,7 @@ validate : string, default None
 Returns
 -------
 DataFrame
+    A DataFrame of the two merged objects.
 
 Notes
 -----
@@ -229,24 +229,27 @@ DataFrame.join : similar method using indices.
 Examples
 --------
 
->>> A = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
-...                   'value': [1, 2, 3, 5]})
->>> B = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
-...                   'value': [5, 6, 7, 8]})
->>> A
+>>> df1 = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
+...                     'value': [1, 2, 3, 5]})
+>>> df2 = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
+...                     'value': [5, 6, 7, 8]})
+>>> df1
     lkey value
 0   foo      1
 1   bar      2
 2   baz      3
 3   foo      5
->>> B
+>>> df2
     rkey value
 0   foo      5
 1   bar      6
 2   baz      7
 3   foo      8
 
->>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
+Merge df1 and df2 on the lkey and rkey columns. The value columns have
+the default suffixes, _x and _y, appended.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey')
   lkey  value_x rkey  value_y
 0  foo        1  foo        5
 1  foo        1  foo        8
@@ -254,6 +257,28 @@ Examples
 3  foo        5  foo        8
 4  bar        2  bar        6
 5  baz        3  baz        7
+
+Merge DataFrames df1 and df2 with specified left and right suffixes
+appended to any overlapping columns.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey',
+...           suffixes=('_left', '_right'))
+  lkey  value_left rkey  value_right
+0  foo           1  foo            5
+1  foo           1  foo            8
+2  foo           5  foo            5
+3  foo           5  foo            8
+4  bar           2  bar            6
+5  baz           3  baz            7
+
+Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
+any overlapping columns.
+
+>>> df1.merge(df2, left_on='lkey', right_on='rkey', suffixes=(False, False))
+Traceback (most recent call last):
+...
+ValueError: columns overlap but no suffix specified:
+    Index(['value'], dtype='object')
 """
 
 # -----------------------------------------------------------------------
@@ -314,15 +339,13 @@ class DataFrame(NDFrame):
 
     Constructing DataFrame from numpy ndarray:
 
-    >>> df2 = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)),
-    ...                    columns=['a', 'b', 'c', 'd', 'e'])
+    >>> df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+    ...                    columns=['a', 'b', 'c'])
     >>> df2
-        a   b   c   d   e
-    0   2   8   8   3   4
-    1   4   2   9   0   9
-    2   1   0   7   8   0
-    3   5   1   7   1   3
-    4   6   0   2   4   2
+       a  b  c
+    0  1  2  3
+    1  4  5  6
+    2  7  8  9
 
     See also
     --------
@@ -394,9 +417,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, collections.Iterable)
+        elif (isinstance(data, compat.Iterable)
               and not isinstance(data, string_and_binary_types)):
-            if not isinstance(data, collections.Sequence):
+            if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -589,6 +612,35 @@ class DataFrame(NDFrame):
         (2, 3)
         """
         return len(self.index), len(self.columns)
+
+    @property
+    def _is_homogeneous_type(self):
+        """
+        Whether all the columns in a DataFrame have the same type.
+
+        Returns
+        -------
+        bool
+
+        Examples
+        --------
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
+        True
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous_type
+        False
+
+        Items with the same type but different sizes are considered
+        different types.
+
+        >>> DataFrame({
+        ...    "A": np.array([1, 2], dtype=np.int32),
+        ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
+        False
+        """
+        if self._data.any_extension_types:
+            return len({block.dtype for block in self._data.blocks}) == 1
+        else:
+            return not self._data.is_mixed_type
 
     def _repr_fits_vertical_(self):
         """
@@ -1339,14 +1391,15 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to a NumPy record array.
 
-        Index will be put in the 'index' field of the record array if
+        Index will be included as the first field of the record array if
         requested.
 
         Parameters
         ----------
-        index : boolean, default True
-            Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default None
+        index : bool, default True
+            Include index in resulting record array, stored in 'index'
+            field or using the index label, if set.
+        convert_datetime64 : bool, default None
             .. deprecated:: 0.23.0
 
             Whether to convert the index to datetime.datetime if it is a
@@ -1354,7 +1407,9 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : numpy.recarray
+        numpy.recarray
+            NumPy ndarray with the DataFrame labels as fields and each row
+            of the DataFrame as entries.
 
         See Also
         --------
@@ -1376,31 +1431,20 @@ class DataFrame(NDFrame):
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
 
+        If the DataFrame index has no label then the recarray field name
+        is set to 'index'. If the index has a label then this is used as the
+        field name:
+
+        >>> df.index = df.index.rename("I")
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('I', 'O'), ('A', '<i8'), ('B', '<f8')])
+
         The index can be excluded from the record array:
 
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('A', '<i8'), ('B', '<f8')])
-
-        By default, timestamps are converted to `datetime.datetime`:
-
-        >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
-        >>> df
-                             A     B
-        2018-01-01 09:00:00  1  0.50
-        2018-01-01 09:01:00  2  0.75
-        >>> df.to_records()
-        rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
-                   (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
-                  dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
-
-        The timestamp conversion can be disabled so NumPy's datetime64
-        data type is used instead:
-
-        >>> df.to_records(convert_datetime64=False)
-        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
-                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
-                  dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
 
         if convert_datetime64 is not None:
@@ -1859,7 +1903,7 @@ class DataFrame(NDFrame):
         to_feather(self, fname)
 
     def to_parquet(self, fname, engine='auto', compression='snappy',
-                   **kwargs):
+                   index=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -1881,6 +1925,13 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+        index : bool, default None
+            If ``True``, include the dataframe's index(es) in the file output.
+            If ``False``, they will not be written to the file. If ``None``,
+            the behavior depends on the chosen engine.
+
+            .. versionadded:: 0.24.0
+
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
@@ -1909,7 +1960,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
-                   compression=compression, **kwargs)
+                   compression=compression, index=index, **kwargs)
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
@@ -3230,7 +3281,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        kwargs : keyword, value pairs
+        **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
@@ -3240,7 +3291,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
             A new DataFrame with the new columns in addition to
             all the existing columns.
 
@@ -3260,48 +3311,34 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+        >>> df = pd.DataFrame({'temp_c': [17.0, 25.0]},
+        ...                   index=['Portland', 'Berkeley'])
+        >>> df
+                  temp_c
+        Portland    17.0
+        Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
+        >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        >>> df.assign(ln_A = lambda x: np.log(x.A))
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
+        Alternatively, the same behavior can be achieved by directly
+        referencing an existing Series or sequence:
+        >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        Where the value already exists and is inserted:
-
-        >>> newcol = np.log(df['A'])
-        >>> df.assign(ln_A=newcol)
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
-
-        Where the keyword arguments depend on each other
-
-        >>> df = pd.DataFrame({'A': [1, 2, 3]})
-
-        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
-            A  B  C
-         0  1  1  2
-         1  2  2  4
-         2  3  3  6
+        In Python 3.6+, you can create multiple columns within the same assign
+        where one of the columns depends on another one defined within the same
+        assign:
+        >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
+        ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+                  temp_c  temp_f  temp_k
+        Portland    17.0    62.6  290.15
+        Berkeley    25.0    77.0  298.15
         """
         data = self.copy()
 
@@ -4335,6 +4372,9 @@ class DataFrame(NDFrame):
         -------
         deduplicated : DataFrame
         """
+        if self.empty:
+            return self.copy()
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
         duplicated = self.duplicated(subset, keep=keep)
 
@@ -4368,6 +4408,9 @@ class DataFrame(NDFrame):
         """
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64, _SIZE_HINT_LIMIT
+
+        if self.empty:
+            return Series()
 
         def f(vals):
             labels, shape = algorithms.factorize(
@@ -4403,7 +4446,6 @@ class DataFrame(NDFrame):
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
-        stacklevel = 2  # Number of stack levels from df.sort_values
 
         if not isinstance(by, list):
             by = [by]
@@ -4415,8 +4457,7 @@ class DataFrame(NDFrame):
 
             keys = []
             for x in by:
-                k = self._get_label_or_level_values(x, axis=axis,
-                                                    stacklevel=stacklevel)
+                k = self._get_label_or_level_values(x, axis=axis)
                 keys.append(k)
             indexer = lexsort_indexer(keys, orders=ascending,
                                       na_position=na_position)
@@ -4425,8 +4466,7 @@ class DataFrame(NDFrame):
             from pandas.core.sorting import nargsort
 
             by = by[0]
-            k = self._get_label_or_level_values(by, axis=axis,
-                                                stacklevel=stacklevel)
+            k = self._get_label_or_level_values(by, axis=axis)
 
             if isinstance(ascending, (tuple, list)):
                 ascending = ascending[0]
@@ -4813,21 +4853,31 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
             result = _arith_op(this.values, other.values)
-
-        return self._constructor(result, index=new_index, columns=new_columns,
-                                 copy=False)
+            return self._constructor(result,
+                                     index=new_index, columns=new_columns,
+                                     copy=False)
 
     def _combine_match_index(self, other, func, level=None):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
-        new_data = func(left.values.T, right.values).T
-        return self._constructor(new_data,
-                                 index=left.index, columns=self.columns,
-                                 copy=False)
+        assert left.index.equals(right.index)
+
+        if left._is_mixed_type or right._is_mixed_type:
+            # operate column-wise; avoid costly object-casting in `.values`
+            return ops.dispatch_to_series(left, right, func)
+        else:
+            # fastpath --> operate directly on values
+            new_data = func(left.values.T, right.values).T
+            return self._constructor(new_data,
+                                     index=left.index, columns=self.columns,
+                                     copy=False)
 
     def _combine_match_columns(self, other, func, level=None, try_cast=True):
+        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
+        assert left.columns.equals(right.index)
 
         new_data = left._data.eval(func=func, other=right,
                                    axes=[left.columns, self.index],
@@ -4836,32 +4886,12 @@ class DataFrame(NDFrame):
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:
-            new_data = {i: func(self.iloc[:, i], other)
-                        for i, col in enumerate(self.columns)}
-
-            result = self._constructor(new_data, index=self.index, copy=False)
-            result.columns = self.columns
-            return result
+            return ops.dispatch_to_series(self, other, func)
 
         new_data = self._data.eval(func=func, other=other,
                                    errors=errors,
                                    try_cast=try_cast)
         return self._constructor(new_data)
-
-    def _compare_frame(self, other, func, str_rep):
-        # compare_frame assumes self._indexed_same(other)
-
-        import pandas.core.computation.expressions as expressions
-
-        def _compare(a, b):
-            return {i: func(a.iloc[:, i], b.iloc[:, i])
-                    for i in range(len(a.columns))}
-
-        new_data = expressions.evaluate(_compare, str_rep, self, other)
-        result = self._constructor(data=new_data, index=self.index,
-                                   copy=False)
-        result.columns = self.columns
-        return result
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
@@ -6643,10 +6673,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float
+                .. versionadded:: 0.24.0
+
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
@@ -6655,6 +6689,18 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> histogram_intersection = lambda a, b: np.minimum(a, b
+        ... ).sum().round(decimals=1)
+        >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
+        ...                   columns=['dogs', 'cats'])
+        >>> df.corr(method=histogram_intersection)
+              dogs cats
+        dogs   1.0  0.3
+        cats   0.3  1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -6666,7 +6712,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        else:
+        elif method == 'kendall' or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -6690,6 +6736,10 @@ class DataFrame(NDFrame):
                         c = corrf(ac, bc)
                     correl[i, j] = c
                     correl[j, i] = c
+        else:
+            raise ValueError("method must be either 'pearson', "
+                             "'spearman', or 'kendall', '{method}' "
+                             "was supplied".format(method=method))
 
         return self._constructor(correl, index=idx, columns=cols)
 
@@ -7258,8 +7308,7 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
-        Return values at the given quantile over requested axis, a la
-        numpy.percentile.
+        Return values at the given quantile over requested axis.
 
         Parameters
         ----------
@@ -7324,6 +7373,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
         self._check_percentile(q)
 
@@ -7418,52 +7468,66 @@ class DataFrame(NDFrame):
 
     def isin(self, values):
         """
-        Return boolean DataFrame showing whether each element in the
-        DataFrame is contained in values.
+        Whether each element in the DataFrame is contained in values.
 
         Parameters
         ----------
-        values : iterable, Series, DataFrame or dictionary
+        values : iterable, Series, DataFrame or dict
             The result will only be true at a location if all the
             labels match. If `values` is a Series, that's the index. If
-            `values` is a dictionary, the keys must be the column names,
+            `values` is a dict, the keys must be the column names,
             which must match. If `values` is a DataFrame,
             then both the index and column labels must match.
 
         Returns
         -------
+        DataFrame
+            DataFrame of booleans showing whether each element in the DataFrame
+            is contained in values.
 
-        DataFrame of booleans
+        See Also
+        --------
+        DataFrame.eq: Equality test for DataFrame.
+        Series.isin: Equivalent method on Series.
+        Series.str.contains: Test if pattern or regex is contained within a
+            string of a Series or Index.
 
         Examples
         --------
-        When ``values`` is a list:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df.isin([1, 3, 12, 'a'])
-               A      B
-        0   True   True
-        1  False  False
-        2   True  False
+        >>> df = pd.DataFrame({'num_legs': [2, 4], 'num_wings': [2, 0]},
+        ...                   index=['falcon', 'dog'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
 
-        When ``values`` is a dict:
+        When ``values`` is a list check whether every value in the DataFrame
+        is present in the list (which animals have 0 or 2 legs or wings)
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
-        >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
-               A      B
-        0   True  False  # Note that B didn't match the 1 here.
-        1  False   True
-        2   True   True
+        >>> df.isin([0, 2])
+                num_legs  num_wings
+        falcon      True       True
+        dog        False       True
 
-        When ``values`` is a Series or DataFrame:
+        When ``values`` is a dict, we can pass values to check for each
+        column separately:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(df2)
-               A      B
-        0   True  False
-        1  False  False  # Column A in `df2` has a 3, but not at index 1.
-        2   True   True
+        >>> df.isin({'num_wings': [0, 3]})
+                num_legs  num_wings
+        falcon     False      False
+        dog        False       True
+
+        When ``values`` is a Series or DataFrame the index and column must
+        match. Note that 'falcon' does not match based on the number of legs
+        in df2.
+
+        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        ...                      index=['spider', 'falcon'])
+        >>> df.isin(other)
+                num_legs  num_wings
+        falcon      True       True
+        dog        False      False
         """
         if isinstance(values, dict):
             from pandas.core.reshape.concat import concat
@@ -7642,7 +7706,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], collections.Mapping):
+    elif isinstance(data[0], compat.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], Series):

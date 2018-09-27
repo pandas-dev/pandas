@@ -592,6 +592,17 @@ class TestToDatetime(object):
         result = DatetimeIndex([ts_str] * 2)
         tm.assert_index_equal(result, expected)
 
+    def test_iso_8601_strings_same_offset_no_box(self):
+        # GH 22446
+        data = ['2018-01-04 09:01:00+09:00', '2018-01-04 09:02:00+09:00']
+        result = pd.to_datetime(data, box=False)
+        expected = np.array([
+            datetime(2018, 1, 4, 9, 1, tzinfo=pytz.FixedOffset(540)),
+            datetime(2018, 1, 4, 9, 2, tzinfo=pytz.FixedOffset(540))
+        ],
+            dtype=object)
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736
         ts_strings = ["2015-11-18 15:30:00+05:30",
@@ -1164,6 +1175,8 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
+    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
+    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
@@ -1562,12 +1575,20 @@ class TestDatetimeParsingWrappers(object):
 
 @pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
 def units(request):
+    """Day and some time units.
+
+    * D
+    * s
+    * ms
+    * us
+    * ns
+    """
     return request.param
 
 
 @pytest.fixture
 def epoch_1960():
-    # for origin as 1960-01-01
+    """Timestamp at 1960-01-01."""
     return Timestamp('1960-01-01')
 
 
@@ -1576,12 +1597,25 @@ def units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=[epoch_1960(),
-                        epoch_1960().to_pydatetime(),
-                        epoch_1960().to_datetime64(),
-                        str(epoch_1960())])
-def epochs(request):
-    return request.param
+@pytest.fixture(params=['timestamp', 'pydatetime', 'datetime64', 'str_1960'])
+def epochs(epoch_1960, request):
+    """Timestamp at 1960-01-01 in various forms.
+
+    * pd.Timestamp
+    * datetime.datetime
+    * numpy.datetime64
+    * str
+    """
+    assert request.param in {'timestamp', 'pydatetime', 'datetime64',
+                             "str_1960"}
+    if request.param == 'timestamp':
+        return epoch_1960
+    elif request.param == 'pydatetime':
+        return epoch_1960.to_pydatetime()
+    elif request.param == "datetime64":
+        return epoch_1960.to_datetime64()
+    else:
+        return str(epoch_1960)
 
 
 @pytest.fixture

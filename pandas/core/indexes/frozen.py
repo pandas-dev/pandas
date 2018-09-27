@@ -10,6 +10,7 @@ These are used for:
 
 import numpy as np
 from pandas.core.base import PandasObject
+from pandas.util._decorators import deprecate_kwarg
 from pandas.core.dtypes.cast import coerce_indexer_dtype
 from pandas.io.formats.printing import pprint_thing
 
@@ -117,10 +118,10 @@ class FrozenNDArray(PandasObject, np.ndarray):
                              quote_strings=True)
         return "%s(%s, dtype='%s')" % (type(self).__name__, prepr, self.dtype)
 
-    def searchsorted(self, v, side='left', sorter=None):
+    @deprecate_kwarg(old_arg_name="v", new_arg_name="value")
+    def searchsorted(self, value, side="left", sorter=None):
         """
-        Find indices where elements of v should be inserted
-        in a to maintain order.
+        Find indices to insert `value` so as to maintain order.
 
         For full documentation, see `numpy.searchsorted`
 
@@ -129,17 +130,20 @@ class FrozenNDArray(PandasObject, np.ndarray):
         numpy.searchsorted : equivalent function
         """
 
-        # we are much more performant if the searched
-        # indexer is the same type as the array
-        # this doesn't matter for int64, but DOES
-        # matter for smaller int dtypes
-        # https://github.com/numpy/numpy/issues/5370
+        # We are much more performant if the searched
+        # indexer is the same type as the array.
+        #
+        # This doesn't matter for int64, but DOES
+        # matter for smaller int dtypes.
+        #
+        # xref: https://github.com/numpy/numpy/issues/5370
         try:
-            v = self.dtype.type(v)
+            value = self.dtype.type(value)
         except:
             pass
+
         return super(FrozenNDArray, self).searchsorted(
-            v, side=side, sorter=sorter)
+            value, side=side, sorter=sorter)
 
 
 def _ensure_frozen(array_like, categories, copy=False):

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
 from cpython cimport (Py_EQ, Py_NE, Py_GE, Py_GT, Py_LT, Py_LE,
-                      PyUnicode_Check, PyUnicode_AsASCIIString)
+                      PyUnicode_AsASCIIString)
 
 from cpython.datetime cimport (datetime, date,
                                PyDateTime_IMPORT,
@@ -176,7 +175,7 @@ cdef inline int _string_to_dts(object val, npy_datetimestruct* dts,
         int result
         char *tmp
 
-    if PyUnicode_Check(val):
+    if isinstance(val, unicode):
         val = PyUnicode_AsASCIIString(val)
 
     tmp = val

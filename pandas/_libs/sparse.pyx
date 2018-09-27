@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import operator
-import sys
-
-cimport cython
+import cython
 
 import numpy as np
 cimport numpy as cnp

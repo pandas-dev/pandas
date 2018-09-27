@@ -6,7 +6,7 @@
 import pytest
 
 import weakref
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 
 from pandas.core.dtypes.common import (
@@ -419,11 +419,13 @@ class TestFancy(Base):
         # ix with a list
         df = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df.ix[1, 0] = [1, 2, 3]
             df.ix[1, 0] = [1, 2]
 
         result = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             result.ix[1, 0] = [1, 2]
 
         tm.assert_frame_equal(result, df)
@@ -447,11 +449,13 @@ class TestFancy(Base):
 
         df = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df.ix[1, 0] = TO(1)
             df.ix[1, 0] = TO(2)
 
         result = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             result.ix[1, 0] = TO(2)
 
         tm.assert_frame_equal(result, df)
@@ -459,6 +463,7 @@ class TestFancy(Base):
         # remains object dtype even after setting it back
         df = DataFrame(index=[0, 1], columns=[0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df.ix[1, 0] = TO(1)
             df.ix[1, 0] = np.nan
         result = DataFrame(index=[0, 1], columns=[0])
@@ -610,9 +615,41 @@ class TestFancy(Base):
     def test_index_not_contains(self, index, val):
         assert val not in index
 
+    @pytest.mark.parametrize("index,val", [
+        (Index([0, 1, '2']), 0),
+        (Index([0, 1, '2']), '2'),
+    ])
+    def test_mixed_index_contains(self, index, val):
+        # GH 19860
+        assert val in index
+
+    @pytest.mark.parametrize("index,val", [
+        (Index([0, 1, '2']), '1'),
+        (Index([0, 1, '2']), 2),
+    ])
+    def test_mixed_index_not_contains(self, index, val):
+        # GH 19860
+        assert val not in index
+
+    def test_contains_with_float_index(self):
+        # GH#22085
+        integer_index = pd.Int64Index([0, 1, 2, 3])
+        uinteger_index = pd.UInt64Index([0, 1, 2, 3])
+        float_index = pd.Float64Index([0.1, 1.1, 2.2, 3.3])
+
+        for index in (integer_index, uinteger_index):
+            assert 1.1 not in index
+            assert 1.0 in index
+            assert 1 in index
+
+        assert 1.1 in float_index
+        assert 1.0 not in float_index
+        assert 1 not in float_index
+
     def test_index_type_coercion(self):
 
         with catch_warnings(record=True):
+            simplefilter("ignore")
 
             # GH 11836
             # if we have an index type and set it with something that looks
@@ -710,6 +747,22 @@ class TestMisc(Base):
         for i in range(len(s)):
             assert s.iat[i] == i + 1
 
+    def test_mixed_index_assignment(self):
+        # GH 19860
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        s.at['a'] = 11
+        assert s.iat[0] == 11
+        s.at[1] = 22
+        assert s.iat[3] == 22
+
+    def test_mixed_index_no_fallback(self):
+        # GH 19860
+        s = Series([1, 2, 3, 4, 5], index=['a', 'b', 'c', 1, 2])
+        with pytest.raises(KeyError):
+            s.at[0]
+        with pytest.raises(KeyError):
+            s.at[4]
+
     def test_rhs_alignment(self):
         # GH8258, tests that both rows & columns are aligned to what is
         # assigned to. covers both uniform data-type & multi-type cases
@@ -728,16 +781,20 @@ class TestMisc(Base):
 
             left = df.copy()
             with catch_warnings(record=True):
+                # XXX: finer-filter here.
+                simplefilter("ignore")
                 left.ix[s, l] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
+                simplefilter("ignore")
                 left.ix[i, j] = rhs
             tm.assert_frame_equal(left, right)
 
             left = df.copy()
             with catch_warnings(record=True):
+                simplefilter("ignore")
                 left.ix[r, c] = rhs
             tm.assert_frame_equal(left, right)
 
@@ -789,6 +846,7 @@ class TestMisc(Base):
         tm.assert_raises_regex(ValueError, 'slice step cannot be zero',
                                lambda: s.loc[::0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             tm.assert_raises_regex(ValueError,
                                    'slice step cannot be zero',
                                    lambda: s.ix[::0])
@@ -807,11 +865,13 @@ class TestMisc(Base):
         # Check that .iloc and .ix return correct dtypes GH9983
         df = DataFrame({'a': [1, 2, 3], 'b': ['b', 'b2', 'b3']})
         with catch_warnings(record=True):
+            simplefilter("ignore")
             df2 = df.ix[[], :]
 
         assert df2.loc[:, 'a'].dtype == np.int64
         tm.assert_series_equal(df2.loc[:, 'a'], df2.iloc[:, 0])
         with catch_warnings(record=True):
+            simplefilter("ignore")
             tm.assert_series_equal(df2.loc[:, 'a'], df2.ix[:, 0])
 
     def test_range_in_series_indexing(self):
@@ -885,6 +945,7 @@ class TestMisc(Base):
         for name in ('loc', 'iloc', 'at', 'iat'):
             getattr(df, name)
         with catch_warnings(record=True):
+            simplefilter("ignore")
             getattr(df, 'ix')
         wr = weakref.ref(df)
         del df
@@ -1018,3 +1079,31 @@ def test_validate_indices_high():
 def test_validate_indices_empty():
     with tm.assert_raises_regex(IndexError, "indices are out"):
         validate_indices(np.array([0, 1]), 0)
+
+
+def test_extension_array_cross_section():
+    # A cross-section of a homogeneous EA should be an EA
+    df = pd.DataFrame({
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": pd.core.arrays.integer_array([3, 4])
+    }, index=['a', 'b'])
+    expected = pd.Series(pd.core.arrays.integer_array([1, 3]),
+                         index=['A', 'B'], name='a')
+    result = df.loc['a']
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+
+def test_extension_array_cross_section_converts():
+    df = pd.DataFrame({
+        "A": pd.core.arrays.integer_array([1, 2]),
+        "B": np.array([1, 2]),
+    }, index=['a', 'b'])
+    result = df.loc['a']
+    expected = pd.Series([1, 1], dtype=object, index=['A', 'B'], name='a')
+    tm.assert_series_equal(result, expected)
+
+    result = df.iloc[0]
+    tm.assert_series_equal(result, expected)

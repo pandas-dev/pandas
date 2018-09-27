@@ -12,7 +12,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy=1.10.4
-  - openpyxl
+  - openpyxl=2.5.5
   - pytables
   - python=3.5*
   - pytz
@@ -25,3 +25,4 @@ dependencies:
   - pytest-xdist
   - pip:
     - python-dateutil==2.5.3
+    - hypothesis>=3.58.0

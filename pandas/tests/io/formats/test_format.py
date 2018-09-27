@@ -955,7 +955,7 @@ class TestDataFrameFormatting(object):
         compat.text_type(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
-        filepath = datapath('io', 'formats', 'data', 'unicode_series.csv')
+        filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
         df = pd.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])
@@ -1269,18 +1269,42 @@ class TestDataFrameFormatting(object):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
-        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+        # GH 16839, GH 13032
+        df = DataFrame({'x': [11, 22], 'y': [33, -44], 'z': ['AAA', '   ']})
 
         df_s = df.to_string(index=False)
-        expected = "x  y\n1  4\n2  5\n3  6"
+        # Leading space is expected for positive numbers.
+        expected = ("  x   y    z\n"
+                    " 11  33  AAA\n"
+                    " 22 -44     ")
+        assert df_s == expected
 
+        df_s = df[['y', 'x', 'z']].to_string(index=False)
+        expected = ("  y   x    z\n"
+                    " 33  11  AAA\n"
+                    "-44  22     ")
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
+        # GH 13998, GH 22505
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, -33], 'y': [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
@@ -1793,7 +1817,7 @@ class TestSeriesFormatting(object):
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (u('1\n') + '2\n' + '3\n' + '4')
+        expected = (u(' 1\n') + ' 2\n' + ' 3\n' + ' 4')
         assert result == expected
 
     def test_unicode_name_in_footer(self):

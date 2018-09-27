@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame, Index
+from pandas import DataFrame
 from pandas.errors import PerformanceWarning
 from pandas.util import testing as tm
 from pandas.util.testing import assert_frame_equal
@@ -93,34 +93,3 @@ def test_sort_column_level_and_index_label(
             assert_frame_equal(result, expected)
     else:
         assert_frame_equal(result, expected)
-
-
-def test_sort_values_column_index_level_precedence():
-    # GH 14353, when a string passed as the `by` parameter
-    # matches a column and an index level the column takes
-    # precedence
-
-    # Construct DataFrame with index and column named 'idx'
-    idx = Index(np.arange(1, 7), name='idx')
-    df = DataFrame({'A': np.arange(11, 17),
-                    'idx': np.arange(6, 0, -1)},
-                   index=idx)
-
-    # Sorting by 'idx' should sort by the idx column and raise a
-    # FutureWarning
-    with tm.assert_produces_warning(FutureWarning):
-        result = df.sort_values(by='idx')
-
-    # This should be equivalent to sorting by the 'idx' index level in
-    # descending order
-    expected = df.sort_index(level='idx', ascending=False)
-    assert_frame_equal(result, expected)
-
-    # Perform same test with MultiIndex
-    df_multi = df.set_index('A', append=True)
-
-    with tm.assert_produces_warning(FutureWarning):
-        result = df_multi.sort_values(by='idx')
-
-    expected = df_multi.sort_index(level='idx', ascending=False)
-    assert_frame_equal(result, expected)

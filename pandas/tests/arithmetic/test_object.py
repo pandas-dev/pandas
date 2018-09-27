@@ -73,6 +73,22 @@ class TestObjectComparisons(object):
 
 class TestArithmetic(object):
 
+    @pytest.mark.parametrize("op", [operator.add, ops.radd])
+    @pytest.mark.parametrize("other", ["category", "Int64"])
+    def test_add_extension_scalar(self, other, box, op):
+        # GH#22378
+        # Check that scalars satisfying is_extension_array_dtype(obj)
+        # do not incorrectly try to dispatch to an ExtensionArray operation
+
+        arr = pd.Series(['a', 'b', 'c'])
+        expected = pd.Series([op(x, other) for x in arr])
+
+        arr = tm.box_expected(arr, box)
+        expected = tm.box_expected(expected, box)
+
+        result = op(arr, other)
+        tm.assert_equal(result, expected)
+
     @pytest.mark.parametrize('box', [
         pytest.param(pd.Index,
                      marks=pytest.mark.xfail(reason="Does not mask nulls",
@@ -164,3 +180,36 @@ class TestArithmetic(object):
 
         result = ser + pd.Timedelta('3 days')
         tm.assert_series_equal(result, expected)
+
+    # TODO: cleanup & parametrize over box
+    def test_mixed_timezone_series_ops_object(self):
+        # GH#13043
+        ser = pd.Series([pd.Timestamp('2015-01-01', tz='US/Eastern'),
+                         pd.Timestamp('2015-01-01', tz='Asia/Tokyo')],
+                        name='xxx')
+        assert ser.dtype == object
+
+        exp = pd.Series([pd.Timestamp('2015-01-02', tz='US/Eastern'),
+                         pd.Timestamp('2015-01-02', tz='Asia/Tokyo')],
+                        name='xxx')
+        tm.assert_series_equal(ser + pd.Timedelta('1 days'), exp)
+        tm.assert_series_equal(pd.Timedelta('1 days') + ser, exp)
+
+        # object series & object series
+        ser2 = pd.Series([pd.Timestamp('2015-01-03', tz='US/Eastern'),
+                          pd.Timestamp('2015-01-05', tz='Asia/Tokyo')],
+                         name='xxx')
+        assert ser2.dtype == object
+        exp = pd.Series([pd.Timedelta('2 days'), pd.Timedelta('4 days')],
+                        name='xxx')
+        tm.assert_series_equal(ser2 - ser, exp)
+        tm.assert_series_equal(ser - ser2, -exp)
+
+        ser = pd.Series([pd.Timedelta('01:00:00'), pd.Timedelta('02:00:00')],
+                        name='xxx', dtype=object)
+        assert ser.dtype == object
+
+        exp = pd.Series([pd.Timedelta('01:30:00'), pd.Timedelta('02:30:00')],
+                        name='xxx')
+        tm.assert_series_equal(ser + pd.Timedelta('00:30:00'), exp)
+        tm.assert_series_equal(pd.Timedelta('00:30:00') + ser, exp)

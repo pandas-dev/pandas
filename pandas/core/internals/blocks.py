@@ -637,22 +637,25 @@ class Block(PandasObject):
             # force the copy here
             if values is None:
 
-                if issubclass(dtype.type,
-                              (compat.text_type, compat.string_types)):
-
-                    # use native type formatting for datetime/tz/timedelta
-                    if self.is_datelike:
-                        values = self.to_native_types()
-
-                    # astype formatting
-                    else:
-                        values = self.get_values()
-
+                if self.is_extension:
+                    values = self.values.astype(dtype)
                 else:
-                    values = self.get_values(dtype=dtype)
+                    if issubclass(dtype.type,
+                                  (compat.text_type, compat.string_types)):
 
-                # _astype_nansafe works fine with 1-d only
-                values = astype_nansafe(values.ravel(), dtype, copy=True)
+                        # use native type formatting for datetime/tz/timedelta
+                        if self.is_datelike:
+                            values = self.to_native_types()
+
+                        # astype formatting
+                        else:
+                            values = self.get_values()
+
+                    else:
+                        values = self.get_values(dtype=dtype)
+
+                    # _astype_nansafe works fine with 1-d only
+                    values = astype_nansafe(values.ravel(), dtype, copy=True)
 
                 # TODO(extension)
                 # should we make this attribute?
@@ -662,7 +665,7 @@ class Block(PandasObject):
                     pass
 
             newb = make_block(values, placement=self.mgr_locs,
-                              klass=klass)
+                              klass=klass, ndim=self.ndim)
         except:
             if errors == 'raise':
                 raise
@@ -1947,6 +1950,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         """Extension arrays are never treated as views."""
         return False
 
+    @property
+    def is_numeric(self):
+        return self.values.dtype._is_numeric
+
     def setitem(self, indexer, value, mgr=None):
         """Set the value inplace, returning a same-typed block.
 
@@ -2060,6 +2067,18 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             values=values.fillna(value=fill_value, method=method,
                                  limit=limit),
             placement=self.mgr_locs)
+
+    def shift(self, periods, axis=0, mgr=None):
+        """
+        Shift the block by `periods`.
+
+        Dispatches to underlying ExtensionArray and re-boxes in an
+        ExtensionBlock.
+        """
+        # type: (int, Optional[BlockPlacement]) -> List[ExtensionBlock]
+        return [self.make_block_same_class(self.values.shift(periods=periods),
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
 
 
 class NumericBlock(Block):
@@ -2683,10 +2702,6 @@ class CategoricalBlock(ExtensionBlock):
             result = _block_shape(result, ndim=self.ndim)
 
         return result
-
-    def shift(self, periods, axis=0, mgr=None):
-        return self.make_block_same_class(values=self.values.shift(periods),
-                                          placement=self.mgr_locs)
 
     def to_dense(self):
         # Categorical.get_values returns a DatetimeIndex for datetime
@@ -3475,6 +3490,7 @@ def _putmask_smart(v, m, n):
 
         # we ignore ComplexWarning here
         with warnings.catch_warnings(record=True):
+            warnings.simplefilter("ignore", np.ComplexWarning)
             nn_at = nn.astype(v.dtype)
 
         # avoid invalid dtype comparisons

@@ -21,51 +21,59 @@
 Time Series / Date functionality
 ********************************
 
-pandas has proven very successful as a tool for working with time series data,
-especially in the financial data analysis space. Using the NumPy ``datetime64`` and ``timedelta64`` dtypes,
-we have consolidated a large number of features from other Python libraries like ``scikits.timeseries`` as well as created
+pandas contains extensive capabilities and features for working with time series data for all domains.
+Using the NumPy ``datetime64`` and ``timedelta64`` dtypes, pandas has consolidated a large number of
+features from other Python libraries like ``scikits.timeseries`` as well as created
 a tremendous amount of new functionality for manipulating time series data.
 
-In working with time series data, we will frequently seek to:
+For example, pandas supports:
 
-* generate sequences of fixed-frequency dates and time spans
-* conform or convert time series to a particular frequency
-* compute "relative" dates based on various non-standard time increments
-  (e.g. 5 business days before the last business day of the year), or "roll"
-  dates forward or backward
+Parsing time series information from various sources and formats
+
+.. ipython:: python
+
+   dti = pd.to_datetime(['1/1/2018', np.datetime64('2018-01-01'), datetime(2018, 1, 1)])
+   dti
+
+Generate sequences of fixed-frequency dates and time spans
+
+.. ipython:: python
+
+   dti = pd.date_range('2018-01-01', periods=3, freq='H')
+   dti
+
+Manipulating and converting date times with timezone information
+
+.. ipython:: python
+
+   dti = dti.tz_localize('UTC')
+   dti
+   dti.tz_convert('US/Pacific')
+
+Resampling or converting a time series to a particular frequency
+
+.. ipython:: python
+
+   idx = pd.date_range('2018-01-01', periods=5, freq='H')
+   ts = pd.Series(range(len(idx)), index=idx)
+   ts
+   ts.resample('2H').mean()
+
+Performing date and time arithmetic with absolute or relative time increments
+
+.. ipython:: python
+
+    friday = pd.Timestamp('2018-01-05')
+    friday.day_name()
+    # Add 1 day
+    saturday = friday + pd.Timedelta('1 day')
+    saturday.day_name()
+    # Add 1 business day (Friday --> Monday)
+    monday = friday + pd.tseries.offsets.BDay()
+    monday.day_name()
 
 pandas provides a relatively compact and self-contained set of tools for
-performing the above tasks.
-
-Create a range of dates:
-
-.. ipython:: python
-
-   # 72 hours starting with midnight Jan 1st, 2011
-   rng = pd.date_range('1/1/2011', periods=72, freq='H')
-   rng[:5]
-
-Index pandas objects with dates:
-
-.. ipython:: python
-
-   ts = pd.Series(np.random.randn(len(rng)), index=rng)
-   ts.head()
-
-Change frequency and fill gaps:
-
-.. ipython:: python
-
-   # to 45 minute frequency and forward fill
-   converted = ts.asfreq('45Min', method='pad')
-   converted.head()
-
-Resample the series to a daily frequency:
-
-.. ipython:: python
-
-   # Daily means
-   ts.resample('D').mean()
+performing the above tasks and more.
 
 
 .. _timeseries.overview:
@@ -73,17 +81,54 @@ Resample the series to a daily frequency:
 Overview
 --------
 
-The following table shows the type of time-related classes pandas can handle and
-how to create them.
+pandas captures 4 general time related concepts:
 
-=================  =============================== ===================================================================
-Class              Remarks                         How to create
-=================  =============================== ===================================================================
-``Timestamp``      Represents a single timestamp   ``to_datetime``, ``Timestamp``
-``DatetimeIndex``  Index of ``Timestamp``          ``to_datetime``, ``date_range``, ``bdate_range``, ``DatetimeIndex``
-``Period``         Represents a single time span   ``Period``
-``PeriodIndex``    Index of ``Period``             ``period_range``, ``PeriodIndex``
-=================  =============================== ===================================================================
+#. Date times: A specific date and time with timezone support. Similar to ``datetime.datetime`` from the standard library.
+#. Time deltas: An absolute time duration. Similar to ``datetime.timedelta`` from the standard library.
+#. Time spans: A span of time defined by a point in time and its associated frequency.
+#. Date offsets: A relative time duration that respects calendar arithmetic. Similar to ``dateutil.relativedelta.relativedelta`` from the ``dateutil`` package.
+
+=====================   =================  ===================   ============================================  ========================================
+Concept                 Scalar Class       Array Class           pandas Data Type                              Primary Creation Method
+=====================   =================  ===================   ============================================  ========================================
+Date times              ``Timestamp``      ``DatetimeIndex``     ``datetime64[ns]`` or ``datetime64[ns, tz]``  ``to_datetime`` or ``date_range``
+Time deltas             ``Timedelta``      ``TimedeltaIndex``    ``timedelta64[ns]``                           ``to_timedelta`` or ``timedelta_range``
+Time spans              ``Period``         ``PeriodIndex``       ``period[freq]``                              ``Period`` or ``period_range``
+Date offsets            ``DateOffset``     ``None``              ``None``                                      ``DateOffset``
+=====================   =================  ===================   ============================================  ========================================
+
+For time series data, it's conventional to represent the time component in the index of a :class:`Series` or :class:`DataFrame`
+so manipulations can be performed with respect to the time element.
+
+.. ipython:: python
+
+   pd.Series(range(3), index=pd.date_range('2000', freq='D', periods=3))
+
+However, :class:`Series` and :class:`DataFrame` can directly also support the time component as data itself.
+
+.. ipython:: python
+
+   pd.Series(pd.date_range('2000', freq='D', periods=3))
+
+:class:`Series` and :class:`DataFrame` have extended data type support and functionality for ``datetime`` and ``timedelta``
+data when the time data is used as data itself. The ``Period`` and ``DateOffset`` data will be stored as ``object`` data.
+
+.. ipython:: python
+
+   pd.Series(pd.period_range('1/1/2011', freq='M', periods=3))
+   pd.Series(pd.date_range('1/1/2011', freq='M', periods=3))
+
+Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
+is useful for representing missing or null date like values and behaves similar
+as ``np.nan`` does for float data.
+
+.. ipython:: python
+
+   pd.Timestamp(pd.NaT)
+   pd.Timedelta(pd.NaT)
+   pd.Period(pd.NaT)
+   # Equality acts as np.nan would
+   pd.NaT == pd.NaT
 
 .. _timeseries.representation:
 
@@ -369,7 +414,7 @@ In practice this becomes very cumbersome because we often need a very long
 index with a large number of timestamps. If we need timestamps on a regular
 frequency, we can use the :func:`date_range` and :func:`bdate_range` functions
 to create a ``DatetimeIndex``. The default frequency for ``date_range`` is a
-**calendar day** while the default for ``bdate_range`` is a **business day**:
+**day** while the default for ``bdate_range`` is a **business day**:
 
 .. ipython:: python
 
@@ -703,6 +748,34 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
    ts2[[0, 2, 6]].index
 
+.. _timeseries.iterating-label:
+
+Iterating through groups
+------------------------
+
+With the ``Resampler`` object in hand, iterating through the grouped data is very
+natural and functions similarly to :py:func:`itertools.groupby`:
+
+.. ipython:: python
+
+   small = pd.Series(
+       range(6),
+       index=pd.to_datetime(['2017-01-01T00:00:00',
+                             '2017-01-01T00:30:00',
+                             '2017-01-01T00:31:00',
+                             '2017-01-01T01:00:00',
+                             '2017-01-01T03:00:00',
+                             '2017-01-01T03:05:00'])
+   )
+   resampled = small.resample('H')
+
+   for name, group in resampled:
+       print("Group: ", name)
+       print("-" * 27)
+       print(group, end="\n\n")
+
+See :ref:`groupby.iterating-label` or :class:`Resampler.__iter__` for more.
+
 .. _timeseries.components:
 
 Time/Date Components
@@ -847,25 +920,42 @@ It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
 These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
-(hour, minute, etc) information by default. To reset time, use ``normalize=True`` 
-when creating the offset instance. If ``normalize=True``, the result is 
-normalized after the function is applied.
-
+(hour, minute, etc) information by default. To reset time, use ``normalize``
+before or after applying the operation (depending on whether you want the
+time information included in the operation.
 
 .. ipython:: python
 
+   ts = pd.Timestamp('2014-01-01 09:00')
    day = Day()
-   day.apply(pd.Timestamp('2014-01-01 09:00'))
+   day.apply(ts)
+   day.apply(ts).normalize()
 
-   day = Day(normalize=True)
-   day.apply(pd.Timestamp('2014-01-01 09:00'))
-
+   ts = pd.Timestamp('2014-01-01 22:00')
    hour = Hour()
-   hour.apply(pd.Timestamp('2014-01-01 22:00'))
+   hour.apply(ts)
+   hour.apply(ts).normalize()
+   hour.apply(pd.Timestamp("2014-01-01 23:30")).normalize()
 
-   hour = Hour(normalize=True)
-   hour.apply(pd.Timestamp('2014-01-01 22:00'))
-   hour.apply(pd.Timestamp('2014-01-01 23:00'))
+.. _timeseries.dayvscalendarday:
+
+Day vs. CalendarDay
+~~~~~~~~~~~~~~~~~~~
+
+:class:`Day` (``'D'``) is a timedelta-like offset that respects absolute time
+arithmetic and is an alias for 24 :class:`Hour`. This offset is the default
+argument to many pandas time related function like :func:`date_range` and :func:`timedelta_range`.
+
+:class:`CalendarDay` (``'CD'``) is a relativedelta-like offset that respects
+calendar time arithmetic. :class:`CalendarDay` is useful preserving calendar day
+semantics with date times with have day light savings transitions, i.e. :class:`CalendarDay`
+will preserve the hour before the day light savings transition.
+
+.. ipython:: python
+
+   ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
+   ts + pd.offsets.Day(1)
+   ts + pd.offsets.CalendarDay(1)
 
 
 Parametric Offsets
@@ -1158,7 +1248,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
     "B", "business day frequency"
     "C", "custom business day frequency"
-    "D", "calendar day frequency"
+    "D", "day frequency"
+    "CD", "calendar day frequency"
     "W", "weekly frequency"
     "M", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
@@ -1404,6 +1495,7 @@ the pandas objects.
 
 .. ipython:: python
 
+   ts = pd.Series(range(len(rng)), index=rng)
    ts = ts[:5]
    ts.shift(1)
 
@@ -2210,7 +2302,7 @@ To remove timezone from tz-aware ``DatetimeIndex``, use ``tz_localize(None)`` or
    didx.tz_convert(None)
 
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
-   didx.tz_convert('UCT').tz_localize(None)
+   didx.tz_convert('UTC').tz_localize(None)
 
 .. _timeseries.timezone_ambiguous:
 

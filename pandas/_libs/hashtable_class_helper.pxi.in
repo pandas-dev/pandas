@@ -115,7 +115,8 @@ cdef class {{name}}Vector:
 
         if needs_resize(self.data):
             if self.external_view_exists:
-                raise ValueError("external reference but Vector.resize() needed")
+                raise ValueError("external reference but "
+                                 "Vector.resize() needed")
             self.resize()
 
         append_data_{{dtype}}(self.data, x)
@@ -194,6 +195,7 @@ cdef class StringVector:
         for i in range(len(x)):
             self.append(x[i])
 
+
 cdef class ObjectVector:
 
     cdef:
@@ -215,7 +217,8 @@ cdef class ObjectVector:
     cdef inline append(self, object o):
         if self.n == self.m:
             if self.external_view_exists:
-                raise ValueError("external reference but Vector.resize() needed")
+                raise ValueError("external reference but "
+                                 "Vector.resize() needed")
             self.m = max(self.m * 2, _INIT_VEC_CAP)
             self.ao.resize(self.m, refcheck=False)
             self.data = <PyObject**> self.ao.data
@@ -405,8 +408,9 @@ cdef class {{name}}HashTable(HashTable):
                     if needs_resize(ud):
                         with gil:
                             if uniques.external_view_exists:
-                                raise ValueError("external reference to uniques held, "
-                                        "but Vector.resize() needed")
+                                raise ValueError("external reference to "
+                                                 "uniques held, but "
+                                                 "Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
                     labels[i] = count
@@ -466,7 +470,6 @@ cdef class {{name}}HashTable(HashTable):
            int ret = 0
            {{dtype}}_t val
            khiter_t k
-           bint seen_na = 0
            {{name}}Vector uniques = {{name}}Vector()
            {{name}}VectorData *ud
 
@@ -475,22 +478,6 @@ cdef class {{name}}HashTable(HashTable):
         with nogil:
             for i in range(n):
                 val = values[i]
-                {{if float_group}}
-                if val == val:
-                    k = kh_get_{{dtype}}(self.table, val)
-                    if k == self.table.n_buckets:
-                        kh_put_{{dtype}}(self.table, val, &ret)
-                        if needs_resize(ud):
-                            with gil:
-                                uniques.resize()
-                        append_data_{{dtype}}(ud, val)
-                elif not seen_na:
-                    seen_na = 1
-                    if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
-                    append_data_{{dtype}}(ud, NAN)
-                {{else}}
                 k = kh_get_{{dtype}}(self.table, val)
                 if k == self.table.n_buckets:
                     kh_put_{{dtype}}(self.table, val, &ret)
@@ -498,7 +485,6 @@ cdef class {{name}}HashTable(HashTable):
                         with gil:
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
-                {{endif}}
         return uniques.to_array()
 
 {{endfor}}
@@ -742,7 +728,6 @@ cdef class StringHashTable(HashTable):
 
         return np.asarray(labels)
 
-na_sentinel = object
 
 cdef class PyObjectHashTable(HashTable):
 
@@ -761,8 +746,7 @@ cdef class PyObjectHashTable(HashTable):
     def __contains__(self, object key):
         cdef khiter_t k
         hash(key)
-        if key != key or key is None:
-            key = na_sentinel
+
         k = kh_get_pymap(self.table, <PyObject*>key)
         return k != self.table.n_buckets
 
@@ -774,8 +758,7 @@ cdef class PyObjectHashTable(HashTable):
 
     cpdef get_item(self, object val):
         cdef khiter_t k
-        if val != val or val is None:
-            val = na_sentinel
+
         k = kh_get_pymap(self.table, <PyObject*>val)
         if k != self.table.n_buckets:
             return self.table.vals[k]
@@ -789,8 +772,7 @@ cdef class PyObjectHashTable(HashTable):
             char* buf
 
         hash(key)
-        if key != key or key is None:
-            key = na_sentinel
+
         k = kh_put_pymap(self.table, <PyObject*>key, &ret)
         # self.table.keys[k] = key
         if kh_exist_pymap(self.table, k):
@@ -808,8 +790,6 @@ cdef class PyObjectHashTable(HashTable):
         for i in range(n):
             val = values[i]
             hash(val)
-            if val != val or val is None:
-                val = na_sentinel
 
             k = kh_put_pymap(self.table, <PyObject*>val, &ret)
             self.table.vals[k] = i
@@ -825,8 +805,6 @@ cdef class PyObjectHashTable(HashTable):
         for i in range(n):
             val = values[i]
             hash(val)
-            if val != val or val is None:
-                val = na_sentinel
 
             k = kh_get_pymap(self.table, <PyObject*>val)
             if k != self.table.n_buckets:
@@ -843,24 +821,14 @@ cdef class PyObjectHashTable(HashTable):
             object val
             khiter_t k
             ObjectVector uniques = ObjectVector()
-            bint seen_na = 0
 
         for i in range(n):
             val = values[i]
             hash(val)
-
-            # `val is None` below is exception to prevent mangling of None and
-            # other NA values; note however that other NA values (ex: pd.NaT
-            # and np.nan) will still get mangled, so many not be a permanent
-            # solution; see GH 20866
-            if not checknull(val) or val is None:
-                k = kh_get_pymap(self.table, <PyObject*>val)
-                if k == self.table.n_buckets:
-                    kh_put_pymap(self.table, <PyObject*>val, &ret)
-                    uniques.append(val)
-            elif not seen_na:
-                seen_na = 1
-                uniques.append(nan)
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k == self.table.n_buckets:
+                kh_put_pymap(self.table, <PyObject*>val, &ret)
+                uniques.append(val)
 
         return uniques.to_array()
 

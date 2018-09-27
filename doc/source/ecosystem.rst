@@ -14,7 +14,7 @@ development to remain focused around it's original requirements.
 
 This is an inexhaustive list of projects that build on pandas in order to provide
 tools in the PyData space. For a list of projects that depend on pandas,
-see the 
+see the
 `libraries.io usage page for pandas <https://libraries.io/pypi/pandas/usage>`_
 or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
 
@@ -44,7 +44,7 @@ ML pipeline.
 `Featuretools <https://github.com/featuretools/featuretools/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community. 
+Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community.
 
 .. _ecosystem.visualization:
 
@@ -73,8 +73,8 @@ large data to thin clients.
 `seaborn <https://seaborn.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Seaborn is a Python visualization library based on `matplotlib
-<http://matplotlib.org>`__.  It provides a high-level, dataset-oriented
+Seaborn is a Python visualization library based on
+`matplotlib <http://matplotlib.org>`__. It provides a high-level, dataset-oriented
 interface for creating attractive statistical graphics. The plotting functions
 in seaborn understand pandas objects and leverage pandas grouping operations
 internally to support concise specification of complex visualizations. Seaborn
@@ -140,7 +140,7 @@ which are utilized by Jupyter Notebook for displaying
 (Note: HTML tables may or may not be
 compatible with non-HTML Jupyter output formats.)
 
-See :ref:`Options and Settings <options>` and :ref:`<options.available>`
+See :ref:`Options and Settings <options>` and :ref:`options.available <available>`
 for pandas ``display.`` settings.
 
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__
@@ -149,13 +149,30 @@ for pandas ``display.`` settings.
 qgrid is "an interactive grid for sorting and filtering
 DataFrames in IPython Notebook" built with SlickGrid.
 
-`Spyder <https://github.com/spyder-ide/spyder/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`Spyder <https://www.spyder-ide.org/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Spyder is a cross-platform Qt-based open-source Python IDE with
-editing, testing, debugging, and introspection features.
-Spyder can now introspect and display Pandas DataFrames and show
-both "column wise min/max and global min/max coloring."
+Spyder is a cross-platform PyQt-based IDE combining the editing, analysis,
+debugging and profiling functionality of a software development tool with the
+data exploration, interactive execution, deep inspection and rich visualization
+capabilities of a scientific environment like MATLAB or Rstudio.
+
+Its `Variable Explorer <https://docs.spyder-ide.org/variableexplorer.html>`__
+allows users to view, manipulate and edit pandas ``Index``, ``Series``,
+and ``DataFrame`` objects like a "spreadsheet", including copying and modifying
+values, sorting, displaying a "heatmap", converting data types and more.
+Pandas objects can also be renamed, duplicated, new columns added,
+copyed/pasted to/from the clipboard (as TSV), and saved/loaded to/from a file.
+Spyder can also import data from a variety of plain text and binary files
+or the clipboard into a new pandas DataFrame via a sophisticated import wizard.
+
+Most pandas classes, methods and data attributes can be autocompleted in
+Spyder's `Editor <https://docs.spyder-ide.org/editor.html>`__ and
+`IPython Console <https://docs.spyder-ide.org/ipythonconsole.html>`__,
+and Spyder's `Help pane <https://docs.spyder-ide.org/help.html>`__ can retrieve
+and render Numpydoc documentation on pandas objects in rich text with Sphinx
+both automatically and on-demand.
+
 
 .. _ecosystem.api:
 
@@ -205,12 +222,12 @@ This package requires valid credentials for this API (non free).
 pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
-widely used by institutions such as statistics offices, central banks,   
-and international organisations. pandaSDMX can expose datasets and related 
+widely used by institutions such as statistics offices, central banks,
+and international organisations. pandaSDMX can expose datasets and related
 structural metadata including data flows, code-lists,
 and data structure definitions as pandas Series
 or MultiIndexed DataFrames.
-   
+
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__

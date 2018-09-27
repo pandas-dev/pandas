@@ -97,6 +97,23 @@ class Resampler(_GroupBy):
 
         return object.__getattribute__(self, attr)
 
+    def __iter__(self):
+        """
+        Resampler iterator
+
+        Returns
+        -------
+        Generator yielding sequence of (name, subsetted object)
+        for each group
+
+        See Also
+        --------
+        GroupBy.__iter__
+
+        """
+        self._set_binner()
+        return super(Resampler, self).__iter__()
+
     @property
     def obj(self):
         return self.groupby.obj
@@ -234,12 +251,15 @@ one pass, you can do
         klass='DataFrame',
         versionadded='',
         axis=''))
-    def aggregate(self, arg, *args, **kwargs):
+    def aggregate(self, func, *args, **kwargs):
 
         self._set_binner()
-        result, how = self._aggregate(arg, *args, **kwargs)
+        result, how = self._aggregate(func, *args, **kwargs)
         if result is None:
-            result = self._groupby_and_aggregate(arg,
+            how = func
+            grouper = None
+            result = self._groupby_and_aggregate(how,
+                                                 grouper,
                                                  *args,
                                                  **kwargs)
 
@@ -346,7 +366,8 @@ one pass, you can do
         """
 
         needs_offset = (
-            isinstance(self.loffset, (DateOffset, timedelta)) and
+            isinstance(self.loffset, (DateOffset, timedelta,
+                                      np.timedelta64)) and
             isinstance(result.index, DatetimeIndex) and
             len(result.index) > 0
         )
@@ -749,6 +770,24 @@ one pass, you can do
             result = pd.Series([], index=result.index, dtype='int64')
         return result
 
+    def quantile(self, q=0.5, **kwargs):
+        """
+        Return value at the given quantile.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+
+        See Also
+        --------
+        Series.quantile
+        DataFrame.quantile
+        DataFrameGroupBy.quantile
+        """
+        return self._downsample('quantile', q=q, **kwargs)
+
 
 # downsample methods
 for method in ['sum', 'prod']:
@@ -852,7 +891,7 @@ class _GroupByMixin(GroupByMixin):
         self._groupby.grouper.mutated = True
         self.groupby = copy.copy(parent.groupby)
 
-    def _apply(self, f, **kwargs):
+    def _apply(self, f, grouper=None, *args, **kwargs):
         """
         dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object
@@ -864,7 +903,7 @@ class _GroupByMixin(GroupByMixin):
             if isinstance(f, compat.string_types):
                 return getattr(x, f)(**kwargs)
 
-            return x.apply(f, **kwargs)
+            return x.apply(f, *args, **kwargs)
 
         result = self._groupby.apply(func)
         return self._wrap_result(result)
@@ -924,7 +963,10 @@ class DatetimeIndexResampler(Resampler):
         return self._wrap_result(result)
 
     def _adjust_binner_for_upsample(self, binner):
-        """ adjust our binner when upsampling """
+        """
+        Adjust our binner when upsampling.
+        The range of a new index should not be outside specified range
+        """
         if self.closed == 'right':
             binner = binner[1:]
         else:
@@ -1043,7 +1085,8 @@ class PeriodIndexResampler(DatetimeIndexResampler):
 
         if is_subperiod(ax.freq, self.freq):
             # Downsampling
-            return self._groupby_and_aggregate(how, grouper=self.grouper)
+            return self._groupby_and_aggregate(how, grouper=self.grouper,
+                                               **kwargs)
         elif is_superperiod(ax.freq, self.freq):
             if how == 'ohlc':
                 # GH #13083
@@ -1116,17 +1159,11 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return self.groupby._get_time_delta_bins(self.ax)
 
     def _adjust_binner_for_upsample(self, binner):
-        """ adjust our binner when upsampling """
-        ax = self.ax
-
-        if is_subperiod(ax.freq, self.freq):
-            # We are actually downsampling
-            # but are in the asfreq path
-            # GH 12926
-            if self.closed == 'right':
-                binner = binner[1:]
-            else:
-                binner = binner[:-1]
+        """
+        Adjust our binner when upsampling.
+        The range of a new index is allowed to be greater than original range
+        so we don't need to change the length of a binner, GH 13022
+        """
         return binner
 
 
@@ -1291,8 +1328,7 @@ class TimeGrouper(Grouper):
                 data=[], freq=self.freq, name=ax.name)
             return binner, [], labels
 
-        first, last = ax.min(), ax.max()
-        first, last = _get_range_edges(first, last, self.freq,
+        first, last = _get_range_edges(ax.min(), ax.max(), self.freq,
                                        closed=self.closed,
                                        base=self.base)
         tz = ax.tz
@@ -1482,9 +1518,6 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_range_edges(first, last, offset, closed='left', base=0):
-    if isinstance(offset, compat.string_types):
-        offset = to_offset(offset)
-
     if isinstance(offset, Tick):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
@@ -1494,8 +1527,7 @@ def _get_range_edges(first, last, offset, closed='left', base=0):
             return _adjust_dates_anchored(first, last, offset,
                                           closed=closed, base=base)
 
-    if not isinstance(offset, Tick):  # and first.time() != last.time():
-        # hack!
+    else:
         first = first.normalize()
         last = last.normalize()
 
@@ -1516,19 +1548,16 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
     #
     # See https://github.com/pandas-dev/pandas/issues/8683
 
-    # 14682 - Since we need to drop the TZ information to perform
-    # the adjustment in the presence of a DST change,
-    # save TZ Info and the DST state of the first and last parameters
-    # so that we can accurately rebuild them at the end.
+    # GH 10117 & GH 19375. If first and last contain timezone information,
+    # Perform the calculation in UTC in order to avoid localizing on an
+    # Ambiguous or Nonexistent time.
     first_tzinfo = first.tzinfo
     last_tzinfo = last.tzinfo
-    first_dst = bool(first.dst())
-    last_dst = bool(last.dst())
-
-    first = first.tz_localize(None)
-    last = last.tz_localize(None)
-
     start_day_nanos = first.normalize().value
+    if first_tzinfo is not None:
+        first = first.tz_convert('UTC')
+    if last_tzinfo is not None:
+        last = last.tz_convert('UTC')
 
     base_nanos = (base % offset.n) * offset.nanos // offset.n
     start_day_nanos += base_nanos
@@ -1561,9 +1590,13 @@ def _adjust_dates_anchored(first, last, offset, closed='right', base=0):
             lresult = last.value + (offset.nanos - loffset)
         else:
             lresult = last.value + offset.nanos
-
-    return (Timestamp(fresult).tz_localize(first_tzinfo, ambiguous=first_dst),
-            Timestamp(lresult).tz_localize(last_tzinfo, ambiguous=last_dst))
+    fresult = Timestamp(fresult)
+    lresult = Timestamp(lresult)
+    if first_tzinfo is not None:
+        fresult = fresult.tz_localize('UTC').tz_convert(first_tzinfo)
+    if last_tzinfo is not None:
+        lresult = lresult.tz_localize('UTC').tz_convert(last_tzinfo)
+    return fresult, lresult
 
 
 def asfreq(obj, freq, method=None, how=None, normalize=False, fill_value=None):
