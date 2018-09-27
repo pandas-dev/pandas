@@ -162,6 +162,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     _infer_as_myclass = True
 
     _freq = None
+    _data = None  # type: PeriodArray
 
     _engine_type = libindex.PeriodEngine
 
@@ -177,47 +178,18 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                            tz=tz, dtype=dtype, copy=copy, **fields)
         return cls._simple_new(data, name=name)
 
+    # ------------------------------------------------------------------------
+    # Data
     @property
     def _ndarray_values(self):
         return self.values.values
 
-    # ------------------------------------------------------------------------
-    # Mixin Candidates
-    # err. maybe not...
-
     @property
-    def _box_func(self):
-        def func(x):
-            if isinstance(x, Period) or x is tslib.NaT:
-                return x
-            else:
-                return Period._from_ordinal(ordinal=x, freq=self.freq)
-        return func
+    def values(self):
+        return self._data
 
     # ------------------------------------------------------------------------
-    # Straight Dispatch
-
-    @property
-    def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
-        return self.values.freq
-
-    # ------------------------------------------------------------------------
-    # Dispatch and Wrap
-
-    def asfreq(self, freq=None, how='E'):
-        result = self.values.asfreq(freq=freq, how=how)
-        return self._simple_new(result, name=self.name)
-    # ------------------------------------------------------------------------
-
-
-    @cache_readonly
-    def _engine(self):
-        return self._engine_type(lambda: self._ndarray_values, len(self))
-
-    @property
-    def asi8(self):
-        return self.values.asi8
+    # Index Constructors
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
@@ -265,28 +237,67 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             attributes['dtype'] = self.dtype
         return self._simple_new(values, **attributes)
 
-    def _maybe_box_as_values(self, values, **attribs):
-        freq = attribs['freq']
-        return PeriodArray._from_ordinals(values, freq=freq)
-
-    def shift(self, n):
-        # TODO: May need to
-        result = self.values.shift(n)
-        return self._simple_new(result, name=self.name)
-
     def _shallow_copy_with_infer(self, values=None, **kwargs):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
-    def _coerce_scalar_to_index(self, item):
-        """
-        we need to coerce a scalar to a compat for our index type
+    # ------------------------------------------------------------------------
+    # Boxing
+    # err. maybe not...
 
-        Parameters
-        ----------
-        item : scalar item to coerce
+    @property
+    def _box_func(self):
+        def func(x):
+            if isinstance(x, Period) or x is tslib.NaT:
+                return x
+            else:
+                return Period._from_ordinal(ordinal=x, freq=self.freq)
+        return func
+
+    def _maybe_box_as_values(self, values, **attribs):
+        """Box an array of ordinals to a PeriodArray
+
+        This is purely for compatibility between PeriodIndex
+        and Datetime/TimedeltaIndex. Once these are all backed by
+        an ExtensionArray, this can be removed
         """
-        return PeriodIndex([item], **self._get_attributes_dict())
+        freq = attribs['freq']
+        return PeriodArray._from_ordinals(values, freq=freq)
+
+    # ------------------------------------------------------------------------
+    # Straight Dispatch
+
+    @property
+    def freq(self):
+        """Return the frequency object if it is set, otherwise None"""
+        return self._data.freq
+
+    @property
+    def asi8(self):
+        return self._data.asi8
+
+    @property
+    def size(self):
+        # Avoid materializing self._values
+        return self._data.size
+
+    @property
+    def shape(self):
+        # Avoid materializing self._values
+        return self._data.shape
+    # ------------------------------------------------------------------------
+    # Dispatch and Wrap
+
+    def asfreq(self, freq=None, how='E'):
+        result = self._data.asfreq(freq=freq, how=how)
+        return self._simple_new(result, name=self.name)
+
+    # ------------------------------------------------------------------------
+    # Indexing
+    @cache_readonly
+    def _engine(self):
+        # TODO: understand indexing before just changing this.
+        return self._engine_type(lambda: self._ndarray_values, len(self))
 
     @Appender(_index_shared_docs['__contains__'])
     def __contains__(self, key):
@@ -308,9 +319,41 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def _int64index(self):
         return Int64Index(self.asi8, name=self.name, fastpath=True)
 
-    @property
-    def values(self):
-        return self._data
+    # ------------------------------------------------------------------------
+    # Index Methods
+
+    def shift(self, n):
+        """
+        Specialized shift which produces a PeriodIndex
+
+        Parameters
+        ----------
+        n : int
+            Periods to shift by
+
+        Returns
+        -------
+        shifted : PeriodIndex
+        """
+        # TODO: docs
+        # Note, this differs from the definition of ExtensionArray.shift
+        # 1. EA.shift takes a single `periods` argument, this accepts array
+        # 2. This accepts a `freq` argument
+        # so we don't dispatch
+        values = self._ndarray_values + n * self.freq.n
+        if self.hasnans:
+            values[self._isnan] = tslib.iNaT
+        return self._shallow_copy(values=values)
+
+    def _coerce_scalar_to_index(self, item):
+        """
+        we need to coerce a scalar to a compat for our index type
+
+        Parameters
+        ----------
+        item : scalar item to coerce
+        """
+        return PeriodIndex([item], **self._get_attributes_dict())
 
     def __array__(self, dtype=None):
         if is_integer_dtype(dtype):
@@ -361,16 +404,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             return self.astype(dtype)._to_embed(keep_tz=keep_tz)
 
         return self.astype(object).values
-
-    @property
-    def size(self):
-        # Avoid materializing self._values
-        return self._ndarray_values.size
-
-    @property
-    def shape(self):
-        # Avoid materializing self._values
-        return self._ndarray_values.shape
 
     @property
     def _formatter_func(self):
