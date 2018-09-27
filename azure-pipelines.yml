@@ -49,8 +49,10 @@ jobs:
   # pandas/_libs/src is C code, so no need to search there.
   - script: flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C406,C408,C409,E402,E731,E741,W503
     displayName: 'Linting *.py code'
+    continueOnError: 'true'
   - script: flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
     displayName: 'Linting *.pyx code'
+    continueOnError: true
   - script: flake8 pandas/src --filename=*.pxi.in --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     displayName: 'Linting *.pxi.in'
   - script: flake8 pandas/_libs --filename=*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
