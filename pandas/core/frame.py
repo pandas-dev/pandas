@@ -1095,49 +1095,49 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'legs': [4, 2],
-        ...                    'wings': [0, 2]},
-        ...                   index=['cat', 'falcon'])
+        >>> df = pd.DataFrame({'col1': [1, 2],
+        ...                    'col2': [0.5, 0.75]},
+        ...                   index=['a', 'b'])
         >>> df
-                legs  wings
-        cat        4      0
-        falcon     2      2
+           col1  col2
+        a     1   0.50
+        b     2   0.75
         >>> df.to_dict()
-        {'legs': {'cat': 4, 'falcon': 2}, 'wings': {'cat': 0, 'falcon': 2}}
+        {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
 
         You can specify the return orientation.
 
         >>> df.to_dict('series')
-        {'legs': cat       4
-                 falcon    2
-         Name: legs, dtype: int64,
-         'wings': cat       0
-                  falcon    2
-         Name: wings, dtype: int64}
+        {'col1': a    1
+                 b    2
+                 Name: col1, dtype: int64,
+         'col2': a    0.50
+                 b    0.75
+                 Name: col2, dtype: float64}
 
         >>> df.to_dict('split')
-        {'index': ['cat', 'falcon'], 'columns': ['legs', 'wings'],
-        'data': [[4, 0], [2, 2]]}
+        {'index': ['a', 'b'], 'columns': ['col1', 'col2'],
+         'data': [[1.0, 0.5], [2.0, 0.75]]}
 
         >>> df.to_dict('records')
-        [{'legs': 4, 'wings': 0}, {'legs': 2, 'wings': 2}]
+        [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
 
         >>> df.to_dict('index')
-        {'cat': {'legs': 4, 'wings': 0}, 'falcon': {'legs': 2, 'wings': 2}}
+        {'a': {'col1': 1, 'col2': 0.5}, 'b': {'col1': 2, 'col2': 0.75}}
 
         You can also specify the mapping type.
 
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
-        OrderedDict([('legs', OrderedDict([('cat', 4), ('falcon', 2)])),
-                     ('wings', OrderedDict([('cat', 0), ('falcon', 2)]))])
+        OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
+                     ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
 
         If you want a `defaultdict`, you need to initialize it:
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(<class 'list'>, {'legs': 4, 'wings': 0}),
-         defaultdict(<class 'list'>, {'legs': 2, 'wings': 2})]
+        [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
+         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
