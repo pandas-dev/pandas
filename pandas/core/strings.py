@@ -1401,6 +1401,12 @@ def str_slice(arr, start=None, stop=None, step=None):
     Series or Index of object
         Series or Index containing sliced substring from original string object.
 
+    See Also
+    --------
+    Series.str.slice_replace : Replace a slice with a string.
+    Series.str.get : Return element at position. 
+        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i` being the position.
+
     Examples
     --------
     >>> s = pd.Series(["koala", "fox", "chameleon"])
@@ -1429,6 +1435,13 @@ def str_slice(arr, start=None, stop=None, step=None):
     dtype: object
 
     >>> s.str.slice(start=0, stop=5, step=3)
+    0    kl
+    1     f
+    2    cm
+    dtype: object
+
+    Equivalent behaviour to:
+    >>> s.str[0:5:3]
     0    kl
     1     f
     2    cm
