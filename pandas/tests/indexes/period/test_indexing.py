@@ -564,7 +564,7 @@ class TestIndexing(object):
                                     'unit abbreviation w/o a number'):
             idx.get_loc('2000-01-10', method='nearest', tolerance='foo')
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=D\\)'
+        msg = 'Input has different freq from PeriodArray\\(freq=D\\)'
         with tm.assert_raises_regex(ValueError, msg):
             idx.get_loc('2000-01-10', method='nearest', tolerance='1 hour')
         with pytest.raises(KeyError):
@@ -594,7 +594,7 @@ class TestIndexing(object):
                                                     tolerance='1 hour'),
                                     np.array([0, -1, 1], dtype=np.intp))
 
-        msg = 'Input has different freq from PeriodIndex\\(freq=H\\)'
+        msg = 'Input has different freq from PeriodArray\\(freq=H\\)'
         with tm.assert_raises_regex(ValueError, msg):
             idx.get_indexer(target, 'nearest', tolerance='1 minute')
 

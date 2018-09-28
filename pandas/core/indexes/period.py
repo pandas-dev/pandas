@@ -15,7 +15,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
 )
 
-from pandas.core.accessor import PandasDelegate
+from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
@@ -56,9 +56,11 @@ def _wrap_field_accessor(name):
 
 def _new_PeriodIndex(cls, **d):
     # GH13277 for unpickling
-    if d['data'].dtype == 'int64':
-        values = d.pop('data')
-    return cls._from_ordinals(values=values, **d)
+    values = d.pop('data')
+    if values.dtype == 'int64':
+        return cls._from_ordinals(values=values, **d)
+    else:
+        return cls(values, **d)
 
 
 class PeriodDelegateMixin(PandasDelegate):
@@ -75,7 +77,23 @@ class PeriodDelegateMixin(PandasDelegate):
         return operator.methodcaller(name, *args, **kwargs)(self._data)
 
 
-# @delegate_names(PeriodArray, PeriodArray._datetimelike_methods, typ="method")
+@delegate_names(
+    PeriodArray,
+    PeriodArray._datetimelike_ops + [
+        'size',
+        'asi8',
+        'shape',
+    ],
+    "property"
+)
+@delegate_names(
+    PeriodArray,
+    PeriodArray._datetimelike_methods + [
+        '_format_native_types',
+        '_maybe_convert_timedelta',
+    ],
+    "method"
+)
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                   Int64Index, PeriodDelegateMixin):
     """
@@ -170,7 +188,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    _freq = None
     _data = None  # type: PeriodArray
 
     _engine_type = libindex.PeriodEngine
@@ -182,9 +199,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        data = PeriodArray(data=data, ordinal=ordinal, freq=freq,
-                           start=start, end=end, periods=periods,
-                           tz=tz, dtype=dtype, copy=copy, **fields)
+        data = PeriodArray._complex_new(data=data, ordinal=ordinal, freq=freq,
+                                        start=start, end=end, periods=periods,
+                                        tz=tz, dtype=dtype, copy=copy,
+                                        **fields)
         return cls._simple_new(data, name=name)
 
     # ------------------------------------------------------------------------
@@ -196,6 +214,17 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     @property
     def values(self):
         return self._data
+
+    @property
+    def freq(self):
+        # TODO(DatetimeArray): remove
+        # Can't simply use delegate_names since our base class is defining
+        # freq
+        return self._data.freq
+
+    @freq.setter
+    def freq(self, value):
+        self._data.freq = value
 
     # ------------------------------------------------------------------------
     # Index Constructors
@@ -225,7 +254,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return result
 
     def _shallow_copy(self, values=None, **kwargs):
-        # TODO: update take to do this?
+        # TODO: simplify, figure out type of values
         if values is None:
             # Note: this is the Index implementation.
             # slightly different from AttributesMixin implementation which
@@ -238,7 +267,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                     values = PeriodArray._from_ordinals(values, freq=self.freq)
                 except TypeError:
                     # TODO: this is probably ambiguous for some oridinals.
-                    values = PeriodArray(values, freq=self.freq)
+                    values = PeriodArray._complex_new(values, freq=self.freq)
 
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
@@ -274,41 +303,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         return PeriodArray._from_ordinals(values, freq=freq)
 
     # ------------------------------------------------------------------------
-    # Straight Dispatch
-
-    @property
-    def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
-        # TODO(DatetimeArray): remove
-        return self._data.freq
-
-    @freq.setter
-    def freq(self, value):
-        # TODO(DatetimeArray): remove
-        self._data.freq = value
-
-    @property
-    def asi8(self):
-        return self._data.asi8
-
-    @property
-    def size(self):
-        # Avoid materializing self._values
-        return self._data.size
-
-    @property
-    def shape(self):
-        # Avoid materializing self._values
-        return self._data.shape
-
-    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
-        return self._data._format_native_types(na_rep=na_rep,
-                                               date_format=date_format)
-
-    @property
-    def is_leap_year(self):
-        return self._data.is_leap_year
-    # ------------------------------------------------------------------------
     # Dispatch and Wrap
 
     def asfreq(self, freq=None, how='E'):
@@ -326,8 +320,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     # Indexing
     @cache_readonly
     def _engine(self):
-        # TODO: understand indexing before just changing this.
-        return self._engine_type(lambda: self._ndarray_values, len(self))
+        return self._engine_type(lambda: self, len(self))
 
     @Appender(_index_shared_docs['__contains__'])
     def __contains__(self, key):
@@ -497,7 +490,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
-    year = _wrap_field_accessor('year')
+    # year = _wrap_field_accessor('year')
     month = _wrap_field_accessor('month')
     day = _wrap_field_accessor('day')
     hour = _wrap_field_accessor('hour')

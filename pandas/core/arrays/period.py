@@ -101,8 +101,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     There are two components to a PeriodArray
 
-    - ordinals
-    - freq
+    - ordinals : integer ndarray
+    - freq : pd.tseries.offsets.Tick
 
     The values are physically stored as an ndarray of integers. These are
     called "ordinals" and represent some kind of offset from a base.
@@ -126,26 +126,26 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     # --------------------------------------------------------------------
     # Constructors
+    def __init__(self, values, freq=None):
+        # type: (np.ndarray[int64], Union[str, Tick]) -> None
+        values = np.array(values, dtype='int64', copy=False)
+        self._data = values
+        if freq is None:
+            raise ValueError('freq is not specified and cannot be inferred')
+        self._freq = Period._maybe_convert_freq(freq)
 
-    @property
-    def _foo(self):
-        return 'foo!'
-
-    @_foo.setter
-    def _foo(self, value):
-        print("setting foo to ", value)
-
-    def _bar(self, arg, kwarg=1):
-        print(arg, kwarg)
-
-    def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
-                periods=None, tz=None, dtype=None, copy=False,
-                **fields):
+    @classmethod
+    def _complex_new(cls, data=None, ordinal=None, freq=None, start=None,
+                     end=None, periods=None, tz=None, dtype=None, copy=False,
+                     **fields):
         from pandas import PeriodIndex, DatetimeIndex, Int64Index
 
         # copy-pase from PeriodIndex.__new__ with slight adjustments.
         #
         # - removed all uses of name
+        # - refactored to smaller, more dedicated constructors.
+
+        # TODO: move fields validation to range init
         valid_field_set = {'year', 'month', 'day', 'quarter',
                            'hour', 'minute', 'second'}
 
@@ -199,9 +199,11 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         # not array / index
         if not isinstance(data, (np.ndarray, PeriodIndex,
                                  DatetimeIndex, Int64Index)):
-            if is_scalar(data) or isinstance(data, Period):
-                # XXX
-                cls._scalar_data_error(data)
+            if is_scalar(data):
+                raise TypeError('{0}(...) must be called with a '
+                                'collection of some '
+                                'kind, {1} was passed'.format(cls.__name__,
+                                                              repr(data)))
 
             # other iterable of some kind
             if not isinstance(data, (list, tuple)):
@@ -221,17 +223,33 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
         # anything else, likely an array of strings or periods
         data = ensure_object(data)
-        freq = freq or libperiod.extract_freq(data)
-        data = libperiod.extract_ordinals(data, freq)
-        return cls._from_ordinals(data, freq=freq)
+        return cls._from_periods(data, freq=freq)
+
+    @classmethod
+    def _from_ordinals(cls, values, freq=None):
+        # type: (ndarray[int], Optional[Tick]) -> PeriodArray
+        """
+        Values should be int ordinals
+        `__new__` & `_simple_new` cooerce to ordinals and call this method
+        """
+        return cls(values, freq=freq)
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        return cls(scalars, dtype=dtype, copy=copy)
+        # type: (Sequence[Optional[Period]], Dtype, bool) -> PeriodArray
+        return cls._complex_new(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
-        return cls(values, dtype=original.dtype)
+        # type: (Sequence[Optional[Period]], PeriodArray) -> PeriodArray
+        return cls._from_periods(values, freq=original.freq)
+
+    @classmethod
+    def _from_periods(cls, periods, freq=None):
+        # type: (np.ndarray[Optional[Period]], Optional[Tick]) -> PeriodArray
+        freq = freq or libperiod.extract_freq(periods)
+        ordinals = libperiod.extract_ordinals(periods, freq)
+        return cls._from_ordinals(ordinals, freq=freq)
 
     def __repr__(self):
         return '<pandas PeriodArray>\n{}\nLength: {}, dtype: {}'.format(
@@ -268,6 +286,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     @property
     def nbytes(self):
+        # TODO(DatetimeArray): remove
         return self._data.nbytes
 
     def copy(self, deep=False):
@@ -335,7 +354,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         Values can be any type that can be coerced to Periods.
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
         """
-
         if not is_integer_dtype(values):
             values = np.array(values, copy=False)
             if len(values) > 0 and is_float_dtype(values):
@@ -343,23 +361,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                                 .format(cls=cls.__name__))
             return cls(values, freq=freq)
 
-        return cls._from_ordinals(values, freq)
-
-    @classmethod
-    def _from_ordinals(cls, values, freq=None):
-        """
-        Values should be int ordinals
-        `__new__` & `_simple_new` cooerce to ordinals and call this method
-        """
-
-        values = np.array(values, dtype='int64', copy=False)
-
-        result = object.__new__(cls)
-        result._data = values
-        if freq is None:
-            raise ValueError('freq is not specified and cannot be inferred')
-        result._freq = Period._maybe_convert_freq(freq)
-        return result
+        return cls(values, freq=freq)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -600,12 +602,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
                                                freqstr=self.freqstr))
 
-    @classmethod
-    def _scalar_data_error(cls, data):
-        raise TypeError('{0}(...) must be called with a collection of some '
-                        'kind, {1} was passed'.format(cls.__name__,
-                                                      repr(data)))
-
     def _format_native_types(self, na_rep=u'NaT', date_format=None):
         values = self.astype(object)
 
@@ -696,6 +692,10 @@ PeriodArray._add_datetimelike_methods()
 
 # -------------------------------------------------------------------
 # Constructor Helpers
+
+def to_period_array(data):
+    return PeriodArray._complex_new(data, freq=None)
+
 
 def _get_ordinal_range(start, end, periods, freq, mult=1):
     if com.count_not_none(start, end, periods) != 2:

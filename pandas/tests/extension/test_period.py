@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 import pandas as pd
+from pandas._libs.tslib import iNaT
 from pandas.tests.extension import base
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.arrays import PeriodArray
@@ -14,31 +15,31 @@ def dtype():
 
 @pytest.fixture
 def data(dtype):
-    return PeriodArray(np.arange(1970, 2070), dtype=dtype)
+    return PeriodArray(np.arange(1970, 2070), freq=dtype.freq)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return PeriodArray([2018, 2019, 2017], dtype=dtype)
+    return PeriodArray([2018, 2019, 2017], freq=dtype.freq)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return PeriodArray([None, 2017], dtype=dtype)
+    return PeriodArray([iNaT, 2017], freq=dtype.freq)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return PeriodArray([2018, None, 2017], dtype=dtype)
+    return PeriodArray([2018, iNaT, 2017], freq=dtype.freq)
 
 
 @pytest.fixture
 def data_for_grouping(dtype):
     B = 2018
-    NA = None
+    NA = iNaT
     A = 2017
     C = 2019
-    return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=dtype)
+    return PeriodArray([B, B, NA, NA, A, A, B, C], freq=dtype.freq)
 
 
 @pytest.fixture

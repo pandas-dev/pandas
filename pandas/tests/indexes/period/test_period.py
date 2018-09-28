@@ -138,6 +138,7 @@ class TestPeriodIndex(DatetimeLike):
         tm.assert_numpy_array_equal(idx.view('i8'), exp)
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
+    @pytest.mark.xfail(reason="XXX: Determine the desired behavior here.")
     def test_values(self):
         idx = pd.PeriodIndex([], freq='M')
         exp = PeriodArray([], freq='M')
