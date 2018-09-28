@@ -48,6 +48,10 @@ class TestTimedeltas(object):
         result = df.loc['0s':, :]
         tm.assert_frame_equal(expected, result)
 
+        with pytest.raises(ValueError):
+            # GH 22274: CalendarDay is a relative time measurement
+            timedelta_range('1day', freq='CD', periods=2)
+
     @pytest.mark.parametrize('periods, freq', [
         (3, '2D'), (5, 'D'), (6, '19H12T'), (7, '16H'), (9, '12H')])
     def test_linspace_behavior(self, periods, freq):

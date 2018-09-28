@@ -61,6 +61,12 @@ Excel
    read_excel
    ExcelFile.parse
 
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   ExcelWriter
+
 JSON
 ~~~~
 
@@ -2559,6 +2565,7 @@ objects.
 .. autosummary::
    :toctree: generated/
 
+   api.extensions.register_extension_dtype
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
@@ -2596,3 +2603,12 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.api.extensions.ExtensionDtype.na_value

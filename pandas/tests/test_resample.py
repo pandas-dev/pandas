@@ -1,6 +1,6 @@
 # pylint: disable=E1101
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime, timedelta
 from functools import partial
 from textwrap import dedent
@@ -1463,6 +1463,7 @@ class TestDatetimeIndex(Base):
         n = len(rng)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", FutureWarning)
             panel = Panel(np.random.randn(3, n, 5),
                           items=['one', 'two', 'three'],
                           major_axis=rng,
@@ -1485,6 +1486,7 @@ class TestDatetimeIndex(Base):
                                lambda x: x.resample('M', axis=1).mean())
             tm.assert_panel_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_resample_panel_numpy(self):
         rng = date_range('1/1/2000', '6/30/2000')
         n = len(rng)
@@ -2038,7 +2040,7 @@ class TestDatetimeIndex(Base):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)
-        assert_frame_equal(df.resample(rule='D').sum(),
+        assert_frame_equal(df.resample(rule='CD').sum(),
                            DataFrame([5], index=df.index.normalize()))
         df.resample(rule='MS').sum()
         assert_frame_equal(
@@ -2092,14 +2094,14 @@ class TestDatetimeIndex(Base):
 
         df_daily = df['10/26/2013':'10/29/2013']
         assert_frame_equal(
-            df_daily.resample("D").agg({"a": "min", "b": "max", "c": "count"})
+            df_daily.resample("CD").agg({"a": "min", "b": "max", "c": "count"})
             [["a", "b", "c"]],
             DataFrame({"a": [1248, 1296, 1346, 1394],
                        "b": [1295, 1345, 1393, 1441],
                        "c": [48, 50, 48, 48]},
                       index=date_range('10/26/2013', '10/29/2013',
-                                       freq='D', tz='Europe/Paris')),
-            'D Frequency')
+                                       freq='CD', tz='Europe/Paris')),
+            'CD Frequency')
 
     def test_downsample_across_dst(self):
         # GH 8531
@@ -2482,6 +2484,22 @@ class TestPeriodIndex(Base):
                                           name='idx') - 1)
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
+
+    def test_resample_nonexistent_time_bin_edge(self):
+        # GH 19375
+        index = date_range('2017-03-12', '2017-03-12 1:45:00', freq='15T')
+        s = Series(np.zeros(len(index)), index=index)
+        expected = s.tz_localize('US/Pacific')
+        result = expected.resample('900S').mean()
+        tm.assert_series_equal(result, expected)
+
+    def test_resample_ambiguous_time_bin_edge(self):
+        # GH 10117
+        idx = pd.date_range("2014-10-25 22:00:00", "2014-10-26 00:30:00",
+                            freq="30T", tz="Europe/London")
+        expected = Series(np.zeros(len(idx)), index=idx)
+        result = expected.resample('30T').mean()
+        tm.assert_series_equal(result, expected)
 
     def test_fill_method_and_how_upsample(self):
         # GH2073
@@ -3237,25 +3255,25 @@ class TestTimeGrouper(object):
         result = grouped.apply(f)
         tm.assert_index_equal(result.index, df.index)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_panel_aggregation(self):
         ind = pd.date_range('1/1/2000', periods=100)
         data = np.random.randn(2, len(ind), 4)
 
-        with catch_warnings(record=True):
-            wp = Panel(data, items=['Item1', 'Item2'], major_axis=ind,
-                       minor_axis=['A', 'B', 'C', 'D'])
+        wp = Panel(data, items=['Item1', 'Item2'], major_axis=ind,
+                   minor_axis=['A', 'B', 'C', 'D'])
 
-            tg = TimeGrouper('M', axis=1)
-            _, grouper, _ = tg._get_grouper(wp)
-            bingrouped = wp.groupby(grouper)
-            binagg = bingrouped.mean()
+        tg = TimeGrouper('M', axis=1)
+        _, grouper, _ = tg._get_grouper(wp)
+        bingrouped = wp.groupby(grouper)
+        binagg = bingrouped.mean()
 
-            def f(x):
-                assert (isinstance(x, Panel))
-                return x.mean(1)
+        def f(x):
+            assert (isinstance(x, Panel))
+            return x.mean(1)
 
-            result = bingrouped.agg(f)
-            tm.assert_panel_equal(result, binagg)
+        result = bingrouped.agg(f)
+        tm.assert_panel_equal(result, binagg)
 
     def test_fails_on_no_datetime_index(self):
         index_names = ('Int64Index', 'Index', 'Float64Index', 'MultiIndex')
