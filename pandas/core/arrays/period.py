@@ -225,10 +225,6 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         data = libperiod.extract_ordinals(data, freq)
         return cls._from_ordinals(data, freq=freq)
 
-    @property
-    def asi8(self):
-        return self._data.view("i8")
-
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars, dtype=dtype, copy=copy)
@@ -696,6 +692,7 @@ PeriodArray._add_comparison_ops()
 PeriodArray._add_datetimelike_methods()
 # PeriodArray._add_numeric_methods_disabled()
 # PeriodArray._add_logical_methods_disabled()
+
 
 # -------------------------------------------------------------------
 # Constructor Helpers

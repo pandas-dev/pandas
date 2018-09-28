@@ -9,28 +9,23 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_float,
     is_integer_dtype,
-    is_float_dtype,
-    is_scalar,
-    is_datetime64_dtype,
     is_datetime64_any_dtype,
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
-    ensure_object)
+)
 
-import pandas.tseries.frequencies as frequencies
-from pandas.tseries.frequencies import get_freq_code as _gfc
-
-from pandas.core.accessor import PandasDelegate, delegate_names
+from pandas.core.accessor import PandasDelegate
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
+)
 from pandas.core.tools.datetimes import parse_time_string
 
-from pandas._libs.lib import infer_dtype
-from pandas._libs import tslib, index as libindex, Timedelta
+from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX)
-from pandas._libs.tslibs import resolution, period
+from pandas._libs.tslibs import resolution
 
 from pandas.core.arrays.period import PeriodArray
 from pandas.core.base import _shared_docs
@@ -850,7 +845,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             return wrap_arithmetic_op(self, other, result)
 
         cls.__rsub__ = __rsub__
-
 
 
 # PeriodIndex._add_comparison_ops()
