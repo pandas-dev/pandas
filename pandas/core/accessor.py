@@ -68,8 +68,6 @@ class PandasDelegate(object):
         overwrite : boolean, default False
            overwrite the method/property in the target class if it exists
         """
-        delegated_to = getattr(delegate, '_delegated_to', delegate)
-
         def _create_delegator_property(name):
 
             def _getter(self):
@@ -82,7 +80,7 @@ class PandasDelegate(object):
             _setter.__name__ = name
 
             return property(fget=_getter, fset=_setter,
-                            doc=getattr(delegated_to, name).__doc__)
+                            doc=getattr(delegate, name).__doc__)
 
         def _create_delegator_method(name):
 
@@ -90,7 +88,7 @@ class PandasDelegate(object):
                 return self._delegate_method(name, *args, **kwargs)
 
             f.__name__ = name
-            f.__doc__ = getattr(delegated_to, name).__doc__
+            f.__doc__ = getattr(delegate, name).__doc__
 
             return f
 
@@ -107,11 +105,9 @@ class PandasDelegate(object):
 
 
 def delegate_names(delegate, accessors, typ, overwrite=False):
+    # type (type, list, str, bool) -> Callable
     """
     Add delegated names to a class using a class decorator.
-
-    Methods and attributes are delegated to ...
-
 
     This provides an alternative usage to directly calling
     `_add_delegate_accessors` below a class definition.

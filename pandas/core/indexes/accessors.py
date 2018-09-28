@@ -270,11 +270,11 @@ class TimedeltaProperties(Properties):
         return self._get_values().inferred_freq
 
 
-@delegate_names(delegate=PeriodIndex,
-                accessors=PeriodIndex._datetimelike_ops,
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_ops,
                 typ="property")
-@delegate_names(delegate=PeriodIndex,
-                accessors=PeriodIndex._datetimelike_methods,
+@delegate_names(delegate=PeriodArray,
+                accessors=PeriodArray._datetimelike_methods,
                 typ="method")
 class PeriodProperties(Properties):
     """
@@ -289,8 +289,6 @@ class PeriodProperties(Properties):
     Returns a Series indexed like the original Series.
     Raises TypeError if the Series does not contain datetimelike values.
     """
-    def _delegate_method(self, name, *args, **kwargs):
-        pass
 
 
 class CombinedDatetimelikeProperties(DatetimeProperties, TimedeltaProperties):

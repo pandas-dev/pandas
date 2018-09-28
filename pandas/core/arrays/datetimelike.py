@@ -553,6 +553,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         --------
         Index.shift : Shift values of Index.
         """
+        return self._tshift(periods, freq=freq)
+
+    def _tshift(self, periods, freq=None):
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
@@ -600,7 +603,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self.shift(other)
+                # TODO: make a _shift method that's consistent between
+                # Index and EA
+                result = self._tshift(other)
 
             # array-like others
             elif is_timedelta64_dtype(other):

@@ -1,6 +1,7 @@
 # pylint: disable=E1101,E1103,W0232
 from datetime import datetime
 import numpy as np
+import operator
 import warnings
 
 from pandas.core import common as com
@@ -20,6 +21,7 @@ from pandas.core.dtypes.common import (
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
 
+from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
@@ -64,8 +66,23 @@ def _new_PeriodIndex(cls, **d):
     return cls._from_ordinals(values=values, **d)
 
 
+class PeriodDelegateMixin(PandasDelegate):
+    """
+    Delegate from PeriodIndex to PeriodArray.
+    """
+    def _delegate_property_get(self, name, *args, **kwargs):
+        return getattr(self._data, name)
+
+    def _delegate_property_set(self, name, value, *args, **kwargs):
+        setattr(self._data, name, value)
+
+    def _delegate_method(self, name, *args, **kwargs):
+        return operator.methodcaller(name, *args, **kwargs)(self._data)
+
+
+# @delegate_names(PeriodArray, PeriodArray._datetimelike_methods, typ="method")
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
-                  Int64Index):
+                  Int64Index, PeriodDelegateMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in
     time such as particular years, quarters, months, etc.
@@ -145,19 +162,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
-    _delegated_to = PeriodArray
+    # _delegated_to = PeriodArray
 
     # define my properties & methods for delegation
-    _other_ops = []
-    _bool_ops = ['is_leap_year']
-    _object_ops = ['start_time', 'end_time', 'freq']
-    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
-                  'weekofyear', 'weekday', 'week', 'dayofweek',
-                  'dayofyear', 'quarter', 'qyear',
-                  'days_in_month', 'daysinmonth']
-    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
-    _datetimelike_methods = ['strftime', 'to_timestamp', 'asfreq']
-
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
@@ -339,13 +346,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         -------
         shifted : PeriodIndex
         """
-        # TODO: docs
-        # Note, this differs from the definition of ExtensionArray.shift
-        # so we don't dispatch
-        values = self._ndarray_values + n * self.freq.n
-        if self.hasnans:
-            values[self._isnan] = tslib.iNaT
-        return self._shallow_copy(values=values)
+        i8values = self._data._tshift(n)
+        return self._simple_new(i8values, name=self.name, freq=self.freq)
 
     def _coerce_scalar_to_index(self, item):
         """

@@ -113,8 +113,31 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     """
     _attributes = ["freq"]
     _typ = "period"  # ABCPeriodArray
+
+    # Names others delegate to us on
+    _other_ops = []
+    _bool_ops = ['is_leap_year']
+    _object_ops = ['start_time', 'end_time', 'freq']
+    _field_ops = ['year', 'month', 'day', 'hour', 'minute', 'second',
+                  'weekofyear', 'weekday', 'week', 'dayofweek',
+                  'dayofyear', 'quarter', 'qyear',
+                  'days_in_month', 'daysinmonth']
+    _datetimelike_ops = _field_ops + _object_ops + _bool_ops
+    _datetimelike_methods = ['strftime', 'to_timestamp', 'asfreq']
+
     # --------------------------------------------------------------------
     # Constructors
+
+    @property
+    def _foo(self):
+        return 'foo!'
+
+    @_foo.setter
+    def _foo(self, value):
+        print("setting foo to ", value)
+
+    def _bar(self, arg, kwarg=1):
+        print(arg, kwarg)
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
                 periods=None, tz=None, dtype=None, copy=False,
@@ -511,10 +534,26 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         -------
         shifted : Period Array/Index
         """
+        # We have two kinds of shift.
+        # 1. ExtensionArray.shift: move positions of each value,
+        #    fill NA on the end
+        # 2. Datelike.tshift: move each value through time
+        # Each Datelike array will implement both. It's up to the
+        # caller to call the correct one.
+        return self._ea_shift(periods=periods)
+
+    def _ea_shift(self, periods=1):
         # TODO: remove from DatetimeLikeArrayMixin
         # The semantics for Index.shift differ from EA.shift
         # then just call super.
         return ExtensionArray.shift(self, periods)
+
+    def _tshift(self, n, freq=None):
+        # TODO: docs
+        values = self.values + n * self.freq.n
+        if self.hasnans:
+            values[self._isnan] = iNaT
+        return self._simple_new(values, freq=self.freq)
 
     def _maybe_convert_timedelta(self, other):
         """
@@ -628,7 +667,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
 PeriodArray._add_comparison_ops()
 PeriodArray._add_datetimelike_methods()
-
+# PeriodArray._add_numeric_methods_disabled()
+# PeriodArray._add_logical_methods_disabled()
 
 # -------------------------------------------------------------------
 # Constructor Helpers
