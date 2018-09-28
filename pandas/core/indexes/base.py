@@ -261,7 +261,6 @@ class Index(IndexOpsMixin, PandasObject):
             return cls._simple_new(data, name)
 
         from .range import RangeIndex
-
         # range
         if isinstance(data, RangeIndex):
             return RangeIndex(start=data, copy=copy, dtype=dtype, name=name)
@@ -303,7 +302,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return result
 
-        elif (is_period_dtype(data) or
+        elif ((is_period_dtype(data) and not is_object_dtype(dtype)) or
               (dtype is not None and is_period_dtype(dtype))):
             from pandas import PeriodIndex
             result = PeriodIndex(data, copy=copy, name=name, **kwargs)
