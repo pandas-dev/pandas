@@ -151,7 +151,7 @@ class TestTSPlot(TestPlotBase):
         freaks = ['ms', 'us']
         for freq in freaks:
             _, ax = self.plt.subplots()
-            rng = date_range('1/1/2012', periods=100000, freq=freq)
+            rng = date_range('1/1/2012', periods=100, freq=freq)
             ser = Series(np.random.randn(len(rng)), rng)
             _check_plot_works(ser.plot, ax=ax)
 
@@ -1492,7 +1492,11 @@ class TestTSPlot(TestPlotBase):
         ax.scatter(x="time", y="y", data=df)
         fig.canvas.draw()
         label = ax.get_xticklabels()[0]
-        assert label.get_text() == '2017-12-12'
+        if self.mpl_ge_3_0_0:
+            expected = "2017-12-08"
+        else:
+            expected = "2017-12-12"
+        assert label.get_text() == expected
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
