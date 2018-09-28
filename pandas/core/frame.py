@@ -4923,13 +4923,8 @@ class DataFrame(NDFrame):
         return self._constructor(new_data)
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
-        if lib.is_scalar(other) or np.ndim(other) == 0:
-            return ops.dispatch_to_series(self, other, func)
-
-        new_data = self._data.eval(func=func, other=other,
-                                   errors=errors,
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+        assert lib.is_scalar(other) or np.ndim(other) == 0
+        return ops.dispatch_to_series(self, other, func)
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """

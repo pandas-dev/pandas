@@ -731,8 +731,9 @@ class TestDataFrameOperators(TestData):
             result = func(df1, df2)
             tm.assert_numpy_array_equal(result.values,
                                         func(df1.values, df2.values))
+
             with tm.assert_raises_regex(ValueError,
-                                        'Wrong number of dimensions'):
+                                        'dim must be <= 2'):
                 func(df1, ndim_5)
 
             result2 = func(self.simple, row)
