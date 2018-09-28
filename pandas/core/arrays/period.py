@@ -327,12 +327,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use {cls}.asfreq instead. '
                'The {cls}.freq setter is not guaranteed to work.')
-        warnings.warn(msg.format(cls=type(self).__name__),
-                      FutureWarning, stacklevel=2)
-        if value is not None:
-            value = frequencies.to_offset(value)
-            self._validate_frequency(self, value)
-
+        warnings.warn(msg.format(cls='PeriodIndex'),
+                      FutureWarning, stacklevel=3)
         self._freq = value
 
     @classmethod

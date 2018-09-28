@@ -251,7 +251,6 @@ def infer_freq(index, warn=True):
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
     """
-    import pdb; pdb.set_trace()
     import pandas as pd
 
     if isinstance(index, ABCSeries):
