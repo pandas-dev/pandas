@@ -150,6 +150,7 @@ def get_dispatch(dtypes):
 
 {{for name, c_type, dtype in get_dispatch(dtypes)}}
 
+
 def ensure_{{name}}(object arr, copy=True):
     if util.is_array(arr):
         if (<ndarray> arr).descr.type_num == NPY_{{c_type}}:
