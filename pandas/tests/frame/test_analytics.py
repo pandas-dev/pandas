@@ -138,6 +138,26 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             df.corr(method="____")
 
+    def test_corr_tril(self):
+        # GH PR #22840
+        df = pd.DataFrame(np.array([np.arange(100)] * 5).T)
+        result = df.corr(tri='lower')
+        mask = np.tril(np.ones_like(result,
+                                    dtype=np.bool),
+                       k=-1)
+        expected = pd.DataFrame(np.ones_like(result)).where(mask)
+        tm.assert_frame_equal(result, expected)
+
+    def test_corr_triu(self):
+        # GH PR #22840
+        df = pd.DataFrame(np.array([np.arange(100)] * 5).T)
+        result = df.corr(tri='upper')
+        mask = np.triu(np.ones_like(result,
+                                    dtype=np.bool),
+                       k=1)
+        expected = pd.DataFrame(np.ones_like(result)).where(mask)
+        tm.assert_frame_equal(result, expected)
+
     def test_cov(self):
         # min_periods no NAs (corner case)
         expected = self.frame.cov()

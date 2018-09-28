@@ -6705,7 +6705,7 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Statistical methods, etc.
 
-    def corr(self, method='pearson', min_periods=1):
+    def corr(self, method='pearson', min_periods=1, tri=None):
         """
         Compute pairwise correlation of columns, excluding NA/null values
 
@@ -6724,6 +6724,14 @@ class DataFrame(NDFrame):
             to have a valid result. Currently only available for pearson
             and spearman correlation
 
+        tri : {'upper', 'lower'} or None, default : None
+            Whether or not to return the upper / lower triangular
+            correlation matrix.  (This is useful for example when
+            one wishes to easily identify highly collinear columns
+            in a DataFrame.)
+
+            .. versionadded:: 0.24.0
+
         Returns
         -------
         y : DataFrame
@@ -6739,6 +6747,13 @@ class DataFrame(NDFrame):
               dogs cats
         dogs   1.0  0.3
         cats   0.3  1.0
+        >>> df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        >>> df[2] = df[0]
+        >>> df.corr(tri='lower').where(lambda x: x == 1)
+             0    1    2
+        0  NaN  NaN  NaN
+        1  NaN  NaN  NaN
+        2  1.0  NaN  NaN
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -6779,7 +6794,23 @@ class DataFrame(NDFrame):
                              "'spearman', or 'kendall', '{method}' "
                              "was supplied".format(method=method))
 
-        return self._constructor(correl, index=idx, columns=cols)
+        corr_mat = self._constructor(correl, index=idx, columns=cols)
+
+        if tri is not None:
+            mask = np.tril(np.ones_like(correl,
+                                        dtype=np.bool),
+                           k=-1)
+
+            if tri == 'lower':
+                return corr_mat.where(mask)
+            elif tri == 'upper':
+                return corr_mat.where(mask.T)
+            else:
+                raise ValueError("tri must be either 'lower', "
+                                 "or 'upper', '{tri_method}' "
+                                 "was supplied".format(tri_method=tri))
+        else:
+            return corr_mat
 
     def cov(self, min_periods=None):
         """
