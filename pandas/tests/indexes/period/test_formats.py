@@ -118,38 +118,38 @@ class TestPeriodIndexRendering(object):
 
         exp1 = """Series([], dtype: period[D])"""
 
-        exp2 = """0   2011-01-01
+        exp2 = """0    2011-01-01
 dtype: period[D]"""
 
-        exp3 = """0   2011-01-01
-1   2011-01-02
+        exp3 = """0    2011-01-01
+1    2011-01-02
 dtype: period[D]"""
 
-        exp4 = """0   2011-01-01
-1   2011-01-02
-2   2011-01-03
+        exp4 = """0    2011-01-01
+1    2011-01-02
+2    2011-01-03
 dtype: period[D]"""
 
-        exp5 = """0   2011
-1   2012
-2   2013
+        exp5 = """0    2011
+1    2012
+2    2013
 dtype: period[A-DEC]"""
 
-        exp6 = """0   2011-01-01 09:00
-1   2012-02-01 10:00
-2                NaT
+        exp6 = """0    2011-01-01 09:00
+1    2012-02-01 10:00
+2                 NaT
 dtype: period[H]"""
 
-        exp7 = """0   2013Q1
+        exp7 = """0    2013Q1
 dtype: period[Q-DEC]"""
 
-        exp8 = """0   2013Q1
-1   2013Q2
+        exp8 = """0    2013Q1
+1    2013Q2
 dtype: period[Q-DEC]"""
 
-        exp9 = """0   2013Q1
-1   2013Q2
-2   2013Q3
+        exp9 = """0    2013Q1
+1    2013Q2
+2    2013Q3
 dtype: period[Q-DEC]"""
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5,
