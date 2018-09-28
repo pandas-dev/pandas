@@ -23,7 +23,7 @@ from pandas.tseries.frequencies import get_freq_code as _gfc
 
 from pandas.core.accessor import PandasDelegate, delegate_names
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin, wrap_arithmetic_op
 from pandas.core.tools.datetimes import parse_time_string
 
 from pandas._libs.lib import infer_dtype
@@ -793,6 +793,40 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             raise Exception("invalid pickle state")
 
     _unpickle_compat = __setstate__
+
+    @classmethod
+    def _add_datetimelike_methods(cls):
+        """
+        add in the datetimelike methods (as we may have to override the
+        superclass)
+        """
+        # TODO(DatetimeArray): move this up to DatetimeArrayMixin
+
+        def __add__(self, other):
+            # dispatch to ExtensionArray implementation
+            result = self._data.__add__(other)
+            return wrap_arithmetic_op(self, other, result)
+
+        cls.__add__ = __add__
+
+        def __radd__(self, other):
+            # alias for __add__
+            return self.__add__(other)
+        cls.__radd__ = __radd__
+
+        def __sub__(self, other):
+            # dispatch to ExtensionArray implementation
+            result = self._data.__sub__(other)
+            return wrap_arithmetic_op(self, other, result)
+
+        cls.__sub__ = __sub__
+
+        def __rsub__(self, other):
+            result = self._data.__rsub__(other)
+            return wrap_arithmetic_op(self, other, result)
+
+        cls.__rsub__ = __rsub__
+
 
 
 # PeriodIndex._add_comparison_ops()
