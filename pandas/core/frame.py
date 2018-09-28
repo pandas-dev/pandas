@@ -1085,7 +1085,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        collections.Mapping
+        dict, list or collections.Mapping
             like {column -> {index -> value}}
 
         See Also
