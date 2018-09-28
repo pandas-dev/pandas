@@ -2040,7 +2040,7 @@ class TestDatetimeIndex(Base):
         # 5172
         dti = DatetimeIndex([datetime(2012, 11, 4, 23)], tz='US/Eastern')
         df = DataFrame([5], index=dti)
-        assert_frame_equal(df.resample(rule='CD').sum(),
+        assert_frame_equal(df.resample(rule='D').sum(),
                            DataFrame([5], index=df.index.normalize()))
         df.resample(rule='MS').sum()
         assert_frame_equal(
@@ -2094,14 +2094,14 @@ class TestDatetimeIndex(Base):
 
         df_daily = df['10/26/2013':'10/29/2013']
         assert_frame_equal(
-            df_daily.resample("CD").agg({"a": "min", "b": "max", "c": "count"})
+            df_daily.resample("D").agg({"a": "min", "b": "max", "c": "count"})
             [["a", "b", "c"]],
             DataFrame({"a": [1248, 1296, 1346, 1394],
                        "b": [1295, 1345, 1393, 1441],
                        "c": [48, 50, 48, 48]},
                       index=date_range('10/26/2013', '10/29/2013',
-                                       freq='CD', tz='Europe/Paris')),
-            'CD Frequency')
+                                       freq='D', tz='Europe/Paris')),
+            'D Frequency')
 
     def test_downsample_across_dst(self):
         # GH 8531
