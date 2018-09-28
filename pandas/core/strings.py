@@ -1385,40 +1385,54 @@ def str_rsplit(arr, pat=None, n=None):
 
 def str_slice(arr, start=None, stop=None, step=None):
     """
-    Slice substrings from each element in the Series or Index
+    Slice substrings from each element in the Series or Index.
 
     Parameters
     ----------
-    start : int or None
-        Start position for slice operation
-    stop : int or None
-        Stop position for slice operation
-    step : int or None
-        Step size for slice operation
+    start : int, optional
+        Start position for slice operation.
+    stop : int, optional
+        Stop position for slice operation.
+    step : int, optional
+        Step size for slice operation.
 
     Returns
     -------
     Series or Index of object
-        Series or Index containing sliced substring from original string object
+        Series or Index containing sliced substring from original string object.
 
     Examples
     --------
-    >>> s = pd.Series(["panda", "fox"])
+    >>> s = pd.Series(["koala", "fox", "chameleon"])
     >>> s
-    0    panda
-    1      fox
+    0        koala
+    1          fox
+    2    chameleon
+    dtype: object
 
-    >>> s.str.slice(start=2)
-    0    nda
-    1      x
+    >>> s.str.slice(start=1)
+    0        oala
+    1          ox
+    2    hameleon
+    dtype: object
 
     >>> s.str.slice(stop=2)
-    0    pa
+    0    ko
     1    fo
+    2    ch
+    dtype: object
 
     >>> s.str.slice(step=2)
-    0    pna
-    1     fx
+    0      kaa
+    1       fx
+    2    caeen
+    dtype: object
+
+    >>> s.str.slice(start=0, stop=5, step=3)
+    0    kl
+    1     f
+    2    cm
+    dtype: object
     """
     obj = slice(start, stop, step)
     f = lambda x: x[obj]
