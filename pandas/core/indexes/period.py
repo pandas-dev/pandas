@@ -163,6 +163,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
     # _delegated_to = PeriodArray
+    # # TODO: do this in a decorator
+    # _other_ops = PeriodArray._other_ops
+    # _bool_ops = PeriodArray._bool_ops
+    # _object_ops = PeriodArray._object_ops
+    # _field_ops = PeriodArray._field_ops
+    # _datetimelike_ops = PeriodArray._datetimelike_ops
+    # _datetimelike_methods = PeriodArray._datetimelike_methods
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
@@ -277,7 +284,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     @property
     def freq(self):
         """Return the frequency object if it is set, otherwise None"""
+        # TODO(DatetimeArray): remove
         return self._data.freq
+
+    @freq.setter
+    def freq(self, value):
+        # TODO(DatetimeArray): remove
+        self._data.freq = value
 
     @property
     def asi8(self):
@@ -296,12 +309,24 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         return self._data._format_native_types(na_rep=na_rep,
                                                date_format=date_format)
+
+    @property
+    def is_leap_year(self):
+        return self._data.is_leap_year
     # ------------------------------------------------------------------------
     # Dispatch and Wrap
 
     def asfreq(self, freq=None, how='E'):
         result = self._data.asfreq(freq=freq, how=how)
         return self._simple_new(result, name=self.name)
+
+    def _nat_new(self, box=True):
+        # TODO(DatetimeArray): remove this
+        result = self._data._nat_new(box=box)
+        if box:
+            result = self._simple_new(result, name=self.name)
+        return result
+
 
     # ------------------------------------------------------------------------
     # Indexing

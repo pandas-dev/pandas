@@ -329,6 +329,10 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                'The {cls}.freq setter is not guaranteed to work.')
         warnings.warn(msg.format(cls=type(self).__name__),
                       FutureWarning, stacklevel=2)
+        if value is not None:
+            value = frequencies.to_offset(value)
+            self._validate_frequency(self, value)
+
         self._freq = value
 
     @classmethod
@@ -631,6 +635,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return self._format_native_types(date_format=date_format)
 
     def to_timestamp(self, freq=None, how='start'):
+        from pandas import DatetimeIndex
+
         how = _validate_end_alias(how)
 
         end = how == 'E'
@@ -654,7 +660,10 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
         new_data = libperiod.periodarr_to_dt64arr(new_data._ndarray_values,
                                                   base)
-        return new_data
+        # TODO: what should the return type of this be?
+        # Eventually a DatetimeArray makes sense.
+        # But for now let's do a DatetimeIndex?
+        return DatetimeIndex(new_data)
 
     @property
     def start_time(self):

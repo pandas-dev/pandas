@@ -8,6 +8,7 @@ import pandas.util.testing as tm
 from pandas import (DatetimeIndex, PeriodIndex, Series, Period,
                     _np_version_under1p10, Index)
 
+from pandas.core.arrays import PeriodArray
 from pandas.tests.test_base import Ops
 
 
@@ -22,9 +23,9 @@ class TestPeriodIndexOps(Ops):
 
     def test_ops_properties(self):
         f = lambda x: isinstance(x, PeriodIndex)
-        self.check_ops_properties(PeriodIndex._field_ops, f)
-        self.check_ops_properties(PeriodIndex._object_ops, f)
-        self.check_ops_properties(PeriodIndex._bool_ops, f)
+        self.check_ops_properties(PeriodArray._field_ops, f)
+        self.check_ops_properties(PeriodArray._object_ops, f)
+        self.check_ops_properties(PeriodArray._bool_ops, f)
 
     def test_minmax(self):
 
@@ -392,7 +393,9 @@ class TestPeriodIndexOps(Ops):
         assert not idx.equals(pd.Series(idx2))
 
         # same internal, different tz
-        idx3 = pd.PeriodIndex._simple_new(idx.asi8, freq='H')
+        idx3 = pd.PeriodIndex._simple_new(
+            idx.values._simple_new(idx.values.asi8, freq="H")
+        )
         tm.assert_numpy_array_equal(idx.asi8, idx3.asi8)
         assert not idx.equals(idx3)
         assert not idx.equals(idx3.copy())

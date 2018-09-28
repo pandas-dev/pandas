@@ -233,6 +233,7 @@ getOffset = get_offset
 
 
 def infer_freq(index, warn=True):
+    # type: (Union[Series, Index, PeriodArray]) -> Freq
     """
     Infer the most likely frequency given the input index. If the frequency is
     uncertain, a warning will be printed.
@@ -250,6 +251,7 @@ def infer_freq(index, warn=True):
         TypeError if the index is not datetime-like
         ValueError if there are less than three values.
     """
+    import pdb; pdb.set_trace()
     import pandas as pd
 
     if isinstance(index, ABCSeries):
