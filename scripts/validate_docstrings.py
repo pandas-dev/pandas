@@ -376,9 +376,9 @@ class Docstring(object):
     @property
     def deprecated(self):
         pattern = re.compile('.. deprecated:: ')
-        return (self.name.startswith('pandas.Panel') or
-                bool(pattern.search(self.summary)) or
-                bool(pattern.search(self.extended_summary)))
+        return (self.name.startswith('pandas.Panel')
+                or bool(pattern.search(self.summary))
+                or bool(pattern.search(self.extended_summary)))
 
     @property
     def mentioned_private_classes(self):
@@ -440,8 +440,8 @@ def validate_one(func_name):
             errs.append('Summary does not end with a period')
         if doc.summary != doc.summary.lstrip():
             errs.append('Summary contains heading whitespaces.')
-        elif (doc.is_function_or_method and
-                doc.summary.split(' ')[0][-1] == 's'):
+        elif (doc.is_function_or_method
+                and doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
@@ -553,8 +553,8 @@ def validate_all():
     for class_ in (pandas.Series, pandas.DataFrame, pandas.Panel):
         for member in inspect.getmembers(class_):
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
-            if (not member[0].startswith('_') and
-                    func_name not in api_item_names):
+            if (not member[0].startswith('_')
+                    and func_name not in api_item_names):
                 doc_info = validate_one(func_name)
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False
