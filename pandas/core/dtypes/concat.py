@@ -468,10 +468,12 @@ def _concat_datetime(to_concat, axis=0, typs=None):
                                axis=axis).view(_TD_DTYPE)
 
     elif any(typ.startswith('period') for typ in typs):
-        # PeriodIndex must be handled by PeriodIndex,
-        # Thus can't meet this condition ATM
-        # Must be changed when we adding PeriodDtype
-        raise NotImplementedError("unable to concat PeriodDtype")
+        assert len(typs) == 1
+        # TODO: Need a generic way to say "concatenate these by
+        # concatenating the underlying EA and wrapping.
+        cls = to_concat[0]
+        new_values = cls._concat_same_type(to_concat)
+        return new_values
 
 
 def _convert_datetimelike_to_object(x):

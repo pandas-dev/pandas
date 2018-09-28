@@ -305,7 +305,6 @@ class Index(IndexOpsMixin, PandasObject):
 
         elif (is_period_dtype(data) or
               (dtype is not None and is_period_dtype(dtype))):
-            # TODO: ensure is_period_dtype for PeriodArray
             from pandas import PeriodIndex
             result = PeriodIndex(data, copy=copy, name=name, **kwargs)
             if dtype is not None and _o_dtype == dtype:
