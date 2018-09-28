@@ -13,6 +13,7 @@ indexes = [
 
     # base
     pd.Index(['A', 'B', 'C']),
+    pd.Index(['A', 'B', 'C'], name='foo'),
 
     # numeric
     pd.RangeIndex(3),
