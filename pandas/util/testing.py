@@ -205,8 +205,12 @@ def decompress_file(path, compression):
         msg = 'Unrecognized compression type: {}'.format(compression)
         raise ValueError(msg)
 
-    yield f
-    f.close()
+    try:
+        yield f
+    finally:
+        f.close()
+        if compression == "zip":
+            zip_file.close()
 
 
 def assert_almost_equal(left, right, check_dtype="equiv",
@@ -221,7 +225,7 @@ def assert_almost_equal(left, right, check_dtype="equiv",
     ----------
     left : object
     right : object
-    check_dtype : bool / string {'equiv'}, default False
+    check_dtype : bool / string {'equiv'}, default 'equiv'
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
@@ -783,7 +787,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     ----------
     left : Index
     right : Index
-    exact : bool / string {'equiv'}, default False
+    exact : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
@@ -1030,7 +1034,7 @@ def assert_interval_array_equal(left, right, exact='equiv',
         Whether to check the Index class, dtype and inferred_type
         are identical. If 'equiv', then RangeIndex can be substituted for
         Int64Index as well.
-    obj : str, default 'Categorical'
+    obj : str, default 'IntervalArray'
         Specify object name being compared, internally used to show appropriate
         assertion message
     """
@@ -1322,12 +1326,13 @@ def assert_frame_equal(left, right, check_dtype=True,
         Second DataFrame to compare.
     check_dtype : bool, default True
         Whether to check the DataFrame dtype is identical.
-    check_index_type : {'equiv'} or bool, default 'equiv'
+    check_index_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the Index class, dtype and inferred_type
         are identical.
-    check_column_type : {'equiv'} or bool, default 'equiv'
+    check_column_type : bool / string {'equiv'}, default 'equiv'
         Whether to check the columns class, dtype and inferred_type
-        are identical.
+        are identical. Is passed as the ``exact`` argument of
+        :func:`assert_index_equal`.
     check_frame_type : bool, default True
         Whether to check the DataFrame class is identical.
     check_less_precise : bool or int, default False
@@ -1897,6 +1902,7 @@ def makePeriodFrame(nper=None):
 
 def makePanel(nper=None):
     with warnings.catch_warnings(record=True):
+        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
         data = {c: makeTimeDataFrame(nper) for c in cols}
         return Panel.fromDict(data)
@@ -1904,6 +1910,7 @@ def makePanel(nper=None):
 
 def makePeriodPanel(nper=None):
     with warnings.catch_warnings(record=True):
+        warnings.filterwarnings("ignore", "\\nPanel", FutureWarning)
         cols = ['Item' + c for c in string.ascii_uppercase[:K - 1]]
         data = {c: makePeriodFrame(nper) for c in cols}
         return Panel.fromDict(data)
@@ -2431,7 +2438,7 @@ def assert_raises_regex(_exception, _regexp, _callable=None,
 
     You can also use this in a with statement.
 
-    >>> with assert_raises_regex(TypeError, 'unsupported operand type\(s\)'):
+    >>> with assert_raises_regex(TypeError, r'unsupported operand type\(s\)'):
     ...     1 + {}
     >>> with assert_raises_regex(TypeError, 'banana'):
     ...     'apple'[0] = 'b'
@@ -2560,7 +2567,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         the ``__warningsregistry__`` to ensure that no warning messages are
         suppressed by this context manager. If ``None`` is specified,
         the ``__warningsregistry__`` keeps track of which warnings have been
-         shown, and does not show them again.
+        shown, and does not show them again.
     check_stacklevel : bool, default True
         If True, displays the line that called the function containing
         the warning to show were the function is called. Otherwise, the
@@ -2589,7 +2596,7 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
     with warnings.catch_warnings(record=True) as w:
 
         if clear is not None:
-            # make sure that we are clearning these warnings
+            # make sure that we are clearing these warnings
             # if they have happened before
             # to guarantee that we will catch them
             if not is_list_like(clear):

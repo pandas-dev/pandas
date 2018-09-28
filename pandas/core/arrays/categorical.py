@@ -1335,7 +1335,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     @Substitution(klass='Categorical')
     @Appender(_shared_docs['searchsorted'])
-    @deprecate_kwarg(old_arg_name='v', new_arg_name='value')
     def searchsorted(self, value, side='left', sorter=None):
         if not self.ordered:
             raise ValueError("Categorical not ordered\nyou can use "
@@ -2440,9 +2439,13 @@ def _get_codes_for_values(values, categories):
     """
     utility routine to turn values into codes given the specified categories
     """
-
     from pandas.core.algorithms import _get_data_algo, _hashtables
-    if not is_dtype_equal(values.dtype, categories.dtype):
+    if is_dtype_equal(values.dtype, categories.dtype):
+        # To prevent erroneous dtype coercion in _get_data_algo, retrieve
+        # the underlying numpy array. gh-22702
+        values = getattr(values, 'values', values)
+        categories = getattr(categories, 'values', categories)
+    else:
         values = ensure_object(values)
         categories = ensure_object(categories)
 

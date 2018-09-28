@@ -109,10 +109,9 @@ from pandas.core.config import get_option
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
-    axis="""
-    axis : {0 or 'index', 1 or 'columns'}, default 0
-        - 0 or 'index': apply function to each column.
-        - 1 or 'columns': apply function to each row.""",
+    axis="""axis : {0 or 'index', 1 or 'columns'}, default 0
+        If 0 or 'index': apply function to each column.
+        If 1 or 'columns': apply function to each row.""",
     optional_by="""
         by : str or list of str
             Name or list of names to sort by.
@@ -418,9 +417,9 @@ class DataFrame(NDFrame):
                                          copy=copy)
 
         # For data is list-like, or Iterable (will consume into list)
-        elif (isinstance(data, collections.Iterable)
+        elif (isinstance(data, compat.Iterable)
               and not isinstance(data, string_and_binary_types)):
-            if not isinstance(data, collections.Sequence):
+            if not isinstance(data, compat.Sequence):
                 data = list(data)
             if len(data) > 0:
                 if is_list_like(data[0]) and getattr(data[0], 'ndim', 1) == 1:
@@ -614,6 +613,35 @@ class DataFrame(NDFrame):
         """
         return len(self.index), len(self.columns)
 
+    @property
+    def _is_homogeneous_type(self):
+        """
+        Whether all the columns in a DataFrame have the same type.
+
+        Returns
+        -------
+        bool
+
+        Examples
+        --------
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
+        True
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous_type
+        False
+
+        Items with the same type but different sizes are considered
+        different types.
+
+        >>> DataFrame({
+        ...    "A": np.array([1, 2], dtype=np.int32),
+        ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
+        False
+        """
+        if self._data.any_extension_types:
+            return len({block.dtype for block in self._data.blocks}) == 1
+        else:
+            return not self._data.is_mixed_type
+
     def _repr_fits_vertical_(self):
         """
         Check length against max_rows.
@@ -751,14 +779,52 @@ class DataFrame(NDFrame):
         return Styler(self)
 
     def iteritems(self):
-        """
+        r"""
         Iterator over (column name, Series) pairs.
 
-        See also
-        --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
 
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'marsupial'],
+        ...                   'population': [1864, 22000, 80000]},
+        ...                   index=['panda', 'polar', 'koala'])
+        >>> df
+                species   population
+        panda 	bear 	  1864
+        polar 	bear 	  22000
+        koala 	marsupial 80000
+        >>> for label, content in df.iteritems():
+        ...     print('label:', label)
+        ...     print('content:', content, sep='\n')
+        ...
+        label: species
+        content:
+        panda         bear
+        polar         bear
+        koala    marsupial
+        Name: species, dtype: object
+        label: population
+        content:
+        panda     1864
+        polar    22000
+        koala    80000
+        Name: population, dtype: int64
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
@@ -1875,7 +1941,7 @@ class DataFrame(NDFrame):
         to_feather(self, fname)
 
     def to_parquet(self, fname, engine='auto', compression='snappy',
-                   **kwargs):
+                   index=None, **kwargs):
         """
         Write a DataFrame to the binary parquet format.
 
@@ -1897,6 +1963,13 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
+        index : bool, default None
+            If ``True``, include the dataframe's index(es) in the file output.
+            If ``False``, they will not be written to the file. If ``None``,
+            the behavior depends on the chosen engine.
+
+            .. versionadded:: 0.24.0
+
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
@@ -1925,7 +1998,7 @@ class DataFrame(NDFrame):
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
-                   compression=compression, **kwargs)
+                   compression=compression, index=index, **kwargs)
 
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
@@ -3246,7 +3319,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        kwargs : keyword, value pairs
+        **kwargs : dict of {str: callable or Series}
             The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
@@ -3256,7 +3329,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        df : DataFrame
+        DataFrame
             A new DataFrame with the new columns in addition to
             all the existing columns.
 
@@ -3276,48 +3349,34 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': range(1, 11), 'B': np.random.randn(10)})
+        >>> df = pd.DataFrame({'temp_c': [17.0, 25.0]},
+        ...                   index=['Portland', 'Berkeley'])
+        >>> df
+                  temp_c
+        Portland    17.0
+        Berkeley    25.0
 
         Where the value is a callable, evaluated on `df`:
+        >>> df.assign(temp_f=lambda x: x.temp_c * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        >>> df.assign(ln_A = lambda x: np.log(x.A))
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
+        Alternatively, the same behavior can be achieved by directly
+        referencing an existing Series or sequence:
+        >>> df.assign(temp_f=df['temp_c'] * 9 / 5 + 32)
+                  temp_c  temp_f
+        Portland    17.0    62.6
+        Berkeley    25.0    77.0
 
-        Where the value already exists and is inserted:
-
-        >>> newcol = np.log(df['A'])
-        >>> df.assign(ln_A=newcol)
-            A         B      ln_A
-        0   1  0.426905  0.000000
-        1   2 -0.780949  0.693147
-        2   3 -0.418711  1.098612
-        3   4 -0.269708  1.386294
-        4   5 -0.274002  1.609438
-        5   6 -0.500792  1.791759
-        6   7  1.649697  1.945910
-        7   8 -1.495604  2.079442
-        8   9  0.549296  2.197225
-        9  10 -0.758542  2.302585
-
-        Where the keyword arguments depend on each other
-
-        >>> df = pd.DataFrame({'A': [1, 2, 3]})
-
-        >>> df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
-            A  B  C
-         0  1  1  2
-         1  2  2  4
-         2  3  3  6
+        In Python 3.6+, you can create multiple columns within the same assign
+        where one of the columns depends on another one defined within the same
+        assign:
+        >>> df.assign(temp_f=lambda x: x['temp_c'] * 9 / 5 + 32,
+        ...           temp_k=lambda x: (x['temp_f'] +  459.67) * 5 / 9)
+                  temp_c  temp_f  temp_k
+        Portland    17.0    62.6  290.15
+        Berkeley    25.0    77.0  298.15
         """
         data = self.copy()
 
@@ -6652,10 +6711,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float
+                .. versionadded:: 0.24.0
+
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
@@ -6664,6 +6727,18 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> histogram_intersection = lambda a, b: np.minimum(a, b
+        ... ).sum().round(decimals=1)
+        >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
+        ...                   columns=['dogs', 'cats'])
+        >>> df.corr(method=histogram_intersection)
+              dogs cats
+        dogs   1.0  0.3
+        cats   0.3  1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -6675,7 +6750,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        elif method == 'kendall':
+        elif method == 'kendall' or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -7431,52 +7506,66 @@ class DataFrame(NDFrame):
 
     def isin(self, values):
         """
-        Return boolean DataFrame showing whether each element in the
-        DataFrame is contained in values.
+        Whether each element in the DataFrame is contained in values.
 
         Parameters
         ----------
-        values : iterable, Series, DataFrame or dictionary
+        values : iterable, Series, DataFrame or dict
             The result will only be true at a location if all the
             labels match. If `values` is a Series, that's the index. If
-            `values` is a dictionary, the keys must be the column names,
+            `values` is a dict, the keys must be the column names,
             which must match. If `values` is a DataFrame,
             then both the index and column labels must match.
 
         Returns
         -------
+        DataFrame
+            DataFrame of booleans showing whether each element in the DataFrame
+            is contained in values.
 
-        DataFrame of booleans
+        See Also
+        --------
+        DataFrame.eq: Equality test for DataFrame.
+        Series.isin: Equivalent method on Series.
+        Series.str.contains: Test if pattern or regex is contained within a
+            string of a Series or Index.
 
         Examples
         --------
-        When ``values`` is a list:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df.isin([1, 3, 12, 'a'])
-               A      B
-        0   True   True
-        1  False  False
-        2   True  False
+        >>> df = pd.DataFrame({'num_legs': [2, 4], 'num_wings': [2, 0]},
+        ...                   index=['falcon', 'dog'])
+        >>> df
+                num_legs  num_wings
+        falcon         2          2
+        dog            4          0
 
-        When ``values`` is a dict:
+        When ``values`` is a list check whether every value in the DataFrame
+        is present in the list (which animals have 0 or 2 legs or wings)
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [1, 4, 7]})
-        >>> df.isin({'A': [1, 3], 'B': [4, 7, 12]})
-               A      B
-        0   True  False  # Note that B didn't match the 1 here.
-        1  False   True
-        2   True   True
+        >>> df.isin([0, 2])
+                num_legs  num_wings
+        falcon      True       True
+        dog        False       True
 
-        When ``values`` is a Series or DataFrame:
+        When ``values`` is a dict, we can pass values to check for each
+        column separately:
 
-        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(df2)
-               A      B
-        0   True  False
-        1  False  False  # Column A in `df2` has a 3, but not at index 1.
-        2   True   True
+        >>> df.isin({'num_wings': [0, 3]})
+                num_legs  num_wings
+        falcon     False      False
+        dog        False       True
+
+        When ``values`` is a Series or DataFrame the index and column must
+        match. Note that 'falcon' does not match based on the number of legs
+        in df2.
+
+        >>> other = pd.DataFrame({'num_legs': [8, 2],'num_wings': [0, 2]},
+        ...                      index=['spider', 'falcon'])
+        >>> df.isin(other)
+                num_legs  num_wings
+        falcon      True       True
+        dog        False      False
         """
         if isinstance(values, dict):
             from pandas.core.reshape.concat import concat
@@ -7655,7 +7744,7 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
                                dtype=dtype)
-    elif isinstance(data[0], collections.Mapping):
+    elif isinstance(data[0], compat.Mapping):
         return _list_of_dict_to_arrays(data, columns,
                                        coerce_float=coerce_float, dtype=dtype)
     elif isinstance(data[0], Series):

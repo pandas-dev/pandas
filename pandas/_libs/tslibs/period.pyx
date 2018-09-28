@@ -2413,7 +2413,6 @@ class Period(_Period):
         # ('T', 5) but may be passed in as a string like '5T'
 
         # ordinal is the period offset from the gregorian proleptic epoch
-
         cdef _Period self
 
         if freq is not None:
@@ -2511,7 +2510,7 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
                           minute, second, 0, 0, base)
 
 
-def quarter_to_myear(int year, int quarter, freq):
+def quarter_to_myear(year: int, quarter: int, freq):
     """
     A quarterly frequency defines a "year" which may not coincide with
     the calendar-year.  Find the calendar-year and calendar-month associated
