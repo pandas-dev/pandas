@@ -19,7 +19,11 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray, IntervalArray
+from pandas.core.arrays import (
+    ExtensionArray,
+    IntervalArray,
+    PeriodArray,
+)
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -1045,6 +1049,14 @@ def assert_interval_array_equal(left, right, exact='equiv',
     assert_index_equal(left.right, right.right, exact=exact,
                        obj='{obj}.left'.format(obj=obj))
     assert_attr_equal('closed', left, right, obj=obj)
+
+
+def assert_period_array_equal(left, right, obj='PeriodArray'):
+    _check_isinstance(left, right, PeriodArray)
+
+    assert_numpy_array_equal(left.values, right.values,
+                             obj='{obj}.values'.format(obj=obj))
+    assert_attr_equal('freq', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):

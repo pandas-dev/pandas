@@ -1259,7 +1259,8 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype==None (default), the same dtype as
             categorical.categories.dtype
         """
-        ret = take_1d(self.categories.values, self._codes)
+        values = np.asarray(self.categories.values)
+        ret = take_1d(values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
         if is_extension_array_dtype(ret):

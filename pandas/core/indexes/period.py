@@ -216,6 +216,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         result = object.__new__(cls)
         result._data = values
         result.name = name
+        result._reset_identity()
         return result
 
     @classmethod
@@ -226,7 +227,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         """
         data = PeriodArray._from_ordinals(values, freq=freq)
         result = cls._simple_new(data, name=name)
-        result._reset_identity()
         return result
 
     def _shallow_copy(self, values=None, **kwargs):

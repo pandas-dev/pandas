@@ -4,6 +4,8 @@ import warnings
 
 import numpy as np
 
+from pandas import compat
+from pandas.compat.numpy import function as nv
 from pandas._libs import Timedelta
 from pandas._libs import lib
 from pandas._libs.tslib import NaT, iNaT
@@ -14,10 +16,7 @@ from pandas._libs.tslibs.period import (
 from pandas._libs.tslibs import period as libperiod
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
-
-from pandas import compat
 from pandas.util._decorators import cache_readonly
-
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     is_float, is_integer, pandas_dtype, is_scalar,
@@ -112,7 +111,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     All elements in the PeriodArray have the same `freq`.
     """
     _attributes = ["freq"]
-    _typ = "period"  # ABCPeriodArray
+    _typ = "periodarray"  # ABCPeriodArray
 
     # Names others delegate to us on
     _other_ops = []
@@ -253,15 +252,16 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     def take(self, indices, allow_fill=False, fill_value=None):
         from pandas.core.algorithms import take
+        from pandas import isna
 
-        if fill_value is None:
-            fill_value = iNaT
-        elif isinstance(fill_value, Period):
-            fill_value = fill_value.ordinal
-        elif fill_value is NaT:
-            fill_value = iNaT
-        elif fill_value != self.dtype.na_value:
-            raise ValueError("Expected a Period.")
+        if allow_fill:
+            if isna(fill_value):
+                fill_value = iNaT
+            elif isinstance(fill_value, Period):
+                fill_value = fill_value.ordinal
+            else:
+                msg = "'fill_value' should be a Period. Got '{}'."
+                raise ValueError(msg.format(fill_value))
 
         new_values = take(self._data,
                           indices,
@@ -627,6 +627,26 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         else:
             values = np.array([formatter(dt) for dt in values])
         return values
+
+    def view(self, dtype=None, type=None):
+        # This is to support PeriodIndex.view('i8')
+        # I don't like adding this,
+        return self._data.view(dtype=dtype)
+
+    def repeat(self, repeats, *args, **kwargs):
+        """
+        Repeat elements of a Categorical.
+
+        See also
+        --------
+        numpy.ndarray.repeat
+        """
+        # TODO: Share with Categorical.repeat?
+        # need to use ndarray_values in Categorical
+        # and some kind of _constructor (from_ordinals, from_codes).
+        nv.validate_repeat(args, kwargs)
+        values = self._ndarray_values.repeat(repeats)
+        return self._from_ordinals(values, self.freq)
 
     # Delegation...
     def strftime(self, date_format):

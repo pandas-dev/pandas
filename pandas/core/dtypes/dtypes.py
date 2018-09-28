@@ -4,7 +4,7 @@ import re
 import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
-from pandas._libs.tslibs import Period, iNaT
+from pandas._libs.tslibs import Period, NaT
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 
@@ -668,7 +668,7 @@ class PeriodDtype(ExtensionDtype):
 
     @property
     def na_value(self):
-        return iNaT
+        return NaT
 
     def __hash__(self):
         # make myself hashable
