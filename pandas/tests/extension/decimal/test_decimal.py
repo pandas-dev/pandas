@@ -275,3 +275,7 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
                                    for i in alter]
         self._compare_other(s, data, op_name, other)
+
+
+class TestIndex(base.BaseIndexTests):
+    pass

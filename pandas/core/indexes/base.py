@@ -303,6 +303,10 @@ class Index(IndexOpsMixin, PandasObject):
             else:
                 return result
 
+        elif is_extension_array_dtype(data):
+            from pandas.core.indexes.extension import ExtensionIndex
+            return ExtensionIndex(data, name=name)
+
         # extension dtype
         elif is_extension_array_dtype(data) or is_extension_array_dtype(dtype):
             data = np.asarray(data)
@@ -2400,6 +2404,8 @@ class Index(IndexOpsMixin, PandasObject):
             values = values[slicer]
         return values._format_native_types(**kwargs)
 
+    # TODO(EA) potentially overwrite for better implementation
+    # or use _formatting_values
     def _format_native_types(self, na_rep='', quoting=None, **kwargs):
         """ actually format my specific types """
         mask = isna(self)

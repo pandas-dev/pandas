@@ -216,3 +216,7 @@ class TestGroupby(base.BaseGroupbyTests):
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping)
+
+
+class TestIndex(base.BaseIndexTests):
+    pass

@@ -45,6 +45,8 @@ from .constructors import BaseConstructorsTests  # noqa
 from .dtype import BaseDtypeTests  # noqa
 from .getitem import BaseGetitemTests  # noqa
 from .groupby import BaseGroupbyTests  # noqa
+from .index import BaseIndexTests  # noqa
+
 from .interface import BaseInterfaceTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .ops import BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil  # noqa
