@@ -193,6 +193,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                 base2, _ = _gfc(freq)
                 data = libperiod.period_asfreq_arr(data._ndarray_values,
                                                    base1, base2, 1)
+            if copy:
+                data = data.copy()
             return cls._simple_new(data, freq=freq)
 
         # not array / index
