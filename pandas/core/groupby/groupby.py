@@ -2075,15 +2075,15 @@ class GroupBy(_GroupBy):
                                                      fill_method=fill_method,
                                                      limit=limit, freq=freq,
                                                      axis=axis))
-        if fill_method:
-            new = self
-            new.obj = getattr(new, fill_method)(limit=limit)
-        else:
-            new = self
 
-        obj = new.obj.drop(self.grouper.names, axis=1)
-        shifted = new.shift(periods=periods, freq=freq)
-        return (obj / shifted) - 1
+        with _group_selection_context(self) as new:
+            if fill_method:
+                new = copy.copy(new)
+                new.obj = getattr(new, fill_method)(limit=limit)
+
+            obj = new.obj.drop(self.grouper.names, axis=1)
+            shifted = new.shift(periods=periods, freq=freq)
+            return (obj / shifted) - 1
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3946,12 +3946,14 @@ class SeriesGroupBy(GroupBy):
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
         """Calcuate pct_change of each value to previous entry in group"""
-        if fill_method:
-            self.obj = getattr(self, fill_method)(limit=limit)
-            self._reset_cache('_selected_obj')
+        with _group_selection_context(self) as new:
+            if fill_method:
+                new = copy.copy(new)
+                new.obj = getattr(new, fill_method)(limit=limit)
+                new._reset_cache('_selected_obj')
 
-        shifted = self.shift(periods=periods, freq=freq)
-        return (self.obj / shifted) - 1
+            shifted = new.shift(periods=periods, freq=freq)
+            return (new.obj / shifted) - 1
 
 
 class NDFrameGroupBy(GroupBy):
