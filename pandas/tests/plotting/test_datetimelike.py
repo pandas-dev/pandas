@@ -1492,7 +1492,11 @@ class TestTSPlot(TestPlotBase):
         ax.scatter(x="time", y="y", data=df)
         fig.canvas.draw()
         label = ax.get_xticklabels()[0]
-        assert label.get_text() == '2017-12-12'
+        if self.mpl_ge_3_0_0:
+            expected = "2017-12-08"
+        else:
+            expected = "2017-12-12"
+        assert label.get_text() == expected
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
