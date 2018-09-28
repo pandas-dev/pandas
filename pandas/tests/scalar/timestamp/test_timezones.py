@@ -100,7 +100,7 @@ class TestTimestampTZOperations(object):
             ts.tz_localize('US/Pacific', errors='coerce')
 
     @pytest.mark.filterwarnings('ignore::FutureWarning')
-    def test_tz_localize_errors_depreciation(self):
+    def test_tz_localize_errors_invalid_arg(self):
         # GH 22644
         tz = 'Europe/Warsaw'
         ts = Timestamp('2015-03-29 02:00:00')
@@ -108,9 +108,14 @@ class TestTimestampTZOperations(object):
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
                 ts.tz_localize(tz, errors='foo')
+
+    @pytest.mark.filterwarnings('ignore::FutureWarning')
+    def test_tz_localize_errors_deprecation(self):
+        # GH 22644
         # make sure errors='coerce' gets mapped correctly to nonexistent
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
-                                        clear=FutureWarning):
+        tz = 'Europe/Warsaw'
+        ts = Timestamp('2015-03-29 02:00:00')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = ts.tz_localize(tz, errors='coerce')
         expected = ts.tz_localize(tz, nonexistent='NaT')
         assert result is expected
