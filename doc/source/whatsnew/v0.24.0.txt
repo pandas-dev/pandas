@@ -574,8 +574,57 @@ Deprecations
   many ``Series``, ``Index`` or 1-dimensional ``np.ndarray``, or alternatively, only scalar values. (:issue:`21950`)
 - :meth:`FrozenNDArray.searchsorted` has deprecated the ``v`` parameter in favor of ``value`` (:issue:`14645`)
 - :func:`DatetimeIndex.shift` now accepts ``periods`` argument instead of ``n`` for consistency with :func:`Index.shift` and :func:`Series.shift`. Using ``n`` throws a deprecation warning (:issue:`22458`)
-- Addition or subtraction of integers with :class:`Timestamp`, :class:`Period`, :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex` is deprecated, will be removed in a future version (:issue:`21939`)
-- Addition or subtraction of integer-dtyped arrays with :class:`DatetimeIndex`, :class:`TimedeltaIndex`, :class:`PeriodIndex` is deprecated, will be removed in a future version (:issue:`21939`)
+
+.. _whatsnew_0240.deprecations.datetimelike_int_ops:
+
+Integer Addition/Subtraction with Datetime-like Classes Is Deprecated
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In the past, users could add or subtract integers or integer-dtypes arrays
+from :class:`Period`, :class:`PeriodIndex`, and in some cases
+:class:`Timestamp`, :class:`DatetimeIndex` and :class:`TimedeltaIndex`.
+
+This usage is now deprecated.  Instead add or subtract integer multiples of
+the object's ``freq`` attribute (:issue:`21939`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [3]: per = pd.Period('2016Q1')
+    In [4]: per + 3
+    Out[4]: Period('2016Q4', 'Q-DEC')
+
+    In [5]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
+    In [6]: ts + 2
+    Out[6]: Timestamp('1994-05-06 14:15:16', freq='H')
+
+    In [7]: tdi = pd.timedelta_range('1D', periods=2)
+    In [8]: tdi - np.array([2, 1])
+    Out[8]: TimedeltaIndex(['-1 days', '1 days'], dtype='timedelta64[ns]', freq=None)
+
+    In [9]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+    In [10]: dti + pd.Index([1, 2])
+    Out[10]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
+
+Current Behavior:
+
+.. ipython:: python
+
+    In [3]: per = pd.Period('2016Q1')
+    In [4]: per + 3 * per.freq
+    Out[4]: Period('2016Q4', 'Q-DEC')
+
+    In [5]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
+    In [6]: ts + 2 * ts.freq
+    Out[6]: Timestamp('1994-05-06 14:15:16', freq='H')
+
+    In [7]: tdi = pd.timedelta_range('1D', periods=2)
+    In [8]: tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+    Out[8]: TimedeltaIndex(['-1 days', '1 days'], dtype='timedelta64[ns]', freq=None)
+
+    In [9]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+    In [10]: dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+    Out[10]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
 
 .. _whatsnew_0240.prior_deprecations:
 
