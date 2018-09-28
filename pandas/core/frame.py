@@ -6688,7 +6688,9 @@ class DataFrame(NDFrame):
 
         tri : {'upper', 'lower'} or None, default : None
             Whether or not to return the upper / lower triangular
-            correlation matrix
+            correlation matrix.  (This is useful for example when
+            one wishes to easily identify highly collinear columns
+            in a DataFrame.)
 
             .. versionadded:: 0.24.0
 
@@ -6707,6 +6709,13 @@ class DataFrame(NDFrame):
               dogs cats
         dogs   1.0  0.3
         cats   0.3  1.0
+        >>> df = pd.DataFrame(np.random.normal(size=(10, 2)))
+        >>> df[2] = df[0]
+        >>> df.corr(tri='lower').where(lambda x: x == 1)
+             0    1    2
+        0  NaN  NaN  NaN
+        1  NaN  NaN  NaN
+        2  1.0  NaN  NaN
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
