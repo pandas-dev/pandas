@@ -295,8 +295,8 @@ that the dates have been converted to UTC
 
 .. _whatsnew_0240.api_breaking.calendarday:
 
-CalendarDay Offset
-^^^^^^^^^^^^^^^^^^
+Frequency alisas ``'D'`` and Day offset representing calendar day
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :class:`Day` and associated frequency alias ``'D'`` were documented to represent
 a calendar day; however, arithmetic and operations with :class:`Day` sometimes
@@ -320,10 +320,9 @@ respected absolute time instead (i.e. ``Day(n)`` and acted identically to ``Time
     In [4]: ts + pd.tseries.frequencies.to_offset('D')
     Out[4]: Timestamp('2016-10-30 23:00:00+0200', tz='Europe/Helsinki')
 
-:class:`CalendarDay` and associated frequency alias ``'CD'`` are now available
-and respect calendar day arithmetic while :class:`Day` and frequency alias ``'D'``
-will now respect absolute time (:issue:`22274`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
-See the :ref:`documentation here <timeseries.dayvscalendarday>` for more information.
+:class:`Day` and associated frequency alias ``'D'`` will always respect
+calendar day arithmetic
+(:issue:`22864`, :issue:`20596`, :issue:`16980`, :issue:`8774`)
 
 Addition with :class:`CalendarDay` across a daylight savings time transition:
 
@@ -331,7 +330,6 @@ Addition with :class:`CalendarDay` across a daylight savings time transition:
 
    ts = pd.Timestamp('2016-10-30 00:00:00', tz='Europe/Helsinki')
    ts + pd.offsets.Day(1)
-   ts + pd.offsets.CalendarDay(1)
 
 .. _whatsnew_0240.api_breaking.period_end_time:
 
