@@ -9,19 +9,27 @@ RET=0
 
 ### LINTING ###
 
-# We're ignoring the following codes across the board
-# E402 module level import not at top of file
-# E731 do not assign a lambda expression, use a def
-# E741 do not use variables named 'l', 'O', or 'I'
-# W503 line break before binary operator
-# C406 Unnecessary (list/tuple) literal - rewrite as a dict literal.
-# C408 Unnecessary (dict/list/tuple) call - rewrite as a literal.
-# C409 Unnecessary (list/tuple) passed to tuple() - (remove the outer call to tuple()/rewrite as a tuple literal).
-# C410 Unnecessary (list/tuple) passed to list() - (remove the outer call to list()/rewrite as a list literal).
+# `setup.cfg` contains the list of error codes that are being ignored in flake8
 
 # pandas/_libs/src is C code, so no need to search there.
 MSG='Linting .py code' ; echo $MSG
-flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C406,C408,C409,E402,E731,E741,W503
+flake8 pandas --filename=*.py --exclude pandas/_libs/src
+RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+MSG='Linting setup.py' ; echo $MSG
+flake8 setup.py
+RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+MSG='Linting scripts' ; echo $MSG
+flake8 scripts --filename=*.py
+RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+MSG='Linting asv benchmarks' ; echo $MSG
+flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py
+RET=$(($RET + $?)) ; echo $MSG "DONE"
+
+MSG='Linting doc scripts' ; echo $MSG
+flake8 doc/make.py doc/source/conf.py
 RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 MSG='Linting .pyx code' ; echo $MSG
@@ -30,22 +38,6 @@ RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 MSG='Linting .pxd and .pxi.in' ; echo $MSG
 flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting setup.py' ; echo $MSG
-flake8 setup.py --ignore=E402,E731,E741,W503
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting scripts' ; echo $MSG
-flake8 scripts --filename=*.py --ignore=C408,E402,E731,E741,W503
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting asv benchmarks' ; echo $MSG
-flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting doc scripts' ; echo $MSG
-flake8 doc/make.py doc/source/conf.py --ignore=E402,E731,E741,W503
 RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 # readability/casting: Warnings about C casting instead of C++ casting
