@@ -836,8 +836,16 @@ class TestDataFrameDataTypes(TestData):
                     "B": pd.Categorical(['b', 'c'])}), False),
 
     ])
-    def test_is_homogeneous(self, data, expected):
-        assert data._is_homogeneous is expected
+    def test_is_homogeneous_type(self, data, expected):
+        assert data._is_homogeneous_type is expected
+
+    def test_asarray_homogenous(self):
+        df = pd.DataFrame({"A": pd.Categorical([1, 2]),
+                           "B": pd.Categorical([1, 2])})
+        result = np.asarray(df)
+        # may change from object in the future
+        expected = np.array([[1, 1], [2, 2]], dtype='object')
+        tm.assert_numpy_array_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ(TestData):
