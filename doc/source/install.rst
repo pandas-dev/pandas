@@ -202,7 +202,8 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://docs.pytest.org/en/latest/>`__ >= 3.6 and run:
+<http://docs.pytest.org/en/latest/>`__ >= 3.6 and `Hypothesis
+<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
 
@@ -269,7 +270,7 @@ Optional Dependencies
 * For Excel I/O:
 
     * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-    * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+    * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
       for writing .xlsx files (xlrd >= 0.9.0)
     * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
 

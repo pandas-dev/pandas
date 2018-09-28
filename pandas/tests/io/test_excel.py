@@ -105,6 +105,7 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_int(self, ext):
 
         dfref = self.get_csv_refdf('test1')
@@ -122,6 +123,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
         tm.assert_frame_equal(df3, dfref, check_names=False)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_list(self, ext):
 
         dfref = self.get_csv_refdf('test1')
@@ -140,6 +142,7 @@ class ReadingTestsBase(SharedItems):
         tm.assert_frame_equal(df2, dfref, check_names=False)
         tm.assert_frame_equal(df3, dfref, check_names=False)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_usecols_str(self, ext):
 
         dfref = self.get_csv_refdf('test1')
@@ -219,6 +222,7 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_deprecated_sheetname(self, ext):
         # gh-17964
         excel = self.get_excelfile('test1', ext)
@@ -229,6 +233,7 @@ class ReadingTestsBase(SharedItems):
         with pytest.raises(TypeError):
             read_excel(excel, sheet='Sheet1')
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_excel_table_sheet_by_index(self, ext):
 
         excel = self.get_excelfile('test1', ext)
@@ -507,6 +512,7 @@ class ReadingTestsBase(SharedItems):
         result = self.get_exceldf('testdateoverflow', ext)
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no('xlrd', '1.0.1')  # GH-22682
     def test_sheet_name_and_sheetname(self, ext):
         # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
         # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
@@ -605,6 +611,8 @@ class TestXlrdReader(ReadingTestsBase):
             tm.assert_frame_equal(url_table, local_table)
 
     @pytest.mark.slow
+    # ignore warning from old xlrd
+    @pytest.mark.filterwarnings("ignore:This metho:PendingDeprecationWarning")
     def test_read_from_file_url(self, ext):
 
         # FILE
@@ -2183,6 +2191,7 @@ class TestExcelWriterEngineTests(object):
         with tm.assert_raises_regex(ValueError, 'No engine'):
             ExcelWriter('nothing')
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_register_writer(self):
         # some awkward mocking to test out dispatch and such actually works
         called_save = []

@@ -166,31 +166,24 @@ def test_is_label_or_level_reference_panel_error(panel):
 def test_check_label_or_level_ambiguity_df(df_ambig, axis):
 
     # Transpose frame if axis == 1
-    if axis in {1, 'columns'}:
+    if axis in {1, "columns"}:
         df_ambig = df_ambig.T
 
+    if axis in {0, "index"}:
+        msg = "'L1' is both an index level and a column label"
+    else:
+        msg = "'L1' is both a column level and an index label"
+
     # df_ambig has both an on-axis level and off-axis label named L1
-    # Therefore L1 is ambiguous
-    with tm.assert_produces_warning(FutureWarning,
-                                    clear=True) as w:
+    # Therefore, L1 is ambiguous.
+    with tm.assert_raises_regex(ValueError, msg):
+        df_ambig._check_label_or_level_ambiguity("L1", axis=axis)
 
-        assert df_ambig._check_label_or_level_ambiguity('L1', axis=axis)
-        warning_msg = w[0].message.args[0]
-        if axis in {0, 'index'}:
-            assert warning_msg.startswith("'L1' is both an index level "
-                                          "and a column label")
-        else:
-            assert warning_msg.startswith("'L1' is both a column level "
-                                          "and an index label")
+    # df_ambig has an on-axis level named L2,, and it is not ambiguous.
+    df_ambig._check_label_or_level_ambiguity("L2", axis=axis)
 
-    # df_ambig has an on-axis level named L2 and it is not ambiguous
-    # No warning should be raised
-    with tm.assert_produces_warning(None):
-        assert not df_ambig._check_label_or_level_ambiguity('L2', axis=axis)
-
-    # df_ambig has an off-axis label named L3 and it is not ambiguous
-    with tm.assert_produces_warning(None):
-        assert not df_ambig._is_level_reference('L3', axis=axis)
+    # df_ambig has an off-axis label named L3, and it is not ambiguous
+    assert not df_ambig._check_label_or_level_ambiguity("L3", axis=axis)
 
 
 # Series
@@ -200,17 +193,15 @@ def test_check_label_or_level_ambiguity_series(df):
     # A series has no columns and therefore references are never ambiguous
 
     # Make series with L1 as index
-    s = df.set_index('L1').L2
-    with tm.assert_produces_warning(None):
-        assert not s._check_label_or_level_ambiguity('L1', axis=0)
-        assert not s._check_label_or_level_ambiguity('L2', axis=0)
+    s = df.set_index("L1").L2
+    s._check_label_or_level_ambiguity("L1", axis=0)
+    s._check_label_or_level_ambiguity("L2", axis=0)
 
     # Make series with L1 and L2 as index
-    s = df.set_index(['L1', 'L2']).L3
-    with tm.assert_produces_warning(None):
-        assert not s._check_label_or_level_ambiguity('L1', axis=0)
-        assert not s._check_label_or_level_ambiguity('L2', axis=0)
-        assert not s._check_label_or_level_ambiguity('L3', axis=0)
+    s = df.set_index(["L1", "L2"]).L3
+    s._check_label_or_level_ambiguity("L1", axis=0)
+    s._check_label_or_level_ambiguity("L2", axis=0)
+    s._check_label_or_level_ambiguity("L3", axis=0)
 
 
 def test_check_label_or_level_ambiguity_series_axis1_error(df):
@@ -229,7 +220,7 @@ def test_check_label_or_level_ambiguity_panel_error(panel):
            .format(type=type(panel)))
 
     with tm.assert_raises_regex(NotImplementedError, msg):
-        panel._check_label_or_level_ambiguity('L1', axis=0)
+        panel._check_label_or_level_ambiguity("L1", axis=0)
 
 
 # Test _get_label_or_level_values
@@ -241,19 +232,16 @@ def assert_label_values(frame, labels, axis):
         else:
             expected = frame.loc[label]._values
 
-        result = frame._get_label_or_level_values(label, axis=axis,
-                                                  stacklevel=2)
+        result = frame._get_label_or_level_values(label, axis=axis)
         assert array_equivalent(expected, result)
 
 
 def assert_level_values(frame, levels, axis):
     for level in levels:
-        if axis in {0, 'index'}:
+        if axis in {0, "index"}:
             expected = frame.index.get_level_values(level=level)._values
         else:
-            expected = (frame.columns
-                        .get_level_values(level=level)
-                        ._values)
+            expected = frame.columns.get_level_values(level=level)._values
 
         result = frame._get_label_or_level_values(level, axis=axis)
         assert array_equivalent(expected, result)
@@ -281,18 +269,11 @@ def test_get_label_or_level_values_df_ambig(df_ambig, axis):
     if axis in {1, 'columns'}:
         df_ambig = df_ambig.T
 
-    # df has both an on-axis level and off-axis label named L1
-    # Therefore L1 is ambiguous but will default to label
-    with tm.assert_produces_warning(FutureWarning):
-        assert_label_values(df_ambig, ['L1'], axis=axis)
+    # df has an on-axis level named L2, and it is not ambiguous.
+    assert_level_values(df_ambig, ['L2'], axis=axis)
 
-    # df has an on-axis level named L2 and it is not ambiguous
-    with tm.assert_produces_warning(None):
-        assert_level_values(df_ambig, ['L2'], axis=axis)
-
-    # df has an off-axis label named L3 and it is not ambiguous
-    with tm.assert_produces_warning(None):
-        assert_label_values(df_ambig, ['L3'], axis=axis)
+    # df has an off-axis label named L3, and it is not ambiguous.
+    assert_label_values(df_ambig, ['L3'], axis=axis)
 
 
 def test_get_label_or_level_values_df_duplabels(df_duplabels, axis):

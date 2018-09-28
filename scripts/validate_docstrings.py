@@ -42,6 +42,7 @@ from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
+DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 
 def get_api_items():
@@ -259,9 +260,11 @@ class Docstring(object):
 
     @property
     def summary(self):
-        if not self.doc['Extended Summary'] and len(self.doc['Summary']) > 1:
-            return ''
         return ' '.join(self.doc['Summary'])
+
+    @property
+    def num_summary_lines(self):
+        return len(self.doc['Summary'])
 
     @property
     def extended_summary(self):
@@ -331,7 +334,14 @@ class Docstring(object):
         return self.doc_parameters[param][0]
 
     def parameter_desc(self, param):
-        return self.doc_parameters[param][1]
+        desc = self.doc_parameters[param][1]
+        # Find and strip out any sphinx directives
+        for directive in DIRECTIVES:
+            full_directive = '.. {}'.format(directive)
+            if full_directive in desc:
+                # Only retain any description before the directive
+                desc = desc[:desc.index(full_directive)]
+        return desc
 
     @property
     def see_also(self):
@@ -435,6 +445,8 @@ def validate_one(func_name):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
+        if doc.num_summary_lines > 1:
+            errs.append("Summary should fit in a single line.")
     if not doc.extended_summary:
         wrns.append('No extended summary found')
 
