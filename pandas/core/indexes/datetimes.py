@@ -665,7 +665,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if name is None:
             name = self.name
 
-
         if keep_tz and self.tz is not None:
             # preserve the tz & copy
             values = self.copy(deep=True)
