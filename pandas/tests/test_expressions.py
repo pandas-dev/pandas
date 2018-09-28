@@ -2,7 +2,7 @@
 from __future__ import print_function
 # pylint: disable-msg=W0612,E1101
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 import re
 import operator
 import pytest
@@ -38,6 +38,7 @@ _integer2 = DataFrame(np.random.randint(1, 100, size=(101, 4)),
                       columns=list('ABCD'), dtype='int64')
 
 with catch_warnings(record=True):
+    simplefilter("ignore", FutureWarning)
     _frame_panel = Panel(dict(ItemA=_frame.copy(),
                               ItemB=(_frame.copy() + 3),
                               ItemC=_frame.copy(),
@@ -108,7 +109,7 @@ class TestExpressions(object):
                             check_dtype=True)
 
     def run_binary(self, df, other, assert_func, test_flex=False,
-                   numexpr_ops=set(['gt', 'lt', 'ge', 'le', 'eq', 'ne'])):
+                   numexpr_ops={'gt', 'lt', 'ge', 'le', 'eq', 'ne'}):
         """
         tests solely that the result is the same whether or not numexpr is
         enabled.  Need to test whether the function does the correct thing
@@ -191,6 +192,7 @@ class TestExpressions(object):
         self.run_series(self.integer.iloc[:, 0], self.integer.iloc[:, 0])
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_integer_panel(self):
         self.run_panel(_integer2_panel, np.random.randint(1, 100))
 
@@ -201,6 +203,7 @@ class TestExpressions(object):
         self.run_series(self.frame2.iloc[:, 0], self.frame2.iloc[:, 0])
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_float_panel(self):
         self.run_panel(_frame2_panel, np.random.randn() + 0.1, binary_comp=0.8)
 
@@ -215,6 +218,7 @@ class TestExpressions(object):
             self.run_series(self.mixed2[col], self.mixed2[col], binary_comp=4)
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_mixed_panel(self):
         self.run_panel(_mixed2_panel, np.random.randint(1, 100),
                        binary_comp=-2)
@@ -390,10 +394,10 @@ class TestExpressions(object):
                 with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df.a)
 
-                with tm.assert_raises_regex(TypeError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(False, df)
 
-                with tm.assert_raises_regex(TypeError, err_msg):
+                with tm.assert_raises_regex(NotImplementedError, err_msg):
                     f(df, True)
 
     def test_bool_ops_warn_on_arithmetic(self):

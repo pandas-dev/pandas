@@ -6,6 +6,7 @@ from pandas.util import testing as tm
 from pandas import Panel, date_range, DataFrame
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPanel(object):
 
     def test_iloc_getitem_panel(self):
@@ -43,12 +44,12 @@ class TestPanel(object):
             expected = p.loc[['A', 'C']]
             tm.assert_panel_equal(result, expected)
 
-            # neg indicies
+            # neg indices
             result = p.iloc[[-1, 1], [-1, 1]]
             expected = p.loc[['D', 'B'], ['c', 'b']]
             tm.assert_panel_equal(result, expected)
 
-            # dups indicies
+            # dups indices
             result = p.iloc[[-1, -1, 1], [-1, 1]]
             expected = p.loc[['D', 'D', 'B'], ['c', 'b']]
             tm.assert_panel_equal(result, expected)
@@ -110,6 +111,7 @@ class TestPanel(object):
             assert p.iloc[1, :3, 1].shape == (3, )
             assert p.iloc[:3, 1, 1].shape == (3, )
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
     def test_panel_getitem(self):
 
         with catch_warnings(record=True):

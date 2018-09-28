@@ -4,11 +4,11 @@ channels:
   - conda-forge
 dependencies:
   - bottleneck=1.0.0
-  - cython=0.24
+  - cython=0.28.2
   - jinja2=2.8
   - numexpr=2.4.4 # we test that we correctly don't use an unsupported numexpr
-  - numpy=1.9.2
-  - openpyxl
+  - numpy=1.9.3
+  - openpyxl=2.5.5
   - psycopg2
   - pytables=3.2.2
   - python-dateutil=2.5.0
@@ -26,3 +26,4 @@ dependencies:
     - html5lib==1.0b2
     - beautifulsoup4==4.2.1
     - pymysql==0.6.0
+    - hypothesis>=3.58.0

@@ -233,6 +233,11 @@ class TestTimedeltas(object):
         assert tup.microseconds == 999
         assert tup.nanoseconds == 0
 
+    def test_iso_conversion(self):
+        # GH #21877
+        expected = Timedelta(1, unit='s')
+        assert to_timedelta('P0DT0H0M1S') == expected
+
     def test_nat_converters(self):
         assert to_timedelta('nat', box=False).astype('int64') == iNaT
         assert to_timedelta('nan', box=False).astype('int64') == iNaT
@@ -588,3 +593,17 @@ class TestTimedeltas(object):
         result = s.dt.components
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
+
+
+@pytest.mark.parametrize('value, expected', [
+    (Timedelta('10S'), True),
+    (Timedelta('-10S'), True),
+    (Timedelta(10, unit='ns'), True),
+    (Timedelta(0, unit='ns'), False),
+    (Timedelta(-10, unit='ns'), True),
+    (Timedelta(None), True),
+    (pd.NaT, True),
+])
+def test_truthiness(value, expected):
+    # https://github.com/pandas-dev/pandas/issues/21484
+    assert bool(value) is expected

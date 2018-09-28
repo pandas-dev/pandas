@@ -4,8 +4,8 @@ from pandas import SparseDataFrame, DataFrame, SparseSeries
 from pandas.util import testing as tm
 
 
-@pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                   '(GH 17386)')
+@pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)',
+                   strict=True)
 def test_quantile():
     # GH 17386
     data = [[1, 1], [2, 10], [3, 100], [np.nan, np.nan]]
@@ -22,8 +22,8 @@ def test_quantile():
     tm.assert_sp_series_equal(result, sparse_expected)
 
 
-@pytest.mark.xfail(reason='Wrong SparseBlock initialization '
-                   '(GH 17386)')
+@pytest.mark.xfail(reason='Wrong SparseBlock initialization (GH#17386)',
+                   strict=True)
 def test_quantile_multi():
     # GH 17386
     data = [[1, 1], [2, 10], [3, 100], [np.nan, np.nan]]

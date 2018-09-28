@@ -187,6 +187,49 @@ def test_getitem_box_float64(test_data):
     assert isinstance(value, np.float64)
 
 
+@pytest.mark.parametrize(
+    'arr',
+    [
+        np.random.randn(10),
+        tm.makeDateIndex(10, name='a').tz_localize(
+            tz='US/Eastern'),
+    ])
+def test_get(arr):
+    # GH 21260
+    s = Series(arr, index=[2 * i for i in range(len(arr))])
+    assert s.get(4) == s.iloc[2]
+
+    result = s.get([4, 6])
+    expected = s.iloc[[2, 3]]
+    tm.assert_series_equal(result, expected)
+
+    result = s.get(slice(2))
+    expected = s.iloc[[0, 1]]
+    tm.assert_series_equal(result, expected)
+
+    assert s.get(-1) is None
+    assert s.get(s.index.max() + 1) is None
+
+    s = Series(arr[:6], index=list('abcdef'))
+    assert s.get('c') == s.iloc[2]
+
+    result = s.get(slice('b', 'd'))
+    expected = s.iloc[[1, 2, 3]]
+    tm.assert_series_equal(result, expected)
+
+    result = s.get('Z')
+    assert result is None
+
+    assert s.get(4) == s.iloc[4]
+    assert s.get(-1) == s.iloc[-1]
+    assert s.get(len(s)) is None
+
+    # GH 21257
+    s = pd.Series(arr)
+    s2 = s[::2]
+    assert s2.get(1) is None
+
+
 def test_series_box_timestamp():
     rng = pd.date_range('20090415', '20090519', freq='B')
     ser = Series(rng)
@@ -347,6 +390,8 @@ def test_setslice(test_data):
     assert sl.index.is_unique
 
 
+# FutureWarning from NumPy about [slice(None, 5).
+@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_basic_getitem_setitem_corner(test_data):
     # invalid tuples, e.g. td.ts[:, None] vs. td.ts[:, 2]
     with tm.assert_raises_regex(ValueError, 'tuple-index'):

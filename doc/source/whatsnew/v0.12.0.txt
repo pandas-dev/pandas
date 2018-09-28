@@ -7,7 +7,7 @@ This is a major release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
 Highlights include a consistent I/O API naming scheme, routines to read html,
-write multi-indexes to csv files, read & write STATA data files, read & write JSON format
+write MultiIndexes to csv files, read & write STATA data files, read & write JSON format
 files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a
 revamped ``replace`` routine that accepts regular expressions.
 
@@ -73,7 +73,7 @@ API changes
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
     is purely positional based, the labels on the Series are not alignable (:issue:`3631`)
 
-    This case is rarely used, and there are plently of alternatives. This preserves the
+    This case is rarely used, and there are plenty of alternatives. This preserves the
     ``iloc`` API to be *purely* positional based.
 
     .. ipython:: python
@@ -166,7 +166,7 @@ API changes
 
   - The internal ``pandas`` class hierarchy has changed (slightly). The
     previous ``PandasObject`` now is called ``PandasContainer`` and a new
-    ``PandasObject`` has become the baseclass for ``PandasContainer`` as well
+    ``PandasObject`` has become the base class for ``PandasContainer`` as well
     as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
     ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
     provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
@@ -296,7 +296,7 @@ Other Enhancements
         df.replace(regex=r'\s*\.\s*', value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
-    instances of surrounding whitespace with ``NaN``.
+    instances of surrounding white space with ``NaN``.
 
     Regular string replacement still works as expected. For example, you can do
 
@@ -403,7 +403,7 @@ Bug Fixes
     :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
     numeric arrays if possible so that you can still plot, for example, an
     object array with floats. This happens before any drawing takes place which
-    elimnates any spurious plots from showing up.
+    eliminates any spurious plots from showing up.
 
   - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
     a list or tuple.

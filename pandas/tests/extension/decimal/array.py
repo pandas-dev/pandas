@@ -1,12 +1,12 @@
 import decimal
 import numbers
-import random
 import sys
 
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (ExtensionArray,
+                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
 
@@ -14,6 +14,27 @@ class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
     na_value = decimal.Decimal('NaN')
+
+    def __init__(self, context=None):
+        self.context = context or decimal.getcontext()
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.context == other.context
+        return super(DecimalDtype, self).__eq__(other)
+
+    def __repr__(self):
+        return 'DecimalDtype(context={})'.format(self.context)
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        return DecimalArray
 
     @classmethod
     def construct_from_string(cls, string):
@@ -23,12 +44,18 @@ class DecimalDtype(ExtensionDtype):
             raise TypeError("Cannot construct a '{}' from "
                             "'{}'".format(cls, string))
 
+    @property
+    def _is_numeric(self):
+        return True
 
-class DecimalArray(ExtensionArray):
-    dtype = DecimalDtype()
 
-    def __init__(self, values):
-        assert all(isinstance(v, decimal.Decimal) for v in values)
+class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
+
+    def __init__(self, values, dtype=None, copy=False, context=None):
+        for val in values:
+            if not isinstance(val, decimal.Decimal):
+                raise TypeError("All values must be of type " +
+                                str(decimal.Decimal))
         values = np.asarray(values, dtype=object)
 
         self._data = values
@@ -38,9 +65,14 @@ class DecimalArray(ExtensionArray):
         # those aliases are currently not working due to assumptions
         # in internal code (GH-20735)
         # self._values = self.values = self.data
+        self._dtype = DecimalDtype(context)
+
+    @property
+    def dtype(self):
+        return self._dtype
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -69,6 +101,11 @@ class DecimalArray(ExtensionArray):
             return type(self)(self._data.copy())
         return type(self)(self)
 
+    def astype(self, dtype, copy=True):
+        if isinstance(dtype, type(self.dtype)):
+            return type(self)(self._data, context=dtype.context)
+        return super(DecimalArray, self).astype(dtype, copy)
+
     def __setitem__(self, key, value):
         if pd.api.types.is_list_like(value):
             value = [decimal.Decimal(v) for v in value]
@@ -90,7 +127,7 @@ class DecimalArray(ExtensionArray):
         return 0
 
     def isna(self):
-        return np.array([x.is_nan() for x in self._data])
+        return np.array([x.is_nan() for x in self._data], dtype=bool)
 
     @property
     def _na_value(self):
@@ -101,5 +138,5 @@ class DecimalArray(ExtensionArray):
         return cls(np.concatenate([x._data for x in to_concat]))
 
 
-def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
+DecimalArray._add_arithmetic_ops()
+DecimalArray._add_comparison_ops()
