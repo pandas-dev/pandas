@@ -195,6 +195,25 @@ def _normalize_dataframes(frame_list, verify_inputs=True, sort=False):
     """
     orig_columns = [df.columns for df in frame_list]
     merged_columns = _merge_index_list(orig_columns, verify_inputs, sort)
+
+    # Because _merge_index_list may infer the index dtype based on values,
+    # we have to provide a workaround to conserve the original dtype.
+    #
+    # Empty indexes come from DataFrames with no columns, and we do not
+    # consider them when calculating the final index dtype.
+    #
+    # XXX: goes against DataFrame.append behavior for empty columns, where we
+    # let them be object dtype.
+    #
+    # What behavior should be adopted?
+    relevant_cols = [i for i in orig_columns
+                     if not (len(i) == 0 and i.dtype == 'object')]
+    if relevant_cols:
+        from pandas.core.dtypes.cast import find_common_type
+        types = [i.dtype for i in relevant_cols]
+        common_type = find_common_type(types)
+        merged_columns = merged_columns.astype(common_type)
+
     return [_reindex(df, merged_columns, axis=1) for df in frame_list]
 
 
@@ -216,9 +235,6 @@ def _merge_index_list(index_list, verify_inputs=True, sort=False):
         When sort=True and the result index is not sortable.
     InvalidIndexError
         When verify_inputs=True and 1+ of the indexes contain duplicates.
-
-    Examples
-    --------
     """
     if verify_inputs:
         if any([ix.has_duplicates for ix in index_list]):

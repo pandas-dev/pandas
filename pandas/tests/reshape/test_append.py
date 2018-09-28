@@ -19,6 +19,7 @@ indexes = [
     pd.Int64Index([3, 4, 5]),
     pd.UInt64Index([6, 7, 8]),
     pd.Float64Index([3.5, 4.5, 5.5]),
+    pd.Index([9, 10, 11], dtype=object),  # fake int64
 
     # datetime
     pd.to_datetime(['2013-01-01', '2013-01-10', '2013-01-15']),
@@ -51,7 +52,8 @@ index_sort_groups = [
      pd.RangeIndex(3),
      pd.Int64Index([3, 4, 5]),
      pd.UInt64Index([6, 7, 8]),
-     pd.Float64Index([3.5, 4.5, 5.5])],
+     pd.Float64Index([3.5, 4.5, 5.5]),
+     pd.Index([9, 10, 11], dtype=object)],
 
     [pd.to_datetime(['2013-01-01', '2013-01-10', '2013-01-15'])],
     [pd.to_timedelta(['1 day', '2 days', '3 days'])],
