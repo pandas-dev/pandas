@@ -901,6 +901,42 @@ def invalid_comparison(left, right, op):
 
 
 # -----------------------------------------------------------------------------
+# Dispatch logic
+
+def should_series_dispatch(left, right, op):
+    """
+    Identify cases where a DataFrame operation should dispatch to its
+    Series counterpart.
+
+    Parameters
+    ----------
+    left : DataFrame
+    right : DataFrame
+    op : binary operator
+
+    Returns
+    -------
+    override : bool
+    """
+    if left._is_mixed_type or right._is_mixed_type:
+        return True
+
+    if not len(left.columns) or not len(right.columns):
+        # ensure obj.dtypes[0] exists for each obj
+        return False
+
+    ldtype = left.dtypes.iloc[0]
+    rdtype = right.dtypes.iloc[0]
+
+    if ((is_timedelta64_dtype(ldtype) and is_integer_dtype(rdtype)) or
+            (is_timedelta64_dtype(rdtype) and is_integer_dtype(ldtype))):
+        # numpy integer dtypes as timedelta64 dtypes in this scenario
+        return True
+
+    return False
+
+
+# -----------------------------------------------------------------------------
 # Functions that add arithmetic methods to objects, given arithmetic factory
 # methods
 
@@ -1804,7 +1840,8 @@ def _arith_method_FRAME(cls, op, special):
 
         if isinstance(other, ABCDataFrame):
             # Another DataFrame
-            return self._combine_frame(other, op, fill_value, level)
+            pass_op = op if should_series_dispatch(self, other, op) else na_op
+            return self._combine_frame(other, pass_op, fill_value, level)
         elif isinstance(other, ABCSeries):
             return _combine_series_frame(self, other, na_op,
                                          fill_value=fill_value, axis=axis,

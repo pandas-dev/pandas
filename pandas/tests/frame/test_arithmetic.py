@@ -268,8 +268,8 @@ class TestFrameArithmetic(object):
         assert (kinds == 'i').all()
 
     def test_td64_df_add_int_frame(self):
-        # Check that we don't dispatch to numpy implementation, which treats
-        # int64 as m8[ns]
+        # GH#22696 Check that we don't dispatch to numpy implementation,
+        # which treats int64 as m8[ns]
         tdi = pd.timedelta_range('1', periods=3)
         df = tdi.to_frame()
         other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
