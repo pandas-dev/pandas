@@ -327,7 +327,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             result = self._simple_new(result, name=self.name)
         return result
 
-
     # ------------------------------------------------------------------------
     # Indexing
     @cache_readonly
@@ -855,8 +854,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
 
 # PeriodIndex._add_comparison_ops()
-# PeriodIndex._add_numeric_methods_disabled()
-# PeriodIndex._add_logical_methods_disabled()
+PeriodIndex._add_numeric_methods_disabled()
+PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
 
 
