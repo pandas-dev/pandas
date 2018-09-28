@@ -109,7 +109,8 @@ class TestTimestampTZOperations(object):
                                             check_stacklevel=False):
                 ts.tz_localize(tz, errors='foo')
         # make sure errors='coerce' gets mapped correctly to nonexistent
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        clear=FutureWarning):
             result = ts.tz_localize(tz, errors='coerce')
         expected = ts.tz_localize(tz, nonexistent='NaT')
         assert result is expected
