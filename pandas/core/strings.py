@@ -1405,7 +1405,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     --------
     Series.str.slice_replace : Replace a slice with a string.
     Series.str.get : Return element at position.
-        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i` 
+        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i`
         being the position.
 
     Examples
