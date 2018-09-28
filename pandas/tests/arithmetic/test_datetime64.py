@@ -1764,6 +1764,7 @@ def test_dt64_with_DateOffsets_relativedelta(klass):
     'MonthBegin', 'MonthEnd',
     'SemiMonthEnd', 'SemiMonthBegin',
     'Week', ('Week', {'weekday': 3}),
+    'Week', ('Week', {'weekday': 6}),
     'BusinessDay', 'BDay', 'QuarterEnd', 'QuarterBegin',
     'CustomBusinessDay', 'CDay', 'CBMonthEnd',
     'CBMonthBegin', 'BMonthBegin', 'BMonthEnd',
@@ -1802,6 +1803,10 @@ def test_dt64_with_DateOffsets(klass, normalize, cls_and_kwargs):
     offset_cls = getattr(pd.offsets, cls_name)
 
     with warnings.catch_warnings(record=True):
+        # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
+        # applied to Series or DatetimeIndex
+        # we aren't testing that here, so ignore.
+        warnings.simplefilter("ignore", PerformanceWarning)
         for n in [0, 5]:
             if (cls_name in ['WeekOfMonth', 'LastWeekOfMonth',
                              'FY5253Quarter', 'FY5253'] and n == 0):

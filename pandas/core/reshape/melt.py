@@ -409,13 +409,13 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
 
         return newdf.set_index(i + [j])
 
-    if any(col in stubnames for col in df.columns):
-        raise ValueError("stubname can't be identical to a column name")
-
     if not is_list_like(stubnames):
         stubnames = [stubnames]
     else:
         stubnames = list(stubnames)
+
+    if any(col in stubnames for col in df.columns):
+        raise ValueError("stubname can't be identical to a column name")
 
     if not is_list_like(i):
         i = [i]
