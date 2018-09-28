@@ -1399,13 +1399,14 @@ def str_slice(arr, start=None, stop=None, step=None):
     Returns
     -------
     Series or Index of object
-        Series or Index containing sliced substring from original string object.
+        Series or Index from sliced substring from original string object.
 
     See Also
     --------
     Series.str.slice_replace : Replace a slice with a string.
-    Series.str.get : Return element at position. 
-        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i` being the position.
+    Series.str.get : Return element at position.
+        Equivalent to `Series.str.slice(start=i, stop=i+1)` with `i` 
+        being the position.
 
     Examples
     --------
