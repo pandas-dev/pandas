@@ -151,7 +151,7 @@ class TestTSPlot(TestPlotBase):
         freaks = ['ms', 'us']
         for freq in freaks:
             _, ax = self.plt.subplots()
-            rng = date_range('1/1/2012', periods=100000, freq=freq)
+            rng = date_range('1/1/2012', periods=100, freq=freq)
             ser = Series(np.random.randn(len(rng)), rng)
             _check_plot_works(ser.plot, ax=ax)
 
