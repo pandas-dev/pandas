@@ -6482,17 +6482,13 @@ class DataFrame(NDFrame):
             else:
                 sort = True
 
+        # Reindexing the columns created an artificial float64 where it
+        # was not needed. We can convert the columns back to the expected
+        # type.
         if result.shape[0] == 1:
-            from pandas.core.dtypes.cast import find_common_type
-
-            # Reindexing the columns created an artificial float64 where it
-            # was not needed. We can convert the columns back to the expected
-            # type.
-
-            for col in result:
-                types = [df[col].dtype for df in to_concat if col in df]
-                common_type = find_common_type(types)
-                result[col] = result[col].astype(common_type)
+            base_frame = next(df for df in to_concat_norm if df.shape[0] == 1)
+            dtypes = base_frame.dtypes.to_dict()
+            result = result.astype(dtypes)  # won't work well dups cols
 
         return result
 

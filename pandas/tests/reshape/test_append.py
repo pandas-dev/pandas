@@ -247,7 +247,7 @@ class TestAppendBasic(object):
 
     def test_no_unecessary_upcast(self, sort):
         # GH: 22621
-        # When appending, the resulting columns should
+        # When appending, the result columns should
         # not be float64 without necessity.
 
         # basic
@@ -271,20 +271,16 @@ class TestAppendBasic(object):
         assert_frame_equal(result, expected)
 
         # 0 rows 2 columns
-        # (the original dtype (object) of the empty columns
-        #  must be preserved)
         df1 = pd.DataFrame([[1, 2, 3]], columns=[0, 1, 2])
         df2 = pd.DataFrame(columns=[3, 4])
         result = df1.append(df2, sort=sort)
         expected = pd.DataFrame([[1, 2, 3, np.nan, np.nan]])
-        expected[[3, 4]] = expected[[3, 4]].astype(object)
         assert_frame_equal(result, expected)
 
         df1 = pd.DataFrame(columns=[0, 1])
         df2 = pd.DataFrame([[1, 2, 3]], columns=[2, 3, 4])
         result = df1.append(df2, sort=sort)
         expected = pd.DataFrame([[np.nan, np.nan, 1, 2, 3]])
-        expected[[0, 1]] = expected[[0, 1]].astype(object)
         assert_frame_equal(result, expected)
 
         # big.append(small)
@@ -300,71 +296,6 @@ class TestAppendBasic(object):
         result = small.append(big, sort=sort)
         expected = pd.DataFrame([[1, 2, np.nan], [3, 4, 5]])
         assert_frame_equal(result, expected)
-
-    def test_preserve_empty_columns_dtype(self, sort):
-        # When appending to an empty DataFrame with columns, the dtype of these
-        # columns should be accounted for the output.
-
-        # append same size (default dtype)
-        df1 = pd.DataFrame(columns=list('ABC'))  # object
-        df2 = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        result1 = df1.append(df2, sort=sort)
-        result2 = df2.append(df1, sort=sort)
-
-        expected = df2.astype(object)
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
-
-        # GH: 22858 - df1 ends up float64
-        # append same size (int64)
-        # df1 = pd.DataFrame(columns=list('ABC'), dtype='int64')
-        # df2 = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        # result1 = df1.append(df2, sort=sort)
-        # result2 = df2.append(df1, sort=sort)
-
-        # expected = df2.astype('int64')  # same as df2
-        # assert_frame_equal(result1, expected)
-        # assert_frame_equal(result2, expected)
-
-        # append same size (float64)
-        df1 = pd.DataFrame(columns=list('ABC'), dtype='float64')
-        df2 = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        result1 = df1.append(df2, sort=sort)
-        result2 = df2.append(df1, sort=sort)
-
-        expected = df2.astype('float64')
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
-
-        # append small/big - small empty
-        small = pd.DataFrame(columns=list('AB'))
-        big = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        result1 = small.append(big, sort=sort)
-        result2 = big.append(small, sort=sort)
-
-        expected = big.copy()
-        expected[['A', 'B']] = expected[['A', 'B']].astype(object)
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
-
-        # append small/big - big empty
-        small = pd.DataFrame([[1, 2]], columns=list('AB'))
-        big = pd.DataFrame(columns=list('ABC'))
-
-        result1 = small.append(big, sort=sort)
-        result2 = big.append(small, sort=sort)
-
-        expected = pd.DataFrame(
-            [[1, 2, np.nan]],
-            columns=list('ABC'),
-            dtype=object
-        )
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
 
 
 class TestAppendColumnsIndex(object):
