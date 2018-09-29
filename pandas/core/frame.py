@@ -5077,7 +5077,7 @@ class DataFrame(NDFrame):
                 # try to promote series, which is all NaN, as other_dtype.
                 new_dtype = other_dtype
                 try:
-                    series = series.astype(new_dtype)
+                    series = series.astype(new_dtype, copy=False)
                 except ValueError:
                     # e.g. new_dtype is integer types
                     pass
