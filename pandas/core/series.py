@@ -2080,16 +2080,61 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or inner-product with Series
-        objects. Can also be called using `self @ other` in Python >= 3.5.
+        Compute the dot product between the Series and the columns of other.
+
+        This method computes the dot product between the Series and another one,
+        or the Series and each columns of a DataFrame, or the Series and each
+        columns of a array.
+
+        It can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
-        other : Series or DataFrame
-
+        other : Series, DataFrame or array-like.
+            The other object to compute the dot product with its columns.
+        
         Returns
         -------
-        dot_product : scalar or Series
+        scalar, Series or numpy.ndarray
+            return the dot product of the Series and other if other is a Series,
+            the Series of the dot product of Series and each rows of other if
+            other is a DataFrame or a numpy.ndarray between the Series and each
+            columns of the numpy array.
+
+        Note
+        ----
+        The Series and other has to share the same index if other is a Series or
+        a DataFrame.
+
+        See Also
+        --------
+        DataFrame.dot: Compute dot product with the columns of the DataFrameself.
+
+        Examples
+        --------
+        >>> ser = pd.Series([0,1,2,3])
+        >>> ser2 = pd.Series([-1,2,-3,4])
+        >>> ser.dot(ser2)
+        8
+        >>> df = pd.DataFrame([[0,1],[-2,3],[4,-5],[6,7]])
+        >>> ser.dot(df)
+        0    24
+        1    14
+        dtype: int64
+        >>> arr = [[0,1],[-2,3],[4,-5],[6,7]]
+        >>> ser.dot(arr)
+        array([24, 14])
+
+        If the Series don't share the same index, the dot product can't be
+        computed
+
+        >>> ser3 = pd.Series({'a': 0, 'b': 1, 'c': 2, 'd': 3})
+        >>> ser.dot(ser3)
+        ValueError: matrices are not aligned
+
+        >>> ser4 = pd.Series({'d': 0, 'c': 1, 'b': 2, 'a': 3})
+        >>> ser3.dot(ser4)
+        4
         """
         from pandas.core.frame import DataFrame
         if isinstance(other, (Series, DataFrame)):
