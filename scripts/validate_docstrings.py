@@ -45,10 +45,16 @@ PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 
-def get_api_items():
+def get_api_items(api_doc_fd):
     """
     Parse api.rst file from the documentation, and extract all the functions,
     methods, classes, attributes... This should include all pandas public API.
+
+    Parameters
+    ----------
+    api_doc_fd : file descriptor
+        A file descriptor of the API documentation page, containing the table
+        of contents with all the public API.
 
     Yields
     ------
@@ -64,47 +70,44 @@ def get_api_items():
         The name of the subsection in the API page where the object item is
         located.
     """
-    api_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
-
     previous_line = current_section = current_subsection = ''
     position = None
-    with open(api_fname) as f:
-        for line in f:
-            line = line.strip()
-            if len(line) == len(previous_line):
-                if set(line) == set('-'):
-                    current_section = previous_line
-                    continue
-                if set(line) == set('~'):
-                    current_subsection = previous_line
-                    continue
-
-            if line.startswith('.. currentmodule::'):
-                current_module = line.replace('.. currentmodule::', '').strip()
+    for line in api_doc_fd:
+        line = line.strip()
+        if len(line) == len(previous_line):
+            if set(line) == set('-'):
+                current_section = previous_line
+                continue
+            if set(line) == set('~'):
+                current_subsection = previous_line
                 continue
 
-            if line == '.. autosummary::':
-                position = 'autosummary'
+        if line.startswith('.. currentmodule::'):
+            current_module = line.replace('.. currentmodule::', '').strip()
+            continue
+
+        if line == '.. autosummary::':
+            position = 'autosummary'
+            continue
+
+        if position == 'autosummary':
+            if line == '':
+                position = 'items'
                 continue
 
-            if position == 'autosummary':
-                if line == '':
-                    position = 'items'
-                    continue
+        if position == 'items':
+            if line == '':
+                position = None
+                continue
+            item = line.strip()
+            func = importlib.import_module(current_module)
+            for part in item.split('.'):
+                func = getattr(func, part)
 
-            if position == 'items':
-                if line == '':
-                    position = None
-                    continue
-                item = line.strip()
-                func = importlib.import_module(current_module)
-                for part in item.split('.'):
-                    func = getattr(func, part)
+            yield ('.'.join([current_module, item]), func,
+                   current_section, current_subsection)
 
-                yield ('.'.join([current_module, item]), func,
-                       current_section, current_subsection)
-
-            previous_line = line
+        previous_line = line
 
 
 class Docstring(object):
@@ -534,7 +537,9 @@ def validate_all():
     seen = {}
 
     # functions from the API docs
-    api_items = list(get_api_items())
+    api_doc_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
+    with open(api_doc_fname) as f:
+        api_items = list(get_api_items(f))
     for func_name, func_obj, section, subsection in api_items:
         doc_info = validate_one(func_name)
         result[func_name] = doc_info

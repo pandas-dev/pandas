@@ -1,5 +1,6 @@
 import string
 import random
+import io
 import pytest
 import numpy as np
 
@@ -605,3 +606,79 @@ class TestValidator(object):
         result = validate_one(self._import_path(klass=klass, func=func))  # noqa:F821
         for msg in msgs:
             assert msg in ' '.join(result['errors'])
+
+
+class TestApiItems(object):
+    @property
+    def api_doc(self):
+        return io.StringIO('''
+.. currentmodule:: itertools
+
+Itertools
+---------
+
+Infinite
+~~~~~~~~
+
+.. autosummary::
+
+    cycle
+    count
+
+Finite
+~~~~~~
+
+.. autosummary::
+
+    chain
+
+.. currentmodule:: random
+
+Random
+------
+
+All
+~~~
+
+.. autosummary::
+
+    seed
+    randint
+''')
+
+    @pytest.mark.parametrize('idx,name', [(0, 'itertools.cycle'),
+                                          (1, 'itertools.count'),
+                                          (2, 'itertools.chain'),
+                                          (3, 'random.seed'),
+                                          (4, 'random.randint')])
+    def test_item_name(self, idx, name):
+        res = list(validate_docstrings.get_api_items(self.api_doc))
+        assert res[idx][0] == name
+
+    @pytest.mark.parametrize('idx,func', [(0, 'cycle'),
+                                          (1, 'count'),
+                                          (2, 'chain'),
+                                          (3, 'seed'),
+                                          (4, 'randint')])
+    def test_item_function(self, idx, func):
+        res = list(validate_docstrings.get_api_items(self.api_doc))
+        assert callable(res[idx][1])
+        assert res[idx][1].__name__ == func
+
+    @pytest.mark.parametrize('idx,section', [(0, 'Itertools'),
+                                             (1, 'Itertools'),
+                                             (2, 'Itertools'),
+                                             (3, 'Random'),
+                                             (4, 'Random')])
+    def test_item_section(self, idx, section):
+        res = list(validate_docstrings.get_api_items(self.api_doc))
+        assert res[idx][2] == section
+
+    @pytest.mark.parametrize('idx,subsection', [(0, 'Infinite'),
+                                                (1, 'Infinite'),
+                                                (2, 'Finite'),
+                                                (3, 'All'),
+                                                (4, 'All')])
+    def test_item_subsection(self, idx, subsection):
+        res = list(validate_docstrings.get_api_items(self.api_doc))
+        assert res[idx][3] == subsection
