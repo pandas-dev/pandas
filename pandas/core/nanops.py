@@ -325,9 +325,10 @@ def nanany(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis : int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Returns
     -------
@@ -357,9 +358,10 @@ def nanall(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Returns
     -------
@@ -390,10 +392,11 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    min_count: int
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    min_count: int, default 0
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -423,9 +426,10 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -463,9 +467,10 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -543,9 +548,13 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    ddof : int, default 1
+        Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+        where N represents the number of elements.
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -568,9 +577,13 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    ddof : int, default 1
+        Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+        where N represents the number of elements.
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -625,9 +638,13 @@ def nansem(values, axis=None, skipna=True, ddof=1, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    ddof : int, default 1
+        Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+        where N represents the number of elements.
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -684,9 +701,10 @@ def nanargmax(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -712,9 +730,10 @@ def nanargmin(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -745,9 +764,10 @@ def nanskew(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -818,9 +838,10 @@ def nankurt(values, axis=None, skipna=True, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
@@ -894,10 +915,11 @@ def nanprod(values, axis=None, skipna=True, min_count=0, mask=None):
     Parameters
     ----------
     values : ndarray
-    axis : int
-    skipna : bool
-    min_count: int
-    mask : ndarray nan-mask if known
+    axis: int, optional
+    skipna : bool, default True
+    min_count: int, default 0
+    mask : ndarray[bool], optional
+        nan-mask if known
 
     Examples
     --------
