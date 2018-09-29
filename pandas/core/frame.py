@@ -6454,34 +6454,6 @@ class DataFrame(NDFrame):
         if not ignore_index:
             result.index.name = self.index.name
 
-        # the conditionals below will be refactored or removed
-
-        if sort is None:
-            # The sorting behaviour for None was weird.
-            # It is getting deprecated.
-            #
-            # By now, fix tests by only sorting when the
-            # original 'other' was a series or a dict.
-            if _obj_type in (dict, Series):
-                sort = False
-            elif _item_type in (dict, Series):
-                # A list of dicts/Series had a different behaviour
-                # when sorting is None.
-                #
-                # We do not sort if the 'other' columns are all
-                # contained in self.columns. Otherwise we do
-                # sort.
-                #
-                # TODO: as per documentation, this seems like the original
-                # behaviour intended for append. Should I implement this
-                # for any inputs that come?
-                self_idx = self.columns
-                other_idx = other[0].columns
-                idx_diff = other_idx.difference(self_idx)
-                sort = len(idx_diff) > 0
-            else:
-                sort = True
-
         # Reindexing the columns created an artificial float64 where it
         # was not needed. We can convert the columns back to the expected
         # type.
