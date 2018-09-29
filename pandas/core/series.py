@@ -2084,15 +2084,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         This method computes the dot product between the Series and another one,
         or the Series and each columns of a DataFrame, or the Series and each
-        columns of a array.
+        columns of an array.
 
         It can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
-        other : Series, DataFrame or array-like.
+        other : Series, DataFrame or array-like
             The other object to compute the dot product with its columns.
-        
+
         Returns
         -------
         scalar, Series or numpy.ndarray
@@ -2101,14 +2101,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             other is a DataFrame or a numpy.ndarray between the Series and each
             columns of the numpy array.
 
-        Note
-        ----
-        The Series and other has to share the same index if other is a Series or
-        a DataFrame.
-
         See Also
         --------
-        DataFrame.dot: Compute dot product with the columns of the DataFrameself.
+        DataFrame.dot: Compute dot product with the columns of the DataFrame.
+
+        Notes
+        -----
+        The Series and other has to share the same index if other is a Series or
+        a DataFrame.
 
         Examples
         --------
@@ -2126,12 +2126,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         array([24, 14])
 
         If the Series don't share the same index, the dot product can't be
-        computed
+        computed.
 
         >>> ser3 = pd.Series({'a': 0, 'b': 1, 'c': 2, 'd': 3})
-        >>> ser.dot(ser3)
-        ValueError: matrices are not aligned
-
         >>> ser4 = pd.Series({'d': 0, 'c': 1, 'b': 2, 'a': 3})
         >>> ser3.dot(ser4)
         4
