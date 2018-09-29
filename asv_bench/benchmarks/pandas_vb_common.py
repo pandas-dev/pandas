@@ -2,7 +2,6 @@ import os
 from importlib import import_module
 
 import numpy as np
-from pandas import Panel
 
 # Compatibility import for lib
 for imp in ['pandas._libs.lib', 'pandas.lib']:
