@@ -1043,7 +1043,7 @@ def test_numpy_ops_np_version_under1p13(numpy_op, expected):
         assert result == expected
 
 
-@pytest.mark.parametrize("operation",[
+@pytest.mark.parametrize("operation", [
     nanops.nanany,
     nanops.nanall,
     nanops.nansum,
