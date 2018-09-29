@@ -1086,7 +1086,8 @@ class DataFrame(NDFrame):
         Returns
         -------
         dict, list or collections.Mapping
-            like {column -> {index -> value}}
+            Return a collections.Mapping object representing the DataFrame.
+            The resulting transformation depends on the `orient` parameter.
 
         See Also
         --------
