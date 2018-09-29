@@ -13,23 +13,7 @@ RET=0
 
 # pandas/_libs/src is C code, so no need to search there.
 MSG='Linting .py code' ; echo $MSG
-flake8 pandas --filename=*.py --exclude pandas/_libs/src
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting setup.py' ; echo $MSG
-flake8 setup.py
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting scripts' ; echo $MSG
-flake8 scripts --filename=*.py
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting asv benchmarks' ; echo $MSG
-flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py
-RET=$(($RET + $?)) ; echo $MSG "DONE"
-
-MSG='Linting doc scripts' ; echo $MSG
-flake8 doc/make.py doc/source/conf.py
+flake8 .
 RET=$(($RET + $?)) ; echo $MSG "DONE"
 
 MSG='Linting .pyx code' ; echo $MSG
