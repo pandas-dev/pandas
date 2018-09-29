@@ -179,8 +179,8 @@ class ReadCSVFloatPrecision(StringIORewind):
                  names=list('abc'), float_precision=float_precision)
 
     def time_read_csv_python_engine(self, sep, decimal, float_precision):
-        read_csv(self.data(self.StringIO_input), sep=sep, header=None, engine='python',
-                 float_precision=None, names=list('abc'))
+        read_csv(self.data(self.StringIO_input), sep=sep, header=None,
+                 engine='python', float_precision=None, names=list('abc'))
 
 
 class ReadCSVCategorical(BaseIO):
