@@ -529,11 +529,11 @@ result : DataFrame
 _flex_doc_FRAME = """
 {desc} of dataframe and other, element-wise (binary operator `{op_name}`).
 
-With reverse version, `{reverse}`. Among flexible wrappers (`add`, `sub`,
-`mul`, `div`, `mod`, `pow`) to arithmetic operators.
+Equivalent to ``{equiv}``, but with support to substitute a fill_value
+for missing data in one of the inputs. With reverse version, `{reverse}`.
 
-Equivalent to `+`, `-`, `*`, `/`, `//`, `%`, `**` but with support to
-substitute a fill_value for missing data in one of the inputs.
+Among flexible wrappers (`add`, `sub`, `mul`, `div`, `mod`, `pow`) to
+arithmetic operators: `+`, `-`, `*`, `/`, `//`, `%`, `**.
 
 Parameters
 ----------
