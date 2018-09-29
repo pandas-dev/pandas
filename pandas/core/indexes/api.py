@@ -12,8 +12,7 @@ from pandas.core.indexes.base import (
     _new_Index,
     ensure_index,
     ensure_index_from_sequences,
-    CannotSortError,
-    InvalidIndexError
+    InvalidIndexError,
 )
 from pandas.core.indexes.category import CategoricalIndex  # noqa
 from pandas.core.indexes.multi import MultiIndex  # noqa
@@ -36,6 +35,18 @@ To accept the future behavior, pass 'sort=False'.
 
 To retain the current behavior and silence the warning, pass 'sort=True'.
 """)
+
+
+class _CannotSortError(Exception):
+    pass
+
+
+class _CannotSortDuplicatesError(Exception):
+    pass
+
+
+class _DuplicatesError(Exception):
+    pass
 
 
 # TODO: there are many places that rely on these private methods existing in
@@ -181,20 +192,40 @@ def _normalize_dataframes(frame_list, verify_inputs=True, sort=False):
     ----------
     index_list: list of Index objects
     verify_inputs: boolean, default True
-        Verify if the input indexes contain overlapping values.
+        Verify if the input indexes contain duplicate values. Ignored when all
+        input indexes share the same identity (a is b).
     sort: boolean, default False
-        Order result index. If False, values will come in the order they
+        Order resulting index. If False, values will come in the order they
         appear.
 
     Raises
     ------
-    CannotSortError
-        When sort=True and the result index is not sortable.
-    InvalidIndexError
-        When verify_inputs=True and 1+ of the indexes contain duplicates.
+    InvalidIndexError:
+        When there are duplicates in at least one of the indexes (col)
+        and they are not allowed.
+    TypeError:
+        When sort=True and the resulting index (col) could not be sorted.
     """
     orig_columns = [df.columns for df in frame_list]
-    merged_columns = _merge_index_list(orig_columns, verify_inputs, sort)
+
+    kwargs = {
+        'verify_dups': verify_inputs,
+        'allow_matching_dups': verify_inputs,
+        'sort': sort,
+    }
+
+    try:
+        merged_columns = _merge_index_list(orig_columns, **kwargs)
+    except _DuplicatesError:
+        raise InvalidIndexError("Indexes with duplicates are only allowed"
+                                " when they are the same (a is b).")
+    except _CannotSortDuplicatesError:
+        raise InvalidIndexError("When sort=True, indexes with duplicate"
+                                " values are not allowed.")
+    except _CannotSortError:
+        raise TypeError("The resulting columns could not be sorted."
+                        " You can try setting sort=False or use"
+                        " compatible index types.")
 
     # Because _merge_index_list may infer the index dtype based on values,
     # we have to provide a workaround to conserve the original dtype.
@@ -217,33 +248,64 @@ def _normalize_dataframes(frame_list, verify_inputs=True, sort=False):
     return [_reindex(df, merged_columns, axis=1) for df in frame_list]
 
 
-def _merge_index_list(index_list, verify_inputs=True, sort=False):
+def _merge_index_list(index_list,
+                      verify_dups=True,
+                      allow_matching_dups=False,
+                      sort=False):
     """Merge a list of indexes into one big index
 
     Parameters
     ----------
     index_list: list of Index objects
-    verify_inputs: boolean, default True
-        Verify if the input indexes contain overlapping values.
+    verify_dups: boolean, default True
+        Verify if the input indexes contain duplicate values.
+    allow_matching_dups: boolean, default False
+        Only relevant when verify_dups=True. Allow duplicate values when all
+        indexes have the same identity.
     sort: boolean, default False
         Order result index. If False, values will come in the order they
         appear.
 
     Raises
     ------
-    CannotSortError
+    _CannotSortError
         When sort=True and the result index is not sortable.
-    InvalidIndexError
-        When verify_inputs=True and 1+ of the indexes contain duplicates.
+    _CannotSortDuplicatesError
+        When sort=True and at least one of the inputs contain duplicate
+        values.
+    _DuplicatesError
+        When verify_dups=True and at least one of the input indexes contain
+        duplicate values. This is error is not raised if
+        allow_matching_dups=True and all the indexes have a common identity.
     """
-    if verify_inputs:
-        if any([ix.has_duplicates for ix in index_list]):
-            raise InvalidIndexError("Input index has duplicate values")
+    # unique index list (a is b)
+    uindex_list = com.get_distinct_objs(index_list)
 
-    result = index_list[0]
-    for idx in index_list[1:]:
+    # verify duplicates
+    if sort or verify_dups:
+        has_dups = any(ix.has_duplicates for ix in uindex_list)
+        if has_dups:
+            if sort:
+                raise _CannotSortDuplicatesError("Cannot sort an index that"
+                                                " contains duplicate values.")
+            elif verify_dups and not allow_matching_dups:
+                raise _DuplicatesError("Index has duplicate values.")
+            elif verify_dups and allow_matching_dups and len(uindex_list) >= 2:
+                raise _DuplicatesError("Index has duplicate values and does"
+                                      " not match other indexes.")
+
+    # edge results
+    if len(uindex_list) == 0:
+        return pd.Index()
+    elif len(uindex_list) == 1:
+        return uindex_list[0]
+
+    # reduce to one result
+    result = uindex_list[0]
+    for idx in uindex_list[1:]:
         result = _merge_indexes(result, idx)
 
+    # sort
     return result if not sort else _sort_index(result)
 
 
@@ -278,7 +340,7 @@ def _sort_index(index):
     try:
         return index.sort_values()
     except TypeError:
-        raise CannotSortError
+        raise _CannotSortError
 
 
 def _reindex(df, new_index, axis=0):

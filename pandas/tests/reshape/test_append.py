@@ -13,6 +13,7 @@ indexes = [
 
     # base
     pd.Index(['A', 'B', 'C']),
+    pd.Index(['A', 'B', 'C'], name='foo'),
 
     # numeric
     pd.RangeIndex(3),
@@ -35,6 +36,36 @@ indexes = [
 
     # multi-index
     pd.MultiIndex.from_arrays(['A B C'.split(), 'D E F'.split()]),
+]
+
+
+indexes_with_dups = [
+    # base
+    pd.Index(['A', 'B', 'B']),
+    pd.Index(['B', 'B', 'A']),
+    pd.Index(['A', 'B', 'B'], name='foo'),
+    pd.Index(['B', 'B', 'A'], name='bar'),
+
+    # numeric
+    pd.Index([9, 10, 10], dtype=object),
+    pd.Int64Index([3, 4, 4]),
+    pd.UInt64Index([6, 7, 7]),
+    pd.Float64Index([3.5, 4.5, 4.5]),
+
+    # datetime
+    pd.to_datetime(['2013-01-01', '2013-01-10', '2013-01-10']),
+    pd.to_timedelta(['1 day', '2 days', '2 days']),
+    pd.PeriodIndex([2000, 2001, 2001], freq='A'),
+
+    # interval
+    pd.IntervalIndex.from_arrays([0, 1, 1], [1, 2, 2]),
+
+    # categorical
+    pd.CategoricalIndex('A B B'.split()),
+    pd.CategoricalIndex('D E E'.split(), ordered=True),
+
+    # multi-index
+    pd.MultiIndex.from_arrays(['A B B'.split(), 'D E E'.split()]),
 ]
 
 
@@ -246,7 +277,7 @@ class TestAppendBasic(object):
 
     def test_no_unecessary_upcast(self, sort):
         # GH: 22621
-        # When appending, the resulting columns should
+        # When appending, the result columns should
         # not be float64 without necessity.
 
         # basic
@@ -270,20 +301,16 @@ class TestAppendBasic(object):
         assert_frame_equal(result, expected)
 
         # 0 rows 2 columns
-        # (the original dtype (object) of the empty columns
-        #  must be preserved)
         df1 = pd.DataFrame([[1, 2, 3]], columns=[0, 1, 2])
         df2 = pd.DataFrame(columns=[3, 4])
         result = df1.append(df2, sort=sort)
         expected = pd.DataFrame([[1, 2, 3, np.nan, np.nan]])
-        expected[[3, 4]] = expected[[3, 4]].astype(object)
         assert_frame_equal(result, expected)
 
         df1 = pd.DataFrame(columns=[0, 1])
         df2 = pd.DataFrame([[1, 2, 3]], columns=[2, 3, 4])
         result = df1.append(df2, sort=sort)
         expected = pd.DataFrame([[np.nan, np.nan, 1, 2, 3]])
-        expected[[0, 1]] = expected[[0, 1]].astype(object)
         assert_frame_equal(result, expected)
 
         # big.append(small)
@@ -299,71 +326,6 @@ class TestAppendBasic(object):
         result = small.append(big, sort=sort)
         expected = pd.DataFrame([[1, 2, np.nan], [3, 4, 5]])
         assert_frame_equal(result, expected)
-
-    def test_preserve_empty_columns_dtype(self, sort):
-        # When appending to an empty DataFrame with columns, the dtype of these
-        # columns should be accounted for the output.
-
-        # append same size (default dtype)
-        df1 = pd.DataFrame(columns=list('ABC'))  # object
-        df2 = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        result1 = df1.append(df2, sort=sort)
-        result2 = df2.append(df1, sort=sort)
-
-        expected = df2.astype(object)
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
-
-        # GH: 22858 - df1 ends up float64
-        # append same size (int64)
-        # df1 = pd.DataFrame(columns=list('ABC'), dtype='int64')
-        # df2 = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        # result1 = df1.append(df2, sort=sort)
-        # result2 = df2.append(df1, sort=sort)
-
-        # expected = df2.astype('int64')  # same as df2
-        # assert_frame_equal(result1, expected)
-        # assert_frame_equal(result2, expected)
-
-        # append same size (float64)
-        df1 = pd.DataFrame(columns=list('ABC'), dtype='float64')
-        df2 = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        result1 = df1.append(df2, sort=sort)
-        result2 = df2.append(df1, sort=sort)
-
-        expected = df2.astype('float64')
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
-
-        # append small/big - small empty
-        small = pd.DataFrame(columns=list('AB'))
-        big = pd.DataFrame([[1, 2, 3]], columns=list('ABC'))
-
-        result1 = small.append(big, sort=sort)
-        result2 = big.append(small, sort=sort)
-
-        expected = big.copy()
-        expected[['A', 'B']] = expected[['A', 'B']].astype(object)
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
-
-        # append small/big - big empty
-        small = pd.DataFrame([[1, 2]], columns=list('AB'))
-        big = pd.DataFrame(columns=list('ABC'))
-
-        result1 = small.append(big, sort=sort)
-        result2 = big.append(small, sort=sort)
-
-        expected = pd.DataFrame(
-            [[1, 2, np.nan]],
-            columns=list('ABC'),
-            dtype=object
-        )
-        assert_frame_equal(result1, expected)
-        assert_frame_equal(result2, expected)
 
 
 class TestAppendColumnsIndex(object):
@@ -471,39 +433,90 @@ class TestAppendColumnsIndex(object):
         for value in index2:
             assert value in result.columns
 
-    def test_raise_on_duplicates(self, sort):
-        # Append should not allow DataFrames with repeated
-        # column names (or series with repeated row names).
+    @pytest.mark.parametrize('col_index', indexes_with_dups, ids=cls_name)
+    def test_good_duplicates_without_sort(self, col_index):
+        # When all indexes have the same identity (a is b), duplicates should
+        # be allowed and append works.
 
-        # dupe on base
-        df1 = pd.DataFrame([[1, 2, 3]], columns=['A', 'B', 'B'])
-        df2 = pd.DataFrame([[1, 2, 3]], columns=['A', 'B', 'C'])
-        with pytest.raises(InvalidIndexError):
-            df1.append([], sort=sort)
-        with pytest.raises(InvalidIndexError):
-            df1.append([df2], sort=sort)
-        with pytest.raises(InvalidIndexError):
-            df1.append([df2, df2], sort=sort)
+        df1 = pd.DataFrame([[1, 2, 3]], columns=col_index)
+        df2 = pd.DataFrame([[4, 5, 6]], columns=col_index)
 
-        # dupe on other
-        df1 = pd.DataFrame([[1, 2, 3]], columns=['A', 'B', 'C'])
-        df2 = pd.DataFrame([[1, 2, 3]], columns=['A', 'B', 'B'])
-        with pytest.raises(InvalidIndexError):
-            df1.append([df2], sort=sort)
-        with pytest.raises(InvalidIndexError):
-            df1.append([df2, df2], sort=sort)
+        # df1.append([])
+        result = df1.append([], sort=False)
+        expected = df1.copy()
+        assert_frame_equal(result, expected)
 
-        # dupe on both
-        # (we could avoid raising errors here, but, to keep the api
-        #  consistent, we don't)
-        df1 = pd.DataFrame([[1, 2, 3]], columns=['A', 'B', 'B'])
-        df2 = pd.DataFrame([[1, 2, 3]], columns=['A', 'B', 'B'])
-        with pytest.raises(InvalidIndexError):
-            df1.append([], sort=sort)
-        with pytest.raises(InvalidIndexError):
-            df1.append([df2], sort=sort)
-        with pytest.raises(InvalidIndexError):
-            df1.append([df2, df2], sort=sort)
+        # df1.append([df2])
+        result = df1.append([df2], ignore_index=True, sort=False)
+        expected = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        expected.columns = col_index
+        assert_frame_equal(result, expected)
+
+        # df1.append([df2, df2])
+        result = df1.append([df2, df2], ignore_index=True, sort=False)
+        expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [4, 5, 6]])
+        expected.columns = col_index
+        assert_frame_equal(result, expected)
+
+        # df2.append([])
+        result = df2.append([], sort=False)
+        expected = df2.copy()
+        assert_frame_equal(result, expected)
+
+        # df2.append([df1])
+        result = df2.append([df1], ignore_index=True, sort=False)
+        expected = pd.DataFrame([[4, 5, 6], [1, 2, 3]])
+        expected.columns = col_index
+        assert_frame_equal(result, expected)
+
+        # df2.append([df1, df1])
+        result = df2.append([df1, df1], ignore_index=True, sort=False)
+        expected = pd.DataFrame([[4, 5, 6], [1, 2, 3], [1, 2, 3]])
+        expected.columns = col_index
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('col_index', indexes_with_dups, ids=cls_name)
+    def test_bad_duplicates_without_sort(self, col_index):
+        # When the indexes do not share a common identity, duplicates are not
+        # allowed and append raises.
+
+        df1 = pd.DataFrame([[1, 2, 3]], columns=col_index)
+        df2 = pd.DataFrame([[4, 5, 6]], columns=col_index)
+        df3 = pd.DataFrame([[7, 8, 9]], columns=col_index.copy())  # different
+        ctx = pytest.raises(InvalidIndexError,
+                            match=r'Indexes with duplicates.*a is b.*')
+        with ctx:
+            result = df1.append([df3], sort=False)
+        with ctx:
+            result = df1.append([df2, df3], sort=False)
+        with ctx:
+            result = df1.append([df3, df2], sort=False)
+        with ctx:
+            result = df1.append([df3, df3], sort=False)
+
+    @pytest.mark.parametrize('col_index', indexes_with_dups, ids=cls_name)
+    def test_duplicates_with_sort(self, col_index):
+        # When sort=True, indexes with duplicate values are not be allowed.
+
+        df1 = pd.DataFrame([[1, 2, 3]], columns=col_index)
+        df2 = pd.DataFrame([[4, 5, 6]], columns=col_index.copy())
+        ctx = pytest.raises(InvalidIndexError,
+                            match=r'When sort=True, indexes with dupl.*')
+
+        with ctx:
+            result = df1.append([], sort=True)
+        with ctx:
+            result = df1.append([df1], sort=True)
+        with ctx:
+            result = df1.append([df2], sort=True)
+        with ctx:
+            result = df1.append([df1, df1], sort=True)
+        with ctx:
+            result = df1.append([df1, df2], sort=True)
+        with ctx:
+            result = df1.append([df2, df1], sort=True)
+        with ctx:
+            result = df1.append([df2, df2], sort=True)
 
     def test_nosort_basic(self):
         # When sort=False, the resulting columns come

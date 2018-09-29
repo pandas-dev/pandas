@@ -6420,31 +6420,15 @@ class DataFrame(NDFrame):
         _obj_type = kwargs['_obj_type']
         _item_type = kwargs.get('_item_type')
 
-        from pandas.core.indexes.api import (
-            CannotSortError,
-            _normalize_dataframes,
-        )
+        from pandas.core.indexes.api import _normalize_dataframes
         from pandas.core.reshape.concat import concat
 
-        # The default value of sort in version 0.23.0 is None.
-        # The behavior when this was the value is very
-        # varied and changes according to input type, columns index
-        # type, whether a reindex is necessary or not, etc.
-        #
-        # The code below is a try to reproduce the old behavior,
-        # but note that this is deprecated.
-        #
-        # TODO: handle sort=None here
+        # TODO: sorting behavior when sort=None
 
-        # The behavior of concat is a bit problematic as it is. To get around
-        # this, we prepare the DataFrames before feeding them into concat.
+        # The behavior of concat is a bit problematic as it is. To get around,
+        # we prepare the DataFrames before feeding them into concat.
         to_concat = [self] + other
-        try:
-            to_concat_norm = _normalize_dataframes(to_concat, sort=sort)
-        except CannotSortError:
-            raise TypeError("The resulting columns could not be sorted."
-                            " You can try setting sort=False or use"
-                            " compatible index types.")
+        to_concat_norm = _normalize_dataframes(to_concat, sort=sort)
         result = concat(to_concat_norm, ignore_index=ignore_index,
                         verify_integrity=verify_integrity, sort=sort)
 
@@ -6454,45 +6438,13 @@ class DataFrame(NDFrame):
         if not ignore_index:
             result.index.name = self.index.name
 
-        # the conditionals below will be refactored or removed
-
-        if sort is None:
-            # The sorting behaviour for None was weird.
-            # It is getting deprecated.
-            #
-            # By now, fix tests by only sorting when the
-            # original 'other' was a series or a dict.
-            if _obj_type in (dict, Series):
-                sort = False
-            elif _item_type in (dict, Series):
-                # A list of dicts/Series had a different behaviour
-                # when sorting is None.
-                #
-                # We do not sort if the 'other' columns are all
-                # contained in self.columns. Otherwise we do
-                # sort.
-                #
-                # TODO: as per documentation, this seems like the original
-                # behaviour intended for append. Should I implement this
-                # for any inputs that come?
-                self_idx = self.columns
-                other_idx = other[0].columns
-                idx_diff = other_idx.difference(self_idx)
-                sort = len(idx_diff) > 0
-            else:
-                sort = True
-
+        # Reindexing the columns created an artificial float64 where it
+        # was not needed. We can convert the columns back to the expected
+        # type.
         if result.shape[0] == 1:
-            from pandas.core.dtypes.cast import find_common_type
-
-            # Reindexing the columns created an artificial float64 where it
-            # was not needed. We can convert the columns back to the expected
-            # type.
-
-            for col in result:
-                types = [df[col].dtype for df in to_concat if col in df]
-                common_type = find_common_type(types)
-                result[col] = result[col].astype(common_type)
+            base_frame = next(df for df in to_concat_norm if df.shape[0] == 1)
+            dtypes = base_frame.dtypes.to_dict()
+            result = result.astype(dtypes)  # won't work well dups cols
 
         return result
 
