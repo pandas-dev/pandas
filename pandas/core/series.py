@@ -2082,9 +2082,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Compute the dot product between the Series and the columns of other.
 
-        This method computes the dot product between the Series and another one,
-        or the Series and each columns of a DataFrame, or the Series and each
-        columns of an array.
+        This method computes the dot product between the Series and another
+        one, or the Series and each columns of a DataFrame, or the Series and
+        each columns of an array.
 
         It can also be called using `self @ other` in Python >= 3.5.
 
@@ -2096,10 +2096,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         scalar, Series or numpy.ndarray
-            return the dot product of the Series and other if other is a Series,
-            the Series of the dot product of Series and each rows of other if
-            other is a DataFrame or a numpy.ndarray between the Series and each
-            columns of the numpy array.
+            return the dot product of the Series and other if other is a
+            Series, the Series of the dot product of Series and each rows of
+            other if other is a DataFrame or a numpy.ndarray between the Series
+            and each columns of the numpy array.
 
         See Also
         --------
@@ -2107,8 +2107,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        The Series and other has to share the same index if other is a Series or
-        a DataFrame.
+        The Series and other has to share the same index if other is a Series
+        or a DataFrame.
 
         Examples
         --------
