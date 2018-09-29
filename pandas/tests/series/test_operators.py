@@ -758,9 +758,6 @@ class TestSeriesOperators(TestData):
     def test_scalar_na_cmp_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
 
-        def tester(a, b):
-            return a & b
-
         with pytest.raises(TypeError):
             s & datetime(2005, 1, 1)
 
@@ -784,7 +781,7 @@ class TestSeriesOperators(TestData):
             d.__and__(s, axis='columns')
 
         with pytest.raises(TypeError):
-            tester(s, d)
+            s & d
 
         # this is wrong as its not a boolean result
         # result = d.__and__(s,axis='index')
