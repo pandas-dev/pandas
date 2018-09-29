@@ -11,6 +11,9 @@ RET=0
 
 # `setup.cfg` contains the list of error codes that are being ignored in flake8
 
+echo "flake8 --version"
+flake8 --version
+
 # pandas/_libs/src is C code, so no need to search there.
 MSG='Linting .py code' ; echo $MSG
 flake8 .

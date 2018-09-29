@@ -8,8 +8,6 @@ dependencies:
   - cython=0.28.2
   - fastparquet
   - feather-format
-  - flake8
-  - flake8-comprehensions
   - gcsfs
   - html5lib
   - ipython
@@ -48,6 +46,5 @@ dependencies:
   - hypothesis>=3.58.0
   - pip:
     - backports.lzma
-    - cpplint
     - pandas-gbq
     - pathlib
