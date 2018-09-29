@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import re
 
-cimport cython
-
 cimport numpy as cnp
-from numpy cimport int64_t
 cnp.import_array()
 
 from util cimport is_integer_object, is_string_object
@@ -20,7 +16,7 @@ opattern = re.compile(
     r'([+\-]?\d*|[+\-]?\d*\.\d*)\s*([A-Za-z]+([\-][\dA-Za-z\-]+)?)'
 )
 
-_INVALID_FREQ_ERROR = "Invalid frequency: {0}"
+INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
 # ---------------------------------------------------------------------
 # Period codes
@@ -127,7 +123,7 @@ _lite_rule_alias = {
     'us': 'U',
     'ns': 'N'}
 
-_dont_uppercase = set(('MS', 'ms'))
+_dont_uppercase = {'MS', 'ms'}
 
 # ----------------------------------------------------------------------
 
@@ -220,7 +216,7 @@ cpdef _period_str_to_code(freqstr):
     try:
         return _period_code_map[freqstr]
     except KeyError:
-        raise ValueError(_INVALID_FREQ_ERROR.format(freqstr))
+        raise ValueError(INVALID_FREQ_ERR_MSG.format(freqstr))
 
 
 cpdef str get_freq_str(base, mult=1):
@@ -325,7 +321,7 @@ cpdef object get_freq(object freq):
 # ----------------------------------------------------------------------
 # Frequency comparison
 
-cpdef bint is_subperiod(source, target):
+def is_subperiod(source, target) -> bint:
     """
     Returns True if downsampling is possible between source and target
     frequencies
@@ -378,7 +374,7 @@ cpdef bint is_subperiod(source, target):
         return source in {'N'}
 
 
-cpdef bint is_superperiod(source, target):
+def is_superperiod(source, target) -> bint:
     """
     Returns True if upsampling is possible between source and target
     frequencies

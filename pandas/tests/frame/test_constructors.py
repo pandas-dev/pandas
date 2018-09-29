@@ -151,6 +151,17 @@ class TestDataFrameConstructors(TestData):
         assert a.dtype == df.a.dtype
         assert b.dtype == df.b.dtype
 
+    def test_constructor_dtype_str_na_values(self, string_dtype):
+        # https://github.com/pandas-dev/pandas/issues/21083
+        df = DataFrame({'A': ['x', None]}, dtype=string_dtype)
+        result = df.isna()
+        expected = DataFrame({"A": [False, True]})
+        tm.assert_frame_equal(result, expected)
+        assert df.iloc[1, 0] is None
+
+        df = DataFrame({'A': ['x', np.nan]}, dtype=string_dtype)
+        assert np.isnan(df.iloc[1, 0])
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
@@ -490,9 +501,11 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
-        check = lambda result, expected: tm.assert_frame_equal(
-            result, expected, check_dtype=True, check_index_type=True,
-            check_column_type=True, check_names=True)
+        def check(result, expected):
+            return tm.assert_frame_equal(result, expected, check_dtype=True,
+                                         check_index_type=True,
+                                         check_column_type=True,
+                                         check_names=True)
         d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
              ('b', 'a'): {('i', 'i'): 6, ('i', 'j'): 5, ('j', 'i'): 4},
              ('b', 'c'): {('i', 'i'): 7, ('i', 'j'): 8, ('j', 'i'): 9}}
@@ -852,12 +865,6 @@ class TestDataFrameConstructors(TestData):
         dm = DataFrame(index=np.arange(10))
         assert dm.values.shape == (10, 0)
 
-        # corner, silly
-        # TODO: Fix this Exception to be better...
-        with tm.assert_raises_regex(ValueError, 'constructor not '
-                                    'properly called'):
-            DataFrame((1, 2, 3))
-
         # can't cast
         mat = np.array(['foo', 'bar'], dtype=object).reshape(2, 1)
         with tm.assert_raises_regex(ValueError, 'cast'):
@@ -909,9 +916,8 @@ class TestDataFrameConstructors(TestData):
     def test_constructor_sequence_like(self):
         # GH 3783
         # collections.Squence like
-        import collections
 
-        class DummyContainer(collections.Sequence):
+        class DummyContainer(compat.Sequence):
 
             def __init__(self, lst):
                 self._lst = lst
@@ -939,6 +945,17 @@ class TestDataFrameConstructors(TestData):
         result = DataFrame([array.array('i', range(10)),
                             array.array('i', range(10))])
         tm.assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_constructor_iterable(self):
+        # GH 21987
+        class Iter():
+            def __iter__(self):
+                for i in range(10):
+                    yield [1, 2, 3]
+
+        expected = DataFrame([[1, 2, 3]] * 10)
+        result = DataFrame(Iter())
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_iterator(self):
 
@@ -1361,10 +1378,6 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame([[np.nan, 1], [1, 0]])
         tm.assert_frame_equal(df, expected)
 
-    def test_constructor_iterator_failure(self):
-        with tm.assert_raises_regex(TypeError, 'iterator'):
-            DataFrame(iter([1, 2, 3]))
-
     def test_constructor_column_duplicates(self):
         # it works! #2079
         df = DataFrame([[8, 5]], columns=['a', 'a'])
@@ -1638,25 +1651,27 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_with_nas(self):
         # GH 5016
-        # na's in indicies
+        # na's in indices
 
         def check(df):
             for i in range(len(df.columns)):
                 df.iloc[:, i]
 
-            # allow single nans to succeed
             indexer = np.arange(len(df.columns))[isna(df.columns)]
 
-            if len(indexer) == 1:
-                tm.assert_series_equal(df.iloc[:, indexer[0]],
-                                       df.loc[:, np.nan])
-
-            # multiple nans should fail
-            else:
-
+            # No NaN found -> error
+            if len(indexer) == 0:
                 def f():
                     df.loc[:, np.nan]
                 pytest.raises(TypeError, f)
+            # single nan should result in Series
+            elif len(indexer) == 1:
+                tm.assert_series_equal(df.iloc[:, indexer[0]],
+                                       df.loc[:, np.nan])
+            # multiple nans should result in DataFrame
+            else:
+                tm.assert_frame_equal(df.iloc[:, indexer],
+                                      df.loc[:, np.nan])
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
         check(df)
@@ -1670,6 +1685,11 @@ class TestDataFrameConstructors(TestData):
 
         df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
                        columns=[np.nan, 1.1, 2.2, np.nan])
+        check(df)
+
+        # GH 21428 (non-unique columns)
+        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
+                       columns=[np.nan, 1, 2, 2])
         check(df)
 
     def test_constructor_lists_to_object_dtype(self):
@@ -2218,4 +2238,17 @@ class TestDataFrameConstructorWithDatetimeTZ(TestData):
             Timestamp('20130101T10:00:00', tz='US/Eastern'),
             Timestamp('20130101T10:01:00', tz='US/Eastern'),
             Timestamp('20130101T10:02:00', tz='US/Eastern')]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_nested_dict_construction(self):
+        # GH22227
+        columns = ['Nevada', 'Ohio']
+        pop = {'Nevada': {2001: 2.4, 2002: 2.9},
+               'Ohio': {2000: 1.5, 2001: 1.7, 2002: 3.6}}
+        result = pd.DataFrame(pop, index=[2001, 2002, 2003], columns=columns)
+        expected = pd.DataFrame(
+            [(2.4, 1.7), (2.9, 3.6), (np.nan, np.nan)],
+            columns=columns,
+            index=pd.Index([2001, 2002, 2003])
+        )
         tm.assert_frame_equal(result, expected)

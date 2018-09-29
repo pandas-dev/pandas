@@ -50,7 +50,7 @@ class TestSorting(object):
 
         tups = list(map(tuple, df[['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
                                    ]].values))
-        tups = com._asarray_tuplesafe(tups)
+        tups = com.asarray_tuplesafe(tups)
 
         expected = df.groupby(tups).sum()['values']
 

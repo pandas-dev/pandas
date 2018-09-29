@@ -69,3 +69,10 @@ class TestFrozenNDArray(CheckImmutable, CheckStringMixin):
         assert isinstance(self.container, FrozenNDArray)
         tm.assert_numpy_array_equal(self.container.values(), original)
         assert vals[0] == n
+
+    def test_searchsorted(self):
+        expected = 2
+        assert self.container.searchsorted(7) == expected
+
+        with tm.assert_produces_warning(FutureWarning):
+            assert self.container.searchsorted(v=7) == expected

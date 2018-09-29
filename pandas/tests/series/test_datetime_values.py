@@ -3,9 +3,11 @@
 
 import locale
 import calendar
+import unicodedata
 import pytest
+import pytz
 
-from datetime import datetime, date
+from datetime import datetime, time, date
 
 import numpy as np
 import pandas as pd
@@ -13,8 +15,10 @@ import pandas as pd
 from pandas.core.dtypes.common import is_integer_dtype, is_list_like
 from pandas import (Index, Series, DataFrame, bdate_range,
                     date_range, period_range, timedelta_range,
-                    PeriodIndex, DatetimeIndex, TimedeltaIndex)
+                    PeriodIndex, DatetimeIndex, TimedeltaIndex,
+                    compat)
 import pandas.core.common as com
+from pandas._libs.tslibs.timezones import maybe_get_tz
 
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
@@ -91,42 +95,6 @@ class TestSeriesDatetimeValues(TestData):
                                                  .tz_convert('US/Eastern'))
             expected = Series(exp_values, index=s.index, name='xxx')
             tm.assert_series_equal(result, expected)
-
-        # round
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
-                                   '2012-01-01 12:01:00',
-                                   '2012-01-01 08:00:00']), name='xxx')
-        result = s.dt.round('D')
-        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02',
-                                          '2012-01-01']), name='xxx')
-        tm.assert_series_equal(result, expected)
-
-        # round with tz
-        result = (s.dt.tz_localize('UTC')
-                   .dt.tz_convert('US/Eastern')
-                   .dt.round('D'))
-        exp_values = pd.to_datetime(['2012-01-01', '2012-01-01',
-                                     '2012-01-01']).tz_localize('US/Eastern')
-        expected = Series(exp_values, name='xxx')
-        tm.assert_series_equal(result, expected)
-
-        # floor
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
-                                   '2012-01-01 12:01:00',
-                                   '2012-01-01 08:00:00']), name='xxx')
-        result = s.dt.floor('D')
-        expected = Series(pd.to_datetime(['2012-01-01', '2012-01-01',
-                                          '2012-01-01']), name='xxx')
-        tm.assert_series_equal(result, expected)
-
-        # ceil
-        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
-                                   '2012-01-01 12:01:00',
-                                   '2012-01-01 08:00:00']), name='xxx')
-        result = s.dt.ceil('D')
-        expected = Series(pd.to_datetime(['2012-01-02', '2012-01-02',
-                                          '2012-01-02']), name='xxx')
-        tm.assert_series_equal(result, expected)
 
         # datetimeindex with tz
         s = Series(date_range('20130101', periods=5, tz='US/Eastern'),
@@ -255,11 +223,66 @@ class TestSeriesDatetimeValues(TestData):
 
         # trying to set a copy
         with pd.option_context('chained_assignment', 'raise'):
-
-            def f():
+            with pytest.raises(com.SettingWithCopyError):
                 s.dt.hour[0] = 5
 
-            pytest.raises(com.SettingWithCopyError, f)
+    @pytest.mark.parametrize('method, dates', [
+        ['round', ['2012-01-02', '2012-01-02', '2012-01-01']],
+        ['floor', ['2012-01-01', '2012-01-01', '2012-01-01']],
+        ['ceil', ['2012-01-02', '2012-01-02', '2012-01-02']]
+    ])
+    def test_dt_round(self, method, dates):
+        # round
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
+        result = getattr(s.dt, method)('D')
+        expected = Series(pd.to_datetime(dates), name='xxx')
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_round_tz(self):
+        s = Series(pd.to_datetime(['2012-01-01 13:00:00',
+                                   '2012-01-01 12:01:00',
+                                   '2012-01-01 08:00:00']), name='xxx')
+        result = (s.dt.tz_localize('UTC')
+                  .dt.tz_convert('US/Eastern')
+                  .dt.round('D'))
+
+        exp_values = pd.to_datetime(['2012-01-01', '2012-01-01',
+                                     '2012-01-01']).tz_localize('US/Eastern')
+        expected = Series(exp_values, name='xxx')
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('method', ['ceil', 'round', 'floor'])
+    def test_dt_round_tz_ambiguous(self, method):
+        # GH 18946 round near DST
+        df1 = pd.DataFrame([
+            pd.to_datetime('2017-10-29 02:00:00+02:00', utc=True),
+            pd.to_datetime('2017-10-29 02:00:00+01:00', utc=True),
+            pd.to_datetime('2017-10-29 03:00:00+01:00', utc=True)
+        ],
+            columns=['date'])
+        df1['date'] = df1['date'].dt.tz_convert('Europe/Madrid')
+        # infer
+        result = getattr(df1.date.dt, method)('H', ambiguous='infer')
+        expected = df1['date']
+        tm.assert_series_equal(result, expected)
+
+        # bool-array
+        result = getattr(df1.date.dt, method)(
+            'H', ambiguous=[True, False, False]
+        )
+        tm.assert_series_equal(result, expected)
+
+        # NaT
+        result = getattr(df1.date.dt, method)('H', ambiguous='NaT')
+        expected = df1['date'].copy()
+        expected.iloc[0:2] = pd.NaT
+        tm.assert_series_equal(result, expected)
+
+        # raise
+        with pytest.raises(pytz.AmbiguousTimeError):
+            getattr(df1.date.dt, method)('H', ambiguous='raise')
 
     def test_dt_namespace_accessor_categorical(self):
         # GH 19468
@@ -309,10 +332,24 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
+
+        # work around https://github.com/pandas-dev/pandas/issues/22342
+        if not compat.PY2:
+            result = result.str.normalize("NFD")
+            expected = expected.str.normalize("NFD")
+
         tm.assert_series_equal(result, expected)
+
         for s_date, expected in zip(s, expected_months):
             result = s_date.month_name(locale=time_locale)
-            assert result == expected.capitalize()
+            expected = expected.capitalize()
+
+            if not compat.PY2:
+                result = unicodedata.normalize("NFD", result)
+                expected = unicodedata.normalize("NFD", expected)
+
+            assert result == expected
+
         s = s.append(Series([pd.NaT]))
         assert np.isnan(s.dt.month_name(locale=time_locale).iloc[-1])
 
@@ -420,12 +457,14 @@ class TestSeriesDatetimeValues(TestData):
         s = Series(date_range('2000-01-01', periods=3))
         assert isinstance(s.dt, DatetimeProperties)
 
-        for s in [Series(np.arange(5)), Series(list('abcde')),
-                  Series(np.random.randn(5))]:
-            with tm.assert_raises_regex(AttributeError,
-                                        "only use .dt accessor"):
-                s.dt
-            assert not hasattr(s, 'dt')
+    @pytest.mark.parametrize('ser', [Series(np.arange(5)),
+                                     Series(list('abcde')),
+                                     Series(np.random.randn(5))])
+    def test_dt_accessor_invalid(self, ser):
+        # GH#9322 check that series with incorrect dtypes don't have attr
+        with tm.assert_raises_regex(AttributeError, "only use .dt accessor"):
+            ser.dt
+        assert not hasattr(ser, 'dt')
 
     def test_between(self):
         s = Series(bdate_range('1/1/2000', periods=20).astype(object))
@@ -459,4 +498,16 @@ class TestSeriesDatetimeValues(TestData):
         result = series - offset
         expected = pd.Series(pd.to_datetime([
             '2011-12-26', '2011-12-27', '2011-12-28']))
+        tm.assert_series_equal(result, expected)
+
+    def test_dt_timetz_accessor(self, tz_naive_fixture):
+        # GH21358
+        tz = maybe_get_tz(tz_naive_fixture)
+
+        dtindex = pd.DatetimeIndex(['2014-04-04 23:56', '2014-07-18 21:24',
+                                    '2015-11-22 22:14'], tz=tz)
+        s = Series(dtindex)
+        expected = Series([time(23, 56, tzinfo=tz), time(21, 24, tzinfo=tz),
+                           time(22, 14, tzinfo=tz)])
+        result = s.dt.timetz
         tm.assert_series_equal(result, expected)

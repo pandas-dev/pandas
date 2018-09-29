@@ -136,6 +136,12 @@ class TestCategoricalIndex(Base):
         result = CategoricalIndex(idx, categories=idx, ordered=True)
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_construction_empty_with_bool_categories(self):
+        # see gh-22702
+        cat = pd.CategoricalIndex([], categories=[True, False])
+        categories = sorted(cat.categories.tolist())
+        assert categories == [False, True]
+
     def test_construction_with_categorical_dtype(self):
         # construction with CategoricalDtype
         # GH18109
@@ -581,12 +587,24 @@ class TestCategoricalIndex(Base):
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-    def test_duplicates(self):
+    @pytest.mark.parametrize('values, expected', [
+        ([1, 2, 3], True),
+        ([1, 3, 1], False),
+        (list('abc'), True),
+        (list('aba'), False)])
+    def test_is_unique(self, values, expected):
+        ci = CategoricalIndex(values)
+        assert ci.is_unique is expected
+
+    def test_has_duplicates(self):
 
         idx = CategoricalIndex([0, 0, 0], name='foo')
         assert not idx.is_unique
         assert idx.has_duplicates
 
+    def test_drop_duplicates(self):
+
+        idx = CategoricalIndex([0, 0, 0], name='foo')
         expected = CategoricalIndex([0], name='foo')
         tm.assert_index_equal(idx.drop_duplicates(), expected)
         tm.assert_index_equal(idx.unique(), expected)

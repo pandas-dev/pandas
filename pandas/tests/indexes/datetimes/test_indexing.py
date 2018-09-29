@@ -583,7 +583,20 @@ class TestDatetimeIndex(object):
     def test_reasonable_keyerror(self):
         # GH#1062
         index = DatetimeIndex(['1/3/2000'])
-        try:
+        with pytest.raises(KeyError) as excinfo:
             index.get_loc('1/1/2000')
-        except KeyError as e:
-            assert '2000' in str(e)
+        assert '2000' in str(excinfo.value)
+
+    @pytest.mark.parametrize('key', [pd.Timedelta(0),
+                                     pd.Timedelta(1),
+                                     timedelta(0)])
+    def test_timedelta_invalid_key(self, key):
+        # GH#20464
+        dti = pd.date_range('1970-01-01', periods=10)
+        with pytest.raises(TypeError):
+            dti.get_loc(key)
+
+    def test_get_loc_nat(self):
+        # GH#20464
+        index = DatetimeIndex(['1/3/2000', 'NaT'])
+        assert index.get_loc(pd.NaT) == 1

@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.util import testing as tm
 from pandas import Series, DataFrame, Timestamp, MultiIndex, concat, date_range
 from pandas.core.dtypes.common import (
-    _ensure_platform_int, is_timedelta64_dtype)
+    ensure_platform_int, is_timedelta64_dtype)
 from pandas.compat import StringIO
 from pandas._libs import groupby
 
@@ -76,7 +76,7 @@ def test_transform_fast():
     grp = df.groupby('id')['val']
 
     values = np.repeat(grp.mean().values,
-                       _ensure_platform_int(grp.count().values))
+                       ensure_platform_int(grp.count().values))
     expected = pd.Series(values, index=df.index, name='val')
 
     result = grp.transform(np.mean)
@@ -451,23 +451,49 @@ def test_transform_mixed_type():
             assert_frame_equal(res, result.loc[key])
 
 
-def test_cython_group_transform_algos():
-    # GH 4095
-    dtypes = [np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint32,
-              np.uint64, np.float32, np.float64]
+def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
+    """
+    Check a group transform that executes a cumulative function.
 
-    ops = [(groupby.group_cumprod_float64, np.cumproduct, [np.float64]),
-           (groupby.group_cumsum, np.cumsum, dtypes)]
+    Parameters
+    ----------
+    pd_op : callable
+        The pandas cumulative function.
+    np_op : callable
+        The analogous one in NumPy.
+    dtype : type
+        The specified dtype of the data.
+    """
 
     is_datetimelike = False
-    for pd_op, np_op, dtypes in ops:
-        for dtype in dtypes:
-            data = np.array([[1], [2], [3], [4]], dtype=dtype)
-            ans = np.zeros_like(data)
-            labels = np.array([0, 0, 0, 0], dtype=np.int64)
-            pd_op(ans, data, labels, is_datetimelike)
-            tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
-                                        check_dtype=False)
+
+    data = np.array([[1], [2], [3], [4]], dtype=dtype)
+    ans = np.zeros_like(data)
+
+    labels = np.array([0, 0, 0, 0], dtype=np.int64)
+    pd_op(ans, data, labels, is_datetimelike)
+
+    tm.assert_numpy_array_equal(np_op(data), ans[:, 0],
+                                check_dtype=False)
+
+
+def test_cython_group_transform_cumsum(any_real_dtype):
+    # see gh-4095
+    dtype = np.dtype(any_real_dtype).type
+    pd_op, np_op = groupby.group_cumsum, np.cumsum
+    _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
+
+
+def test_cython_group_transform_cumprod():
+    # see gh-4095
+    dtype = np.float64
+    pd_op, np_op = groupby.group_cumprod_float64, np.cumproduct
+    _check_cython_group_transform_cumulative(pd_op, np_op, dtype)
+
+
+def test_cython_group_transform_algos():
+    # see gh-4095
+    is_datetimelike = False
 
     # with nans
     labels = np.array([0, 0, 0, 0, 0], dtype=np.int64)
@@ -721,6 +747,23 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
         assert_frame_equal(result, exp)
 
 
+@pytest.mark.parametrize("fill_method", ['ffill', 'bfill'])
+def test_pad_stable_sorting(fill_method):
+    # GH 21207
+    x = [0] * 20
+    y = [np.nan] * 10 + [1] * 10
+
+    if fill_method == 'bfill':
+        y = y[::-1]
+
+    df = pd.DataFrame({'x': x, 'y': y})
+    expected = df.copy()
+
+    result = getattr(df.groupby('x'), fill_method)()
+
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, None, None), (1, None, 1),
@@ -754,6 +797,7 @@ def test_pct_change(test_series, periods, fill_method, limit):
                                               fill_method=fill_method,
                                               limit=limit)
         tm.assert_frame_equal(result, expected.to_frame('vals'))
+
 
 
 @pytest.mark.parametrize("func", [np.any, np.all])
