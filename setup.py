@@ -544,8 +544,7 @@ ext_data = {
     '_libs.parsers': {
         'pyxfile': '_libs/parsers',
         'depends': ['pandas/_libs/src/parser/tokenizer.h',
-                    'pandas/_libs/src/parser/io.h',
-                    'pandas/_libs/src/numpy_helper.h'],
+                    'pandas/_libs/src/parser/io.h'],
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
