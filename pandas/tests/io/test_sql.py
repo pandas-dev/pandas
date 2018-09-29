@@ -1787,10 +1787,12 @@ class _TestMySQLAlchemy(object):
 
         connection = self.conn.connect()
         trans = connection.begin()
+
+        from pymysql.err import Error
         try:
             r1 = connection.execute(proc)  # noqa
             trans.commit()
-        except:
+        except Error:
             trans.rollback()
             raise
 
@@ -2370,12 +2372,13 @@ class TestXMySQL(MySQLMixIn):
 
         # test connection
         import pymysql
+        from pymysql.err import Error
         try:
             # Try Travis defaults.
             # No real user should allow root access with a blank password.
             pymysql.connect(host='localhost', user='root', passwd='',
                             db='pandas_nosetest')
-        except:
+        except Error:
             pass
         else:
             return
@@ -2397,12 +2400,13 @@ class TestXMySQL(MySQLMixIn):
     def setup_method(self, request, datapath):
         _skip_if_no_pymysql()
         import pymysql
+        from pymysql.err import Error
         try:
             # Try Travis defaults.
             # No real user should allow root access with a blank password.
             self.conn = pymysql.connect(host='localhost', user='root',
                                         passwd='', db='pandas_nosetest')
-        except:
+        except Error:
             pass
         else:
             return
