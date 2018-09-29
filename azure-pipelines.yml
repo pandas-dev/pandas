@@ -35,43 +35,32 @@ jobs:
       architecture: 'x64'
   - script: python -m pip install flake8
     displayName: 'Installing flake8'
-    continueOnError: 'false'
-  # We're ignoring the following codes across the board
-  #E402,  # module level import not at top of file
-  #E731,  # do not assign a lambda expression, use a def
-  #E741,  # do not use variables named 'l', 'O', or 'I'
-  #W503,  # line break before binary operator
-  #C406,  # Unnecessary (list/tuple) literal - rewrite as a dict literal.
-  #C408,  # Unnecessary (dict/list/tuple) call - rewrite as a literal.
-  #C409,  # Unnecessary (list/tuple) passed to tuple() - (remove the outer call to tuple()/rewrite as a tuple literal).
-  #C410   # Unnecessary (list/tuple) passed to list() - (remove the outer call to list()/rewrite as a list literal).
-
   # pandas/_libs/src is C code, so no need to search there.
-  - script: flake8 pandas --filename=*.py --exclude pandas/_libs/src --ignore=C406,C408,C409,E402,E731,E741,W503
+  - script: flake8 pandas --exclude pandas/_libs/src
     displayName: 'Linting *.py code'
-    continueOnError: 'true'
+    condition: true
+  - script: flake8 setup.py
+    displayName: 'Linting setup.py'
+    condition: true
+  - script: flake8 scripts
+    displayName: 'Linting scripts'
+    condition: true
+  - script: flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py
+    displayName: 'Linting asv benchmarks'
+    condition: true
+  - script: flake8 doc/make.py doc/source/conf.py
+    displayName: 'Linting doc scripts'
+    condition: true
   - script: flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
     displayName: 'Linting *.pyx code'
-    continueOnError: true
+    condition: true
   - script: flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
     displayName: 'Linting *.pxd and *.pxi.in'
-    continueOnError: 'true'
-  - script: flake8 setup.py --ignore=E402,E731,E741,W503
-    displayName: 'Linting setup.py'
-    continueOnError: 'true'
-  - script: flake8 scripts --filename=*.py --ignore=C408,E402,E731,E741,W503
-    displayName: 'Linting scripts'
-    continueOnError: 'true'
-  - script: flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py --ignore=F811,C406,C408,C409,C410
-    displayName: 'Linting asv benchmarks'
-    continueOnError: 'true'
-  - script: flake8 doc/make.py doc/source/conf.py --ignore=E402,E731,E741,W503
-    displayName: 'Linting doc scripts'
-    continueOnError: 'true'
+    condition: true
 
   - script: python -m pip install cpplint
     displayName: 'Installing cpplint'
-    continueOnError: 'false'
+    condition: true
   # readability/casting: Warnings about C casting instead of C++ casting
   # runtime/int: Warnings about using C number types instead of C++ ones
   # build/include_subdir: Warnings about prefacing included header files with directory
@@ -89,6 +78,7 @@ jobs:
     pandas/_libs/src/parser pandas/_libs/ujson
     pandas/_libs/tslibs/src/datetime
     displayName: 'Linting *.c and *.h'
+    condition: true
 
 - job: 'Checks'
   continueOnError: 'true'  # XXX this doesn't seem to be working, specifying in each step
@@ -102,27 +92,27 @@ jobs:
   # Check for imports from pandas.core.common instead of `import pandas.core.common as com`
   - script: grep -R --include="*.py*" -E "from pandas.core.common import " pandas ; [ $? != 0 ]
     displayName: 'Check for non-standard imports'
-    continueOnError: 'true'
+    condition: true
   - script: grep -r -E --include '*.py' 'pytest\.warns' pandas/tests/ ; [ $? != 0 ]
     displayName: 'Check for pytest warns'
-    continueOnError: 'true'
+    condition: true
   # Check for the following code in testing: `np.testing` and `np.array_equal`
   - script: grep -r -E --include '*.py' --exclude testing.py '(numpy|np)(\.testing|\.array_equal)' pandas/tests/ ; [ $? != 0 ]
     displayName: 'Check for invalid testing'
-    continueOnError: 'true'
+    condition: true
   # Check for the following code in the extension array base tests: `tm.assert_frame_equal` and `tm.assert_series_equal`
   - script: grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base ; [ $? != 0 ]
     displayName: 'Check for invalid EA testing'
-    continueOnError: 'true'
+    condition: true
   - script: grep -R --include="*.py" --include="*.pyx" -E "(DEPRECATED|DEPRECATE|Deprecated)(:|,|\.)" pandas ; [ $? != 0 ]
     displayName: 'Check for deprecated messages without sphinx directive'
-    continueOnError: 'true'
+    condition: true
   - script: grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts ; [ $? != 0 ]
     displayName: 'Check for old-style classes'
-    continueOnError: 'true'
+    condition: true
   - script: grep -R --include="*.rst" -E "[a-zA-Z0-9]\`\`?[a-zA-Z0-9]" doc/source/ ; [ $? != 0 ]
     displayName: 'Check for backticks incorrectly rendering because of missing spaces'
-    continueOnError: 'true'
+    condition: true
   # TODO SPHINX_DIRECTIVES should be defined as a variable, as it was in lint.sh. Not
   # sure yet how to define variables with the output of a sctipt, will take care of it later
   # SPHINX_DIRECTIVES=$(echo \
@@ -136,3 +126,4 @@ jobs:
     ./doc/source
     ; [ $? != 0 ]
     displayName: 'Check for incorrect sphinx directives'
+    condition: true
