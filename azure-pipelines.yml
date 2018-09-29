@@ -25,7 +25,6 @@ jobs:
     vmImage: vs2017-win2017
 
 - job: 'Linting'
-  continueOnError: 'true'  # XXX this doesn't seem to be working, specifying in each step
   pool:
     vmImage: ubuntu-16.04
   steps:
@@ -69,19 +68,16 @@ jobs:
   # from Cython files nor do we want to lint C files that we didn't modify for
   # this particular codebase (e.g. src/headers, src/klib, src/msgpack). However,
   # we can lint all header files since they aren't "generated" like C files are.
-  # TODO the next 3 commands are the same changing just the path, we should avoid repeating
-  # them, and have kind of loop thing
-  - script: |
-    cpplint --quiet --extensions=c,h --headers=h --recursive
-    --filter=-readability/casting,-runtime/int,-build/include_subdir
-    pandas/_libs/src/*.h
-    pandas/_libs/src/parser pandas/_libs/ujson
-    pandas/_libs/tslibs/src/datetime
+  - script: >
+      cpplint --quiet --extensions=c,h --headers=h --recursive
+      --filter=-readability/casting,-runtime/int,-build/include_subdir
+      pandas/_libs/src/*.h
+      pandas/_libs/src/parser pandas/_libs/ujson
+      pandas/_libs/tslibs/src/datetime
     displayName: 'Linting *.c and *.h'
     condition: true
 
 - job: 'Checks'
-  continueOnError: 'true'  # XXX this doesn't seem to be working, specifying in each step
   pool:
     vmImage: ubuntu-16.04
   steps:
@@ -119,11 +115,11 @@ jobs:
   #   "autosummary|contents|currentmodule|deprecated|function|image|"\
   #   "important|include|ipython|literalinclude|math|module|note|raw|"\
   #   "seealso|toctree|versionadded|versionchanged|warning" | tr -d "[:space:]")
-  - script: |
-    grep -R --include="*.py" --include="*.pyx" --include="*.rst"
-    -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]"
-    ./pandas
-    ./doc/source
-    ; [ $? != 0 ]
+  - script: >
+      grep -R --include="*.py" --include="*.pyx" --include="*.rst"
+      -E "\.\. (autosummary|contents|currentmodule|deprecated|function|image|important|include|ipython|literalinclude|math|module|note|raw|seealso|toctree|versionadded|versionchanged|warning):[^:]"
+      ./pandas
+      ./doc/source
+      ; [ $? != 0 ]
     displayName: 'Check for incorrect sphinx directives'
     condition: true
