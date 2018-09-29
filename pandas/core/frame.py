@@ -6420,31 +6420,15 @@ class DataFrame(NDFrame):
         _obj_type = kwargs['_obj_type']
         _item_type = kwargs.get('_item_type')
 
-        from pandas.core.indexes.api import (
-            CannotSortError,
-            _normalize_dataframes,
-        )
+        from pandas.core.indexes.api import _normalize_dataframes
         from pandas.core.reshape.concat import concat
 
-        # The default value of sort in version 0.23.0 is None.
-        # The behavior when this was the value is very
-        # varied and changes according to input type, columns index
-        # type, whether a reindex is necessary or not, etc.
-        #
-        # The code below is a try to reproduce the old behavior,
-        # but note that this is deprecated.
-        #
-        # TODO: handle sort=None here
+        # TODO: sorting behavior when sort=None
 
-        # The behavior of concat is a bit problematic as it is. To get around
-        # this, we prepare the DataFrames before feeding them into concat.
+        # The behavior of concat is a bit problematic as it is. To get around,
+        # we prepare the DataFrames before feeding them into concat.
         to_concat = [self] + other
-        try:
-            to_concat_norm = _normalize_dataframes(to_concat, sort=sort)
-        except CannotSortError:
-            raise TypeError("The resulting columns could not be sorted."
-                            " You can try setting sort=False or use"
-                            " compatible index types.")
+        to_concat_norm = _normalize_dataframes(to_concat, sort=sort)
         result = concat(to_concat_norm, ignore_index=ignore_index,
                         verify_integrity=verify_integrity, sort=sort)
 
