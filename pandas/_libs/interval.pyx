@@ -271,7 +271,7 @@ cdef class Interval(IntervalMixin):
         return ((self.left < key if self.open_left else self.left <= key) and
                 (key < self.right if self.open_right else key <= self.right))
 
-    def __richcmp__(self, other, int op):
+    def __richcmp__(self, other, op: int):
         if hasattr(other, 'ndim'):
             # let numpy (or IntervalIndex) handle vectorization
             return NotImplemented
@@ -362,8 +362,8 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals,
-                                   bint validate_closed=True):
+def intervals_to_interval_bounds(ndarray intervals,
+                                 bint validate_closed=True):
     """
     Parameters
     ----------
@@ -414,5 +414,6 @@ cpdef intervals_to_interval_bounds(ndarray intervals,
                 raise ValueError(msg)
 
     return left, right, closed
+
 
 include "intervaltree.pxi"

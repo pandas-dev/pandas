@@ -537,7 +537,7 @@ except (ImportError, AttributeError):
     pass
 
 
-def _format_is_iso(f):
+def _format_is_iso(f) -> bint:
     """
     Does format match the iso8601 set that can be handled by the C parser?
     Generally of form YYYY-MM-DDTHH:MM:SS - date separator can be different

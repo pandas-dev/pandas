@@ -46,6 +46,24 @@ DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 
 def get_api_items():
+    """
+    Parse api.rst file from the documentation, and extract all the functions,
+    methods, classes, attributes... This should include all pandas public API.
+
+    Yields
+    ------
+    name : str
+        The name of the object (e.g. 'pandas.Series.str.upper).
+    func : function
+        The object itself. In most cases this will be a function or method,
+        but it can also be classes, properties, cython objects...
+    section : str
+        The name of the section in the API page where the object item is
+        located.
+    subsection : str
+        The name of the subsection in the API page where the object item is
+        located.
+    """
     api_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
 
     previous_line = current_section = current_subsection = ''
@@ -178,9 +196,15 @@ class Docstring(object):
 
     @property
     def source_file_name(self):
+        """
+        File name where the object is implemented (e.g. pandas/core/frame.py).
+        """
         try:
             fname = inspect.getsourcefile(self.code_obj)
         except TypeError:
+            # In some cases the object is something complex like a cython
+            # object that can't be easily introspected. An it's better to
+            # return the source code file of the object as None, than crash
             pass
         else:
             if fname:
@@ -189,9 +213,15 @@ class Docstring(object):
 
     @property
     def source_file_def_line(self):
+        """
+        Number of line where the object is defined in its file.
+        """
         try:
             return inspect.getsourcelines(self.code_obj)[-1]
         except (OSError, TypeError):
+            # In some cases the object is something complex like a cython
+            # object that can't be easily introspected. An it's better to
+            # return the line number as None, than crash
             pass
 
     @property
@@ -230,9 +260,11 @@ class Docstring(object):
 
     @property
     def summary(self):
-        if not self.doc['Extended Summary'] and len(self.doc['Summary']) > 1:
-            return ''
         return ' '.join(self.doc['Summary'])
+
+    @property
+    def num_summary_lines(self):
+        return len(self.doc['Summary'])
 
     @property
     def extended_summary(self):
@@ -344,9 +376,9 @@ class Docstring(object):
     @property
     def deprecated(self):
         pattern = re.compile('.. deprecated:: ')
-        return (self.name.startswith('pandas.Panel') or
-                bool(pattern.search(self.summary)) or
-                bool(pattern.search(self.extended_summary)))
+        return (self.name.startswith('pandas.Panel')
+                or bool(pattern.search(self.summary))
+                or bool(pattern.search(self.extended_summary)))
 
     @property
     def mentioned_private_classes(self):
@@ -408,11 +440,13 @@ def validate_one(func_name):
             errs.append('Summary does not end with a period')
         if doc.summary != doc.summary.lstrip():
             errs.append('Summary contains heading whitespaces.')
-        elif (doc.is_function_or_method and
-                doc.summary.split(' ')[0][-1] == 's'):
+        elif (doc.is_function_or_method
+                and doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
+        if doc.num_summary_lines > 1:
+            errs.append("Summary should fit in a single line.")
     if not doc.extended_summary:
         wrns.append('No extended summary found')
 
@@ -519,8 +553,8 @@ def validate_all():
     for class_ in (pandas.Series, pandas.DataFrame, pandas.Panel):
         for member in inspect.getmembers(class_):
             func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
-            if (not member[0].startswith('_') and
-                    func_name not in api_item_names):
+            if (not member[0].startswith('_')
+                    and func_name not in api_item_names):
                 doc_info = validate_one(func_name)
                 result[func_name] = doc_info
                 result[func_name]['in_api'] = False

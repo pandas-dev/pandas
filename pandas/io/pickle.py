@@ -160,7 +160,8 @@ def read_pickle(path, compression='infer'):
         # GH 6899
         try:
             with warnings.catch_warnings(record=True):
-                # We want to silencce any warnings about, e.g. moved modules.
+                # We want to silence any warnings about, e.g. moved modules.
+                warnings.simplefilter("ignore", Warning)
                 return read_wrapper(lambda f: pkl.load(f))
         except Exception:
             # reg/patched pickle

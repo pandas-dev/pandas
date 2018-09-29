@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from distutils.version import LooseVersion
 
-from cython cimport Py_ssize_t
+from cython import Py_ssize_t
 from cpython cimport Py_INCREF
 
 from libc.stdlib cimport malloc, free

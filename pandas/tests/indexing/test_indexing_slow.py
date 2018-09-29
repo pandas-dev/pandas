@@ -12,6 +12,7 @@ import pytest
 class TestIndexingSlow(object):
 
     @pytest.mark.slow
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_multiindex_get_loc(self):  # GH7724, GH2646
 
         with warnings.catch_warnings(record=True):
