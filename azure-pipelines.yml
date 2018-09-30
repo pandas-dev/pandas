@@ -35,7 +35,7 @@ jobs:
   - script: python -m pip install flake8
     displayName: 'Installing flake8'
   # pandas/_libs/src is C code, so no need to search there.
-  - script: flake8 pandas --exclude pandas/_libs/src
+  - script: flake8 pandas --exclude pandas/_libs/src --format="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
     displayName: 'Linting *.py code'
     condition: true
   - script: flake8 setup.py
