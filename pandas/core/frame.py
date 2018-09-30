@@ -896,7 +896,9 @@ class DataFrame(NDFrame):
         Yields
         -------
         collections.namedtuple
-            Yields namedtuples of corresponding index and column values.
+            Yields a namedtuple for each row in the DataFrame with the first
+            field possibly being the index and following fields being the
+            column values.
 
         Notes
         -----
@@ -904,15 +906,16 @@ class DataFrame(NDFrame):
         invalid Python identifiers, repeated, or start with an underscore.
         With a large number of columns (>255), regular tuples are returned.
 
-        See also
+        See Also
         --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        iteritems : Iterate over (column name, Series) pairs.
+        DataFrame.iterrows : Iterate over DataFrame rows as (index, Series)
+            pairs.
+        DataFrame.iteritems : Iterate over (column name, Series) pairs.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'num_legs': [4,2], 'num_wings': [0,2]},
-        ...                   index=['dog','hawk'])
+        >>> df = pd.DataFrame({'num_legs': [4, 2], 'num_wings': [0, 2]},
+        ...                   index=['dog', 'hawk'])
         >>> df
               num_legs  num_wings
         dog          4          0
