@@ -85,6 +85,10 @@ def test_construction():
     with pytest.raises(ValueError):
         Timedelta('10 days -1 h 1.5m 1s 3us')
 
+    # no units specified
+    with pytest.raises(ValueError):
+        Timedelta('3.1415')
+
     # invalid construction
     tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
                            lambda: Timedelta())
