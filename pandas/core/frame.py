@@ -7419,8 +7419,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        quantiles : Series or DataFrame
-
+        scalar, Series or DataFrame
             - If `q` is an array, a DataFrame will be returned where the
               index is `q`, the columns are the columns of self, and the
               values are the quantiles.
@@ -7459,9 +7458,9 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
-            Returns the rolling quantile.
+            Returns the rolling quantile for the DataFrame.
         numpy.percentile
-            Returns percentile.
+            Returns 'nth' percentile for the DataFrame.
         """
         self._check_percentile(q)
 
