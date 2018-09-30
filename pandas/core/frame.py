@@ -6530,7 +6530,7 @@ class DataFrame(NDFrame):
         5         K5  A5       NaN  NaN
 
         If we want to join using the key columns, we need to set key to be
-        the index in both ``df`` and `other`. The joined DataFrame will have
+        the index in both `df` and `other`. The joined DataFrame will have
         key as its index.
 
         >>> df.set_index('key').join(other.set_index('key'))
@@ -6545,7 +6545,7 @@ class DataFrame(NDFrame):
 
         Another option to join using the key columns is to use the `on`
         parameter. DataFrame.join always uses `other`'s index but we can use
-        any column in ``df``. This method preserves the original DataFrame's
+        any column in `df`. This method preserves the original DataFrame's
         index in the result.
 
         >>> df.join(other.set_index('key'), on='key')
