@@ -1360,7 +1360,7 @@ class SQLiteDatabase(PandasSQL):
         try:
             yield cur
             self.con.commit()
-        except InvalidRequestError:
+        except Exception:
             self.con.rollback()
             raise
         finally:
