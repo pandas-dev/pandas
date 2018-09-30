@@ -41,8 +41,7 @@ if [ "$DOCTEST" ]; then
         RET=1
     fi
 
-    pytest --doctest-modules -v pandas/core/ops.py \
-        -k"-_gen_eval_kwargs"
+    pytest --doctest-modules -v pandas/core/ops.py
 
     if [ $? -ne "0" ]; then
         RET=1

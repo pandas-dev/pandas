@@ -237,7 +237,7 @@ def _gen_eval_kwargs(name):
     {}
 
     >>> _gen_eval_kwargs("rtruediv")
-    {"reversed": True, "truediv": True}
+    {'reversed': True, 'truediv': True}
     """
     kwargs = {}
 
