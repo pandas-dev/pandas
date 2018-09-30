@@ -47,13 +47,13 @@ jobs:
   - script: flake8 asv_bench/benchmarks/ --exclude=asv_bench/benchmarks/*.py
     displayName: 'Linting asv benchmarks'
     condition: true
-  - script: flake8 doc/make.py doc/source/conf.py
+  - script: flake8 doc/make.py doc/source/conf.py --format="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
     displayName: 'Linting doc scripts'
     condition: true
   - script: flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403,C400,C401,C402,C403,C404,C405,C406,C407,C408,C409,C410,C411
     displayName: 'Linting *.pyx code'
     condition: true
-  - script: flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403
+  - script: flake8 pandas/_libs --filename=*.pxi.in,*.pxd --select=E501,E302,E203,E111,E114,E221,E303,E231,E126,F403 --format="##vso[task.logissue type=error;sourcepath=%(path)s;linenumber=%(row)s;columnnumber=%(col)s;code=%(code)s;]%(text)s"
     displayName: 'Linting *.pxd and *.pxi.in'
     condition: true
 
