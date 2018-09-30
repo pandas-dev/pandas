@@ -359,7 +359,7 @@ def _reindex(df, new_index, axis=0):
     MultiIndex errors.
     """
     try:
-        return df.reindex(columns=new_index, copy=False)
+        return df.reindex(new_index, axis=axis, copy=False)
     except TypeError:
         if isinstance(df.columns, ABCIntervalIndex):
             df.columns = df.columns.astype(object)
@@ -367,4 +367,4 @@ def _reindex(df, new_index, axis=0):
             df.columns = df.columns.values
         else:
             raise
-        return df.reindex(columns=new_index, copy=False)
+        return df.reindex(new_index, axis=axis, copy=False)
