@@ -108,7 +108,7 @@ def show_versions(as_json=False):
                 mod = importlib.import_module(modname)
             ver = ver_f(mod)
             deps_blob.append((modname, ver))
-        except ModuleNotFoundError:
+        except ImportError:
             deps_blob.append((modname, None))
 
     if (as_json):
