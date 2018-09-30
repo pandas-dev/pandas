@@ -6442,8 +6442,8 @@ class DataFrame(NDFrame):
         """
         Join columns of another DataFrame.
 
-        Join columns with `other` DataFrame either on index or on a key
-        column. Efficiently join multiple DataFrame objects by index at once by
+        Join columns with other DataFrame either on index or on a key
+        column. Efficiently Join multiple DataFrame objects by index at once by
         passing a list.
 
         Parameters
@@ -6452,43 +6452,38 @@ class DataFrame(NDFrame):
             Index should be similar to one of the columns in this one. If a
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
-        on : str, list of str, or array-like, optional
+        on : str, list of str, or array-like
             Column or index level name(s) in the caller to join on the index
             in `other`, otherwise joins index-on-index. If multiple
             values given, the `other` DataFrame must have a MultiIndex. Can
             pass an array as the join key if it is not already contained in
             the calling DataFrame. Like an Excel VLOOKUP operation.
-        how : {'left', 'right', 'outer', 'inner'}, default 'left'
+        how : {'left', 'right', 'outer', 'inner'}, default: 'left'
             How to handle the operation of the two objects.
 
             * left: use calling frame's index (or column if on is specified)
-            * right: use `other`'s index.
+            * right: use other frame's index.
             * outer: form union of calling frame's index (or column if on is
-              specified) with `other`'s index, and sort it.
+              specified) with other frame's index, and sort it.
               lexicographically.
             * inner: form intersection of calling frame's index (or column if
-              on is specified) with `other`'s index, preserving the order
+              on is specified) with other frame's index, preserving the order
               of the calling's one.
-        lsuffix : str, default ''
+        lsuffix : str
             Suffix to use from left frame's overlapping columns.
-        rsuffix : str, default ''
+        rsuffix : str
             Suffix to use from right frame's overlapping columns.
         sort : bool, default False
             Order result DataFrame lexicographically by the join key. If False,
             the order of the join key depends on the join type (how keyword).
 
-        Returns
-        -------
-        DataFrame
-            A dataframe containing columns from both the caller and `other`.
-
         Notes
         -----
-        Options `on`, `lsuffix`, and `rsuffix` options are not supported
-        when passing a list of DataFrame objects.
+        on, lsuffix, and rsuffix options are not supported when passing a list
+        of DataFrame objects
 
         Support for specifying index levels as the `on` parameter was added
-        in version 0.23.0.
+        in version 0.23.0
 
         See Also
         --------
@@ -6530,7 +6525,7 @@ class DataFrame(NDFrame):
         5         K5  A5       NaN  NaN
 
         If we want to join using the key columns, we need to set key to be
-        the index in both `df` and `other`. The joined DataFrame will have
+        the index in both df and other. The joined DataFrame will have
         key as its index.
 
         >>> df.set_index('key').join(other.set_index('key'))
@@ -6543,9 +6538,9 @@ class DataFrame(NDFrame):
         K4   A4  NaN
         K5   A5  NaN
 
-        Another option to join using the key columns is to use the `on`
-        parameter. DataFrame.join always uses `other`'s index but we can use
-        any column in `df`. This method preserves the original DataFrame's
+        Another option to join using the key columns is to use the on
+        parameter. DataFrame.join always uses other's index but we can use any
+        column in df. This method preserves the original DataFrame's
         index in the result.
 
         >>> df.join(other.set_index('key'), on='key')
@@ -6556,6 +6551,10 @@ class DataFrame(NDFrame):
         3  K3  A3  NaN
         4  K4  A4  NaN
         5  K5  A5  NaN
+
+        Returns
+        -------
+        joined : DataFrame
         """
         # For SparseDataFrame's benefit
         return self._join_compat(other, on=on, how=how, lsuffix=lsuffix,
