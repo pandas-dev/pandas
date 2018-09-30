@@ -48,13 +48,17 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 
-if sys.version_info >= (3, 3):
-    from contextlib import ExitStack as nullcontext
-else:
-    from contextlib2 import ExitStack as nullcontext
+
+class NullContextManager(object):
+    def __init__(self, dummy_resource=None):
+        self.dummy_resource = dummy_resource
+    def __enter__(self):
+        return self.dummy_resource
+    def __exit__(self, *args):
+        pass
 
 
-do_not_raise = nullcontext()
+do_not_raise = NullContextManager()
 
 
 N = 30
