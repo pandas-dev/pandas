@@ -883,8 +883,7 @@ class DataFrame(NDFrame):
 
     def itertuples(self, index=True, name="Pandas"):
         """
-        Iterate over DataFrame rows as namedtuples, with index value as first
-        element of the tuple.
+        Iterate over DataFrame rows as namedtuples.
 
         Parameters
         ----------
@@ -893,6 +892,10 @@ class DataFrame(NDFrame):
         name : string, default "Pandas"
             The name of the returned namedtuples or None to return regular
             tuples.
+
+        Returns
+        -------
+        Returns namedtuples.
 
         Notes
         -----
@@ -907,9 +910,8 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.1, 0.2]},
-                              index=['a', 'b'])
+        ...                   index=['a', 'b'])
         >>> df
            col1  col2
         a     1   0.1
@@ -917,9 +919,8 @@ class DataFrame(NDFrame):
         >>> for row in df.itertuples():
         ...     print(row)
         ...
-        Pandas(Index='a', col1=1, col2=0.10000000000000001)
-        Pandas(Index='b', col1=2, col2=0.20000000000000001)
-
+        Pandas(Index='a', col1=1, col2=0.1)
+        Pandas(Index='b', col1=2, col2=0.2)
         """
         arrays = []
         fields = []
