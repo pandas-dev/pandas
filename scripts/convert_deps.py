@@ -1,6 +1,7 @@
 """
 Convert the conda environment.yaml to a pip requirements.txt
 """
+import re
 import yaml
 
 exclude = {'python=3'}
@@ -15,6 +16,7 @@ with open("ci/requirements-optional-conda.txt") as f:
 required = dev['dependencies']
 required = [rename.get(dep, dep) for dep in required if dep not in exclude]
 optional = [rename.get(dep, dep) for dep in optional if dep not in exclude]
+optional = [re.sub("(?<=[^<>])=", '==', dep) for dep in optional]
 
 
 with open("ci/requirements_dev.txt", 'wt') as f:
