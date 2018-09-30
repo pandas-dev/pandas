@@ -969,7 +969,7 @@ class Timedelta(_Timedelta):
     ----------
     value : Timedelta, timedelta, np.timedelta64, string, or integer
     unit : string, {'ns', 'us', 'ms', 's', 'm', 'h', 'D'}, optional
-        Denote the unit of the input, if input is an integer. Default 'ns'.
+        Denote the unit of the input, if input is an integer/float. Default 'ns'.
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
@@ -1018,8 +1018,15 @@ class Timedelta(_Timedelta):
             elif len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:
-                value = parse_timedelta_string(value, unit)
-            value = np.timedelta64(value)
+                try:
+                    value = float(value)
+                except ValueError:
+                    value = parse_timedelta_string(value)
+                    value = np.timedelta64(value)
+                else:
+                    if unit is None:
+                        raise ValueError("Cannot convert float string without unit.")
+                    value = convert_to_timedelta64(value, unit)
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):
