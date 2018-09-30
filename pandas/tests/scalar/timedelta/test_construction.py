@@ -8,6 +8,12 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas import Timedelta
 
+import sys
+if sys.version_info >= (3, 3):
+    from contextlib import ExitStack as do_not_raise
+else:
+    from contextlib2 import ExitStack as do_not_raise
+
 
 def test_construction():
     expected = np.timedelta64(10, 'D').astype('m8[ns]').view('i8')
@@ -212,16 +218,8 @@ def test_td_constructor_value_error():
         Timedelta(nanoseconds='abc')
 
 
-class not_raises(object):
-    def __enter__(self):
-        pass
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-
 @pytest.mark.parametrize("redundant_unit, expectation", [
-    ("", not_raises()),
+    ("", do_not_raise()),
     ("d", pytest.raises(ValueError)),
     ("us", pytest.raises(ValueError))])
 @pytest.mark.parametrize("unit", [
