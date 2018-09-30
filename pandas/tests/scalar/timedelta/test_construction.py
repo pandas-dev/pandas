@@ -89,6 +89,9 @@ def test_construction():
     with pytest.raises(ValueError):
         Timedelta('3.1415')
 
+    with pytest.raises(ValueError):
+        Timedelta('2000')
+
     # invalid construction
     tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
                            lambda: Timedelta())
@@ -213,10 +216,11 @@ def test_td_constructor_value_error():
 
 
 @pytest.mark.parametrize("str_unit, unit, expectation", [
-    ("", "s", tm.do_not_raise),
-    ("s", "s", pytest.raises(ValueError)),
-    ("", None, pytest.raises(ValueError)),
-    ("s", "d", pytest.raises(ValueError)),])
+    ("", "s", tm.do_not_raise),              # Expected case
+    ("s", "s", pytest.raises(ValueError)),   # Units doubly defined
+    ("s", "d", pytest.raises(ValueError)),
+    ("", None, pytest.raises(ValueError)),   # No units
+])
 def test_string_with_unit(str_unit, unit, expectation):
     with expectation:
         val_str = "10{}".format(str_unit)
