@@ -9,7 +9,7 @@ for imp in ['pandas.util', 'pandas.tools.hashing']:
     try:
         hashing = import_module(imp)
         break
-    except:
+    except (ImportError, TypeError, ValueError):
         pass
 
 from .pandas_vb_common import setup # noqa
