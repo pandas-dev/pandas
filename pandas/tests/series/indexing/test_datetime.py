@@ -20,7 +20,6 @@ import pandas.util.testing as tm
 import pandas._libs.index as _index
 from pandas._libs import tslib
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 """
 Also test support for datetime64[ns] in Series / DataFrame
@@ -384,6 +383,8 @@ def test_getitem_setitem_periodindex():
     assert_series_equal(result, ts)
 
 
+# FutureWarning from NumPy.
+@pytest.mark.filterwarnings("ignore:Using a non-tuple:FutureWarning")
 def test_getitem_median_slice_bug():
     index = date_range('20090415', '20090519', freq='2B')
     s = Series(np.random.randn(13), index=index)
@@ -700,11 +701,11 @@ def test_nat_operations():
     assert s.max() == exp
 
 
-def test_round_nat():
+@pytest.mark.parametrize('method', ["round", "floor", "ceil"])
+@pytest.mark.parametrize('freq', ["s", "5s", "min", "5min", "h", "5h"])
+def test_round_nat(method, freq):
     # GH14940
     s = Series([pd.NaT])
     expected = Series(pd.NaT)
-    for method in ["round", "floor", "ceil"]:
-        round_method = getattr(s.dt, method)
-        for freq in ["s", "5s", "min", "5min", "h", "5h"]:
-            assert_series_equal(round_method(freq), expected)
+    round_method = getattr(s.dt, method)
+    assert_series_equal(round_method(freq), expected)

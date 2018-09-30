@@ -64,8 +64,10 @@ class TestSeriesDtypes(TestData):
         assert self.ts.ftypes == 'float64:dense'
         tm.assert_series_equal(self.ts.get_dtype_counts(),
                                Series(1, ['float64']))
-        tm.assert_series_equal(self.ts.get_ftype_counts(),
-                               Series(1, ['float64:dense']))
+        # GH18243 - Assert .get_ftype_counts is deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(self.ts.get_ftype_counts(),
+                                   Series(1, ['float64:dense']))
 
     @pytest.mark.parametrize("value", [np.nan, np.inf])
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
@@ -426,8 +428,10 @@ class TestSeriesDtypes(TestData):
 
         if dtype not in ('S', 'V'):  # poor support (if any) currently
             with warnings.catch_warnings(record=True):
-                # Generic timestamp dtypes ('M' and 'm') are deprecated,
-                # but we test that already in series/test_constructors.py
+                if dtype in ('M', 'm'):
+                    # Generic timestamp dtypes ('M' and 'm') are deprecated,
+                    # but we test that already in series/test_constructors.py
+                    warnings.simplefilter("ignore", FutureWarning)
 
                 init_empty = Series([], dtype=dtype)
                 as_type_empty = Series([]).astype(dtype)
@@ -504,3 +508,8 @@ class TestSeriesDtypes(TestData):
 
         assert actual.dtype == 'object'
         tm.assert_series_equal(actual, expected)
+
+    def test_is_homogeneous_type(self):
+        assert Series()._is_homogeneous_type
+        assert Series([1, 2])._is_homogeneous_type
+        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type

@@ -21,7 +21,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_table)
+                    date_range, NaT, read_csv)
 from pandas.compat import (range, zip, lrange, StringIO, PY3,
                            u, lzip, is_platform_windows,
                            is_platform_32bit)
@@ -244,7 +244,7 @@ class TestDataFrameFormatting(object):
             assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
-        assert printing.pprint_thing(set([1])) == '{1}'
+        assert printing.pprint_thing({1}) == '{1}'
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
@@ -304,6 +304,44 @@ class TestDataFrameFormatting(object):
                             'display.max_rows', 5000):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
+
+    def test_repr_truncates_terminal_size(self):
+        # https://github.com/pandas-dev/pandas/issues/21180
+        # TODO: use mock fixutre.
+        # This is being backported, so doing it directly here.
+        try:
+            from unittest import mock
+        except ImportError:
+            mock = pytest.importorskip("mock")
+
+        terminal_size = (118, 96)
+        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
+                        return_value=terminal_size)
+        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
+                        return_value=terminal_size)
+
+        index = range(5)
+        columns = pd.MultiIndex.from_tuples([
+            ('This is a long title with > 37 chars.', 'cat'),
+            ('This is a loooooonger title with > 43 chars.', 'dog'),
+        ])
+        df = pd.DataFrame(1, index=index, columns=columns)
+
+        with p1, p2:
+            result = repr(df)
+
+        h1, h2 = result.split('\n')[:2]
+        assert 'long' in h1
+        assert 'loooooonger' in h1
+        assert 'cat' in h2
+        assert 'dog' in h2
+
+        # regular columns
+        df2 = pd.DataFrame({"A" * 41: [1, 2], 'B' * 41: [1, 2]})
+        with p1, p2:
+            result = repr(df2)
+
+        assert df2.columns[0] in result.split('\n')[0]
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
@@ -916,8 +954,8 @@ class TestDataFrameFormatting(object):
         dm = DataFrame({u('c/\u03c3'): Series({'test': np.nan})})
         compat.text_type(dm.to_string())
 
-    def test_string_repr_encoding(self):
-        filepath = tm.get_data_path('unicode_series.csv')
+    def test_string_repr_encoding(self, datapath):
+        filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
         df = pd.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])
@@ -961,7 +999,8 @@ class TestDataFrameFormatting(object):
 
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True,
-                            'display.show_dimensions', True):
+                            'display.show_dimensions', True,
+                            'display.max_columns', 20):
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             set_option('display.expand_frame_repr', False)
@@ -979,7 +1018,8 @@ class TestDataFrameFormatting(object):
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_wide_columns(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             df = DataFrame(np.random.randn(5, 3),
                            columns=['a' * 90, 'b' * 90, 'c' * 90])
             rep_str = repr(df)
@@ -987,7 +1027,8 @@ class TestDataFrameFormatting(object):
             assert len(rep_str.splitlines()) == 20
 
     def test_wide_repr_named(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             df.index.name = 'DataFrame Index'
@@ -1008,7 +1049,8 @@ class TestDataFrameFormatting(object):
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_multiindex(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)),
@@ -1030,7 +1072,8 @@ class TestDataFrameFormatting(object):
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_multiindex_cols(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             max_cols = get_option('display.max_columns')
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             mcols = MultiIndex.from_arrays(
@@ -1044,15 +1087,16 @@ class TestDataFrameFormatting(object):
             wide_repr = repr(df)
             assert rep_str != wide_repr
 
-        with option_context('display.width', 150):
+        with option_context('display.width', 150, 'display.max_columns', 20):
             wider_repr = repr(df)
             assert len(wider_repr) < len(wide_repr)
 
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_unicode(self):
-        with option_context('mode.sim_interactive', True):
-            max_cols = get_option('display.max_columns')
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
+            max_cols = 20
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
@@ -1181,8 +1225,8 @@ class TestDataFrameFormatting(object):
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join(re.sub(r'\s+', ' ', x).strip() for x in lines[1:])
-        recons = read_table(StringIO(joined), names=header,
-                            header=None, sep=' ')
+        recons = read_csv(StringIO(joined), names=header,
+                          header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         assert recons['A'].count() == biggie['A'].count()
         assert (np.abs(recons['A'].dropna() -
@@ -1225,18 +1269,42 @@ class TestDataFrameFormatting(object):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
-        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+        # GH 16839, GH 13032
+        df = DataFrame({'x': [11, 22], 'y': [33, -44], 'z': ['AAA', '   ']})
 
         df_s = df.to_string(index=False)
-        expected = "x  y\n1  4\n2  5\n3  6"
+        # Leading space is expected for positive numbers.
+        expected = ("  x   y    z\n"
+                    " 11  33  AAA\n"
+                    " 22 -44     ")
+        assert df_s == expected
 
+        df_s = df[['y', 'x', 'z']].to_string(index=False)
+        expected = ("  y   x    z\n"
+                    " 33  11  AAA\n"
+                    "-44  22     ")
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
+        # GH 13998, GH 22505
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, -33], 'y': [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
@@ -1250,8 +1318,6 @@ class TestDataFrameFormatting(object):
 
         df_s = df.to_string()
 
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        # sys.version_info[0] == 2 and sys.version_info[1] < 6:
         if _three_digit_exp():
             expected = ('              x\n0  0.00000e+000\n1  2.50000e-001\n'
                         '2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n'
@@ -1275,8 +1341,7 @@ class TestDataFrameFormatting(object):
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        # sys.version_info[0] == 2 and sys.version_info[1] < 6:
+
         if _three_digit_exp():
             expected = ('               x\n'
                         '0  1.000000e+009\n'
@@ -1442,17 +1507,17 @@ c  10  11  12  13  14\
             assert 'tex2jax_ignore' in df._repr_html_()
 
     def test_repr_html_wide(self):
-        max_cols = get_option('display.max_columns')
+        max_cols = 20
         df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
-        reg_repr = df._repr_html_()
-        assert "..." not in reg_repr
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert "..." not in df._repr_html_()
 
         wide_df = DataFrame(tm.rands_array(25, size=(10, max_cols + 1)))
-        wide_repr = wide_df._repr_html_()
-        assert "..." in wide_repr
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert "..." in wide_df._repr_html_()
 
     def test_repr_html_wide_multiindex_cols(self):
-        max_cols = get_option('display.max_columns')
+        max_cols = 20
 
         mcols = MultiIndex.from_product([np.arange(max_cols // 2),
                                          ['foo', 'bar']],
@@ -1467,8 +1532,8 @@ c  10  11  12  13  14\
                                         names=['first', 'second'])
         df = DataFrame(tm.rands_array(25, size=(10, len(mcols))),
                        columns=mcols)
-        wide_repr = df._repr_html_()
-        assert '...' in wide_repr
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert '...' in df._repr_html_()
 
     def test_repr_html_long(self):
         with option_context('display.max_rows', 60):
@@ -1512,14 +1577,15 @@ c  10  11  12  13  14\
             assert u('2 columns') in long_repr
 
     def test_repr_html_long_multiindex(self):
-        max_rows = get_option('display.max_rows')
+        max_rows = 60
         max_L1 = max_rows // 2
 
         tuples = list(itertools.product(np.arange(max_L1), ['foo', 'bar']))
         idx = MultiIndex.from_tuples(tuples, names=['first', 'second'])
         df = DataFrame(np.random.randn(max_L1 * 2, 2), index=idx,
                        columns=['A', 'B'])
-        reg_repr = df._repr_html_()
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            reg_repr = df._repr_html_()
         assert '...' not in reg_repr
 
         tuples = list(itertools.product(np.arange(max_L1 + 1), ['foo', 'bar']))
@@ -1530,20 +1596,26 @@ c  10  11  12  13  14\
         assert '...' in long_repr
 
     def test_repr_html_long_and_wide(self):
-        max_cols = get_option('display.max_columns')
-        max_rows = get_option('display.max_rows')
+        max_cols = 20
+        max_rows = 60
 
         h, w = max_rows - 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert '...' not in df._repr_html_()
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert '...' not in df._repr_html_()
 
         h, w = max_rows + 1, max_cols + 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert '...' in df._repr_html_()
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert '...' in df._repr_html_()
 
     def test_info_repr(self):
-        max_rows = get_option('display.max_rows')
-        max_cols = get_option('display.max_columns')
+        # GH#21746 For tests inside a terminal (i.e. not CI) we need to detect
+        # the terminal size to ensure that we try to print something "too big"
+        term_width, term_height = get_terminal_size()
+
+        max_rows = 60
+        max_cols = 20 + (max(term_width, 80) - 80) // 4
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
@@ -1555,7 +1627,8 @@ c  10  11  12  13  14\
         h, w = max_rows - 1, max_cols + 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_horizontally_truncated_repr(df)
-        with option_context('display.large_repr', 'info'):
+        with option_context('display.large_repr', 'info',
+                            'display.max_columns', max_cols):
             assert has_info_repr(df)
 
     def test_info_repr_max_cols(self):
@@ -1575,8 +1648,8 @@ c  10  11  12  13  14\
         # fmt.set_option('display.max_info_columns', 4)  # exceeded
 
     def test_info_repr_html(self):
-        max_rows = get_option('display.max_rows')
-        max_cols = get_option('display.max_columns')
+        max_rows = 60
+        max_cols = 20
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
@@ -1588,7 +1661,8 @@ c  10  11  12  13  14\
         h, w = max_rows - 1, max_cols + 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '<class' not in df._repr_html_()
-        with option_context('display.large_repr', 'info'):
+        with option_context('display.large_repr', 'info',
+                            'display.max_columns', max_cols):
             assert '&lt;class' in df._repr_html_()
 
     def test_fake_qtconsole_repr_html(self):
@@ -1610,7 +1684,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A:
+        class A(object):
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
@@ -1743,7 +1817,7 @@ class TestSeriesFormatting(object):
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (u('1\n') + '2\n' + '3\n' + '4')
+        expected = (u(' 1\n') + ' 2\n' + ' 3\n' + ' 4')
         assert result == expected
 
     def test_unicode_name_in_footer(self):

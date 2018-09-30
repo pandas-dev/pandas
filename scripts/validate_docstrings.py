@@ -20,7 +20,6 @@ import re
 import functools
 import collections
 import argparse
-import contextlib
 import pydoc
 import inspect
 import importlib
@@ -35,18 +34,21 @@ BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas
+from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
+from pandas.io.formats.printing import pprint_thing
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
+DIRECTIVES = ['versionadded', 'versionchanged', 'deprecated']
 
 
 def _load_obj(obj_name):
     for maxsplit in range(1, obj_name.count('.') + 1):
         # TODO when py3 only replace by: module, *func_parts = ...
-        func_name_split = obj_name.rsplit('.', maxsplit=maxsplit)
+        func_name_split = obj_name.rsplit('.', maxsplit)
         module = func_name_split[0]
         func_parts = func_name_split[1:]
         try:
@@ -94,7 +96,7 @@ def _output_header(title, width=80, char='#'):
         full_line=full_line, title_line=title_line)
 
 
-class Docstring:
+class Docstring(object):
     def __init__(self, method_name, method_obj):
         self.method_name = method_name
         self.method_obj = method_obj
@@ -107,7 +109,9 @@ class Docstring:
 
     @property
     def is_function_or_method(self):
-        return inspect.isfunction(self.method_obj)
+        # TODO(py27): remove ismethod
+        return (inspect.isfunction(self.method_obj)
+                or inspect.ismethod(self.method_obj))
 
     @property
     def source_file_name(self):
@@ -159,9 +163,11 @@ class Docstring:
 
     @property
     def summary(self):
-        if not self.doc['Extended Summary'] and len(self.doc['Summary']) > 1:
-            return ''
         return ' '.join(self.doc['Summary'])
+
+    @property
+    def num_summary_lines(self):
+        return len(self.doc['Summary'])
 
     @property
     def extended_summary(self):
@@ -181,17 +187,24 @@ class Docstring:
 
     @property
     def signature_parameters(self):
-        if (inspect.isclass(self.method_obj)
-                and self.method_name.split('.')[-1] in {'dt', 'str', 'cat'}):
-            # accessor classes have a signature, but don't want to show this
-            return tuple()
+        if inspect.isclass(self.method_obj):
+            if hasattr(self.method_obj, '_accessors') and (
+                    self.method_name.split('.')[-1] in
+                    self.method_obj._accessors):
+                # accessor classes have a signature but don't want to show this
+                return tuple()
         try:
-            signature = inspect.signature(self.method_obj)
+            sig = signature(self.method_obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
             return tuple()
-        params = tuple(signature.parameters.keys())
+        params = sig.args
+        if sig.varargs:
+            params.append("*" + sig.varargs)
+        if sig.keywords:
+            params.append("**" + sig.keywords)
+        params = tuple(params)
         if params and params[0] in ('self', 'cls'):
             return params[1:]
         return params
@@ -203,10 +216,11 @@ class Docstring:
         doc_params = tuple(self.doc_parameters)
         missing = set(signature_params) - set(doc_params)
         if missing:
-            errs.append('Parameters {!r} not documented'.format(missing))
+            errs.append(
+                'Parameters {} not documented'.format(pprint_thing(missing)))
         extra = set(doc_params) - set(signature_params)
         if extra:
-            errs.append('Unknown parameters {!r}'.format(extra))
+            errs.append('Unknown parameters {}'.format(pprint_thing(extra)))
         if (not missing and not extra and signature_params != doc_params
                 and not (not signature_params and not doc_params)):
             errs.append('Wrong parameters order. ' +
@@ -223,7 +237,14 @@ class Docstring:
         return self.doc_parameters[param][0]
 
     def parameter_desc(self, param):
-        return self.doc_parameters[param][1]
+        desc = self.doc_parameters[param][1]
+        # Find and strip out any sphinx directives
+        for directive in DIRECTIVES:
+            full_directive = '.. {}'.format(directive)
+            if full_directive in desc:
+                # Only retain any description before the directive
+                desc = desc[:desc.index(full_directive)]
+        return desc
 
     @property
     def see_also(self):
@@ -238,6 +259,14 @@ class Docstring:
     @property
     def returns(self):
         return self.doc['Returns']
+
+    @property
+    def yields(self):
+        return self.doc['Yields']
+
+    @property
+    def method_source(self):
+        return inspect.getsource(self.method_obj)
 
     @property
     def first_line_ends_in_dot(self):
@@ -264,8 +293,7 @@ class Docstring:
         error_msgs = ''
         for test in finder.find(self.raw_doc, self.method_name, globs=context):
             f = StringIO()
-            with contextlib.redirect_stdout(f):
-                runner.run(test)
+            runner.run(test, out=f.write)
             error_msgs += f.getvalue()
         return error_msgs
 
@@ -379,6 +407,19 @@ def validate_all():
 
 
 def validate_one(func_name):
+    """
+    Validate the docstring for the given func_name
+
+    Parameters
+    ----------
+    func_name : function
+        Function whose docstring will be evaluated
+
+    Returns
+    -------
+    int
+        The number of errors found in the `func_name` docstring
+    """
     func_obj = _load_obj(func_name)
     doc = Docstring(func_name, func_obj)
 
@@ -386,6 +427,7 @@ def validate_one(func_name):
     sys.stderr.write('{}\n'.format(doc.clean_doc))
 
     errs = []
+    wrns = []
     if doc.start_blank_lines != 1:
         errs.append('Docstring text (summary) should start in the line '
                     'immediately after the opening quotes (not in the same '
@@ -404,25 +446,28 @@ def validate_one(func_name):
                     'should be present at the beginning of the docstring)')
     else:
         if not doc.summary[0].isupper():
-            errs.append('Summary does not start with capital')
+            errs.append('Summary does not start with a capital letter')
         if doc.summary[-1] != '.':
-            errs.append('Summary does not end with dot')
+            errs.append('Summary does not end with a period')
         if (doc.is_function_or_method and
                 doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
+        if doc.num_summary_lines > 1:
+            errs.append("Summary should fit in a single line.")
     if not doc.extended_summary:
-        errs.append('No extended summary found')
+        wrns.append('No extended summary found')
 
     param_errs = doc.parameter_mismatches
     for param in doc.doc_parameters:
-        if not doc.parameter_type(param):
-            param_errs.append('Parameter "{}" has no type'.format(param))
-        else:
-            if doc.parameter_type(param)[-1] == '.':
-                param_errs.append('Parameter "{}" type '
-                                  'should not finish with "."'.format(param))
+        if not param.startswith("*"):  # Check can ignore var / kwargs
+            if not doc.parameter_type(param):
+                param_errs.append('Parameter "{}" has no type'.format(param))
+            else:
+                if doc.parameter_type(param)[-1] == '.':
+                    param_errs.append('Parameter "{}" type should '
+                                      'not finish with "."'.format(param))
 
         if not doc.parameter_desc(param):
             param_errs.append('Parameter "{}" '
@@ -430,7 +475,7 @@ def validate_one(func_name):
         else:
             if not doc.parameter_desc(param)[0].isupper():
                 param_errs.append('Parameter "{}" description '
-                                  'should start with '
+                                  'should start with a '
                                   'capital letter'.format(param))
             if doc.parameter_desc(param)[-1] != '.':
                 param_errs.append('Parameter "{}" description '
@@ -440,8 +485,11 @@ def validate_one(func_name):
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
 
-    if not doc.returns:
-        errs.append('No returns section found')
+    if doc.is_function_or_method:
+        if not doc.returns and "return" in doc.method_source:
+            errs.append('No Returns section found')
+        if not doc.yields and "yield" in doc.method_source:
+            errs.append('No Yields section found')
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
@@ -449,15 +497,21 @@ def validate_one(func_name):
                     'docstring.'.format(mentioned_errs))
 
     if not doc.see_also:
-        errs.append('See Also section not found')
+        wrns.append('See Also section not found')
     else:
         for rel_name, rel_desc in doc.see_also.items():
             if not rel_desc:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
+
+    for line in doc.raw_doc.splitlines():
+        if re.match("^ *\t", line):
+            errs.append('Tabs found at the start of line "{}", '
+                        'please use whitespace only'.format(line.lstrip()))
+
     examples_errs = ''
     if not doc.examples:
-        errs.append('No examples section found')
+        wrns.append('No examples section found')
     else:
         examples_errs = doc.examples_errors
         if examples_errs:
@@ -468,7 +522,12 @@ def validate_one(func_name):
         sys.stderr.write('Errors found:\n')
         for err in errs:
             sys.stderr.write('\t{}\n'.format(err))
-    else:
+    if wrns:
+        sys.stderr.write('Warnings found:\n')
+        for wrn in wrns:
+            sys.stderr.write('\t{}\n'.format(wrn))
+
+    if not errs:
         sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
 
     if examples_errs:

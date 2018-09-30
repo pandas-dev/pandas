@@ -2,7 +2,7 @@ import pytest
 import os
 import tempfile
 from contextlib import contextmanager
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from distutils.version import LooseVersion
 
 import datetime
@@ -39,6 +39,10 @@ from pandas.io.pytables import (TableIterator,  # noqa:E402
 _default_compressor = ('blosc' if LooseVersion(tables.__version__) >=
                        LooseVersion('2.2') else 'zlib')
 
+
+ignore_natural_naming_warning = pytest.mark.filterwarnings(
+    "ignore:object name:tables.exceptions.NaturalNameWarning"
+)
 
 # contextmanager to ensure the file cleanup
 
@@ -139,12 +143,14 @@ class Base(object):
 
 
 @pytest.mark.single
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestHDFStore(Base):
 
     def test_factory_fun(self):
         path = create_tempfile(self.path)
         try:
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 with get_store(path) as tbl:
                     raise ValueError('blah')
         except ValueError:
@@ -153,11 +159,13 @@ class TestHDFStore(Base):
             safe_remove(path)
 
         try:
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 with get_store(path) as tbl:
                     tbl['a'] = tm.makeDataFrame()
 
-            with catch_warnings(record=True):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 with get_store(path) as tbl:
                     assert len(tbl) == 1
                     assert type(tbl['a']) == DataFrame
@@ -369,9 +377,26 @@ class TestHDFStore(Base):
                 store['d'] = tm.makePanel()
                 store['foo/bar'] = tm.makePanel()
             assert len(store) == 5
-            expected = set(['/a', '/b', '/c', '/d', '/foo/bar'])
+            expected = {'/a', '/b', '/c', '/d', '/foo/bar'}
             assert set(store.keys()) == expected
             assert set(store) == expected
+
+    def test_keys_ignore_hdf_softlink(self):
+
+        # GH 20523
+        # Puts a softlink into HDF file and rereads
+
+        with ensure_clean_store(self.path) as store:
+
+            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            store.put("df", df)
+
+            assert store.keys() == ["/df"]
+
+            store._handle.create_soft_link(store._handle.root, "symlink", "df")
+
+            # Should ignore the softlink
+            assert store.keys() == ["/df"]
 
     def test_iter_empty(self):
 
@@ -408,8 +433,8 @@ class TestHDFStore(Base):
             df.loc[3:6, ['obj1']] = np.nan
             df = df._consolidate()._convert(datetime=True)
 
-            # PerformanceWarning
             with catch_warnings(record=True):
+                simplefilter("ignore", pd.errors.PerformanceWarning)
                 store['df'] = df
 
             # make a random group in hdf space
@@ -429,6 +454,7 @@ class TestHDFStore(Base):
             repr(s)
             str(s)
 
+    @ignore_natural_naming_warning
     def test_contains(self):
 
         with ensure_clean_store(self.path) as store:
@@ -617,6 +643,57 @@ class TestHDFStore(Base):
             tm.assert_series_equal(left, right)
 
             pytest.raises(KeyError, store.get, 'b')
+
+    @pytest.mark.parametrize('where, expected', [
+        ('/', {
+            '': ({'first_group', 'second_group'}, set()),
+            '/first_group': (set(), {'df1', 'df2'}),
+            '/second_group': ({'third_group'}, {'df3', 's1'}),
+            '/second_group/third_group': (set(), {'df4'}),
+        }),
+        ('/second_group', {
+            '/second_group': ({'third_group'}, {'df3', 's1'}),
+            '/second_group/third_group': (set(), {'df4'}),
+        })
+    ])
+    def test_walk(self, where, expected):
+        # GH10143
+        objs = {
+            'df1': pd.DataFrame([1, 2, 3]),
+            'df2': pd.DataFrame([4, 5, 6]),
+            'df3': pd.DataFrame([6, 7, 8]),
+            'df4': pd.DataFrame([9, 10, 11]),
+            's1': pd.Series([10, 9, 8]),
+            # Next 3 items aren't pandas objects and should be ignored
+            'a1': np.array([[1, 2, 3], [4, 5, 6]]),
+            'tb1': np.array([(1, 2, 3), (4, 5, 6)], dtype='i,i,i'),
+            'tb2': np.array([(7, 8, 9), (10, 11, 12)], dtype='i,i,i')
+        }
+
+        with ensure_clean_store('walk_groups.hdf', mode='w') as store:
+            store.put('/first_group/df1', objs['df1'])
+            store.put('/first_group/df2', objs['df2'])
+            store.put('/second_group/df3', objs['df3'])
+            store.put('/second_group/s1', objs['s1'])
+            store.put('/second_group/third_group/df4', objs['df4'])
+            # Create non-pandas objects
+            store._handle.create_array('/first_group', 'a1', objs['a1'])
+            store._handle.create_table('/first_group', 'tb1', obj=objs['tb1'])
+            store._handle.create_table('/second_group', 'tb2', obj=objs['tb2'])
+
+            assert len(list(store.walk(where=where))) == len(expected)
+            for path, groups, leaves in store.walk(where=where):
+                assert path in expected
+                expected_groups, expected_frames = expected[path]
+                assert expected_groups == set(groups)
+                assert expected_frames == set(leaves)
+                for leaf in leaves:
+                    frame_path = '/'.join([path, leaf])
+                    obj = store.get(frame_path)
+                    if 'df' in leaf:
+                        tm.assert_frame_equal(obj, objs[leaf])
+                    else:
+                        tm.assert_series_equal(obj, objs[leaf])
 
     def test_getattr(self):
 
@@ -844,11 +921,15 @@ class TestHDFStore(Base):
 
             # PerformanceWarning
             with catch_warnings(record=True):
+                simplefilter("ignore", pd.errors.PerformanceWarning)
                 store.put('df', df)
 
             expected = store.get('df')
             tm.assert_frame_equal(expected, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:object name:tables.exceptions.NaturalNameWarning"
+    )
     def test_append(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1007,6 +1088,7 @@ class TestHDFStore(Base):
 
                 # PerformanceWarning
                 with catch_warnings(record=True):
+                    simplefilter("ignore", pd.errors.PerformanceWarning)
                     check('fixed', index)
 
     @pytest.mark.skipif(not is_platform_little_endian(),
@@ -1287,6 +1369,7 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
                 wp = tm.makePanel()
                 wp2 = wp.rename_axis(
                     {x: "%s_extra" % x for x in wp.minor_axis}, axis=2)
@@ -1445,6 +1528,18 @@ class TestHDFStore(Base):
             tm.assert_series_equal(pd.read_hdf(path, 'ss4'),
                                    pd.concat([df['B'], df2['B']]))
 
+    @pytest.mark.parametrize("format", ['fixed', 'table'])
+    def test_to_hdf_errors(self, format):
+
+        data = ['\ud800foo']
+        ser = pd.Series(data, index=pd.Index(data))
+        with ensure_clean_path(self.path) as path:
+            # GH 20835
+            ser.to_hdf(path, 'table', format=format, errors='surrogatepass')
+
+            result = pd.read_hdf(path, 'table', errors='surrogatepass')
+            tm.assert_series_equal(result, ser)
+
     def test_append_with_data_columns(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1455,7 +1550,7 @@ class TestHDFStore(Base):
             store.append('df', df[2:])
             tm.assert_frame_equal(store['df'], df)
 
-            # check that we have indicies created
+            # check that we have indices created
             assert(store._handle.root.df.table.cols.index.is_indexed is True)
             assert(store._handle.root.df.table.cols.B.is_indexed is True)
 
@@ -1813,6 +1908,12 @@ class TestHDFStore(Base):
                            'a', 'b'], index=make_index(['date', 'a', 't']))
             pytest.raises(ValueError, store.append, 'df', df)
 
+            # dup within level
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12, 2)), columns=['a', 'b'],
+                           index=make_index(['date', 'date', 'date']))
+            pytest.raises(ValueError, store.append, 'df', df)
+
             # fully names
             _maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
@@ -2018,9 +2119,9 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict((c, Series(np.random.randn(5), dtype=c))
-                                 for c in ['float32', 'float64', 'int32',
-                                           'int64', 'int16', 'int8']))
+            df1 = DataFrame({c: Series(np.random.randint(5), dtype=c)
+                             for c in ['float32', 'float64', 'int32',
+                                       'int64', 'int16', 'int8']})
             df1['string'] = 'foo'
             df1['float322'] = 1.
             df1['float322'] = df1['float322'].astype('float32')
@@ -2105,6 +2206,10 @@ class TestHDFStore(Base):
             # this fails because we have a date in the object block......
             pytest.raises(TypeError, store.append, 'df_unimplemented', df)
 
+    @pytest.mark.skipif(
+        LooseVersion(np.__version__) == LooseVersion('1.15.0'),
+        reason=("Skipping  pytables test when numpy version is "
+                "exactly equal to 1.15.0: gh-22098"))
     def test_calendar_roundtrip_issue(self):
 
         # 8591
@@ -2463,6 +2568,7 @@ class TestHDFStore(Base):
         with ensure_clean_store(self.path) as store:
 
             with catch_warnings(record=True):
+                simplefilter("ignore", FutureWarning)
 
                 wp = tm.makePanel()
                 wpneg = Panel.fromDict({-1: tm.makeDataFrame(),
@@ -2668,8 +2774,10 @@ class TestHDFStore(Base):
         DF = DataFrame(data, index=idx, columns=col)
 
         with catch_warnings(record=True):
+            simplefilter("ignore", pd.errors.PerformanceWarning)
             self._check_roundtrip(DF, tm.assert_frame_equal)
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_index_types(self):
 
         with catch_warnings(record=True):
@@ -2898,6 +3006,9 @@ class TestHDFStore(Base):
             wp = tm.makePanel()
             self._check_roundtrip(wp, assert_panel_equal)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
     def test_select_with_dups(self):
 
         # single dtypes
@@ -2957,6 +3068,9 @@ class TestHDFStore(Base):
             result = store.select('df', columns=['B', 'A'])
             assert_frame_equal(result, expected, by_blocks=True)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nduplicate:pandas.io.pytables.DuplicateWarning"
+    )
     def test_wide_table_dups(self):
         with ensure_clean_store(self.path) as store:
             with catch_warnings(record=True):
@@ -2976,9 +3090,6 @@ class TestHDFStore(Base):
         with catch_warnings(record=True):
             wp = tm.makePanel()
             self._check_roundtrip(wp.to_frame(), _check)
-
-    def test_longpanel(self):
-        pass
 
     def test_overwrite_node(self):
 
@@ -3502,6 +3613,9 @@ class TestHDFStore(Base):
             # should be []
             assert len(results) == 0
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
+    )
     def test_retain_index_attributes(self):
 
         # GH 3499, losing frequency info on index recreation
@@ -3544,6 +3658,9 @@ class TestHDFStore(Base):
                                           freq='D'))))
             store.append('df2', df3)
 
+    @pytest.mark.filterwarnings(
+        "ignore:\\nthe :pandas.io.pytables.AttributeConflictWarning"
+    )
     def test_retain_index_attributes2(self):
         with ensure_clean_path(self.path) as path:
 
@@ -3819,8 +3936,15 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
-            store.append('df', df)
 
+            # GH 17912
+            # HDFStore.select_column should raise a KeyError
+            # exception if the key is not a valid store
+            with pytest.raises(KeyError,
+                               message='No object named index in the file'):
+                store.select_column('df', 'index')
+
+            store.append('df', df)
             # error
             pytest.raises(KeyError, store.select_column, 'df', 'foo')
 
@@ -4416,31 +4540,31 @@ class TestHDFStore(Base):
                 store.select('df')
             tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
-    def test_pytables_native_read(self):
-
+    def test_pytables_native_read(self, datapath):
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/pytables_native.h5'),
+                datapath('io', 'data', 'legacy_hdf/pytables_native.h5'),
                 mode='r') as store:
             d2 = store['detector/readout']
             assert isinstance(d2, DataFrame)
 
     @pytest.mark.skipif(PY35 and is_platform_windows(),
                         reason="native2 read fails oddly on windows / 3.5")
-    def test_pytables_native2_read(self):
+    def test_pytables_native2_read(self, datapath):
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/pytables_native2.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'pytables_native2.h5'),
                 mode='r') as store:
             str(store)
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
 
-    def test_legacy_table_read(self):
+    def test_legacy_table_read(self, datapath):
         # legacy table types
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/legacy_table.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
                 mode='r') as store:
 
-            with catch_warnings(record=True):
+            with catch_warnings():
+                simplefilter("ignore", pd.io.pytables.IncompatibilityWarning)
                 store.select('df1')
                 store.select('df2')
                 store.select('wp1')
@@ -4478,7 +4602,7 @@ class TestHDFStore(Base):
                         keys = store.keys()
                     assert set(keys) == set(tstore.keys())
 
-                    # check indicies & nrows
+                    # check indices & nrows
                     for k in tstore.keys():
                         if tstore.get_storer(k).is_table:
                             new_t = tstore.get_storer(k)
@@ -4572,6 +4696,7 @@ class TestHDFStore(Base):
 
         # PerformanceWarning
         with catch_warnings(record=True):
+            simplefilter("ignore", pd.errors.PerformanceWarning)
             s = Series(np.random.randn(len(unicode_values)), unicode_values)
             self._check_roundtrip(s, tm.assert_series_equal)
 
@@ -4840,6 +4965,7 @@ class TestHDFStore(Base):
             df_loaded = read_hdf(path, 'df', columns=cols2load)  # noqa
             assert cols2load_original == cols2load
 
+    @ignore_natural_naming_warning
     def test_to_hdf_with_object_column_names(self):
         # GH9057
         # Writing HDF5 table format should only work for string-like
@@ -4853,15 +4979,17 @@ class TestHDFStore(Base):
         if compat.PY3:
             types_should_run.append(tm.makeUnicodeIndex)
         else:
-            types_should_fail.append(tm.makeUnicodeIndex)
+            # TODO: Add back to types_should_fail
+            # https://github.com/pandas-dev/pandas/issues/20907
+            pass
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with pytest.raises(
-                        ValueError, msg=("cannot have non-object label "
-                                         "DataIndexableCol")):
+                    with tm.assert_raises_regex(
+                        ValueError, ("cannot have non-object label "
+                                     "DataIndexableCol")):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
@@ -5082,7 +5210,7 @@ class TestHDFStore(Base):
             with pd.HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
-    def test_read_py2_hdf_file_in_py3(self):
+    def test_read_py2_hdf_file_in_py3(self, datapath):
         # GH 16781
 
         # tests reading a PeriodIndex DataFrame written in Python2 in Python3
@@ -5097,8 +5225,8 @@ class TestHDFStore(Base):
             ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
 
         with ensure_clean_store(
-                tm.get_data_path(
-                    'legacy_hdf/periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
+                datapath('io', 'data', 'legacy_hdf',
+                         'periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
@@ -5182,6 +5310,7 @@ class TestHDFComplexValues(Base):
             reread = read_hdf(path, 'df')
             assert_frame_equal(df, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions_fixed(self):
         with catch_warnings(record=True):
             complex128 = np.array(
@@ -5199,6 +5328,7 @@ class TestHDFComplexValues(Base):
                     reread = read_hdf(path, 'obj')
                     comp(obj, reread)
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
     def test_complex_across_dimensions(self):
         complex128 = np.array([1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j, 1.0 + 1.0j])
         s = Series(complex128, index=list('abcd'))
@@ -5495,14 +5625,14 @@ class TestTimezones(Base):
 
             assert_frame_equal(result, df)
 
-    def test_legacy_datetimetz_object(self):
+    def test_legacy_datetimetz_object(self, datapath):
         # legacy from < 0.17.0
         # 8260
         expected = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
                                   B=Timestamp('20130603', tz='CET')),
                              index=range(5))
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/datetimetz_object.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'datetimetz_object.h5'),
                 mode='r') as store:
             result = store['df']
             assert_frame_equal(result, expected)

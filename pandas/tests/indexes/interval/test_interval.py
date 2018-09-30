@@ -12,11 +12,6 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(scope='class', params=[None, 'foo'])
 def name(request):
     return request.param
@@ -55,7 +50,6 @@ class TestIntervalIndex(Base):
         ivs = [Interval(l, r, closed) for l, r in zip(range(10), range(1, 11))]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
-        tm.assert_numpy_array_equal(index.values, expected)
 
         # with nans
         index = self.create_index_with_nan(closed=closed)
@@ -76,7 +70,6 @@ class TestIntervalIndex(Base):
                for l, r in zip(expected_left, expected_right)]
         expected = np.array(ivs, dtype=object)
         tm.assert_numpy_array_equal(np.asarray(index), expected)
-        tm.assert_numpy_array_equal(index.values, expected)
 
     @pytest.mark.parametrize('breaks', [
         [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
@@ -141,7 +134,7 @@ class TestIntervalIndex(Base):
                                     check_same='same')
 
         # by-definition make a copy
-        result = IntervalIndex(index.values, copy=False)
+        result = IntervalIndex(index._ndarray_values, copy=False)
         tm.assert_numpy_array_equal(index.left.values, result.left.values,
                                     check_same='copy')
         tm.assert_numpy_array_equal(index.right.values, result.right.values,
@@ -497,6 +490,14 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))
 
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('item', [3, Interval(1, 4)])
+    def test_get_loc_length_one(self, item, closed):
+        # GH 20921
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_loc(item)
+        assert result == 0
+
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
@@ -543,6 +544,16 @@ class TestIntervalIndex(Base):
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 0], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
+
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('item', [
+        [3], np.arange(1, 5), [Interval(1, 4)], interval_range(1, 4)])
+    def test_get_indexer_length_one(self, item, closed):
+        # GH 17284
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_indexer(item)
+        expected = np.array([0] * len(item), dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_contains(self):
@@ -936,7 +947,7 @@ class TestIntervalIndex(Base):
         # GH 18756
         idx = IntervalIndex.from_tuples(tuples)
         result = idx.to_tuples()
-        expected = Index(com._asarray_tuplesafe(tuples))
+        expected = Index(com.asarray_tuplesafe(tuples))
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('tuples', [
@@ -952,7 +963,7 @@ class TestIntervalIndex(Base):
         result = idx.to_tuples(na_tuple=na_tuple)
 
         # check the non-NA portion
-        expected_notna = Index(com._asarray_tuplesafe(tuples[:-1]))
+        expected_notna = Index(com.asarray_tuplesafe(tuples[:-1]))
         result_notna = result[:-1]
         tm.assert_index_equal(result_notna, expected_notna)
 
@@ -964,3 +975,40 @@ class TestIntervalIndex(Base):
             assert all(isna(x) for x in result_na)
         else:
             assert isna(result_na)
+
+    def test_nbytes(self):
+        # GH 19209
+        left = np.arange(0, 4, dtype='i8')
+        right = np.arange(1, 5, dtype='i8')
+
+        result = IntervalIndex.from_arrays(left, right).nbytes
+        expected = 64  # 4 * 8 * 2
+        assert result == expected
+
+    def test_itemsize(self):
+        # GH 19209
+        left = np.arange(0, 4, dtype='i8')
+        right = np.arange(1, 5, dtype='i8')
+        expected = 16  # 8 * 2
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result = IntervalIndex.from_arrays(left, right).itemsize
+
+        assert result == expected
+
+    @pytest.mark.parametrize('new_closed', [
+        'left', 'right', 'both', 'neither'])
+    def test_set_closed(self, name, closed, new_closed):
+        # GH 21670
+        index = interval_range(0, 5, closed=closed, name=name)
+        result = index.set_closed(new_closed)
+        expected = interval_range(0, 5, closed=new_closed, name=name)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('bad_closed', ['foo', 10, 'LEFT', True, False])
+    def test_set_closed_errors(self, bad_closed):
+        # GH 21670
+        index = interval_range(0, 5)
+        msg = "invalid option for 'closed': {closed}".format(closed=bad_closed)
+        with tm.assert_raises_regex(ValueError, msg):
+            index.set_closed(bad_closed)

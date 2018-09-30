@@ -3,7 +3,7 @@
 import itertools
 import pytest
 
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings
 import numpy as np
 
 import pandas as pd
@@ -11,6 +11,8 @@ from pandas.compat import lrange, StringIO
 from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
+from pandas.api.types import is_scalar
+from pandas.compat import PY2
 
 
 class TestLoc(Base):
@@ -119,7 +121,7 @@ class TestLoc(Base):
                           typs=['ints', 'uints', 'labels', 'mixed', 'ts'],
                           fails=KeyError)
         self.check_result('label range', 'loc', 'f', 'ix', 'f',
-                          typs=['floats'], fails=TypeError)
+                          typs=['floats'], fails=KeyError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
                           typs=['ints', 'uints', 'mixed'], fails=KeyError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
@@ -127,7 +129,7 @@ class TestLoc(Base):
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['ts'],
                           axes=0, fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['floats'],
-                          axes=0, fails=TypeError)
+                          axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
 
@@ -151,17 +153,32 @@ class TestLoc(Base):
                           [Timestamp('20130102'), Timestamp('20130103')],
                           typs=['ts'], axes=0)
 
+    @pytest.mark.skipif(PY2, reason=("Catching warnings unreliable with "
+                                     "Python 2 (GH #20770)"))
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
-                              typs=['ints', 'uints'], axes=0, fails=KeyError)
+            self.check_result('list lbl', 'loc', [0, 2, 10], 'ix', [0, 2, 10],
+                              typs=['ints', 'uints', 'floats'],
+                              axes=0, fails=KeyError)
+
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
-                              typs=['ints', 'uints'], axes=1, fails=KeyError)
-        self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
-                          typs=['ints', 'uints'], axes=2, fails=KeyError)
+                              typs=['ints', 'uints', 'floats'],
+                              axes=1, fails=KeyError)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
+                              typs=['ints', 'uints', 'floats'],
+                              axes=2, fails=KeyError)
+
+        # GH 17758 - MultiIndex and missing keys
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [(1, 3), (1, 4), (2, 5)],
+                              'ix', [(1, 3), (1, 4), (2, 5)],
+                              typs=['multi'],
+                              axes=0)
 
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=['a', 'b', 'c'])
@@ -555,6 +572,21 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         df.loc[2:4] = rhs
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize(
+        'indexer', [['A'], slice(None, 'A', None), np.array(['A'])])
+    @pytest.mark.parametrize(
+        'value', [['Z'], np.array(['Z'])])
+    def test_loc_setitem_with_scalar_index(self, indexer, value):
+        # GH #19474
+        # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
+        # elementwisely, not using "setter('A', ['Z'])".
+
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        df.loc[0, indexer] = value
+        result = df.loc[0, 'A']
+
+        assert is_scalar(result) and result == 'Z'
+
     def test_loc_coerceion(self):
 
         # 12411
@@ -667,6 +699,7 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         assert result == 'index_name'
 
         with catch_warnings(record=True):
+            filterwarnings("ignore", "\\n.ix", DeprecationWarning)
             result = df.ix[[0, 1]].index.name
         assert result == 'index_name'
 
@@ -752,3 +785,22 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             index=pd.MultiIndex.from_product(keys))
 
         tm.assert_series_equal(result, expected)
+
+    def test_loc_uint64(self):
+        # GH20722
+        # Test whether loc accept uint64 max value as index.
+        s = pd.Series([1, 2],
+                      index=[np.iinfo('uint64').max - 1,
+                             np.iinfo('uint64').max])
+
+        result = s.loc[np.iinfo('uint64').max - 1]
+        expected = s.iloc[0]
+        assert result == expected
+
+        result = s.loc[[np.iinfo('uint64').max - 1]]
+        expected = s.iloc[[0]]
+        tm.assert_series_equal(result, expected)
+
+        result = s.loc[[np.iinfo('uint64').max - 1,
+                       np.iinfo('uint64').max]]
+        tm.assert_series_equal(result, s)

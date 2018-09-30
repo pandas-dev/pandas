@@ -1,6 +1,7 @@
 """
 Quantilization functions and related stuff
 """
+from functools import partial
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
@@ -9,84 +10,181 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
-    _ensure_int64)
+    is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
+    ensure_int64)
 
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
 from pandas import (to_timedelta, to_datetime,
                     Categorical, Timestamp, Timedelta,
-                    Series, Interval, IntervalIndex)
+                    Series, Index, Interval, IntervalIndex)
 
 import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
-        include_lowest=False):
+        include_lowest=False, duplicates='raise'):
     """
-    Return indices of half-open bins to which each value of `x` belongs.
+    Bin values into discrete intervals.
+
+    Use `cut` when you need to segment and sort data values into bins. This
+    function is also useful for going from a continuous variable to a
+    categorical variable. For example, `cut` could convert ages to groups of
+    age ranges. Supports binning into an equal number of bins, or a
+    pre-specified array of bins.
 
     Parameters
     ----------
     x : array-like
-        Input array to be binned. It has to be 1-dimensional.
-    bins : int, sequence of scalars, or IntervalIndex
-        If `bins` is an int, it defines the number of equal-width bins in the
-        range of `x`. However, in this case, the range of `x` is extended
-        by .1% on each side to include the min or max values of `x`. If
-        `bins` is a sequence it defines the bin edges allowing for
-        non-uniform bin width. No extension of the range of `x` is done in
-        this case.
-    right : bool, optional
-        Indicates whether the bins include the rightmost edge or not. If
-        right == True (the default), then the bins [1,2,3,4] indicate
-        (1,2], (2,3], (3,4].
-    labels : array or boolean, default None
-        Used as labels for the resulting bins. Must be of the same length as
-        the resulting bins. If False, return only integer indicators of the
-        bins.
-    retbins : bool, optional
-        Whether to return the bins or not. Can be useful if bins is given
+        The input array to be binned. Must be 1-dimensional.
+    bins : int, sequence of scalars, or pandas.IntervalIndex
+        The criteria to bin by.
+
+        * int : Defines the number of equal-width bins in the range of `x`. The
+          range of `x` is extended by .1% on each side to include the minimum
+          and maximum values of `x`.
+        * sequence of scalars : Defines the bin edges allowing for non-uniform
+          width. No extension of the range of `x` is done.
+        * IntervalIndex : Defines the exact bins to be used.
+
+    right : bool, default True
+        Indicates whether `bins` includes the rightmost edge or not. If
+        ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
+        indicate (1,2], (2,3], (3,4]. This argument is ignored when
+        `bins` is an IntervalIndex.
+    labels : array or bool, optional
+        Specifies the labels for the returned bins. Must be the same length as
+        the resulting bins. If False, returns only integer indicators of the
+        bins. This affects the type of the output container (see below).
+        This argument is ignored when `bins` is an IntervalIndex.
+    retbins : bool, default False
+        Whether to return the bins or not. Useful when bins is provided
         as a scalar.
-    precision : int, optional
-        The precision at which to store and display the bins labels
-    include_lowest : bool, optional
+    precision : int, default 3
+        The precision at which to store and display the bins labels.
+    include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
+    duplicates : {default 'raise', 'drop'}, optional
+        If bin edges are not unique, raise ValueError or drop non-uniques.
+
+        .. versionadded:: 0.23.0
 
     Returns
     -------
-    out : Categorical or Series or array of integers if labels is False
-        The return type (Categorical or Series) depends on the input: a Series
-        of type category if input is a Series else Categorical. Bins are
-        represented as categories when categorical data is returned.
-    bins : ndarray of floats
-        Returned only if `retbins` is True.
+    out : pandas.Categorical, Series, or ndarray
+        An array-like object representing the respective bin for each value
+        of `x`. The type depends on the value of `labels`.
+
+        * True (default) : returns a Series for Series `x` or a
+          pandas.Categorical for all other inputs. The values stored within
+          are Interval dtype.
+
+        * sequence of scalars : returns a Series for Series `x` or a
+          pandas.Categorical for all other inputs. The values stored within
+          are whatever the type in the sequence is.
+
+        * False : returns an ndarray of integers.
+
+    bins : numpy.ndarray or IntervalIndex.
+        The computed or specified bins. Only returned when `retbins=True`.
+        For scalar or sequence `bins`, this is an ndarray with the computed
+        bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For
+        an IntervalIndex `bins`, this is equal to `bins`.
+
+    See Also
+    --------
+    qcut : Discretize variable into equal-sized buckets based on rank
+        or based on sample quantiles.
+    pandas.Categorical : Array type for storing data that come from a
+        fixed set of values.
+    Series : One-dimensional array with axis labels (including time series).
+    pandas.IntervalIndex : Immutable Index implementing an ordered,
+        sliceable set.
 
     Notes
     -----
-    The `cut` function can be useful for going from a continuous variable to
-    a categorical variable. For example, `cut` could convert ages to groups
-    of age ranges.
-
-    Any NA values will be NA in the result.  Out of bounds values will be NA in
-    the resulting Categorical object
-
+    Any NA values will be NA in the result. Out of bounds values will be NA in
+    the resulting Series or pandas.Categorical object.
 
     Examples
     --------
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
+    Discretize into three equal-sized bins.
+
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3)
     ... # doctest: +ELLIPSIS
-    ([(0.19, 3.367], (0.19, 3.367], (0.19, 3.367], (3.367, 6.533], ...
-    Categories (3, interval[float64]): [(0.19, 3.367] < (3.367, 6.533] ...
+    [(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
+    Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
 
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]),
-    ...        3, labels=["good", "medium", "bad"])
-    ... # doctest: +SKIP
-    [good, good, good, medium, bad, good]
-    Categories (3, object): [good < medium < bad]
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, retbins=True)
+    ... # doctest: +ELLIPSIS
+    ([(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
+    Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
+    array([0.994, 3.   , 5.   , 7.   ]))
 
-    >>> pd.cut(np.ones(5), 4, labels=False)
-    array([1, 1, 1, 1, 1])
+    Discovers the same bins, but assign them specific labels. Notice that
+    the returned Categorical's categories are `labels` and is ordered.
+
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
+    ...        3, labels=["bad", "medium", "good"])
+    [bad, good, medium, medium, good, bad]
+    Categories (3, object): [bad < medium < good]
+
+    ``labels=False`` implies you just want the bins back.
+
+    >>> pd.cut([0, 1, 1, 2], bins=4, labels=False)
+    array([0, 1, 1, 3])
+
+    Passing a Series as an input returns a Series with categorical dtype:
+
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
+    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> pd.cut(s, 3)
+    ... # doctest: +ELLIPSIS
+    a    (1.992, 4.667]
+    b    (1.992, 4.667]
+    c    (4.667, 7.333]
+    d     (7.333, 10.0]
+    e     (7.333, 10.0]
+    dtype: category
+    Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
+
+    Passing a Series as an input returns a Series with mapping value.
+    It is used to map numerically to intervals based on bins.
+
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
+    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
+    ... # doctest: +ELLIPSIS
+    (a    0.0
+     b    1.0
+     c    2.0
+     d    3.0
+     e    4.0
+     dtype: float64, array([0, 2, 4, 6, 8]))
+
+    Use `drop` optional when bins is not unique
+
+    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
+    ...    right=False, duplicates='drop')
+    ... # doctest: +ELLIPSIS
+    (a    0.0
+     b    1.0
+     c    2.0
+     d    3.0
+     e    3.0
+     dtype: float64, array([0, 2, 4, 6, 8]))
+
+    Passing an IntervalIndex for `bins` results in those categories exactly.
+    Notice that values not covered by the IntervalIndex are set to NaN. 0
+    is to the left of the first bin (which is closed on the right), and 1.5
+    falls between two bins.
+
+    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
+    [NaN, (0, 1], NaN, (2, 3], (4, 5]]
+    Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
@@ -133,10 +231,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
                               precision=precision,
                               include_lowest=include_lowest,
-                              dtype=dtype)
+                              dtype=dtype,
+                              duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
@@ -208,7 +307,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
                               dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
@@ -236,10 +335,11 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             bins = unique_bins
 
     side = 'left' if right else 'right'
-    ids = _ensure_int64(bins.searchsorted(x, side=side))
+    ids = ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        # Numpy 1.9 support: ensure this mask is a Numpy array
+        ids[np.asarray(x == bins[0])] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -284,12 +384,14 @@ def _coerce_to_type(x):
     """
     dtype = None
 
-    if is_timedelta64_dtype(x):
-        x = to_timedelta(x)
-        dtype = np.timedelta64
+    if is_datetime64tz_dtype(x):
+        dtype = x.dtype
     elif is_datetime64_dtype(x):
         x = to_datetime(x)
         dtype = np.datetime64
+    elif is_timedelta64_dtype(x):
+        x = to_timedelta(x)
+        dtype = np.timedelta64
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
@@ -305,7 +407,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
 
     Parameters
     ----------
-    bins : list-liek of bins
+    bins : list-like of bins
     dtype : dtype of data
 
     Raises
@@ -318,12 +420,32 @@ def _convert_bin_to_numeric_type(bins, dtype):
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype):
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if bins_dtype in ['datetime', 'datetime64']:
             bins = to_datetime(bins).view(np.int64)
         else:
             raise ValueError("bins must be of datetime64 dtype")
 
+    return bins
+
+
+def _convert_bin_to_datelike_type(bins, dtype):
+    """
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    datelike
+
+    Parameters
+    ----------
+    bins : list-like of bins
+    dtype : dtype of data
+
+    Returns
+    -------
+    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
+           datelike
+    """
+    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+        bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
 
@@ -333,7 +455,10 @@ def _format_labels(bins, precision, right=True,
 
     closed = 'right' if right else 'left'
 
-    if is_datetime64_dtype(dtype):
+    if is_datetime64tz_dtype(dtype):
+        formatter = partial(Timestamp, tz=dtype.tz)
+        adjust = lambda x: x - Timedelta('1ns')
+    elif is_datetime64_dtype(dtype):
         formatter = Timestamp
         adjust = lambda x: x - Timedelta('1ns')
     elif is_timedelta64_dtype(dtype):
@@ -372,13 +497,19 @@ def _preprocess_for_cut(x):
         series_index = x.index
         name = x.name
 
-    x = np.asarray(x)
+    # Check that the passed array is a Pandas or Numpy object
+    # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
+    ndim = getattr(x, 'ndim', None)
+    if ndim is None:
+        x = np.asarray(x)
+    if x.ndim != 1:
+        raise ValueError("Input array must be 1 dimensional")
 
     return x_is_series, series_index, name, x
 
 
 def _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                         series_index, name):
+                         series_index, name, dtype):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -389,6 +520,8 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series,
 
     if not retbins:
         return fac
+
+    bins = _convert_bin_to_datelike_type(bins, dtype)
 
     return fac, bins
 

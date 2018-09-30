@@ -2,17 +2,13 @@ import os
 from importlib import import_module
 
 import numpy as np
-try:
-    from pandas import Panel
-except ImportError:
-    from pandas import WidePanel as Panel  # noqa
 
 # Compatibility import for lib
 for imp in ['pandas._libs.lib', 'pandas.lib']:
     try:
         lib = import_module(imp)
         break
-    except:
+    except (ImportError, TypeError, ValueError):
         pass
 
 numeric_dtypes = [np.int64, np.int32, np.uint32, np.uint64, np.float32,
@@ -37,7 +33,7 @@ class BaseIO(object):
         """Remove created files"""
         try:
             os.remove(f)
-        except:
+        except OSError:
             # On Windows, attempting to remove a file that is in use
             # causes an exception to be raised
             pass

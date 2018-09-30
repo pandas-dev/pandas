@@ -153,6 +153,21 @@ Like ``cov``, ``corr`` also supports the optional ``min_periods`` keyword:
    frame.corr(min_periods=12)
 
 
+.. versionadded:: 0.24.0
+
+The ``method`` argument can also be a callable for a generic correlation
+calculation. In this case, it should be a single function
+that produces a single value from two ndarray inputs. Suppose we wanted to
+compute the correlation based on histogram intersection:
+
+.. ipython:: python
+
+   # histogram intersection
+   histogram_intersection = lambda a, b: np.minimum(
+       np.true_divide(a, a.sum()), np.true_divide(b, b.sum())
+   ).sum()
+   frame.corr(method=histogram_intersection)
+
 A related method :meth:`~DataFrame.corrwith` is implemented on DataFrame to 
 compute the correlation between like-labeled Series contained in different 
 DataFrame objects.
@@ -323,7 +338,7 @@ compute the mean absolute deviation on a rolling basis:
 
    mad = lambda x: np.fabs(x - x.mean()).mean()
    @savefig rolling_apply_ex.png
-   s.rolling(window=60).apply(mad).plot(style='k')
+   s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
 .. _stats.rolling_window:
 
@@ -344,20 +359,20 @@ The weights used in the window are specified by the ``win_type`` keyword.
 The list of recognized types are the `scipy.signal window functions
 <https://docs.scipy.org/doc/scipy/reference/signal.html#window-functions>`__:
 
-- ``boxcar``
-- ``triang``
-- ``blackman``
-- ``hamming``
-- ``bartlett``
-- ``parzen``
-- ``bohman``
-- ``blackmanharris``
-- ``nuttall``
-- ``barthann``
-- ``kaiser`` (needs beta)
-- ``gaussian`` (needs std)
-- ``general_gaussian`` (needs power, width)
-- ``slepian`` (needs width).
+* ``boxcar``
+* ``triang``
+* ``blackman``
+* ``hamming``
+* ``bartlett``
+* ``parzen``
+* ``bohman``
+* ``blackmanharris``
+* ``nuttall``
+* ``barthann``
+* ``kaiser`` (needs beta)
+* ``gaussian`` (needs std)
+* ``general_gaussian`` (needs power, width)
+* ``slepian`` (needs width).
 
 .. ipython:: python
 
@@ -537,10 +552,10 @@ Binary Window Functions
 two ``Series`` or any combination of ``DataFrame/Series`` or
 ``DataFrame/DataFrame``. Here is the behavior in each case:
 
-- two ``Series``: compute the statistic for the pairing.
-- ``DataFrame/Series``: compute the statistics for each column of the DataFrame
+* two ``Series``: compute the statistic for the pairing.
+* ``DataFrame/Series``: compute the statistics for each column of the DataFrame
   with the passed Series, thus returning a DataFrame.
-- ``DataFrame/DataFrame``: by default compute the statistic for matching column
+* ``DataFrame/DataFrame``: by default compute the statistic for matching column
   names, returning a DataFrame. If the keyword argument ``pairwise=True`` is
   passed then computes the statistic for each pair of columns, returning a
   ``MultiIndexed DataFrame`` whose ``index`` are the dates in question (see :ref:`the next section
@@ -741,10 +756,10 @@ Aside from not having a ``window`` parameter, these functions have the same
 interfaces as their ``.rolling`` counterparts. Like above, the parameters they
 all accept are:
 
-- ``min_periods``: threshold of non-null data points to require. Defaults to
+* ``min_periods``: threshold of non-null data points to require. Defaults to
   minimum needed to compute statistic. No ``NaNs`` will be output once
   ``min_periods`` non-null data points have been seen.
-- ``center``: boolean, whether to set the labels at the center (default is False).
+* ``center``: boolean, whether to set the labels at the center (default is False).
 
 .. _stats.moments.expanding.note:
 .. note::
@@ -903,12 +918,12 @@ of an EW moment:
 One must specify precisely one of **span**, **center of mass**, **half-life**
 and **alpha** to the EW functions:
 
-- **Span** corresponds to what is commonly called an "N-day EW moving average".
-- **Center of mass** has a more physical interpretation and can be thought of
+* **Span** corresponds to what is commonly called an "N-day EW moving average".
+* **Center of mass** has a more physical interpretation and can be thought of
   in terms of span: :math:`c = (s - 1) / 2`.
-- **Half-life** is the period of time for the exponential weight to reduce to
+* **Half-life** is the period of time for the exponential weight to reduce to
   one half.
-- **Alpha** specifies the smoothing factor directly.
+* **Alpha** specifies the smoothing factor directly.
 
 Here is an example for a univariate time series:
 

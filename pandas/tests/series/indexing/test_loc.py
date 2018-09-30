@@ -12,9 +12,6 @@ from pandas.compat import lrange
 from pandas.util.testing import (assert_series_equal)
 
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
-
-
 def test_loc_getitem(test_data):
     inds = test_data.series.index[[3, 4, 7]]
     assert_series_equal(

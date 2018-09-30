@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import Series, DataFrame
 
 from pandas.compat import StringIO, u
+from pandas.io.common import _get_handle
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -36,7 +37,7 @@ class TestSeriesToCSV(TestData):
     def test_from_csv_deprecation(self):
         # see gh-17812
         with ensure_clean() as path:
-            self.ts.to_csv(path)
+            self.ts.to_csv(path, header=False)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
@@ -44,10 +45,28 @@ class TestSeriesToCSV(TestData):
                 depr_ts = Series.from_csv(path)
                 assert_series_equal(depr_ts, ts)
 
+    @pytest.mark.parametrize("arg", ["path", "header", "both"])
+    def test_to_csv_deprecation(self, arg):
+        # see gh-19715
+        with ensure_clean() as path:
+            if arg == "path":
+                kwargs = dict(path=path, header=False)
+            elif arg == "header":
+                kwargs = dict(path_or_buf=path)
+            else:  # Both discrepancies match.
+                kwargs = dict(path=path)
+
+            with tm.assert_produces_warning(FutureWarning):
+                self.ts.to_csv(**kwargs)
+
+                # Make sure roundtrip still works.
+                ts = self.read_csv(path)
+                assert_series_equal(self.ts, ts, check_names=False)
+
     def test_from_csv(self):
 
         with ensure_clean() as path:
-            self.ts.to_csv(path)
+            self.ts.to_csv(path, header=False)
             ts = self.read_csv(path)
             assert_series_equal(self.ts, ts, check_names=False)
 
@@ -64,7 +83,7 @@ class TestSeriesToCSV(TestData):
             ts_h = self.read_csv(path, header=0)
             assert ts_h.name == "ts"
 
-            self.series.to_csv(path)
+            self.series.to_csv(path, header=False)
             series = self.read_csv(path)
             assert_series_equal(self.series, series, check_names=False)
 
@@ -75,9 +94,8 @@ class TestSeriesToCSV(TestData):
             series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
-            outfile = open(path, "w")
-            outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
-            outfile.close()
+            with open(path, "w") as outfile:
+                outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
             series = self.read_csv(path, sep="|")
             check_series = Series({datetime(1998, 1, 1): 1.0,
@@ -92,13 +110,13 @@ class TestSeriesToCSV(TestData):
         import io
 
         with ensure_clean() as path:
-            self.ts.to_csv(path)
+            self.ts.to_csv(path, header=False)
 
             with io.open(path, newline=None) as f:
                 lines = f.readlines()
             assert (lines[1] != '\n')
 
-            self.ts.to_csv(path, index=False)
+            self.ts.to_csv(path, index=False, header=False)
             arr = np.loadtxt(path)
             assert_almost_equal(arr, self.ts.values)
 
@@ -106,7 +124,7 @@ class TestSeriesToCSV(TestData):
         buf = StringIO()
         s = Series([u("\u05d0"), "d2"], index=[u("\u05d0"), u("\u05d1")])
 
-        s.to_csv(buf, encoding="UTF-8")
+        s.to_csv(buf, encoding="UTF-8", header=False)
         buf.seek(0)
 
         s2 = self.read_csv(buf, index_col=0, encoding="UTF-8")
@@ -116,7 +134,7 @@ class TestSeriesToCSV(TestData):
 
         with ensure_clean() as filename:
             ser = Series([0.123456, 0.234567, 0.567567])
-            ser.to_csv(filename, float_format="%.2f")
+            ser.to_csv(filename, float_format="%.2f", header=False)
 
             rs = self.read_csv(filename)
             xp = Series([0.12, 0.23, 0.57])
@@ -128,39 +146,54 @@ class TestSeriesToCSV(TestData):
         split = s.str.split(r'\s+and\s+')
 
         buf = StringIO()
-        split.to_csv(buf)
+        split.to_csv(buf, header=False)
 
     def test_to_csv_path_is_none(self):
         # GH 8215
         # Series.to_csv() was returning None, inconsistent with
         # DataFrame.to_csv() which returned string
         s = Series([1, 2, 3])
-        csv_str = s.to_csv(path=None)
+        csv_str = s.to_csv(path_or_buf=None, header=False)
         assert isinstance(csv_str, str)
 
-    def test_to_csv_compression(self, compression_no_zip):
-
-        s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
-                   name='X')
+    @pytest.mark.parametrize('s,encoding', [
+        (Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
+                name='X'), None),
+        # GH 21241, 21118
+        (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
+        (Series(["123", u"你好", u"世界"], name=u"中文"), 'gb2312'),
+        (Series(["123", u"Γειά σου", u"Κόσμε"], name=u"Ελληνικά"), 'cp737')
+    ])
+    def test_to_csv_compression(self, s, encoding, compression):
 
         with ensure_clean() as filename:
 
-            s.to_csv(filename, compression=compression_no_zip, header=True)
-
+            s.to_csv(filename, compression=compression, encoding=encoding,
+                     header=True)
             # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression=compression_no_zip,
-                             index_col=0, squeeze=True)
-            assert_series_equal(s, rs)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
+
+            # test the round trip using file handle - to_csv -> read_csv
+            f, _handles = _get_handle(filename, 'w', compression=compression,
+                                      encoding=encoding)
+            with f:
+                s.to_csv(f, encoding=encoding, header=True)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
 
             # explicitly ensure file was compressed
-            with tm.decompress_file(filename, compression_no_zip) as fh:
-                text = fh.read().decode('utf8')
+            with tm.decompress_file(filename, compression) as fh:
+                text = fh.read().decode(encoding or 'utf8')
                 assert s.name in text
 
-            with tm.decompress_file(filename, compression_no_zip) as fh:
+            with tm.decompress_file(filename, compression) as fh:
                 assert_series_equal(s, pd.read_csv(fh,
                                                    index_col=0,
-                                                   squeeze=True))
+                                                   squeeze=True,
+                                                   encoding=encoding))
 
 
 class TestSeriesIO(TestData):

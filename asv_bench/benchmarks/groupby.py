@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    TimeGrouper, Categorical)
+                    TimeGrouper, Categorical, Timestamp)
 import pandas.util.testing as tm
 
 from .pandas_vb_common import setup  # noqa
@@ -14,7 +14,10 @@ from .pandas_vb_common import setup  # noqa
 method_blacklist = {
     'object': {'median', 'prod', 'sem', 'cumsum', 'sum', 'cummin', 'mean',
                'max', 'skew', 'cumprod', 'cummax', 'rank', 'pct_change', 'min',
-               'var', 'mad', 'describe', 'std'}
+               'var', 'mad', 'describe', 'std'},
+    'datetime': {'median', 'prod', 'sem', 'cumsum', 'sum', 'mean', 'skew',
+                 'cumprod', 'cummax', 'pct_change', 'var', 'mad', 'describe',
+                 'std'}
 }
 
 
@@ -90,45 +93,6 @@ class Groups(object):
         self.ser.groupby(self.ser).groups
 
 
-class FirstLast(object):
-
-    goal_time = 0.2
-
-    param_names = ['dtype']
-    params = ['float32', 'float64', 'datetime', 'object']
-
-    def setup(self, dtype):
-        N = 10**5
-        # with datetimes (GH7555)
-        if dtype == 'datetime':
-            self.df = DataFrame({'values': date_range('1/1/2011',
-                                                      periods=N,
-                                                      freq='s'),
-                                 'key': range(N)})
-        elif dtype == 'object':
-            self.df = DataFrame({'values': ['foo'] * N,
-                                 'key': range(N)})
-        else:
-            labels = np.arange(N / 10).repeat(10)
-            data = Series(np.random.randn(len(labels)), dtype=dtype)
-            data[::3] = np.nan
-            data[1::3] = np.nan
-            labels = labels.take(np.random.permutation(len(labels)))
-            self.df = DataFrame({'values': data, 'key': labels})
-
-    def time_groupby_first(self, dtype):
-        self.df.groupby('key').first()
-
-    def time_groupby_last(self, dtype):
-        self.df.groupby('key').last()
-
-    def time_groupby_nth_all(self, dtype):
-        self.df.groupby('key').nth(0, dropna='all')
-
-    def time_groupby_nth_none(self, dtype):
-        self.df.groupby('key').nth(0)
-
-
 class GroupManyLabels(object):
 
     goal_time = 0.2
@@ -149,39 +113,40 @@ class Nth(object):
 
     goal_time = 0.2
 
-    def setup_cache(self):
-        df = DataFrame(np.random.randint(1, 100, (10000, 2)))
-        df.iloc[1, 1] = np.nan
-        return df
+    param_names = ['dtype']
+    params = ['float32', 'float64', 'datetime', 'object']
 
-    def time_frame_nth_any(self, df):
-        df.groupby(0).nth(0, dropna='any')
+    def setup(self, dtype):
+        N = 10**5
+        # with datetimes (GH7555)
+        if dtype == 'datetime':
+            values = date_range('1/1/2011', periods=N, freq='s')
+        elif dtype == 'object':
+            values = ['foo'] * N
+        else:
+            values = np.arange(N).astype(dtype)
 
-    def time_frame_nth(self, df):
-        df.groupby(0).nth(0)
+        key = np.arange(N)
+        self.df = DataFrame({'key': key, 'values': values})
+        self.df.iloc[1, 1] = np.nan  # insert missing data
 
+    def time_frame_nth_any(self, dtype):
+        self.df.groupby('key').nth(0, dropna='any')
 
-    def time_series_nth_any(self, df):
-        df[1].groupby(df[0]).nth(0, dropna='any')
+    def time_groupby_nth_all(self, dtype):
+        self.df.groupby('key').nth(0, dropna='all')
 
-    def time_series_nth(self, df):
-        df[1].groupby(df[0]).nth(0)
+    def time_frame_nth(self, dtype):
+        self.df.groupby('key').nth(0)
 
+    def time_series_nth_any(self, dtype):
+        self.df['values'].groupby(self.df['key']).nth(0, dropna='any')
 
-class NthObject(object):
+    def time_series_nth_all(self, dtype):
+        self.df['values'].groupby(self.df['key']).nth(0, dropna='all')
 
-    goal_time = 0.2
-
-    def setup_cache(self):
-        df = DataFrame(np.random.randint(1, 100, (10000,)), columns=['g'])
-        df['obj'] = ['a'] * 5000 + ['b'] * 5000
-        return df
-
-    def time_nth(self, df):
-        df.groupby('g').nth(5)
-
-    def time_nth_last(self, df):
-        df.groupby('g').last()
+    def time_series_nth(self, dtype):
+        self.df['values'].groupby(self.df['key']).nth(0)
 
 
 class DateAttributes(object):
@@ -243,7 +208,7 @@ class CountMultiDtype(object):
         df.groupby(['key1', 'key2']).count()
 
 
-class CountInt(object):
+class CountMultiInt(object):
 
     goal_time = 0.2
 
@@ -255,10 +220,10 @@ class CountInt(object):
                         'ints2': np.random.randint(0, 1000, size=n)})
         return df
 
-    def time_int_count(self, df):
+    def time_multi_int_count(self, df):
         df.groupby(['key1', 'key2']).count()
 
-    def time_int_nunique(self, df):
+    def time_multi_int_nunique(self, df):
         df.groupby(['key1', 'key2']).nunique()
 
 
@@ -266,7 +231,7 @@ class AggFunctions(object):
 
     goal_time = 0.2
 
-    def setup_cache(self):
+    def setup_cache():
         N = 10**5
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
         fac2 = np.array(['one', 'two'], dtype='O')
@@ -361,9 +326,6 @@ class Size(object):
     def time_multi_size(self):
         self.df.groupby(['key1', 'key2']).size()
 
-    def time_dt_size(self):
-        self.df.groupby(['dates']).size()
-
     def time_dt_timegrouper_size(self):
         with warnings.catch_warnings(record=True):
             self.df.groupby(TimeGrouper(key='dates', freq='M')).size()
@@ -376,15 +338,16 @@ class GroupByMethods(object):
 
     goal_time = 0.2
 
-    param_names = ['dtype', 'method']
-    params = [['int', 'float', 'object'],
+    param_names = ['dtype', 'method', 'application']
+    params = [['int', 'float', 'object', 'datetime'],
               ['all', 'any', 'bfill', 'count', 'cumcount', 'cummax', 'cummin',
                'cumprod', 'cumsum', 'describe', 'ffill', 'first', 'head',
                'last', 'mad', 'max', 'min', 'median', 'mean', 'nunique',
                'pct_change', 'prod', 'rank', 'sem', 'shift', 'size', 'skew',
-               'std', 'sum', 'tail', 'unique', 'value_counts', 'var']]
+               'std', 'sum', 'tail', 'unique', 'value_counts', 'var'],
+              ['direct', 'transformation']]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype, method, application):
         if method in method_blacklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
         ngroups = 1000
@@ -398,12 +361,47 @@ class GroupByMethods(object):
                                   np.random.random(ngroups) * 10.0])
         elif dtype == 'object':
             key = ['foo'] * size
+        elif dtype == 'datetime':
+            key = date_range('1/1/2011', periods=size, freq='s')
 
         df = DataFrame({'values': values, 'key': key})
-        self.df_groupby_method = getattr(df.groupby('key')['values'], method)
 
-    def time_method(self, dtype, method):
-        self.df_groupby_method()
+        if application == 'transform':
+            if method == 'describe':
+                raise NotImplementedError
+
+            self.as_group_method = lambda: df.groupby(
+                'key')['values'].transform(method)
+            self.as_field_method = lambda: df.groupby(
+                'values')['key'].transform(method)
+        else:
+            self.as_group_method = getattr(df.groupby('key')['values'], method)
+            self.as_field_method = getattr(df.groupby('values')['key'], method)
+
+    def time_dtype_as_group(self, dtype, method, application):
+        self.as_group_method()
+
+    def time_dtype_as_field(self, dtype, method, application):
+        self.as_field_method()
+
+
+class RankWithTies(object):
+    # GH 21237
+    goal_time = 0.2
+    param_names = ['dtype', 'tie_method']
+    params = [['float64', 'float32', 'int64', 'datetime64'],
+              ['first', 'average', 'dense', 'min', 'max']]
+
+    def setup(self, dtype, tie_method):
+        N = 10**4
+        if dtype == 'datetime64':
+            data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
+        else:
+            data = np.array([1] * N, dtype=dtype)
+        self.df = DataFrame({'values': data, 'key': ['foo'] * N})
+
+    def time_rank_ties(self, dtype, tie_method):
+        self.df.groupby('key').rank(method=tie_method)
 
 
 class Float32(object):

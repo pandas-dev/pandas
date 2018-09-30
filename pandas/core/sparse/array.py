@@ -16,7 +16,7 @@ from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.generic import ABCSparseSeries
 from pandas.core.dtypes.common import (
-    _ensure_platform_int,
+    ensure_platform_int,
     is_float, is_integer,
     is_object_dtype,
     is_integer_dtype,
@@ -290,6 +290,7 @@ class SparseArray(PandasObject, np.ndarray):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = self.fill_value, self.sp_index
+        object_state[2] = self.sp_values.__reduce__()[2]
         object_state[2] = (object_state[2], subclass_state)
         return tuple(object_state)
 
@@ -338,6 +339,10 @@ class SparseArray(PandasObject, np.ndarray):
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
         return output
+
+    @property
+    def shape(self):
+        return (len(self),)
 
     @property
     def sp_values(self):
@@ -441,7 +446,10 @@ class SparseArray(PandasObject, np.ndarray):
         if sp_loc == -1:
             return self.fill_value
         else:
-            return libindex.get_value_at(self, sp_loc)
+            # libindex.get_value_at will end up calling __getitem__,
+            # so to avoid recursing we need to unwrap `self` so the
+            # ndarray.__getitem__ implementation is called.
+            return libindex.get_value_at(np.asarray(self), sp_loc)
 
     @Appender(_index_shared_docs['take'] % _sparray_doc_kwargs)
     def take(self, indices, axis=0, allow_fill=True,
@@ -463,7 +471,7 @@ class SparseArray(PandasObject, np.ndarray):
             # return scalar
             return self[indices]
 
-        indices = _ensure_platform_int(indices)
+        indices = ensure_platform_int(indices)
         n = len(self)
         if allow_fill and fill_value is not None:
             # allow -1 to indicate self.fill_value,

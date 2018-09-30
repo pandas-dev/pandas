@@ -8,7 +8,7 @@ from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT
-from pandas.compat import is_platform_mac, PY3
+from pandas.compat import PY3
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
@@ -151,7 +151,7 @@ class TestTSPlot(TestPlotBase):
         freaks = ['ms', 'us']
         for freq in freaks:
             _, ax = self.plt.subplots()
-            rng = date_range('1/1/2012', periods=100000, freq=freq)
+            rng = date_range('1/1/2012', periods=100, freq=freq)
             ser = Series(np.random.randn(len(rng)), rng)
             _check_plot_works(ser.plot, ax=ax)
 
@@ -1357,13 +1357,13 @@ class TestTSPlot(TestPlotBase):
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         ax.plot(values)
 
-    @td.xfail_if_mpl_2_2
-    @pytest.mark.skip(
-        is_platform_mac(),
-        "skip on mac for precision display issue on older mpl")
     def test_format_timedelta_ticks_narrow(self):
 
-        if self.mpl_ge_2_0_0:
+        if self.mpl_ge_2_2_0:
+            expected_labels = (['-1 days 23:59:59.999999998'] +
+                               ['00:00:00.0000000{:0>2d}'.format(2 * i)
+                                for i in range(6)])
+        elif self.mpl_ge_2_0_0:
             expected_labels = [''] + [
                 '00:00:00.00000000{:d}'.format(2 * i)
                 for i in range(5)] + ['']
@@ -1382,10 +1382,6 @@ class TestTSPlot(TestPlotBase):
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
 
-    @td.xfail_if_mpl_2_2
-    @pytest.mark.skip(
-        is_platform_mac(),
-        "skip on mac for precision display issue on older mpl")
     def test_format_timedelta_ticks_wide(self):
 
         if self.mpl_ge_2_0_0:
@@ -1402,6 +1398,9 @@ class TestTSPlot(TestPlotBase):
                 '9 days 06:13:20',
                 ''
             ]
+            if self.mpl_ge_2_2_0:
+                expected_labels[0] = '-2 days 20:13:20'
+                expected_labels[-1] = '10 days 10:00:00'
         else:
             expected_labels = [
                 '00:00:00',
@@ -1483,6 +1482,21 @@ class TestTSPlot(TestPlotBase):
         ax.plot(s.index, s.values, color='g')
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
+
+    def test_matplotlib_scatter_datetime64(self):
+        # https://github.com/matplotlib/matplotlib/issues/11391
+        df = DataFrame(np.random.RandomState(0).rand(10, 2),
+                       columns=["x", "y"])
+        df["time"] = date_range("2018-01-01", periods=10, freq="D")
+        fig, ax = self.plt.subplots()
+        ax.scatter(x="time", y="y", data=df)
+        fig.canvas.draw()
+        label = ax.get_xticklabels()[0]
+        if self.mpl_ge_3_0_0:
+            expected = "2017-12-08"
+        else:
+            expected = "2017-12-12"
+        assert label.get_text() == expected
 
 
 def _check_plot_works(f, freq=None, series=None, *args, **kwargs):

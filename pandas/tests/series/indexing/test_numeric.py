@@ -57,14 +57,29 @@ def test_get_nan():
     assert s.get(np.nan) is None
     assert s.get(np.nan, default='Missing') == 'Missing'
 
-    # ensure that fixing the above hasn't broken get
+
+def test_get_nan_multiple():
+    # GH 8569
+    # ensure that fixing "test_get_nan" above hasn't broken get
     # with multiple elements
+    s = pd.Float64Index(range(10)).to_series()
+
+    idx = [2, 30]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert_series_equal(s.get(idx),
+                            Series([2, np.nan], index=idx))
+
+    idx = [2, np.nan]
+    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+        assert_series_equal(s.get(idx),
+                            Series([2, np.nan], index=idx))
+
+    # GH 17295 - all missing keys
     idx = [20, 30]
-    assert_series_equal(s.get(idx),
-                        Series([np.nan] * 2, index=idx))
+    assert(s.get(idx) is None)
+
     idx = [np.nan, np.nan]
-    assert_series_equal(s.get(idx),
-                        Series([np.nan] * 2, index=idx))
+    assert(s.get(idx) is None)
 
 
 def test_delitem():
@@ -229,3 +244,8 @@ def test_int_indexing():
     pytest.raises(KeyError, s.__getitem__, 5)
 
     pytest.raises(KeyError, s.__getitem__, 'c')
+
+
+def test_getitem_int64(test_data):
+    idx = np.int64(5)
+    assert test_data.ts[idx] == test_data.ts[5]

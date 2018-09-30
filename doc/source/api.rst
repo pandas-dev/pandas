@@ -61,6 +61,12 @@ Excel
    read_excel
    ExcelFile.parse
 
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/class_without_autosummary.rst
+
+   ExcelWriter
+
 JSON
 ~~~~
 
@@ -99,6 +105,8 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
    HDFStore.info
+   HDFStore.keys
+   HDFStore.walk
 
 Feather
 ~~~~~~~
@@ -263,7 +271,11 @@ Constructor
 Attributes
 ~~~~~~~~~~
 **Axes**
-  * **index**: axis labels
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.index
 
 .. autosummary::
    :toctree: generated/
@@ -429,7 +441,6 @@ Computations / Descriptive Stats
    Series.value_counts
    Series.compound
    Series.nonzero
-   Series.ptp
 
 
 Reindexing / Selection / Label manipulation
@@ -439,6 +450,7 @@ Reindexing / Selection / Label manipulation
 
    Series.align
    Series.drop
+   Series.droplevel
    Series.drop_duplicates
    Series.duplicated
    Series.equals
@@ -539,6 +551,7 @@ These can be accessed like ``Series.dt.<property>``.
 
    Series.dt.date
    Series.dt.time
+   Series.dt.timetz
    Series.dt.year
    Series.dt.month
    Series.dt.day
@@ -845,13 +858,15 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **index**: row labels
-  * **columns**: column labels
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.index
+   DataFrame.columns
 
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.as_matrix
    DataFrame.dtypes
    DataFrame.ftypes
    DataFrame.get_dtype_counts
@@ -1056,6 +1071,7 @@ Reshaping, sorting, transposing
 .. autosummary::
    :toctree: generated/
 
+   DataFrame.droplevel
    DataFrame.pivot
    DataFrame.pivot_table
    DataFrame.reorder_levels
@@ -1193,9 +1209,9 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **items**: axis 0; each item corresponds to a DataFrame contained inside
-  * **major_axis**: axis 1; the index (rows) of each of the DataFrames
-  * **minor_axis**: axis 2; the columns of each of the DataFrames
+* **items**: axis 0; each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1; the index (rows) of each of the DataFrames
+* **minor_axis**: axis 2; the columns of each of the DataFrames
 
 .. autosummary::
    :toctree: generated/
@@ -1452,7 +1468,6 @@ Modifying and Computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_lexsorted_for_tuple
    Index.is_mixed
    Index.is_numeric
    Index.is_object
@@ -1464,10 +1479,18 @@ Modifying and Computations
    Index.where
    Index.take
    Index.putmask
-   Index.set_names
    Index.unique
    Index.nunique
    Index.value_counts
+
+Compatibility with MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.set_names
+   Index.is_lexsorted_for_tuple
+   Index.droplevel
 
 Missing Values
 ~~~~~~~~~~~~~~
@@ -1625,6 +1648,9 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.get_loc
+   IntervalIndex.get_indexer
+   IntervalIndex.set_closed
 
 
 .. _api.multiindex:
@@ -1681,6 +1707,7 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.unique
 
 MultiIndex Selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -1719,6 +1746,7 @@ Time/Date Components
    DatetimeIndex.nanosecond
    DatetimeIndex.date
    DatetimeIndex.time
+   DatetimeIndex.timetz
    DatetimeIndex.dayofyear
    DatetimeIndex.weekofyear
    DatetimeIndex.week
@@ -1852,8 +1880,6 @@ Methods
     PeriodIndex.asfreq
     PeriodIndex.strftime
     PeriodIndex.to_timestamp
-    PeriodIndex.tz_convert
-    PeriodIndex.tz_localize
 
 Scalars
 -------
@@ -2098,6 +2124,7 @@ Standard moving window functions
    Rolling.skew
    Rolling.kurt
    Rolling.apply
+   Rolling.aggregate
    Rolling.quantile
    Window.mean
    Window.sum
@@ -2125,6 +2152,7 @@ Standard expanding window functions
    Expanding.skew
    Expanding.kurt
    Expanding.apply
+   Expanding.aggregate
    Expanding.quantile
 
 Exponentially-weighted moving window functions
@@ -2200,6 +2228,7 @@ Computations / Descriptive Stats
    GroupBy.ohlc
    GroupBy.prod
    GroupBy.rank
+   GroupBy.pct_change
    GroupBy.size
    GroupBy.sem
    GroupBy.std
@@ -2329,6 +2358,7 @@ Computations / Descriptive Stats
    Resampler.std
    Resampler.sum
    Resampler.var
+   Resampler.quantile
 
 Style
 -----
@@ -2535,9 +2565,12 @@ objects.
 .. autosummary::
    :toctree: generated/
 
+   api.extensions.register_extension_dtype
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
+   api.extensions.ExtensionDtype
+   api.extensions.ExtensionArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
@@ -2546,12 +2579,13 @@ objects.
    :hidden:
 
    generated/pandas.DataFrame.blocks
-   generated/pandas.DataFrame.columns
-   generated/pandas.DataFrame.index
+   generated/pandas.DataFrame.as_matrix
    generated/pandas.DataFrame.ix
    generated/pandas.Index.asi8
    generated/pandas.Index.data
    generated/pandas.Index.flags
+   generated/pandas.Index.holds_integer
+   generated/pandas.Index.is_type_compatible
    generated/pandas.Index.nlevels
    generated/pandas.Index.sort
    generated/pandas.Panel.agg
@@ -2566,6 +2600,15 @@ objects.
    generated/pandas.Series.asobject
    generated/pandas.Series.blocks
    generated/pandas.Series.from_array
-   generated/pandas.Series.index
    generated/pandas.Series.ix
-   generated/pandas.Timestamp.offset
+   generated/pandas.Series.imag
+   generated/pandas.Series.real
+
+
+.. Can't convince sphinx to generate toctree for this class attribute.
+.. So we do it manually to avoid a warning
+
+.. toctree::
+   :hidden:
+
+   generated/pandas.api.extensions.ExtensionDtype.na_value
