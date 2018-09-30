@@ -208,14 +208,13 @@ def _normalize_dataframes(frame_list, verify_inputs=True, sort=False):
     """
     orig_columns = [df.columns for df in frame_list]
 
-    kwargs = {
-        'verify_dups': verify_inputs,
-        'allow_matching_dups': verify_inputs,
-        'sort': sort,
-    }
-
     try:
-        merged_columns = _merge_index_list(orig_columns, **kwargs)
+        merged_columns = _merge_index_list(
+            orig_columns,
+            verify_dups=verify_inputs,
+            allow_matching_dups=verify_inputs,  # same-id indexes allowed
+            sort=sort
+        )
     except _DuplicatesError:
         raise InvalidIndexError("Indexes with duplicates are only allowed"
                                 " when they are the same (a is b).")
