@@ -78,7 +78,7 @@ def _get_terminal_size_windows():
         h = windll.kernel32.GetStdHandle(-12)
         csbi = create_string_buffer(22)
         res = windll.kernel32.GetConsoleScreenBufferInfo(h, csbi)
-    except:
+    except (AttributeError, ValueError):
         return None
     if res:
         import struct
@@ -108,7 +108,7 @@ def _get_terminal_size_tput():
         output = proc.communicate(input=None)
         rows = int(output[0])
         return (cols, rows)
-    except:
+    except OSError:
         return None
 
 
@@ -120,7 +120,7 @@ def _get_terminal_size_linux():
             import struct
             cr = struct.unpack(
                 'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
-        except:
+        except struct.error:
             return None
         return cr
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
@@ -129,13 +129,13 @@ def _get_terminal_size_linux():
             fd = os.open(os.ctermid(), os.O_RDONLY)
             cr = ioctl_GWINSZ(fd)
             os.close(fd)
-        except:
+        except OSError:
             pass
     if not cr or cr == (0, 0):
         try:
             from os import environ as env
             cr = (env['LINES'], env['COLUMNS'])
-        except:
+        except ValueError:
             return None
     return int(cr[1]), int(cr[0])
 
