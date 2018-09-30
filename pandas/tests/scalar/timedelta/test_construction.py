@@ -212,17 +212,13 @@ def test_td_constructor_value_error():
         Timedelta(nanoseconds='abc')
 
 
-@pytest.mark.parametrize("redundant_unit, expectation", [
-    ("", tm.do_not_raise),
-    ("d", pytest.raises(ValueError)),
-    ("us", pytest.raises(ValueError))])
-@pytest.mark.parametrize("unit", [
-    "d", "m", "s", "us"])
-@pytest.mark.parametrize("sign", [
-    +1, -1])
-@pytest.mark.parametrize("num", [
-    0.001, 1, 10])
-def test_string_with_unit(num, sign, unit, redundant_unit, expectation):
+@pytest.mark.parametrize("str_unit, unit, expectation", [
+    ("", "s", tm.do_not_raise),
+    ("s", "s", pytest.raises(ValueError)),
+    ("", None, pytest.raises(ValueError)),
+    ("s", "d", pytest.raises(ValueError)),])
+def test_string_with_unit(str_unit, unit, expectation):
     with expectation:
-        assert Timedelta(str(sign * num) + redundant_unit, unit=unit) \
-        == Timedelta(sign * num, unit=unit)
+        val_str = "10{}".format(str_unit)
+        assert Timedelta(val_str, unit=unit) == Timedelta(10, unit=unit)
+        assert pd.to_timedelta(val_str, unit=unit) == Timedelta(10, unit=unit)
