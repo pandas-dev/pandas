@@ -726,7 +726,6 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
 
             new_dates = conversion.tz_localize_to_utc(
                 self.asi8, tz, ambiguous=ambiguous, nonexistent=nonexistent,
-                errors=errors
             )
         new_dates = new_dates.view(_NS_DTYPE)
         return self._shallow_copy(new_dates, tz=tz)

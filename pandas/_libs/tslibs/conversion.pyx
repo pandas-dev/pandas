@@ -825,7 +825,7 @@ def tz_convert(int64_t[:] vals, object tz1, object tz2):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
-                       object nonexistent=None, object errors=None):
+                       object nonexistent=None):
     """
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
@@ -840,10 +840,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         If arraylike, must have the same length as vals
 
         .. versionadded:: 0.24.0
-
-    errors : {"raise", "coerce"}, default None
-
-         .. deprecated:: 0.24.0
 
     Returns
     -------
@@ -860,7 +856,6 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         npy_datetimestruct dts
         bint infer_dst = False, is_dst = False, fill = False
         bint shift = False, fill_nonexist = False
-        bint is_coerce = errors == 'coerce'
 
     # Vectorized version of DstTzInfo.localize
     if tz == UTC or tz is None:
@@ -893,7 +888,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
         ambiguous_array = np.asarray(ambiguous)
 
     if is_string_object(nonexistent):
-        if nonexistent == 'NaT' or is_coerce:
+        if nonexistent == 'NaT':
             fill_nonexist = True
         elif nonexistent == 'shift':
             shift = True

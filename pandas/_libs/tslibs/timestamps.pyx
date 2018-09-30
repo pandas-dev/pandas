@@ -963,8 +963,7 @@ class Timestamp(_Timestamp):
                 ambiguous = [ambiguous]
             value = tz_localize_to_utc(np.array([self.value], dtype='i8'), tz,
                                        ambiguous=ambiguous,
-                                       nonexistent=nonexistent,
-                                       errors=errors)[0]
+                                       nonexistent=nonexistent)[0]
             return Timestamp(value, tz=tz)
         else:
             if tz is None:
