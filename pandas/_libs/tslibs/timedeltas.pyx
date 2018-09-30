@@ -1021,6 +1021,8 @@ class Timedelta(_Timedelta):
                 try:
                     value = float(value)
                 except ValueError:
+                    if unit is not None:
+                        raise ValueError("Unit cannot be defined for strings other than pure integer/floats.")
                     value = parse_timedelta_string(value)
                     value = np.timedelta64(value)
                 else:
