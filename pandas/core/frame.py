@@ -7390,20 +7390,23 @@ class DataFrame(NDFrame):
     def quantile(self, q=0.5, axis=0, numeric_only=True,
                  interpolation='linear'):
         """
-        Return values at the given quantile over requested axis.
+        Return value(s) at the given quantile over requested axis.
+
+        This function calculates the 'q' quantile values on the dataframe,
+        dividing data points into groups along `axis` axis.
+        In case of insufficient number of data points for clean division
+        into groups, specify `interpolation` scheme to implement.
 
         Parameters
         ----------
-        q : float or array-like, default 0.5 (50% quantile)
-            0 <= q <= 1, the quantile(s) to compute
-        axis : {0, 1, 'index', 'columns'} (default 0)
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        q : float or array-like, default 0.5 (50% quantile) [0 <= q <= 1]
+            The quantile(s) to compute.
+        axis : boolean{0, 1, 'index', 'columns'} (default 0)
+            For row-wise : 0 or'index', for column-wise : 1 or 'columns'.
         numeric_only : boolean, default True
             If False, the quantile of datetime and timedelta data will be
-            computed as well
+            computed as well.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
-            .. versionadded:: 0.18.0
-
             This optional parameter specifies the interpolation method to use,
             when the desired quantile lies between two data points `i` and `j`:
 
@@ -7418,21 +7421,20 @@ class DataFrame(NDFrame):
         -------
         quantiles : Series or DataFrame
 
-            - If ``q`` is an array, a DataFrame will be returned where the
-              index is ``q``, the columns are the columns of self, and the
+            - If `q` is an array, a DataFrame will be returned where the
+              index is `q`, the columns are the columns of self, and the
               values are the quantiles.
-            - If ``q`` is a float, a Series will be returned where the
+            - If `q` is a float, a Series will be returned where the
               index is the columns of self and the values are the quantiles.
 
         Examples
         --------
-
-        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
-                              columns=['a', 'b'])
+        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]), \
+                                        columns=['a', 'b'])
         >>> df.quantile(.1)
         a    1.3
         b    3.7
-        dtype: float64
+        Name: 0.1, dtype: float64
         >>> df.quantile([.1, .5])
                a     b
         0.1  1.3   3.7
@@ -7441,11 +7443,12 @@ class DataFrame(NDFrame):
         Specifying `numeric_only=False` will also compute the quantile of
         datetime and timedelta data.
 
-        >>> df = pd.DataFrame({'A': [1, 2],
-                               'B': [pd.Timestamp('2010'),
-                                     pd.Timestamp('2011')],
-                               'C': [pd.Timedelta('1 days'),
-                                     pd.Timedelta('2 days')]})
+        >>> df = pd.DataFrame({ 'A': [1, 2], \
+                                'B': [pd.Timestamp('2010'), \
+                                      pd.Timestamp('2011')], \
+                                'C': [pd.Timedelta('1 days'), \
+                                      pd.Timedelta('2 days')]})
+
         >>> df.quantile(0.5, numeric_only=False)
         A                    1.5
         B    2010-07-02 12:00:00
@@ -7455,7 +7458,9 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+            Returns the rolling quantile.
         numpy.percentile
+            Returns percentile.
         """
         self._check_percentile(q)
 
