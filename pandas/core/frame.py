@@ -9,11 +9,9 @@ alignment and a host of useful data manipulation methods having to do with the
 labeling information
 """
 from __future__ import division
-# pylint: disable=E1101,E1103
-# pylint: disable=W0212,W0231,W0703,W0622
 
-import functools
 import collections
+import functools
 import itertools
 import sys
 import warnings
@@ -22,7 +20,24 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+import pandas.core.algorithms as algorithms
+import pandas.core.common as com
+import pandas.core.indexes.base as ibase
+import pandas.core.nanops as nanops
+import pandas.core.ops as ops
+import pandas.io.formats.console as console
+import pandas.io.formats.format as fmt
+import pandas.plotting._core as gfx
+from pandas import compat
+from pandas._libs import lib, algos as libalgos
+from pandas.compat import PY36
+from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
+                           OrderedDict, raise_with_traceback,
+                           string_and_binary_types)
+from pandas.compat.numpy import function as nv
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.config import get_option
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -61,47 +76,27 @@ from pandas.core.dtypes.common import (
     is_named_tuple)
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.missing import isna, notna
-
-
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)
+from pandas.core.indexes.datetimes import DatetimeIndex
+from pandas.core.indexes.period import PeriodIndex
+from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexing import (maybe_droplevels, convert_to_index_sliceable,
                                   check_bool_indexer)
 from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_arrays,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
-from pandas.core.arrays import Categorical, ExtensionArray
-import pandas.core.algorithms as algorithms
-from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
-                           OrderedDict, raise_with_traceback,
-                           string_and_binary_types)
-from pandas import compat
-from pandas.compat import PY36
-from pandas.compat.numpy import function as nv
+from pandas.io.formats.printing import pprint_thing
 from pandas.util._decorators import (Appender, Substitution,
                                      rewrite_axis_style_signature,
                                      deprecate_kwarg)
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
-from pandas.core.indexes.period import PeriodIndex
-from pandas.core.indexes.datetimes import DatetimeIndex
-from pandas.core.indexes.timedeltas import TimedeltaIndex
-import pandas.core.indexes.base as ibase
-
-import pandas.core.common as com
-import pandas.core.nanops as nanops
-import pandas.core.ops as ops
-import pandas.io.formats.console as console
-import pandas.io.formats.format as fmt
-from pandas.io.formats.printing import pprint_thing
-import pandas.plotting._core as gfx
-
-from pandas._libs import lib, algos as libalgos
-
-from pandas.core.config import get_option
+# pylint: disable=E1101,E1103
+# pylint: disable=W0212,W0231,W0703,W0622
 
 # ---------------------------------------------------------------------
 # Docstring templates
@@ -1003,7 +998,7 @@ class DataFrame(NDFrame):
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
                 raise ValueError('Dot product shape mismatch, '
-                                 '{l} vs {r}'.format(l=lvals.shape,
+                                 '{s} vs {r}'.format(s=lvals.shape,
                                                      r=rvals.shape))
 
         if isinstance(other, DataFrame):

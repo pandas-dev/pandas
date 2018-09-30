@@ -3,25 +3,34 @@ High level interface to PyTables for reading and writing pandas data structures
 to disk
 """
 
-# pylint: disable-msg=E1101,W0613,W0603
-from datetime import datetime, date
-import time
-import re
 import copy
 import itertools
-import warnings
 import os
+import re
+import time
+import warnings
+# pylint: disable-msg=E1101,W0613,W0603
+from datetime import datetime, date
 from distutils.version import LooseVersion
 
 import numpy as np
 
+import pandas.core.common as com
+from pandas import (Series, DataFrame, Panel, Index,
+                    MultiIndex, Int64Index, isna, concat, to_datetime,
+                    SparseSeries, SparseDataFrame, PeriodIndex,
+                    DatetimeIndex, TimedeltaIndex)
+from pandas import compat
 from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-
-from pandas.errors import PerformanceWarning
-from pandas import compat
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
-
+from pandas.core import config
+from pandas.core.algorithms import match, unique
+from pandas.core.arrays.categorical import (Categorical,
+                                            _factorize_from_iterables)
+from pandas.core.base import StringMixin
+from pandas.core.computation.pytables import Expr, maybe_expression
+from pandas.core.config import get_option
 from pandas.core.dtypes.common import (
     is_list_like,
     is_categorical_dtype,
@@ -32,28 +41,14 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
-
-from pandas.core import config
-from pandas.core.config import get_option
-from pandas.core.sparse.array import BlockIndex, IntIndex
-from pandas.core.base import StringMixin
-import pandas.core.common as com
-from pandas.core.algorithms import match, unique
-from pandas.core.arrays.categorical import (Categorical,
-                                            _factorize_from_iterables)
+from pandas.core.index import ensure_index
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
-from pandas.core.index import ensure_index
-from pandas.core.computation.pytables import Expr, maybe_expression
-
+from pandas.core.sparse.array import BlockIndex, IntIndex
+from pandas.errors import PerformanceWarning
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
-
-from pandas import (Series, DataFrame, Panel, Index,
-                    MultiIndex, Int64Index, isna, concat, to_datetime,
-                    SparseSeries, SparseDataFrame, PeriodIndex,
-                    DatetimeIndex, TimedeltaIndex)
 
 # versioning attribute
 _version = '0.15.2'
@@ -4172,13 +4167,13 @@ class AppendableTable(LegacyTable):
         values = self.selection.select_coords()
 
         # delete the rows in reverse order
-        l = Series(values).sort_values()
-        ln = len(l)
+        sorted_series = Series(values).sort_values()
+        ln = len(sorted_series)
 
         if ln:
 
             # construct groups of consecutive rows
-            diff = l.diff()
+            diff = sorted_series.diff()
             groups = list(diff[diff > 1].index)
 
             # 1 group
@@ -4196,7 +4191,7 @@ class AppendableTable(LegacyTable):
             # we must remove in reverse order!
             pg = groups.pop()
             for g in reversed(groups):
-                rows = l.take(lrange(g, pg))
+                rows = sorted_series.take(lrange(g, pg))
                 table.remove_rows(start=rows[rows.index[0]
                                              ], stop=rows[rows.index[-1]] + 1)
                 pg = g
