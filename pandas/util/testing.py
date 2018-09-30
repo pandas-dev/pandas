@@ -48,6 +48,14 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 
+if sys.version_info >= (3, 3):
+    from contextlib import ExitStack as nullcontext
+else:
+    from contextlib2 import ExitStack as nullcontext
+
+
+do_not_raise = nullcontext()
+
 
 N = 30
 K = 4
