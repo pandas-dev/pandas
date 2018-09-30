@@ -458,23 +458,6 @@ class TestAppendColumnsIndex(object):
         expected.columns = col_index
         assert_frame_equal(result, expected)
 
-        # df2.append([])
-        result = df2.append([], sort=False)
-        expected = df2.copy()
-        assert_frame_equal(result, expected)
-
-        # df2.append([df1])
-        result = df2.append([df1], ignore_index=True, sort=False)
-        expected = pd.DataFrame([[4, 5, 6], [1, 2, 3]])
-        expected.columns = col_index
-        assert_frame_equal(result, expected)
-
-        # df2.append([df1, df1])
-        result = df2.append([df1, df1], ignore_index=True, sort=False)
-        expected = pd.DataFrame([[4, 5, 6], [1, 2, 3], [1, 2, 3]])
-        expected.columns = col_index
-        assert_frame_equal(result, expected)
-
     @pytest.mark.parametrize('col_index', indexes_with_dups, ids=cls_name)
     def test_bad_duplicates_without_sort(self, col_index):
         # When the indexes do not share a common identity, duplicates are not
