@@ -14,7 +14,7 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas import compat
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import (cache_readonly, deprecate_kwarg)
 
 from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype)
@@ -319,20 +319,33 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self.shift(ordinal_delta)
 
-    def shift(self, n):
+    @deprecate_kwarg(old_arg_name='n', new_arg_name='periods')
+    def shift(self, periods):
         """
-        Specialized shift which produces an Period Array/Index
+        Shift index by desired number of increments.
+
+        This method is for shifting the values of period indexes
+        by a specified time increment.
 
         Parameters
         ----------
-        n : int
-            Periods to shift by
+        periods : int
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+
+            .. versionchanged:: 0.24.0
 
         Returns
         -------
-        shifted : Period Array/Index
+        pandas.PeriodIndex
+            Shifted index.
+
+        See Also
+        --------
+        Index.shift : Shift values of Index.
+        DatetimeIndex.shift : Shift values of DatetimeIndex.
         """
-        values = self._ndarray_values + n * self.freq.n
+        values = self._ndarray_values + periods * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
         return self._shallow_copy(values=values)

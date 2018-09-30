@@ -8294,6 +8294,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         Index.shift : Shift values of Index.
         DatetimeIndex.shift : Shift values of DatetimeIndex.
+        PeriodIndex.shift : Shift values of PeriodIndex.
 
         Notes
         -----

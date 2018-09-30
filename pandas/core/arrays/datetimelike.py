@@ -552,6 +552,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         See Also
         --------
         Index.shift : Shift values of Index.
+        PeriodIndex.shift : Shift values of PeriodIndex.
         """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
