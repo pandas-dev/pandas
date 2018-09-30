@@ -391,12 +391,16 @@ def nansum(values, axis=None, skipna=True, min_count=0, mask=None):
 
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[dtype]
     axis: int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
         nan-mask if known
+
+    Returns
+    -------
+    result : dtype
 
     Examples
     --------
@@ -430,6 +434,12 @@ def nanmean(values, axis=None, skipna=True, mask=None):
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
+
+    Returns
+    -------
+    result : float
+        Unless input is a float array, in which case use the same
+        precision as the input array.
 
     Examples
     --------
@@ -471,6 +481,12 @@ def nanmedian(values, axis=None, skipna=True, mask=None):
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
+
+    Returns
+    -------
+    result : float
+        Unless input is a float array, in which case use the same
+        precision as the input array.
 
     Examples
     --------
@@ -556,6 +572,12 @@ def nanstd(values, axis=None, skipna=True, ddof=1, mask=None):
     mask : ndarray[bool], optional
         nan-mask if known
 
+    Returns
+    -------
+    result : float
+        Unless input is a float array, in which case use the same
+        precision as the input array.
+
     Examples
     --------
     >>> import pandas.core.nanops as nanops
@@ -584,6 +606,12 @@ def nanvar(values, axis=None, skipna=True, ddof=1, mask=None):
         where N represents the number of elements.
     mask : ndarray[bool], optional
         nan-mask if known
+
+    Returns
+    -------
+    result : float
+        Unless input is a float array, in which case use the same
+        precision as the input array.
 
     Examples
     --------
@@ -646,6 +674,12 @@ def nansem(values, axis=None, skipna=True, ddof=1, mask=None):
     mask : ndarray[bool], optional
         nan-mask if known
 
+    Returns
+    -------
+    result : float64
+        Unless input is a float array, in which case use the same
+        precision as the input array.
+
     Examples
     --------
     >>> import pandas.core.nanops as nanops
@@ -706,16 +740,17 @@ def nanargmax(values, axis=None, skipna=True, mask=None):
     mask : ndarray[bool], optional
         nan-mask if known
 
+    Returns
+    --------
+    result : int
+        The index of max value in specified axis or -1 in the NA case
+
     Examples
     --------
     >>> import pandas.core.nanops as nanops
     >>> s = pd.Series([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmax(s)
     4
-
-    Returns
-    --------
-    The index of max value in specified axis or -1 in the NA case
     """
     values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='-inf',
                                          mask=mask)
@@ -735,16 +770,17 @@ def nanargmin(values, axis=None, skipna=True, mask=None):
     mask : ndarray[bool], optional
         nan-mask if known
 
+    Returns
+    --------
+    result : int
+        The index of min value in specified axis or -1 in the NA case
+
     Examples
     --------
     >>> import pandas.core.nanops as nanops
     >>> s = pd.Series([1, 2, 3, np.nan, 4])
     >>> nanops.nanargmin(s)
     0
-
-    Returns
-    --------
-    The index of min value in specified axis or -1 in the NA case
     """
     values, mask, dtype, _ = _get_values(values, skipna, fill_value_typ='+inf',
                                          mask=mask)
@@ -768,6 +804,12 @@ def nanskew(values, axis=None, skipna=True, mask=None):
     skipna : bool, default True
     mask : ndarray[bool], optional
         nan-mask if known
+
+    Returns
+    -------
+    result : float64
+        Unless input is a float array, in which case use the same
+        precision as the input array.
 
     Examples
     --------
@@ -843,6 +885,12 @@ def nankurt(values, axis=None, skipna=True, mask=None):
     mask : ndarray[bool], optional
         nan-mask if known
 
+    Returns
+    -------
+    result : float64
+        Unless input is a float array, in which case use the same
+        precision as the input array.
+
     Examples
     --------
     >>> import pandas.core.nanops as nanops
@@ -914,12 +962,16 @@ def nanprod(values, axis=None, skipna=True, min_count=0, mask=None):
     """
     Parameters
     ----------
-    values : ndarray
+    values : ndarray[dtype]
     axis: int, optional
     skipna : bool, default True
     min_count: int, default 0
     mask : ndarray[bool], optional
         nan-mask if known
+
+    Returns
+    -------
+    result : dtype
 
     Examples
     --------
