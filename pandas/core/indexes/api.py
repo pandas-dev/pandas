@@ -295,7 +295,7 @@ def _merge_index_list(index_list,
 
     # edge results
     if len(uindex_list) == 0:
-        return pd.Index()
+        return Index([])
     elif len(uindex_list) == 1:
         return uindex_list[0]
 
