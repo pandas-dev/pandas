@@ -1700,6 +1700,7 @@ MultiIndex Components
    MultiIndex.set_levels
    MultiIndex.set_labels
    MultiIndex.to_hierarchical
+   MultiIndex.to_index
    MultiIndex.to_frame
    MultiIndex.is_lexsorted
    MultiIndex.sortlevel
