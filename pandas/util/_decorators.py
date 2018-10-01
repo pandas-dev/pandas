@@ -290,6 +290,12 @@ class Appender(object):
     """
 
     def __init__(self, addendum, join='', indents=0):
+        if callable(addendum):
+            # allow for passing @Appender(func) instead of
+            #   @Appender(func.__doc__), both more succinct and helpful when
+            #   -oo optimization strips docstrings
+            addendum = addendum.__doc__ or ''
+
         if indents > 0:
             self.addendum = indent(addendum, indents=indents)
         else:

@@ -10,7 +10,7 @@ import pytest
 from pandas.compat import intern, PY3
 import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util._decorators import deprecate_kwarg, make_signature
+from pandas.util._decorators import deprecate_kwarg, make_signature, Appender
 from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_args_and_kwargs,
                                      validate_bool_kwarg)
@@ -531,3 +531,17 @@ def test_safe_import(monkeypatch):
     monkeypatch.setitem(sys.modules, mod_name, mod)
     assert not td.safe_import(mod_name, min_version="2.0")
     assert td.safe_import(mod_name, min_version="1.0")
+
+
+class TestAppender(object):
+    def test_pass_callable(self):
+
+        def func():
+            """foo"""
+            return
+
+        @Appender(func)
+        def wrapped():
+            return
+
+        assert wrapped.__doc__ == "foo"
