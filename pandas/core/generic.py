@@ -7063,7 +7063,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, observed=False, **kwargs):
         """
-        Group series using a mapper or by a series of columns.
+        Group dataframe or series using a mapper or by a series of columns.
 
         A groupby operation involves some combination of splitting the
         object, applying a function, and combining the results. This can be
@@ -7081,7 +7081,7 @@ class NDFrame(PandasObject, SelectionMixin):
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
             that a tuple is interpreted a (single) key.
-        axis : {0 or 'index', 1 or 'columns'}
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
@@ -7112,57 +7112,63 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        DataFrameGroupBy object
-            An object that contains information about the groups.
+        DataFrameGroupBy or SeriesGroupBy
+            Depends on the calling object and returns groupby object that 
+            contains information about the groups.
 
         See Also
         --------
         resample : Convenience method for frequency conversion and resampling
             of time series.
 
+        Notes
+        -----
+        See the `user guide
+        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+
         Examples
         --------
-        >>> df = pd.DataFrame({'col1' : ['A', 'A', 'B', 'B'],
-        ...                    'col2' : [1, 2, 3, 4]})
+        >>> df = pd.DataFrame({'Student' : ['Bob', 'Bob', 'Mary', 'Mary'],
+        ...                    'Grade' : [100, 92, 82, 85]})
         >>> df
-          col1  col2
-        0    A     1
-        1    A     2
-        2    B     3
-        3    B     4
-        >>> df.groupby(['col1']).mean()
-              col2
-        col1
-        A      1.5
-        B      3.5
+          Student  Grade
+        0     Bob    100
+        1     Bob     92
+        2    Mary     82
+        3    Mary     85
+        >>> df.groupby(['Student']).mean()
+                 Grade
+        Student       
+        Bob       96.0
+        Mary      83.5
 
         **Hierarchical Indexes**
 
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
 
-        >>> arrays = [np.array(['A', 'A', 'B', 'B']),
-        ...           np.array(['foo', 'bar', 'foo', 'bar'])]
-        >>> df = pd.DataFrame(np.array([1, 2, 3, 4]), index=arrays)
+        >>> arrays = [['TX', 'TX', 'NY', 'NY'],
+        ...           ['Urban', 'Rural', 'Urban', 'Rural']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('State', 'Type'))
+        >>> df = pd.DataFrame({'Pop %' : [84.7, 15.3, 87.9, 12.1]},
+        ...                    index=index)
         >>> df
-               0
-        A foo  1
-          bar  2
-        B foo  3
-          bar  4
-        >>> df.groupby(level=0).mean()
-             0
-        A  1.5
-        B  3.5
+                     Pop %
+        State Type        
+        TX    Urban   84.7
+              Rural   15.3
+        NY    Urban   87.9
+              Rural   12.1
+        >>> df.groupby(level=0).sum()
+               Pop %
+        State       
+        NY      100.0
+        TX      100.0
         >>> df.groupby(level=1).mean()
-             0
-        bar  3
-        foo  2
-
-        Notes
-        -----
-        See the `user guide
-        <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
+               Pop %
+        Type        
+        Rural   13.7
+        Urban   86.3
         """
         from pandas.core.groupby.groupby import groupby
 
