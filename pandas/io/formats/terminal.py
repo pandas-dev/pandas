@@ -135,7 +135,7 @@ def _get_terminal_size_linux():
         try:
             from os import environ as env
             cr = (env['LINES'], env['COLUMNS'])
-        except ValueError:
+        except (ValueError, KeyError):
             return None
     return int(cr[1]), int(cr[0])
 
