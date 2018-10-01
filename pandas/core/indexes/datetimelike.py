@@ -277,7 +277,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         except TypeError:
             return result
 
-    def _ensure_localized(self, result, ambiguous='raise'):
+    def _ensure_localized(self, arg, ambiguous='raise', from_utc=False):
         """
         ensure that we are re-localized
 
@@ -286,9 +286,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         Parameters
         ----------
-        result : DatetimeIndex / i8 ndarray
-        ambiguous : str, bool, or bool-ndarray
-            default 'raise'
+        arg : DatetimeIndex / i8 ndarray
+        ambiguous : str, bool, or bool-ndarray, default 'raise'
+        from_utc : bool, default False
+            If True, localize the i8 ndarray to UTC first before converting to
+            the appropriate tz. If False, localize directly to the tz.
 
         Returns
         -------
@@ -297,10 +299,13 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
         # reconvert to local tz
         if getattr(self, 'tz', None) is not None:
-            if not isinstance(result, ABCIndexClass):
-                result = self._simple_new(result)
-            result = result.tz_localize(self.tz, ambiguous=ambiguous)
-        return result
+            if not isinstance(arg, ABCIndexClass):
+                arg = self._simple_new(arg)
+            if from_utc:
+                arg = arg.tz_localize('UTC').tz_convert(self.tz)
+            else:
+                arg = arg.tz_localize(self.tz, ambiguous=ambiguous)
+        return arg
 
     def _box_values_as_index(self):
         """
@@ -622,11 +627,11 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
 
     @Appender(_index_shared_docs['where'] % _index_doc_kwargs)
     def where(self, cond, other=None):
-        other = _ensure_datetimelike_to_i8(other)
-        values = _ensure_datetimelike_to_i8(self)
+        other = _ensure_datetimelike_to_i8(other, to_utc=True)
+        values = _ensure_datetimelike_to_i8(self, to_utc=True)
         result = np.where(cond, values, other).astype('i8')
 
-        result = self._ensure_localized(result)
+        result = self._ensure_localized(result, from_utc=True)
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
@@ -695,23 +700,37 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         return super(DatetimeIndexOpsMixin, self).astype(dtype, copy=copy)
 
 
-def _ensure_datetimelike_to_i8(other):
-    """ helper for coercing an input scalar or array to i8 """
+def _ensure_datetimelike_to_i8(other, to_utc=False):
+    """
+    helper for coercing an input scalar or array to i8
+
+    Parameters
+    ----------
+    other : 1d array
+    to_utc : bool, default False
+        If True, convert the values to UTC before extracting the i8 values
+        If False, extract the i8 values directly.
+
+    Returns
+    -------
+    i8 1d array
+    """
     if is_scalar(other) and isna(other):
-        other = iNaT
+        return iNaT
     elif isinstance(other, ABCIndexClass):
         # convert tz if needed
         if getattr(other, 'tz', None) is not None:
-            other = other.tz_localize(None).asi8
-        else:
-            other = other.asi8
+            if to_utc:
+                other = other.tz_convert('UTC')
+            else:
+                other = other.tz_localize(None)
     else:
         try:
-            other = np.array(other, copy=False).view('i8')
+            return np.array(other, copy=False).view('i8')
         except TypeError:
             # period array cannot be coerces to int
-            other = Index(other).asi8
-    return other
+            other = Index(other)
+    return other.asi8
 
 
 def wrap_arithmetic_op(self, other, result):
