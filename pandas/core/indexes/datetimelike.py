@@ -11,7 +11,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT
-from pandas._libs.tslibs.timestamps import round_ns
+from pandas._libs.tslibs.timestamps import round_nsint64, RoundTo
 
 from pandas.core.dtypes.common import (
     ensure_int64,
@@ -180,10 +180,10 @@ class TimelikeOps(object):
         """
     )
 
-    def _round(self, freq, rounder, ambiguous):
+    def _round(self, freq, mode, ambiguous):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
-        result = round_ns(values, rounder, freq)
+        result = round_nsint64(values, mode, freq)
         result = self._maybe_mask_results(result, fill_value=NaT)
 
         attribs = self._get_attributes_dict()
@@ -197,15 +197,15 @@ class TimelikeOps(object):
 
     @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, ambiguous='raise'):
-        return self._round(freq, np.round, ambiguous)
+        return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous)
 
     @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(self, freq, ambiguous='raise'):
-        return self._round(freq, np.floor, ambiguous)
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous)
 
     @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(self, freq, ambiguous='raise'):
-        return self._round(freq, np.ceil, ambiguous)
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous)
 
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
