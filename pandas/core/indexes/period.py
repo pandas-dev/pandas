@@ -68,7 +68,10 @@ class PeriodDelegateMixin(PandasDelegate):
     Delegate from PeriodIndex to PeriodArray.
     """
     def _delegate_property_get(self, name, *args, **kwargs):
-        return getattr(self._data, name)
+        result = getattr(self._data, name)
+        if name in PeriodArray._datetimelike_ops:
+            result = Index(result, name=self.name)
+        return result
 
     def _delegate_property_set(self, name, value, *args, **kwargs):
         setattr(self._data, name, value)
@@ -92,7 +95,8 @@ class PeriodDelegateMixin(PandasDelegate):
         '_format_native_types',
         '_maybe_convert_timedelta',
     ],
-    "method"
+    "method",
+    overwrite=True,
 )
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
                   Int64Index, PeriodDelegateMixin):
@@ -450,14 +454,25 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
-        if is_integer_dtype(dtype):
-            return self._int64index.copy() if copy else self._int64index
-        elif is_datetime64_any_dtype(dtype):
+
+        # We have a few special-cases for `dtype`.
+        # Failing those, we fall back to astyping the values
+
+        if is_datetime64_any_dtype(dtype):
+            # 'how' is index-speicifc, isn't part of the EA interface.
             tz = getattr(dtype, 'tz', None)
             return self.to_timestamp(how=how).tz_localize(tz)
+
+        elif is_integer_dtype(dtype):
+            # astype(int) -> Index, so don't dispatch
+            return self._int64index.copy() if copy else self._int64index
+
         elif is_period_dtype(dtype):
             return self.asfreq(freq=dtype.freq)
-        return super(PeriodIndex, self).astype(dtype, copy=copy)
+
+        return Index(self._data.astype(dtype, copy=copy), name=self.name,
+                     dtype=dtype,  # disable Index inference
+                     copy=False)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])

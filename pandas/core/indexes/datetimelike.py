@@ -34,6 +34,7 @@ from pandas.core import common as com, algorithms, ops
 
 import pandas.io.formats.printing as printing
 
+from pandas.core.arrays import PeriodArray
 from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
@@ -725,7 +726,7 @@ def _ensure_datetimelike_to_i8(other, to_utc=False):
     """
     if is_scalar(other) and isna(other):
         return iNaT
-    elif isinstance(other, PeriodArray, ABCIndexClass):
+    elif isinstance(other, (PeriodArray, ABCIndexClass)):
         # convert tz if needed
         # TODO: Ensure PeriodArray.tz_localize
         if getattr(other, 'tz', None) is not None:
