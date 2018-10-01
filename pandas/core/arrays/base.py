@@ -775,10 +775,18 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
             if coerce_to_dtype:
-                try:
-                    res = self._from_sequence(res)
-                except TypeError:
-                    pass
+                if op.__name__ in {'divmod', 'rdivmod'}:
+                    try:
+                        a, b = zip(*res)
+                        res = (self._from_sequence(a),
+                               self._from_sequence(b))
+                    except TypeError:
+                        pass
+                else:
+                    try:
+                        res = self._from_sequence(res)
+                    except TypeError:
+                        pass
 
             return res
 
