@@ -7065,8 +7065,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Group series using a mapper or by a series of columns.
 
-        The mapper is a dict or key function that applies the given function
-        on the selected axis and returns the result as a series.
+        Any groupby operation involves some combination of splitting the
+        object, applying a function, and combining the results. This can be
+        used to group large amounts of data and compute operations on these
+        groups.
 
         Parameters
         ----------
@@ -7079,8 +7081,8 @@ class NDFrame(PandasObject, SelectionMixin):
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
             that a tuple is interpreted a (single) key.
-        axis : int, default 0
-            If 0, group by rows. If 1, group by columns.
+        axis : {0 or 'index', 1 or 'columns', None}
+            Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels.
@@ -7101,11 +7103,12 @@ class NDFrame(PandasObject, SelectionMixin):
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
+
+            .. versionadded:: 0.23.0
+
         **kwargs
             Optional, only accepts keyword argument 'mutated'
             and is passed to groupby.
-
-            .. versionadded:: 0.23.0
 
         Returns
         -------
