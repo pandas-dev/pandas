@@ -10,7 +10,6 @@ from pandas.core.dtypes.common import (
     is_float,
     is_integer_dtype,
     is_datetime64_any_dtype,
-    is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
 )
@@ -91,11 +90,13 @@ class PeriodDelegateMixin(PandasDelegate):
 )
 @delegate_names(
     PeriodArray,
-    PeriodArray._datetimelike_methods + [
+    [x for x in PeriodArray._datetimelike_methods
+     if x not in {"asfreq", "to_timestamp"}] + [
         '_format_native_types',
         '_maybe_convert_timedelta',
     ],
     "method",
+    # overwrite size, asi8, etc. but not asfreq, to_timestamp
     overwrite=True,
 )
 class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
@@ -445,6 +446,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         return result
 
+    def _box_values_as_index(self):
+        """
+        return object Index which contains boxed values
+        """
+        # TODO(DatetimeArray): remove
+        # Have to add our name.
+        return Index(self._data._box_values_as_index(), name=self.name)
+
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True, how='start'):
         dtype = pandas_dtype(dtype)
@@ -457,16 +466,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
             tz = getattr(dtype, 'tz', None)
             return self.to_timestamp(how=how).tz_localize(tz)
 
-        elif is_integer_dtype(dtype):
-            # astype(int) -> Index, so don't dispatch
-            return self._int64index.copy() if copy else self._int64index
-
-        elif is_period_dtype(dtype):
-            return self.asfreq(freq=dtype.freq)
-
-        return Index(self._data.astype(dtype, copy=copy), name=self.name,
-                     dtype=dtype,  # disable Index inference
-                     copy=False)
+        result = self._data.astype(dtype, copy=copy)
+        return Index(result, name=self.name, dtype=dtype, copy=False)
 
     @Substitution(klass='PeriodIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -499,29 +500,29 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
-    # year = _wrap_field_accessor('year')
-    month = _wrap_field_accessor('month')
-    day = _wrap_field_accessor('day')
-    hour = _wrap_field_accessor('hour')
-    minute = _wrap_field_accessor('minute')
-    second = _wrap_field_accessor('second')
-    weekofyear = _wrap_field_accessor('week')
-    week = weekofyear
-    dayofweek = _wrap_field_accessor('dayofweek')
-    weekday = dayofweek
-    dayofyear = day_of_year = _wrap_field_accessor('dayofyear')
-    quarter = _wrap_field_accessor('quarter')
-    qyear = _wrap_field_accessor('qyear')
-    days_in_month = _wrap_field_accessor('days_in_month')
-    daysinmonth = days_in_month
-
-    @property
-    def start_time(self):
-        return self.to_timestamp(how='start')
-
-    @property
-    def end_time(self):
-        return self.to_timestamp(how='end')
+    # # year = _wrap_field_accessor('year')
+    # month = _wrap_field_accessor('month')
+    # day = _wrap_field_accessor('day')
+    # hour = _wrap_field_accessor('hour')
+    # minute = _wrap_field_accessor('minute')
+    # second = _wrap_field_accessor('second')
+    # weekofyear = _wrap_field_accessor('week')
+    # week = weekofyear
+    # dayofweek = _wrap_field_accessor('dayofweek')
+    # weekday = dayofweek
+    # dayofyear = day_of_year = _wrap_field_accessor('dayofyear')
+    # quarter = _wrap_field_accessor('quarter')
+    # qyear = _wrap_field_accessor('qyear')
+    # days_in_month = _wrap_field_accessor('days_in_month')
+    # daysinmonth = days_in_month
+    #
+    # @property
+    # def start_time(self):
+    #     return self.to_timestamp(how='start')
+    #
+    # @property
+    # def end_time(self):
+    #     return self.to_timestamp(how='end')
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib

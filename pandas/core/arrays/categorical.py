@@ -1259,6 +1259,8 @@ class Categorical(ExtensionArray, PandasObject):
             if dtype==None (default), the same dtype as
             categorical.categories.dtype
         """
+        # Need asarray, in case self.categories.values is an ExtensionArray
+        # e.g. in a PeriodIndex. More generally, any Index backed by an EA.
         values = np.asarray(self.categories.values)
         ret = take_1d(values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):

@@ -11,9 +11,7 @@ from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     Period, DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.errors import (
-    NullFrequencyError, PerformanceWarning, AbstractMethodError
-)
+from pandas.errors import NullFrequencyError, PerformanceWarning
 from pandas import compat
 
 from pandas.tseries import frequencies
@@ -63,15 +61,8 @@ def _make_comparison_op(op, cls):
         # comparisons, this will raise in the future
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "elementwise", FutureWarning)
-
-            # XXX: temporary hack till I figure out what's going on.
-            # For PeriodIndex.__eq__, we don't want to convert a scalar
-            # other to a scalar ndarray.
-            if getattr(self, '_wrap_cmp_method', True):
-                other = np.asarray(other)
-
             with np.errstate(all='ignore'):
-                result = op(self.values, other)
+                result = op(self.values, np.asarray(other))
 
         return result
 
@@ -85,10 +76,12 @@ class AttributesMixin(object):
     @property
     def _attributes(self):
         # Inheriting subclass should implement _attributes as a list of strings
+        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(self)
 
     @classmethod
     def _simple_new(cls, values, **kwargs):
+        from pandas.errors import AbstractMethodError
         raise AbstractMethodError(cls)
 
     def _get_attributes_dict(self):
@@ -125,7 +118,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         """
         box function to get object from internal representation
         """
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _box_values(self, values):
         """
@@ -358,13 +351,13 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                 typ=type(other).__name__))
 
     def _sub_datelike(self, other):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _sub_period(self, other):
         return NotImplemented
 
     def _add_offset(self, offset):
-        raise AbstractMethodError(self)
+        raise com.AbstractMethodError(self)
 
     def _add_delta(self, other):
         return NotImplemented

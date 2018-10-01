@@ -105,7 +105,6 @@ class PandasDelegate(object):
 
 
 def delegate_names(delegate, accessors, typ, overwrite=False):
-    # type (type, list, str, bool) -> Callable
     """
     Add delegated names to a class using a class decorator.
 

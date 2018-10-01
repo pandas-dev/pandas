@@ -22,6 +22,10 @@ from pandas.core.dtypes.common import (
     is_float, is_integer, pandas_dtype, is_scalar,
     is_datetime64_dtype,
     is_categorical_dtype,
+    is_object_dtype,
+    is_string_dtype,
+    is_datetime_or_timedelta_dtype,
+    is_dtype_equal,
     ensure_object
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -68,7 +72,7 @@ def _period_array_cmp(cls, op):
                 raise IncompatibleFrequency(msg)
 
             result = op(other.ordinal)
-        elif isinstance(other, (ABCPeriodIndex, PeriodArray)):
+        elif isinstance(other, (ABCPeriodIndex, cls)):
             if other.freq != self.freq:
                 msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -186,7 +190,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                                                  freq, fields)
             return cls._from_ordinals(data, freq=freq)
 
-        if isinstance(data, (PeriodArray, PeriodIndex)):
+        if isinstance(data, (cls, PeriodIndex)):
             if freq is None or freq == data.freq:  # no freq change
                 freq = data.freq
                 data = data._ndarray_values
@@ -722,11 +726,36 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         #     super(...), which ends up being... DatetimeIndexOpsMixin?
         # this is complicated.
         # need a pandas_astype(arr, dtype).
-        from pandas.core.arrays import Categorical
+        from pandas import Categorical
 
-        if is_categorical_dtype(dtype):
+        dtype = pandas_dtype(dtype)
+
+        if is_object_dtype(dtype):
+            return np.asarray(self, dtype=object)
+        elif is_string_dtype(dtype) and not is_categorical_dtype(dtype):
+            return self._format_native_types()
+        elif is_integer_dtype(dtype):
+            return self.values.astype("i8", copy=copy)
+        elif (is_datetime_or_timedelta_dtype(dtype) and
+              not is_dtype_equal(self.dtype, dtype)) or is_float_dtype(dtype):
+            # disallow conversion between datetime/timedelta,
+            # and conversions for any datetimelike to float
+            msg = 'Cannot cast {name} to dtype {dtype}'
+            raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
+        elif is_categorical_dtype(dtype):
             return Categorical(self, dtype=dtype)
-        return super(PeriodArray, self).astype(dtype, copy=copy)
+        elif is_period_dtype(dtype):
+            return self.asfreq(dtype.freq)
+        else:
+            return np.asarray(self, dtype=dtype)
+
+    def _box_values_as_index(self):
+        """
+        return object Index which contains boxed values
+        """
+        # This is implemented just for astype
+        from pandas.core.index import Index
+        return Index(self._box_values(self.asi8), dtype=object)
 
 
 PeriodArray._add_comparison_ops()
