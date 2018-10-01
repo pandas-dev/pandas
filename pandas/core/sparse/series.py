@@ -563,7 +563,8 @@ class SparseSeries(Series):
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    @Appender(generic.NDFrame.reindex.__doc__ % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__)
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
 
