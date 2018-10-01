@@ -10,7 +10,8 @@ import pytest
 from pandas.compat import intern, PY3
 import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
-from pandas.util._decorators import deprecate_kwarg, make_signature
+from pandas.util._decorators import (deprecate_kwarg, make_signature,
+                                     Appender, Substitution)
 from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_args_and_kwargs,
                                      validate_bool_kwarg)
@@ -531,3 +532,42 @@ def test_safe_import(monkeypatch):
     monkeypatch.setitem(sys.modules, mod_name, mod)
     assert not td.safe_import(mod_name, min_version="2.0")
     assert td.safe_import(mod_name, min_version="1.0")
+
+
+class TestAppender(object):
+    def test_pass_callable(self):
+        # GH#22927
+
+        def func():
+            """foo"""
+            return
+
+        @Appender(func)
+        def wrapped():
+            return
+
+        assert wrapped.__doc__ == "foo"
+
+    def test_append_class(self):
+        # GH#22927
+
+        @Appender("bar")
+        class cls(object):
+            pass
+
+        assert cls.__doc__ == "bar"
+        assert cls.__name__ == "cls"
+        assert cls.__module__ == "pandas.tests.util.test_util"
+
+
+class TestSubstitution(object):
+    def test_substitute_class(self):
+        # GH#22927
+
+        @Substitution(name="Bond, James Bond")
+        class cls(object):
+            """%(name)s"""
+
+        assert cls.__doc__ == "Bond, James Bond"
+        assert cls.__name__ == "cls"
+        assert cls.__module__ == "pandas.tests.util.test_util"
