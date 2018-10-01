@@ -267,6 +267,36 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     def isna(self):
         return self._data == iNaT
 
+    def __setitem__(self, key, value):
+
+        if isinstance(value, compat.Sequence):
+
+            if len(key) != len(value):
+                msg = ("shape mismatch: value array of length '{}' does not "
+                       "match indexing result of length '{}'.")
+                raise ValueError(msg.format(len(key), len(value)))
+
+            value = type(self)._complex_new(value)
+            if self.freqstr != value.freqstr:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
+                raise IncompatibleFrequency(msg)
+
+            value = value.asi8
+        elif isinstance(value, Period):
+
+            if self.freqstr != value.freqstr:
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
+                raise IncompatibleFrequency(msg)
+
+            value = value.ordinal
+        elif isinstance(value, (type(None), type(NaT))):
+            value = iNaT
+        else:
+            msg = ("'value' should be a 'Period', 'NaT', or array of those. "
+                   "Got '{}' instead.".format(type(value).__name__))
+            raise TypeError(msg)
+        self._data[key] = value
+
     def take(self, indices, allow_fill=False, fill_value=None):
         from pandas.core.algorithms import take
         from pandas import isna
