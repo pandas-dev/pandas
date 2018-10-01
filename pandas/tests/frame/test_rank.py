@@ -35,16 +35,16 @@ class TestRank(TestData):
     def test_rank(self):
         rankdata = pytest.importorskip('scipy.stats.rankdata')
 
-        self.frame['A'][::2] = np.nan
-        self.frame['B'][::3] = np.nan
-        self.frame['C'][::4] = np.nan
-        self.frame['D'][::5] = np.nan
+        float_frame['A'][::2] = np.nan
+        float_frame['B'][::3] = np.nan
+        float_frame['C'][::4] = np.nan
+        float_frame['D'][::5] = np.nan
 
-        ranks0 = self.frame.rank()
-        ranks1 = self.frame.rank(1)
-        mask = np.isnan(self.frame.values)
+        ranks0 = float_frame.rank()
+        ranks1 = float_frame.rank(1)
+        mask = np.isnan(float_frame.values)
 
-        fvals = self.frame.fillna(np.inf).values
+        fvals = float_frame.fillna(np.inf).values
 
         exp0 = np.apply_along_axis(rankdata, 0, fvals)
         exp0[mask] = np.nan
@@ -113,11 +113,11 @@ class TestRank(TestData):
         tm.assert_frame_equal(result, expected)
 
         # mixed-type frames
-        self.mixed_frame['datetime'] = datetime.now()
-        self.mixed_frame['timedelta'] = timedelta(days=1, seconds=1)
+        float_string_frame['datetime'] = datetime.now()
+        float_string_frame['timedelta'] = timedelta(days=1, seconds=1)
 
-        result = self.mixed_frame.rank(1)
-        expected = self.mixed_frame.rank(1, numeric_only=True)
+        result = float_string_frame.rank(1)
+        expected = float_string_frame.rank(1, numeric_only=True)
         tm.assert_frame_equal(result, expected)
 
         df = DataFrame({"a": [1e-20, -5, 1e-20 + 1e-40, 10,
@@ -128,16 +128,16 @@ class TestRank(TestData):
     def test_rank_na_option(self):
         rankdata = pytest.importorskip('scipy.stats.rankdata')
 
-        self.frame['A'][::2] = np.nan
-        self.frame['B'][::3] = np.nan
-        self.frame['C'][::4] = np.nan
-        self.frame['D'][::5] = np.nan
+        float_frame['A'][::2] = np.nan
+        float_frame['B'][::3] = np.nan
+        float_frame['C'][::4] = np.nan
+        float_frame['D'][::5] = np.nan
 
         # bottom
-        ranks0 = self.frame.rank(na_option='bottom')
-        ranks1 = self.frame.rank(1, na_option='bottom')
+        ranks0 = float_frame.rank(na_option='bottom')
+        ranks1 = float_frame.rank(1, na_option='bottom')
 
-        fvals = self.frame.fillna(np.inf).values
+        fvals = float_frame.fillna(np.inf).values
 
         exp0 = np.apply_along_axis(rankdata, 0, fvals)
         exp1 = np.apply_along_axis(rankdata, 1, fvals)
@@ -146,11 +146,11 @@ class TestRank(TestData):
         tm.assert_almost_equal(ranks1.values, exp1)
 
         # top
-        ranks0 = self.frame.rank(na_option='top')
-        ranks1 = self.frame.rank(1, na_option='top')
+        ranks0 = float_frame.rank(na_option='top')
+        ranks1 = float_frame.rank(1, na_option='top')
 
-        fval0 = self.frame.fillna((self.frame.min() - 1).to_dict()).values
-        fval1 = self.frame.T
+        fval0 = float_frame.fillna((float_frame.min() - 1).to_dict()).values
+        fval1 = float_frame.T
         fval1 = fval1.fillna((fval1.min() - 1).to_dict()).T
         fval1 = fval1.fillna(np.inf).values
 
@@ -163,10 +163,10 @@ class TestRank(TestData):
         # descending
 
         # bottom
-        ranks0 = self.frame.rank(na_option='top', ascending=False)
-        ranks1 = self.frame.rank(1, na_option='top', ascending=False)
+        ranks0 = float_frame.rank(na_option='top', ascending=False)
+        ranks1 = float_frame.rank(1, na_option='top', ascending=False)
 
-        fvals = self.frame.fillna(np.inf).values
+        fvals = float_frame.fillna(np.inf).values
 
         exp0 = np.apply_along_axis(rankdata, 0, -fvals)
         exp1 = np.apply_along_axis(rankdata, 1, -fvals)
@@ -177,11 +177,11 @@ class TestRank(TestData):
         # descending
 
         # top
-        ranks0 = self.frame.rank(na_option='bottom', ascending=False)
-        ranks1 = self.frame.rank(1, na_option='bottom', ascending=False)
+        ranks0 = float_frame.rank(na_option='bottom', ascending=False)
+        ranks1 = float_frame.rank(1, na_option='bottom', ascending=False)
 
-        fval0 = self.frame.fillna((self.frame.min() - 1).to_dict()).values
-        fval1 = self.frame.T
+        fval0 = float_frame.fillna((float_frame.min() - 1).to_dict()).values
+        fval1 = float_frame.T
         fval1 = fval1.fillna((fval1.min() - 1).to_dict()).T
         fval1 = fval1.fillna(np.inf).values
 
@@ -195,11 +195,11 @@ class TestRank(TestData):
         msg = "na_option must be one of 'keep', 'top', or 'bottom'"
 
         with tm.assert_raises_regex(ValueError, msg):
-            self.frame.rank(na_option='bad', ascending=False)
+            float_frame.rank(na_option='bad', ascending=False)
 
         # invalid type
         with tm.assert_raises_regex(ValueError, msg):
-            self.frame.rank(na_option=True, ascending=False)
+            float_frame.rank(na_option=True, ascending=False)
 
     def test_rank_axis(self):
         # check if using axes' names gives the same result

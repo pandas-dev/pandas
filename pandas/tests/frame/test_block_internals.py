@@ -32,17 +32,17 @@ from pandas.tests.frame.common import TestData
 class TestDataFrameBlockInternals(TestData):
 
     def test_cast_internals(self):
-        casted = DataFrame(self.frame._data, dtype=int)
-        expected = DataFrame(self.frame._series, dtype=int)
+        casted = DataFrame(float_frame._data, dtype=int)
+        expected = DataFrame(float_frame._series, dtype=int)
         assert_frame_equal(casted, expected)
 
-        casted = DataFrame(self.frame._data, dtype=np.int32)
-        expected = DataFrame(self.frame._series, dtype=np.int32)
+        casted = DataFrame(float_frame._data, dtype=np.int32)
+        expected = DataFrame(float_frame._series, dtype=np.int32)
         assert_frame_equal(casted, expected)
 
     def test_consolidate(self):
-        self.frame['E'] = 7.
-        consolidated = self.frame._consolidate()
+        float_frame['E'] = 7.
+        consolidated = float_frame._consolidate()
         assert len(consolidated._data.blocks) == 1
 
         # Ensure copy, do I want this?
@@ -50,92 +50,92 @@ class TestDataFrameBlockInternals(TestData):
         assert recons is not consolidated
         tm.assert_frame_equal(recons, consolidated)
 
-        self.frame['F'] = 8.
-        assert len(self.frame._data.blocks) == 3
+        float_frame['F'] = 8.
+        assert len(float_frame._data.blocks) == 3
 
-        self.frame._consolidate(inplace=True)
-        assert len(self.frame._data.blocks) == 1
+        float_frame._consolidate(inplace=True)
+        assert len(float_frame._data.blocks) == 1
 
     def test_consolidate_deprecation(self):
-        self.frame['E'] = 7
+        float_frame['E'] = 7
         with tm.assert_produces_warning(FutureWarning):
-            self.frame.consolidate()
+            float_frame.consolidate()
 
     def test_consolidate_inplace(self):
-        frame = self.frame.copy()  # noqa
+        frame = float_frame.copy()  # noqa
 
         # triggers in-place consolidation
         for letter in range(ord('A'), ord('Z')):
-            self.frame[chr(letter)] = chr(letter)
+            float_frame[chr(letter)] = chr(letter)
 
     def test_values_consolidate(self):
-        self.frame['E'] = 7.
-        assert not self.frame._data.is_consolidated()
-        _ = self.frame.values  # noqa
-        assert self.frame._data.is_consolidated()
+        float_frame['E'] = 7.
+        assert not float_frame._data.is_consolidated()
+        _ = float_frame.values  # noqa
+        assert float_frame._data.is_consolidated()
 
     def test_modify_values(self):
-        self.frame.values[5] = 5
-        assert (self.frame.values[5] == 5).all()
+        float_frame.values[5] = 5
+        assert (float_frame.values[5] == 5).all()
 
         # unconsolidated
-        self.frame['E'] = 7.
-        self.frame.values[6] = 6
-        assert (self.frame.values[6] == 6).all()
+        float_frame['E'] = 7.
+        float_frame.values[6] = 6
+        assert (float_frame.values[6] == 6).all()
 
     def test_boolean_set_uncons(self):
-        self.frame['E'] = 7.
+        float_frame['E'] = 7.
 
-        expected = self.frame.values.copy()
+        expected = float_frame.values.copy()
         expected[expected > 1] = 2
 
-        self.frame[self.frame > 1] = 2
-        assert_almost_equal(expected, self.frame.values)
+        float_frame[float_frame > 1] = 2
+        assert_almost_equal(expected, float_frame.values)
 
     def test_values_numeric_cols(self):
-        self.frame['foo'] = 'bar'
+        float_frame['foo'] = 'bar'
 
-        values = self.frame[['A', 'B', 'C', 'D']].values
+        values = float_frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
     def test_values_lcd(self):
 
         # mixed lcd
-        values = self.mixed_float[['A', 'B', 'C', 'D']].values
+        values = mixed_float_frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-        values = self.mixed_float[['A', 'B', 'C']].values
+        values = mixed_float_frame[['A', 'B', 'C']].values
         assert values.dtype == np.float32
 
-        values = self.mixed_float[['C']].values
+        values = mixed_float_frame[['C']].values
         assert values.dtype == np.float16
 
         # GH 10364
         # B uint64 forces float because there are other signed int types
-        values = self.mixed_int[['A', 'B', 'C', 'D']].values
+        values = mixed_int_frame[['A', 'B', 'C', 'D']].values
         assert values.dtype == np.float64
 
-        values = self.mixed_int[['A', 'D']].values
+        values = mixed_int_frame[['A', 'D']].values
         assert values.dtype == np.int64
 
         # B uint64 forces float because there are other signed int types
-        values = self.mixed_int[['A', 'B', 'C']].values
+        values = mixed_int_frame[['A', 'B', 'C']].values
         assert values.dtype == np.float64
 
         # as B and C are both unsigned, no forcing to float is needed
-        values = self.mixed_int[['B', 'C']].values
+        values = mixed_int_frame[['B', 'C']].values
         assert values.dtype == np.uint64
 
-        values = self.mixed_int[['A', 'C']].values
+        values = mixed_int_frame[['A', 'C']].values
         assert values.dtype == np.int32
 
-        values = self.mixed_int[['C', 'D']].values
+        values = mixed_int_frame[['C', 'D']].values
         assert values.dtype == np.int64
 
-        values = self.mixed_int[['A']].values
+        values = mixed_int_frame[['A']].values
         assert values.dtype == np.int32
 
-        values = self.mixed_int[['C']].values
+        values = mixed_int_frame[['C']].values
         assert values.dtype == np.uint8
 
     def test_constructor_with_convert(self):
@@ -219,11 +219,11 @@ class TestDataFrameBlockInternals(TestData):
         expected = Series({'datetime64[ns]': 3})
 
         # mixed-type frames
-        self.mixed_frame['datetime'] = datetime.now()
-        self.mixed_frame['timedelta'] = timedelta(days=1, seconds=1)
-        assert self.mixed_frame['datetime'].dtype == 'M8[ns]'
-        assert self.mixed_frame['timedelta'].dtype == 'm8[ns]'
-        result = self.mixed_frame.get_dtype_counts().sort_values()
+        float_string_frame['datetime'] = datetime.now()
+        float_string_frame['timedelta'] = timedelta(days=1, seconds=1)
+        assert float_string_frame['datetime'].dtype == 'M8[ns]'
+        assert float_string_frame['timedelta'].dtype == 'm8[ns]'
+        result = float_string_frame.get_dtype_counts().sort_values()
         expected = Series({'float64': 4,
                            'object': 1,
                            'datetime64[ns]': 1,
@@ -298,7 +298,7 @@ class TestDataFrameBlockInternals(TestData):
 
     def test_copy_blocks(self):
         # API/ENH 9607
-        df = DataFrame(self.frame, copy=True)
+        df = DataFrame(float_frame, copy=True)
         column = df.columns[0]
 
         # use the default copy=True, change a column
@@ -316,7 +316,7 @@ class TestDataFrameBlockInternals(TestData):
 
     def test_no_copy_blocks(self):
         # API/ENH 9607
-        df = DataFrame(self.frame, copy=True)
+        df = DataFrame(float_frame, copy=True)
         column = df.columns[0]
 
         # use the copy=False, change a column
@@ -333,28 +333,28 @@ class TestDataFrameBlockInternals(TestData):
         assert _df[column].equals(df[column])
 
     def test_copy(self):
-        cop = self.frame.copy()
+        cop = float_frame.copy()
         cop['E'] = cop['A']
-        assert 'E' not in self.frame
+        assert 'E' not in float_frame
 
         # copy objects
-        copy = self.mixed_frame.copy()
-        assert copy._data is not self.mixed_frame._data
+        copy = float_string_frame.copy()
+        assert copy._data is not float_string_frame._data
 
     def test_pickle(self):
-        unpickled = tm.round_trip_pickle(self.mixed_frame)
-        assert_frame_equal(self.mixed_frame, unpickled)
+        unpickled = tm.round_trip_pickle(float_string_frame)
+        assert_frame_equal(float_string_frame, unpickled)
 
         # buglet
-        self.mixed_frame._data.ndim
+        float_string_frame._data.ndim
 
         # empty
-        unpickled = tm.round_trip_pickle(self.empty)
+        unpickled = tm.round_trip_pickle(empty_frame)
         repr(unpickled)
 
         # tz frame
-        unpickled = tm.round_trip_pickle(self.tzframe)
-        assert_frame_equal(self.tzframe, unpickled)
+        unpickled = tm.round_trip_pickle(timezone_frame)
+        assert_frame_equal(timezone_frame, unpickled)
 
     def test_consolidate_datetime64(self):
         # numpy vstack bug
@@ -389,8 +389,8 @@ starting,ending,measure
         tm.assert_index_equal(pd.DatetimeIndex(df.ending), ser_ending.index)
 
     def test_is_mixed_type(self):
-        assert not self.frame._is_mixed_type
-        assert self.mixed_frame._is_mixed_type
+        assert not float_frame._is_mixed_type
+        assert float_string_frame._is_mixed_type
 
     def test_get_numeric_data(self):
         # TODO(wesm): unused?
@@ -450,21 +450,21 @@ starting,ending,measure
 
     def test_convert_objects(self):
 
-        oops = self.mixed_frame.T.T
+        oops = float_string_frame.T.T
         converted = oops._convert(datetime=True)
-        assert_frame_equal(converted, self.mixed_frame)
+        assert_frame_equal(converted, float_string_frame)
         assert converted['A'].dtype == np.float64
 
         # force numeric conversion
-        self.mixed_frame['H'] = '1.'
-        self.mixed_frame['I'] = '1'
+        float_string_frame['H'] = '1.'
+        float_string_frame['I'] = '1'
 
         # add in some items that will be nan
-        length = len(self.mixed_frame)
-        self.mixed_frame['J'] = '1.'
-        self.mixed_frame['K'] = '1'
-        self.mixed_frame.loc[0:5, ['J', 'K']] = 'garbled'
-        converted = self.mixed_frame._convert(datetime=True, numeric=True)
+        length = len(float_string_frame)
+        float_string_frame['J'] = '1.'
+        float_string_frame['K'] = '1'
+        float_string_frame.loc[0:5, ['J', 'K']] = 'garbled'
+        converted = float_string_frame._convert(datetime=True, numeric=True)
         assert converted['H'].dtype == 'float64'
         assert converted['I'].dtype == 'int64'
         assert converted['J'].dtype == 'float64'
@@ -473,14 +473,14 @@ starting,ending,measure
         assert len(converted['K'].dropna()) == length - 5
 
         # via astype
-        converted = self.mixed_frame.copy()
+        converted = float_string_frame.copy()
         converted['H'] = converted['H'].astype('float64')
         converted['I'] = converted['I'].astype('int64')
         assert converted['H'].dtype == 'float64'
         assert converted['I'].dtype == 'int64'
 
         # via astype, but errors
-        converted = self.mixed_frame.copy()
+        converted = float_string_frame.copy()
         with tm.assert_raises_regex(ValueError, 'invalid literal'):
             converted['H'].astype('int32')
 

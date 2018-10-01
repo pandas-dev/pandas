@@ -21,14 +21,14 @@ class TestDataFrameQuantile(TestData):
     def test_quantile(self):
         from numpy import percentile
 
-        q = self.tsframe.quantile(0.1, axis=0)
-        assert q['A'] == percentile(self.tsframe['A'], 10)
-        tm.assert_index_equal(q.index, self.tsframe.columns)
+        q = datetime_frame.quantile(0.1, axis=0)
+        assert q['A'] == percentile(datetime_frame['A'], 10)
+        tm.assert_index_equal(q.index, datetime_frame.columns)
 
-        q = self.tsframe.quantile(0.9, axis=1)
+        q = datetime_frame.quantile(0.9, axis=1)
         assert (q['2000-01-17'] ==
-                percentile(self.tsframe.loc['2000-01-17'], 90))
-        tm.assert_index_equal(q.index, self.tsframe.index)
+                percentile(datetime_frame.loc['2000-01-17'], 90))
+        tm.assert_index_equal(q.index, datetime_frame.index)
 
         # test degenerate case
         q = DataFrame({'x': [], 'y': []}).quantile(0.1, axis=0)
@@ -105,14 +105,14 @@ class TestDataFrameQuantile(TestData):
         from numpy import percentile
 
         # interpolation = linear (default case)
-        q = self.tsframe.quantile(0.1, axis=0, interpolation='linear')
-        assert q['A'] == percentile(self.tsframe['A'], 10)
-        q = self.intframe.quantile(0.1)
-        assert q['A'] == percentile(self.intframe['A'], 10)
+        q = datetime_frame.quantile(0.1, axis=0, interpolation='linear')
+        assert q['A'] == percentile(datetime_frame['A'], 10)
+        q = int_frame.quantile(0.1)
+        assert q['A'] == percentile(int_frame['A'], 10)
 
         # test with and without interpolation keyword
-        q1 = self.intframe.quantile(0.1)
-        assert q1['A'] == np.percentile(self.intframe['A'], 10)
+        q1 = int_frame.quantile(0.1)
+        assert q1['A'] == np.percentile(int_frame['A'], 10)
         tm.assert_series_equal(q, q1)
 
         # interpolation method other than default linear
@@ -225,7 +225,7 @@ class TestDataFrameQuantile(TestData):
         msg = 'percentiles should all be in the interval \\[0, 1\\]'
         for invalid in [-1, 2, [0.5, -1], [0.5, 2]]:
             with tm.assert_raises_regex(ValueError, msg):
-                self.tsframe.quantile(invalid)
+                datetime_frame.quantile(invalid)
 
     def test_quantile_box(self):
         df = DataFrame({'A': [pd.Timestamp('2011-01-01'),

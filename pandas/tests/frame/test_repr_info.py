@@ -30,7 +30,7 @@ class TestDataFrameReprInfoEtc(TestData):
 
     def test_repr_empty(self):
         # empty
-        foo = repr(self.empty)  # noqa
+        foo = repr(empty_frame)  # noqa
 
         # empty with index
         frame = DataFrame(index=np.arange(1000))
@@ -40,8 +40,8 @@ class TestDataFrameReprInfoEtc(TestData):
         buf = StringIO()
 
         # mixed
-        foo = repr(self.mixed_frame)  # noqa
-        self.mixed_frame.info(verbose=False, buf=buf)
+        foo = repr(float_string_frame)  # noqa
+        float_string_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
     def test_repr_mixed_big(self):
@@ -58,12 +58,12 @@ class TestDataFrameReprInfoEtc(TestData):
         buf = StringIO()
 
         # small one
-        foo = repr(self.frame)
-        self.frame.info(verbose=False, buf=buf)
+        foo = repr(float_frame)
+        float_frame.info(verbose=False, buf=buf)
 
         # even smaller
-        self.frame.reindex(columns=['A']).info(verbose=False, buf=buf)
-        self.frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
+        float_frame.reindex(columns=['A']).info(verbose=False, buf=buf)
+        float_frame.reindex(columns=['A', 'B']).info(verbose=False, buf=buf)
 
         # exhausting cases in DataFrame.info
 
@@ -72,7 +72,7 @@ class TestDataFrameReprInfoEtc(TestData):
         foo = repr(no_index)  # noqa
 
         # no columns or index
-        self.empty.info(buf=buf)
+        empty_frame.info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)
@@ -113,13 +113,13 @@ class TestDataFrameReprInfoEtc(TestData):
         repr(unsortable)
 
         fmt.set_option('display.precision', 3, 'display.column_space', 10)
-        repr(self.frame)
+        repr(float_frame)
 
         fmt.set_option('display.max_rows', 10, 'display.max_columns', 2)
-        repr(self.frame)
+        repr(float_frame)
 
         fmt.set_option('display.max_rows', 1000, 'display.max_columns', 1000)
-        repr(self.frame)
+        repr(float_frame)
 
         tm.reset_display_options()
 
@@ -197,8 +197,8 @@ class TestDataFrameReprInfoEtc(TestData):
     @tm.capture_stdout
     def test_info(self):
         io = StringIO()
-        self.frame.info(buf=io)
-        self.tsframe.info(buf=io)
+        float_frame.info(buf=io)
+        datetime_frame.info(buf=io)
 
         frame = DataFrame(np.random.randn(5, 3))
 

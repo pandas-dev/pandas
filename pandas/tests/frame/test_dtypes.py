@@ -395,10 +395,10 @@ class TestDataFrameDataTypes(TestData):
         assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)
 
     def test_dtypes_gh8722(self):
-        self.mixed_frame['bool'] = self.mixed_frame['A'] > 0
-        result = self.mixed_frame.dtypes
+        float_string_frame['bool'] = float_string_frame['A'] > 0
+        result = float_string_frame.dtypes
         expected = Series({k: v.dtype
-                           for k, v in compat.iteritems(self.mixed_frame)},
+                           for k, v in compat.iteritems(float_string_frame)},
                           index=result.index)
         assert_series_equal(result, expected)
 
@@ -409,7 +409,7 @@ class TestDataFrameDataTypes(TestData):
             assert_series_equal(result, Series({0: np.dtype('int64')}))
 
     def test_ftypes(self):
-        frame = self.mixed_float
+        frame = mixed_float_frame
         expected = Series(dict(A='float32:dense',
                                B='float32:dense',
                                C='float16:dense',
@@ -418,23 +418,23 @@ class TestDataFrameDataTypes(TestData):
         assert_series_equal(result, expected)
 
     def test_astype(self):
-        casted = self.frame.astype(int)
-        expected = DataFrame(self.frame.values.astype(int),
-                             index=self.frame.index,
-                             columns=self.frame.columns)
+        casted = float_frame.astype(int)
+        expected = DataFrame(float_frame.values.astype(int),
+                             index=float_frame.index,
+                             columns=float_frame.columns)
         assert_frame_equal(casted, expected)
 
-        casted = self.frame.astype(np.int32)
-        expected = DataFrame(self.frame.values.astype(np.int32),
-                             index=self.frame.index,
-                             columns=self.frame.columns)
+        casted = float_frame.astype(np.int32)
+        expected = DataFrame(float_frame.values.astype(np.int32),
+                             index=float_frame.index,
+                             columns=float_frame.columns)
         assert_frame_equal(casted, expected)
 
-        self.frame['foo'] = '5'
-        casted = self.frame.astype(int)
-        expected = DataFrame(self.frame.values.astype(int),
-                             index=self.frame.index,
-                             columns=self.frame.columns)
+        float_frame['foo'] = '5'
+        casted = float_frame.astype(int)
+        expected = DataFrame(float_frame.values.astype(int),
+                             index=float_frame.index,
+                             columns=float_frame.columns)
         assert_frame_equal(casted, expected)
 
         # mixed casting
@@ -442,7 +442,7 @@ class TestDataFrameDataTypes(TestData):
             assert (list({s.dtype.name for
                           _, s in compat.iteritems(df)})[0] == v)
 
-        mn = self.all_mixed._get_numeric_data().copy()
+        mn = mixed_type_frame._get_numeric_data().copy()
         mn['little_float'] = np.array(12345., dtype='float16')
         mn['big_float'] = np.array(123456789101112., dtype='float64')
 
@@ -452,13 +452,13 @@ class TestDataFrameDataTypes(TestData):
         casted = mn.astype('int64')
         _check_cast(casted, 'int64')
 
-        casted = self.mixed_float.reindex(columns=['A', 'B']).astype('float32')
+        casted = mixed_float_frame.reindex(columns=['A', 'B']).astype('float32')
         _check_cast(casted, 'float32')
 
         casted = mn.reindex(columns=['little_float']).astype('float16')
         _check_cast(casted, 'float16')
 
-        casted = self.mixed_float.reindex(columns=['A', 'B']).astype('float16')
+        casted = mixed_float_frame.reindex(columns=['A', 'B']).astype('float16')
         _check_cast(casted, 'float16')
 
         casted = mn.astype('float32')
@@ -472,16 +472,16 @@ class TestDataFrameDataTypes(TestData):
         _check_cast(casted, 'object')
 
     def test_astype_with_exclude_string(self):
-        df = self.frame.copy()
-        expected = self.frame.astype(int)
+        df = float_frame.copy()
+        expected = float_frame.astype(int)
         df['string'] = 'foo'
         casted = df.astype(int, errors='ignore')
 
         expected['string'] = 'foo'
         assert_frame_equal(casted, expected)
 
-        df = self.frame.copy()
-        expected = self.frame.astype(np.int32)
+        df = float_frame.copy()
+        expected = float_frame.astype(np.int32)
         df['string'] = 'foo'
         casted = df.astype(np.int32, errors='ignore')
 
@@ -490,18 +490,18 @@ class TestDataFrameDataTypes(TestData):
 
     def test_astype_with_view(self):
 
-        tf = self.mixed_float.reindex(columns=['A', 'B', 'C'])
+        tf = mixed_float_frame.reindex(columns=['A', 'B', 'C'])
 
         casted = tf.astype(np.int64)
 
         casted = tf.astype(np.float32)
 
         # this is the only real reason to do it this way
-        tf = np.round(self.frame).astype(np.int32)
+        tf = np.round(float_frame).astype(np.int32)
         casted = tf.astype(np.float32, copy=False)
 
         # TODO(wesm): verification?
-        tf = self.frame.astype(np.float64)
+        tf = float_frame.astype(np.float64)
         casted = tf.astype(np.int64, copy=False)  # noqa
 
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
@@ -853,7 +853,7 @@ class TestDataFrameDatetimeWithTZ(TestData):
     def test_interleave(self):
 
         # interleave with object
-        result = self.tzframe.assign(D='foo').values
+        result = timezone_frame.assign(D='foo').values
         expected = np.array([[Timestamp('2013-01-01 00:00:00'),
                               Timestamp('2013-01-02 00:00:00'),
                               Timestamp('2013-01-03 00:00:00')],
@@ -869,7 +869,7 @@ class TestDataFrameDatetimeWithTZ(TestData):
         tm.assert_numpy_array_equal(result, expected)
 
         # interleave with only datetime64[ns]
-        result = self.tzframe.values
+        result = timezone_frame.values
         expected = np.array([[Timestamp('2013-01-01 00:00:00'),
                               Timestamp('2013-01-02 00:00:00'),
                               Timestamp('2013-01-03 00:00:00')],
@@ -899,11 +899,11 @@ class TestDataFrameDatetimeWithTZ(TestData):
                               Timestamp('2013-01-03 00:00:00+0100',
                                         tz='CET')]],
                             dtype=object).T
-        result = self.tzframe.astype(object)
+        result = timezone_frame.astype(object)
         assert_frame_equal(result, DataFrame(
-            expected, index=self.tzframe.index, columns=self.tzframe.columns))
+            expected, index=timezone_frame.index, columns=timezone_frame.columns))
 
-        result = self.tzframe.astype('datetime64[ns]')
+        result = timezone_frame.astype('datetime64[ns]')
         expected = DataFrame({'A': date_range('20130101', periods=3),
                               'B': (date_range('20130101', periods=3,
                                                tz='US/Eastern')
@@ -919,17 +919,17 @@ class TestDataFrameDatetimeWithTZ(TestData):
 
     def test_astype_str(self):
         # str formatting
-        result = self.tzframe.astype(str)
+        result = timezone_frame.astype(str)
         expected = DataFrame([['2013-01-01', '2013-01-01 00:00:00-05:00',
                                '2013-01-01 00:00:00+01:00'],
                               ['2013-01-02', 'NaT', 'NaT'],
                               ['2013-01-03', '2013-01-03 00:00:00-05:00',
                                '2013-01-03 00:00:00+01:00']],
-                             columns=self.tzframe.columns)
+                             columns=timezone_frame.columns)
         tm.assert_frame_equal(result, expected)
 
         with option_context('display.max_columns', 20):
-            result = str(self.tzframe)
+            result = str(timezone_frame)
             assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
                     '2013-01-01 00:00:00+01:00') in result
             assert ('1 2013-01-02                       '

@@ -276,7 +276,7 @@ class TestDataFrameSorting(TestData):
         assert_frame_equal(df1, df2)
 
     def test_frame_column_inplace_sort_exception(self):
-        s = self.frame['A']
+        s = float_frame['A']
         with tm.assert_raises_regex(ValueError, "This Series is a view"):
             s.sort_values(inplace=True)
 
