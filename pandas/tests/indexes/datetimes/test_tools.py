@@ -6,7 +6,6 @@ import locale
 import calendar
 import dateutil
 import numpy as np
-from functools import partial
 from dateutil.parser import parse
 from dateutil.tz.tz import tzoffset
 from datetime import datetime, time
@@ -183,7 +182,6 @@ class TestTimeConversionFormats(object):
 
     @pytest.mark.parametrize("box,const,assert_equal", [
         [True, pd.Index, 'assert_index_equal'],
-        [True, partial(pd.Index, name='foo'), 'assert_index_equal'],
         [False, np.array, 'assert_numpy_array_equal']])
     @pytest.mark.parametrize("fmt,dates,expected_dates", [
         ['%Y-%m-%d %H:%M:%S %Z',
@@ -234,6 +232,15 @@ class TestTimeConversionFormats(object):
         date = '2010-01-01 12:00:00 ' + offset
         with pytest.raises(ValueError):
             pd.to_datetime([date], format=fmt)
+
+    def test_to_datetime_parse_timezone_keeps_name(self):
+        # GH 21697
+        fmt = '%Y-%m-%d %H:%M:%S %z'
+        arg = pd.Index(['2010-01-01 12:00:00 Z'], name='foo')
+        result = pd.to_datetime(arg, format=fmt)
+        expected = pd.DatetimeIndex(['2010-01-01 12:00:00'], tz='UTC',
+                                    name='foo')
+        tm.assert_index_equal(result, expected)
 
 
 class TestToDatetime(object):
