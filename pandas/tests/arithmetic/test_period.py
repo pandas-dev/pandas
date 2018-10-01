@@ -623,7 +623,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_iadd_timedeltalike_freq_mismatch_daily(self, not_daily):
         other = not_daily
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=D\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -632,7 +632,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_sub_timedeltalike_freq_mismatch_daily(self, not_daily):
         other = not_daily
         rng = pd.period_range('2014-05-01', '2014-05-15', freq='D')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=D\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=D\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
 
@@ -651,7 +651,7 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_timedeltalike_mismatched_freq_hourly(self, not_hourly):
         other = not_hourly
         rng = pd.period_range('2014-01-01 10:00', '2014-01-05 10:00', freq='H')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=H\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=H\\)'
 
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
@@ -686,7 +686,7 @@ class TestPeriodIndexArithmetic(object):
         other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
-               'from PeriodIndex\\(freq=A-DEC\\)')
+               'from Period.*?\\(freq=A-DEC\\)')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -697,7 +697,7 @@ class TestPeriodIndexArithmetic(object):
         other = mismatched_freq
         rng = pd.period_range('2014', '2024', freq='A')
         msg = ('Input has different freq(=.+)? '
-               'from PeriodIndex\\(freq=A-DEC\\)')
+               'from Period.*?\\(freq=A-DEC\\)')
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -717,7 +717,7 @@ class TestPeriodIndexArithmetic(object):
                                                              mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng + other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -727,7 +727,7 @@ class TestPeriodIndexArithmetic(object):
                                                              mismatched_freq):
         other = mismatched_freq
         rng = pd.period_range('2014-01', '2016-12', freq='M')
-        msg = 'Input has different freq(=.+)? from PeriodIndex\\(freq=M\\)'
+        msg = 'Input has different freq(=.+)? from Period.*?\\(freq=M\\)'
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             rng - other
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
@@ -852,6 +852,7 @@ class TestPeriodIndexSeriesMethods(object):
                 with pytest.raises(TypeError):
                     np.subtract(ng, obj)
 
+    @pytest.mark.xfail(reason="GH-22798", strict=True)
     def test_pi_ops_nat(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],
                           freq='M', name='idx')
@@ -876,6 +877,7 @@ class TestPeriodIndexSeriesMethods(object):
         self._check(idx + 3, lambda x: x - 3, idx)
         self._check(idx + 3, lambda x: np.subtract(x, 3), idx)
 
+    @pytest.mark.xfail(reason="TODO", strict=True)
     def test_pi_ops_array_int(self):
         idx = PeriodIndex(['2011-01', '2011-02', 'NaT', '2011-04'],
                           freq='M', name='idx')
@@ -924,7 +926,7 @@ class TestPeriodIndexSeriesMethods(object):
 
         # Series op is applied per Period instance, thus error is raised
         # from Period
-        msg_idx = r"Input has different freq from PeriodIndex\(freq=D\)"
+        msg_idx = r"Input has different freq from Period.*?\(freq=D\)"
         msg_s = r"Input cannot be converted to Period\(freq=D\)"
         for obj, msg in [(idx, msg_idx), (ser, msg_s)]:
             with tm.assert_raises_regex(period.IncompatibleFrequency, msg):

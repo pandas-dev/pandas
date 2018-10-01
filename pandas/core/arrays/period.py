@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
 from pandas.core.dtypes.generic import (
-    ABCSeries, ABCIndex, ABCPeriodIndex
+    ABCSeries, ABCPeriodIndex, ABCIndexClass,
 )
 
 import pandas.core.common as com
@@ -63,7 +63,7 @@ def _period_array_cmp(cls, op):
 
     def wrapper(self, other):
         op = getattr(self._ndarray_values, opname)
-        if isinstance(other, (ABCSeries, ABCIndex)):
+        if isinstance(other, (ABCSeries, ABCIndexClass)):
             other = other.values
 
         if isinstance(other, Period):
@@ -72,7 +72,7 @@ def _period_array_cmp(cls, op):
                 raise IncompatibleFrequency(msg)
 
             result = op(other.ordinal)
-        elif isinstance(other, (ABCPeriodIndex, cls)):
+        elif isinstance(other, cls):
             if other.freq != self.freq:
                 msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -88,7 +88,8 @@ def _period_array_cmp(cls, op):
             result = np.empty(len(self._ndarray_values), dtype=bool)
             result.fill(nat_result)
         elif isinstance(other, (list, np.ndarray)):
-            # XXX: is this correct?
+            # XXX: is this correct? Why not convert the
+            # sequence to a PeriodArray?
             return NotImplemented
         else:
             other = Period(other, freq=self.freq)
@@ -111,16 +112,16 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     - ordinals : integer ndarray
     - freq : pd.tseries.offsets.Tick
 
-    The values are physically stored as an ndarray of integers. These are
+    The values are physically stored as a 1-D ndarray of integers. These are
     called "ordinals" and represent some kind of offset from a base.
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
     """
     _attributes = ["freq"]
-    _typ = "periodarray"  # ABCPeriodAray
+    _typ = "periodarray"  # ABCPeriodArray
 
-    # Names others delegate to us on
+    # Names others delegate to us
     _other_ops = []
     _bool_ops = ['is_leap_year']
     _object_ops = ['start_time', 'end_time', 'freq']
@@ -134,7 +135,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     # --------------------------------------------------------------------
     # Constructors
     def __init__(self, values, freq=None):
-        # type: (np.ndarray[int64], Union[str, Tick]) -> None
+        # type: (np.ndarray[np.int64], Union[str, Tick]) -> None
         values = np.array(values, dtype='int64', copy=False)
         self._data = values
         if freq is None:
@@ -237,7 +238,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         # type: (ndarray[int], Optional[Tick]) -> PeriodArray
         """
         Values should be int ordinals
-        `__new__` & `_simple_new` cooerce to ordinals and call this method
+        `__new__` & `_simple_new` coerce to ordinals and call this method
         """
         return cls(values, freq=freq)
 
@@ -536,7 +537,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         if base != self.freq.rule_code:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        return self.shift(other.n)
+        return self._tshift(other.n)
 
     def _add_delta_td(self, other):
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
@@ -546,7 +547,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         if isinstance(own_offset, Tick):
             offset_nanos = delta_to_nanoseconds(own_offset)
             if np.all(nanos % offset_nanos == 0):
-                return self.shift(nanos // offset_nanos)
+                return self._tshift(nanos // offset_nanos)
 
         # raise when input doesn't have freq
         raise IncompatibleFrequency("Input has different freq from "
@@ -556,7 +557,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
-        return self.shift(ordinal_delta)
+        return self._tshift(ordinal_delta)
 
     def shift(self, periods=1):
         """
@@ -640,6 +641,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
                                                freqstr=self.freqstr))
 
     def _format_native_types(self, na_rep=u'NaT', date_format=None):
+        # TODO(DatetimeArray): remove
         values = self.astype(object)
 
         if date_format:
@@ -658,7 +660,8 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return values
 
     def view(self, dtype=None, type=None):
-        # This is to support PeriodIndex.view('i8')
+        # This is to support things like `.asi8`
+        # PeriodIndex's parent does .values.view('i8').
         # I don't like adding this,
         return self._data.view(dtype=dtype)
 
@@ -757,6 +760,28 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         from pandas.core.index import Index
         return Index(self._box_values(self.asi8), dtype=object)
 
+    @property
+    def flags(self):
+        """Deprecated"""
+        # Just here to support Index.flags deprecation.
+        # could also override PeriodIndex.flags if we don't want a
+        # version with PeriodArray.flags
+        return self.values.flags
+
+    @property
+    def base(self):
+        return self.values.base
+
+    @property
+    def data(self):
+        return self.astype(object).data
+
+    def item(self):
+        if len(self) == 1:
+            return Period._from_ordinal(self.values[0], self.freq)
+        else:
+            raise ValueError('can only convert an array of size 1 to a '
+                             'Python scalar')
 
 PeriodArray._add_comparison_ops()
 PeriodArray._add_datetimelike_methods()

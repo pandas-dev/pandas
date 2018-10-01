@@ -1173,6 +1173,11 @@ def dispatch_to_extension_op(op, left, right):
     if is_extension_array_dtype(left):
 
         new_left = left.values
+        if (is_extension_array_dtype(right)
+                and isinstance(right, (ABCIndexClass, ABCSeries))):
+            # unbox
+            right = right._values
+
         if isinstance(right, np.ndarray):
 
             # handle numpy scalars, this is a PITA
@@ -1181,8 +1186,11 @@ def dispatch_to_extension_op(op, left, right):
             if is_scalar(new_right):
                 new_right = [new_right]
             new_right = list(new_right)
+        elif (is_extension_array_dtype(right) and
+              type(new_left) == type(right)):
+            new_right = right
         elif is_extension_array_dtype(right) and type(left) != type(right):
-            new_right = list(new_right)
+            new_right = list(right)
         else:
             new_right = right
 

@@ -262,11 +262,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         else:
             # this differs too
             if not isinstance(values, PeriodArray):
-                try:
-                    values = PeriodArray._from_ordinals(values, freq=self.freq)
-                except TypeError:
-                    # TODO: this is probably ambiguous for some oridinals.
-                    values = PeriodArray._complex_new(values, freq=self.freq)
+                values = PeriodArray._complex_new(values, freq=self.freq)
+
+        # I don't like overloading shallow_copy with freq changes.
+        # See if it's used anywhere outside of test_resample_empty_dataframe
+        freq = kwargs.pop("freq", None)
+        if freq:
+            values = values.asfreq(freq)
 
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
