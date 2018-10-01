@@ -120,7 +120,7 @@ def _get_terminal_size_linux():
             import struct
             cr = struct.unpack(
                 'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
-        except struct.error:
+        except (struct.error, IOError):
             return None
         return cr
     cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)

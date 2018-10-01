@@ -169,7 +169,7 @@ def read_pickle(path, compression='infer'):
                 lambda f: pc.load(f, encoding=encoding, compat=False))
     try:
         return try_read(path)
-    except (AssertionError, ModuleNotFoundError, UnicodeDecodeError):
+    except Exception:
         if PY3:
             return try_read(path, encoding='latin1')
         raise
