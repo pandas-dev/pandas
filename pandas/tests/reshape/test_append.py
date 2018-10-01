@@ -388,6 +388,35 @@ class TestAppendColumnsIndex(object):
         expected = pd.DataFrame([[1, 2, np.nan], [3, 4, 5]], columns=index)
         assert_frame_equal(result, expected)
 
+    def test_ignore_empty_index_dtype(self, sort):
+        # When one of the indexes is empty and of object dtype, it should be
+        # ignored in the result (as empty).
+
+        df1 = pd.DataFrame()
+        df2 = pd.DataFrame([[11, 12, 13]], columns=[1, 2, 3])
+
+        result1 = df1.append(df2, sort=sort)
+        result2 = df2.append(df1, sort=sort)
+
+        expected = df2.copy()
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
+
+    def test_account_empty_index_dtype(self, sort):
+        # When one of the indexes is empty and of dtype different from object,
+        # it should not be ignored when calculating the result dtype.
+
+        df1 = pd.DataFrame(columns=pd.Float64Index([]))
+        df2 = pd.DataFrame([[11, 12, 13]], columns=[1, 2, 3])
+
+        result1 = df1.append(df2, sort=sort)
+        result2 = df2.append(df1, sort=sort)
+
+        expected = df2.copy()
+        expected.columns = [1.0, 2.0, 3.0]
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
+
     @pytest.mark.parametrize('index2', indexes, ids=cls_name)
     @pytest.mark.parametrize('index1', indexes, ids=cls_name)
     def test_preserve_index_values_without_sort(self, index1, index2):
@@ -750,6 +779,35 @@ class TestAppendRowsIndex(object):
         expected = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         expected.index.name = idx_name1
         assert_frame_equal(result, expected)
+
+    def test_ignore_empty_index_dtype(self, sort):
+        # When one of the indexes is empty and of object dtype, it should be
+        # ignored in the result (as empty).
+
+        df1 = pd.DataFrame()
+        df2 = pd.DataFrame([[11], [12], [13]], index=[1, 2, 3])
+
+        result1 = df1.append(df2, sort=sort)
+        result2 = df2.append(df1, sort=sort)
+
+        expected = df2.copy()
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
+
+    def test_account_empty_index_dtype(self, sort):
+        # When one of the indexes is empty and of dtype different from object,
+        # it should not be ignored when calculating the result dtype.
+
+        df1 = pd.DataFrame(index=pd.Float64Index([]))
+        df2 = pd.DataFrame([[11], [12], [13]], index=[1, 2, 3])
+
+        result1 = df1.append(df2, sort=sort)
+        result2 = df2.append(df1, sort=sort)
+
+        expected = df2.copy()
+        expected.index = [1.0, 2.0, 3.0]
+        assert_frame_equal(result1, expected)
+        assert_frame_equal(result2, expected)
 
     @pytest.mark.parametrize('index', indexes, ids=cls_name)
     def test_preserve_index_type(self, sort, index):

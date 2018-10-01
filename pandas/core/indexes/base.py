@@ -1541,6 +1541,9 @@ class Index(IndexOpsMixin, PandasObject):
     def has_duplicates(self):
         return not self.is_unique
 
+    def is_empty(self):
+        return self.inferred_type in ['empty']
+
     def is_boolean(self):
         return self.inferred_type in ['boolean']
 

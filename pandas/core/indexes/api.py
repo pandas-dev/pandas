@@ -276,9 +276,14 @@ def _merge_index_list(index_list,
         When verify_dups=True and at least one of the input indexes contain
         duplicate values. This is error is not raised if
         allow_matching_dups=True and all the indexes have a common identity.
+
+    Notes
+    -----
+    Empty indexes (of object dtype) are forgotten.
     """
     # unique index list (a is b)
     uindex_list = com.get_distinct_objs(index_list)
+    uindex_list = [i for i in uindex_list if not i.is_empty()]
 
     # verify duplicates
     if sort or verify_dups:
