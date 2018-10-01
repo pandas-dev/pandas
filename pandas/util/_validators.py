@@ -59,7 +59,7 @@ def _check_for_default_values(fname, arg_val_dict, compat_args):
 
         # could not compare them directly, so try comparison
         # using the 'is' operator
-        except:
+        except ValueError:
             match = (arg_val_dict[key] is compat_args[key])
 
         if not match:
