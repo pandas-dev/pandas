@@ -7113,7 +7113,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         DataFrameGroupBy or SeriesGroupBy
-            Depends on the calling object and returns groupby object that 
+            Depends on the calling object and returns groupby object that
             contains information about the groups.
 
         See Also
@@ -7138,7 +7138,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    Mary     85
         >>> df.groupby(['Student']).mean()
                  Grade
-        Student       
+        Student
         Bob       96.0
         Mary      83.5
 
@@ -7154,19 +7154,19 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    index=index)
         >>> df
                      Pop %
-        State Type        
+        State Type
         TX    Urban   84.7
               Rural   15.3
         NY    Urban   87.9
               Rural   12.1
         >>> df.groupby(level=0).sum()
                Pop %
-        State       
+        State
         NY      100.0
         TX      100.0
         >>> df.groupby(level=1).mean()
                Pop %
-        Type        
+        Type
         Rural   13.7
         Urban   86.3
         """
