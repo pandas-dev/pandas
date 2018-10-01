@@ -252,9 +252,14 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
-    @pytest.mark.skip(reason="divmod not appropriate for decimal")
     def test_divmod(self, data):
-        pass
+        s = pd.Series(data, name='name')
+        a, b = divmod(s, 2)
+        ea, eb = zip(*(divmod(x, 2) for x in s))
+        ea = pd.Series(ea, name=s.name, dtype=s.dtype)
+        eb = pd.Series(eb, name=s.name, dtype=s.dtype)
+        tm.assert_series_equal(a, ea)
+        tm.assert_series_equal(b, eb)
 
     def test_error(self):
         pass
