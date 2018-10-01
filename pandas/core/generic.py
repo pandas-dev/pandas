@@ -7063,8 +7063,10 @@ class NDFrame(PandasObject, SelectionMixin):
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, observed=False, **kwargs):
         """
-        Group series using mapper (dict or key function, apply given function
-        to group, return result as series) or by a series of columns.
+        Group series using a mapper or by a series of columns.
+
+        The mapper is a dict or key function that applies the given function
+        to group and return result as series.
 
         Parameters
         ----------
@@ -7078,26 +7080,29 @@ class NDFrame(PandasObject, SelectionMixin):
             labels may be passed to group by the columns in ``self``. Notice
             that a tuple is interpreted a (single) key.
         axis : int, default 0
+            If 0, split by rows. If 1, split by columns.
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
-            level or levels
+            level or levels.
         as_index : boolean, default True
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
-            effectively "SQL-style" grouped output
+            effectively "SQL-style" grouped output.
         sort : boolean, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
             group.  groupby preserves the order of rows within each group.
         group_keys : boolean, default True
-            When calling apply, add group keys to index to identify pieces
+            When calling apply, add group keys to index to identify pieces.
         squeeze : boolean, default False
-            reduce the dimensionality of the return type if possible,
-            otherwise return a consistent type
+            Reduce the dimensionality of the return type if possible,
+            otherwise return a consistent type.
         observed : boolean, default False
             This only applies if any of the groupers are Categoricals
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
+        **kwargs
+            Only accepts argument 'mutated'.
 
             .. versionadded:: 0.23.0
 
@@ -7107,14 +7112,42 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        DataFrame results
+        >>> df = pd.DataFrame({'col1' : ['A', 'A', 'B', 'B'],
+        ...                    'col2' : [1, 2, 3, 4]})
+        >>> df
+          col1  col2
+        0    A     1
+        1    A     2
+        2    B     3
+        3    B     4
+        >>> df.groupby(['col1']).mean()
+              col2
+        col1
+        A      1.5
+        B      3.5
 
-        >>> data.groupby(func, axis=0).mean()
-        >>> data.groupby(['col1', 'col2'])['col3'].mean()
+        **Hierarchical indexes**
 
-        DataFrame with hierarchical index
+        We can groupby different levels of a hierarchical index
+        using the `level` parameter:
 
-        >>> data.groupby(['col1', 'col2']).mean()
+        >>> arrays = [np.array(['A', 'A', 'B', 'B']),
+        ...           np.array(['foo', 'bar', 'foo', 'bar'])]
+        >>> df = pd.DataFrame(np.array([1, 2, 3, 4]), index=arrays)
+        >>> df
+               0
+        A foo  1
+          bar  2
+        B foo  3
+          bar  4
+        >>> df.groupby(level=0).mean()
+             0
+        A  1.5
+        B  3.5
+        >>> df.groupby(level=1).mean()
+             0
+        bar  3
+        foo  2
 
         Notes
         -----
