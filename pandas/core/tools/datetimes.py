@@ -99,13 +99,13 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            return Index(result)
+            return Index(result, name=name)
         else:
             return DatetimeIndex(result, name=name)
     return result.values
 
 
-def _return_parsed_timezone_results(result, timezones, box, tz):
+def _return_parsed_timezone_results(result, timezones, box, tz, name):
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -119,6 +119,9 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
         True boxes result as an Index-like, False returns an ndarray
     tz : object
         None or pytz timezone object
+    name : string, default None
+        Name for a DatetimeIndex
+
     Returns
     -------
     tz_result : ndarray of parsed dates with timezone
@@ -136,7 +139,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
                            in zip(result, timezones)])
     if box:
         from pandas import Index
-        return Index(tz_results)
+        return Index(tz_results, name=name)
     return tz_results
 
 
@@ -209,7 +212,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         if box:
             if errors == 'ignore':
                 from pandas import Index
-                return Index(result)
+                return Index(result, name=name)
 
             return DatetimeIndex(result, tz=tz, name=name)
         return result
@@ -252,7 +255,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                         arg, format, exact=exact, errors=errors)
                     if '%Z' in format or '%z' in format:
                         return _return_parsed_timezone_results(
-                            result, timezones, box, tz)
+                            result, timezones, box, tz, name)
                 except tslibs.OutOfBoundsDatetime:
                     if errors == 'raise':
                         raise

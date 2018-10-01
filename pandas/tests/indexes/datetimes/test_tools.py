@@ -233,6 +233,15 @@ class TestTimeConversionFormats(object):
         with pytest.raises(ValueError):
             pd.to_datetime([date], format=fmt)
 
+    def test_to_datetime_parse_timezone_keeps_name(self):
+        # GH 21697
+        fmt = '%Y-%m-%d %H:%M:%S %z'
+        arg = pd.Index(['2010-01-01 12:00:00 Z'], name='foo')
+        result = pd.to_datetime(arg, format=fmt)
+        expected = pd.DatetimeIndex(['2010-01-01 12:00:00'], tz='UTC',
+                                    name='foo')
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetime(object):
     def test_to_datetime_pydatetime(self):
@@ -764,6 +773,14 @@ class TestToDatetimeUnit(object):
         result = pd.to_datetime(1434743731.8770001, unit='s', cache=cache)
         expected = pd.Timestamp('2015-06-19 19:55:31.877000093')
         assert result == expected
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_ignore_keeps_name(self, cache):
+        # GH 21697
+        expected = pd.Index([15e9] * 2, name='name')
+        result = pd.to_datetime(expected, errors='ignore', box=True, unit='s',
+                                cache=cache)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_dataframe(self, cache):
