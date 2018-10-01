@@ -49,6 +49,18 @@ from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 
 
+class NullContextManager(object):
+    def __init__(self, dummy_resource=None):
+        self.dummy_resource = dummy_resource
+    def __enter__(self):
+        return self.dummy_resource
+    def __exit__(self, *args):
+        pass
+
+
+do_not_raise = NullContextManager()
+
+
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
