@@ -19,7 +19,7 @@ import pandas.core.common as com
 import pandas.core.indexes.base as ibase
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.sparse.array import (
     make_sparse, SparseArray,
