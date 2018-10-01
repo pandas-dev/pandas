@@ -7065,7 +7065,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Group series using a mapper or by a series of columns.
 
-        Any groupby operation involves some combination of splitting the
+        A groupby operation involves some combination of splitting the
         object, applying a function, and combining the results. This can be
         used to group large amounts of data and compute operations on these
         groups.
@@ -7081,25 +7081,25 @@ class NDFrame(PandasObject, SelectionMixin):
             values are used as-is determine the groups. A label or list of
             labels may be passed to group by the columns in ``self``. Notice
             that a tuple is interpreted a (single) key.
-        axis : {0 or 'index', 1 or 'columns', None}
+        axis : {0 or 'index', 1 or 'columns'}
             Split along rows (0) or columns (1).
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels.
-        as_index : boolean, default True
+        as_index : bool, default True
             For aggregated output, return object with group labels as the
             index. Only relevant for DataFrame input. as_index=False is
             effectively "SQL-style" grouped output.
-        sort : boolean, default True
+        sort : bool, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
             group. Groupby preserves the order of rows within each group.
-        group_keys : boolean, default True
+        group_keys : bool, default True
             When calling apply, add group keys to index to identify pieces.
-        squeeze : boolean, default False
+        squeeze : bool, default False
             Reduce the dimensionality of the return type if possible,
             otherwise return a consistent type.
-        observed : boolean, default False
+        observed : bool, default False
             This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
@@ -7107,12 +7107,18 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.23.0
 
         **kwargs
-            Optional, only accepts keyword argument 'mutated'
-            and is passed to groupby.
+            Optional, only accepts keyword argument 'mutated' and is passed
+            to groupby.
 
         Returns
         -------
-        GroupBy object
+        DataFrameGroupBy object
+            An object that contains information about the groups.
+
+        See Also
+        --------
+        resample : Convenience method for frequency conversion and resampling
+            of time series.
 
         Examples
         --------
@@ -7130,7 +7136,7 @@ class NDFrame(PandasObject, SelectionMixin):
         A      1.5
         B      3.5
 
-        **Hierarchical indexes**
+        **Hierarchical Indexes**
 
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
@@ -7157,11 +7163,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -----
         See the `user guide
         <http://pandas.pydata.org/pandas-docs/stable/groupby.html>`_ for more.
-
-        See also
-        --------
-        resample : Convenience method for frequency conversion and resampling
-            of time series.
         """
         from pandas.core.groupby.groupby import groupby
 
