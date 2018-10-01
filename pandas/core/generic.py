@@ -7091,18 +7091,19 @@ class NDFrame(PandasObject, SelectionMixin):
         sort : boolean, default True
             Sort group keys. Get better performance by turning this off.
             Note this does not influence the order of observations within each
-            group.  groupby preserves the order of rows within each group.
+            group. Groupby preserves the order of rows within each group.
         group_keys : boolean, default True
             When calling apply, add group keys to index to identify pieces.
         squeeze : boolean, default False
             Reduce the dimensionality of the return type if possible,
             otherwise return a consistent type.
         observed : boolean, default False
-            This only applies if any of the groupers are Categoricals
+            This only applies if any of the groupers are Categoricals.
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
         **kwargs
-            Only accepts argument 'mutated'.
+            Optional, only accepts keyword argument 'mutated'
+            and is passed to groupby.
 
             .. versionadded:: 0.23.0
 
