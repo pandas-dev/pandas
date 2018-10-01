@@ -21,10 +21,13 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_float_dtype, is_period_dtype,
     is_float, is_integer, pandas_dtype, is_scalar,
     is_datetime64_dtype,
+    is_categorical_dtype,
     ensure_object
 )
 from pandas.core.dtypes.dtypes import PeriodDtype
-from pandas.core.dtypes.generic import ABCSeries, ABCIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries, ABCIndex, ABCPeriodIndex
+)
 
 import pandas.core.common as com
 
@@ -65,7 +68,7 @@ def _period_array_cmp(cls, op):
                 raise IncompatibleFrequency(msg)
 
             result = op(other.ordinal)
-        elif isinstance(other, PeriodArray):
+        elif isinstance(other, (ABCPeriodIndex, PeriodArray)):
             if other.freq != self.freq:
                 msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
@@ -111,7 +114,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     All elements in the PeriodArray have the same `freq`.
     """
     _attributes = ["freq"]
-    _typ = "periodarray"  # ABCPeriodArray
+    _typ = "periodarray"  # ABCPeriodAray
 
     # Names others delegate to us on
     _other_ops = []
@@ -682,6 +685,18 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     @property
     def end_time(self):
         return self.to_timestamp(how='end')
+
+    def astype(self, dtype, copy=True):
+        # TODO: Figure out something better here...
+        # We have DatetimeLikeArrayMixin ->
+        #     super(...), which ends up being... DatetimeIndexOpsMixin?
+        # this is complicated.
+        # need a pandas_astype(arr, dtype).
+        from pandas.core.arrays import Categorical
+
+        if is_categorical_dtype(dtype):
+            return Categorical(self, dtype=dtype)
+        return super(PeriodArray, self).astype(dtype, copy=copy)
 
 
 PeriodArray._add_comparison_ops()

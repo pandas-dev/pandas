@@ -63,8 +63,15 @@ def _make_comparison_op(op, cls):
         # comparisons, this will raise in the future
         with warnings.catch_warnings(record=True):
             warnings.filterwarnings("ignore", "elementwise", FutureWarning)
+
+            # XXX: temporary hack till I figure out what's going on.
+            # For PeriodIndex.__eq__, we don't want to convert a scalar
+            # other to a scalar ndarray.
+            if getattr(self, '_wrap_cmp_method', True):
+                other = np.asarray(other)
+
             with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+                result = op(self.values, other)
 
         return result
 
@@ -760,7 +767,6 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         result[mask] = filler
         return result
 
-    # TODO: get this from ExtensionOpsMixin
     @classmethod
     def _add_comparison_methods(cls):
         """ add in comparison methods """

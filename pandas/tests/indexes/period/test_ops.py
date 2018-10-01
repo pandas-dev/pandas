@@ -506,3 +506,12 @@ class TestPeriodIndexSeriesMethods(object):
         f = lambda x: tslib.NaT >= x
         exp = np.array([False, False, False, False], dtype=np.bool)
         self._check(idx, f, exp)
+
+
+@pytest.mark.parametrize("other", ["2017", 2017])
+def test_eq(other):
+    idx = pd.PeriodIndex(['2017', '2017', '2018'], freq="D")
+    expected = np.array([True, True, False])
+    result = idx == other
+
+    tm.assert_numpy_array_equal(result, expected)

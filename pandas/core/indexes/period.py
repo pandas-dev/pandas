@@ -179,14 +179,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
-    # _delegated_to = PeriodArray
-    # # TODO: do this in a decorator
-    # _other_ops = PeriodArray._other_ops
-    # _bool_ops = PeriodArray._bool_ops
-    # _object_ops = PeriodArray._object_ops
-    # _field_ops = PeriodArray._field_ops
-    # _datetimelike_ops = PeriodArray._datetimelike_ops
-    # _datetimelike_methods = PeriodArray._datetimelike_methods
+    # see hack in arrays/datetimelike.py make_comparison_op
+    # _wrap_cmp_method = False
 
     # define my properties & methods for delegation
     _is_numeric_dtype = False
@@ -854,8 +848,18 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
         cls.__rsub__ = __rsub__
 
+    @classmethod
+    def _create_comparison_method(cls, op):
+        """
+        Create a comparison method that dispatches to ``cls.values``.
+        """
+        # TODO(DatetimeArray): move to base class.
+        def wrapper(self, other):
+            return op(self.values, other)
+        return wrapper
 
-# PeriodIndex._add_comparison_ops()
+
+PeriodIndex._add_comparison_ops()
 PeriodIndex._add_numeric_methods_disabled()
 PeriodIndex._add_logical_methods_disabled()
 PeriodIndex._add_datetimelike_methods()
