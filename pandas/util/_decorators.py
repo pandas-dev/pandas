@@ -244,8 +244,8 @@ class Substitution(object):
         self.params = args or kwargs
 
     def __call__(self, func):
-        func.__doc__ = func.__doc__ and func.__doc__ % self.params
-        return func
+        new_doc = func.__doc__ and func.__doc__ % self.params
+        return _set_docstring(func, new_doc)
 
     def update(self, *args, **kwargs):
         """
@@ -303,11 +303,41 @@ class Appender(object):
         self.join = join
 
     def __call__(self, func):
-        func.__doc__ = func.__doc__ if func.__doc__ else ''
+        doc = func.__doc__ if func.__doc__ else ''
         self.addendum = self.addendum if self.addendum else ''
-        docitems = [func.__doc__, self.addendum]
-        func.__doc__ = dedent(self.join.join(docitems))
-        return func
+        docitems = [doc, self.addendum]
+        new_doc = dedent(self.join.join(docitems))
+
+        return _set_docstring(func, new_doc)
+
+
+def _set_docstring(obj, docstring):
+    """
+    Set the docstring for the given function or class
+
+    Parameters
+    ----------
+    obj : function, method, class
+    docstring : str
+
+    Returns
+    -------
+    same type as obj
+    """
+    if isinstance(obj, type):
+        # i.e. decorating a class, for which docstrings can not be edited
+
+        class Wrapped(obj):
+            __doc__ = docstring
+
+        Wrapped.__name__ = obj.__name__
+        Wrapped.__module__ = obj.__module__
+        # TODO: will this induce a perf penalty in MRO lookups?
+        return Wrapped
+
+    else:
+        obj.__doc__ = docstring
+        return obj
 
 
 def indent(text, indents=1):
