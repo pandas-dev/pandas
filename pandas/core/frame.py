@@ -7392,18 +7392,21 @@ class DataFrame(NDFrame):
         """
         Return value(s) at the given quantile over requested axis.
 
-        This function calculates the 'q' quantile values on the dataframe,
-        dividing data points into groups along `axis` axis.
+        This function returns the Series of 'q' quantile value(s)
+        from the DataFrame, dividing data points into groups
+        along `axis` axis.
         In case of insufficient number of data points for clean division
         into groups, specify `interpolation` scheme to implement.
 
         Parameters
         ----------
-        q : float or array-like, default 0.5 (50% quantile) [0 <= q <= 1]
-            The quantile(s) to compute.
-        axis : boolean{0, 1, 'index', 'columns'} (default 0)
+        q : float or array-like, default 0.5
+            The quantile(s) to compute (0 <= q <= 1) (0.5 == 50% quantile)
+            If float is passed as `q`, scalar quantile is returned
+            If `array-like` is passed as `q`, Series is returned.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             For row-wise : 0 or'index', for column-wise : 1 or 'columns'.
-        numeric_only : boolean, default True
+        numeric_only : bool, default True
             If False, the quantile of datetime and timedelta data will be
             computed as well.
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
@@ -7419,41 +7422,12 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        scalar, Series or DataFrame
+        Series or DataFrame
             - If `q` is an array, a DataFrame will be returned where the
               index is `q`, the columns are the columns of self, and the
               values are the quantiles.
             - If `q` is a float, a Series will be returned where the
               index is the columns of self and the values are the quantiles.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], \
-                                        [3, 100], [4, 100]]), \
-                                        columns=['a', 'b'])
-        >>> df.quantile(.1)
-        a    1.3
-        b    3.7
-        Name: 0.1, dtype: float64
-        >>> df.quantile([.1, .5])
-               a     b
-        0.1  1.3   3.7
-        0.5  2.5  55.0
-
-        Specifying `numeric_only=False` will also compute the quantile of
-        datetime and timedelta data.
-
-        >>> df = pd.DataFrame({ 'A': [1, 2], \
-                                'B': [pd.Timestamp('2010'), \
-                                      pd.Timestamp('2011')], \
-                                'C': [pd.Timedelta('1 days'), \
-                                      pd.Timedelta('2 days')]})
-
-        >>> df.quantile(0.5, numeric_only=False)
-        A                    1.5
-        B    2010-07-02 12:00:00
-        C        1 days 12:00:00
-        Name: 0.5, dtype: object
 
         See Also
         --------
@@ -7461,6 +7435,56 @@ class DataFrame(NDFrame):
             Returns the rolling quantile for the DataFrame.
         numpy.percentile
             Returns 'nth' percentile for the DataFrame.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> d = {'Data': [416, 493, 423, 859, 32, 548,\
+                             33, 951, 450, 1001, 998]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df
+            Data
+        0    416
+        1    493
+        2    423
+        3    859
+        4     32
+        5    548
+        6     33
+        7    951
+        8    450
+        9   1001
+        10   998
+        >>> for i in sorted(df['Data'],reverse=True): print(i)
+        1001
+        998
+        951
+        859
+        548
+        493
+        450
+        423
+        416
+        33
+        32
+        >>> df.quantile()
+        Data    493.0
+        Name: 0.5, dtype: float64
+        >>> type(df.quantile())
+        <class 'pandas.core.series.Series'>
+        >>> df.quantile(q=0.7)
+        Data    859.0
+        Name: 0.7, dtype: float64
+        >>> df.quantile(q=[0.5,0.7])
+              Data
+        0.5  493.0
+        0.7  859.0
+        >>> df.quantile(q=[0.55],interpolation='higher')
+              Data
+        0.55   548
+        >>> df.quantile(q=[0.55],interpolation='lower')
+              Data
+        0.55   493
         """
         self._check_percentile(q)
 
