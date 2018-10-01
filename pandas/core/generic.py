@@ -7066,7 +7066,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Group series using a mapper or by a series of columns.
 
         The mapper is a dict or key function that applies the given function
-        to group and return result as series.
+        on the selected axis and returns the result as a series.
 
         Parameters
         ----------
@@ -7080,7 +7080,7 @@ class NDFrame(PandasObject, SelectionMixin):
             labels may be passed to group by the columns in ``self``. Notice
             that a tuple is interpreted a (single) key.
         axis : int, default 0
-            If 0, split by rows. If 1, split by columns.
+            If 0, group by rows. If 1, group by columns.
         level : int, level name, or sequence of such, default None
             If the axis is a MultiIndex (hierarchical), group by a particular
             level or levels.
