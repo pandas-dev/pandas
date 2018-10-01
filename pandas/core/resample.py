@@ -1393,7 +1393,7 @@ class TimeGrouper(Grouper):
             labels = labels[:len(bins)]
 
         return binner, bins, labels
-
+    """
     def _adjust_bin_edges(self, binner, ax_values):
         # Some hacks for > daily data, see #1471, #1458, #1483
         #import pdb; pdb.set_trace()
@@ -1415,6 +1415,7 @@ class TimeGrouper(Grouper):
 
         return binner, bin_edges
     """
+    """
     def _adjust_bin_edges(self, binner, ax_values):
         # Some hacks for > daily data, see #1471, #1458, #1483
         if binner.tz is not None:
@@ -1435,6 +1436,31 @@ class TimeGrouper(Grouper):
             bin_edges = tz_localize_to_utc(bin_edges, binner.tz)
         return binner, bin_edges
     """
+    def _adjust_bin_edges(self, binner, ax_values):
+        # Some hacks for > daily data, see #1471, #1458, #1483
+
+        bin_edges = binner.asi8
+
+        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
+            day_nanos = delta_to_nanoseconds(timedelta(1))
+            if self.closed == 'right':
+                if binner.tz is not None:
+                    bin_edges = binner.tz_localize(None).asi8
+                else:
+                    bin_edges = binner.asi8
+                bin_edges = bin_edges + day_nanos - 1
+
+                if binner.tz is not None:
+                    bin_edges = tz_localize_to_utc(bin_edges, binner.tz)
+
+            # intraday values on last day
+            if bin_edges[-2] > ax_values.max():
+                bin_edges = bin_edges[:-1]
+                binner = binner[:-1]
+            return binner, bin_edges
+        else:
+            return binner, binner.asi8
+
     def _get_time_delta_bins(self, ax):
         if not isinstance(ax, TimedeltaIndex):
             raise TypeError('axis must be a TimedeltaIndex, but got '
