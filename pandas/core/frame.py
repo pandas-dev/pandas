@@ -6423,7 +6423,44 @@ class DataFrame(NDFrame):
         from pandas.core.indexes.api import _normalize_dataframes
         from pandas.core.reshape.concat import concat
 
-        # TODO: sorting behavior when sort=None
+        # sorting behavior when sort=None
+        # TODO: remove when kwarg value change
+        if sort is None:
+            # stabilish desired behavior
+            if _obj_type in (dict, Series):
+                # dict/ser
+
+                sort = False
+                warn = False
+            elif _item_type in (dict, Series):
+                # [dict]/[ser]
+
+                if (self.columns.get_indexer(other[0].columns) >= 0).all():
+                    # self.columns >= other[0].columns
+                    sort = False
+                    warn = False
+                else:
+                    sort = True
+                    types = [df.columns.dtype for df in [self] + other]
+                    common = find_common_type(types)
+                    warn = (common == object)
+            else:
+                # frame/[frame]
+
+                if all(self.columns.equals(df.columns) for df in other):
+                    # all values the same
+                    sort = False
+                    warn = False
+                else:
+                    sort = True
+                    types = [df.columns.dtype for df in [self] + other]
+                    common = find_common_type(types)
+                    warn = (common == object)
+
+            # warn if necessary
+            if warn:
+                from pandas.core.indexes.api import _sort_msg
+                warnings.warn(_sort_msg, FutureWarning)
 
         # The behavior of concat is a bit problematic as it is. To get around,
         # we prepare the DataFrames before feeding them into concat.

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+from pandas import DataFrame, Index, Series
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.util.testing import assert_frame_equal
 
@@ -325,6 +326,148 @@ class TestAppendBasic(object):
         big = pd.DataFrame([[3, 4, 5]], index=[1])
         result = small.append(big, sort=sort)
         expected = pd.DataFrame([[1, 2, np.nan], [3, 4, 5]])
+        assert_frame_equal(result, expected)
+
+
+class TestAppendSortNone(object):
+    """Regression tests to preserve the behavior of sort=None
+    """
+
+    def generate_frames(self, compare, special):
+        if compare == 'lt':
+            if special:
+                df1 = DataFrame([[11, 12]], columns=[2, 1])
+                df2 = DataFrame([[13, 14, 15]], columns=[3, 2, 1])
+            else:
+                df1 = DataFrame([[11, 12]], columns=list('ba'))
+                df2 = DataFrame([[13, 14, 15]], columns=list('cba'))
+        elif compare == 'eq':
+            if special:
+                df1 = DataFrame([[11, 12, 13]], columns=[3, 2, 1])
+                df2 = DataFrame([[14, 15, 16]], columns=[3, 2, 1])
+            else:
+                df1 = DataFrame([[11, 12, 13]], columns=list('cba'))
+                df2 = DataFrame([[14, 15, 16]], columns=list('cba'))
+        elif compare == 'gt':
+            if special:
+                df1 = DataFrame([[11, 12, 13]], columns=[3, 2, 1])
+                df2 = DataFrame([[14, 15]], columns=[2, 1])
+            else:
+                df1 = DataFrame([[11, 12, 13]], columns=list('cba'))
+                df2 = DataFrame([[14, 15]], columns=list('ba'))
+        elif compare == 'dups':
+            # special category for duplicates
+            # assumes compare = 'eq'
+            if special:
+                df1 = DataFrame([[11, 12, 13]], columns=[3, 3, 1])
+                df2 = DataFrame([[14, 15, 16]], columns=[3, 3, 1])
+            else:
+                df1 = DataFrame([[11, 12, 13]], columns=list('cca'))
+                df2 = DataFrame([[14, 15, 16]], columns=list('cca'))
+
+        # avoid upcasting problems
+        df1 = df1.astype('float64')
+        df2 = df2.astype('float64')
+
+        return df1, df2
+
+    def merge_indexes(self, idx1, idx2, sort):
+        len1 = idx1.size
+        len2 = idx2.size
+
+        if len1 < len2:
+            # match 'lt' in self.generate_frames
+            vals1 = idx1.tolist()
+            vals2 = [idx2.tolist()[0]]
+            result = Index(vals1 + vals2)
+        else:
+            result = idx1.copy()
+
+        return result.sort_values() if sort else result
+
+    def merge_frames(self, df1, df2, sort):
+        new_index = self.merge_indexes(df1.columns, df2.columns, sort)
+        df1 = df1.reindex(new_index, axis=1)
+        df2 = df2.reindex(new_index, axis=1)
+
+        values = np.vstack([df1.values[0, :], df2.values[0, :]])
+        result = DataFrame(values, columns=new_index)
+        return result
+
+    @pytest.mark.parametrize('input_type', ['series', 'dict'])
+    @pytest.mark.parametrize('special', [True, False])
+    @pytest.mark.parametrize('compare', ['lt', 'eq', 'gt', 'dups'])
+    def test_append_series_dict(self, compare, special, input_type):
+        # When appending a Series or dict, the resulting columns come unsorted
+        # and no warning is raised.
+
+        sorts = False
+        warns = False
+
+        df1, df2 = self.generate_frames(compare, special)
+        if input_type == 'series':
+            other = df2.loc[0]
+        else:
+            other = df2.loc[0].to_dict()
+            if compare == 'dups':
+                return
+
+        ctx = pytest.warns(FutureWarning) if warns else pytest.warns(None)
+        expected = self.merge_frames(df1, df2, sorts)
+        with ctx:
+            result = df1.append(other, ignore_index=True, sort=None)
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('input_type', ['[series]', '[dict]'])
+    @pytest.mark.parametrize('special', [True, False])
+    @pytest.mark.parametrize('compare', ['lt', 'eq', 'gt'])  # dups won't work
+    def test_append_list_of_series_dict(self, compare, special, input_type):
+        # When appending a list of Series or list of dicts, the behavior is
+        # as specified below.
+
+        if compare in ('gt', 'eq'):
+            sorts = False
+            warns = False
+        else:
+            sorts = True
+            warns = not special
+
+        df1, df2 = self.generate_frames(compare, special)
+        if input_type == '[series]':
+            other = [df2.loc[0]]
+        else:
+            other = [df2.loc[0].to_dict()]
+
+        ctx = pytest.warns(FutureWarning) if warns else pytest.warns(None)
+        expected = self.merge_frames(df1, df2, sorts)
+        with ctx:
+            result = df1.append(other, ignore_index=True, sort=None)
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('input_type', ['dataframe', '[dataframe]'])
+    @pytest.mark.parametrize('special', [True, False])
+    @pytest.mark.parametrize('compare', ['lt', 'eq', 'gt', 'dups'])
+    def test_append_dframe_list_of_dframe(self, compare, special, input_type):
+        # When appenindg a DataFrame of list of DataFrames, the behavior is as
+        # specified below.
+
+        if compare in ('dups', 'eq'):
+            sorts = False
+            warns = False
+        else:
+            sorts = True
+            warns = not special
+
+        df1, df2 = self.generate_frames(compare, special)
+        if input_type == 'dataframe':
+            other = df2
+        else:
+            other = [df2]
+
+        ctx = pytest.warns(FutureWarning) if warns else pytest.warns(None)
+        expected = self.merge_frames(df1, df2, sorts)
+        with ctx:
+            result = df1.append(other, ignore_index=True, sort=None)
         assert_frame_equal(result, expected)
 
 
