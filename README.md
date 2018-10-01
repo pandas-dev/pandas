@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://github.com/pandas-dev/pandas/blob/master/doc/logo/pandas_logo.png"><br>
+<img src="https://github.com/pandas-dev/pandas/blob/master/doc/logo/pandas_logo.png"><br>
 </div>
 
 -----------------
@@ -103,7 +103,7 @@ its way toward this goal.
 Here are just a few of the things that pandas does well:
 
   - Easy handling of [**missing data**][missing-data] (represented as
-    `NaN`) in floating point as well as non-floating point data
+    `NaN`- 'Not a Number') in floating point as well as non-floating point data
   - Size mutability: columns can be [**inserted and
     deleted**][insertion-deletion] from DataFrame and higher dimensional
     objects
