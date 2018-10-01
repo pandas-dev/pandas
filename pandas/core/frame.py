@@ -7475,7 +7475,7 @@ class DataFrame(NDFrame):
         >>> df.quantile(q=0.7)
         Data    859.0
         Name: 0.7, dtype: float64
-        >>> df.quantile(q=[0.5,0.7])
+        >>> df.quantile(q=[0.5, 0.7])
               Data
         0.5  493.0
         0.7  859.0
