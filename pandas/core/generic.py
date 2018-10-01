@@ -7128,47 +7128,48 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'Student' : ['Bob', 'Bob', 'Mary', 'Mary'],
-        ...                    'Grade' : [100, 92, 82, 85]})
+        >>> df = pd.DataFrame({'Animal' : ['Falcon', 'Falcon',
+        ...                                'Parrot', 'Parrot'],
+        ...                    'Max Speed' : [380., 370., 24., 26.]})
         >>> df
-          Student  Grade
-        0     Bob    100
-        1     Bob     92
-        2    Mary     82
-        3    Mary     85
-        >>> df.groupby(['Student']).mean()
-                 Grade
-        Student
-        Bob       96.0
-        Mary      83.5
+           Animal  Max Speed
+        0  Falcon      380.0
+        1  Falcon      370.0
+        2  Parrot       24.0
+        3  Parrot       26.0
+        >>> df.groupby(['Animal']).mean()
+                Max Speed
+        Animal
+        Falcon      375.0
+        Parrot       25.0
 
         **Hierarchical Indexes**
 
         We can groupby different levels of a hierarchical index
         using the `level` parameter:
 
-        >>> arrays = [['TX', 'TX', 'NY', 'NY'],
-        ...           ['Urban', 'Rural', 'Urban', 'Rural']]
-        >>> index = pd.MultiIndex.from_arrays(arrays, names=('State', 'Type'))
-        >>> df = pd.DataFrame({'Pop %' : [84.7, 15.3, 87.9, 12.1]},
+        >>> arrays = [['Falcon', 'Falcon', 'Parrot', 'Parrot'],
+        ...           ['Capitve', 'Wild', 'Capitve', 'Wild']]
+        >>> index = pd.MultiIndex.from_arrays(arrays, names=('Animal', 'Type'))
+        >>> df = pd.DataFrame({'Max Speed' : [390., 350., 30., 20.]},
         ...                    index=index)
         >>> df
-                     Pop %
-        State Type
-        TX    Urban   84.7
-              Rural   15.3
-        NY    Urban   87.9
-              Rural   12.1
-        >>> df.groupby(level=0).sum()
-               Pop %
-        State
-        NY      100.0
-        TX      100.0
+                        Max Speed
+        Animal Type
+        Falcon Capitve      390.0
+               Wild         350.0
+        Parrot Capitve       30.0
+               Wild          20.0
+        >>> df.groupby(level=0).mean()
+                Max Speed
+        Animal
+        Falcon      370.0
+        Parrot       25.0
         >>> df.groupby(level=1).mean()
-               Pop %
+                 Max Speed
         Type
-        Rural   13.7
-        Urban   86.3
+        Capitve      210.0
+        Wild         185.0
         """
         from pandas.core.groupby.groupby import groupby
 
