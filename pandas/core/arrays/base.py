@@ -679,6 +679,29 @@ class ExtensionArray(object):
         """
         return np.array(self)
 
+    def _reduce(self, name, skipna=True, **kwargs):
+        """Return a scalar result of performing the op
+
+        Parameters
+        ----------
+        name : str
+            name of the function
+        axis : int, default 0
+            axis over which to apply, defined as 0 currently
+        skipna : bool, default True
+            if True, skip NaN values
+        kwargs : dict
+
+        Returns
+        -------
+        scalar
+
+        Raises
+        ------
+        TypeError : subclass does not define reductions
+        """
+        raise TypeError
+
 
 class ExtensionOpsMixin(object):
     """
@@ -716,25 +739,6 @@ class ExtensionOpsMixin(object):
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
-
-    def _reduce(self, name, skipna=True, **kwargs):
-        """Return a scalar result of performing the op
-
-        Parameters
-        ----------
-        name : str
-            name of the function
-        axis : int, default 0
-            axis over which to apply, defined as 0 currently
-        skipna : bool, default True
-            if True, skip NaN values
-        kwargs : dict
-
-        Returns
-        -------
-        scalar
-        """
-        raise AbstractMethodError(self)
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):

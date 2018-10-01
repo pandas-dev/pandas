@@ -16,6 +16,26 @@ class BaseReduceTests(BaseExtensionTests):
         tm.assert_almost_equal(result, expected)
 
 
+class BaseNoReduceTests(BaseReduceTests):
+    """ we don't define any reductions """
+
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
+        op_name = all_numeric_reductions
+        s = pd.Series(data)
+
+        with pytest.raises(TypeError):
+            getattr(s, op_name)(skipna=skipna)
+
+    @pytest.mark.parametrize('skipna', [True, False])
+    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
+        op_name = all_boolean_reductions
+        s = pd.Series(data)
+
+        with pytest.raises(TypeError):
+            getattr(s, op_name)(skipna=skipna)
+
+
 class BaseNumericReduceTests(BaseReduceTests):
 
     @pytest.mark.parametrize('skipna', [True, False])

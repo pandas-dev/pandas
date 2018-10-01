@@ -136,13 +136,14 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
 
     def _reduce(self, name, axis=0, skipna=True, **kwargs):
 
-        # select the nan* ops
         if skipna:
-            op = getattr(self.data, 'nan' + name)
+            raise NotImplementedError("decimal does not support skipna=True")
 
-        # don't skip nans
-        else:
+        try:
             op = getattr(self.data, name)
+        except AttributeError:
+            raise NotImplementedError("decimal does not support "
+                                      "the {} operation".format(name))
         return op(axis=axis)
 
 

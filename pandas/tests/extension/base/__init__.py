@@ -48,7 +48,7 @@ from .groupby import BaseGroupbyTests  # noqa
 from .interface import BaseInterfaceTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .ops import BaseArithmeticOpsTests, BaseComparisonOpsTests, BaseOpsUtil  # noqa
-from .reduce import BaseNumericReduceTests, BaseBooleanReduceTests  # noqa
+from .reduce import BaseNoReduceTests, BaseNumericReduceTests, BaseBooleanReduceTests  # noqa
 from .missing import BaseMissingTests  # noqa
 from .reshaping import BaseReshapingTests  # noqa
 from .setitem import BaseSetitemTests  # noqa
