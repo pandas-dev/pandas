@@ -1197,7 +1197,7 @@ class MultiIndex(Index):
             result.index = self
         return result
 
-    def to_index(self):
+    def to_index(self, sep=None):
         """
         Convert a MultiIndex to an Index of Tuples containing the level values.
 
@@ -1205,13 +1205,19 @@ class MultiIndex(Index):
 
         Returns
         -------
-        Index : an Index with the MultiIndex data represented in Tuples.
+        pd.Index : an Index with the MultiIndex data represented in Tuples.
 
         See also
         --------
         Index
         """
-        return Index(self.values, tupleize_cols=False)
+        if sep is not None:
+            # TODO: Add support for separator to return strs instad of tuples
+            raise NotImplementedError
+        else:
+            idx = Index(self.values, tupleize_cols=False)
+
+        return idx
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """

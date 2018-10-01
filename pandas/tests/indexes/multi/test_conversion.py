@@ -4,6 +4,7 @@
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
+import pytest
 from pandas import DataFrame, MultiIndex, date_range
 from pandas.compat import range
 
@@ -177,3 +178,8 @@ def test_to_index(idx):
                         tupleize_cols=False)
     result = idx.to_index()
     tm.assert_index_equal(result, expected)
+
+
+def test_to_index_sep_raises(idx):
+    with pytest.raises(NotImplementedError):
+        idx.to_index(sep="")
