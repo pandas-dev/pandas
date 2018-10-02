@@ -3629,7 +3629,8 @@ class DataFrame(NDFrame):
                                             fill_axis=fill_axis,
                                             broadcast_axis=broadcast_axis)
 
-    @Appender(_shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.reindex.__doc__)
     @rewrite_axis_style_signature('labels', [('method', None),
                                              ('copy', True),
                                              ('level', None),
@@ -4479,7 +4480,8 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Sorting
 
-    @Appender(_shared_docs['sort_values'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.sort_values.__doc__)
     def sort_values(self, by, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -4521,7 +4523,8 @@ class DataFrame(NDFrame):
         else:
             return self._constructor(new_data).__finalize__(self)
 
-    @Appender(_shared_docs['sort_index'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.sort_index.__doc__)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True,
                    by=None):
