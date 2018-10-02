@@ -1,3 +1,4 @@
+import operator
 import decimal
 
 import random
@@ -275,3 +276,19 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
                                    for i in alter]
         self._compare_other(s, data, op_name, other)
+
+
+def test_combine_from_sequence_raises():
+    # https://github.com/pandas-dev/pandas/issues/22850
+    class BadDecimalArray(DecimalArray):
+        def _from_sequence(cls, scalars, dtype=None, copy=False):
+            raise KeyError("For the test")
+
+    ser = pd.Series(BadDecimalArray([decimal.Decimal("1.0"),
+                                     decimal.Decimal("2.0")]))
+    result = ser.combine(ser, operator.add)
+
+    # note: object dtype
+    expected = pd.Series([decimal.Decimal("2.0"),
+                          decimal.Decimal("4.0")], dtype="object")
+    tm.assert_series_equal(result, expected)
