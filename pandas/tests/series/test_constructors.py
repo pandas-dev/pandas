@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
 from pandas import (Index, Series, isna, date_range, Timestamp,
                     NaT, period_range, timedelta_range, MultiIndex,
                     IntervalIndex, Categorical, DataFrame)
+from pandas.errors import ColumnOrderWarning
 
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
@@ -890,10 +891,18 @@ class TestSeriesConstructors(TestData):
         d = {'b': 1, 'a': 0, 'c': 2}
         result = Series(d)
         if PY36:
-            expected = Series([1, 0, 2], index=list('bac'))
+            with tm.assert_produces_warning(None, filter_level=None):
+                # no warning by default
+                expected = Series([1, 0, 2], index=list('bac'))
         else:
             expected = Series([0, 1, 2], index=list('abc'))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
+    @pytest.mark.filterwarnings("always::pandas.errors.ColumnOrderWarning")
+    def test_constructor_dict_order_warns(self):
+        with tm.assert_produces_warning(ColumnOrderWarning):
+            pd.Series({"b": 1, "a": 0})
 
     @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
     def test_constructor_dict_nan_key(self, value):

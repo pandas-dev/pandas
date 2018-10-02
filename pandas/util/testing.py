@@ -2561,6 +2561,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
         * "module" - print the warning the first time it is generated
           from each module
         * "once" - print the warning the first time it is generated
+        * None - do not modify the warning filter registry. Useful when
+          testing that a warning is hidden by default.
 
     clear : str, default None
         If not ``None`` then remove any previously raised warnings from
@@ -2608,7 +2610,8 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                     pass
 
         saw_warning = False
-        warnings.simplefilter(filter_level)
+        if filter_level:
+            warnings.simplefilter(filter_level)
         yield w
         extra_warnings = []
 

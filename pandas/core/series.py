@@ -12,6 +12,7 @@ from textwrap import dedent
 import numpy as np
 import numpy.ma as ma
 
+from pandas.errors import ColumnOrderWarning
 from pandas.core.accessor import CachedAccessor
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
@@ -328,6 +329,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 s = s.sort_index()
             except TypeError:
                 pass
+        if PY36 and not isinstance(data, OrderedDict) and data:
+            # check if sort order changed.
+            try:
+                if not s.index.is_monotonic_increasing:
+                    warnings.warn(ColumnOrderWarning.message,
+                                  ColumnOrderWarning,
+                                  stacklevel=3)
+            except TypeError:
+                pass
+
         return s._data, s.index
 
     @classmethod

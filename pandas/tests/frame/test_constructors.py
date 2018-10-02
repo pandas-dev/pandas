@@ -16,6 +16,7 @@ import numpy.ma.mrecords as mrecords
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.compat import (lmap, long, zip, range, lrange, lzip,
                            OrderedDict, is_platform_little_endian, PY36)
+from pandas.errors import ColumnOrderWarning
 from pandas import compat
 from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
@@ -348,7 +349,9 @@ class TestDataFrameConstructors(TestData):
         # GH19018
         # initialization ordering: by insertion order if python>= 3.6
         d = {'b': self.ts2, 'a': self.ts1}
-        frame = DataFrame(data=d)
+        # by default, no warning
+        with tm.assert_produces_warning(None, filter_level=None):
+            frame = DataFrame(data=d)
         expected = DataFrame(data=d, columns=list('ba'))
         tm.assert_frame_equal(frame, expected)
 
@@ -360,6 +363,12 @@ class TestDataFrameConstructors(TestData):
         frame = DataFrame(data=d)
         expected = DataFrame(data=d, columns=list('ab'))
         tm.assert_frame_equal(frame, expected)
+
+    @pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
+    @pytest.mark.filterwarnings("always::pandas.errors.ColumnOrderWarning")
+    def test_constructor_dict_order_warns(self):
+        with tm.assert_produces_warning(ColumnOrderWarning):
+            pd.DataFrame({"b": [1], "a": [1]})
 
     def test_constructor_multi_index(self):
         # GH 4078

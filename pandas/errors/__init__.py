@@ -1,6 +1,8 @@
 """
 Expose public exceptions & warnings
 """
+import warnings
+
 from pandas._libs.tslibs import OutOfBoundsDatetime  # noqa: F401
 
 
@@ -181,3 +183,44 @@ class AbstractMethodError(NotImplementedError):
             name = self.class_instance.__class__.__name__
         msg = "This {methodtype} must be defined in the concrete class {name}"
         return (msg.format(methodtype=self.methodtype, name=name))
+
+
+class ColumnOrderWarning(RuntimeWarning):
+    """Potential behavior change from 0.22 to 0.24 due to column ordering.
+
+    Pandas 0.22 respects dictionary order for Python 3.6 in certain places,
+    notably the Series and DataFrame constructors. This can subtly change
+    the behavior of downstream operations that relied on column or index
+    order.
+
+    This warning is ignored by default. To use it, we recommend elevating
+    the warning to be visible or raise when running unit tests.
+
+    .. code-block:: python
+
+       import warnings
+       from pandas.errors import ColumnOrderWarning
+
+       def test_foo():
+           with warnings.filterwarnings("always", ColumnOrderWarning):
+               ...
+
+    Or if using pytest
+
+    .. code-block:: python
+
+       @pytest.mark.filterwarnings("always::ColumnOrderWarning")
+       def test_foo():
+           ...
+    """
+    message = (
+        "Possible ehavior change due to respecting dictionary order. \n\n"
+        "Pandas >=0.22 respects dictionary order for Python >= 3.6. \n"
+        "This may change the behavior of code that relied on dictionary\n "
+        "keys being sorted. \n\n"
+        "See http://pandas.pydata.org/pandas-docs/stable/generated/pandas.errors.ColumnOrderWarning.html "  # noqa
+        "for more."
+    )
+
+
+warnings.simplefilter("ignore", ColumnOrderWarning)

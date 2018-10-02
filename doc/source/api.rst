@@ -2477,6 +2477,7 @@ Exceptions and warnings
 .. autosummary::
    :toctree: generated/
 
+   errors.ColumnOrderWarning
    errors.DtypeWarning
    errors.EmptyDataError
    errors.OutOfBoundsDatetime

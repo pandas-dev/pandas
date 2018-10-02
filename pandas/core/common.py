@@ -8,12 +8,14 @@ from datetime import datetime, timedelta
 from functools import partial
 import inspect
 import collections
+import warnings
 
 import numpy as np
 from pandas._libs import lib, tslibs
 
 from pandas import compat
 from pandas.compat import iteritems, PY36, OrderedDict
+from pandas.errors import ColumnOrderWarning
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex, ABCIndexClass
 from pandas.core.dtypes.common import (
     is_integer, is_bool_dtype, is_extension_array_dtype, is_array_like
@@ -225,6 +227,12 @@ def dict_keys_to_ordered_list(mapping):
     # can be replaced by a simple list(mapping.keys())
     if PY36 or isinstance(mapping, OrderedDict):
         keys = list(mapping.keys())
+        if not isinstance(mapping, OrderedDict):
+            sorted_keys = try_sort(mapping)
+            if sorted_keys != keys:
+                warnings.warn(ColumnOrderWarning.message,
+                              ColumnOrderWarning,
+                              stacklevel=2)
     else:
         keys = try_sort(mapping)
     return keys

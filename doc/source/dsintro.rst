@@ -97,6 +97,9 @@ Series can be instantiated from dicts:
    If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
    the ``Series`` index will be the lexically ordered list of dict keys.
 
+   See :class:`pandas.errors.ColumnOrderWarning` for help with upgrading
+   from pandas 0.22 with code that may rely on the old sorting behavior.
+
 In the example above, if you were on a Python version lower than 3.6 or a
 Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
 order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
