@@ -119,7 +119,8 @@ def is_scalar(val: object) -> bint:
     - instances of decimal.Decimal
     - Interval
     - DateOffset
-
+    - Fraction
+    - Number
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
@@ -134,8 +135,8 @@ def is_scalar(val: object) -> bint:
             or util.is_period_object(val)
             or is_decimal(val)
             or is_interval(val)
-            or util.is_offset_object(val))
-
+            or util.is_offset_object(val)
+            or np.isscalar(val))
 
 def item_from_zerodim(val: object) -> object:
     """
