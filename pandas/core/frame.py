@@ -4889,7 +4889,7 @@ class DataFrame(NDFrame):
             left, right = ops.fill_binop(left, right, fill_value)
             return func(left, right)
 
-        if this._is_mixed_type or other._is_mixed_type:
+        if ops.should_series_dispatch(this, other, func):
             # iterate over columns
             return ops.dispatch_to_series(this, other, _arith_op)
         else:
