@@ -245,7 +245,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
         # type: (Sequence[Optional[Period]], Dtype, bool) -> PeriodArray
-        return cls._complex_new(scalars, dtype=dtype, copy=copy)
+        return cls._from_periods(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -328,7 +328,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         return self._data.nbytes
 
     def copy(self, deep=False):
-        return self._from_ordinals(self._data.copy(), freq=self.freq)
+        return self._from_ordinals(self._data.copy(deep=deep), freq=self.freq)
 
     @classmethod
     def _concat_same_type(cls, to_concat):
