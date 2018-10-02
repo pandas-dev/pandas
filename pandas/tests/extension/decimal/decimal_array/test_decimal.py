@@ -278,17 +278,32 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         self._compare_other(s, data, op_name, other)
 
 
+class DecimalArrayWithoutFromSequence(DecimalArray):
+    """Helper class for testing error handling in _from_sequence."""
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        raise KeyError("For the test")
+
+
 def test_combine_from_sequence_raises():
     # https://github.com/pandas-dev/pandas/issues/22850
-    class BadDecimalArray(DecimalArray):
-        def _from_sequence(cls, scalars, dtype=None, copy=False):
-            raise KeyError("For the test")
-
-    ser = pd.Series(BadDecimalArray([decimal.Decimal("1.0"),
-                                     decimal.Decimal("2.0")]))
+    ser = pd.Series(DecimalArrayWithoutFromSequence([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ]))
     result = ser.combine(ser, operator.add)
 
     # note: object dtype
     expected = pd.Series([decimal.Decimal("2.0"),
                           decimal.Decimal("4.0")], dtype="object")
     tm.assert_series_equal(result, expected)
+
+
+def test_scalar_ops_from_sequence_raises():
+    arr = DecimalArrayWithoutFromSequence([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ])
+    result = arr + arr
+    expected = np.array([decimal.Decimal("2.0"), decimal.Decimal("4.0")],
+                        dtype="object")
+    tm.assert_numpy_array_equal(result, expected)

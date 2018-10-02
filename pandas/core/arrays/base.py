@@ -777,8 +777,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             if coerce_to_dtype:
                 try:
                     res = self._from_sequence(res)
-                except TypeError:
-                    pass
+                except Exception:
+                    res = np.asarray(res, dtype=object)
 
             return res
 
