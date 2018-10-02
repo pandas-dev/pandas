@@ -623,8 +623,14 @@ def test_as_index_series_return_frame(df):
     assert isinstance(result2, DataFrame)
     assert_frame_equal(result2, expected2)
 
-    # corner case
-    pytest.raises(Exception, grouped['C'].__getitem__, 'D')
+
+def test_as_index_series_column_slice_raises(df):
+    # GH15072
+    grouped = df.groupby('A', as_index=False)
+    msg = r"Column\(s\) C already selected"
+
+    with tm.assert_raises_regex(IndexError, msg):
+        grouped['C'].__getitem__('D')
 
 
 def test_groupby_as_index_cython(df):

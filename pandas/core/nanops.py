@@ -766,6 +766,8 @@ def nancorr(a, b, method='pearson', min_periods=None):
 def get_corr_func(method):
     if method in ['kendall', 'spearman']:
         from scipy.stats import kendalltau, spearmanr
+    elif callable(method):
+        return method
 
     def _pearson(a, b):
         return np.corrcoef(a, b)[0, 1]
