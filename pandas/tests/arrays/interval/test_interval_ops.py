@@ -43,9 +43,8 @@ class TestOverlaps(object):
                   (start + 4 * shift, start + 5 * shift)]
         interval_container = constructor.from_tuples(tuples, closed)
 
-        adjacent_bool = (interval.closed_right and
-                         interval_container.closed_left)
-        expected = np.array([True, True, True, True, adjacent_bool, False])
+        adjacent = (interval.closed_right and interval_container.closed_left)
+        expected = np.array([True, True, True, True, adjacent, False])
         result = interval_container.overlaps(interval)
         tm.assert_numpy_array_equal(result, expected)
 
