@@ -4326,8 +4326,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Default = 1 if `frac` = None.
         frac : float, optional
             Fraction of axis items to return. Cannot be used with `n`.
-        replace : boolean, optional
-            Sample with or without replacement. Default = False.
+        replace : bool, default False
+            Sample with or without replacement.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
@@ -4340,7 +4340,7 @@ class NDFrame(PandasObject, SelectionMixin):
             being sampled.
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
-            inf and -inf values not allowed.
+            `inf` and `-inf` values not allowed.
         random_state : int or numpy.random.RandomState, optional
             Seed for the random number generator (if int), or numpy RandomState
             object.
@@ -4350,58 +4350,57 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        A new object of same type as caller.
+        Series or DataFrame:
+            A new object of same type as caller.
+
+        See Also
+        --------
+        numpy.choice: Generates a random sample from a given 1-D numpy array.
 
         Examples
         --------
         Generate an example ``Series`` and ``DataFrame``:
 
-        >>> s = pd.Series(np.random.randn(50))
-        >>> s.head()
-        0   -0.038497
-        1    1.820773
-        2   -0.972766
-        3   -1.598270
-        4   -1.095526
-        dtype: float64
-        >>> df = pd.DataFrame(np.random.randn(50, 4), columns=list('ABCD'))
+        >>> df = pd.DataFrame({'A': range(0, 500, 10),
+        ...                    'B': range(0, 100, 2),
+        ...                    'C': range(0, 250, 5)})
         >>> df.head()
-                  A         B         C         D
-        0  0.016443 -2.318952 -0.566372 -1.028078
-        1 -1.051921  0.438836  0.658280 -0.175797
-        2 -1.243569 -0.364626 -0.215065  0.057736
-        3  1.768216  0.404512 -0.385604 -1.457834
-        4  1.072446 -1.137172  0.314194 -0.046661
+            A  B   C
+        0   0  0   0
+        1  10  2   5
+        2  20  4  10
+        3  30  6  15
+        4  40  8  20
 
-        Next extract a random sample from both of these objects...
+        Next extract a random sample from both of these objects. Note that
+        we use `random_state` to ensure the reproducibility of the examples.
 
-        3 random elements from the ``Series``:
+        3 random elements from the ``Series`` ``df['A']``:
 
-        >>> s.sample(n=3)
-        27   -0.994689
-        55   -1.049016
-        67   -0.224565
-        dtype: float64
+        >>> df['A'].sample(n=3, random_state=1)
+        27    270
+        35    350
+        40    400
+        Name: A, dtype: int64
 
-        And a random 10% of the ``DataFrame`` with replacement:
+        A random 10% sample of the ``DataFrame`` with replacement:
 
-        >>> df.sample(frac=0.1, replace=True)
-                   A         B         C         D
-        35  1.981780  0.142106  1.817165 -0.290805
-        49 -1.336199 -0.448634 -0.789640  0.217116
-        40  0.823173 -0.078816  1.009536  1.015108
-        15  1.421154 -0.055301 -1.922594 -0.019696
-        6  -0.148339  0.832938  1.787600 -1.383767
+        >>> df.sample(frac=0.1, replace=True, random_state=1)
+              A   B    C
+        37  370  74  185
+        43  430  86  215
+        12  120  24   60
+        8    80  16   40
+        9    90  18   45
 
-        You can use `random state` for reproducibility:
+        Using a DataFrame column as weights. Column 'A' is increasing so last
+        elements of the DataFrame are more likely to be sampled.
 
-        >>> df.sample(random_state=1)
-        A         B         C         D
-        37 -2.027662  0.103611  0.237496 -0.165867
-        43 -0.259323 -0.583426  1.516140 -0.479118
-        12 -1.686325 -0.579510  0.985195 -0.460286
-        8   1.167946  0.429082  1.215742 -1.636041
-        9   1.197475 -0.864188  1.554031 -1.505264
+        >>> df.sample(n=3, weights='A', random_state=1)
+              A   B    C
+        32  320  64  160
+        42  420  84  210
+        1    10   2    5
         """
 
         if axis is None:
