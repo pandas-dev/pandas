@@ -8,7 +8,7 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray
+from .array import DecimalDtype, DecimalArray, to_decimal
 
 
 def make_data():
@@ -243,6 +243,23 @@ class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
         self.check_opname(s, op_name, 5)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
+
+    @pytest.mark.parametrize("reverse, expected_div, expected_mod", [
+        (False, [0, 1, 1, 2], [1, 0, 1, 0]),
+        (True, [2, 1, 0, 0], [0, 0, 2, 2]),
+    ])
+    def test_divmod_array(self, reverse, expected_div, expected_mod):
+        # https://github.com/pandas-dev/pandas/issues/22930
+        arr = to_decimal([1, 2, 3, 4])
+        if reverse:
+            div, mod = divmod(2, arr)
+        else:
+            div, mod = divmod(arr, 2)
+        expected_div = to_decimal(expected_div)
+        expected_mod = to_decimal(expected_mod)
+
+        tm.assert_extension_array_equal(div, expected_div)
+        tm.assert_extension_array_equal(mod, expected_mod)
 
     def test_divmod(self, data):
         s = pd.Series(data, name='name')
