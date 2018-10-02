@@ -505,7 +505,6 @@ ExtensionType Changes
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
-- Renamed test prototype module names to avoid conflict with modules from the standard library (:issue:`22936`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
