@@ -788,7 +788,8 @@ class TestDataFrameAnalytics(TestData):
         assert kurt.name is None
         assert kurt2.name == 'bar'
 
-    def _check_stat_op(self, name, alternative, float_frame, float_string_frame, frame=None, has_skipna=True,
+    def _check_stat_op(self, name, alternative, float_frame,
+		       float_string_frame, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
                        check_dates=False, check_less_precise=False,
                        skipna_alternative=None):
@@ -1325,7 +1326,8 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, xpr):
             getattr(df, method)(axis=None, level='out')
 
-    def _check_bool_op(self, name, alternative, float_frame, float_string_frame, frame=None, has_skipna=True,
+    def _check_bool_op(self, name, alternative, float_frame, 
+		       float_string_frame, frame=None, has_skipna=True,
                        has_bool_only=False):
         if frame is None:
             frame = float_frame > 0
@@ -1839,7 +1841,8 @@ class TestDataFrameAnalytics(TestData):
         (0, [[2., 2., 3.], [4., 5., 6.], [7., 7., 7.]]),
         (1, [[2., 3., 4.], [4., 5., 6.], [5., 6., 7.]])
     ])
-    def test_clip_against_list_like(self, inplace, lower, axis, res, simple_frame):
+    def test_clip_against_list_like(self, inplace, lower, axis, res,
+				    simple_frame):
         # GH #15390
         original = simple_frame.copy(deep=True)
 
