@@ -1,10 +1,7 @@
-# flake8: noqa
-
 """
 Expose public exceptions & warnings
 """
-
-from pandas._libs.tslibs import OutOfBoundsDatetime
+from pandas._libs.tslibs import OutOfBoundsDatetime  # noqa: F401
 
 
 class PerformanceWarning(Warning):
@@ -13,12 +10,14 @@ class PerformanceWarning(Warning):
     performance impact.
     """
 
+
 class UnsupportedFunctionCall(ValueError):
     """
     Exception raised when attempting to call a numpy function
     on a pandas object, but that function is not supported by
     the object e.g. ``np.cumsum(groupby_object)``.
     """
+
 
 class UnsortedIndexError(KeyError):
     """
