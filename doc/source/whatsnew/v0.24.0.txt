@@ -666,7 +666,7 @@ Timedelta
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
--
+- Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 -
 
 Timezones
