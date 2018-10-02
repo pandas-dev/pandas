@@ -44,8 +44,15 @@ class GroupByMixin(object):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+
+        # Try to select from a DataFrame, falling back to a Series
+        try:
+            groupby = self._groupby[key]
+        except IndexError:
+            groupby = self._groupby
+
         self = self.__class__(subset,
-                              groupby=self._groupby[key],
+                              groupby=groupby,
                               parent=self,
                               **kwargs)
         self._reset_cache()

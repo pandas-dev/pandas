@@ -20,6 +20,8 @@ New features
 - :func:`DataFrame.to_parquet` now accepts ``index`` as an argument, allowing
 the user to override the engine's default behavior to include or omit the
 dataframe's indexes from the resulting Parquet file. (:issue:`20768`)
+- :meth:`DataFrame.corr` and :meth:`Series.corr` now accept a callable for generic calculation methods of correlation, e.g. histogram intersection (:issue:`22684`)
+
 
 .. _whatsnew_0240.enhancements.extension_array_operators:
 
@@ -191,6 +193,8 @@ Other Enhancements
 - :meth:`Series.resample` and :meth:`DataFrame.resample` have gained the :meth:`Resampler.quantile` (:issue:`15023`).
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
+- Compatibility with Matplotlib 3.0 (:issue:`22790`).
+
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
@@ -251,7 +255,6 @@ UTC offset (:issue:`17697`, :issue:`11736`, :issue:`22457`)
 
 .. code-block:: ipython
 
-
     In [2]: pd.to_datetime("2015-11-18 15:30:00+05:30")
     Out[2]: Timestamp('2015-11-18 10:00:00')
 
@@ -289,6 +292,7 @@ Passing ``utc=True`` will mimic the previous behavior but will correctly indicat
 that the dates have been converted to UTC
 
 .. ipython:: python
+
     pd.to_datetime(["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30"], utc=True)
 
 .. _whatsnew_0240.api_breaking.calendarday:
@@ -455,7 +459,7 @@ Previous Behavior:
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
 
-.. _whatsnew_0240.api.timedelta64_subtract_nan
+.. _whatsnew_0240.api.timedelta64_subtract_nan:
 
 Addition/Subtraction of ``NaN`` from :class:`DataFrame`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -466,9 +470,10 @@ all-``NaT``.  This is for compatibility with ``TimedeltaIndex`` and
 ``Series`` behavior (:issue:`22163`)
 
 .. ipython:: python
+   :okexcept:
 
-    df = pd.DataFrame([pd.Timedelta(days=1)])
-    df - np.nan
+   df = pd.DataFrame([pd.Timedelta(days=1)])
+   df - np.nan
 
 Previous Behavior:
 
@@ -498,6 +503,7 @@ ExtensionType Changes
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
+- Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
 
 .. _whatsnew_0240.api.incompatibilities:
@@ -605,6 +611,8 @@ Performance Improvements
   :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
   (:issue:`21372`)
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
+- Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
+
 
 .. _whatsnew_0240.docs:
 
@@ -647,6 +655,8 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
 - Bug in :class:`DatetimeIndex` where frequency was being set if original frequency was ``None`` (:issue:`22150`)
+- Bug in rounding methods of :class:`DatetimeIndex` (:meth:`~DatetimeIndex.round`, :meth:`~DatetimeIndex.ceil`, :meth:`~DatetimeIndex.floor`) and :class:`Timestamp` (:meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, :meth:`~Timestamp.floor`) could give rise to loss of precision (:issue:`22591`)
+- Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
 
 Timedelta
 ^^^^^^^^^
@@ -784,6 +794,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Series.resample` when passing ``numpy.timedelta64`` to ``loffset`` kwarg (:issue:`7687`).
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
+- :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
 
 Sparse
 ^^^^^^
@@ -806,6 +817,7 @@ Reshaping
 - Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
+- Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 
 Build Changes
 ^^^^^^^^^^^^^

@@ -616,7 +616,7 @@ class DataFrame(NDFrame):
         return len(self.index), len(self.columns)
 
     @property
-    def _is_homogeneous(self):
+    def _is_homogeneous_type(self):
         """
         Whether all the columns in a DataFrame have the same type.
 
@@ -626,16 +626,17 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous
+        >>> DataFrame({"A": [1, 2], "B": [3, 4]})._is_homogeneous_type
         True
-        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous
+        >>> DataFrame({"A": [1, 2], "B": [3.0, 4.0]})._is_homogeneous_type
         False
 
         Items with the same type but different sizes are considered
         different types.
 
-        >>> DataFrame({"A": np.array([1, 2], dtype=np.int32),
-        ...            "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous
+        >>> DataFrame({
+        ...    "A": np.array([1, 2], dtype=np.int32),
+        ...    "B": np.array([1, 2], dtype=np.int64)})._is_homogeneous_type
         False
         """
         if self._data.any_extension_types:
@@ -780,14 +781,52 @@ class DataFrame(NDFrame):
         return Styler(self)
 
     def iteritems(self):
-        """
+        r"""
         Iterator over (column name, Series) pairs.
 
-        See also
-        --------
-        iterrows : Iterate over DataFrame rows as (index, Series) pairs.
-        itertuples : Iterate over DataFrame rows as namedtuples of the values.
+        Iterates over the DataFrame columns, returning a tuple with
+        the column name and the content as a Series.
 
+        Yields
+        ------
+        label : object
+            The column names for the DataFrame being iterated over.
+        content : Series
+            The column entries belonging to each label, as a Series.
+
+        See Also
+        --------
+        DataFrame.iterrows : Iterate over DataFrame rows as
+            (index, Series) pairs.
+        DataFrame.itertuples : Iterate over DataFrame rows as namedtuples
+            of the values.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'species': ['bear', 'bear', 'marsupial'],
+        ...                   'population': [1864, 22000, 80000]},
+        ...                   index=['panda', 'polar', 'koala'])
+        >>> df
+                species   population
+        panda 	bear 	  1864
+        polar 	bear 	  22000
+        koala 	marsupial 80000
+        >>> for label, content in df.iteritems():
+        ...     print('label:', label)
+        ...     print('content:', content, sep='\n')
+        ...
+        label: species
+        content:
+        panda         bear
+        polar         bear
+        koala    marsupial
+        Name: species, dtype: object
+        label: population
+        content:
+        panda     1864
+        polar    22000
+        koala    80000
+        Name: population, dtype: int64
         """
         if self.columns.is_unique and hasattr(self, '_item_cache'):
             for k in self.columns:
@@ -6693,10 +6732,14 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        method : {'pearson', 'kendall', 'spearman'}
+        method : {'pearson', 'kendall', 'spearman'} or callable
             * pearson : standard correlation coefficient
             * kendall : Kendall Tau correlation coefficient
             * spearman : Spearman rank correlation
+            * callable: callable with input two 1d ndarrays
+                and returning a float
+                .. versionadded:: 0.24.0
+
         min_periods : int, optional
             Minimum number of observations required per pair of columns
             to have a valid result. Currently only available for pearson
@@ -6705,6 +6748,18 @@ class DataFrame(NDFrame):
         Returns
         -------
         y : DataFrame
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> histogram_intersection = lambda a, b: np.minimum(a, b
+        ... ).sum().round(decimals=1)
+        >>> df = pd.DataFrame([(.2, .3), (.0, .6), (.6, .0), (.2, .1)],
+        ...                   columns=['dogs', 'cats'])
+        >>> df.corr(method=histogram_intersection)
+              dogs cats
+        dogs   1.0  0.3
+        cats   0.3  1.0
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
@@ -6716,7 +6771,7 @@ class DataFrame(NDFrame):
         elif method == 'spearman':
             correl = libalgos.nancorr_spearman(ensure_float64(mat),
                                                minp=min_periods)
-        elif method == 'kendall':
+        elif method == 'kendall' or callable(method):
             if min_periods is None:
                 min_periods = 1
             mat = ensure_float64(mat).T
@@ -7269,38 +7324,82 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False, dropna=True):
         """
-        Gets the mode(s) of each element along the axis selected. Adds a row
-        for each mode per label, fills in gaps with nan.
+        Get the mode(s) of each element along the selected axis.
 
-        Note that there could be multiple values returned for the selected
-        axis (when more than one item share the maximum frequency), which is
-        the reason why a dataframe is returned. If you want to impute missing
-        values with the mode in a dataframe ``df``, you can just do this:
-        ``df.fillna(df.mode().iloc[0])``
+        The mode of a set of values is the value that appears most often.
+        It can be multiple values.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to iterate over while searching for the mode:
+
             * 0 or 'index' : get mode of each column
             * 1 or 'columns' : get mode of each row
-        numeric_only : boolean, default False
-            if True, only apply to numeric columns
-        dropna : boolean, default True
+        numeric_only : bool, default False
+            If True, only apply to numeric columns.
+        dropna : bool, default True
             Don't consider counts of NaN/NaT.
 
             .. versionadded:: 0.24.0
 
         Returns
         -------
-        modes : DataFrame (sorted)
+        DataFrame
+            The modes of each column or row.
+
+        See Also
+        --------
+        Series.mode : Return the highest frequency value in a Series.
+        Series.value_counts : Return the counts of values in a Series.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
+        >>> df = pd.DataFrame([('bird', 2, 2),
+        ...                    ('mammal', 4, np.nan),
+        ...                    ('arthropod', 8, 0),
+        ...                    ('bird', 2, np.nan)],
+        ...                   index=('falcon', 'horse', 'spider', 'ostrich'),
+        ...                   columns=('species', 'legs', 'wings'))
+        >>> df
+                   species  legs  wings
+        falcon        bird     2    2.0
+        horse       mammal     4    NaN
+        spider   arthropod     8    0.0
+        ostrich       bird     2    NaN
+
+        By default, missing values are not considered, and the mode of wings
+        are both 0 and 2. The second row of species and legs contains ``NaN``,
+        because they have only one mode, but the DataFrame has two rows.
+
         >>> df.mode()
-           A
-        0  1
-        1  2
+          species  legs  wings
+        0    bird   2.0    0.0
+        1     NaN   NaN    2.0
+
+        Setting ``dropna=False`` ``NaN`` values are considered and they can be
+        the mode (like for wings).
+
+        >>> df.mode(dropna=False)
+          species  legs  wings
+        0    bird     2    NaN
+
+        Setting ``numeric_only=True``, only the mode of numeric columns is
+        computed, and columns of other types are ignored.
+
+        >>> df.mode(numeric_only=True)
+           legs  wings
+        0   2.0    0.0
+        1   NaN    2.0
+
+        To compute the mode over columns and not rows, use the axis parameter:
+
+        >>> df.mode(axis='columns', numeric_only=True)
+                   0    1
+        falcon   2.0  NaN
+        horse    4.0  NaN
+        spider   0.0  8.0
+        ostrich  2.0  NaN
         """
         data = self if not numeric_only else self._get_numeric_data()
 
