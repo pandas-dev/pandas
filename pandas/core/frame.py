@@ -1821,7 +1821,7 @@ class DataFrame(NDFrame):
                  convert_strl=None):
         """
         Transform the Dataframe to a Stata dataset.
-        
+
         This functions writes the Dataframe to a Stata dataset file.
         "dta" files contain a Stata dataset. Stata is a software for statistics
         and data science.
