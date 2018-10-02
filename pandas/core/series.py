@@ -2117,6 +2117,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> other = pd.Series([-1, 2, -3, 4])
         >>> s.dot(other)
         8
+        >>> s @ other
+        8
         >>> df = pd.DataFrame([[0 ,1], [-2, 3], [4, -5], [6, 7]])
         >>> s.dot(df)
         0    24
