@@ -537,7 +537,7 @@ Current Behavior:
 Crosstab Preserves Dtypes
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-`pd.crosstab` will preserve now dtypes in some cases that previously would
+:func:`crosstab` will preserve now dtypes in some cases that previously would
 cast from integer dtype to floating dtype (:issue:`22019`)
 
 Previous Behavior:
