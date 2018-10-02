@@ -9,7 +9,7 @@ from pandas._libs.interval import Interval
 
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
-    DatetimeTZDtypeType, PeriodDtype, IntervalDtype,
+    PeriodDtype, IntervalDtype,
     PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
 from pandas.core.dtypes.generic import (
@@ -1906,7 +1906,7 @@ def _get_dtype_type(arr_or_dtype):
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
-        return DatetimeTZDtypeType
+        return Timestamp
     elif isinstance(arr_or_dtype, IntervalDtype):
         return Interval
     elif isinstance(arr_or_dtype, PeriodDtype):
@@ -1915,7 +1915,7 @@ def _get_dtype_type(arr_or_dtype):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
         elif is_datetime64tz_dtype(arr_or_dtype):
-            return Timestmap
+            return Timestamp
         elif is_period_dtype(arr_or_dtype):
             return Period
         elif is_interval_dtype(arr_or_dtype):
