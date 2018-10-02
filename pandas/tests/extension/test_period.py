@@ -66,25 +66,27 @@ class TestGetitem(BasePeriodTests, base.BaseGetitemTests):
 class TestMethods(BasePeriodTests, base.BaseMethodsTests):
 
     def test_combine_add(self, data_repeated):
+        # Period + Period is not defined.
         pass
-
-    def test_container_shift(self):
-        raise pytest.xfail('todo')
 
 
 class TestInterface(BasePeriodTests, base.BaseInterfaceTests):
+
     def test_no_values_attribute(self, data):
+        # We have a values attribute.
         pass
 
 
 class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+        # we implement substitution...
         op_name = all_arithmetic_operators
         if op_name in ('__sub__', '__rsub__'):
             s = pd.Series(data)
             self.check_opname(s, op_name, s.iloc[0], exc=None)
         else:
+            # ... but not the rest.
             super().test_arith_series_with_scalar(data,
                                                   all_arithmetic_operators)
 
@@ -97,32 +99,26 @@ class TestCasting(BasePeriodTests, base.BaseCastingTests):
 
 
 class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
-    def test_compare_scalar(self):
+
+    def _compare_other(self):
+        # the base test is not appropriate for us. We raise on comparison
+        # with (some) integers, depending on the value.
         pass
 
 
 class TestMissing(BasePeriodTests, base.BaseMissingTests):
+    pass
 
-    @pytest.mark.xfail(reason="__setitem__")
-    def test_fillna_scalar(self, data_missing):
-        super().test_fillna_scalar(data_missing)
-
-    @pytest.mark.xfail(reason="__setitem__")
-    def test_fillna_series(self, data_missing):
-        super().test_fillna_series(data_missing)
-
-    @pytest.mark.xfail(reason="__setitem__")
-    def test_fillna_frame(self, data_missing):
-        super().test_fillna_frame(data_missing)
 
 
 class TestReshaping(BasePeriodTests, base.BaseReshapingTests):
     pass
 
 
-# class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
-#     pass
-#
-#
-# class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
-#     pass
+class TestSetitem(BasePeriodTests, base.BaseSetitemTests):
+    pass
+
+
+class TestGroupby(BasePeriodTests, base.BaseGroupbyTests):
+    pass
+

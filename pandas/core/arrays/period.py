@@ -275,14 +275,46 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     def isna(self):
         return self._data == iNaT
 
+    def fillna(self, value=None, method=None, limit=None):
+        from pandas.api.types import is_array_like
+        from pandas.util._validators import validate_fillna_kwargs
+        from pandas.core.missing import pad_1d, backfill_1d
+
+        if isinstance(value, ABCSeries):
+            value = value.values
+
+        value, method = validate_fillna_kwargs(value, method)
+
+        mask = self.isna()
+
+        if is_array_like(value):
+            if len(value) != len(self):
+                raise ValueError("Length of 'value' does not match. Got ({}) "
+                                 " expected {}".format(len(value), len(self)))
+            value = value[mask]
+
+        if mask.any():
+            if method is not None:
+                func = pad_1d if method == 'pad' else backfill_1d
+                new_values = func(self._ndarray_values, limit=limit,
+                                  mask=mask)
+                new_values = self._from_ordinals(new_values, freq=self.freq)
+            else:
+                # fill with value
+                new_values = self.copy()
+                new_values[mask] = value
+        else:
+            new_values = self.copy()
+        return new_values
+
     def __setitem__(self, key, value):
-
-        if isinstance(value, compat.Sequence):
-
-            if len(key) != len(value):
+        if isinstance(value, (compat.Sequence, type(self))):
+            if len(key) != len(value) and not com.is_bool_indexer(key):
                 msg = ("shape mismatch: value array of length '{}' does not "
                        "match indexing result of length '{}'.")
                 raise ValueError(msg.format(len(key), len(value)))
+            if len(key) == 0:
+                return
 
             value = type(self)._complex_new(value)
             if self.freqstr != value.freqstr:
