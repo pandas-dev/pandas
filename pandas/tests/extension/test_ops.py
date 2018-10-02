@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tests.extension.decimal.array import DecimalArray
+from pandas.tests.extension.decimal_array import DecimalArray
 
 
 def test_combine_from_sequence_raises():
