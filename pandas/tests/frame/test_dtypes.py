@@ -815,6 +815,38 @@ class TestDataFrameDataTypes(TestData):
         expected = DataFrame({"A": ['1.0', '2.0', None]}, dtype=object)
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("data, expected", [
+        # empty
+        (DataFrame(), True),
+        # multi-same
+        (DataFrame({"A": [1, 2], "B": [1, 2]}), True),
+        # multi-object
+        (DataFrame({"A": np.array([1, 2], dtype=object),
+                    "B": np.array(["a", "b"], dtype=object)}), True),
+        # multi-extension
+        (DataFrame({"A": pd.Categorical(['a', 'b']),
+                    "B": pd.Categorical(['a', 'b'])}), True),
+        # differ types
+        (DataFrame({"A": [1, 2], "B": [1., 2.]}), False),
+        # differ sizes
+        (DataFrame({"A": np.array([1, 2], dtype=np.int32),
+                    "B": np.array([1, 2], dtype=np.int64)}), False),
+        # multi-extension differ
+        (DataFrame({"A": pd.Categorical(['a', 'b']),
+                    "B": pd.Categorical(['b', 'c'])}), False),
+
+    ])
+    def test_is_homogeneous_type(self, data, expected):
+        assert data._is_homogeneous_type is expected
+
+    def test_asarray_homogenous(self):
+        df = pd.DataFrame({"A": pd.Categorical([1, 2]),
+                           "B": pd.Categorical([1, 2])})
+        result = np.asarray(df)
+        # may change from object in the future
+        expected = np.array([[1, 1], [2, 2]], dtype='object')
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestDataFrameDatetimeWithTZ(TestData):
 

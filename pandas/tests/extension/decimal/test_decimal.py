@@ -31,14 +31,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_repeated():
-    def gen(count):
-        for _ in range(count):
-            yield DecimalArray(make_data())
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting():
     return DecimalArray([decimal.Decimal('1'),
                          decimal.Decimal('2'),
@@ -105,9 +97,7 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is DecimalArray
+    pass
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):

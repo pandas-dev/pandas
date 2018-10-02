@@ -8,6 +8,14 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
+import hypothesis
+
+
+hypothesis.settings.register_profile(
+    "ci",
+    suppress_health_check=(hypothesis.HealthCheck.too_slow,)
+)
+hypothesis.settings.load_profile("ci")
 
 
 def pytest_addoption(parser):
@@ -276,6 +284,18 @@ def nulls_fixture(request):
 
 
 nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
+
+
+@pytest.fixture(params=[None, np.nan, pd.NaT])
+def unique_nulls_fixture(request):
+    """
+    Fixture for each null type in pandas, each null type exactly once
+    """
+    return request.param
+
+
+# Generate cartesian product of unique_nulls_fixture:
+unique_nulls_fixture2 = unique_nulls_fixture
 
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific',

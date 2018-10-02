@@ -66,16 +66,13 @@ The pandas I/O API is a set of top level ``reader`` functions accessed like
 CSV & Text files
 ----------------
 
-The two workhorse functions for reading text files (a.k.a. flat files) are
-:func:`read_csv` and :func:`read_table`. They both use the same parsing code to
-intelligently convert tabular data into a ``DataFrame`` object. See the
-:ref:`cookbook<cookbook.csv>` for some advanced strategies.
+The workhorse function for reading text files (a.k.a. flat files) is
+:func:`read_csv`. See the :ref:`cookbook<cookbook.csv>` for some advanced strategies.
 
 Parsing options
 '''''''''''''''
 
-The functions :func:`read_csv` and :func:`read_table` accept the following
-common arguments:
+:func:`read_csv` accepts the following common arguments:
 
 Basic
 +++++
@@ -780,8 +777,8 @@ Date Handling
 Specifying Date Columns
 +++++++++++++++++++++++
 
-To better facilitate working with datetime data, :func:`read_csv` and
-:func:`read_table` use the keyword arguments ``parse_dates`` and ``date_parser``
+To better facilitate working with datetime data, :func:`read_csv`
+uses the keyword arguments ``parse_dates`` and ``date_parser``
 to allow users to specify a variety of columns and date/time formats to turn the
 input text data into ``datetime`` objects.
 
@@ -1434,7 +1431,7 @@ Suppose you have data indexed by two columns:
 
    print(open('data/mindex_ex.csv').read())
 
-The ``index_col`` argument to ``read_csv`` and ``read_table`` can take a list of
+The ``index_col`` argument to ``read_csv`` can take a list of
 column numbers to turn multiple columns into a ``MultiIndex`` for the index of the
 returned object:
 
@@ -1505,8 +1502,8 @@ class of the csv module. For this, you have to specify ``sep=None``.
 
 .. ipython:: python
 
-    print(open('tmp2.sv').read())
-    pd.read_csv('tmp2.sv', sep=None, engine='python')
+   print(open('tmp2.sv').read())
+   pd.read_csv('tmp2.sv', sep=None, engine='python')
 
 .. _io.multiple_files:
 
@@ -1528,16 +1525,16 @@ rather than reading the entire file into memory, such as the following:
 .. ipython:: python
 
    print(open('tmp.sv').read())
-   table = pd.read_table('tmp.sv', sep='|')
+   table = pd.read_csv('tmp.sv', sep='|')
    table
 
 
-By specifying a ``chunksize`` to ``read_csv`` or ``read_table``, the return
+By specifying a ``chunksize`` to ``read_csv``, the return
 value will be an iterable object of type ``TextFileReader``:
 
 .. ipython:: python
 
-   reader = pd.read_table('tmp.sv', sep='|', chunksize=4)
+   reader = pd.read_csv('tmp.sv', sep='|', chunksize=4)
    reader
 
    for chunk in reader:
@@ -1548,7 +1545,7 @@ Specifying ``iterator=True`` will also return the ``TextFileReader`` object:
 
 .. ipython:: python
 
-   reader = pd.read_table('tmp.sv', sep='|', iterator=True)
+   reader = pd.read_csv('tmp.sv', sep='|', iterator=True)
    reader.get_chunk(5)
 
 .. ipython:: python
@@ -3067,7 +3064,7 @@ Clipboard
 
 A handy way to grab data is to use the :meth:`~DataFrame.read_clipboard` method,
 which takes the contents of the clipboard buffer and passes them to the
-``read_table`` method. For instance, you can copy the following text to the
+``read_csv`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
 
 .. code-block:: python
@@ -4570,6 +4567,9 @@ dtypes, including extension dtypes such as datetime with tz.
 Several caveats.
 
 * Duplicate column names and non-string columns names are not supported.
+* The ``pyarrow`` engine always writes the index to the output, but ``fastparquet`` only writes non-default
+  indexes. This extra column can cause problems for non-Pandas consumers that are not expecting it. You can
+  force including or omitting indexes with the ``index`` argument, regardless of the underlying engine.
 * Index level names, if specified, must be strings.
 * Categorical dtypes can be serialized to parquet, but will de-serialize as ``object`` dtype.
 * Non supported types include ``Period`` and actual Python object types. These will raise a helpful error message
@@ -4632,6 +4632,41 @@ Read only certain columns of a parquet file.
    import os
    os.remove('example_pa.parquet')
    os.remove('example_fp.parquet')
+
+
+Handling Indexes
+''''''''''''''''
+
+Serializing a ``DataFrame`` to parquet may include the implicit index as one or
+more columns in the output file. Thus, this code:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'a': [1, 2], 'b': [3, 4]})
+    df.to_parquet('test.parquet', engine='pyarrow')
+
+creates a parquet file with *three* columns if you use ``pyarrow`` for serialization:
+``a``, ``b``, and ``__index_level_0__``. If you're using ``fastparquet``, the
+index `may or may not <https://fastparquet.readthedocs.io/en/latest/api.html#fastparquet.write>`_
+be written to the file.
+
+This unexpected extra column causes some databases like Amazon Redshift to reject
+the file, because that column doesn't exist in the target table.
+
+If you want to omit a dataframe's indexes when writing, pass ``index=False`` to
+:func:`~pandas.DataFrame.to_parquet`:
+
+.. ipython:: python
+
+    df.to_parquet('test.parquet', index=False)
+
+This creates a parquet file with just the two expected columns, ``a`` and ``b``.
+If your ``DataFrame`` has a custom index, you won't get it back when you load
+this file into a ``DataFrame``.
+
+Passing ``index=True`` will *always* write the index, even if that's not the
+underlying engine's default behavior.
+
 
 .. _io.sql:
 

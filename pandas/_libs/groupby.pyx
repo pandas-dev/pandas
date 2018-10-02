@@ -67,6 +67,7 @@ cdef inline float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
+# TODO: Is this redundant with algos.kth_smallest?
 cdef inline float64_t kth_smallest_c(float64_t* a,
                                      Py_ssize_t k,
                                      Py_ssize_t n) nogil:

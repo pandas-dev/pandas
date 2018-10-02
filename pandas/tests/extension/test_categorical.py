@@ -1,3 +1,18 @@
+"""
+This file contains a minimal set of tests for compliance with the extension
+array interface test suite, and should contain no other tests.
+The test suite for the full functionality of the array is located in
+`pandas/tests/arrays/`.
+
+The tests in this file are inherited from the BaseExtensionTests, and only
+minimal tweaks should be applied to get the tests passing (by overwriting a
+parent method).
+
+Additional tests should either be added to one of the BaseExtensionTests
+classes (if they are relevant for the extension interface for all dtypes), or
+be added to the array-specific tests in `pandas/tests/arrays/`.
+
+"""
 import string
 
 import pytest
@@ -31,15 +46,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_repeated():
-    """Return different versions of data for count times"""
-    def gen(count):
-        for _ in range(count):
-            yield Categorical(make_data())
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting():
     return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
                        ordered=True)
@@ -62,9 +68,7 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-
-    def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type() is Categorical
+    pass
 
 
 class TestInterface(base.BaseInterfaceTests):
@@ -204,10 +208,14 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
     def _compare_other(self, s, data, op_name, other):
         op = self.get_op_from_name(op_name)
         if op_name == '__eq__':
-            assert not op(data, other).all()
+            result = op(s, other)
+            expected = s.combine(other, lambda x, y: x == y)
+            assert (result == expected).all()
 
         elif op_name == '__ne__':
-            assert op(data, other).all()
+            result = op(s, other)
+            expected = s.combine(other, lambda x, y: x != y)
+            assert (result == expected).all()
 
         else:
             with pytest.raises(TypeError):
