@@ -1820,12 +1820,16 @@ class DataFrame(NDFrame):
                  data_label=None, variable_labels=None, version=114,
                  convert_strl=None):
         """
-        Export Stata binary dta files.
+        Transform the Dataframe to a Stata dataset.
+        
+        This functions writes the Dataframe to a Stata dataset file.
+        "dta" files contain a Stata dataset. Stata is a software for statistics
+        and data science.
 
         Parameters
         ----------
         fname : path (string), buffer or path object
-            string, path object (pathlib.Path or py._path.local.LocalPath) or
+            String, path object (pathlib.Path or py._path.local.LocalPath) or
             object implementing a binary write() functions. If using a buffer
             then the buffer will not be automatically closed after the file
             data has been written.
