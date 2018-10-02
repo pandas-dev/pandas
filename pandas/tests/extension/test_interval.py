@@ -48,15 +48,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_repeated():
-    """Return different versions of data for count times"""
-    def gen(count):
-        for _ in range(count):
-            yield IntervalArray(make_data())
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting():
     return IntervalArray.from_tuples([(1, 2), (2, 3), (0, 1)])
 
