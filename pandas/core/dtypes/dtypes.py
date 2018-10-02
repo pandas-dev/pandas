@@ -661,11 +661,11 @@ class PeriodDtype(PandasExtensionDtype):
         raise TypeError("could not construct PeriodDtype")
 
     def __unicode__(self):
-        return self.name
+        return compat.text_type(self.name)
 
     @property
     def name(self):
-        return u"period[{freq}]".format(freq=self.freq.freqstr)
+        return str("period[{freq}]".format(freq=self.freq.freqstr))
 
     @property
     def na_value(self):
