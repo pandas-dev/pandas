@@ -46,15 +46,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_repeated():
-    """Return different versions of data for count times"""
-    def gen(count):
-        for _ in range(count):
-            yield Categorical(make_data())
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting():
     return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
                        ordered=True)

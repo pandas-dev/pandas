@@ -48,14 +48,6 @@ def data_missing(dtype):
 
 
 @pytest.fixture
-def data_repeated(data):
-    def gen(count):
-        for _ in range(count):
-            yield data
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting(dtype):
     return integer_array([1, 2, 0], dtype=dtype)
 
