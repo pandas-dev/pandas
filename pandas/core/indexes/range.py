@@ -4,13 +4,17 @@ from sys import getsizeof
 
 import numpy as np
 
+from pandas import compat
+
+from pandas._libs import index as libindex
+from pandas.util._decorators import Appender, cache_readonly
+
+from pandas.compat import lrange, range, get_range_parameters
+from pandas.compat.numpy import function as nv
+
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 import pandas.core.indexes.base as ibase
-from pandas import compat
-from pandas._libs import index as libindex
-from pandas.compat import lrange, range, get_range_parameters
-from pandas.compat.numpy import function as nv
 from pandas.core import ops
 from pandas.core.dtypes.common import (
     is_integer,
@@ -20,7 +24,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.generic import ABCSeries, ABCTimedeltaIndex
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index
-from pandas.util._decorators import Appender, cache_readonly
 
 
 class RangeIndex(Int64Index):

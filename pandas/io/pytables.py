@@ -1,3 +1,4 @@
+# pylint: disable-msg=E1101,W0613,W0603
 """
 High level interface to PyTables for reading and writing pandas data structures
 to disk
@@ -9,13 +10,12 @@ import os
 import re
 import time
 import warnings
-# pylint: disable-msg=E1101,W0613,W0603
+
 from datetime import datetime, date
 from distutils.version import LooseVersion
 
 import numpy as np
 
-import pandas.core.common as com
 from pandas import (Series, DataFrame, Panel, Index,
                     MultiIndex, Int64Index, isna, concat, to_datetime,
                     SparseSeries, SparseDataFrame, PeriodIndex,
@@ -25,6 +25,7 @@ from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
 from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
 from pandas.core import config
+import pandas.core.common as com
 from pandas.core.algorithms import match, unique
 from pandas.core.arrays.categorical import (Categorical,
                                             _factorize_from_iterables)

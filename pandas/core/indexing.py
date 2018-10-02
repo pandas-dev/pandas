@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 from pandas._libs.indexing import _NDFrameIndexerBase
+from pandas.util._decorators import Appender
 
 import pandas.compat as compat
 import pandas.core.common as com
@@ -21,7 +22,6 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.missing import isna, _infer_fill_value
 from pandas.core.index import Index, MultiIndex
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import Appender
 
 
 # the supported indexers

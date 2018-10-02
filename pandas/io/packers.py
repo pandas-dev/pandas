@@ -45,18 +45,19 @@ from textwrap import dedent
 
 import numpy as np
 from dateutil.parser import parse
-from pandas.util._move import (
-    BadMove as _BadMove,
-    move_into_mutable_buffer as _move_into_mutable_buffer,
-)
 
-import pandas.core.internals as internals
 from pandas import (Timestamp, Period, Series,  # noqa
                     Index, MultiIndex, RangeIndex, PeriodIndex, DatetimeIndex,
                     NaT,
                     Categorical, IntervalIndex, Interval)
+
+from pandas.util._move import (
+    BadMove as _BadMove,
+    move_into_mutable_buffer as _move_into_mutable_buffer,
+)
 from pandas import compat
 from pandas.compat import u, u_safe
+from pandas.core import internals
 from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_object_dtype,
