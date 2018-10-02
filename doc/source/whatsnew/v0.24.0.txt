@@ -138,11 +138,11 @@ Current Behavior:
 
 .. _whatsnew_0240.enhancements.interval:
 
-Storing Interval Data in Series and DataFrame
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Storing Interval and Period Data in Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
-:class:`IntervalIndex` like previously (:issue:`19453`).
+Interval and Period data may now be stored in a ``Series`` or ``DataFrame``, in addition to an
+:class:`IntervalIndex` and :class:`PeriodIndex` like previously (:issue:`19453`, :issue:`22862`).
 
 .. ipython:: python
 
@@ -150,20 +150,28 @@ Interval data may now be stored in a ``Series`` or ``DataFrame``, in addition to
    ser
    ser.dtype
 
-Previously, these would be cast to a NumPy array of ``Interval`` objects. In general,
-this should result in better performance when storing an array of intervals in
-a :class:`Series`.
+And for periods:
 
-Note that the ``.values`` of a ``Series`` containing intervals is no longer a NumPy
+.. ipython:: python
+
+   pser = pd.Series(pd.date_range("2000", freq="D", periods=5))
+   pser
+   pser.dtype
+
+Previously, these would be cast to a NumPy array with object dtype. In general,
+this should result in better performance when storing an array of intervals or periods
+in a :class:`Series`.
+
+Note that the ``.values`` of a ``Series`` containing one of these types is no longer a NumPy
 array, but rather an ``ExtensionArray``:
 
 .. ipython:: python
 
    ser.values
+   pser.values
 
 This is the same behavior as ``Series.values`` for categorical data. See
-:ref:`whatsnew_0240.api_breaking.interval_values` for more.
-
+:ref:`whatsnew_0240.api_breaking.interval_values` and :ref:`whatsnew_0240.api_breaking.period_values` for more.
 
 .. _whatsnew_0240.enhancements.other:
 
@@ -231,12 +239,50 @@ New Behavior:
 This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
 
 For situations where you need an ``ndarray`` of ``Interval`` objects, use
-:meth:`numpy.asarray` or ``idx.astype(object)``.
+:meth:`numpy.asarray` or ``idx.values.astype(object)``.
 
 .. ipython:: python
 
    np.asarray(idx)
    idx.values.astype(object)
+
+
+.. _whatsnew_0240.api_breaking.period_values:
+
+``PeriodIndex.values`` is now a ``PeriodArray``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``values`` attribute of a :class:`PeriodIndex` now returns a ``PeriodArray``
+rather than a NumPy array of :class:`Period` objects (:issue:`22862`).
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In  [1]: idx = pd.period_range("2000", freq="D", periods=4)
+
+   In  [2]: idx.values
+   Out [2]:
+   array([Period('2000-01-01', 'D'), Period('2000-01-02', 'D'),
+          Period('2000-01-03', 'D'), Period('2000-01-04', 'D')], dtype=object)
+
+New Behavior:
+
+.. ipython:: python
+
+   idx = pd.period_range("2000", freq="D", periods=4)
+   idx.values
+
+This mirrors ``CategoricalIndex.values``, which returns a ``Categorical``.
+
+For situations where you need an ``ndarray`` of ``Period`` objects, use
+:meth:`numpy.asarray` or ``idx.values.astype(object)``.
+
+.. ipython:: python
+
+   np.asarray(idx)
+   idx.values.astype(object)
+
 
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
