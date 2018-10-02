@@ -139,7 +139,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         # xref: https://github.com/numpy/numpy/issues/5370
         try:
             value = self.dtype.type(value)
-        except:
+        except ValueError:
             pass
 
         return super(FrozenNDArray, self).searchsorted(

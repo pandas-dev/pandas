@@ -6,6 +6,7 @@ from sys import getsizeof
 
 import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
+from pandas._libs import tslibs
 
 from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
@@ -1002,12 +1003,13 @@ class MultiIndex(Index):
                     return _try_mi(key)
                 except (KeyError):
                     raise
-                except:
+                except (IndexError, ValueError, TypeError):
                     pass
 
                 try:
                     return _try_mi(Timestamp(key))
-                except:
+                except (KeyError, TypeError,
+                        IndexError, ValueError, tslibs.OutOfBoundsDatetime):
                     pass
 
             raise InvalidIndexError(key)
@@ -1686,7 +1688,7 @@ class MultiIndex(Index):
         # if all(isinstance(x, MultiIndex) for x in other):
         try:
             return MultiIndex.from_tuples(new_tuples, names=self.names)
-        except:
+        except (TypeError, IndexError):
             return Index(new_tuples)
 
     def argsort(self, *args, **kwargs):
@@ -2315,7 +2317,7 @@ class MultiIndex(Index):
             for i in sorted(levels, reverse=True):
                 try:
                     new_index = new_index.droplevel(i)
-                except:
+                except ValueError:
 
                     # no dropping here
                     return orig_index
@@ -2818,7 +2820,7 @@ class MultiIndex(Index):
                 msg = 'other must be a MultiIndex or a list of tuples'
                 try:
                     other = MultiIndex.from_tuples(other)
-                except:
+                except TypeError:
                     raise TypeError(msg)
         else:
             result_names = self.names if self.names == other.names else None

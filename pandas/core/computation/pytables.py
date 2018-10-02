@@ -411,7 +411,7 @@ class ExprVisitor(BaseExprVisitor):
         slobj = self.visit(node.slice)
         try:
             value = value.value
-        except:
+        except AttributeError:
             pass
 
         try:
