@@ -230,7 +230,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
-        # TODO: clean up signature.
+        # type: (PeriodArray, Any, Any) -> PeriodIndex
         """
         Values can be any type that can be coerced to Periods.
         Ordinals in an ndarray are fastpath-ed to `_from_ordinals`
@@ -262,7 +262,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         else:
             # this differs too
             if not isinstance(values, PeriodArray):
-                values = PeriodArray._complex_new(values, freq=self.freq)
+                values = PeriodArray._from_ordinals(values, freq=self.freq)
 
         # I don't like overloading shallow_copy with freq changes.
         # See if it's used anywhere outside of test_resample_empty_dataframe
