@@ -1,3 +1,3 @@
-from .array import JSONArray, JSONDtype
+from .array import JSONArray, JSONDtype, make_data
 
-__all__ = ['JSONArray', 'JSONDtype']
+__all__ = ['JSONArray', 'JSONDtype', 'make_data']
