@@ -4,12 +4,13 @@ import numpy as np
 from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
-from pandas._libs.tslibs import conversion, Period
+from pandas._libs.tslibs import conversion, Period, Timestamp
+from pandas._libs.interval import Interval
 
 from pandas.core.dtypes.dtypes import (
     registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
-    DatetimeTZDtypeType, PeriodDtype, IntervalDtype,
-    IntervalDtypeType, PandasExtensionDtype, ExtensionDtype,
+    PeriodDtype, IntervalDtype,
+    PandasExtensionDtype, ExtensionDtype,
     _pandas_registry)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
@@ -1903,20 +1904,20 @@ def _get_dtype_type(arr_or_dtype):
     elif isinstance(arr_or_dtype, CategoricalDtype):
         return CategoricalDtypeType
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
-        return DatetimeTZDtypeType
+        return Timestamp
     elif isinstance(arr_or_dtype, IntervalDtype):
-        return IntervalDtypeType
+        return Interval
     elif isinstance(arr_or_dtype, PeriodDtype):
-        return arr_or_dtype.type
+        return Period
     elif isinstance(arr_or_dtype, string_types):
         if is_categorical_dtype(arr_or_dtype):
             return CategoricalDtypeType
         elif is_datetime64tz_dtype(arr_or_dtype):
-            return DatetimeTZDtypeType
+            return Timestamp
         elif is_period_dtype(arr_or_dtype):
             return Period
         elif is_interval_dtype(arr_or_dtype):
-            return IntervalDtypeType
+            return Interval
         return _get_dtype_type(np.dtype(arr_or_dtype))
     try:
         return arr_or_dtype.dtype.type

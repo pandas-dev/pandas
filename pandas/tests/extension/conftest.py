@@ -32,13 +32,6 @@ def all_data(request, data, data_missing):
 
 @pytest.fixture
 def data_repeated(data):
-<<<<<<< HEAD
-    """Return different versions of data for count times"""
-    def gen(count):
-        for _ in range(count):
-            yield data
-    yield gen
-=======
     """
     Generate many datasets.
 
@@ -56,7 +49,6 @@ def data_repeated(data):
         for _ in range(count):
             yield data
     return gen
->>>>>>> datetimelike-tshift
 
 
 @pytest.fixture

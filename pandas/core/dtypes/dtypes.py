@@ -4,7 +4,8 @@ import re
 import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
-from pandas._libs.tslibs import Period, NaT
+from pandas._libs.tslibs import Period, NaT, Timestamp
+from pandas._libs.interval import Interval
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 
@@ -470,13 +471,6 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         return is_bool_dtype(self.categories)
 
 
-class DatetimeTZDtypeType(type):
-    """
-    the type of DatetimeTZDtype, this metaclass determines subclass ability
-    """
-    pass
-
-
 class DatetimeTZDtype(PandasExtensionDtype):
 
     """
@@ -486,7 +480,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
     THIS IS NOT A REAL NUMPY DTYPE, but essentially a sub-class of
     np.datetime64[ns]
     """
-    type = DatetimeTZDtypeType
+    type = Timestamp
     kind = 'M'
     str = '|M8[ns]'
     num = 101
@@ -660,11 +654,11 @@ class PeriodDtype(ExtensionDtype):
         raise TypeError("could not construct PeriodDtype")
 
     def __unicode__(self):
-        return self.name
+        return compat.text_type(self.name)
 
     @property
     def name(self):
-        return u"period[{freq}]".format(freq=self.freq.freqstr)
+        return str("period[{freq}]".format(freq=self.freq.freqstr))
 
     @property
     def na_value(self):
@@ -707,13 +701,6 @@ class PeriodDtype(ExtensionDtype):
         from pandas.core.arrays import PeriodArray
 
         return PeriodArray
-
-
-class IntervalDtypeType(type):
-    """
-    the type of IntervalDtype, this metaclass determines subclass ability
-    """
-    pass
 
 
 @register_extension_dtype
@@ -804,7 +791,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def type(self):
-        from pandas import Interval
         return Interval
 
     def __unicode__(self):
