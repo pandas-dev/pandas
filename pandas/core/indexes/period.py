@@ -412,16 +412,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # cannot pass _simple_new as it is
         return self._shallow_copy(result, freq=self.freq, name=self.name)
 
-    def _to_embed(self, keep_tz=False, dtype=None):
-        """
-        return an array repr of this object, potentially casting to object
-        """
-
-        if dtype is not None:
-            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
-
-        return self.astype(object).values
-
     @property
     def _formatter_func(self):
         return lambda x: "'%s'" % x

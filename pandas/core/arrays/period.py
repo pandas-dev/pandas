@@ -572,22 +572,26 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         -------
         shifted : Period Array/Index
         """
-        # We have two kinds of shift.
-        # 1. ExtensionArray.shift: move positions of each value,
-        #    fill NA on the end
-        # 2. Datelike.tshift: move each value through time
-        # Each Datelike array will implement both. It's up to the
-        # caller to call the correct one.
-        return self._ea_shift(periods=periods)
-
-    def _ea_shift(self, periods=1):
-        # TODO: remove from DatetimeLikeArrayMixin
+        # TODO(DatetimeArray): remove from DatetimeLikeArrayMixin
         # The semantics for Index.shift differ from EA.shift
         # then just call super.
         return ExtensionArray.shift(self, periods)
 
     def _tshift(self, n, freq=None):
-        # TODO: docs
+        """
+        Shift each value by `periods`.
+
+        Note this is different from ExtensionArray.shift, which
+        shifts the *position* of each element, padding the end with
+        missing values.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to shift by.
+        freq : pandas.DateOffset, pandas.Timedelta, or string
+            Frequency increment to shift by.
+        """
         values = self.values + n * self.freq.n
         if self.hasnans:
             values[self._isnan] = iNaT
