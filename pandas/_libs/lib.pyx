@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
+from fractions import Fraction
+from numbers import Number
+
 import sys
 
 import cython
@@ -14,7 +17,6 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
-
 
 import numpy as np
 cimport numpy as cnp
@@ -104,7 +106,10 @@ def memory_usage_of_objects(arr: object[:]) -> int64_t:
 def is_scalar(val: object) -> bool:
     """
     Return True if given value is scalar.
-
+    
+    Parameters
+    ----------
+    val : input argument of any type
     This includes:
     - numpy array scalar (e.g. np.int64)
     - Python builtin numerics
@@ -116,12 +121,42 @@ def is_scalar(val: object) -> bool:
     - instances of decimal.Decimal
     - Interval
     - DateOffset
+    - Fraction
+    - Number
 
+    Returns
+    -------
+    True if the given value is scalar, False otherwise.
+    
+    Examples
+    --------
+    >>> dt = pd.datetime.datetime(2018, 10, 3)
+    >>> pd.is_scalar(dt)
+    True
+
+    >>> pd.api.types.is_scalar([2, 3])
+    False
+    
+    >>> pd.api.types.is_scalar({0:1, 2:3})
+    False
+    
+    >>> pd.api.types.is_scalar((0, 2))
+    False
+    
+    pandas supports PEP 3141 numbers:
+    
+    >>> from fractions import Fraction
+    >>> pd.api.types.is_scalar(Fraction(3, 5))
+    True
+
+    >>> from numbers import Number
+    >>> pd.api.types.is_scalar(Number())
+    True
     """
 
     return (cnp.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
-            or isinstance(val, bytes)
+            or isinstance(val,(bytes, Fraction, Number))
             # We differ from numpy (as of 1.10), which claims that None is
             # not scalar in np.isscalar().
             or val is None
@@ -132,7 +167,6 @@ def is_scalar(val: object) -> bool:
             or is_decimal(val)
             or is_interval(val)
             or util.is_offset_object(val))
-
 
 def item_from_zerodim(val: object) -> object:
     """
