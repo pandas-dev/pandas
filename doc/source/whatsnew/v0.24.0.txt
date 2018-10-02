@@ -194,6 +194,7 @@ Other Enhancements
 - :meth:`Index.to_frame` now supports overriding column name(s) (:issue:`22580`).
 - New attribute :attr:`__git_version__` will return git commit sha of current build (:issue:`21295`).
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
+- Added :meth:`Interval.overlaps`, :meth:`IntervalArray.overlaps`, and :meth:`IntervalIndex.overlaps` for determining overlaps between interval-like objects (:issue:`21998`)
 
 .. _whatsnew_0240.api_breaking:
 

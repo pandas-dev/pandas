@@ -982,6 +982,10 @@ class IntervalIndex(IntervalMixin, Index):
                 self.right.equals(other.right) and
                 self.closed == other.closed)
 
+    @Appender(_interval_shared_docs['overlaps'] % _index_doc_kwargs)
+    def overlaps(self, other):
+        return self._data.overlaps(other)
+
     def _setop(op_name):
         def func(self, other):
             other = self._as_like_interval_index(other)

@@ -275,6 +275,14 @@ def closed(request):
     return request.param
 
 
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def other_closed(request):
+    """
+    Secondary closed fixture to allow parametrizing over all pairs of closed
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
 def nulls_fixture(request):
     """

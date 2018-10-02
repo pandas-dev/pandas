@@ -1,6 +1,8 @@
 import textwrap
 import numpy as np
 
+from operator import le, lt
+
 from pandas._libs.interval import (Interval, IntervalMixin,
                                    intervals_to_interval_bounds)
 from pandas.compat import add_metaclass
@@ -1014,6 +1016,40 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         left_repeat = self.left.repeat(repeats, **kwargs)
         right_repeat = self.right.repeat(repeats, **kwargs)
         return self._shallow_copy(left=left_repeat, right=right_repeat)
+
+    _interval_shared_docs['overlaps'] = """\
+        Check elementwise whether the given input overlaps the intervals in
+        the %(klass)s.
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        other : Interval-like
+            Interval-like object to check against for an overlap.
+
+        Returns
+        -------
+        ndarray
+            Boolean array positionally indicating where an overlap occurs.
+    """
+
+    @Appender(_interval_shared_docs['overlaps'] % _shared_docs_kwargs)
+    def overlaps(self, other):
+        if isinstance(other, (IntervalArray, ABCIntervalIndex)):
+            raise NotImplementedError
+        elif not isinstance(other, Interval):
+            msg = '`other` must be Interval-like, got {other}'
+            raise TypeError(msg.format(other=type(other).__name__))
+
+        # equality is okay if both endpoints are closed (overlap at a point)
+        op1 = le if (self.closed_left and other.closed_right) else lt
+        op2 = le if (other.closed_left and self.closed_right) else lt
+
+        # overlaps is equivalent negation of two interval being disjoint:
+        # disjoint = (A.left > B.right) or (B.left > A.right)
+        # (simplifying the negation allows this to be done in less operations)
+        return op1(self.left, other.right) & op2(other.left, self.right)
 
 
 def maybe_convert_platform_interval(values):
