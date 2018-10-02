@@ -238,6 +238,40 @@ For situations where you need an ``ndarray`` of ``Interval`` objects, use
    np.asarray(idx)
    idx.values.astype(object)
 
+
+.. _whatsnew_0240.api.types.is_scalar:
+
+Support for PEP 3141 numbers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The `is_scalar` function now returns True when a `Number` or `Fraction` is passed.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pandas.api.types.is_scalar(fractions.Fraction(1))
+   Out[1]:
+   False
+
+   In [2]: pandas.api.types.is_scalar(numbers.Number(1))
+   Out[2]:
+   False
+
+New Behavior:
+
+.. code-block:: ipython
+
+   In [1]: pandas.api.types.is_scalar(fractions.Fraction(1))
+   Out[1]:
+   True
+
+   In [2]: pandas.api.types.is_scalar(numbers.Number(1))
+   Out[2]:
+   True
+
+This mirrors ``numpy.isscalar``, which already supports PEP 3141 and is a requirement for `pandas`.
+
 .. _whatsnew_0240.api.timezone_offset_parsing:
 
 Parsing Datetime Strings with Timezone Offsets
