@@ -3,7 +3,6 @@ import numpy as np
 import warnings
 import copy
 from textwrap import dedent
-from pytz import UTC
 
 import pandas as pd
 from pandas.core.groupby.base import GroupByMixin
@@ -17,7 +16,8 @@ from pandas.core.groupby.generic import SeriesGroupBy, PanelGroupBy
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
-from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds, CDay
+from pandas.tseries.offsets import (DateOffset, Tick, Day,
+                                    delta_to_nanoseconds, Nano)
 from pandas.core.indexes.period import PeriodIndex
 from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
@@ -28,7 +28,6 @@ from pandas.compat.numpy import function as nv
 
 from pandas._libs import lib
 from pandas._libs.tslibs import Timestamp, NaT
-from pandas._libs.tslibs.conversion import tz_localize_to_utc
 from pandas._libs.tslibs.period import IncompatibleFrequency
 
 from pandas.util._decorators import Appender, Substitution
@@ -1393,73 +1392,26 @@ class TimeGrouper(Grouper):
             labels = labels[:len(bins)]
 
         return binner, bins, labels
-    """
+
     def _adjust_bin_edges(self, binner, ax_values):
         # Some hacks for > daily data, see #1471, #1458, #1483
-        #import pdb; pdb.set_trace()
-        #bin_edges = binner.asi8
 
-        if not isinstance(self.freq, Day) and is_superperiod(self.freq, 'D'):
+        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
             if self.closed == 'right':
-                bin_edges = (binner + CDay()).asi8
+                # GH 21459, GH 9119: Adjust the bins relative to the wall time
+                bin_edges = binner.tz_localize(None)
+                bin_edges = bin_edges + timedelta(1) - Nano(1)
+                bin_edges = bin_edges.tz_localize(binner.tz).asi8
             else:
                 bin_edges = binner.asi8
 
-            bin_edges = bin_edges - 1
             # intraday values on last day
             if bin_edges[-2] > ax_values.max():
                 bin_edges = bin_edges[:-1]
                 binner = binner[:-1]
         else:
             bin_edges = binner.asi8
-
         return binner, bin_edges
-    """
-    """
-    def _adjust_bin_edges(self, binner, ax_values):
-        # Some hacks for > daily data, see #1471, #1458, #1483
-        if binner.tz is not None:
-            bin_edges = binner.tz_localize(None).asi8
-        else:
-            bin_edges = binner.asi8
-
-        if not isinstance(self.freq, Day) and is_superperiod(self.freq, 'D'):
-            day_nanos = delta_to_nanoseconds(timedelta(1))
-            if self.closed == 'right':
-                bin_edges = bin_edges + day_nanos - 1
-
-            # intraday values on last day
-            if bin_edges[-2] > ax_values.max():
-                bin_edges = bin_edges[:-1]
-                binner = binner[:-1]
-        if binner.tz is not None:
-            bin_edges = tz_localize_to_utc(bin_edges, binner.tz)
-        return binner, bin_edges
-    """
-    def _adjust_bin_edges(self, binner, ax_values):
-        # Some hacks for > daily data, see #1471, #1458, #1483
-
-        bin_edges = binner.asi8
-
-        if self.freq != 'D' and is_superperiod(self.freq, 'D'):
-            day_nanos = delta_to_nanoseconds(timedelta(1))
-            if self.closed == 'right':
-                if binner.tz is not None:
-                    bin_edges = binner.tz_localize(None).asi8
-                else:
-                    bin_edges = binner.asi8
-                bin_edges = bin_edges + day_nanos - 1
-
-                if binner.tz is not None:
-                    bin_edges = tz_localize_to_utc(bin_edges, binner.tz)
-
-            # intraday values on last day
-            if bin_edges[-2] > ax_values.max():
-                bin_edges = bin_edges[:-1]
-                binner = binner[:-1]
-            return binner, bin_edges
-        else:
-            return binner, binner.asi8
 
     def _get_time_delta_bins(self, ax):
         if not isinstance(ax, TimedeltaIndex):
