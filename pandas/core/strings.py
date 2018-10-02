@@ -1442,6 +1442,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     dtype: object
 
     Equivalent behaviour to:
+    
     >>> s.str[0:5:3]
     0    kl
     1     f
