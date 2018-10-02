@@ -5,6 +5,7 @@ import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 from pandas._libs.tslibs import Period, NaT
+from pandas._libs.interval import Interval
 
 from .base import ExtensionDtype, _DtypeOpsMixin
 
@@ -791,7 +792,6 @@ class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
 
     @property
     def type(self):
-        from pandas import Interval
         return Interval
 
     def __unicode__(self):
