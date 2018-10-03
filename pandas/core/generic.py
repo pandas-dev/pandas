@@ -4340,7 +4340,7 @@ class NDFrame(PandasObject, SelectionMixin):
             being sampled.
             If weights do not sum to 1, they will be normalized to sum to 1.
             Missing values in the weights column will be treated as zero.
-            `inf` and `-inf` values not allowed.
+            Infinite values not allowed.
         random_state : int or numpy.random.RandomState, optional
             Seed for the random number generator (if int), or numpy RandomState
             object.
@@ -4350,57 +4350,52 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        Series or DataFrame:
-            A new object of same type as caller.
+        Series or DataFrame
+            A new object of same type as caller containing `n` items randomly
+            sampled from the caller object.
 
         See Also
         --------
-        numpy.choice: Generates a random sample from a given 1-D numpy array.
+        numpy.random.choice: Generates a random sample from a given 1-D numpy
+            array.
 
         Examples
         --------
-        Generate an example ``Series`` and ``DataFrame``:
+        >>> df = pd.DataFrame({'num_legs': [2, 4, 8, 0],
+        ...                    'num_wings': [2, 0, 0, 0],
+        ...                    'num_specimen_seen': [10, 2, 1, 8]},
+        ...                   index=['falcon', 'dog', 'spider', 'fish'])
+        >>> df
+                num_legs  num_wings  num_specimen_seen
+        falcon         2          2                 10
+        dog            4          0                  2
+        spider         8          0                  1
+        fish           0          0                  8
 
-        >>> df = pd.DataFrame({'A': range(0, 500, 10),
-        ...                    'B': range(0, 100, 2),
-        ...                    'C': range(0, 250, 5)})
-        >>> df.head()
-            A  B   C
-        0   0  0   0
-        1  10  2   5
-        2  20  4  10
-        3  30  6  15
-        4  40  8  20
+        Extract 3 random elements from the ``Series`` ``df['num_legs']``:
+        Note that we use `random_state` to ensure the reproducibility of
+        the examples.
 
-        Next extract a random sample from both of these objects. Note that
-        we use `random_state` to ensure the reproducibility of the examples.
+        >>> df['num_legs'].sample(n=3, random_state=1)
+        fish      0
+        spider    8
+        falcon    2
+        Name: num_legs, dtype: int64
 
-        3 random elements from the ``Series`` ``df['A']``:
+        A random 50% sample of the ``DataFrame`` with replacement:
 
-        >>> df['A'].sample(n=3, random_state=1)
-        27    270
-        35    350
-        40    400
-        Name: A, dtype: int64
+        >>> df.sample(frac=0.5, replace=True, random_state=1)
+              num_legs  num_wings  num_specimen_seen
+        dog          4          0                  2
+        fish         0          0                  8
 
-        A random 10% sample of the ``DataFrame`` with replacement:
+        Using a DataFrame column as weights. Rows with larger value in the
+        `num_specimen_seen` column are more likely to be sampled.
 
-        >>> df.sample(frac=0.1, replace=True, random_state=1)
-              A   B    C
-        37  370  74  185
-        43  430  86  215
-        12  120  24   60
-        8    80  16   40
-        9    90  18   45
-
-        Using a DataFrame column as weights. Column 'A' is increasing so last
-        elements of the DataFrame are more likely to be sampled.
-
-        >>> df.sample(n=3, weights='A', random_state=1)
-              A   B    C
-        32  320  64  160
-        42  420  84  210
-        1    10   2    5
+        >>> df.sample(n=2, weights='num_specimen_seen', random_state=1)
+                num_legs  num_wings  num_specimen_seen
+        falcon         2          2                 10
+        fish           0          0                  8
         """
 
         if axis is None:
