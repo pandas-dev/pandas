@@ -156,10 +156,27 @@ class TestSeriesConstructors(TestData):
 
         assert_series_equal(s2, s1.sort_index())
 
-    def test_constructor_iterator(self):
+    def test_constructor_iterable(self):
+        # GH 21987
+        class Iter():
+            def __iter__(self):
+                for i in range(10):
+                    yield i
 
         expected = Series(list(range(10)), dtype='int64')
+        result = Series(Iter(), dtype='int64')
+        assert_series_equal(result, expected)
+
+    def test_constructor_sequence(self):
+        # GH 21987
+        expected = Series(list(range(10)), dtype='int64')
         result = Series(range(10), dtype='int64')
+        assert_series_equal(result, expected)
+
+    def test_constructor_single_str(self):
+        # GH 21987
+        expected = Series(['abc'])
+        result = Series('abc')
         assert_series_equal(result, expected)
 
     def test_constructor_list_like(self):
@@ -226,10 +243,13 @@ class TestSeriesConstructors(TestData):
         res = Series(cat)
         tm.assert_categorical_equal(res.values, cat)
 
+        # can cast to a new dtype
+        result = Series(pd.Categorical([1, 2, 3]),
+                        dtype='int64')
+        expected = pd.Series([1, 2, 3], dtype='int64')
+        tm.assert_series_equal(result, expected)
+
         # GH12574
-        pytest.raises(
-            ValueError, lambda: Series(pd.Categorical([1, 2, 3]),
-                                       dtype='int64'))
         cat = Series(pd.Categorical([1, 2, 3]), dtype='category')
         assert is_categorical_dtype(cat)
         assert is_categorical_dtype(cat.dtype)
@@ -445,7 +465,7 @@ class TestSeriesConstructors(TestData):
         # test that construction of a Series with an index of different length
         # raises an error
         msg = 'Length of passed values is 3, index implies 4'
-        with pytest.raises(ValueError, message=msg):
+        with pytest.raises(ValueError, match=msg):
             Series(input, index=np.arange(4))
 
     def test_constructor_numpy_scalar(self):
@@ -932,11 +952,13 @@ class TestSeriesConstructors(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_constructor_set(self):
-        values = set([1, 2, 3, 4, 5])
+        values = {1, 2, 3, 4, 5}
         pytest.raises(TypeError, Series, values)
         values = frozenset(values)
         pytest.raises(TypeError, Series, values)
 
+    # https://github.com/pandas-dev/pandas/issues/22698
+    @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
     def test_fromDict(self):
         data = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
 

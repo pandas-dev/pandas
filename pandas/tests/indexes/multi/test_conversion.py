@@ -4,10 +4,8 @@
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
 from pandas import DataFrame, MultiIndex, date_range
-from pandas.compat import PY3, range
-from pandas.util.testing import assert_almost_equal
+from pandas.compat import range
 
 
 def test_tolist(idx):
@@ -39,6 +37,27 @@ def test_to_frame():
     expected.index = index
     tm.assert_frame_equal(result, expected)
 
+    # See GH-22580
+    index = MultiIndex.from_tuples(tuples)
+    result = index.to_frame(index=False, name=['first', 'second'])
+    expected = DataFrame(tuples)
+    expected.columns = ['first', 'second']
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(name=['first', 'second'])
+    expected.index = index
+    expected.columns = ['first', 'second']
+    tm.assert_frame_equal(result, expected)
+
+    msg = "'name' must be a list / sequence of column names."
+    with tm.assert_raises_regex(TypeError, msg):
+        index.to_frame(name='first')
+
+    msg = "'name' should have same length as number of levels on index."
+    with tm.assert_raises_regex(ValueError, msg):
+        index.to_frame(name=['first'])
+
+    # Tests for datetime index
     index = MultiIndex.from_product([range(5),
                                      pd.date_range('20130101', periods=3)])
     result = index.to_frame(index=False)
@@ -47,9 +66,18 @@ def test_to_frame():
             1: np.tile(pd.date_range('20130101', periods=3), 5)})
     tm.assert_frame_equal(result, expected)
 
-    index = MultiIndex.from_product([range(5),
-                                     pd.date_range('20130101', periods=3)])
     result = index.to_frame()
+    expected.index = index
+    tm.assert_frame_equal(result, expected)
+
+    # See GH-22580
+    result = index.to_frame(index=False, name=['first', 'second'])
+    expected = DataFrame(
+        {'first': np.repeat(np.arange(5, dtype='int64'), 3),
+         'second': np.tile(pd.date_range('20130101', periods=3), 5)})
+    tm.assert_frame_equal(result, expected)
+
+    result = index.to_frame(name=['first', 'second'])
     expected.index = index
     tm.assert_frame_equal(result, expected)
 
@@ -57,7 +85,9 @@ def test_to_frame():
 def test_to_hierarchical():
     index = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
         2, 'two')])
-    result = index.to_hierarchical(3)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = index.to_hierarchical(3)
     expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                           labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                                   [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
@@ -65,7 +95,9 @@ def test_to_hierarchical():
     assert result.names == index.names
 
     # K > 1
-    result = index.to_hierarchical(3, 2)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = index.to_hierarchical(3, 2)
     expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                           labels=[[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
                                   [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
@@ -77,7 +109,9 @@ def test_to_hierarchical():
                                     (2, 'a'), (2, 'b')],
                                    names=['N1', 'N2'])
 
-    result = index.to_hierarchical(2)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = index.to_hierarchical(2)
     expected = MultiIndex.from_tuples([(2, 'c'), (2, 'c'), (1, 'b'),
                                        (1, 'b'),
                                        (2, 'a'), (2, 'a'),
@@ -85,46 +119,6 @@ def test_to_hierarchical():
                                       names=['N1', 'N2'])
     tm.assert_index_equal(result, expected)
     assert result.names == index.names
-
-
-@pytest.mark.skipif(PY3, reason="testing legacy pickles not support on py3")
-def test_legacy_pickle(datapath):
-
-    path = datapath('indexes', 'multi', 'data', 'multiindex_v1.pickle')
-    obj = pd.read_pickle(path)
-
-    obj2 = MultiIndex.from_tuples(obj.values)
-    assert obj.equals(obj2)
-
-    res = obj.get_indexer(obj)
-    exp = np.arange(len(obj), dtype=np.intp)
-    assert_almost_equal(res, exp)
-
-    res = obj.get_indexer(obj2[::-1])
-    exp = obj.get_indexer(obj[::-1])
-    exp2 = obj2.get_indexer(obj2[::-1])
-    assert_almost_equal(res, exp)
-    assert_almost_equal(exp, exp2)
-
-
-def test_legacy_v2_unpickle(datapath):
-
-    # 0.7.3 -> 0.8.0 format manage
-    path = datapath('indexes', 'multi', 'data', 'mindex_073.pickle')
-    obj = pd.read_pickle(path)
-
-    obj2 = MultiIndex.from_tuples(obj.values)
-    assert obj.equals(obj2)
-
-    res = obj.get_indexer(obj)
-    exp = np.arange(len(obj), dtype=np.intp)
-    assert_almost_equal(res, exp)
-
-    res = obj.get_indexer(obj2[::-1])
-    exp = obj.get_indexer(obj[::-1])
-    exp2 = obj2.get_indexer(obj2[::-1])
-    assert_almost_equal(res, exp)
-    assert_almost_equal(exp, exp2)
 
 
 def test_roundtrip_pickle_with_tz():
@@ -140,6 +134,7 @@ def test_roundtrip_pickle_with_tz():
 
 
 def test_pickle(indices):
+
     unpickled = tm.round_trip_pickle(indices)
     assert indices.equals(unpickled)
     original_name, indices.name = indices.name, 'foo'

@@ -14,6 +14,10 @@ and bug fixes. We recommend that all users upgrade to this version.
    Pandas 0.23.2 is first pandas release that's compatible with
    Python 3.7 (:issue:`20552`)
 
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping-27` for more.
 
 .. contents:: What's new in v0.23.2
     :local:
@@ -66,14 +70,8 @@ Fixed Regressions
 - Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
 
 
-Documentation Changes
-~~~~~~~~~~~~~~~~~~~~~
-
--
--
-
 Build Changes
--------------
+~~~~~~~~~~~~~
 
 - The source and binary distributions no longer include test data files, resulting in smaller download sizes. Tests relying on these data files will be skipped when using ``pandas.test()``. (:issue:`19320`)
 
@@ -82,20 +80,10 @@ Build Changes
 Bug Fixes
 ~~~~~~~~~
 
-**Groupby/Resample/Rolling**
-
--
--
-
-**Timedelta**
-
-- Bug in :class:`Timedelta` where non-zero timedeltas shorter than 1 microsecond were considered False (:issue:`21484`)
-
 **Conversion**
 
 - Bug in constructing :class:`Index` with an iterator or generator (:issue:`21470`)
 - Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
-
 
 **Indexing**
 
@@ -103,28 +91,15 @@ Bug Fixes
 - Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
 - Bug in :meth:`DataFrame.drop` behaviour is not consistent for unique and non-unique indexes (:issue:`21494`)
 - Bug in :func:`DataFrame.duplicated` with a large number of columns causing a 'maximum recursion depth exceeded' (:issue:`21524`).
--
 
 **I/O**
 
 - Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
 - Bug in :func:`json_normalize` when formatting the ``record_prefix`` with integer columns (:issue:`21536`)
--
-
-**Plotting**
-
--
--
-
-**Reshaping**
-
--
--
 
 **Categorical**
 
 - Bug in rendering :class:`Series` with ``Categorical`` dtype in rare conditions under Python 2.7 (:issue:`21002`)
--
 
 **Timezones**
 
@@ -136,8 +111,9 @@ Bug Fixes
 - Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
 
+**Timedelta**
 
-**Other**
+- Bug in :class:`Timedelta` where non-zero timedeltas shorter than 1 microsecond were considered False (:issue:`21484`)
 
 .. _whatsnew_0.23.2.contributors:
 

@@ -245,7 +245,7 @@ need to be:
 
 .. ipython:: python
 
-   result = df1.append(df4)
+   result = df1.append(df4, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -285,7 +285,7 @@ do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
-   result = pd.concat([df1, df4], ignore_index=True)
+   result = pd.concat([df1, df4], ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -299,7 +299,7 @@ This is also a valid argument to :meth:`DataFrame.append`:
 
 .. ipython:: python
 
-   result = df1.append(df4, ignore_index=True)
+   result = df1.append(df4, ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
@@ -506,8 +506,8 @@ You can also pass a list of dicts or Series:
 
 .. _merging.join:
 
-Database-style DataFrame joining/merging
-----------------------------------------
+Database-style DataFrame or named Series joining/merging
+--------------------------------------------------------
 
 pandas has full-featured, **high performance** in-memory join operations
 idiomatically very similar to relational databases like SQL. These methods
@@ -522,7 +522,7 @@ Users who are familiar with SQL but new to pandas might be interested in a
 :ref:`comparison with SQL<compare_with_sql.join>`.
 
 pandas provides a single function, :func:`~pandas.merge`, as the entry point for 
-all standard database join operations between ``DataFrame`` objects:
+all standard database join operations between ``DataFrame`` or named ``Series`` objects:
 
 ::
 
@@ -531,23 +531,23 @@ all standard database join operations between ``DataFrame`` objects:
              suffixes=('_x', '_y'), copy=True, indicator=False,
              validate=None)
 
-* ``left``: A DataFrame object.
-* ``right``: Another DataFrame object.
+* ``left``: A DataFrame or named Series object.
+* ``right``: Another DataFrame or named Series object.
 * ``on``: Column or index level names to join on. Must be found in both the left
-  and right DataFrame objects. If not passed and ``left_index`` and
+  and right DataFrame and/or Series objects. If not passed and ``left_index`` and
   ``right_index`` are ``False``, the intersection of the columns in the
-  DataFrames will be inferred to be the join keys.
-* ``left_on``: Columns or index levels from the left DataFrame to use as
+  DataFrames and/or Series will be inferred to be the join keys.
+* ``left_on``: Columns or index levels from the left DataFrame or Series to use as
   keys. Can either be column names, index level names, or arrays with length
-  equal to the length of the DataFrame.
-* ``right_on``: Columns or index levels from the right DataFrame to use as
+  equal to the length of the DataFrame or Series.
+* ``right_on``: Columns or index levels from the right DataFrame or Series to use as
   keys. Can either be column names, index level names, or arrays with length
-  equal to the length of the DataFrame.
+  equal to the length of the DataFrame or Series.
 * ``left_index``: If ``True``, use the index (row labels) from the left
-  DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex
+  DataFrame or Series as its join key(s). In the case of a DataFrame or Series with a MultiIndex
   (hierarchical), the number of levels must match the number of join keys
-  from the right DataFrame.
-* ``right_index``: Same usage as ``left_index`` for the right DataFrame
+  from the right DataFrame or Series.
+* ``right_index``: Same usage as ``left_index`` for the right DataFrame or Series
 * ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
   to ``inner``. See below for more detailed description of each method.
 * ``sort``: Sort the result DataFrame by the join keys in lexicographical
@@ -555,7 +555,7 @@ all standard database join operations between ``DataFrame`` objects:
   substantially in many cases.
 * ``suffixes``: A tuple of string suffixes to apply to overlapping
   columns. Defaults to ``('_x', '_y')``.
-* ``copy``: Always copy data (default ``True``) from the passed DataFrame
+* ``copy``: Always copy data (default ``True``) from the passed DataFrame or named Series
   objects, even when reindexing is not necessary. Cannot be avoided in many
   cases but may improve performance / memory usage. The cases where copying
   can be avoided are somewhat pathological but this option is provided
@@ -563,8 +563,8 @@ all standard database join operations between ``DataFrame`` objects:
 * ``indicator``: Add a column to the output DataFrame called ``_merge``
   with information on the source of each row. ``_merge`` is Categorical-type
   and takes on a value of ``left_only`` for observations whose merge key
-  only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
-  merge key only appears in ``'right'`` DataFrame, and ``both`` if the
+  only appears in ``'left'`` DataFrame or Series, ``right_only`` for observations whose
+  merge key only appears in ``'right'`` DataFrame or Series, and ``both`` if the
   observation's merge key is found in both.
 
 * ``validate`` : string, default None.
@@ -584,10 +584,10 @@ all standard database join operations between ``DataFrame`` objects:
 
    Support for specifying index levels as the ``on``, ``left_on``, and
    ``right_on`` parameters was added in version 0.23.0.
+   Support for merging named ``Series`` objects was added in version 0.24.0.
 
-The return type will be the same as ``left``. If ``left`` is a ``DataFrame``
-and ``right`` is a subclass of DataFrame, the return type will still be
-``DataFrame``.
+The return type will be the same as ``left``. If ``left`` is a ``DataFrame`` or named ``Series``
+and ``right`` is a subclass of ``DataFrame``, the return type will still be ``DataFrame``.
 
 ``merge`` is a function in the pandas namespace, and it is also available as a
 ``DataFrame`` instance method :meth:`~DataFrame.merge`, with the calling 

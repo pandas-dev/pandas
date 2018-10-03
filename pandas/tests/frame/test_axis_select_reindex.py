@@ -674,29 +674,12 @@ class TestDataFrameSelectReindex(TestData):
         assert_frame_equal(aa, ea)
         assert_frame_equal(ab, eb)
 
-    def test_align_fill_method_inner(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('inner', meth, ax, fax)
-
-    def test_align_fill_method_outer(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('outer', meth, ax, fax)
-
-    def test_align_fill_method_left(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('left', meth, ax, fax)
-
-    def test_align_fill_method_right(self):
-        for meth in ['pad', 'bfill']:
-            for ax in [0, 1, None]:
-                for fax in [0, 1]:
-                    self._check_align_fill('right', meth, ax, fax)
+    @pytest.mark.parametrize('meth', ['pad', 'bfill'])
+    @pytest.mark.parametrize('ax', [0, 1, None])
+    @pytest.mark.parametrize('fax', [0, 1])
+    @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
+    def test_align_fill_method(self, how, meth, ax, fax):
+        self._check_align_fill(how, meth, ax, fax)
 
     def _check_align_fill(self, kind, meth, ax, fax):
         left = self.frame.iloc[0:4, :10]
@@ -738,7 +721,7 @@ class TestDataFrameSelectReindex(TestData):
 
         result = df1 - df1.mean()
         expected = df2 - df2.mean()
-        assert_frame_equal(result, expected)
+        assert_frame_equal(result.astype('f8'), expected)
 
     def test_align_multiindex(self):
         # GH 10665

@@ -28,7 +28,7 @@ class TestSeriesCombine(TestData):
             elif idx in self.objSeries.index:
                 assert value == self.objSeries[idx]
             else:
-                self.fail("orphaned index!")
+                raise AssertionError("orphaned index!")
 
         pytest.raises(ValueError, self.ts.append, self.ts,
                       verify_integrity=True)
@@ -135,19 +135,19 @@ class TestSeriesCombine(TestData):
                               Series(dtype=dtype)]).dtype == dtype
 
         def int_result_type(dtype, dtype2):
-            typs = set([dtype.kind, dtype2.kind])
-            if not len(typs - set(['i', 'u', 'b'])) and (dtype.kind == 'i' or
-                                                         dtype2.kind == 'i'):
+            typs = {dtype.kind, dtype2.kind}
+            if not len(typs - {'i', 'u', 'b'}) and (dtype.kind == 'i' or
+                                                    dtype2.kind == 'i'):
                 return 'i'
-            elif not len(typs - set(['u', 'b'])) and (dtype.kind == 'u' or
-                                                      dtype2.kind == 'u'):
+            elif not len(typs - {'u', 'b'}) and (dtype.kind == 'u' or
+                                                 dtype2.kind == 'u'):
                 return 'u'
             return None
 
         def float_result_type(dtype, dtype2):
-            typs = set([dtype.kind, dtype2.kind])
-            if not len(typs - set(['f', 'i', 'u'])) and (dtype.kind == 'f' or
-                                                         dtype2.kind == 'f'):
+            typs = {dtype.kind, dtype2.kind}
+            if not len(typs - {'f', 'i', 'u'}) and (dtype.kind == 'f' or
+                                                    dtype2.kind == 'f'):
                 return 'f'
             return None
 

@@ -62,6 +62,8 @@ dist
 coverage.xml
 coverage_html_report
 *.pytest_cache
+# hypothesis test database
+.hypothesis/
 
 # OS generated files #
 ######################

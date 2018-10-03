@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - beautifulsoup4
-  - cython
+  - cython>=0.28.2
   - dask
   - fastparquet
   - feather-format
@@ -18,7 +18,7 @@ dependencies:
   - nomkl
   - numexpr
   - numpy
-  - openpyxl
+  - openpyxl=2.5.5
   - psycopg2
   - pyarrow
   - pymysql
@@ -41,6 +41,7 @@ dependencies:
   - pytest-xdist
   - pytest-cov
   - moto
+  - hypothesis>=3.58.0
   - pip:
     - brotlipy
     - coverage

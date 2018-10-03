@@ -121,8 +121,7 @@ API changes
   equal. NaNs in identical locations are treated as
   equal. (:issue:`5283`) See also :ref:`the docs<basics.equals>` for a motivating example.
 
-  .. ipython:: python
-      :okwarning:
+  .. code-block:: python
 
       df = DataFrame({'col':['foo', 0, np.nan]})
       df2 = DataFrame({'col':[np.nan, 0, 'foo']}, index=[2,1,0])

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 import warnings
 
 from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
@@ -7,7 +6,7 @@ from cpython cimport (PyObject_RichCompareBool, PyObject_RichCompare,
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport int64_t, int32_t, ndarray
+from numpy cimport int64_t, int32_t, int8_t
 cnp.import_array()
 
 from datetime import time as datetime_time
@@ -17,19 +16,19 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 from util cimport (is_datetime64_object, is_timedelta64_object,
-                   is_integer_object, is_string_object, is_array,
-                   INT64_MAX)
+                   is_integer_object, is_string_object, is_array)
 
 cimport ccalendar
-from conversion import tz_localize_to_utc, date_normalize
+from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
+import enum
 from fields import get_start_end_field, get_date_name_field
 from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
-                          pandas_datetimestruct, dt64_to_dtstruct)
+                          npy_datetimestruct, dt64_to_dtstruct)
 from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
@@ -45,7 +44,7 @@ _no_input = object()
 
 
 cdef inline object create_timestamp_from_ts(int64_t value,
-                                            pandas_datetimestruct dts,
+                                            npy_datetimestruct dts,
                                             object tz, object freq):
     """ convenience routine to construct a Timestamp from its parts """
     cdef _Timestamp ts_base
@@ -59,50 +58,114 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-def round_ns(values, rounder, freq):
+@enum.unique
+class RoundTo(enum.Enum):
     """
-    Applies rounding function at given frequency
+    enumeration defining the available rounding modes
+
+    Attributes
+    ----------
+    MINUS_INFTY
+        round towards -∞, or floor [2]_
+    PLUS_INFTY
+        round towards +∞, or ceil [3]_
+    NEAREST_HALF_EVEN
+        round to nearest, tie-break half to even [6]_
+    NEAREST_HALF_MINUS_INFTY
+        round to nearest, tie-break half to -∞ [5]_
+    NEAREST_HALF_PLUS_INFTY
+        round to nearest, tie-break half to +∞ [4]_
+
+
+    References
+    ----------
+    .. [1] "Rounding - Wikipedia"
+           https://en.wikipedia.org/wiki/Rounding
+    .. [2] "Rounding down"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_down
+    .. [3] "Rounding up"
+           https://en.wikipedia.org/wiki/Rounding#Rounding_up
+    .. [4] "Round half up"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_up
+    .. [5] "Round half down"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_down
+    .. [6] "Round half to even"
+           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
+    """
+    MINUS_INFTY = 0
+    PLUS_INFTY = 1
+    NEAREST_HALF_EVEN = 2
+    NEAREST_HALF_PLUS_INFTY = 3
+    NEAREST_HALF_MINUS_INFTY = 4
+
+
+cdef inline _npdivmod(x1, x2):
+    """implement divmod for numpy < 1.13"""
+    return np.floor_divide(x1, x2), np.remainder(x1, x2)
+
+
+try:
+    from numpy import divmod as npdivmod
+except ImportError:
+    npdivmod = _npdivmod
+
+
+cdef inline _floor_int64(values, unit):
+    return values - np.remainder(values, unit)
+
+cdef inline _ceil_int64(values, unit):
+    return values + np.remainder(-values, unit)
+
+cdef inline _rounddown_int64(values, unit):
+    return _ceil_int64(values - unit//2, unit)
+
+cdef inline _roundup_int64(values, unit):
+    return _floor_int64(values + unit//2, unit)
+
+
+def round_nsint64(values, mode, freq):
+    """
+    Applies rounding mode at given frequency
 
     Parameters
     ----------
     values : :obj:`ndarray`
-    rounder : function, eg. 'ceil', 'floor', 'round'
+    mode : instance of `RoundTo` enumeration
     freq : str, obj
 
     Returns
     -------
     :obj:`ndarray`
     """
+
+    if not isinstance(mode, RoundTo):
+        raise ValueError('mode should be a RoundTo member')
+
     unit = to_offset(freq).nanos
 
-    # GH21262 If the Timestamp is multiple of the freq str
-    # don't apply any rounding
-    mask = values % unit == 0
-    if mask.all():
-        return values
-    r = values.copy()
+    if mode is RoundTo.MINUS_INFTY:
+        return _floor_int64(values, unit)
+    elif mode is RoundTo.PLUS_INFTY:
+        return _ceil_int64(values, unit)
+    elif mode is RoundTo.NEAREST_HALF_MINUS_INFTY:
+        return _rounddown_int64(values, unit)
+    elif mode is RoundTo.NEAREST_HALF_PLUS_INFTY:
+        return _roundup_int64(values, unit)
+    elif mode is RoundTo.NEAREST_HALF_EVEN:
+        # for odd unit there is no need of a tie break
+        if unit % 2:
+            return _rounddown_int64(values, unit)
+        quotient, remainder = npdivmod(values, unit)
+        mask = np.logical_or(
+            remainder > (unit // 2),
+            np.logical_and(remainder == (unit // 2), quotient % 2)
+        )
+        quotient[mask] += 1
+        return quotient * unit
 
-    if unit < 1000:
-        # for nano rounding, work with the last 6 digits separately
-        # due to float precision
-        buff = 1000000
-        r[~mask] = (buff * (values[~mask] // buff) +
-                    unit * (rounder((values[~mask] % buff) *
-                            (1 / float(unit)))).astype('i8'))
-    else:
-        if unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-        # GH19206
-        # to deal with round-off when unit is large
-        if unit >= 1e9:
-            divisor = 10 ** int(np.log10(unit / 1e7))
-        else:
-            divisor = 10
-        r[~mask] = (unit * rounder((values[~mask] *
-                    (divisor / float(unit))) / divisor)
-                    .astype('i8'))
-    return r
+    # if/elif above should catch all rounding modes defined in enum 'RoundTo':
+    # if flow of control arrives here, it is a bug
+    assert False, "round_nsint64 called with an unrecognized rounding mode"
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -342,7 +405,7 @@ cdef class _Timestamp(datetime):
         cdef:
             int64_t val
             dict kwds
-            ndarray out
+            int8_t out[1]
             int month_kw
 
         freq = self.freq
@@ -362,7 +425,7 @@ cdef class _Timestamp(datetime):
     cpdef _get_date_name_field(self, object field, object locale):
         cdef:
             int64_t val
-            ndarray out
+            object[:] out
 
         val = self._maybe_convert_value_to_local()
         out = get_date_name_field(np.array([val], dtype=np.int64),
@@ -406,6 +469,15 @@ cdef class _Timestamp(datetime):
     @property
     def asm8(self):
         return np.datetime64(self.value, 'ns')
+
+    @property
+    def resolution(self):
+        """
+        Return resolution describing the smallest difference between two
+        times that can be represented by Timestamp object_state
+        """
+        # GH#21336, GH#21365
+        return Timedelta(nanoseconds=1)
 
     def timestamp(self):
         """Return POSIX timestamp as float."""
@@ -645,12 +717,11 @@ class Timestamp(_Timestamp):
             return NaT
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
-    def _round(self, freq, rounder):
+    def _round(self, freq, mode, ambiguous='raise'):
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
@@ -659,13 +730,13 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_ns(value, rounder, freq)[0]
+        r = round_nsint64(value, mode, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
-            result = result.tz_localize(self.tz)
+            result = result.tz_localize(self.tz, ambiguous=ambiguous)
         return result
 
-    def round(self, freq):
+    def round(self, freq, ambiguous='raise'):
         """
         Round the Timestamp to the specified resolution
 
@@ -676,32 +747,61 @@ class Timestamp(_Timestamp):
         Parameters
         ----------
         freq : a freq string indicating the rounding resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
 
         Raises
         ------
         ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.round)
+        return self._round(freq, RoundTo.NEAREST_HALF_EVEN, ambiguous)
 
-    def floor(self, freq):
+    def floor(self, freq, ambiguous='raise'):
         """
         return a new Timestamp floored to this resolution
 
         Parameters
         ----------
         freq : a freq string indicating the flooring resolution
-        """
-        return self._round(freq, np.floor)
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
 
-    def ceil(self, freq):
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
+        """
+        return self._round(freq, RoundTo.MINUS_INFTY, ambiguous)
+
+    def ceil(self, freq, ambiguous='raise'):
         """
         return a new Timestamp ceiled to this resolution
 
         Parameters
         ----------
         freq : a freq string indicating the ceiling resolution
+        ambiguous : bool, 'NaT', default 'raise'
+            - bool contains flags to determine if time is dst or not (note
+              that this flag is only applicable for ambiguous fall dst dates)
+            - 'NaT' will return NaT for an ambiguous time
+            - 'raise' will raise an AmbiguousTimeError for an ambiguous time
+
+            .. versionadded:: 0.24.0
+
+        Raises
+        ------
+        ValueError if the freq cannot be converted
         """
-        return self._round(freq, np.ceil)
+        return self._round(freq, RoundTo.PLUS_INFTY, ambiguous)
 
     @property
     def tz(self):
@@ -730,6 +830,12 @@ class Timestamp(_Timestamp):
         Return an period of which this timestamp is an observation.
         """
         from pandas import Period
+
+        if self.tz is not None:
+            # GH#21333
+            warnings.warn("Converting to Period representation will "
+                          "drop timezone information.",
+                          UserWarning)
 
         if freq is None:
             freq = self.freq
@@ -965,7 +1071,7 @@ class Timestamp(_Timestamp):
         """
 
         cdef:
-            pandas_datetimestruct dts
+            npy_datetimestruct dts
             int64_t value, value_tz, offset
             object _tzinfo, result, k, v
             datetime ts_input
@@ -1084,7 +1190,7 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        normalized_value = date_normalize(
+        normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
 
@@ -1095,7 +1201,7 @@ class Timestamp(_Timestamp):
 
 
 # Add the min and max fields at the class level
-cdef int64_t _NS_UPPER_BOUND = INT64_MAX
+cdef int64_t _NS_UPPER_BOUND = np.iinfo(np.int64).max
 # the smallest value we could actually represent is
 #   INT64_MIN + 1 == -9223372036854775807
 # but to allow overflow free conversion with a microsecond resolution

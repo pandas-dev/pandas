@@ -1,4 +1,3 @@
-import warnings
 from datetime import timedelta
 
 import numpy as np
@@ -341,6 +340,25 @@ class ToDatetimeISO8601(object):
 
     def time_iso8601_tz_spaceformat(self):
         to_datetime(self.strings_tz_space)
+
+
+class ToDatetimeNONISO8601(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10000
+        half = int(N / 2)
+        ts_string_1 = 'March 1, 2018 12:00:00+0400'
+        ts_string_2 = 'March 1, 2018 12:00:00+0500'
+        self.same_offset = [ts_string_1] * N
+        self.diff_offset = [ts_string_1] * half + [ts_string_2] * half
+
+    def time_same_offset(self):
+        to_datetime(self.same_offset)
+
+    def time_different_offset(self):
+        to_datetime(self.diff_offset)
 
 
 class ToDatetimeFormat(object):

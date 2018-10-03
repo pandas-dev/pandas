@@ -11,14 +11,15 @@ import warnings
 from pandas.core.dtypes.missing import isna, notna
 
 from pandas.compat.numpy import function as nv
-from pandas.core.index import Index, _ensure_index, InvalidIndexError
+from pandas.core.index import Index, ensure_index, InvalidIndexError
 from pandas.core.series import Series
 from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.common as com
+import pandas.core.indexes.base as ibase
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.sparse.array import (
     make_sparse, SparseArray,
@@ -149,8 +150,8 @@ class SparseSeries(Series):
                     data.fill(v)
 
             if index is None:
-                index = com._default_index(sparse_index.length)
-            index = _ensure_index(index)
+                index = ibase.default_index(sparse_index.length)
+            index = ensure_index(index)
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -374,7 +375,7 @@ class SparseSeries(Series):
             # Could not hash item, must be array-like?
             pass
 
-        key = com._values_from_object(key)
+        key = com.values_from_object(key)
         if self.index.nlevels > 1 and isinstance(key, tuple):
             # to handle MultiIndex labels
             key = self.index.get_loc(key)
@@ -562,7 +563,8 @@ class SparseSeries(Series):
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__)
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
 
@@ -591,7 +593,7 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    @Appender(generic._shared_docs['take'])
+    @Appender(generic.NDFrame.take.__doc__)
     def take(self, indices, axis=0, convert=None, *args, **kwargs):
         if convert is not None:
             msg = ("The 'convert' parameter is deprecated "
@@ -623,8 +625,9 @@ class SparseSeries(Series):
         cumsum : SparseSeries
         """
         nv.validate_cumsum(args, kwargs)
+        # Validate axis
         if axis is not None:
-            axis = self._get_axis_number(axis)
+            self._get_axis_number(axis)
 
         new_array = self.values.cumsum()
 
@@ -653,7 +656,8 @@ class SparseSeries(Series):
         Analogous to Series.dropna. If fill_value=NaN, returns a dense Series
         """
         # TODO: make more efficient
-        axis = self._get_axis_number(axis or 0)
+        # Validate axis
+        self._get_axis_number(axis or 0)
         dense_valid = self.to_dense().dropna()
         if inplace:
             raise NotImplementedError("Cannot perform inplace dropna"
@@ -736,15 +740,14 @@ class SparseSeries(Series):
 
         Examples
         --------
-        >>> from numpy import nan
-        >>> s = Series([3.0, nan, 1.0, 3.0, nan, nan])
-        >>> s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                              (1, 2, 'a', 1),
-                                              (1, 1, 'b', 0),
-                                              (1, 1, 'b', 1),
-                                              (2, 1, 'b', 0),
-                                              (2, 1, 'b', 1)],
-                                              names=['A', 'B', 'C', 'D'])
+        >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
+        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                                (1, 2, 'a', 1),
+                                                (1, 1, 'b', 0),
+                                                (1, 1, 'b', 1),
+                                                (2, 1, 'b', 0),
+                                                (2, 1, 'b', 1)],
+                                                names=['A', 'B', 'C', 'D'])
         >>> ss = s.to_sparse()
         >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
                                          column_levels=['C', 'D'],
@@ -796,7 +799,7 @@ class SparseSeries(Series):
         matrix([[ 0.,  0.,  1.,  2.],
                 [ 3.,  0.,  0.,  0.],
                 [ 0.,  0.,  0.,  0.]])
-        >>> ss = SparseSeries.from_coo(A)
+        >>> ss = pd.SparseSeries.from_coo(A)
         >>> ss
         0  2    1
            3    2

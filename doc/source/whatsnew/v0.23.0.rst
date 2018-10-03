@@ -208,7 +208,7 @@ for storing ip addresses.
       ...:
 
 ``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-:class:`~pandas.api.extension.ExtensionArray`, it can be stored properly inside pandas' containers.
+:class:`~pandas.api.extensions.ExtensionArray`, it can be stored properly inside pandas' containers.
 
 .. code-block:: ipython
 
@@ -1250,7 +1250,6 @@ Offsets
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
 - Bug in :class:`FY5253` where date offsets could incorrectly raise an ``AssertionError`` in arithmetic operations (:issue:`14774`)
-
 
 Numeric
 ^^^^^^^

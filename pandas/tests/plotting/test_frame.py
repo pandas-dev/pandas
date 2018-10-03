@@ -496,7 +496,8 @@ class TestDataFramePlots(TestPlotBase):
             testdata.plot(y="text")
 
     @pytest.mark.xfail(reason='not support for period, categorical, '
-                       'datetime_mixed_tz')
+                              'datetime_mixed_tz',
+                       strict=True)
     def test_subplots_timeseries_y_axis_not_supported(self):
         """
         This test will fail for:
@@ -587,17 +588,13 @@ class TestDataFramePlots(TestPlotBase):
     @pytest.mark.slow
     def test_subplots_warnings(self):
         # GH 9464
-        warnings.simplefilter('error')
-        try:
+        with tm.assert_produces_warning(None):
             df = DataFrame(np.random.randn(100, 4))
             df.plot(subplots=True, layout=(3, 2))
 
             df = DataFrame(np.random.randn(100, 4),
                            index=date_range('1/1/2000', periods=100))
             df.plot(subplots=True, layout=(3, 2))
-        except Warning as w:
-            self.fail(w)
-        warnings.simplefilter('default')
 
     @pytest.mark.slow
     def test_subplots_multiple_axes(self):
@@ -631,6 +628,7 @@ class TestDataFramePlots(TestPlotBase):
         # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
         fig, axes = self.plt.subplots(2, 2)
         with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
             df = DataFrame(np.random.rand(10, 4),
                            index=list(string.ascii_letters[:10]))
 
@@ -1090,6 +1088,69 @@ class TestDataFramePlots(TestPlotBase):
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
     @pytest.mark.slow
+    def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
+        # addressing issue #10611, to ensure colobar does not
+        # interfere with x-axis label and ticklabels with
+        # ipython inline backend.
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        ax1 = df.plot.scatter(x='A label', y='B label')
+        ax2 = df.plot.scatter(x='A label', y='B label', c='C label')
+
+        vis1 = [vis.get_visible() for vis in
+                ax1.xaxis.get_minorticklabels()]
+        vis2 = [vis.get_visible() for vis in
+                ax2.xaxis.get_minorticklabels()]
+        assert vis1 == vis2
+
+        vis1 = [vis.get_visible() for vis in
+                ax1.xaxis.get_majorticklabels()]
+        vis2 = [vis.get_visible() for vis in
+                ax2.xaxis.get_majorticklabels()]
+        assert vis1 == vis2
+
+        assert (ax1.xaxis.get_label().get_visible() ==
+                ax2.xaxis.get_label().get_visible())
+
+    @pytest.mark.slow
+    def test_if_hexbin_xaxis_label_is_visible(self):
+        # addressing issue #10678, to ensure colobar does not
+        # interfere with x-axis label and ticklabels with
+        # ipython inline backend.
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        ax = df.plot.hexbin('A label', 'B label', gridsize=12)
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_minorticklabels())
+        assert all(vis.get_visible() for vis in
+                   ax.xaxis.get_majorticklabels())
+        assert ax.xaxis.get_label().get_visible()
+
+    @pytest.mark.slow
+    def test_if_scatterplot_colorbars_are_next_to_parent_axes(self):
+        import matplotlib.pyplot as plt
+        random_array = np.random.random((1000, 3))
+        df = pd.DataFrame(random_array,
+                          columns=['A label', 'B label', 'C label'])
+
+        fig, axes = plt.subplots(1, 2)
+        df.plot.scatter('A label', 'B label', c='C label', ax=axes[0])
+        df.plot.scatter('A label', 'B label', c='C label', ax=axes[1])
+        plt.tight_layout()
+
+        points = np.array([ax.get_position().get_points()
+                           for ax in fig.axes])
+        axes_x_coords = points[:, :, 0]
+        parent_distance = axes_x_coords[1, :] - axes_x_coords[0, :]
+        colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
+        assert np.isclose(parent_distance,
+                          colorbar_distance, atol=1e-7).all()
+
+    @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self):
         # GH 16199
         df = pd.DataFrame({'x': [1, 2, 3, 4],
@@ -1514,7 +1575,11 @@ class TestDataFramePlots(TestPlotBase):
         self._check_ticks_props(axes, xrot=40, yrot=0)
         tm.close()
 
-        ax = series.plot.hist(normed=True, cumulative=True, bins=4)
+        if plotting._compat._mpl_ge_2_2_0():
+            kwargs = {"density": True}
+        else:
+            kwargs = {"normed": True}
+        ax = series.plot.hist(cumulative=True, bins=4, **kwargs)
         # height of last bin (index 5) must be 1.0
         rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
         tm.assert_almost_equal(rects[-1].get_height(), 1.0)
@@ -1790,7 +1855,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
-        ax2 = df.plot(colors=custom_colors)
+        ax2 = df.plot(color=custom_colors)
         lines2 = ax2.get_lines()
 
         for l1, l2 in zip(ax.get_lines(), lines2):

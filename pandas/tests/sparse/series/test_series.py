@@ -1022,6 +1022,9 @@ class TestSparseHandlingMultiIndexes(object):
 
 
 @td.skip_if_no_scipy
+@pytest.mark.filterwarnings(
+    "ignore:the matrix subclass:PendingDeprecationWarning"
+)
 class TestSparseSeriesScipyInteraction(object):
     # Issue 8048: add SparseSeries coo methods
 

@@ -202,7 +202,8 @@ pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
-<http://doc.pytest.org/en/latest/>`__ and run:
+<http://docs.pytest.org/en/latest/>`__ >= 3.6 and `Hypothesis
+<https://hypothesis.readthedocs.io/>`__ >= 3.58, then run:
 
 ::
 
@@ -210,7 +211,7 @@ installed), make sure you have `pytest
     >>> pd.test()
     running: pytest --skip-slow --skip-network C:\Users\TP\Anaconda3\envs\py36\lib\site-packages\pandas
     ============================= test session starts =============================
-    platform win32 -- Python 3.6.2, pytest-3.2.1, py-1.4.34, pluggy-0.4.0
+    platform win32 -- Python 3.6.2, pytest-3.6.0, py-1.4.34, pluggy-0.4.0
     rootdir: C:\Users\TP\Documents\Python\pandasdev\pandas, inifile: setup.cfg
     collected 12145 items / 3 skipped
 
@@ -225,7 +226,7 @@ Dependencies
 
 * `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 24.2.0 or higher
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
-* `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
+* `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
 
 .. _install.recommended_dependencies:
@@ -253,7 +254,7 @@ Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.24 or higher.
+  version. Version 0.28.2 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
@@ -269,7 +270,7 @@ Optional Dependencies
 * For Excel I/O:
 
     * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-    * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+    * `openpyxl <https://openpyxl.readthedocs.io/en/stable/>`__: openpyxl version 2.4.0
       for writing .xlsx files (xlrd >= 0.9.0)
     * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
 

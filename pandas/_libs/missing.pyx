@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-# cython: profile=False
 
-from cpython cimport PyFloat_Check, PyComplex_Check
-
-cimport cython
-from cython cimport Py_ssize_t
+import cython
+from cython import Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
@@ -15,7 +12,6 @@ cimport util
 
 from tslibs.np_datetime cimport get_timedelta64_value, get_datetime64_value
 from tslibs.nattype import NaT
-from tslibs.nattype cimport is_null_datetimelike
 
 cdef double INF = <double> np.inf
 cdef double NEGINF = -INF
@@ -25,8 +21,9 @@ cdef int64_t NPY_NAT = util.get_nat()
 
 cdef inline bint _check_all_nulls(object val):
     """ utility to check if a value is any type of null """
-    cdef bint res
-    if PyFloat_Check(val) or PyComplex_Check(val):
+    res: bint
+
+    if isinstance(val, (float, complex)):
         res = val != val
     elif val is NaT:
         res = 1
@@ -75,7 +72,7 @@ cpdef bint checknull(object val):
     elif util.is_array(val):
         return False
     else:
-        return util._checknull(val)
+        return val is None or util.is_nan(val)
 
 
 cpdef bint checknull_old(object val):
@@ -114,12 +111,12 @@ cpdef bint checknull_old(object val):
     elif util.is_array(val):
         return False
     else:
-        return util._checknull(val)
+        return val is None or util.is_nan(val)
 
 
 cdef inline bint _check_none_nan_inf_neginf(object val):
     try:
-        return val is None or (PyFloat_Check(val) and
+        return val is None or (isinstance(val, float) and
                                (val != val or val == INF or val == NEGINF))
     except ValueError:
         return False
@@ -298,7 +295,7 @@ cpdef bint isneginf_scalar(object val):
 cdef inline bint is_null_datetime64(v):
     # determine if we have a null for a datetime (or integer versions),
     # excluding np.timedelta64('nat')
-    if util._checknull(v):
+    if v is None or util.is_nan(v):
         return True
     elif v is NaT:
         return True
@@ -310,7 +307,7 @@ cdef inline bint is_null_datetime64(v):
 cdef inline bint is_null_timedelta64(v):
     # determine if we have a null for a timedelta (or integer versions),
     # excluding np.datetime64('nat')
-    if util._checknull(v):
+    if v is None or util.is_nan(v):
         return True
     elif v is NaT:
         return True
@@ -322,7 +319,7 @@ cdef inline bint is_null_timedelta64(v):
 cdef inline bint is_null_period(v):
     # determine if we have a null for a Period (or integer versions),
     # excluding np.datetime64('nat') and np.timedelta64('nat')
-    if util._checknull(v):
+    if v is None or util.is_nan(v):
         return True
     elif v is NaT:
         return True

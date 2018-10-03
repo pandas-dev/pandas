@@ -21,7 +21,7 @@ import pytest
 import numpy as np
 import pandas as pd
 from pandas import (DataFrame, Series, Index, Timestamp, MultiIndex,
-                    date_range, NaT, read_table)
+                    date_range, NaT, read_csv)
 from pandas.compat import (range, zip, lrange, StringIO, PY3,
                            u, lzip, is_platform_windows,
                            is_platform_32bit)
@@ -244,7 +244,7 @@ class TestDataFrameFormatting(object):
             assert len(printing.pprint_thing(lrange(1000))) < 100
 
     def test_repr_set(self):
-        assert printing.pprint_thing(set([1])) == '{1}'
+        assert printing.pprint_thing({1}) == '{1}'
 
     def test_repr_is_valid_construction_code(self):
         # for the case of Index, where the repr is traditional rather then
@@ -955,7 +955,7 @@ class TestDataFrameFormatting(object):
         compat.text_type(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
-        filepath = datapath('io', 'formats', 'data', 'unicode_series.csv')
+        filepath = datapath('io', 'parser', 'data', 'unicode_series.csv')
         df = pd.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])
@@ -1225,8 +1225,8 @@ class TestDataFrameFormatting(object):
         lines = result.split('\n')
         header = lines[0].strip().split()
         joined = '\n'.join(re.sub(r'\s+', ' ', x).strip() for x in lines[1:])
-        recons = read_table(StringIO(joined), names=header,
-                            header=None, sep=' ')
+        recons = read_csv(StringIO(joined), names=header,
+                          header=None, sep=' ')
         tm.assert_series_equal(recons['B'], biggie['B'])
         assert recons['A'].count() == biggie['A'].count()
         assert (np.abs(recons['A'].dropna() -
@@ -1269,18 +1269,42 @@ class TestDataFrameFormatting(object):
             df.to_string(header=['X'])
 
     def test_to_string_no_index(self):
-        df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
+        # GH 16839, GH 13032
+        df = DataFrame({'x': [11, 22], 'y': [33, -44], 'z': ['AAA', '   ']})
 
         df_s = df.to_string(index=False)
-        expected = "x  y\n1  4\n2  5\n3  6"
+        # Leading space is expected for positive numbers.
+        expected = ("  x   y    z\n"
+                    " 11  33  AAA\n"
+                    " 22 -44     ")
+        assert df_s == expected
 
+        df_s = df[['y', 'x', 'z']].to_string(index=False)
+        expected = ("  y   x    z\n"
+                    " 33  11  AAA\n"
+                    "-44  22     ")
         assert df_s == expected
 
     def test_to_string_line_width_no_index(self):
+        # GH 13998, GH 22505
         df = DataFrame({'x': [1, 2, 3], 'y': [4, 5, 6]})
 
         df_s = df.to_string(line_width=1, index=False)
-        expected = "x  \\\n1   \n2   \n3   \n\ny  \n4  \n5  \n6"
+        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, 33], 'y': [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n 33   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({'x': [11, 22, -33], 'y': [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
 
         assert df_s == expected
 
@@ -1586,8 +1610,12 @@ c  10  11  12  13  14\
             assert '...' in df._repr_html_()
 
     def test_info_repr(self):
+        # GH#21746 For tests inside a terminal (i.e. not CI) we need to detect
+        # the terminal size to ensure that we try to print something "too big"
+        term_width, term_height = get_terminal_size()
+
         max_rows = 60
-        max_cols = 20
+        max_cols = 20 + (max(term_width, 80) - 80) // 4
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
@@ -1789,7 +1817,7 @@ class TestSeriesFormatting(object):
         # GH 11729 Test index=False option
         s = Series([1, 2, 3, 4])
         result = s.to_string(index=False)
-        expected = (u('1\n') + '2\n' + '3\n' + '4')
+        expected = (u(' 1\n') + ' 2\n' + ' 3\n' + ' 4')
         assert result == expected
 
     def test_unicode_name_in_footer(self):

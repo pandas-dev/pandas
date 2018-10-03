@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from warnings import catch_warnings
+from warnings import catch_warnings, simplefilter
 from datetime import datetime
 
 import itertools
@@ -56,6 +56,7 @@ class TestDataFrameReshape(TestData):
 
         with catch_warnings(record=True):
             # pivot multiple columns
+            simplefilter("ignore", FutureWarning)
             wp = tm.makePanel()
             lp = wp.to_frame()
             df = lp.reset_index()
@@ -855,21 +856,21 @@ class TestDataFrameReshape(TestData):
                              dtype=df.dtypes[0])
         assert_frame_equal(result, expected)
 
-    def test_stack_preserve_categorical_dtype(self):
+    @pytest.mark.parametrize('ordered', [False, True])
+    @pytest.mark.parametrize('labels', [list("yxz"), list("yxy")])
+    def test_stack_preserve_categorical_dtype(self, ordered, labels):
         # GH13854
-        for ordered in [False, True]:
-            for labels in [list("yxz"), list("yxy")]:
-                cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
-                                           ordered=ordered)
-                df = DataFrame([[10, 11, 12]], columns=cidx)
-                result = df.stack()
+        cidx = pd.CategoricalIndex(labels, categories=list("xyz"),
+                                   ordered=ordered)
+        df = DataFrame([[10, 11, 12]], columns=cidx)
+        result = df.stack()
 
-                # `MutliIndex.from_product` preserves categorical dtype -
-                # it's tested elsewhere.
-                midx = pd.MultiIndex.from_product([df.index, cidx])
-                expected = Series([10, 11, 12], index=midx)
+        # `MutliIndex.from_product` preserves categorical dtype -
+        # it's tested elsewhere.
+        midx = pd.MultiIndex.from_product([df.index, cidx])
+        expected = Series([10, 11, 12], index=midx)
 
-                tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("level", [0, 'baz'])
     def test_unstack_swaplevel_sortlevel(self, level):

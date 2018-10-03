@@ -1,0 +1,36 @@
+parameters:
+  name: ''
+  vmImage: ''
+
+jobs:
+- job: ${{ parameters.name }}
+  pool:
+    vmImage: ${{ parameters.vmImage }}
+  strategy:
+    maxParallel: 11
+    matrix:
+      py36_np14:
+        ENV_FILE: ci/azure-windows-36.yml
+        CONDA_PY: "36"
+        CONDA_ENV: pandas
+
+  steps:
+    - task: CondaEnvironment@1
+      inputs:
+        updateConda: no
+        packageSpecs: ''
+
+    - script: |
+        ci\\incremental\\setup_conda_environment.cmd
+      displayName: 'Before Install'
+    - script: |
+        ci\\incremental\\build.cmd
+      displayName: 'Build'
+    - script: |
+        call activate %CONDA_ENV%
+        pytest --junitxml=test-data.xml --skip-slow --skip-network pandas -n 2 -r sxX --strict %*
+      displayName: 'Test'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: 'test-data.xml'
+        testRunTitle: 'Windows 36'

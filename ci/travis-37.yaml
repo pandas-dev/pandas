@@ -5,10 +5,11 @@ channels:
   - c3i_test
 dependencies:
   - python=3.7
-  - cython
+  - cython>=0.28.2
   - numpy
   - python-dateutil
   - nomkl
   - pytz
   - pytest
   - pytest-xdist
+  - hypothesis>=3.58.0
