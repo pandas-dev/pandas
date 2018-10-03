@@ -120,4 +120,4 @@ Bug Fixes
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v0.23.1..HEAD
+.. contributors:: v0.23.1..v0.23.2

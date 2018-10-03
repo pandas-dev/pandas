@@ -1,7 +1,12 @@
 .. _whatsnew_0234:
 
-v0.23.4 (August 3, 2018)
-------------------------
+********************
+What's New in 0.23.4
+********************
+
+{{ common_imports }}
+
+**v0.23.4 (August 3, 2018)**
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -35,3 +40,10 @@ Bug Fixes
 **Missing**
 
 - Bug in :func:`Series.clip` and :func:`DataFrame.clip` cannot accept list-like threshold containing ``NaN`` (:issue:`19992`)
+
+.. _whatsnew_0.23.4.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v0.23.3..v0.23.4
