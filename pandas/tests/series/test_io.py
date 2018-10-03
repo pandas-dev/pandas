@@ -261,5 +261,6 @@ class TestSeriesIO():
             Series(datetime_series.to_dict(mapping), name='ts'),
             datetime_series)
         from_method = Series(datetime_series.to_dict(collections.Counter))
-        from_constructor = Series(collections.Counter(datetime_series.iteritems()))
+        from_constructor = Series(collections
+                                  .Counter(datetime_series.iteritems()))
         tm.assert_series_equal(from_method, from_constructor)
