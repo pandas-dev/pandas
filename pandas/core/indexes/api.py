@@ -126,6 +126,16 @@ def _union_indexes(indexes, sort=True):
 
 
 def _sanitize_and_check(indexes):
+    """Verify the type of indexes and convert lists to Index
+
+    Cases:
+
+    - [list, list, ...]: Return ([list, list, ...], 'list')
+    - [list, Index, ...]: Return _sanitize_and_check([Index, Index, ...])
+        Lists are sorted and converted to Index
+    - [Index, Index, ...]: Return ([Index, Index, ...], TYPE)
+        TYPE = 'special' if at least one special type, 'array' otherwise
+    """
     kinds = list({type(index) for index in indexes})
 
     if list in kinds:
