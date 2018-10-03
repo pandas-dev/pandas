@@ -356,64 +356,21 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
+    def _unique(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
+                bint ignore_na=False, bint return_inverse=False,
+                Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                object na_value=None):
         cdef:
-            Py_ssize_t i, idx, count = 0, n = len(values)
+            Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
-            int ret = 0
-            {{dtype}}_t val
-            khiter_t k
-            {{name}}Vector uniques = {{name}}Vector()
-            {{name}}VectorData *ud
-
-        ud = uniques.data
-        if return_inverse:
-            labels = np.empty(n, dtype=np.int64)
-
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                k = kh_get_{{dtype}}(self.table, val)
-                if return_inverse and k != self.table.n_buckets:
-                    # k falls into a previous bucket
-                    idx = self.table.vals[k]
-                    labels[i] = idx
-                elif k == self.table.n_buckets:
-                    # k hasn't been seen yet
-                    k = kh_put_{{dtype}}(self.table, val, &ret)
-                    if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
-                    append_data_{{dtype}}(ud, val)
-                    if return_inverse:
-                        self.table.vals[k] = count
-                        labels[i] = count
-                    count += 1
-
-        if return_inverse:
-            return uniques.to_array(), np.asarray(labels)
-        return uniques.to_array()
-
-    def factorize(self, {{dtype}}_t[:] values):
-        uniques = {{name}}Vector()
-        labels = self.get_labels(values, uniques, 0)
-        return uniques.to_array(), labels
-
-    @cython.boundscheck(False)
-    def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
-                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
-                   object na_value=None):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int64_t[:] labels
-            Py_ssize_t idx, count = count_prior
             int ret = 0
             {{dtype}}_t val, na_value2
             khiter_t k
             {{name}}VectorData *ud
             bint use_na_value
 
-        labels = np.empty(n, dtype=np.int64)
+        if return_inverse:
+            labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
         use_na_value = na_value is not None
 
@@ -431,21 +388,19 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if val != val or (use_na_value and val == na_value2):
+                if ignore_na and (val != val
+                                  or (use_na_value and val == na_value2)):
                     labels[i] = na_sentinel
                     continue
 
                 k = kh_get_{{dtype}}(self.table, val)
-
-                if k != self.table.n_buckets:
+                if return_inverse and k != self.table.n_buckets:
                     # k falls into a previous bucket
                     idx = self.table.vals[k]
                     labels[i] = idx
-                else:
+                elif k == self.table.n_buckets:
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
-                    self.table.vals[k] = count
-
                     if needs_resize(ud):
                         with gil:
                             if uniques.external_view_exists:
@@ -454,10 +409,30 @@ cdef class {{name}}HashTable(HashTable):
                                                  "Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
-                    labels[i] = count
+                    if return_inverse:
+                        self.table.vals[k] = count
+                        labels[i] = count
                     count += 1
 
-        return np.asarray(labels)
+        if return_inverse:
+            return uniques.to_array(), np.asarray(labels)
+        return uniques.to_array()
+
+    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
+        return self._unique(values, uniques={{name}}Vector(), ignore_na=False,
+                            return_inverse=return_inverse)
+
+    def factorize(self, {{dtype}}_t[:] values):
+        return self._unique(values, uniques={{name}}Vector(), ignore_na=True,
+                            return_inverse=True)
+
+    def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
+                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                   object na_value=None):
+        _, labels = self._unique(values, uniques, ignore_na=True,
+                                 return_inverse=True, count_prior=count_prior,
+                                 na_sentinel=na_sentinel, na_value=na_value)
+        return labels
 
     @cython.boundscheck(False)
     def get_labels_groupby(self, const {{dtype}}_t[:] values):
@@ -645,33 +620,45 @@ cdef class StringHashTable(HashTable):
         free(vecs)
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[object] values, bint return_inverse=False):
+    def _unique(self, ndarray[object] values, ObjectVector uniques,
+                bint ignore_na=False, bint return_inverse=False,
+                Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                object na_value=None):
         cdef:
-            Py_ssize_t i, idx, count = 0, n = len(values)
+            Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
             int64_t[:] uindexer
             int ret = 0
             object val
-            ObjectVector uniques = ObjectVector()
-            khiter_t k
             const char *v
             const char **vecs
+            khiter_t k
+            bint use_na_value
 
         if return_inverse:
             labels = np.zeros(n, dtype=np.int64)
         uindexer = np.empty(n, dtype=np.int64)
+        use_na_value = na_value is not None
 
-        # assign pointers
+        # assign pointers and pre-filter out missing (if ignore_na)
         vecs = <const char **> malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
-            v = util.get_c_string(val)
-            vecs[i] = v
 
+            if not ignore_na or ((PyUnicode_Check(val) or PyString_Check(val))
+                                 and not (use_na_value and val == na_value)):
+                # if ignore_na is False, we also stringify NaN/None/etc.
+                v = util.get_c_string(val)
+                vecs[i] = v
+            else:
+                labels[i] = na_sentinel
 
         # compute
         with nogil:
             for i in range(n):
+                if ignore_na and labels[i] == na_sentinel:
+                    continue
+
                 v = vecs[i]
                 k = kh_get_str(self.table, v)
                 if return_inverse and k != self.table.n_buckets:
@@ -697,65 +684,21 @@ cdef class StringHashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    @cython.boundscheck(False)
+    def unique(self, ndarray[object] values, bint return_inverse=False):
+        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
+                            return_inverse=return_inverse)
+
+    def factorize(self, ndarray[object] values):
+        return self._unique(values, uniques=ObjectVector(), ignore_na=True,
+                            return_inverse=True)
+
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
-                   Py_ssize_t count_prior=0, int64_t na_sentinel=-1,
+                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int64_t[:] labels
-            int64_t[:] uindexer
-            Py_ssize_t idx, count = count_prior
-            int ret = 0
-            object val
-            const char *v
-            const char **vecs
-            khiter_t k
-            bint use_na_value
-
-        # these by-definition *must* be strings
-        labels = np.zeros(n, dtype=np.int64)
-        uindexer = np.empty(n, dtype=np.int64)
-        use_na_value = na_value is not None
-
-        # pre-filter out missing
-        # and assign pointers
-        vecs = <const char **> malloc(n * sizeof(char *))
-        for i in range(n):
-            val = values[i]
-
-            if ((PyUnicode_Check(val) or PyString_Check(val)) and
-                    not (use_na_value and val == na_value)):
-                v = util.get_c_string(val)
-                vecs[i] = v
-            else:
-                labels[i] = na_sentinel
-
-        # compute
-        with nogil:
-            for i in range(n):
-                if labels[i] == na_sentinel:
-                    continue
-
-                v = vecs[i]
-                k = kh_get_str(self.table, v)
-                if k != self.table.n_buckets:
-                    idx = self.table.vals[k]
-                    labels[i] = <int64_t>idx
-                else:
-                    k = kh_put_str(self.table, v, &ret)
-                    self.table.vals[k] = count
-                    uindexer[count] = i
-                    labels[i] = <int64_t>count
-                    count += 1
-
-        free(vecs)
-
-        # uniques
-        for i in range(count):
-            uniques.append(values[uindexer[i]])
-
-        return np.asarray(labels)
+        _, labels = self._unique(values, uniques, ignore_na=True,
+                                 return_inverse=True, count_prior=count_prior,
+                                 na_sentinel=na_sentinel, na_value=na_value)
+        return labels
 
 
 cdef class PyObjectHashTable(HashTable):
@@ -844,21 +787,31 @@ cdef class PyObjectHashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[object] values, bint return_inverse=False):
+    def _unique(self, ndarray[object] values, ObjectVector uniques,
+                bint ignore_na=False, bint return_inverse=False,
+                Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
+                object na_value=None):
         cdef:
-            Py_ssize_t i, idx, count = 0, n = len(values)
+            Py_ssize_t i, idx, count = count_prior, n = len(values)
             int64_t[:] labels
             int ret = 0
             object val
             khiter_t k
-            ObjectVector uniques = ObjectVector()
+            bint use_na_value
 
         if return_inverse:
             labels = np.empty(n, dtype=np.int64)
+        use_na_value = na_value is not None
 
         for i in range(n):
             val = values[i]
             hash(val)
+
+            if ignore_na and ((val != val or val is None)
+                              or (use_na_value and val == na_value)):
+                labels[i] = na_sentinel
+                continue
+
             k = kh_get_pymap(self.table, <PyObject*>val)
             if return_inverse and k != self.table.n_buckets:
                 # k falls into a previous bucket
@@ -877,42 +830,18 @@ cdef class PyObjectHashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    @cython.boundscheck(False)
+    def unique(self, ndarray[object] values, bint return_inverse=False):
+        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
+                            return_inverse=return_inverse)
+
+    def factorize(self, ndarray[object] values):
+        return self._unique(values, uniques=ObjectVector(), ignore_na=True,
+                            return_inverse=True)
+
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
-                   Py_ssize_t count_prior=0, int64_t na_sentinel=-1,
+                   Py_ssize_t count_prior=0, Py_ssize_t na_sentinel=-1,
                    object na_value=None):
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int64_t[:] labels
-            Py_ssize_t idx, count = count_prior
-            int ret = 0
-            object val
-            khiter_t k
-            bint use_na_value
-
-        labels = np.empty(n, dtype=np.int64)
-        use_na_value = na_value is not None
-
-        for i in range(n):
-            val = values[i]
-            hash(val)
-
-            if ((val != val or val is None) or
-                    (use_na_value and val == na_value)):
-                labels[i] = na_sentinel
-                continue
-
-            k = kh_get_pymap(self.table, <PyObject*>val)
-            if k != self.table.n_buckets:
-                # k falls into a previous bucket
-                idx = self.table.vals[k]
-                labels[i] = idx
-            else:
-                # k hasn't been seen yet
-                k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-                self.table.vals[k] = count
-                uniques.append(val)
-                labels[i] = count
-                count += 1
-
-        return np.asarray(labels)
+        _, labels = self._unique(values, uniques, ignore_na=True,
+                                 return_inverse=True, count_prior=count_prior,
+                                 na_sentinel=na_sentinel, na_value=na_value)
+        return labels
