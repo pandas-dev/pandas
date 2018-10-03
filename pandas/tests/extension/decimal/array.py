@@ -138,5 +138,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         return cls(np.concatenate([x._data for x in to_concat]))
 
 
+def to_decimal(values, context=None):
+    return DecimalArray([decimal.Decimal(x) for x in values], context=context)
+
+
 DecimalArray._add_arithmetic_ops()
 DecimalArray._add_comparison_ops()

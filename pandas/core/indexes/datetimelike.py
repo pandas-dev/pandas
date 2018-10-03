@@ -21,6 +21,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_scalar,
     is_bool_dtype,
+    is_period_dtype,
     is_categorical_dtype,
     is_datetime_or_timedelta_dtype,
     is_float_dtype,
@@ -28,7 +29,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 
@@ -240,9 +241,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             # have different timezone
             return False
 
-        # ToDo: Remove this when PeriodDtype is added
-        elif isinstance(self, ABCPeriodIndex):
-            if not isinstance(other, ABCPeriodIndex):
+        elif is_period_dtype(self):
+            if not is_period_dtype(other):
                 return False
             if self.freq != other.freq:
                 return False
@@ -360,7 +360,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             attribs = self._get_attributes_dict()
             freq = attribs['freq']
 
-            if freq is not None and not isinstance(self, ABCPeriodIndex):
+            if freq is not None and not is_period_dtype(self):
                 if freq.n > 0 and not ascending:
                     freq = freq * -1
                 elif freq.n < 0 and ascending:
@@ -390,8 +390,8 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
                                            fill_value=fill_value,
                                            na_value=iNaT)
 
-        # keep freq in PeriodIndex, reset otherwise
-        freq = self.freq if isinstance(self, ABCPeriodIndex) else None
+        # keep freq in PeriodArray/Index, reset otherwise
+        freq = self.freq if is_period_dtype(self) else None
         return self._shallow_copy(taken, freq=freq)
 
     _can_hold_na = True
@@ -622,7 +622,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         Analogous to ndarray.repeat
         """
         nv.validate_repeat(args, kwargs)
-        if isinstance(self, ABCPeriodIndex):
+        if is_period_dtype(self):
             freq = self.freq
         else:
             freq = None
@@ -677,7 +677,7 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         attribs = self._get_attributes_dict()
         attribs['name'] = name
 
-        if not isinstance(self, ABCPeriodIndex):
+        if not is_period_dtype(self):
             # reset freq
             attribs['freq'] = None
 

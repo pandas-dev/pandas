@@ -539,7 +539,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         if self.hasnans:
             new_data[self._isnan] = iNaT
 
-        return self._simple_new(new_data, freq=freq)
+        return self._shallow_copy(new_data, freq=freq)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods

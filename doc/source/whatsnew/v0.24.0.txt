@@ -579,6 +579,35 @@ Current Behavior:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
 
+.. _whatsnew_0240.api.crosstab_dtypes
+
+Crosstab Preserves Dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`crosstab` will preserve now dtypes in some cases that previously would
+cast from integer dtype to floating dtype (:issue:`22019`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+       ...:                    'c': [1, 1, np.nan, 1, 1]})
+    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
+    Out[4]:
+    b    3    4
+    a
+    1  0.5  0.0
+    2  0.5  1.0
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+       ...:                    'c': [1, 1, np.nan, 1, 1]})
+    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -713,7 +742,7 @@ Timedelta
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
--
+- Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 -
 
 Timezones
@@ -841,6 +870,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 - :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 
 Sparse
 ^^^^^^
@@ -881,4 +911,3 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
--
