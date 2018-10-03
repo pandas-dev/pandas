@@ -4899,7 +4899,6 @@ class DataFrame(NDFrame):
                                      copy=False)
 
     def _combine_match_index(self, other, func, level=None):
-        assert isinstance(other, Series)
         left, right = self.align(other, join='outer', axis=0, level=level,
                                  copy=False)
         assert left.index.equals(right.index)
@@ -4919,11 +4918,7 @@ class DataFrame(NDFrame):
         left, right = self.align(other, join='outer', axis=1, level=level,
                                  copy=False)
         assert left.columns.equals(right.index)
-
-        new_data = left._data.eval(func=func, other=right,
-                                   axes=[left.columns, self.index],
-                                   try_cast=try_cast)
-        return self._constructor(new_data)
+        return ops.dispatch_to_series(left, right, func, axis="columns")
 
     def _combine_const(self, other, func, errors='raise', try_cast=True):
         if lib.is_scalar(other) or np.ndim(other) == 0:

@@ -22,6 +22,7 @@ import numpy as np
 from pandas.api.types import CategoricalDtype
 from pandas import Categorical
 from pandas.tests.extension import base
+import pandas.util.testing as tm
 
 
 def make_data():
@@ -201,6 +202,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
                 data, op_name)
         else:
             pytest.skip('rmod never called when string is first argument')
+
+    def test_add_series_with_extension_array(self, data):
+        ser = pd.Series(data)
+        with tm.assert_raises_regex(TypeError, "cannot perform"):
+            ser + data
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
