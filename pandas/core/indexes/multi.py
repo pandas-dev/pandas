@@ -1001,7 +1001,7 @@ class MultiIndex(Index):
                     (compat.PY3 and isinstance(key, compat.string_types))):
                 try:
                     return _try_mi(key)
-                except (KeyError):
+                except KeyError:
                     raise
                 except (IndexError, ValueError, TypeError):
                     pass
