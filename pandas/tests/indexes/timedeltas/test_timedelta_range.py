@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-from pandas.tseries.offsets import Day, Second
+from pandas.tseries.offsets import Second
 from pandas import to_timedelta, timedelta_range
 
 

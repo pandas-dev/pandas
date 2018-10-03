@@ -32,7 +32,7 @@ from pandas.core.algorithms import checked_add_with_arr
 from pandas.core import ops
 
 from pandas.tseries.frequencies import to_offset
-from pandas.tseries.offsets import Tick, generate_range
+from pandas.tseries.offsets import Tick, Day, generate_range
 
 from pandas.core.arrays import datetimelike as dtl
 
@@ -1347,9 +1347,10 @@ def _maybe_localize_point(ts, is_none, is_not_none, freq, tz):
     ts : Timestamp
     """
     # Make sure start and end are timezone localized if:
-    # 1) freq = a Timedelta-like frequency (Tick)
+    # 1) freq = a Timedelta-like frequency (Tick) and freq != Day
+    # TODO: remove freq != Day condition once Day fully acts as calendar day
     # 2) freq = None i.e. generating a linspaced range
-    if isinstance(freq, Tick) or freq is None:
+    if (isinstance(freq, Tick) and not isinstance(freq, Day)) or freq is None:
         localize_args = {'tz': tz, 'ambiguous': False}
     else:
         localize_args = {'tz': None}

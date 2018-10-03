@@ -2306,9 +2306,10 @@ def _delta_to_tick(delta):
         else:  # pragma: no cover
             return Nano(nanos)
 
-# This entire class can be removed once Day completely functions as calendar
-# day (i.e. remove Day and replace _Day with Day)
+
 class Day(Tick):
+    # This entire class can be removed once Day completely functions as
+    # calendar day (i.e. remove Day and replace _Day with Day)
     _inc = Timedelta(days=1)
     _prefix = 'D'
 
