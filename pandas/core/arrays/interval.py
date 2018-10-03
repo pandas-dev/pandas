@@ -108,12 +108,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     _na_value = _fill_value = np.nan
 
     def __new__(cls, data, closed=None, dtype=None, copy=False,
-                fastpath=False, verify_integrity=True):
-
-        if fastpath:
-            return cls._simple_new(data.left, data.right, closed,
-                                   copy=copy, dtype=dtype,
-                                   verify_integrity=False)
+                verify_integrity=True):
 
         if isinstance(data, ABCSeries) and is_interval_dtype(data):
             data = data.values

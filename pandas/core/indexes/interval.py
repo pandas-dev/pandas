@@ -146,17 +146,13 @@ class IntervalIndex(IntervalMixin, Index):
     _mask = None
 
     def __new__(cls, data, closed=None, dtype=None, copy=False,
-                name=None, fastpath=False, verify_integrity=True):
-
-        if fastpath:
-            return cls._simple_new(data, name)
+                name=None, verify_integrity=True):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
 
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype,
-                                  fastpath=fastpath,
                                   verify_integrity=verify_integrity)
 
         return cls._simple_new(array, name)
@@ -188,14 +184,6 @@ class IntervalIndex(IntervalMixin, Index):
         return self._simple_new(result, **attributes)
 
     @cache_readonly
-    def hasnans(self):
-        """
-        Return if the IntervalIndex has any nans; enables various performance
-        speedups
-        """
-        return self._isnan.any()
-
-    @cache_readonly
     def _isnan(self):
         """Return a mask indicating if each value is NA"""
         if self._mask is None:
@@ -205,10 +193,6 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def _engine(self):
         return IntervalTree(self.left, self.right, closed=self.closed)
-
-    @property
-    def _constructor(self):
-        return type(self)
 
     def __contains__(self, key):
         """
@@ -394,18 +378,7 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def _ndarray_values(self):
-        left = self.left
-        right = self.right
-        mask = self._isnan
-        closed = self.closed
-
-        result = np.empty(len(left), dtype=object)
-        for i in range(len(left)):
-            if mask[i]:
-                result[i] = np.nan
-            else:
-                result[i] = Interval(left[i], right[i], closed)
-        return result
+        return np.array(self._data)
 
     def __array__(self, result=None):
         """ the array interface, return my values """
@@ -892,18 +865,12 @@ class IntervalIndex(IntervalMixin, Index):
         return self._simple_new(result, **attributes)
 
     def __getitem__(self, value):
-        mask = self._isnan[value]
-        if is_scalar(mask) and mask:
-            return self._na_value
-
-        left = self.left[value]
-        right = self.right[value]
-
-        # scalar
-        if not isinstance(left, Index):
-            return Interval(left, right, self.closed)
-
-        return self._shallow_copy(left, right)
+        result = self._data[value]
+        if isinstance(result, IntervalArray):
+            return self._shallow_copy(result)
+        else:
+            # scalar
+            return result
 
     # __repr__ associated methods are based on MultiIndex
 
