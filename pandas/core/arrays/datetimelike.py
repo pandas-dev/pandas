@@ -455,7 +455,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _addsub_int_array(self, other, op):
         """
         Add or subtract array-like of integers equivalent to applying
-        `_tshift` pointwise.
+        `_time_shift` pointwise.
 
         Parameters
         ----------
@@ -552,9 +552,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         --------
         Index.shift : Shift values of Index.
         """
-        return self._tshift(periods, freq=freq)
+        return self._time_shift(periods=periods, freq=freq)
 
-    def _tshift(self, periods, freq=None):
+    def _time_shift(self, periods, freq=None):
         """
         Shift each value by `periods`.
 
@@ -616,7 +616,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self._tshift(other)
+                result = self._time_shift(other)
 
             # array-like others
             elif is_timedelta64_dtype(other):
@@ -668,7 +668,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
             elif lib.is_integer(other):
                 # This check must come after the check for np.timedelta64
                 # as is_integer returns True for these
-                result = self._tshift(-other)
+                result = self._time_shift(-other)
             elif isinstance(other, Period):
                 result = self._sub_period(other)
 

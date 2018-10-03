@@ -572,7 +572,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         if base != self.freq.rule_code:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        return self._tshift(other.n)
+        return self._time_shift(other.n)
 
     def _add_delta_td(self, other):
         assert isinstance(other, (timedelta, np.timedelta64, Tick))
@@ -582,7 +582,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         if isinstance(own_offset, Tick):
             offset_nanos = delta_to_nanoseconds(own_offset)
             if np.all(nanos % offset_nanos == 0):
-                return self._tshift(nanos // offset_nanos)
+                return self._time_shift(nanos // offset_nanos)
 
         # raise when input doesn't have freq
         raise IncompatibleFrequency("Input has different freq from "
@@ -592,7 +592,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
-        return self._tshift(ordinal_delta)
+        return self._time_shift(ordinal_delta)
 
     def shift(self, periods=1):
         """
@@ -612,7 +612,7 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
         # then just call super.
         return ExtensionArray.shift(self, periods)
 
-    def _tshift(self, n, freq=None):
+    def _time_shift(self, n, freq=None):
         """
         Shift each value by `periods`.
 
