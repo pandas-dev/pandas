@@ -31,7 +31,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core import ops
 
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import to_offset, get_period_alias
 from pandas.tseries.offsets import Tick, generate_range
 
 from pandas.core.arrays import datetimelike as dtl

@@ -36,7 +36,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
-from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
+from pandas.tseries.frequencies import to_offset, Resolution
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.tseries.offsets import (
