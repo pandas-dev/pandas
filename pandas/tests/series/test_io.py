@@ -16,10 +16,8 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
 
-from .common import TestData
 
-
-class TestSeriesToCSV(TestData):
+class TestSeriesToCSV():
 
     def read_csv(self, path, **kwargs):
         params = dict(squeeze=True, index_col=0,
@@ -34,10 +32,10 @@ class TestSeriesToCSV(TestData):
 
         return out
 
-    def test_from_csv_deprecation(self):
+    def test_from_csv_deprecation(self, datetime_series):
         # see gh-17812
         with ensure_clean() as path:
-            self.ts.to_csv(path, header=False)
+            datetime_series.to_csv(path, header=False)
 
             with tm.assert_produces_warning(FutureWarning,
                                             check_stacklevel=False):
@@ -46,7 +44,7 @@ class TestSeriesToCSV(TestData):
                 assert_series_equal(depr_ts, ts)
 
     @pytest.mark.parametrize("arg", ["path", "header", "both"])
-    def test_to_csv_deprecation(self, arg):
+    def test_to_csv_deprecation(self, arg, datetime_series):
         # see gh-19715
         with ensure_clean() as path:
             if arg == "path":
@@ -57,18 +55,18 @@ class TestSeriesToCSV(TestData):
                 kwargs = dict(path=path)
 
             with tm.assert_produces_warning(FutureWarning):
-                self.ts.to_csv(**kwargs)
+                datetime_series.to_csv(**kwargs)
 
                 # Make sure roundtrip still works.
                 ts = self.read_csv(path)
-                assert_series_equal(self.ts, ts, check_names=False)
+                assert_series_equal(datetime_series, ts, check_names=False)
 
-    def test_from_csv(self):
+    def test_from_csv(self, datetime_series, string_series):
 
         with ensure_clean() as path:
-            self.ts.to_csv(path, header=False)
+            datetime_series.to_csv(path, header=False)
             ts = self.read_csv(path)
-            assert_series_equal(self.ts, ts, check_names=False)
+            assert_series_equal(datetime_series, ts, check_names=False)
 
             assert ts.name is None
             assert ts.index.name is None
@@ -79,18 +77,18 @@ class TestSeriesToCSV(TestData):
                 assert_series_equal(depr_ts, ts)
 
             # see gh-10483
-            self.ts.to_csv(path, header=True)
+            datetime_series.to_csv(path, header=True)
             ts_h = self.read_csv(path, header=0)
             assert ts_h.name == "ts"
 
-            self.series.to_csv(path, header=False)
+            string_series.to_csv(path, header=False)
             series = self.read_csv(path)
-            assert_series_equal(self.series, series, check_names=False)
+            assert_series_equal(string_series, series, check_names=False)
 
             assert series.name is None
             assert series.index.name is None
 
-            self.series.to_csv(path, header=True)
+            string_series.to_csv(path, header=True)
             series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
@@ -106,19 +104,19 @@ class TestSeriesToCSV(TestData):
             check_series = Series({"1998-01-01": 1.0, "1999-01-01": 2.0})
             assert_series_equal(check_series, series)
 
-    def test_to_csv(self):
+    def test_to_csv(self, datetime_series):
         import io
 
         with ensure_clean() as path:
-            self.ts.to_csv(path, header=False)
+            datetime_series.to_csv(path, header=False)
 
             with io.open(path, newline=None) as f:
                 lines = f.readlines()
             assert (lines[1] != '\n')
 
-            self.ts.to_csv(path, index=False, header=False)
+            datetime_series.to_csv(path, index=False, header=False)
             arr = np.loadtxt(path)
-            assert_almost_equal(arr, self.ts.values)
+            assert_almost_equal(arr, datetime_series.values)
 
     def test_to_csv_unicode_index(self):
         buf = StringIO()
@@ -196,22 +194,23 @@ class TestSeriesToCSV(TestData):
                                                    encoding=encoding))
 
 
-class TestSeriesIO(TestData):
+class TestSeriesIO():
 
-    def test_to_frame(self):
-        self.ts.name = None
-        rs = self.ts.to_frame()
-        xp = pd.DataFrame(self.ts.values, index=self.ts.index)
+    def test_to_frame(self, datetime_series):
+        datetime_series.name = None
+        rs = datetime_series.to_frame()
+        xp = pd.DataFrame(datetime_series.values, index=datetime_series.index)
         assert_frame_equal(rs, xp)
 
-        self.ts.name = 'testname'
-        rs = self.ts.to_frame()
-        xp = pd.DataFrame(dict(testname=self.ts.values), index=self.ts.index)
+        datetime_series.name = 'testname'
+        rs = datetime_series.to_frame()
+        xp = pd.DataFrame(dict(testname=datetime_series.values),
+                          index=datetime_series.index)
         assert_frame_equal(rs, xp)
 
-        rs = self.ts.to_frame(name='testdifferent')
-        xp = pd.DataFrame(
-            dict(testdifferent=self.ts.values), index=self.ts.index)
+        rs = datetime_series.to_frame(name='testdifferent')
+        xp = pd.DataFrame(dict(testdifferent=datetime_series.values),
+                          index=datetime_series.index)
         assert_frame_equal(rs, xp)
 
     def test_timeseries_periodindex(self):
@@ -256,11 +255,11 @@ class TestSeriesIO(TestData):
         dict,
         collections.defaultdict(list),
         collections.OrderedDict))
-    def test_to_dict(self, mapping):
+    def test_to_dict(self, mapping, datetime_series):
         # GH16122
-        ts = TestData().ts
         tm.assert_series_equal(
-            Series(ts.to_dict(mapping), name='ts'), ts)
-        from_method = Series(ts.to_dict(collections.Counter))
-        from_constructor = Series(collections.Counter(ts.iteritems()))
+            Series(datetime_series.to_dict(mapping), name='ts'),
+            datetime_series)
+        from_method = Series(datetime_series.to_dict(collections.Counter))
+        from_constructor = Series(collections.Counter(datetime_series.iteritems()))
         tm.assert_series_equal(from_method, from_constructor)
