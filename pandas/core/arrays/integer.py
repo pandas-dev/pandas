@@ -540,7 +540,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             data[mask] = self._na_value
 
         op = getattr(nanops, 'nan' + name)
-        result = op(data, axis=axis, skipna=skipna)
+        result = op(data, axis=axis, skipna=skipna, mask=mask)
 
         # if we have a boolean op, provide coercion back to a bool
         # type if possible
