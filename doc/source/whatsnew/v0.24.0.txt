@@ -612,6 +612,8 @@ Performance Improvements
   :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
   (:issue:`21372`)
 - Improved the performance of :func:`pandas.get_dummies` with ``sparse=True`` (:issue:`21997`)
+- Improved performance of :func:`IndexEngine.get_indexer_non_unique` for sorted, non-unique indexes (:issue:`9466`)
+
 
 .. _whatsnew_0240.docs:
 
@@ -654,6 +656,8 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` subtraction that incorrectly failed to raise ``OverflowError`` (:issue:`22492`, :issue:`22508`)
 - Bug in :class:`DatetimeIndex` incorrectly allowing indexing with ``Timedelta`` object (:issue:`20464`)
 - Bug in :class:`DatetimeIndex` where frequency was being set if original frequency was ``None`` (:issue:`22150`)
+- Bug in rounding methods of :class:`DatetimeIndex` (:meth:`~DatetimeIndex.round`, :meth:`~DatetimeIndex.ceil`, :meth:`~DatetimeIndex.floor`) and :class:`Timestamp` (:meth:`~Timestamp.round`, :meth:`~Timestamp.ceil`, :meth:`~Timestamp.floor`) could give rise to loss of precision (:issue:`22591`)
+- Bug in :func:`to_datetime` with an :class:`Index` argument that would drop the ``name`` from the result (:issue:`21697`)
 
 Timedelta
 ^^^^^^^^^
@@ -664,7 +668,7 @@ Timedelta
 - Bug in :class:`Index` with numeric dtype when multiplying or dividing an array with dtype ``timedelta64`` (:issue:`22390`)
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
--
+- Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
 -
 
 Timezones
@@ -814,6 +818,7 @@ Reshaping
 - Bug in :meth:`Series.replace` and meth:`DataFrame.replace` when dict is used as the ``to_replace`` value and one key in the dict is is another key's value, the results were inconsistent between using integer key and using string key (:issue:`20656`)
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
+- Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
 
 Build Changes
 ^^^^^^^^^^^^^
@@ -831,4 +836,3 @@ Other
 - :meth:`DataFrame.nlargest` and :meth:`DataFrame.nsmallest` now returns the correct n values when keep != 'all' also when tied on the first columns (:issue:`22752`)
 - :meth:`~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` and setting clipping range with ``vmin`` and ``vmax`` (:issue:`21548` and :issue:`21526`). ``NaN`` values are also handled properly.
 - Logical operations ``&, |, ^`` between :class:`Series` and :class:`Index` will no longer raise ``ValueError`` (:issue:`22092`)
--
