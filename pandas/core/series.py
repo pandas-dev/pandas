@@ -2323,12 +2323,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             pass
         elif is_extension_array_dtype(self.values):
             # The function can return something of any type, so check
-            # if the type is compatible with the calling EA
-            # ExtensionArray._from_sequence can raise anything, so we
-            # have to catch everything.
+            # if the type is compatible with the calling EA.
             try:
                 new_values = self._values._from_sequence(new_values)
             except Exception:
+                # https://github.com/pandas-dev/pandas/issues/22850
+                # pandas has no control over what 3rd-party ExtensionArrays
+                # do in _values_from_sequence. We still want ops to work
+                # though, so we catch any regular Exception.
                 pass
 
         return self._constructor(new_values, index=new_index, name=new_name)

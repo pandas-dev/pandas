@@ -279,6 +279,15 @@ class DecimalArrayWithoutFromSequence(DecimalArray):
         raise KeyError("For the test")
 
 
+class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        return cls._create_method(op, coerce_to_dtype=False)
+
+
+DecimalArrayWithoutCoercion._add_arithmetic_ops()
+
+
 def test_combine_from_sequence_raises():
     # https://github.com/pandas-dev/pandas/issues/22850
     ser = pd.Series(DecimalArrayWithoutFromSequence([
@@ -293,8 +302,12 @@ def test_combine_from_sequence_raises():
     tm.assert_series_equal(result, expected)
 
 
-def test_scalar_ops_from_sequence_raises():
-    arr = DecimalArrayWithoutFromSequence([
+@pytest.mark.parametrize("class_", [DecimalArrayWithoutFromSequence,
+                                    DecimalArrayWithoutCoercion])
+def test_scalar_ops_from_sequence_raises(class_):
+    # op(EA, EA) should return an EA, or an ndarray if it's not possible
+    # to return an EA with the return values.
+    arr = class_([
         decimal.Decimal("1.0"),
         decimal.Decimal("2.0")
     ])
