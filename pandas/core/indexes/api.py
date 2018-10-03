@@ -96,6 +96,10 @@ def _union_indexes(indexes, sort=True):
     indexes, kind = _sanitize_and_check(indexes)
 
     def _unique_indices(inds):
+        """Convert indexes to lists and concatenate them, removing duplicates
+
+        The final dtype is inferred.
+        """
         def conv(i):
             if isinstance(i, Index):
                 i = i.tolist()
