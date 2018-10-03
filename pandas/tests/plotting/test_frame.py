@@ -1518,6 +1518,15 @@ class TestDataFramePlots(TestPlotBase):
                 check_ax_title=False)
 
     @pytest.mark.slow
+    def test_boxplot_datetime(self):
+        # Regression test for pandas issue #22799
+        df = pd.DataFrame({'a': pd.date_range("2012-01-01", periods=100),
+                           'b': np.random.randn(100),
+                           'c': np.random.randn(100) + 2})
+        self._check_data(df.plot(kind='box'),
+                         df.loc[:, ['b', 'c']].plot(kind='box'))
+
+    @pytest.mark.slow
     @td.skip_if_no_scipy
     def test_kde_df(self):
         _skip_if_no_scipy_gaussian_kde()

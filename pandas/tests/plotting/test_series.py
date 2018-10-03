@@ -697,6 +697,12 @@ class TestSeriesPlots(TestPlotBase):
         self._check_text_labels(ylabels, [''] * len(ylabels))
 
     @pytest.mark.slow
+    def test_boxplot_datetime(self):
+        s = Series(date_range("2012-01-01", periods=100))
+        with pytest.raises(ValueError):
+            s.plot(kind='box')
+
+    @pytest.mark.slow
     def test_kind_both_ways(self):
         s = Series(range(3))
         kinds = (plotting._core._common_kinds +

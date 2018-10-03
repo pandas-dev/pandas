@@ -24,7 +24,8 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_number,
     is_hashable,
-    is_iterator)
+    is_iterator,
+    is_datetimelike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCMultiIndex, ABCIndexClass)
 
@@ -1597,6 +1598,11 @@ class BoxPlot(LinePlot):
                 "return_type must be {None, 'axes', 'dict', 'both'}")
 
         self.return_type = return_type
+        if isinstance(data, ABCDataFrame):
+            data = data.select_dtypes(include='number')
+        elif is_datetimelike(data):
+            raise ValueError("Box plot is not implemented for datetime "
+                             "array-like objects")
         MPLPlot.__init__(self, data, **kwargs)
 
     def _args_adjust(self):
