@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 from pandas.tests.extension import base
 from pandas.core.dtypes.dtypes import PeriodDtype
@@ -95,6 +96,12 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
             s, op, other, exc=TypeError
         )
 
+    def test_add_series_with_extension_array(self, data):
+        # we don't implement + for Period
+        s = pd.Series(data)
+        with tm.assert_raises_regex(TypeError, "cannot add period\[D\]"):
+            s + data
+
     def test_error(self):
         pass
 
@@ -105,7 +112,7 @@ class TestCasting(BasePeriodTests, base.BaseCastingTests):
 
 class TestComparisonOps(BasePeriodTests, base.BaseComparisonOpsTests):
 
-    def _compare_other(self):
+    def _compare_other(self, s, data, op_name, other):
         # the base test is not appropriate for us. We raise on comparison
         # with (some) integers, depending on the value.
         pass
