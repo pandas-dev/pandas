@@ -60,8 +60,7 @@ from pandas.core.dtypes.common import (
     is_sequence,
     is_named_tuple)
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
-from pandas.core.dtypes.generic import (ABCSeries, ABCIndexClass,
-                                        ABCMultiIndex, ABCDataFrame)
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCMultiIndex
 from pandas.core.dtypes.missing import isna, notna
 
 
@@ -3955,16 +3954,17 @@ class DataFrame(NDFrame):
             keys = [keys]
 
         missing = []
-        for x in keys:
-            if (is_scalar(x) or isinstance(x, tuple)) and x in self:
+        for col in keys:
+            if (is_scalar(col) or isinstance(col, tuple)) and col in self:
+                # tuples can be both column keys or list-likes
+                # if they are valid column keys, everything is fine
                 continue
-            elif is_scalar(x) and x not in self:
-                # a tuple gets tried as column key first;
-                # otherwise considered as a list-like; i.e. not missing
-                missing.append(x)
-            elif (not is_list_like(x) or isinstance(x, set)
-                  or isinstance(x, ABCDataFrame)
-                  or (isinstance(x, np.ndarray) and x.ndim > 1)):
+            elif is_scalar(col) and col not in self:
+                # tuples that are not column keys are considered list-like,
+                # not considered missing
+                missing.append(col)
+            elif (not is_list_like(col) or isinstance(col, set)
+                  or getattr(col, 'ndim', 1) > 1):
                 raise TypeError('The parameter "keys" may only contain a '
                                 'combination of valid column keys and '
                                 'one-dimensional list-likes')
