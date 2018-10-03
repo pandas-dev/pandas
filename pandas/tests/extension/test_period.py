@@ -90,6 +90,11 @@ class TestArithmeticOps(BasePeriodTests, base.BaseArithmeticOpsTests):
             super().test_arith_series_with_scalar(data,
                                                   all_arithmetic_operators)
 
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
+
     def test_error(self):
         pass
 
