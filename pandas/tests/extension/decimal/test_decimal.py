@@ -31,14 +31,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_repeated():
-    def gen(count):
-        for _ in range(count):
-            yield DecimalArray(make_data())
-    yield gen
-
-
-@pytest.fixture
 def data_for_sorting():
     return DecimalArray([decimal.Decimal('1'),
                          decimal.Decimal('2'),

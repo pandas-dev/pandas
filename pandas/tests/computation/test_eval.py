@@ -1,5 +1,4 @@
 import warnings
-from warnings import catch_warnings
 import operator
 from itertools import product
 
@@ -924,12 +923,18 @@ class TestAlignment(object):
         # only test dt with dt, otherwise weird joins result
         args = product(['i', 'u', 's'], ['i', 'u', 's'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
+            # avoid warning about comparing strings and ints
+            warnings.simplefilter("ignore", RuntimeWarning)
+
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
         # dt with dt
         args = product(['dt'], ['dt'], ('index', 'columns'))
         with warnings.catch_warnings(record=True):
+            # avoid warning about comparing strings and ints
+            warnings.simplefilter("ignore", RuntimeWarning)
+
             for r_idx_type, c_idx_type, index_name in args:
                 testit(r_idx_type, c_idx_type, index_name)
 
@@ -1112,13 +1117,13 @@ class TestOperationsNumExprPandas(object):
             exp = eval(ex)
             assert res == exp
 
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_panel_fails(self):
-        with catch_warnings(record=True):
-            x = Panel(randn(3, 4, 5))
-            y = Series(randn(10))
-            with pytest.raises(NotImplementedError):
-                self.eval('x + y',
-                          local_dict={'x': x, 'y': y})
+        x = Panel(randn(3, 4, 5))
+        y = Series(randn(10))
+        with pytest.raises(NotImplementedError):
+            self.eval('x + y',
+                      local_dict={'x': x, 'y': y})
 
     def test_4d_ndarray_fails(self):
         x = randn(3, 4, 5, 6)
@@ -1382,6 +1387,7 @@ class TestOperationsNumExprPandas(object):
 
     @pytest.mark.parametrize("invalid_target", [1, "cat", [1, 2],
                                                 np.array([]), (1, 3)])
+    @pytest.mark.filterwarnings("ignore::FutureWarning")
     def test_cannot_item_assign(self, invalid_target):
         msg = "Cannot assign expression output to target"
         expression = "a = 1 + 2"
