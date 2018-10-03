@@ -1,11 +1,49 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pytest
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from pandas.core.arrays.datetimes import DatetimeArrayMixin
 from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
 from pandas.core.arrays.period import PeriodArrayMixin
+
+
+# TODO: more freq variants
+@pytest.fixture(params=['D', 'B', 'W', 'M', 'Q', 'Y'])
+def per_index(request):
+    """
+    A fixture to provide PeriodIndex objects with different frequencies.
+
+    Most PeriodArray behavior is already tested in PeriodIndex tests,
+    so here we just test that the PeriodArray behavior matches
+    the PeriodIndex behavior.
+    """
+    freqstr = request.param
+    # TODO: non-monotone indexes; NaTs, different start dates
+    pi = pd.period_range(start=pd.Timestamp('2000-01-01'),
+                         periods=100,
+                         freq=freqstr)
+    return pi
+
+
+@pytest.fixture(params=['D', 'B', 'W', 'M', 'Q', 'Y'])
+def dt_index(request):
+    """
+    A fixture to provide DatetimeIndex objects with different frequencies.
+
+    Most DatetimeArray behavior is already tested in DatetimeIndex tests,
+    so here we just test that the DatetimeIndex behavior matches
+    the DatetimeIndex behavior.
+    """
+    freqstr = request.param
+    # TODO: non-monotone indexes; NaTs, different start dates, timezones
+    pi = pd.date_range(start=pd.Timestamp('2000-01-01'),
+                       periods=100,
+                       freq=freqstr)
+    return pi
+
 
 
 class TestDatetimeArray(object):
@@ -30,6 +68,41 @@ class TestDatetimeArray(object):
         assert asobj.dtype == 'O'
         assert list(asobj) == list(dti)
 
+    @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
+    def test_to_period(self, dt_index, freqstr):
+        dti = dt_index
+        arr = DatetimeArrayMixin(dti)
+
+        expected = dti.to_period(freq=freqstr)
+        result = arr.to_period(freq=freqstr)
+        assert isinstance(result, PeriodArrayMixin)
+
+        # placeholder until these become actual EA subclasses and we can use
+        #  an EA-specific tm.assert_ function
+        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    @pytest.mark.parametrize('propname', pd.DatetimeIndex._bool_ops)
+    def test_bool_properties(self, dt_index, propname):
+        # in this case _bool_ops is just `is_leap_year`
+        dti = dt_index
+        arr = DatetimeArrayMixin(dti)
+        assert dti.freq == arr.freq
+
+        result = getattr(arr, propname)
+        expected = np.array(getattr(dti, propname), dtype=result.dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('propname', pd.DatetimeIndex._field_ops)
+    def test_int_properties(self, dt_index, propname):
+        dti = dt_index
+        arr = DatetimeArrayMixin(dti)
+
+        result = getattr(arr, propname)
+        expected = np.array(getattr(dti, propname), dtype=result.dtype)
+
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestTimedeltaArray(object):
     def test_from_tdi(self):
@@ -53,20 +126,54 @@ class TestTimedeltaArray(object):
 
 class TestPeriodArray(object):
 
-    def test_from_pi(self):
-        pi = pd.period_range('2016', freq='Q', periods=3)
+    def test_from_pi(self, per_index):
+        pi = per_index
         arr = PeriodArrayMixin(pi)
         assert list(arr) == list(pi)
 
-        # Check that Index.__new__ knows what to do with TimedeltaArray
+        # Check that Index.__new__ knows what to do with PeriodArray
         pi2 = pd.Index(arr)
         assert isinstance(pi2, pd.PeriodIndex)
         assert list(pi2) == list(arr)
 
-    def test_astype_object(self):
-        pi = pd.period_range('2016', freq='Q', periods=3)
+    def test_astype_object(self, per_index):
+        pi = per_index
         arr = PeriodArrayMixin(pi)
         asobj = arr.astype('O')
         assert isinstance(asobj, np.ndarray)
         assert asobj.dtype == 'O'
         assert list(asobj) == list(pi)
+
+    @pytest.mark.parametrize('how', ['S', 'E'])
+    def test_to_timestamp(self, how, per_index):
+        pi = per_index
+        arr = PeriodArrayMixin(pi)
+
+        expected = DatetimeArrayMixin(pi.to_timestamp(how=how))
+        result = arr.to_timestamp(how=how)
+        assert isinstance(result, DatetimeArrayMixin)
+
+        # placeholder until these become actual EA subclasses and we can use
+        #  an EA-specific tm.assert_ function
+        tm.assert_index_equal(pd.Index(result), pd.Index(expected))
+
+    @pytest.mark.parametrize('propname', pd.PeriodIndex._bool_ops)
+    def test_bool_properties(self, per_index, propname):
+        # in this case _bool_ops is just `is_leap_year`
+        pi = per_index
+        arr = PeriodArrayMixin(pi)
+
+        result = getattr(arr, propname)
+        expected = np.array(getattr(pi, propname))
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('propname', pd.PeriodIndex._field_ops)
+    def test_int_properties(self, per_index, propname):
+        pi = per_index
+        arr = PeriodArrayMixin(pi)
+
+        result = getattr(arr, propname)
+        expected = np.array(getattr(pi, propname))
+
+        tm.assert_numpy_array_equal(result, expected)

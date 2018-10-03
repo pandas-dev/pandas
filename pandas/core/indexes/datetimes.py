@@ -673,67 +673,12 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         return Series(values, index=index, name=name)
 
+    @Appender(DatetimeArrayMixin.to_period.__doc__)
     def to_period(self, freq=None):
-        """
-        Cast to PeriodIndex at a particular frequency.
-
-        Converts DatetimeIndex to PeriodIndex.
-
-        Parameters
-        ----------
-        freq : string or Offset, optional
-            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
-            or an Offset object. Will be inferred by default.
-
-        Returns
-        -------
-        PeriodIndex
-
-        Raises
-        ------
-        ValueError
-            When converting a DatetimeIndex with non-regular values, so that a
-            frequency cannot be inferred.
-
-        Examples
-        --------
-        >>> df = pd.DataFrame({"y": [1,2,3]},
-        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
-        ...                                         "2000-05-31 00:00:00",
-        ...                                         "2000-08-31 00:00:00"]))
-        >>> df.index.to_period("M")
-        PeriodIndex(['2000-03', '2000-05', '2000-08'],
-                    dtype='period[M]', freq='M')
-
-        Infer the daily frequency
-
-        >>> idx = pd.date_range("2017-01-01", periods=2)
-        >>> idx.to_period()
-        PeriodIndex(['2017-01-01', '2017-01-02'],
-                    dtype='period[D]', freq='D')
-
-        See also
-        --------
-        pandas.PeriodIndex: Immutable ndarray holding ordinal values
-        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
-        """
         from pandas.core.indexes.period import PeriodIndex
 
-        if self.tz is not None:
-            warnings.warn("Converting to PeriodIndex representation will "
-                          "drop timezone information.", UserWarning)
-
-        if freq is None:
-            freq = self.freqstr or self.inferred_freq
-
-            if freq is None:
-                msg = ("You must pass a freq argument as "
-                       "current index has none.")
-                raise ValueError(msg)
-
-            freq = get_period_alias(freq)
-
-        return PeriodIndex(self.values, name=self.name, freq=freq)
+        result = DatetimeArrayMixin.to_period(self, freq=freq)
+        return PeriodIndex(result, name=self.name)
 
     def snap(self, freq='S'):
         """
@@ -758,6 +703,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         # we know it conforms; skip check
         return DatetimeIndex(snapped, freq=freq, verify_integrity=False)
+        # TODO: what about self.name?  if so, use shallow_copy?
 
     def unique(self, level=None):
         # Override here since IndexOpsMixin.unique uses self._values.unique
@@ -769,8 +715,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             naive = self
         result = super(DatetimeIndex, naive).unique(level=level)
-        return self._simple_new(result.values, name=self.name, tz=self.tz,
-                                freq=self.freq)
+        return self._shallow_copy(result.values)
 
     def union(self, other):
         """
@@ -1421,8 +1366,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
-            return DatetimeIndex(new_dates, name=self.name, freq=freq,
-                                 tz=self.tz)
+            return self._shallow_copy(new_dates, freq=freq)
         except (AttributeError, TypeError):
 
             # fall back to object index
@@ -1458,7 +1402,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
 
-        return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
+        return self._shallow_copy(new_dates, freq=freq)
 
     def indexer_at_time(self, time, asof=False):
         """

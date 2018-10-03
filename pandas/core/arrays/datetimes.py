@@ -200,6 +200,10 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
             # e.g. DatetimeIndex
             tz = values.tz
 
+        if freq is None and hasattr(values, "freq"):
+            # i.e. DatetimeArray, DatetimeIndex
+            freq = values.freq
+
         freq, freq_infer = dtl.maybe_infer_freq(freq)
 
         # if dtype has an embedded tz, capture it
@@ -763,6 +767,67 @@ class DatetimeArrayMixin(dtl.DatetimeLikeArrayMixin):
         """
         new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return type(self)(new_values, freq='infer').tz_localize(self.tz)
+
+    def to_period(self, freq=None):
+        """
+        Cast to PeriodArray/Index at a particular frequency.
+
+        Converts DatetimeArray/Index to PeriodArray/Index.
+
+        Parameters
+        ----------
+        freq : string or Offset, optional
+            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
+            or an Offset object. Will be inferred by default.
+
+        Returns
+        -------
+        PeriodArray/Index
+
+        Raises
+        ------
+        ValueError
+            When converting a DatetimeArray/Index with non-regular values,
+            so that a frequency cannot be inferred.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                         "2000-05-31 00:00:00",
+        ...                                         "2000-08-31 00:00:00"]))
+        >>> df.index.to_period("M")
+        PeriodIndex(['2000-03', '2000-05', '2000-08'],
+                    dtype='period[M]', freq='M')
+
+        Infer the daily frequency
+
+        >>> idx = pd.date_range("2017-01-01", periods=2)
+        >>> idx.to_period()
+        PeriodIndex(['2017-01-01', '2017-01-02'],
+                    dtype='period[D]', freq='D')
+
+        See also
+        --------
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
+        """
+        from pandas.core.arrays.period import PeriodArrayMixin
+
+        if self.tz is not None:
+            warnings.warn("Converting to PeriodArray/Index representation "
+                          "will drop timezone information.", UserWarning)
+
+        if freq is None:
+            freq = self.freqstr or self.inferred_freq
+
+            if freq is None:
+                raise ValueError("You must pass a freq argument as "
+                                 "current index has none.")
+
+            freq = get_period_alias(freq)
+
+        return PeriodArrayMixin(self.values, freq=freq)
 
     # -----------------------------------------------------------------
     # Properties - Vectorized Timestamp Properties/Methods

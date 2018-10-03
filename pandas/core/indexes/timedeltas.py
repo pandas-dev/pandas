@@ -668,7 +668,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         try:
             new_tds = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                       self[loc:].asi8))
-            return TimedeltaIndex(new_tds, name=self.name, freq=freq)
+            return self._shallow_copy(new_tds, freq=freq)
 
         except (AttributeError, TypeError):
 
@@ -705,7 +705,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
 
-        return TimedeltaIndex(new_tds, name=self.name, freq=freq)
+        return self._shallow_copy(new_tds, freq=freq)
 
 
 TimedeltaIndex._add_comparison_methods()
