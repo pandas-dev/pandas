@@ -44,9 +44,10 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
 
 
 def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
-    # Extract combined index: return intersection or union (depending on the
-    # value of "intersect") of indexes on given axis, or None if all objects
-    # lack indexes (e.g. they are numpy arrays)
+    """Extract combined index: return intersection or union (depending on the
+    value of "intersect") of indexes on given axis, or None if all objects
+    lack indexes (e.g. they are numpy arrays)
+    """
     obs_idxes = [obj._get_axis(axis) for obj in objs
                  if hasattr(obj, '_get_axis')]
     if obs_idxes:
