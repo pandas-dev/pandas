@@ -1,6 +1,6 @@
+import operator
 import decimal
 
-import random
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -8,11 +8,7 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, to_decimal
-
-
-def make_data():
-    return [decimal.Decimal(random.random()) for _ in range(100)]
+from .array import DecimalDtype, DecimalArray, make_data
 
 
 @pytest.fixture
@@ -294,3 +290,47 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
                                    for i in alter]
         self._compare_other(s, data, op_name, other)
+
+
+class DecimalArrayWithoutFromSequence(DecimalArray):
+    """Helper class for testing error handling in _from_sequence."""
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        raise KeyError("For the test")
+
+
+class DecimalArrayWithoutCoercion(DecimalArrayWithoutFromSequence):
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        return cls._create_method(op, coerce_to_dtype=False)
+
+
+DecimalArrayWithoutCoercion._add_arithmetic_ops()
+
+
+def test_combine_from_sequence_raises():
+    # https://github.com/pandas-dev/pandas/issues/22850
+    ser = pd.Series(DecimalArrayWithoutFromSequence([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ]))
+    result = ser.combine(ser, operator.add)
+
+    # note: object dtype
+    expected = pd.Series([decimal.Decimal("2.0"),
+                          decimal.Decimal("4.0")], dtype="object")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("class_", [DecimalArrayWithoutFromSequence,
+                                    DecimalArrayWithoutCoercion])
+def test_scalar_ops_from_sequence_raises(class_):
+    # op(EA, EA) should return an EA, or an ndarray if it's not possible
+    # to return an EA with the return values.
+    arr = class_([
+        decimal.Decimal("1.0"),
+        decimal.Decimal("2.0")
+    ])
+    result = arr + arr
+    expected = np.array([decimal.Decimal("2.0"), decimal.Decimal("4.0")],
+                        dtype="object")
+    tm.assert_numpy_array_equal(result, expected)

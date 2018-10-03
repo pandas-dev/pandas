@@ -739,14 +739,22 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         ----------
         op : function
             An operator that takes arguments op(a, b)
-        coerce_to_dtype :  bool
+        coerce_to_dtype :  bool, default True
             boolean indicating whether to attempt to convert
-            the result to the underlying ExtensionArray dtype
-            (default True)
+            the result to the underlying ExtensionArray dtype.
+            If it's not possible to create a new ExtensionArray with the
+            values, an ndarray is returned instead.
 
         Returns
         -------
-        A method that can be bound to a method of a class
+        Callable[[Any, Any], Union[ndarray, ExtensionArray]]
+            A method that can be bound to a class. When used, the method
+            receives the two arguments, one of which is the instance of
+            this class, and should return an ExtensionArray or an ndarray.
+
+            Returning an ndarray may be necessary when the result of the
+            `op` cannot be stored in the ExtensionArray. The dtype of the
+            ndarray uses NumPy's normal inference rules.
 
         Example
         -------
@@ -757,7 +765,6 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
         in the class definition of MyExtensionArray to create the operator
         for addition, that will be based on the operator implementation
         of the underlying elements of the ExtensionArray
-
         """
 
         def _binop(self, other):
@@ -780,12 +787,12 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                         a, b = zip(*res)
                         res = (self._from_sequence(a),
                                self._from_sequence(b))
-                    except TypeError:
+                    except Exception:
                         pass
                 else:
                     try:
                         res = self._from_sequence(res)
-                    except TypeError:
+                    except Exception:
                         pass
 
             return res
