@@ -98,6 +98,8 @@ from pandas.io.formats import console
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
+import pandas.plotting._core as gfx
+
 # ---------------------------------------------------------------------
 # Docstring templates
 
