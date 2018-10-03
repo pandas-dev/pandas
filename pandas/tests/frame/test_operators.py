@@ -784,14 +784,17 @@ class TestDataFrameOperators(TestData):
         result = df.values > b
         assert_numpy_array_equal(result, expected.values)
 
-        result = df > l
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            # wrong shape
+            df > l
 
-        result = df > tup
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            # wrong shape
+            result = df > tup
 
-        result = df > b_r
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            # wrong shape
+            result = df > b_r
 
         result = df.values > b_r
         assert_numpy_array_equal(result, expected.values)
@@ -807,14 +810,14 @@ class TestDataFrameOperators(TestData):
         result = df == b
         assert_frame_equal(result, expected)
 
-        result = df == l
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            result = df == l
 
-        result = df == tup
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            result = df == tup
 
-        result = df == b_r
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            result = df == b_r
 
         result = df.values == b_r
         assert_numpy_array_equal(result, expected.values)
@@ -830,11 +833,11 @@ class TestDataFrameOperators(TestData):
         expected.index = df.index
         expected.columns = df.columns
 
-        result = df == l
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            result = df == l
 
-        result = df == tup
-        assert_frame_equal(result, expected)
+        with pytest.raises(ValueError):
+            result = df == tup
 
     def test_combine_generic(self):
         df1 = self.frame
