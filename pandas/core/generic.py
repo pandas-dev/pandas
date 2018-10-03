@@ -1194,31 +1194,34 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
-        Alter the name or names of the axis.
+        Alter the label(s) of the axis.
 
         Parameters
         ----------
         name : str or list of str
-            Name for the Index, or list of names for the MultiIndex
-        axis : int or str
-           0 or 'index' for the index; 1 or 'columns' for the columns
-        inplace : bool
-            whether to modify `self` directly or return a copy
+            Labels(s) to set.
+        axis : int or str, default 0
+            The axis to set the label. The value 0 or 'index' specifies index,
+            and the value 1 or 'columns' specifies columns.
+        inplace : bool, default False
+            Whether to modify `self` directly or return a copy.
 
             .. versionadded:: 0.21.0
 
         Returns
         -------
-        renamed : same type as caller or None if inplace=True
+        Series, DataFrame, Panel, or None
+            The same type as the caller or `None` if `inplace` is `True`.
 
         See Also
         --------
-        pandas.DataFrame.rename
-        pandas.Series.rename
-        pandas.Index.rename
+        pandas.DataFrame.rename : Alter the labels of the axis of an object of :class:`DataFrame`.
+        pandas.Series.rename : Alter the name or the labels of an object of :class:`Series`.
+        pandas.Index.rename : Alter the name of an object of :class:`Index` or :class:`MultiIndex`.
 
         Examples
         --------
+        >>> df = pd.DataFrame({"A": [1, 2, 3]})
         >>> df._set_axis_name("foo")
              A
         foo
