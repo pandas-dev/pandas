@@ -54,6 +54,9 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
 
 def _get_combined_index(indexes, intersect=False, sort=False):
+    """Return the union or intersection of indexes
+    """
+
     # TODO: handle index names!
     indexes = com.get_distinct_objs(indexes)
     if len(indexes) == 0:
