@@ -2266,30 +2266,41 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine(self, other, func, fill_value=None):
         """
+        Combine the Series with a `Series` or `Scalar` according to `func`.
+
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
-        the other
+        the other.
 
         Parameters
         ----------
         other : Series or scalar value
+            The value(s) to be combined with the `Series`.
         func : function
-            Function that takes two scalars as inputs and return a scalar
+            Function that takes two scalars as inputs and return a scalar.
         fill_value : scalar value
+            The optional value to assume when an index 
+            is missing from one Series or the other,
             The default specifies to use the appropriate NaN value for
-            the underlying dtype of the Series
+            the underlying dtype of the Series.
 
         Returns
         -------
-        result : Series
+        result : the combined `Series` object
 
         Examples
         --------
         >>> s1 = pd.Series([1, 2])
-        >>> s2 = pd.Series([0, 3])
+        >>> s2 = pd.Series([0, 3, 4])
         >>> s1.combine(s2, lambda x1, x2: x1 if x1 < x2 else x2)
         0    0
         1    2
+        2    4
+        dtype: int64
+        >>> s1.combine(s2, lambda x1, x2: x1 if x1 > x2 else x2,fill_value=787)
+        0      1
+        1      3
+        2    787
         dtype: int64
 
         See Also
@@ -2333,12 +2344,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def combine_first(self, other):
         """
-        Combine Series values, choosing the calling Series's values
-        first. Result index will be the union of the two indexes
+        Combine Series values, choosing the calling Series's values first.
+        
+        Notes
+        -----
+        Result index will be the union of the two indexes.
 
         Parameters
         ----------
         other : Series
+            The value(s) to be combined with the `Series`.
 
         Returns
         -------
