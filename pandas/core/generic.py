@@ -7063,7 +7063,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
                 group_keys=True, squeeze=False, observed=False, **kwargs):
         """
-        Group dataframe or series using a mapper or by a series of columns.
+        Group DataFrame or Series using a mapper or by a Series of columns.
 
         A groupby operation involves some combination of splitting the
         object, applying a function, and combining the results. This can be
