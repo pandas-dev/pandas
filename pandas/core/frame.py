@@ -35,13 +35,7 @@ from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, PY36, raise_with_traceback,
                            string_and_binary_types)
 from pandas.compat.numpy import function as nv
-from pandas.core import algorithms
-from pandas.core import common as com
-from pandas.core import nanops
-from pandas.core import ops
-from pandas.core.accessor import CachedAccessor
-from pandas.core.arrays import Categorical, ExtensionArray
-from pandas.core.config import get_option
+
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
@@ -80,6 +74,14 @@ from pandas.core.dtypes.common import (
     is_named_tuple)
 from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.missing import isna, notna
+
+from pandas.core import algorithms
+from pandas.core import common as com
+from pandas.core import nanops
+from pandas.core import ops
+from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import Categorical, ExtensionArray
+from pandas.core.config import get_option
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.index import (Index, MultiIndex, ensure_index,
                                ensure_index_from_sequences)

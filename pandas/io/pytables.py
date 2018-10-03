@@ -23,15 +23,10 @@ from pandas import (Series, DataFrame, Panel, Index,
 from pandas import compat
 from pandas._libs import algos, lib, writers as libwriters
 from pandas._libs.tslibs import timezones
-from pandas.compat import u_safe as u, PY3, range, lrange, string_types, filter
-from pandas.core import config
-import pandas.core.common as com
-from pandas.core.algorithms import match, unique
-from pandas.core.arrays.categorical import (Categorical,
-                                            _factorize_from_iterables)
-from pandas.core.base import StringMixin
-from pandas.core.computation.pytables import Expr, maybe_expression
-from pandas.core.config import get_option
+
+from pandas.errors import PerformanceWarning
+from pandas.compat import PY3, range, lrange, string_types, filter
+
 from pandas.core.dtypes.common import (
     is_list_like,
     is_categorical_dtype,
@@ -42,12 +37,21 @@ from pandas.core.dtypes.common import (
     ensure_int64,
     ensure_platform_int)
 from pandas.core.dtypes.missing import array_equivalent
+
+from pandas.core import config
+import pandas.core.common as com
+from pandas.core.algorithms import match, unique
+from pandas.core.arrays.categorical import (Categorical,
+                                            _factorize_from_iterables)
+from pandas.core.base import StringMixin
+from pandas.core.computation.pytables import Expr, maybe_expression
+from pandas.core.config import get_option
 from pandas.core.index import ensure_index
 from pandas.core.internals import (BlockManager, make_block,
                                    _block2d_to_blocknd,
                                    _factor_indexer, _block_shape)
 from pandas.core.sparse.array import BlockIndex, IntIndex
-from pandas.errors import PerformanceWarning
+
 from pandas.io.common import _stringify_path
 from pandas.io.formats.printing import adjoin, pprint_thing
 
@@ -1877,9 +1881,9 @@ class DataCol(IndexCol):
         super(DataCol, self).__init__(values=values, kind=kind, typ=typ,
                                       cname=cname, **kwargs)
         self.dtype = None
-        self.dtype_attr = u("%s_dtype" % self.name)
+        self.dtype_attr = u'{}_dtype'.format(self.name)
         self.meta = meta
-        self.meta_attr = u("%s_meta" % self.name)
+        self.meta_attr = u'{}_meta'.format(self.name)
         self.set_data(data)
         self.set_metadata(metadata)
 
@@ -4607,7 +4611,7 @@ def _unconvert_index(data, kind, encoding=None, errors='strict'):
     elif kind in (u'string'):
         index = _unconvert_string_array(data, nan_rep=None, encoding=encoding,
                                         errors=errors)
-    elif kind == u('object'):
+    elif kind == u'object':
         index = np.asarray(data[0])
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
@@ -4617,11 +4621,11 @@ def _unconvert_index(data, kind, encoding=None, errors='strict'):
 def _unconvert_index_legacy(data, kind, legacy=False, encoding=None,
                             errors='strict'):
     kind = _ensure_decoded(kind)
-    if kind == u('datetime'):
+    if kind == u'datetime':
         index = to_datetime(data)
-    elif kind in (u('integer')):
+    elif kind in (u'integer'):
         index = np.asarray(data, dtype=object)
-    elif kind in (u('string')):
+    elif kind in (u'string'):
         index = _unconvert_string_array(data, nan_rep=None, encoding=encoding,
                                         errors=errors)
     else:  # pragma: no cover
@@ -4726,7 +4730,7 @@ def _get_converter(kind, encoding, errors):
 
 def _need_convert(kind):
     kind = _ensure_decoded(kind)
-    if kind in (u('datetime'), u('datetime64'), u('string')):
+    if kind in (u'datetime', u'datetime64', u'string'):
         return True
     return False
 

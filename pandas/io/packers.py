@@ -46,27 +46,31 @@ from textwrap import dedent
 import numpy as np
 from dateutil.parser import parse
 
-from pandas import (Timestamp, Period, Series,  # noqa:F401
-                    Index, MultiIndex, RangeIndex, PeriodIndex, DatetimeIndex,
-                    NaT,
-                    Categorical, IntervalIndex, Interval)
+from pandas import compat
+from pandas import (Timestamp, Period, Series, DataFrame,  # noqa:F401
+                    Index, MultiIndex, Float64Index, Int64Index,
+                    Panel, RangeIndex, PeriodIndex, DatetimeIndex, NaT,
+                    Categorical, CategoricalIndex, IntervalIndex, Interval,
+                    TimedeltaIndex)
 
 from pandas.util._move import (
     BadMove as _BadMove,
     move_into_mutable_buffer as _move_into_mutable_buffer,
 )
-from pandas import compat
+from pandas.errors import PerformanceWarning
+
 from pandas.compat import u, u_safe
-from pandas.core import internals
-from pandas.core.arrays import IntervalArray
+
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_object_dtype,
     needs_i8_conversion, pandas_dtype)
+
+from pandas.core import internals
+from pandas.core.arrays import IntervalArray
 from pandas.core.generic import NDFrame
 from pandas.core.internals import BlockManager, make_block, _safe_reshape
 from pandas.core.sparse.api import SparseSeries, SparseDataFrame
 from pandas.core.sparse.array import BlockIndex, IntIndex
-from pandas.errors import PerformanceWarning
 from pandas.io.common import get_filepath_or_buffer, _stringify_path
 from pandas.io.msgpack import Unpacker as _Unpacker, Packer as _Packer, ExtType
 

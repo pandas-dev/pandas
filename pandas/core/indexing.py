@@ -6,9 +6,11 @@ import numpy as np
 from pandas._libs.indexing import _NDFrameIndexerBase
 from pandas.util._decorators import Appender
 
+from pandas.errors import AbstractMethodError
+
 import pandas.compat as compat
-import pandas.core.common as com
 from pandas.compat import range, zip
+
 from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_integer, is_float,
@@ -20,8 +22,9 @@ from pandas.core.dtypes.common import (
     ensure_platform_int)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCPanel, ABCSeries
 from pandas.core.dtypes.missing import isna, _infer_fill_value
+
+import pandas.core.common as com
 from pandas.core.index import Index, MultiIndex
-from pandas.errors import AbstractMethodError
 
 
 # the supported indexers
@@ -304,8 +307,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         self._has_valid_setitem_indexer(indexer)
 
         # also has the side effect of consolidating in-place
-        # TODO: Panel, DataFrame are not imported, remove?
-        from pandas import Series  # noqa
+        from pandas import Series
         info_axis = self.obj._info_axis_number
 
         # maybe partial set
