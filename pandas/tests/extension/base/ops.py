@@ -78,6 +78,10 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(s, divmod, 1, exc=TypeError)
         self._check_divmod_op(1, ops.rdivmod, s, exc=TypeError)
 
+    def test_divmod_series_array(self, data):
+        s = pd.Series(data)
+        self._check_divmod_op(s, divmod, data)
+
     def test_add_series_with_extension_array(self, data):
         s = pd.Series(data)
         result = s + data
