@@ -512,33 +512,33 @@ class RangeIndex(Int64Index):
             # This is basically PySlice_GetIndicesEx, but delegation to our
             # super routines if we don't have integers
 
-            l = len(self)
+            length = len(self)
 
             # complete missing slice information
             step = 1 if key.step is None else key.step
             if key.start is None:
-                start = l - 1 if step < 0 else 0
+                start = length - 1 if step < 0 else 0
             else:
                 start = key.start
 
                 if start < 0:
-                    start += l
+                    start += length
                 if start < 0:
                     start = -1 if step < 0 else 0
-                if start >= l:
-                    start = l - 1 if step < 0 else l
+                if start >= length:
+                    start = length - 1 if step < 0 else length
 
             if key.stop is None:
-                stop = -1 if step < 0 else l
+                stop = -1 if step < 0 else length
             else:
                 stop = key.stop
 
                 if stop < 0:
-                    stop += l
+                    stop += length
                 if stop < 0:
                     stop = -1
-                if stop > l:
-                    stop = l
+                if stop > length:
+                    stop = length
 
             # delegate non-integer slices
             if (start != int(start) or
