@@ -806,7 +806,7 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=object)
         assert df.values.dtype == np.object_
 
-        df = DataFrame(columns=['a', 'b'], dtype=int)
+        df = DataFrame(columns=['a', 'b'], dtype="int64")
         assert df.values.dtype == np.dtype('int64')
 
         # does not error but ends up float
