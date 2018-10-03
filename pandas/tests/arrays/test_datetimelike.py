@@ -45,7 +45,6 @@ def datetime_index(request):
     return pi
 
 
-
 class TestDatetimeArray(object):
 
     def test_from_dti(self, tz_naive_fixture):
