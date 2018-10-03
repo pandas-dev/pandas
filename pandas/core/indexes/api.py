@@ -155,6 +155,8 @@ def _get_consensus_names(indexes):
 
 
 def _all_indexes_same(indexes):
+    """Determine if all indexes contain the same elements
+    """
     first = indexes[0]
     for index in indexes[1:]:
         if not first.equals(index):
