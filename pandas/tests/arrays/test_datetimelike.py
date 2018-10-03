@@ -12,7 +12,7 @@ from pandas.core.arrays.period import PeriodArrayMixin
 
 # TODO: more freq variants
 @pytest.fixture(params=['D', 'B', 'W', 'M', 'Q', 'Y'])
-def per_index(request):
+def period_index(request):
     """
     A fixture to provide PeriodIndex objects with different frequencies.
 
@@ -29,7 +29,7 @@ def per_index(request):
 
 
 @pytest.fixture(params=['D', 'B', 'W', 'M', 'Q', 'Y'])
-def dt_index(request):
+def datetime_index(request):
     """
     A fixture to provide DatetimeIndex objects with different frequencies.
 
@@ -69,8 +69,8 @@ class TestDatetimeArray(object):
         assert list(asobj) == list(dti)
 
     @pytest.mark.parametrize('freqstr', ['D', 'B', 'W', 'M', 'Q', 'Y'])
-    def test_to_period(self, dt_index, freqstr):
-        dti = dt_index
+    def test_to_period(self, datetime_index, freqstr):
+        dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
         expected = dti.to_period(freq=freqstr)
@@ -82,9 +82,9 @@ class TestDatetimeArray(object):
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
     @pytest.mark.parametrize('propname', pd.DatetimeIndex._bool_ops)
-    def test_bool_properties(self, dt_index, propname):
+    def test_bool_properties(self, datetime_index, propname):
         # in this case _bool_ops is just `is_leap_year`
-        dti = dt_index
+        dti = datetime_index
         arr = DatetimeArrayMixin(dti)
         assert dti.freq == arr.freq
 
@@ -94,8 +94,8 @@ class TestDatetimeArray(object):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('propname', pd.DatetimeIndex._field_ops)
-    def test_int_properties(self, dt_index, propname):
-        dti = dt_index
+    def test_int_properties(self, datetime_index, propname):
+        dti = datetime_index
         arr = DatetimeArrayMixin(dti)
 
         result = getattr(arr, propname)
@@ -126,8 +126,8 @@ class TestTimedeltaArray(object):
 
 class TestPeriodArray(object):
 
-    def test_from_pi(self, per_index):
-        pi = per_index
+    def test_from_pi(self, period_index):
+        pi = period_index
         arr = PeriodArrayMixin(pi)
         assert list(arr) == list(pi)
 
@@ -136,8 +136,8 @@ class TestPeriodArray(object):
         assert isinstance(pi2, pd.PeriodIndex)
         assert list(pi2) == list(arr)
 
-    def test_astype_object(self, per_index):
-        pi = per_index
+    def test_astype_object(self, period_index):
+        pi = period_index
         arr = PeriodArrayMixin(pi)
         asobj = arr.astype('O')
         assert isinstance(asobj, np.ndarray)
@@ -145,8 +145,8 @@ class TestPeriodArray(object):
         assert list(asobj) == list(pi)
 
     @pytest.mark.parametrize('how', ['S', 'E'])
-    def test_to_timestamp(self, how, per_index):
-        pi = per_index
+    def test_to_timestamp(self, how, period_index):
+        pi = period_index
         arr = PeriodArrayMixin(pi)
 
         expected = DatetimeArrayMixin(pi.to_timestamp(how=how))
@@ -158,9 +158,9 @@ class TestPeriodArray(object):
         tm.assert_index_equal(pd.Index(result), pd.Index(expected))
 
     @pytest.mark.parametrize('propname', pd.PeriodIndex._bool_ops)
-    def test_bool_properties(self, per_index, propname):
+    def test_bool_properties(self, period_index, propname):
         # in this case _bool_ops is just `is_leap_year`
-        pi = per_index
+        pi = period_index
         arr = PeriodArrayMixin(pi)
 
         result = getattr(arr, propname)
@@ -169,8 +169,8 @@ class TestPeriodArray(object):
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize('propname', pd.PeriodIndex._field_ops)
-    def test_int_properties(self, per_index, propname):
-        pi = per_index
+    def test_int_properties(self, period_index, propname):
+        pi = period_index
         arr = PeriodArrayMixin(pi)
 
         result = getattr(arr, propname)
