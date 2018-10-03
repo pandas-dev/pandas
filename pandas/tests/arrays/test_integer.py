@@ -587,14 +587,6 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
 
-def test_arith_extension_array_values():
-    # GH 22478
-    s = pd.Series([1, 2, 3], dtype='Int64')
-    result = s + s.values
-    expected = pd.Series([2, 4, 6], dtype='Int64')
-    tm.assert_series_equal(result, expected)
-
-
 def test_groupby_mean_included():
     df = pd.DataFrame({
         "A": ['a', 'b', 'b'],
