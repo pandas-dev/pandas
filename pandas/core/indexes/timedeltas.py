@@ -705,7 +705,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
 
-        return self._shallow_copy(new_tds, freq=freq)
+        return TimedeltaIndex(new_tds, name=self.name, freq=freq)
 
 
 TimedeltaIndex._add_comparison_methods()
