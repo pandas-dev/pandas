@@ -503,7 +503,8 @@ def _nanminmax(meth, fill_value_typ):
             try:
                 result = getattr(values, meth)(axis, dtype=dtype_max)
                 result.fill(np.nan)
-            except:
+            except (AttributeError, TypeError,
+                    ValueError, np.core._internal.AxisError):
                 result = np.nan
         else:
             result = getattr(values, meth)(axis)
@@ -766,6 +767,8 @@ def nancorr(a, b, method='pearson', min_periods=None):
 def get_corr_func(method):
     if method in ['kendall', 'spearman']:
         from scipy.stats import kendalltau, spearmanr
+    elif callable(method):
+        return method
 
     def _pearson(a, b):
         return np.corrcoef(a, b)[0, 1]
@@ -813,7 +816,7 @@ def _ensure_numeric(x):
         elif is_object_dtype(x):
             try:
                 x = x.astype(np.complex128)
-            except:
+            except (TypeError, ValueError):
                 x = x.astype(np.float64)
             else:
                 if not np.any(x.imag):

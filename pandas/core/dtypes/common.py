@@ -467,7 +467,7 @@ def is_timedelta64_dtype(arr_or_dtype):
         return False
     try:
         tipo = _get_dtype_type(arr_or_dtype)
-    except:
+    except (TypeError, ValueError, SyntaxError):
         return False
     return issubclass(tipo, np.timedelta64)
 
@@ -1619,6 +1619,11 @@ def is_bool_dtype(arr_or_dtype):
     -------
     boolean : Whether or not the array or dtype is of a boolean dtype.
 
+    Notes
+    -----
+    An ExtensionArray is considered boolean when the ``_is_boolean``
+    attribute is set to True.
+
     Examples
     --------
     >>> is_bool_dtype(str)
@@ -1635,6 +1640,8 @@ def is_bool_dtype(arr_or_dtype):
     False
     >>> is_bool_dtype(np.array([True, False]))
     True
+    >>> is_bool_dtype(pd.Categorical([True, False]))
+    True
     """
 
     if arr_or_dtype is None:
@@ -1645,6 +1652,13 @@ def is_bool_dtype(arr_or_dtype):
         # this isn't even a dtype
         return False
 
+    if isinstance(arr_or_dtype, (ABCCategorical, ABCCategoricalIndex)):
+        arr_or_dtype = arr_or_dtype.dtype
+
+    if isinstance(arr_or_dtype, CategoricalDtype):
+        arr_or_dtype = arr_or_dtype.categories
+        # now we use the special definition for Index
+
     if isinstance(arr_or_dtype, ABCIndexClass):
 
         # TODO(jreback)
@@ -1653,6 +1667,9 @@ def is_bool_dtype(arr_or_dtype):
         # guess this
         return (arr_or_dtype.is_object and
                 arr_or_dtype.inferred_type == 'boolean')
+    elif is_extension_array_dtype(arr_or_dtype):
+        dtype = getattr(arr_or_dtype, 'dtype', arr_or_dtype)
+        return dtype._is_boolean
 
     return issubclass(tipo, np.bool_)
 

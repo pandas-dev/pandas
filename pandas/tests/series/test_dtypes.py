@@ -508,3 +508,8 @@ class TestSeriesDtypes(TestData):
 
         assert actual.dtype == 'object'
         tm.assert_series_equal(actual, expected)
+
+    def test_is_homogeneous_type(self):
+        assert Series()._is_homogeneous_type
+        assert Series([1, 2])._is_homogeneous_type
+        assert Series(pd.Categorical([1, 2]))._is_homogeneous_type
