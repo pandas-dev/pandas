@@ -252,6 +252,11 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
     def test_error(self, data, all_arithmetic_operators):
         pass
 
+    def test_add_series_with_extension_array(self, data):
+        ser = pd.Series(data)
+        with tm.assert_raises_regex(TypeError, "unsupported"):
+            ser + data
+
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
     pass
