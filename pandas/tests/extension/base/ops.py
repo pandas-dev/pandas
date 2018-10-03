@@ -58,7 +58,8 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         s = pd.Series(data)
         self.check_opname(s, op_name, s.iloc[0], exc=TypeError)
 
-    @pytest.mark.xfail(run=False, reason="_reduce needs implementation")
+    @pytest.mark.xfail(run=False, reason="_reduce needs implementation",
+                       strict=True)
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
         op_name = all_arithmetic_operators
