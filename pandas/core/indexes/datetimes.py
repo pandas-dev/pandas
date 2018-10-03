@@ -302,7 +302,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                        tz=tz, normalize=normalize,
                                        closed=closed, ambiguous=ambiguous)
 
-        if not isinstance(data, (np.ndarray, Index, ABCSeries)):
+        if not isinstance(data, (np.ndarray, Index, ABCSeries,
+                                 DatetimeArrayMixin)):
             if is_scalar(data):
                 raise ValueError('DatetimeIndex() must be called with a '
                                  'collection of some kind, %s was passed'
