@@ -46,7 +46,7 @@ from textwrap import dedent
 import numpy as np
 from dateutil.parser import parse
 
-from pandas import (Timestamp, Period, Series,  # noqa
+from pandas import (Timestamp, Period, Series,  # noqa:F401
                     Index, MultiIndex, RangeIndex, PeriodIndex, DatetimeIndex,
                     NaT,
                     Categorical, IntervalIndex, Interval)
