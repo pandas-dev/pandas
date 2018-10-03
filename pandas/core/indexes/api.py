@@ -77,6 +77,10 @@ def _get_combined_index(indexes, intersect=False, sort=False):
 
 
 def _union_indexes(indexes, sort=True):
+    """Return the union of indexes
+
+    The behavior of sort and names is not consistent.
+    """
     if len(indexes) == 0:
         raise AssertionError('Must have at least 1 Index to union')
     if len(indexes) == 1:
