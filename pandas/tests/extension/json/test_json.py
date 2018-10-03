@@ -266,6 +266,11 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
         with tm.assert_raises_regex(TypeError, "unsupported"):
             ser + data
 
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        return super(TestArithmeticOps, self)._check_divmod_op(
+            s, op, other, exc=TypeError
+        )
+
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
     pass
