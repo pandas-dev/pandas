@@ -16,6 +16,8 @@ from pandas.util import testing as tm
 
 class TestPartialSetting(object):
 
+    @pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:\\n.ix:DeprecationWarning")
     def test_partial_setting(self):
 
         # GH2578, allow ix and friends to partially set
@@ -404,6 +406,7 @@ class TestPartialSetting(object):
         result = ser.iloc[[1, 1, 0, 0]]
         tm.assert_series_equal(result, expected, check_index_type=True)
 
+    @pytest.mark.filterwarnings("ignore:\\n.ix")
     def test_partial_set_invalid(self):
 
         # GH 4940

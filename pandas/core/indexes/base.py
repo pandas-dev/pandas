@@ -98,6 +98,7 @@ def _make_comparison_op(op, cls):
             # numpy will show a DeprecationWarning on invalid elementwise
             # comparisons, this will raise in the future
             with warnings.catch_warnings(record=True):
+                warnings.filterwarnings("ignore", "elementwise", FutureWarning)
                 with np.errstate(all='ignore'):
                     result = op(self.values, np.asarray(other))
 
@@ -1113,7 +1114,7 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = self.name
 
-        return Series(self._to_embed(), index=index, name=name)
+        return Series(self.values.copy(), index=index, name=name)
 
     def to_frame(self, index=True, name=None):
         """
@@ -1175,18 +1176,6 @@ class Index(IndexOpsMixin, PandasObject):
         if index:
             result.index = self
         return result
-
-    def _to_embed(self, keep_tz=False, dtype=None):
-        """
-        *this is an internal non-public method*
-
-        return an array repr of this object, potentially casting to object
-
-        """
-        if dtype is not None:
-            return self.astype(dtype)._to_embed(keep_tz=keep_tz)
-
-        return self.values.copy()
 
     _index_shared_docs['astype'] = """
         Create an Index with values cast to dtypes. The class of a new Index
@@ -3109,7 +3098,6 @@ class Index(IndexOpsMixin, PandasObject):
                 return self._engine.get_loc(key)
             except KeyError:
                 return self._engine.get_loc(self._maybe_cast_indexer(key))
-
         indexer = self.get_indexer([key], method=method, tolerance=tolerance)
         if indexer.ndim > 1 or indexer.size > 1:
             raise TypeError('get_loc requires scalar valued input')
@@ -4475,10 +4463,6 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new_index : Index
         """
-        if is_scalar(item) and isna(item):
-            # GH 18295
-            item = self._na_value
-
         _self = np.asarray(self)
         item = self._coerce_scalar_to_index(item)._ndarray_values
         idx = np.concatenate((_self[:loc], item, _self[loc:]))

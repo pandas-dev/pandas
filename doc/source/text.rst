@@ -312,14 +312,15 @@ All one-dimensional list-likes can be combined in a list-like container (includi
 
     s
     u
-    s.str.cat([u.values, ['A', 'B', 'C', 'D'], map(str, u.index)], na_rep='-')
+    s.str.cat([u.values,
+               u.index.astype(str).values], na_rep='-')
 
 All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
 
 .. ipython:: python
 
     v
-    s.str.cat([u, v, ['A', 'B', 'C', 'D']], join='outer', na_rep='-')
+    s.str.cat([u, v], join='outer', na_rep='-')
 
 If using ``join='right'`` on a list of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:

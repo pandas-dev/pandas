@@ -91,6 +91,7 @@ def check_arbitrary(a, b):
         assert(a == b)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestPackers(object):
 
     def setup_method(self, method):
@@ -105,6 +106,7 @@ class TestPackers(object):
             return read_msgpack(p, **kwargs)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestAPI(TestPackers):
 
     def test_string_io(self):
@@ -464,6 +466,7 @@ class TestCategorical(TestPackers):
                 assert_categorical_equal(i, i_rec)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestNDFrame(TestPackers):
 
     def setup_method(self, method):
@@ -486,10 +489,9 @@ class TestNDFrame(TestPackers):
             'int': DataFrame(dict(A=data['B'], B=Series(data['B']) + 1)),
             'mixed': DataFrame(data)}
 
-        with catch_warnings(record=True):
-            self.panel = {
-                'float': Panel(dict(ItemA=self.frame['float'],
-                                    ItemB=self.frame['float'] + 1))}
+        self.panel = {
+            'float': Panel(dict(ItemA=self.frame['float'],
+                                ItemB=self.frame['float'] + 1))}
 
     def test_basic_frame(self):
 
@@ -846,6 +848,7 @@ def legacy_packer(request, datapath):
     return datapath(request.param)
 
 
+@pytest.mark.filterwarnings("ignore:\\nPanel:FutureWarning")
 class TestMsgpack(object):
     """
     How to add msgpack tests:

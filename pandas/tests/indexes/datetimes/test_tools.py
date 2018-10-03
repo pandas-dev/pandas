@@ -233,6 +233,15 @@ class TestTimeConversionFormats(object):
         with pytest.raises(ValueError):
             pd.to_datetime([date], format=fmt)
 
+    def test_to_datetime_parse_timezone_keeps_name(self):
+        # GH 21697
+        fmt = '%Y-%m-%d %H:%M:%S %z'
+        arg = pd.Index(['2010-01-01 12:00:00 Z'], name='foo')
+        result = pd.to_datetime(arg, format=fmt)
+        expected = pd.DatetimeIndex(['2010-01-01 12:00:00'], tz='UTC',
+                                    name='foo')
+        tm.assert_index_equal(result, expected)
+
 
 class TestToDatetime(object):
     def test_to_datetime_pydatetime(self):
@@ -766,6 +775,14 @@ class TestToDatetimeUnit(object):
         assert result == expected
 
     @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_ignore_keeps_name(self, cache):
+        # GH 21697
+        expected = pd.Index([15e9] * 2, name='name')
+        result = pd.to_datetime(expected, errors='ignore', box=True, unit='s',
+                                cache=cache)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('cache', [True, False])
     def test_dataframe(self, cache):
 
         df = DataFrame({'year': [2015, 2016],
@@ -1175,6 +1192,8 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
+    @pytest.mark.filterwarnings("ignore:_timelex:DeprecationWarning")
+    # https://github.com/pandas-dev/pandas/issues/21322
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
@@ -1573,12 +1592,20 @@ class TestDatetimeParsingWrappers(object):
 
 @pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
 def units(request):
+    """Day and some time units.
+
+    * D
+    * s
+    * ms
+    * us
+    * ns
+    """
     return request.param
 
 
 @pytest.fixture
 def epoch_1960():
-    # for origin as 1960-01-01
+    """Timestamp at 1960-01-01."""
     return Timestamp('1960-01-01')
 
 
@@ -1587,12 +1614,25 @@ def units_from_epochs():
     return list(range(5))
 
 
-@pytest.fixture(params=[epoch_1960(),
-                        epoch_1960().to_pydatetime(),
-                        epoch_1960().to_datetime64(),
-                        str(epoch_1960())])
-def epochs(request):
-    return request.param
+@pytest.fixture(params=['timestamp', 'pydatetime', 'datetime64', 'str_1960'])
+def epochs(epoch_1960, request):
+    """Timestamp at 1960-01-01 in various forms.
+
+    * pd.Timestamp
+    * datetime.datetime
+    * numpy.datetime64
+    * str
+    """
+    assert request.param in {'timestamp', 'pydatetime', 'datetime64',
+                             "str_1960"}
+    if request.param == 'timestamp':
+        return epoch_1960
+    elif request.param == 'pydatetime':
+        return epoch_1960.to_pydatetime()
+    elif request.param == "datetime64":
+        return epoch_1960.to_datetime64()
+    else:
+        return str(epoch_1960)
 
 
 @pytest.fixture

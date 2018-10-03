@@ -4,7 +4,6 @@
 # Specifically for numeric dtypes
 from decimal import Decimal
 import operator
-from collections import Iterable
 
 import pytest
 import numpy as np
@@ -12,7 +11,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 
-from pandas.compat import PY3
+from pandas.compat import PY3, Iterable
 from pandas.core import ops
 from pandas import Timedelta, Series, Index, TimedeltaIndex
 

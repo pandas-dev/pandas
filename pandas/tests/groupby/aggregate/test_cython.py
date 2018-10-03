@@ -25,7 +25,12 @@ import pandas.util.testing as tm
     'var',
     'sem',
     'mean',
-    'median',
+    pytest.param('median',
+                 # ignore mean of empty slice
+                 # and all-NaN
+                 marks=[pytest.mark.filterwarnings(
+                     "ignore::RuntimeWarning"
+                 )]),
     'prod',
     'min',
     'max',

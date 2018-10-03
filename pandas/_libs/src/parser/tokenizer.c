@@ -1150,7 +1150,7 @@ static int parser_handle_eof(parser_t *self) {
         case IN_QUOTED_FIELD:
             self->error_msg = (char *)malloc(bufsize);
             snprintf(self->error_msg, bufsize,
-                    "EOF inside string starting at line %lld",
+                    "EOF inside string starting at row %lld",
                     (long long)self->file_lines);
             return -1;
 
