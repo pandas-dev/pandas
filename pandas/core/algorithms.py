@@ -3,7 +3,7 @@ Generic data algorithms. This module is experimental at the moment and not
 intended for public consumption
 """
 from __future__ import division
-from warnings import warn, catch_warnings
+from warnings import warn, catch_warnings, simplefilter
 from textwrap import dedent
 
 import numpy as np
@@ -91,7 +91,8 @@ def _ensure_data(values, dtype=None):
 
             # ignore the fact that we are casting to float
             # which discards complex parts
-            with catch_warnings(record=True):
+            with catch_warnings():
+                simplefilter("ignore", np.ComplexWarning)
                 values = ensure_float64(values)
             return values, 'float64', 'float64'
 
@@ -1213,41 +1214,56 @@ class SelectNFrame(SelectN):
         indexer = Int64Index([])
 
         for i, column in enumerate(columns):
-
             # For each column we apply method to cur_frame[column].
-            # If it is the last column in columns, or if the values
-            # returned are unique in frame[column] we save this index
-            # and break
-            # Otherwise we must save the index of the non duplicated values
-            # and set the next cur_frame to cur_frame filtered on all
-            # duplcicated values (#GH15297)
+            # If it's the last column or if we have the number of
+            # results desired we are done.
+            # Otherwise there are duplicates of the largest/smallest
+            # value and we need to look at the rest of the columns
+            # to determine which of the rows with the largest/smallest
+            # value in the column to keep.
             series = cur_frame[column]
-            values = getattr(series, method)(cur_n, keep=self.keep)
             is_last_column = len(columns) - 1 == i
-            if is_last_column or values.nunique() == series.isin(values).sum():
+            values = getattr(series, method)(
+                cur_n,
+                keep=self.keep if is_last_column else 'all')
 
-                # Last column in columns or values are unique in
-                # series => values
-                # is all that matters
+            if is_last_column or len(values) <= cur_n:
                 indexer = get_indexer(indexer, values.index)
                 break
 
-            duplicated_filter = series.duplicated(keep=False)
-            duplicated = values[duplicated_filter]
-            non_duplicated = values[~duplicated_filter]
-            indexer = get_indexer(indexer, non_duplicated.index)
+            # Now find all values which are equal to
+            # the (nsmallest: largest)/(nlarrgest: smallest)
+            # from our series.
+            border_value = values == values[values.index[-1]]
 
-            # Must set cur frame to include all duplicated values
-            # to consider for the next column, we also can reduce
-            # cur_n by the current length of the indexer
-            cur_frame = cur_frame[series.isin(duplicated)]
+            # Some of these values are among the top-n
+            # some aren't.
+            unsafe_values = values[border_value]
+
+            # These values are definitely among the top-n
+            safe_values = values[~border_value]
+            indexer = get_indexer(indexer, safe_values.index)
+
+            # Go on and separate the unsafe_values on the remaining
+            # columns.
+            cur_frame = cur_frame.loc[unsafe_values.index]
             cur_n = n - len(indexer)
 
         frame = frame.take(indexer)
 
         # Restore the index on frame
         frame.index = original_index.take(indexer)
-        return frame
+
+        # If there is only one column, the frame is already sorted.
+        if len(columns) == 1:
+            return frame
+
+        ascending = method == 'nsmallest'
+
+        return frame.sort_values(
+            columns,
+            ascending=ascending,
+            kind='mergesort')
 
 
 # ------- ## ---- #

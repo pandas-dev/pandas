@@ -678,20 +678,42 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
 def str_repeat(arr, repeats):
     """
-    Duplicate each string in the Series/Index by indicated number
-    of times.
+    Duplicate each string in the Series or Index.
 
     Parameters
     ----------
-    repeats : int or array
-        Same value for all (int) or different value per (array)
+    repeats : int or sequence of int
+        Same value for all (int) or different value per (sequence).
 
     Returns
     -------
-    repeated : Series/Index of objects
+    Series or Index of object
+        Series or Index of repeated string objects specified by
+        input parameter repeats.
+
+    Examples
+    --------
+    >>> s = pd.Series(['a', 'b', 'c'])
+    >>> s
+    0    a
+    1    b
+    2    c
+
+    Single int repeats string in Series
+
+    >>> s.str.repeat(repeats=2)
+    0    aa
+    1    bb
+    2    cc
+
+    Sequence of int repeats corresponding string in Series
+
+    >>> s.str.repeat(repeats=[1, 2, 3])
+    0      a
+    1     bb
+    2    ccc
     """
     if is_scalar(repeats):
-
         def rep(x):
             try:
                 return compat.binary_type.__mul__(x, repeats)
@@ -935,19 +957,23 @@ def str_extractall(arr, pat, flags=0):
 
     Parameters
     ----------
-    pat : string
-        Regular expression pattern with capturing groups
+    pat : str
+        Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        A ``re`` module flag, for example ``re.IGNORECASE``. These allow
+        to modify regular expression matching for things like case, spaces,
+        etc. Multiple flags can be combined with the bitwise OR operator,
+        for example ``re.IGNORECASE | re.MULTILINE``.
 
     Returns
     -------
-    A DataFrame with one row for each match, and one column for each
-    group. Its rows have a MultiIndex with first levels that come from
-    the subject Series. The last level is named 'match' and indicates
-    the order in the subject. Any capture group names in regular
-    expression pat will be used for column names; otherwise capture
-    group numbers will be used.
+    DataFrame
+        A ``DataFrame`` with one row for each match, and one column for each
+        group. Its rows have a ``MultiIndex`` with first levels that come from
+        the subject ``Series``. The last level is named 'match' and indexes the
+        matches in each item of the ``Series``. Any capture group names in
+        regular expression pat will be used for column names; otherwise capture
+        group numbers will be used.
 
     See Also
     --------
@@ -993,7 +1019,6 @@ def str_extractall(arr, pat, flags=0):
       1          a     2
     B 0          b     1
     C 0        NaN     1
-
     """
 
     regex = re.compile(pat, flags=flags)
@@ -1307,23 +1332,57 @@ def str_index(arr, sub, start=0, end=None, side='left'):
 
 def str_pad(arr, width, side='left', fillchar=' '):
     """
-    Pad strings in the Series/Index with an additional character to
-    specified side.
+    Pad strings in the Series/Index up to width.
 
     Parameters
     ----------
     width : int
         Minimum width of resulting string; additional characters will be filled
-        with spaces
+        with character defined in `fillchar`.
     side : {'left', 'right', 'both'}, default 'left'
-    fillchar : str
-        Additional character for filling, default is whitespace
+        Side from which to fill resulting string.
+    fillchar : str, default ' '
+        Additional character for filling, default is whitespace.
 
     Returns
     -------
-    padded : Series/Index of objects
-    """
+    Series or Index of object
+        Returns Series or Index with minimum number of char in object.
 
+    See Also
+    --------
+    Series.str.rjust: Fills the left side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='left')``.
+    Series.str.ljust: Fills the right side of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='right')``.
+    Series.str.center: Fills boths sides of strings with an arbitrary
+        character. Equivalent to ``Series.str.pad(side='both')``.
+    Series.str.zfill:  Pad strings in the Series/Index by prepending '0'
+        character. Equivalent to ``Series.str.pad(side='left', fillchar='0')``.
+
+    Examples
+    --------
+    >>> s = pd.Series(["caribou", "tiger"])
+    >>> s
+    0    caribou
+    1      tiger
+    dtype: object
+
+    >>> s.str.pad(width=10)
+    0       caribou
+    1         tiger
+    dtype: object
+
+    >>> s.str.pad(width=10, side='right', fillchar='-')
+    0    caribou---
+    1    tiger-----
+    dtype: object
+
+    >>> s.str.pad(width=10, side='both', fillchar='-')
+    0    -caribou--
+    1    --tiger---
+    dtype: object
+    """
     if not isinstance(fillchar, compat.string_types):
         msg = 'fillchar must be a character, not {0}'
         raise TypeError(msg.format(type(fillchar).__name__))

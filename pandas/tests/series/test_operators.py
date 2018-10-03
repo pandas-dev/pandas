@@ -14,6 +14,7 @@ from pandas import (Index, Series, DataFrame, isna, bdate_range,
                     NaT, date_range, timedelta_range, Categorical)
 from pandas.core.indexes.datetimes import Timestamp
 import pandas.core.nanops as nanops
+from pandas.core import ops
 
 from pandas.compat import range
 from pandas import compat
@@ -603,6 +604,42 @@ class TestSeriesOperators(TestData):
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('op', [
+        operator.and_,
+        operator.or_,
+        operator.xor,
+        pytest.param(ops.rand_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation returns "
+                                                    "Index",
+                                             raises=AssertionError,
+                                             strict=True)),
+        pytest.param(ops.ror_,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=ValueError, strict=True)),
+        pytest.param(ops.rxor,
+                     marks=pytest.mark.xfail(reason="GH#22092 Index "
+                                                    "implementation raises",
+                                             raises=TypeError, strict=True))
+    ])
+    def test_bool_ops_with_index(self, op):
+        # GH#22092, GH#19792
+        ser = Series([True, True, False, False])
+        idx1 = Index([True, False, True, False])
+        idx2 = Index([1, 0, 1, 0])
+
+        expected = Series([op(ser[n], idx1[n]) for n in range(len(ser))])
+
+        result = op(ser, idx1)
+        assert_series_equal(result, expected)
+
+        expected = Series([op(ser[n], idx2[n]) for n in range(len(ser))],
+                          dtype=bool)
+
+        result = op(ser, idx2)
+        assert_series_equal(result, expected)
+
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
         index = list('bca')
@@ -721,9 +758,6 @@ class TestSeriesOperators(TestData):
     def test_scalar_na_cmp_corners(self):
         s = Series([2, 3, 4, 5, 6, 7, 8, 9, 10])
 
-        def tester(a, b):
-            return a & b
-
         with pytest.raises(TypeError):
             s & datetime(2005, 1, 1)
 
@@ -743,8 +777,11 @@ class TestSeriesOperators(TestData):
         # this is an alignment issue; these are equivalent
         # https://github.com/pandas-dev/pandas/issues/5284
 
-        pytest.raises(ValueError, lambda: d.__and__(s, axis='columns'))
-        pytest.raises(ValueError, tester, s, d)
+        with pytest.raises(TypeError):
+            d.__and__(s, axis='columns')
+
+        with pytest.raises(TypeError):
+            s & d
 
         # this is wrong as its not a boolean result
         # result = d.__and__(s,axis='index')
