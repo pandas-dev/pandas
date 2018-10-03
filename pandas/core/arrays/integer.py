@@ -530,7 +530,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
 
-    def _reduce(self, name, axis=0, skipna=True, **kwargs):
+    def _reduce(self, name, skipna=True, **kwargs):
         data = self._data
         mask = self._mask
 
@@ -540,17 +540,15 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             data[mask] = self._na_value
 
         op = getattr(nanops, 'nan' + name)
-        result = op(data, axis=axis, skipna=skipna, mask=mask)
+        result = op(data, axis=0, skipna=skipna, mask=mask)
 
-        # if we have a boolean op, provide coercion back to a bool
-        # type if possible
+        # if we have a boolean op, don't coerce
         if name in ['any', 'all']:
-            if is_integer(result) or is_float(result):
-                result = bool(int(result))
+            pass
 
         # if we have a numeric op, provide coercion back to an integer
         # type if possible
-        elif not isna(result):
+        elif notna(result):
             int_result = int(result)
             if int_result == result:
                 result = int_result

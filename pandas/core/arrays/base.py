@@ -680,17 +680,20 @@ class ExtensionArray(object):
         return np.array(self)
 
     def _reduce(self, name, skipna=True, **kwargs):
-        """Return a scalar result of performing the op
+        """Return a scalar result of performing the reduction operation.
 
         Parameters
         ----------
         name : str
-            name of the function
+            name of the function, support values are:
+            {any, all, min, max, sum, mean, median, prod,
+             std, var, sem, kurt, skew}
         axis : int, default 0
             axis over which to apply, defined as 0 currently
         skipna : bool, default True
             if True, skip NaN values
         kwargs : dict
+            ddof is the only supported kwarg
 
         Returns
         -------
@@ -700,7 +703,8 @@ class ExtensionArray(object):
         ------
         TypeError : subclass does not define reductions
         """
-        raise TypeError
+        raise TypeError("cannot perform {name} with type {dtype}".format(
+            name=name, dtype=self.dtype))
 
 
 class ExtensionOpsMixin(object):

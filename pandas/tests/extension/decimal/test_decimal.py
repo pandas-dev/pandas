@@ -135,7 +135,7 @@ class Reduce:
 
     def check_reduce(self, s, op_name, skipna):
 
-        if skipna or op_name in ['median']:
+        if skipna or op_name in ['median', 'skew', 'kurt']:
             with pytest.raises(NotImplementedError):
                 getattr(s, op_name)(skipna=skipna)
 

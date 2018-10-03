@@ -3408,6 +3408,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             with np.errstate(all='ignore'):
                 return op(delegate, skipna=skipna, **kwds)
 
+        # TODO(EA) dispatch to Index
+        # remove once all internals extension types are
+        # moved to ExtensionArrays
         return delegate._reduce(op=op, name=name, axis=axis, skipna=skipna,
                                 numeric_only=numeric_only,
                                 filter_type=filter_type, **kwds)

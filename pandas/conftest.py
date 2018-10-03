@@ -132,7 +132,8 @@ def all_arithmetic_operators(request):
 
 
 _all_numeric_reductions = ['sum', 'max', 'min',
-                           'mean', 'prod', 'std', 'var', 'median']
+                           'mean', 'prod', 'std', 'var', 'median',
+                           'kurt', 'skew']
 
 
 @pytest.fixture(params=_all_numeric_reductions)
