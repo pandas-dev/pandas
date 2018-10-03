@@ -144,6 +144,11 @@ def _sanitize_and_check(indexes):
 
 
 def _get_consensus_names(indexes):
+    """Give a consensus 'names' to indexes
+
+    If there's exactly one non-empty 'names', return this,
+    otherwise, return empty.
+    """
 
     # find the non-none names, need to tupleify to make
     # the set hashable, then reverse on return
