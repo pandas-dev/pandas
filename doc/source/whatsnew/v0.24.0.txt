@@ -824,6 +824,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 - :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 
 Sparse
 ^^^^^^
