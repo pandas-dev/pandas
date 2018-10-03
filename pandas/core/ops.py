@@ -138,6 +138,15 @@ def maybe_upcast_for_op(obj):
     return obj
 
 
+def silent_truediv(x, y):
+    """Like operator.truediv, but with NumPy warnings silenced."""
+    with np.errstate(all="ignore"):
+        return operator.truediv(x ,y)
+
+
+silent_truediv.__name__ = 'truediv'
+silent_truediv.__doc__ = operator.truediv.__doc__
+
 # -----------------------------------------------------------------------------
 # Reversed Operations not available in the stdlib operator module.
 # Defining these instead of using lambdas allows us to reference them by name.
@@ -159,7 +168,7 @@ def rdiv(left, right):
 
 
 def rtruediv(left, right):
-    return right / left
+    return silent_truediv(right, left)
 
 
 def rfloordiv(left, right):
@@ -339,7 +348,7 @@ def _get_opstr(op, cls):
             rmul: '*',
             operator.sub: '-',
             rsub: '-',
-            operator.truediv: '/',
+            silent_truediv: '/',
             rtruediv: '/',
             operator.floordiv: '//',
             rfloordiv: '//',
@@ -1012,7 +1021,7 @@ def _create_methods(cls, arith_method, comp_method, bool_method, special):
         radd=arith_method(cls, radd, special),
         sub=arith_method(cls, operator.sub, special),
         mul=arith_method(cls, operator.mul, special),
-        truediv=arith_method(cls, operator.truediv, special),
+        truediv=arith_method(cls, silent_truediv, special),
         floordiv=arith_method(cls, operator.floordiv, special),
         # Causes a floating point exception in the tests when numexpr enabled,
         # so for now no speedup
