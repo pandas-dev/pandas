@@ -30,7 +30,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth, Tick)
+                                    LastWeekOfMonth, Tick, _Day)
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
 from pandas._libs.tslibs import timezones
@@ -3053,7 +3053,7 @@ class TestDST(object):
                       QuarterEnd: ['11/2/2012', '12/31/2012'],
                       BQuarterBegin: ['11/2/2012', '12/3/2012'],
                       BQuarterEnd: ['11/2/2012', '12/31/2012'],
-                      Day: ['11/4/2012', '11/5/2012']}.items()
+                      Day: ['11/4/2012', '11/4/2012 23:00']}.items()
 
     @pytest.mark.parametrize('tup', offset_classes)
     def test_all_offset_classes(self, tup):
@@ -3188,10 +3188,10 @@ class TestDay(object):
         # GH 22274
         ts = Timestamp('2016-10-30 00:00:00+0300', tz='Europe/Helsinki')
         expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
-        result = ts + Day(1)
+        result = ts + _Day(1)
         assert result == expected
 
-        result = result - Day(1)
+        result = result - _Day(1)
         assert result == ts
 
     @pytest.mark.parametrize('box', [DatetimeIndex, Series])
@@ -3201,10 +3201,10 @@ class TestDay(object):
         expected = Timestamp('2016-10-31 00:00:00+0200', tz='Europe/Helsinki')
         arr = box([ts])
         expected = box([expected])
-        result = arr + Day(1)
+        result = arr + _Day(1)
         tm.assert_equal(result, expected)
 
-        result = result - Day(1)
+        result = result - _Day(1)
         tm.assert_equal(arr, result)
 
     @pytest.mark.parametrize('arg', [
@@ -3214,7 +3214,7 @@ class TestDay(object):
     def test_raises_AmbiguousTimeError(self, arg):
         # GH 22274
         with pytest.raises(pytz.AmbiguousTimeError):
-            arg + Day(1)
+            arg + _Day(1)
 
     @pytest.mark.parametrize('arg', [
         Timestamp("2019-03-09 02:00:00", tz='US/Pacific'),
@@ -3223,7 +3223,7 @@ class TestDay(object):
     def test_raises_NonExistentTimeError(self, arg):
         # GH 22274
         with pytest.raises(pytz.NonExistentTimeError):
-            arg + Day(1)
+            arg + _Day(1)
 
     @pytest.mark.parametrize('arg, exp', [
         [1, 2],
@@ -3232,8 +3232,8 @@ class TestDay(object):
     ])
     def test_arithmetic(self, arg, exp):
         # GH 22274
-        result = Day(1) + Day(arg)
-        expected = Day(exp)
+        result = _Day(1) + _Day(arg)
+        expected = _Day(exp)
         assert result == expected
 
     @pytest.mark.parametrize('arg', [
@@ -3246,4 +3246,4 @@ class TestDay(object):
         # CalendarDay (relative time) cannot be added to Timedelta-like objects
         # (absolute time)
         with pytest.raises(TypeError):
-            Day(1) + arg
+            _Day(1) + arg

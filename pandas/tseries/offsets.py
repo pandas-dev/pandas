@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
+import warnings
 
 from pandas.compat import range
 from pandas import compat
@@ -2124,15 +2125,18 @@ class Easter(DateOffset):
         return date(dt.year, dt.month, dt.day) == easter(dt.year)
 
 
-class Day(SingleConstructorOffset):
+class _Day(SingleConstructorOffset):
     """
     Day offset representing a calendar day. Respects calendar day arithmetic
     in the midst of daylight savings time transitions; therefore, Day does not
     necessarily equate to 24 hours.
+
+    Note: _Day is meant to replace Day once Day's mixed calendar and absolute
+    time behavior is fully depreciated.
     """
     _adjust_dst = True
     _inc = Timedelta(days=1)
-    _prefix = 'D'
+    _prefix = '_D'
     _attributes = frozenset(['n', 'normalize'])
 
     def __init__(self, n=1, normalize=False):
@@ -2170,20 +2174,6 @@ class Day(SingleConstructorOffset):
         objects are assumed to be tz_naive
         """
         return i + self.n * self._inc
-
-    @property
-    def nanos(self):
-        """
-        Return the number of nanoseconds of this offset.
-
-        Note: This is a patch to allow Timedeltas to interact with Day offsets
-        during the depreciation cycle. Remove this method after full
-        deprecation.
-
-        .. deprecated:: 0.24.0
-        """
-        # TODO: Maybe add the deprecation warning here?
-        return delta_to_nanoseconds(self.n * self._inc)
 
 
 # ---------------------------------------------------------------------
@@ -2315,6 +2305,98 @@ def _delta_to_tick(delta):
             return Micro(nanos // 1000)
         else:  # pragma: no cover
             return Nano(nanos)
+
+# This entire class can be removed once Day completely functions as calendar
+# day (i.e. remove Day and replace _Day with Day)
+class Day(Tick):
+    _inc = Timedelta(days=1)
+    _prefix = 'D'
+
+    def __add__(self, other):
+        if isinstance(other, Tick):
+            warnings.warn("Arithmetic between {} and Day is deprecated. Day "
+                          "will become a non-fixed offset".format(type(self)))
+            if type(self) == type(other):
+                return type(self)(self.n + other.n)
+            else:
+                return _delta_to_tick(self.delta + other.delta)
+        elif isinstance(other, ABCPeriod):
+            return other + self
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            return NotImplemented
+        except OverflowError:
+            raise OverflowError("the add operation between {self} and {other} "
+                                "will overflow".format(self=self, other=other))
+
+    def __eq__(self, other):
+        if isinstance(other, compat.string_types):
+            from pandas.tseries.frequencies import to_offset
+
+            other = to_offset(other)
+
+        if isinstance(other, Tick):
+            return self.delta == other.delta
+        else:
+            return False
+
+    # This is identical to DateOffset.__hash__, but has to be redefined here
+    # for Python 3, because we've redefined __eq__.
+    def __hash__(self):
+        return hash(self._params)
+
+    def __ne__(self, other):
+        if isinstance(other, compat.string_types):
+            from pandas.tseries.frequencies import to_offset
+
+            other = to_offset(other)
+
+        if isinstance(other, Tick):
+            return self.delta != other.delta
+        else:
+            return True
+
+    @property
+    def delta(self):
+        return self.n * self._inc
+
+    @property
+    def nanos(self):
+        # This is what Timedelta like operations call when 'D' is passed
+        warnings.warn("'D' will refer to calendar day in a future release. "
+                      "Use '24H' instead.")
+        return delta_to_nanoseconds(self.delta)
+
+    # TODO: Should Tick have its own apply_index?
+    def apply(self, other):
+        # Timestamp can handle tz and nano sec, thus no need to use apply_wraps
+        if isinstance(other, Timestamp):
+
+            # GH 15126
+            # in order to avoid a recursive
+            # call of __add__ and __radd__ if there is
+            # an exception, when we call using the + operator,
+            # we directly call the known method
+            result = other.__add__(self)
+            if result == NotImplemented:
+                raise OverflowError
+            if other.tz is not None:
+                warnings.warn("Day arithmetic will respect calendar day in a"
+                              "future release")
+            return result
+        elif isinstance(other, (datetime, np.datetime64, date)):
+            return as_timestamp(other) + self
+
+        if isinstance(other, timedelta):
+            warnings.warn("Day arithmetic with timedelta is deprecated. Use"
+                          "Hour(24) instead.")
+            return other + self.delta
+        elif isinstance(other, type(self)):
+            return type(self)(self.n + other.n)
+
+        raise ApplyTypeError('Unhandled type: {type_str}'
+                             .format(type_str=type(other).__name__))
 
 
 class Hour(Tick):
