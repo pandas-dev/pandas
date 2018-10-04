@@ -136,6 +136,13 @@ class PeriodArray(DatetimeLikeArrayMixin, ExtensionArray):
     # Constructors
     def __init__(self, values, freq=None):
         # type: (np.ndarray[np.int64], Union[str, Tick]) -> None
+        # TODO: constructor discussion. The type above doesn't match what
+        # we handle right now (values can be PeriodArray or PeriodIndex
+        if isinstance(values, type(self)):
+            values, freq = values._data, values.freq
+        elif isinstance(values, ABCPeriodIndex):
+            values, freq = values._ndarray_values, values.freq
+
         values = np.array(values, dtype='int64', copy=False)
         self._data = values
         if freq is None:
