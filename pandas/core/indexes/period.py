@@ -854,6 +854,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         # TODO(DatetimeArray): move to base class.
         def wrapper(self, other):
             return op(self.values, other)
+
+        wrapper.__doc__ = op.__doc__
+        wrapper.__name__ = '__{}__'.format(op.__name__)
         return wrapper
 
     def repeat(self, repeats, *args, **kwargs):
