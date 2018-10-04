@@ -36,7 +36,6 @@ conda list pandas
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
     sudo locale-gen "$LOCALE_OVERRIDE"
-    sudo dpkg-reconfigure locales
 fi
 
 # # Install the compiler toolchain
