@@ -27,8 +27,8 @@ set -v
 # w/o removing anything else
 echo
 echo "[removing installed pandas]"
-conda remove pandas -y --force
-pip uninstall -y pandas
+conda remove pandas -y --force || true
+pip uninstall -y pandas || true
 
 echo
 echo "[no installed pandas]"
