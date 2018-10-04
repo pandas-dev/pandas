@@ -23,10 +23,8 @@ from pandas._libs.tslibs.timezones import maybe_get_tz
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
-from .common import TestData
 
-
-class TestSeriesDatetimeValues(TestData):
+class TestSeriesDatetimeValues():
 
     def test_dt_namespace_accessor(self):
 
