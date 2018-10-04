@@ -4228,7 +4228,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         try:
             # gh-15832: Check if we are requesting a numeric dype and
             # that we can convert the data to the requested dtype.
-            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+            if is_integer_dtype(dtype):
                 subarr = maybe_cast_to_integer_array(arr, dtype)
 
             subarr = maybe_cast_to_datetime(arr, dtype)
