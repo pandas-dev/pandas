@@ -1,9 +1,9 @@
 import warnings
 from datetime import datetime, timedelta
 
-from pandas import DataFrame, DatetimeIndex, date_range
+from pandas import DataFrame, Panel, DatetimeIndex, date_range
 
-from .pandas_vb_common import Panel, setup  # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class DifferentIndexes(object):

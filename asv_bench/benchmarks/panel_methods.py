@@ -1,8 +1,9 @@
 import warnings
 
 import numpy as np
+from pandas import Panel
 
-from .pandas_vb_common import Panel, setup  # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class PanelMethods(object):
