@@ -34,7 +34,7 @@ echo
 echo "[no installed pandas]"
 conda list pandas
 
-if "[ -n $LOCALE_OVERRIDE ]"; then
+if [ -n "$LOCALE_OVERRIDE" ]; then
     locale-gen "$LOCALE_OVERRIDE"
     dpkg-reconfigure locales
 fi
