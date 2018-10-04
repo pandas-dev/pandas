@@ -42,7 +42,7 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - moto
+  - moto==1.3.4
   - hypothesis>=3.58.0
   - pip:
     - backports.lzma

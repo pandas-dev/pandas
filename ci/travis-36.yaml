@@ -8,7 +8,7 @@ dependencies:
   - dask
   - fastparquet
   - feather-format
-  - flake8
+  - flake8>=3.5
   - flake8-comprehensions
   - gcsfs
   - geopandas
