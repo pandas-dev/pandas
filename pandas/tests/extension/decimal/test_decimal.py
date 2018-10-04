@@ -8,7 +8,7 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, make_data
+from .array import DecimalDtype, DecimalArray, make_data, to_decimal
 
 
 @pytest.fixture

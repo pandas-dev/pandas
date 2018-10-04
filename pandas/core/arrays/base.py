@@ -787,7 +787,7 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
                     # We catch all regular exceptions here, and fall back
                     # to an ndarray.
                     try:
-                        res = self._from_sequnce(arr)
+                        res = self._from_sequence(arr)
                     except Exception:
                         res = np.asarray(arr)
                 else:
