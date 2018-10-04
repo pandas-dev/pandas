@@ -446,6 +446,16 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     days_in_month = _wrap_field_accessor('days_in_month')
     daysinmonth = days_in_month
 
+    @property
+    @Appender(PeriodArrayMixin.start_time.__doc__)
+    def start_time(self):
+        return PeriodArrayMixin.start_time(self)
+
+    @property
+    @Appender(PeriodArrayMixin.end_time.__doc__)
+    def end_time(self):
+        return PeriodArrayMixin.end_time(self)
+
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
         return self.astype(object).values
