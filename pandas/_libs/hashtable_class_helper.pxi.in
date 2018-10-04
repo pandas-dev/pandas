@@ -418,20 +418,34 @@ cdef class {{name}}HashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
-        # define separate functions with/without inverse to force compilation
-        # of the different code paths for boolean "return_inverse"
-        if return_inverse:
-            return self._unique_with_inverse(values)
-        return self._unique_no_inverse(values)
-
+    @cython.boundscheck(False)
     def _unique_no_inverse(self, const {{dtype}}_t[:] values):
-        return self._unique(values, uniques={{name}}Vector(), ignore_na=False,
-                            return_inverse=False)
+        # define separate functions without inverse for performance
+        cdef:
+           Py_ssize_t i, n = len(values)
+           int ret = 0
+           {{dtype}}_t val
+           khiter_t k
+           {{name}}Vector uniques = {{name}}Vector()
+           {{name}}VectorData *ud
+        ud = uniques.data
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_{{dtype}}(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_{{dtype}}(self.table, val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+        return uniques.to_array()
 
-    def _unique_with_inverse(self, const {{dtype}}_t[:] values):
-        return self._unique(values, uniques={{name}}Vector(), ignore_na=False,
-                            return_inverse=True)
+    def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
+        if return_inverse:
+            return self._unique(values, uniques={{name}}Vector(), ignore_na=False,
+                                return_inverse=True)
+        return self._unique_no_inverse(values)
 
     def factorize(self, {{dtype}}_t[:] values):
         return self._unique(values, uniques={{name}}Vector(), ignore_na=True,
@@ -695,20 +709,45 @@ cdef class StringHashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, bint return_inverse=False):
-        # define separate functions with/without inverse to force compilation
-        # of the different code paths for boolean "return_inverse"
-        if return_inverse:
-            return self._unique_with_inverse(values)
-        return self._unique_no_inverse(values)
-
+    @cython.boundscheck(False)
     def _unique_no_inverse(self, ndarray[object] values):
-        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
-                            return_inverse=False)
+        # define separate functions without inverse for performance
+        cdef:
+            Py_ssize_t i, count, n = len(values)
+            int64_t[:] uindexer
+            int ret = 0
+            object val
+            ObjectVector uniques
+            khiter_t k
+            const char *v
+            const char **vecs
+        vecs = <const char **> malloc(n * sizeof(char *))
+        uindexer = np.empty(n, dtype=np.int64)
+        for i in range(n):
+            val = values[i]
+            v = util.get_c_string(val)
+            vecs[i] = v
+        count = 0
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k == self.table.n_buckets:
+                    kh_put_str(self.table, v, &ret)
+                    uindexer[count] = i
+                    count += 1
+        free(vecs)
+        # uniques
+        uniques = ObjectVector()
+        for i in range(count):
+            uniques.append(values[uindexer[i]])
+        return uniques.to_array()
 
-    def _unique_with_inverse(self, ndarray[object] values):
-        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
-                            return_inverse=True)
+    def unique(self, ndarray[object] values, bint return_inverse=False):
+        if return_inverse:
+            return self._unique(values, uniques=ObjectVector(), ignore_na=False,
+                            	return_inverse=True)
+        return self._unique_no_inverse(values)
 
     def factorize(self, ndarray[object] values):
         return self._unique(values, uniques=ObjectVector(), ignore_na=True,
@@ -852,20 +891,28 @@ cdef class PyObjectHashTable(HashTable):
             return uniques.to_array(), np.asarray(labels)
         return uniques.to_array()
 
-    def unique(self, ndarray[object] values, bint return_inverse=False):
-        # define separate functions with/without inverse to force compilation
-        # of the different code paths for boolean "return_inverse"
-        if return_inverse:
-            return self._unique_with_inverse(values)
-        return self._unique_no_inverse(values)
-
     def _unique_no_inverse(self, ndarray[object] values):
-        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
-                            return_inverse=False)
+        # define separate functions without inverse for performance
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            khiter_t k
+            ObjectVector uniques = ObjectVector()
+        for i in range(n):
+            val = values[i]
+            hash(val)
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k == self.table.n_buckets:
+                kh_put_pymap(self.table, <PyObject*>val, &ret)
+                uniques.append(val)
+        return uniques.to_array()
 
-    def _unique_with_inverse(self, ndarray[object] values):
-        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
-                            return_inverse=True)
+    def unique(self, ndarray[object] values, bint return_inverse=False):
+        if return_inverse:
+            return self._unique(values, uniques=ObjectVector(), ignore_na=False,
+                            	return_inverse=True)
+        return self._unique_no_inverse(values)
 
     def factorize(self, ndarray[object] values):
         return self._unique(values, uniques=ObjectVector(), ignore_na=True,
