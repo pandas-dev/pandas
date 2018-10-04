@@ -252,8 +252,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         result = cls._simple_new(data, name=name)
         return result
 
-    def _shallow_copy(self, values, **kwargs):
+    def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
+        if values is None:
+            values = self._ndarray_values
         if not isinstance(values, PeriodArray):
             values = PeriodArray._from_ordinals(values, freq=self.freq)
 
@@ -352,7 +354,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         -------
         shifted : PeriodIndex
         """
-        i8values = self._data._tshift(n)
+        i8values = self._data._time_shift(n)
         return self._simple_new(i8values, name=self.name, freq=self.freq)
 
     def _coerce_scalar_to_index(self, item):
