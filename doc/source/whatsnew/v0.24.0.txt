@@ -196,10 +196,10 @@ Other Enhancements
 - Compatibility with Matplotlib 3.0 (:issue:`22790`).
 
 .. _whatsnew_0240.api_breaking:
-- A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
 
 .. _whatsnew_0240.api_breaking.interval_values:
