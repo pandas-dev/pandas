@@ -356,6 +356,7 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_with_inverse(self, const {{dtype}}_t[:] values,
                              {{name}}Vector uniques, bint ignore_na=False,
                              Py_ssize_t count_prior=0,
@@ -415,6 +416,7 @@ cdef class {{name}}HashTable(HashTable):
         return uniques.to_array(), np.asarray(labels)
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_no_inverse(self, const {{dtype}}_t[:] values):
         # define separate functions without inverse for performance
         cdef:
@@ -642,6 +644,7 @@ cdef class StringHashTable(HashTable):
         free(vecs)
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_with_inverse(self, ndarray[object] values,
                              ObjectVector uniques, bint ignore_na=False,
                              Py_ssize_t count_prior=0,
@@ -703,6 +706,7 @@ cdef class StringHashTable(HashTable):
         return uniques.to_array(), np.asarray(labels)
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_no_inverse(self, ndarray[object] values):
         # define separate functions without inverse for performance
         cdef:
@@ -842,6 +846,7 @@ cdef class PyObjectHashTable(HashTable):
         return np.asarray(locs)
 
     @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_with_inverse(self, ndarray[object] values,
                              ObjectVector uniques, bint ignore_na=False,
                              Py_ssize_t count_prior=0,
@@ -881,6 +886,8 @@ cdef class PyObjectHashTable(HashTable):
 
         return uniques.to_array(), np.asarray(labels)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_no_inverse(self, ndarray[object] values):
         # define separate functions without inverse for performance
         cdef:
