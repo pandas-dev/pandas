@@ -880,7 +880,7 @@ If your change involves checking that a warning is actually emitted, use
 
 .. code-block:: python
 
-   with tm.assert_prodcues_warning(FutureWarning):
+   with tm.assert_produces_warning(FutureWarning):
        df.some_operation()
 
 We prefer this to the ``pytest.warns`` context manager because ours checks that the warning's
