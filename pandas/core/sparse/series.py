@@ -22,7 +22,7 @@ from pandas.core.internals import SingleBlockManager
 from pandas.core import generic
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 
 from pandas.core.sparse.array import (
     SparseArray,
@@ -484,7 +484,8 @@ class SparseSeries(Series):
                                  index=self.index.copy(),
                                  name=self.name).__finalize__(self)
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__)
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
         # TODO: remove?
@@ -504,7 +505,7 @@ class SparseSeries(Series):
         -------
         reindexed : SparseSeries
         """
-        if not isinstance(new_index, (IntIndex, BlockIndex)):
+        if not isinstance(new_index, splib.SparseIndex):
             raise TypeError("new index must be a SparseIndex")
         values = self.values
         values = values.sp_index.to_int_index().reindex(

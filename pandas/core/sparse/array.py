@@ -436,6 +436,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
                Using 'method' will result in high memory use,
                as all `fill_value` methods will be converted to
                an in-memory ndarray
+
         limit : int, optional
 
         Returns

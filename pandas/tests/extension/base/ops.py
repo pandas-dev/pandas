@@ -90,6 +90,12 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
         self._check_divmod_op(s, divmod, 1, exc=self.divmod_exc)
         self._check_divmod_op(1, ops.rdivmod, s, exc=self.divmod_exc)
 
+    def test_add_series_with_extension_array(self, data):
+        s = pd.Series(data)
+        result = s + data
+        expected = pd.Series(data + data)
+        self.assert_series_equal(result, expected)
+
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
         # What is this testing?

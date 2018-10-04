@@ -671,7 +671,7 @@ class Block(PandasObject):
 
             newb = make_block(values, placement=self.mgr_locs,
                               klass=klass, ndim=self.ndim)
-        except:
+        except Exception:  # noqa: E722
             if errors == 'raise':
                 raise
             newb = self.copy() if copy else self
@@ -1147,7 +1147,7 @@ class Block(PandasObject):
         # a fill na type method
         try:
             m = missing.clean_fill_method(method)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -1162,7 +1162,7 @@ class Block(PandasObject):
         # try an interp method
         try:
             m = missing.clean_interp_method(method, **kwargs)
-        except:
+        except ValueError:
             m = None
 
         if m is not None:
@@ -2449,7 +2449,7 @@ class ObjectBlock(Block):
             try:
                 if (self.values[locs] == values).all():
                     return
-            except:
+            except (IndexError, ValueError):
                 pass
         try:
             self.values[locs] = values
