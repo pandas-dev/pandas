@@ -35,8 +35,8 @@ echo "[no installed pandas]"
 conda list pandas
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
-    locale-gen "$LOCALE_OVERRIDE"
-    dpkg-reconfigure locales
+    sudo locale-gen "$LOCALE_OVERRIDE"
+    sudo dpkg-reconfigure locales
 fi
 
 # # Install the compiler toolchain
