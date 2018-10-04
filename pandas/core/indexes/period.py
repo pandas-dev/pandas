@@ -257,7 +257,11 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         if values is None:
             values = self._ndarray_values
         if not isinstance(values, PeriodArray):
-            values = PeriodArray._from_ordinals(values, freq=self.freq)
+            # in particular, I would like to avoid complex_new here.
+            # Some people seem to be calling use with unexpected types
+            # Index.difference -> ndarray[Period]
+            # DatetimelikeIndexOpsMixin.repeat -> ndarray[ordinal]
+            values = PeriodArray._complex_new(values, freq=self.freq)
 
         # I don't like overloading shallow_copy with freq changes.
         # See if it's used anywhere outside of test_resample_empty_dataframe
@@ -845,6 +849,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         def wrapper(self, other):
             return op(self.values, other)
         return wrapper
+
+    def repeat(self, repeats, *args, **kwargs):
+        # TODO(DatetimeArray): Just use Index.repeat
+        return Index.repeat(self, repeats, *args, **kwargs)
 
 
 PeriodIndex._add_comparison_ops()
