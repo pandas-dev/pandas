@@ -616,10 +616,6 @@ class DataFrameFormatter(TableFormatter):
             else:  # max_cols == 0. Try to fit frame to terminal
                 text = self.adj.adjoin(1, *strcols).split('\n')
                 max_len = Series(text).str.len().max()
-                headers = [ele[0] for ele in strcols]
-                # Size of last col determines dot col size. See
-                # `self._to_str_columns
-                size_tr_col = len(headers[self.tr_size_col])
                 # plus truncate dot col
                 dif = max_len - self.w
                 # '+ 1' to avoid too wide repr (GH PR #17023)
