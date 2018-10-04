@@ -649,7 +649,7 @@ The *pandas* test suite will run automatically on the `Travis-CI <https://travis
 and  `Azure-DevOps <https://dev.azure.com>`__ services, once your pull request is submitted.
 However, if you wish to run the test suite on a branch prior to submitting the pull request,
 then the continuous integration services need to be hooked to your GitHub repository. Instructions are here
-for `Travis-CI <http://about.travis-ci.org/docs/user/getting-started/>`__.
+for `Travis-CI <https://about.travis-ci.org/docs/user/getting-started/>`__.
 
 A pull-request will be considered for merging when you have an all 'green' build. If any tests are failing,
 then you will get a red 'X', where you can click through to see the individual failed tests.
@@ -664,7 +664,7 @@ Test-driven development/code writing
 ------------------------------------
 
 *pandas* is serious about testing and strongly encourages contributors to embrace
-`test-driven development (TDD) <http://en.wikipedia.org/wiki/Test-driven_development>`_.
+`test-driven development (TDD) <https://en.wikipedia.org/wiki/Test-driven_development>`_.
 This development process "relies on the repetition of a very short development cycle:
 first the developer writes an (initially failing) automated test case that defines a desired
 improvement or new function, then produces the minimum amount of code to pass that test."
