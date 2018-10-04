@@ -497,7 +497,12 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 return self.to_timestamp(how='start') + adjust
             else:
                 adjust = Timedelta(1, 'ns')
-                return (self + self.freq).to_timestamp(how='start') - adjust
+                with warnings.catch_warnings():
+                    # ignore the fact that integer addition is deprecated
+                    #  until GH#22998 is fixed
+                    warnings.simplefilter("ignore", FutureWarning)
+                    shifted = self + 1
+                return shifted.to_timestamp(how='start') - adjust
 
         if freq is None:
             base, mult = _gfc(self.freq)

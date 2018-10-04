@@ -2,6 +2,7 @@
 from datetime import date, datetime, timedelta
 import functools
 import operator
+import warnings
 
 from pandas.compat import range
 from pandas import compat
@@ -288,8 +289,12 @@ class DateOffset(BaseOffset):
 
             weeks = (kwds.get('weeks', 0)) * self.n
             if weeks:
-                i = (i.to_period('W') + weeks).to_timestamp() + \
-                    i.to_perioddelta('W')
+                with warnings.catch_warnings(record=True):
+                    # integer-array addition on PeriodIndex is deprecated,
+                    #  but still used internally for performance
+                    warnings.simplefilter("ignore", FutureWarning)
+                    i = (i.to_period('W') + weeks).to_timestamp() + \
+                        i.to_perioddelta('W')
 
             timedelta_kwds = {k: v for k, v in kwds.items()
                               if k in ['days', 'hours', 'minutes',
@@ -542,7 +547,13 @@ class BusinessDay(BusinessMixin, SingleConstructorOffset):
         else:
             roll = self.n
 
-        return (i.to_period('B') + roll).to_timestamp() + time
+        with warnings.catch_warnings(record=True):
+            # integer-array addition on PeriodIndex is deprecated,
+            #  but still used internally for performance
+            warnings.simplefilter("ignore", FutureWarning)
+            result = (i.to_period('B') + roll).to_timestamp() + time
+
+        return result
 
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
@@ -1109,8 +1120,11 @@ class SemiMonthOffset(DateOffset):
         time = i.to_perioddelta('D')
 
         # apply the correct number of months
-        imonths = i.to_period('M')
-        i = (imonths + (roll // 2) * imonths.freq).to_timestamp()
+        with warnings.catch_warnings(record=True):
+            # integer-array addition on PeriodIndex is deprecated,
+            #  but still used internally for performance
+            warnings.simplefilter("ignore", FutureWarning)
+            i = (i.to_period('M') + (roll // 2)).to_timestamp()
 
         # apply the correct day
         i = self._apply_index_days(i, roll)
@@ -1291,7 +1305,7 @@ class Week(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         if self.weekday is None:
-            return ((i.to_period('W') + self.n).to_timestamp() +
+            return ((i.to_period('W') + Day(self.n)).to_timestamp() +
                     i.to_perioddelta('W'))
         else:
             return self._end_apply_index(i)
@@ -1320,7 +1334,12 @@ class Week(DateOffset):
         else:
             roll = self.n
 
-        base = (base_period + roll).to_timestamp(how='end')
+        with warnings.catch_warnings(record=True):
+            # integer-array addition on PeriodIndex is deprecated,
+            #  but still used internally for performance
+            warnings.simplefilter("ignore", FutureWarning)
+            base = (base_period + roll).to_timestamp(how='end')
+
         return base + off + Timedelta(1, 'ns') - Timedelta(1, 'D')
 
     def onOffset(self, dt):

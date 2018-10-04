@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pytest
 import numpy as np
 
+import pandas.util.testing as tm
 from pandas.compat import long
 from pandas.tseries import offsets
 from pandas import Timestamp, Timedelta
@@ -46,8 +47,10 @@ class TestTimestampArithmetic(object):
         # addition/subtraction of integers
         ts = Timestamp(dt, freq='D')
 
-        assert type(ts + 1) == Timestamp
-        assert type(ts - 1) == Timestamp
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#22535 add/sub with integers is deprecated
+            assert type(ts + 1) == Timestamp
+            assert type(ts - 1) == Timestamp
 
         # Timestamp + datetime not supported, though subtraction is supported
         # and yields timedelta more tests in tseries/base/tests/test_base.py
@@ -66,8 +69,11 @@ class TestTimestampArithmetic(object):
         td = timedelta(days=1)
         original_freq = ts.freq
 
-        assert (ts + 1).freq == original_freq
-        assert (ts - 1).freq == original_freq
+        with tm.assert_produces_warning(FutureWarning):
+            # GH#22535 add/sub with integers is deprecated
+            assert (ts + 1).freq == original_freq
+            assert (ts - 1).freq == original_freq
+
         assert (ts + td).freq == original_freq
         assert (ts - td).freq == original_freq
 

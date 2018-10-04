@@ -47,9 +47,8 @@ class DatetimeLike(Base):
         tm.assert_index_equal(result, i_view)
 
     def test_map_callable(self):
-
-        expected = self.index + 1
-        result = self.index.map(lambda x: x + 1)
+        expected = self.index + self.index.freq
+        result = self.index.map(lambda x: x + x.freq)
         tm.assert_index_equal(result, expected)
 
         # map to NaT
@@ -63,7 +62,7 @@ class DatetimeLike(Base):
             lambda values, index: {i: e for e, i in zip(values, index)},
             lambda values, index: pd.Series(values, index)])
     def test_map_dictlike(self, mapper):
-        expected = self.index + 1
+        expected = self.index + self.index.freq
 
         # don't compare the freqs
         if isinstance(expected, pd.DatetimeIndex):

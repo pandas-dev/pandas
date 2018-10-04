@@ -9,7 +9,6 @@ from pandas import compat
 import numpy as np
 
 from pandas.compat.numpy import np_datetime64_compat
-from pandas.errors import PerformanceWarning
 
 from pandas.core.series import Series
 from pandas._libs.tslibs import conversion
@@ -2406,9 +2405,9 @@ class TestSemiMonthEnd(Base):
 
         # ensure .apply_index works as expected
         s = DatetimeIndex(dates[:-1])
-        with tm.assert_produces_warning(PerformanceWarning):
-            # GH#22535 check for PerformanceWarning and that we _dont_
-            # get FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
             result = SemiMonthEnd().apply_index(s)
 
         exp = DatetimeIndex(dates[1:])
@@ -2506,10 +2505,9 @@ class TestSemiMonthEnd(Base):
     def test_apply_index(self, case):
         offset, cases = case
         s = DatetimeIndex(cases.keys())
-        warning = None if isinstance(offset, Tick) else PerformanceWarning
-        with tm.assert_produces_warning(warning):
-            # GH#22535 check for PerformanceWarning and that we _dont_
-            # get FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
             result = offset.apply_index(s)
 
         exp = DatetimeIndex(cases.values())
@@ -2533,9 +2531,9 @@ class TestSemiMonthEnd(Base):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
 
-        with tm.assert_produces_warning(PerformanceWarning):
-            # GH#22535 check for PerformanceWarning and that we _dont_
-            # get FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
             result = s + SemiMonthEnd()
             result2 = SemiMonthEnd() + s
 
@@ -2547,9 +2545,9 @@ class TestSemiMonthEnd(Base):
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
 
-        with tm.assert_produces_warning(PerformanceWarning):
-            # GH#22535 check for PerformanceWarning and that we _dont_
-            # get FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
             result = s + SemiMonthEnd()
             result2 = SemiMonthEnd() + s
 
@@ -2596,9 +2594,9 @@ class TestSemiMonthBegin(Base):
 
         # ensure .apply_index works as expected
         s = DatetimeIndex(dates[:-1])
-        with tm.assert_produces_warning(PerformanceWarning):
-            # GH#22535 check for PerformanceWarning and that we _dont_
-            # get FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
             result = SemiMonthBegin().apply_index(s)
 
         exp = DatetimeIndex(dates[1:])
@@ -2701,9 +2699,9 @@ class TestSemiMonthBegin(Base):
         offset, cases = case
         s = DatetimeIndex(cases.keys())
 
-        with tm.assert_produces_warning(PerformanceWarning):
-            # GH#22535 check for PerformanceWarning and that we _dont_
-            # get FutureWarning
+        with tm.assert_produces_warning(None):
+            # GH#22535 check that we don't get a FutureWarning from adding
+            # an integer array to PeriodIndex
             result = offset.apply_index(s)
 
         exp = DatetimeIndex(cases.values())
@@ -2726,7 +2724,7 @@ class TestSemiMonthBegin(Base):
     def test_vectorized_offset_addition(self, klass, assert_func):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
             # an integer array to PeriodIndex
             result = s + SemiMonthBegin()
@@ -2739,9 +2737,9 @@ class TestSemiMonthBegin(Base):
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(None):
             # GH#22535 check that we don't get a FutureWarning from adding
-            # an integer array to PeriodIndex, but do get a PerformanceWarning
+            # an integer array to PeriodIndex
             result = s + SemiMonthBegin()
             result2 = SemiMonthBegin() + s
 

@@ -423,8 +423,8 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(truncated, expected)
 
         pytest.raises(ValueError, ts.truncate,
-                      before=ts.index[-1] - 1,
-                      after=ts.index[0] + 1)
+                      before=ts.index[-1] - ts.index.freq,
+                      after=ts.index[0] + ts.index.freq)
 
     def test_truncate_copy(self):
         index = self.tsframe.index
