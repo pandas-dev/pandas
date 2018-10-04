@@ -122,9 +122,9 @@ class TestFrameFlexArithmetic(object):
         df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
 
         collike = arr[[1], :]  # shape --> (nrows, 1)
-        expected = pd.DataFrame([[0, 1],
-                                 [4, 7],
-                                 [8, 9]],
+        expected = pd.DataFrame([[2, 4],
+                                 [4, 6],
+                                 [6, 8]],
                                 columns=df.columns, index=df.index)
         result = df + collike
         tm.assert_frame_equal(result, expected)
