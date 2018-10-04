@@ -16,16 +16,11 @@ class _DtypeOpsMixin(object):
     # classes will inherit from this Mixin. Once everything is compatible, this
     # class's methods can be moved to ExtensionDtype and removed.
 
+    # na_value is the default NA value to use for this type. This is used in
+    # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
+    # of the NA value, not the physical NA vaalue for storage.
+    # e.g. for JSONArray, this is an empty dictionary.
     na_value = np.nan
-
-    """The default NA value to use for this type.
-
-    This is used by, e.g. :meth:`pandas.api.extension.ExtensionArray.take`.
-    This should be the user-facing "boxed" version of the NA value,
-    not the NA value used for physical storage.
-
-    For example, ``JSONArray`` uses an empty dictionary.
-    """
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
@@ -186,7 +181,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @property
     def kind(self):
-        # type: () -> str
+        # type () -> str
         """A character code (one of 'biufcmMOSUV'), default 'O'
 
         This should match the NumPy dtype used when the array is
