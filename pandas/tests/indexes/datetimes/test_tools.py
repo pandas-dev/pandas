@@ -180,9 +180,9 @@ class TestTimeConversionFormats(object):
         for s, format, dt in data:
             assert to_datetime(s, format=format, cache=cache) == dt
 
-    @pytest.mark.parametrize("box,const,assert_equal", [
-        [True, pd.Index, 'assert_index_equal'],
-        [False, np.array, 'assert_numpy_array_equal']])
+    @pytest.mark.parametrize("box,const", [
+        [True, pd.Index],
+        [False, np.array]])
     @pytest.mark.parametrize("fmt,dates,expected_dates", [
         ['%Y-%m-%d %H:%M:%S %Z',
          ['2010-01-01 12:00:00 UTC'] * 2,
@@ -215,12 +215,11 @@ class TestTimeConversionFormats(object):
           pd.Timestamp('2010-01-01 12:00:00',
                        tzinfo=pytz.FixedOffset(0))]]])
     def test_to_datetime_parse_tzname_or_tzoffset(self, box, const,
-                                                  assert_equal, fmt,
-                                                  dates, expected_dates):
+                                                  fmt, dates, expected_dates):
         # GH 13486
         result = pd.to_datetime(dates, format=fmt, box=box)
         expected = const(expected_dates)
-        getattr(tm, assert_equal)(result, expected)
+        tm.assert_equal(result, expected)
 
         with pytest.raises(ValueError):
             pd.to_datetime(dates, format=fmt, box=box, utc=True)
@@ -1049,17 +1048,16 @@ class TestToDatetimeMisc(object):
         # assert result == expected
 
     @pytest.mark.parametrize('cache', [True, False])
-    @pytest.mark.parametrize('box, klass, assert_method', [
-        [True, Index, 'assert_index_equal'],
-        [False, np.array, 'assert_numpy_array_equal']
+    @pytest.mark.parametrize('box, klass', [
+        [True, Index],
+        [False, np.array]
     ])
-    def test_to_datetime_unprocessable_input(self, cache, box, klass,
-                                             assert_method):
+    def test_to_datetime_unprocessable_input(self, cache, box, klass):
         # GH 4928
         # GH 21864
         result = to_datetime([1, '1'], errors='ignore', cache=cache, box=box)
         expected = klass(np.array([1, '1'], dtype='O'))
-        getattr(tm, assert_method)(result, expected)
+        tm.assert_equal(result, expected)
         pytest.raises(TypeError, to_datetime, [1, '1'], errors='raise',
                       cache=cache, box=box)
 
