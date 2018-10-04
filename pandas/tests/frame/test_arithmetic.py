@@ -99,6 +99,38 @@ class TestFrameComparisons(object):
 # Arithmetic
 
 class TestFrameFlexArithmetic(object):
+    # TODO: tests for other arithmetic ops
+    def test_df_add_2d_array_rowlike_broadcasts(self):
+        # GH#
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        rowlike = arr[[1], :]  # shape --> (1, ncols)
+        expected = pd.DataFrame([[2, 4],
+                                 [4, 6],
+                                 [6, 8]],
+                                columns=df.columns, index=df.index)
+        result = df + rowlike
+        tm.assert_frame_equal(result, expected)
+        result = rowlike + df
+        tm.assert_frame_equal(result, expected)
+
+    # TODO: tests for other arithmetic ops
+    def test_df_add_2d_array_collike_broadcasts(self):
+        # GH#
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        collike = arr[[1], :]  # shape --> (nrows, 1)
+        expected = pd.DataFrame([[0, 1],
+                                 [4, 7],
+                                 [8, 9]],
+                                columns=df.columns, index=df.index)
+        result = df + collike
+        tm.assert_frame_equal(result, expected)
+        result = collike + df
+        tm.assert_frame_equal(result, expected)
+
     def test_df_add_td64_columnwise(self):
         # GH#22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range('2016-01-01', periods=10)
