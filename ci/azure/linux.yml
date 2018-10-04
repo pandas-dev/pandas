@@ -52,5 +52,5 @@ jobs:
         source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
     - task: PublishTestResults@2
       inputs:
-        testResultsFiles: '/tmp/single.xml;/tmp/multiple.xml'
+        testResultsFiles: 'test-data-*.xml'
         testRunTitle: 'Linux'

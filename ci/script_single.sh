@@ -26,14 +26,14 @@ if [ "$DOC" ]; then
     echo "We are not running pytest as this is a doc-build"
 
 elif [ "$COVERAGE" ]; then
-    echo pytest -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
-    pytest      -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=/tmp/single.xml $TEST_ARGS pandas
+    echo pytest -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=test-data-single.xml $TEST_ARGS pandas
+    pytest      -s -m "single" -r xXs --strict --cov=pandas --cov-report xml:/tmp/cov-single.xml --junitxml=test-data-single.xml $TEST_ARGS pandas
 
     echo pytest -s -r xXs --strict scripts
     pytest      -s -r xXs --strict scripts
 else
-    echo pytest -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas
-    pytest      -m "single" -r xXs --junitxml=/tmp/single.xml --strict $TEST_ARGS pandas # TODO: doctest
+    echo pytest -m "single" -r xXs --junitxml=test-data-single.xml --strict $TEST_ARGS pandas
+    pytest      -m "single" -r xXs --junitxml=test-data-single.xml --strict $TEST_ARGS pandas
 
 fi
 
