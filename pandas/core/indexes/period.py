@@ -255,13 +255,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
     def _shallow_copy(self, values=None, **kwargs):
         # TODO: simplify, figure out type of values
         if values is None:
-            values = self._ndarray_values
+            values = self._values
         if not isinstance(values, PeriodArray):
-            # in particular, I would like to avoid complex_new here.
-            # Some people seem to be calling use with unexpected types
-            # Index.difference -> ndarray[Period]
-            # DatetimelikeIndexOpsMixin.repeat -> ndarray[ordinal]
-            values = PeriodArray._complex_new(values, freq=self.freq)
+            if (isinstance(values, np.ndarray) and
+                    is_integer_dtype(values.dtype)):
+                values = PeriodArray._from_ordinals(values, freq=self.freq)
+            else:
+                # in particular, I would like to avoid complex_new here.
+                # Some people seem to be calling use with unexpected types
+                # Index.difference -> ndarray[Period]
+                # DatetimelikeIndexOpsMixin.repeat -> ndarray[ordinal]
+                # I think that once all of Datetime* are EAs, we can simplify
+                # this quite a bit.
+                values = PeriodArray._complex_new(values, freq=self.freq)
 
         # I don't like overloading shallow_copy with freq changes.
         # See if it's used anywhere outside of test_resample_empty_dataframe
