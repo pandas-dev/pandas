@@ -497,7 +497,7 @@ ExtensionType Changes
 Pandas now requires that extension dtypes be hashable. The base class implements
 a default ``__eq__`` and ``__hash__``. If you have a parametrized dtype, you should
 update the ``ExtensionDtype._metadata`` tuple to match the signature of your
-``__init__`` method. See :class:`pandas.api.extensions.ExtensionDtype` for more.
+``__init__`` method. See :class:`pandas.api.extensions.ExtensionDtype` for more (:issue:`22476`).
 
 **Other changes**
 
