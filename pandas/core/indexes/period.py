@@ -449,12 +449,12 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     @property
     @Appender(PeriodArrayMixin.start_time.__doc__)
     def start_time(self):
-        return PeriodArrayMixin.start_time(self)
+        return PeriodArrayMixin.start_time.fget(self)
 
     @property
     @Appender(PeriodArrayMixin.end_time.__doc__)
     def end_time(self):
-        return PeriodArrayMixin.end_time(self)
+        return PeriodArrayMixin.end_time.fget(self)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
