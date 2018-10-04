@@ -10,7 +10,6 @@ import numpy as np
 import warnings
 
 import pandas as pd
-import collections
 from pandas.core.base import PandasObject
 
 from pandas import compat
@@ -898,7 +897,7 @@ class SparseArray(PandasObject, ExtensionArray, ExtensionOpsMixin):
         # this is used in apply.
         # We get hit since we're an "is_extension_type" but regular extension
         # types are not hit...
-        if isinstance(mapper, collections.Mapping):
+        if isinstance(mapper, compat.Mapping):
             fill_value = mapper.get(self.fill_value, self.fill_value)
             sp_values = [mapper.get(x, None) for x in self.sp_values]
         else:
