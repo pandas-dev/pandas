@@ -47,6 +47,23 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
     """Extract combined index: return intersection or union (depending on the
     value of "intersect") of indexes on given axis, or None if all objects
     lack indexes (e.g. they are numpy arrays)
+
+    Parameters
+    ----------
+    objs: list of objects
+        Each object will only be considered if it has a _get_axis
+        attribute
+    intersect: boolean, default False
+        If True, calculate the intersection between indexes. Otherwise,
+        calculate the union
+    axis: {0 or 'index', 1 or 'outer'}, default 0
+        The axis to extract indexes from
+    sort: boolean, default True
+        Whether the result index should come out sorted or not
+
+    Returns
+    -------
+    Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs
                  if hasattr(obj, '_get_axis')]
@@ -56,6 +73,20 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
 
 def _get_combined_index(indexes, intersect=False, sort=False):
     """Return the union or intersection of indexes
+
+    Parameters
+    ----------
+    indexes: a list of Index or list objects
+        When intersect=True, do not accept list of lists
+    intersect: boolean, default False
+        If True, calculate the intersection between indexes. Otherwise,
+        calculate the union
+    sort: boolean, default False
+        Whether the result index should come out sorted or not
+
+    Returns
+    -------
+    Index
     """
 
     # TODO: handle index names!
@@ -84,6 +115,16 @@ def _union_indexes(indexes, sort=True):
     """Return the union of indexes
 
     The behavior of sort and names is not consistent.
+
+    Parameters
+    ----------
+    indexes: a list of Index or list objects
+    sort: boolean, default True
+        Whether the result index should come out sorted or not
+
+    Returns
+    -------
+    Index
     """
     if len(indexes) == 0:
         raise AssertionError('Must have at least 1 Index to union')
@@ -99,6 +140,14 @@ def _union_indexes(indexes, sort=True):
         """Convert indexes to lists and concatenate them, removing duplicates
 
         The final dtype is inferred.
+
+        Parameters
+        ----------
+        inds: a list of Index or list objects
+
+        Returns
+        -------
+        Index
         """
         def conv(i):
             if isinstance(i, Index):
@@ -147,6 +196,15 @@ def _sanitize_and_check(indexes):
         Lists are sorted and converted to Index
     - [Index, Index, ...]: Return ([Index, Index, ...], TYPE)
         TYPE = 'special' if at least one special type, 'array' otherwise
+
+    Parameters
+    ----------
+    indexes: a list of Index or list objects
+
+    Returns
+    -------
+    sanitized_indexes: list of Index or list objects
+    type: {'list', 'array', 'special'}
     """
     kinds = list({type(index) for index in indexes})
 
@@ -170,6 +228,15 @@ def _get_consensus_names(indexes):
 
     If there's exactly one non-empty 'names', return this,
     otherwise, return empty.
+
+    Parameters
+    ----------
+    indexes: a list of index objects
+
+    Returns
+    -------
+    list
+        A list representing the consensus 'names' found
     """
 
     # find the non-none names, need to tupleify to make
@@ -183,6 +250,15 @@ def _get_consensus_names(indexes):
 
 def _all_indexes_same(indexes):
     """Determine if all indexes contain the same elements
+
+    Parameters
+    ----------
+    indexes: a list of Index objects
+
+    Returns
+    -------
+    boolean
+        True if all indexes contain the same elements, False otherwise
     """
     first = indexes[0]
     for index in indexes[1:]:
