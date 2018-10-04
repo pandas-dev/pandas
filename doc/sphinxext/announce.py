@@ -42,7 +42,7 @@ import textwrap
 from git import Repo
 
 UTF8Writer = codecs.getwriter('utf8')
-this_repo = Repo(os.path.join(os.path.dirname(__file__), ".."))
+this_repo = Repo(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 author_msg = """\
 A total of %d people contributed to this release.  People with a "+" by their
