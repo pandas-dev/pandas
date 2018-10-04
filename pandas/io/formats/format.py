@@ -620,7 +620,6 @@ class DataFrameFormatter(TableFormatter):
                 # Size of last col determines dot col size. See
                 # `self._to_str_columns
                 size_tr_col = len(headers[self.tr_size_col])
-                max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
                 # '+ 1' to avoid too wide repr (GH PR #17023)
