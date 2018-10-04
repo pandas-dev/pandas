@@ -287,7 +287,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         """ we always want to return a PeriodIndex """
         return self._shallow_copy(values=values, **kwargs)
 
