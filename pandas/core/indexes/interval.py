@@ -6,12 +6,14 @@ import numpy as np
 
 from pandas.compat import add_metaclass
 from pandas.core.dtypes.missing import isna
-from pandas.core.dtypes.cast import find_common_type, maybe_downcast_to_dtype
+from pandas.core.dtypes.cast import (
+    find_common_type, maybe_downcast_to_dtype, infer_dtype_from_scalar)
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_list_like,
     is_datetime_or_timedelta_dtype,
     is_datetime64tz_dtype,
+    is_dtype_equal,
     is_integer_dtype,
     is_float_dtype,
     is_interval_dtype,
@@ -19,7 +21,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_float,
     is_number,
-    is_integer)
+    is_integer,
+    needs_i8_conversion)
 from pandas.core.indexes.base import (
     Index, ensure_index,
     default_pprint, _index_shared_docs)
@@ -29,8 +32,8 @@ from pandas._libs.interval import (
     Interval, IntervalMixin, IntervalTree,
 )
 
-from pandas.core.indexes.datetimes import date_range
-from pandas.core.indexes.timedeltas import timedelta_range
+from pandas.core.indexes.datetimes import date_range, DatetimeIndex
+from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.core.indexes.multi import MultiIndex
 import pandas.core.common as com
 from pandas.util._decorators import cache_readonly, Appender
@@ -192,7 +195,9 @@ class IntervalIndex(IntervalMixin, Index):
 
     @cache_readonly
     def _engine(self):
-        return IntervalTree(self.left, self.right, closed=self.closed)
+        left = self._maybe_convert_i8(self.left)
+        right = self._maybe_convert_i8(self.right)
+        return IntervalTree(left, right, closed=self.closed)
 
     def __contains__(self, key):
         """
@@ -514,6 +519,41 @@ class IntervalIndex(IntervalMixin, Index):
 
         return key
 
+    def _maybe_convert_i8(self, key):
+        if isinstance(key, Interval):
+            if not isinstance(key.left, (Timestamp, Timedelta)):
+                return key
+            left = self._maybe_convert_i8(key.left)
+            right = self._maybe_convert_i8(key.right)
+            return Interval(left, right, key.closed)
+        elif isinstance(key, (IntervalIndex, IntervalArray)):
+            if not needs_i8_conversion(key.left):
+                return key
+            left = self._maybe_convert_i8(key.left)
+            right = self._maybe_convert_i8(key.right)
+            return IntervalIndex.from_arrays(left, right, key.closed)
+        elif is_list_like(key) and not isinstance(key, Index):
+            result = self._maybe_convert_i8(ensure_index(key))
+            if result[0] == key[0]:
+                # return the list-like key if no conversion
+                return key
+            return result
+
+        subtype = self.dtype.subtype
+        msg = ('Cannot index an IntervalIndex of subtype {subtype} with '
+               'values of dtype {other}')
+        if isinstance(key, (Timestamp, Timedelta)):
+            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+            if not is_dtype_equal(subtype, key_dtype):
+                raise ValueError(msg.format(subtype=subtype, other=key_dtype))
+            return key_i8
+        elif isinstance(key, (DatetimeIndex, TimedeltaIndex)):
+            if not is_dtype_equal(subtype, key.dtype):
+                raise ValueError(msg.format(subtype=subtype, other=key.dtype))
+            return Index(key.asi8)
+
+        return key
+
     def _check_method(self, method):
         if method is None:
             return
@@ -648,6 +688,7 @@ class IntervalIndex(IntervalMixin, Index):
 
         else:
             # use the interval tree
+            key = self._maybe_convert_i8(key)
             if isinstance(key, Interval):
                 left, right = _get_interval_closed_bounds(key)
                 return self._engine.get_loc_interval(left, right)
@@ -711,8 +752,10 @@ class IntervalIndex(IntervalMixin, Index):
         """
 
         # find the left and right indexers
-        lindexer = self._engine.get_indexer(target.left.values)
-        rindexer = self._engine.get_indexer(target.right.values)
+        left = self._maybe_convert_i8(target.left)
+        right = self._maybe_convert_i8(target.right)
+        lindexer = self._engine.get_indexer(left.values)
+        rindexer = self._engine.get_indexer(right.values)
 
         # we want to return an indexer on the intervals
         # however, our keys could provide overlapping of multiple
