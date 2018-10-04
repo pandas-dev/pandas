@@ -28,6 +28,7 @@ from pandas.core.sparse.array import (
     SparseArray,
 )
 from pandas._libs.sparse import BlockIndex, IntIndex
+import pandas._libs.sparse as splib
 
 from pandas.core.sparse.scipy_sparse import (
     _sparse_series_to_coo,
