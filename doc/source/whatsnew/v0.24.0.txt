@@ -642,19 +642,15 @@ Current Behavior:
 
     In [3]: per = pd.Period('2016Q1')
     In [4]: per + 3 * per.freq
-    Out[4]: Period('2016Q4', 'Q-DEC')
 
     In [5]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
     In [6]: ts + 2 * ts.freq
-    Out[6]: Timestamp('1994-05-06 14:15:16', freq='H')
 
     In [7]: tdi = pd.timedelta_range('1D', periods=2)
     In [8]: tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
-    Out[8]: TimedeltaIndex(['-1 days', '1 days'], dtype='timedelta64[ns]', freq=None)
 
     In [9]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
     In [10]: dti + pd.Index([1 * dti.freq, 2 * dti.freq])
-    Out[10]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
 
 .. _whatsnew_0240.prior_deprecations:
 
