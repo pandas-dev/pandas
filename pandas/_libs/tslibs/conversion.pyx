@@ -836,7 +836,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     tz : tzinfo or None
     ambiguous : str, bool, or arraylike
         If arraylike, must have the same length as vals
-    nonexistent : str, bool, or arraylike
+    nonexistent : str
         If arraylike, must have the same length as vals
 
         .. versionadded:: 0.24.0
@@ -887,11 +887,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous)
 
-    if is_string_object(nonexistent):
-        if nonexistent == 'NaT':
-            fill_nonexist = True
-        elif nonexistent == 'shift':
-            shift = True
+    assert nonexistent in ('NaT', 'raise', 'shift'), ("nonexistent must be "
+                                                      "one of {'NaT', 'raise',"
+                                                      " 'shift'}")
+    if nonexistent == 'NaT':
+        fill_nonexist = True
+    elif nonexistent == 'shift':
+        shift = True
 
     trans, deltas, typ = get_dst_info(tz)
 
