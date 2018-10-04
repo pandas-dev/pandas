@@ -643,6 +643,7 @@ class TestAsOfMerge(object):
         assert_frame_equal(result, expected)
 
     def test_tolerance_float(self):
+        # GH22981
         left = pd.DataFrame({'a': [1.1, 3.5, 10.9],
                              'left_val': ['a', 'b', 'c']})
         right = pd.DataFrame({'a': [1.0, 2.5, 3.3, 7.5, 11.5],
