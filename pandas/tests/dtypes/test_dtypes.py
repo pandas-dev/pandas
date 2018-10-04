@@ -815,3 +815,23 @@ def test_registry_find(dtype, expected):
      ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
 def test_pandas_registry_find(dtype, expected):
     assert _pandas_registry.find(dtype) == expected
+
+
+@pytest.mark.parametrize("check", [
+    is_categorical_dtype,
+    is_datetime64tz_dtype,
+    is_period_dtype,
+    is_datetime64_ns_dtype,
+    is_datetime64_dtype,
+    is_interval_dtype,
+    is_datetime64_any_dtype,
+    is_string_dtype,
+    is_bool_dtype,
+])
+def test_is_dtype_no_warning(check):
+    data = pd.DataFrame({"A": [1, 2]})
+    with tm.assert_produces_warning(None):
+        check(data)
+
+    with tm.assert_produces_warning(None):
+        check(data["A"])
