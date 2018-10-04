@@ -34,6 +34,11 @@ echo
 echo "[no installed pandas]"
 conda list pandas
 
+if "[ $LOCALE_OVERRIDE ]"; then
+    locale-gen "$LOCALE_OVERRIDE"
+    dpkg-reconfigure locales
+fi
+
 # # Install the compiler toolchain
 # if [[ $(uname) == Linux ]]; then
 #     if [[ "$CONDA_SUBDIR" == "linux-32" || "$BITS32" == "yes" ]] ; then
