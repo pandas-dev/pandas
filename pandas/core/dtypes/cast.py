@@ -1222,7 +1222,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         # coerce if we have nan for an integer dtype
         # GH 22858: only cast to float if an index
         # (passed here as length) is specified
-        if is_integer_dtype(dtype) and isna(value) and length:
+        if length and is_integer_dtype(dtype) and isna(value):
             dtype = np.float64
         subarr = np.empty(length, dtype=dtype)
         subarr.fill(value)

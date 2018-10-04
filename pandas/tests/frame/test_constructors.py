@@ -802,16 +802,16 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame(index=[])
         assert df.values.shape == (0, 0)
 
-    @pytest.mark.parametrize("data, index, columns, dtype, ans", [
+    @pytest.mark.parametrize("data, index, columns, dtype, expected", [
         (None, lrange(10), ['a', 'b'], object, np.object_),
         (None, None, ['a', 'b'], 'int64', np.dtype('int64')),
         (None, lrange(10), ['a', 'b'], int, np.dtype('float64')),
         ({}, None, ['foo', 'bar'], None, np.object_),
         ({'b': 1}, lrange(10), list('abc'), int, np.dtype('float64'))
     ])
-    def test_constructor_corner_dtype(self, data, index, columns, dtype, ans):
+    def test_constructor_dtype(self, data, index, columns, dtype, expected):
         df = DataFrame(data, index, columns, dtype)
-        assert df.values.dtype == ans
+        assert df.values.dtype == expected
 
     def test_constructor_scalar_inference(self):
         data = {'int': 1, 'bool': True,
