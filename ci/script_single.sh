@@ -5,8 +5,9 @@ echo "[script_single]"
 source activate pandas
 
 if [ -n "$LOCALE_OVERRIDE" ]; then
+    echo "Setting LC_ALL and LANG to $LOCALE_OVERRIDE"
     export LC_ALL="$LOCALE_OVERRIDE";
-    echo "Setting LC_ALL to $LOCALE_OVERRIDE"
+    export LANG="$LOCALE_OVERRIDE";
 
     pycmd='import pandas; print("pandas detected console encoding: %s" % pandas.get_option("display.encoding"))'
     python -c "$pycmd"
