@@ -497,7 +497,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
                 return self.to_timestamp(how='start') + adjust
             else:
                 adjust = Timedelta(1, 'ns')
-                return (self + 1).to_timestamp(how='start') - adjust
+                return (self + self.freq).to_timestamp(how='start') - adjust
 
         if freq is None:
             base, mult = _gfc(self.freq)

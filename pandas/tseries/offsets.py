@@ -1109,7 +1109,8 @@ class SemiMonthOffset(DateOffset):
         time = i.to_perioddelta('D')
 
         # apply the correct number of months
-        i = (i.to_period('M') + (roll // 2)).to_timestamp()
+        imonths = i.to_period('M')
+        i = (imonths + (roll // 2) * imonths.freq).to_timestamp()
 
         # apply the correct day
         i = self._apply_index_days(i, roll)
