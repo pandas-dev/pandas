@@ -419,8 +419,19 @@ cdef class {{name}}HashTable(HashTable):
         return uniques.to_array()
 
     def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
+        # define separate functions with/without inverse to force compilation
+        # of the different code paths for boolean "return_inverse"
+        if return_inverse:
+            return self._unique_with_inverse(values)
+        return self._unique_no_inverse(values)
+
+    def _unique_no_inverse(self, const {{dtype}}_t[:] values):
         return self._unique(values, uniques={{name}}Vector(), ignore_na=False,
-                            return_inverse=return_inverse)
+                            return_inverse=False)
+
+    def _unique_with_inverse(self, const {{dtype}}_t[:] values):
+        return self._unique(values, uniques={{name}}Vector(), ignore_na=False,
+                            return_inverse=True)
 
     def factorize(self, {{dtype}}_t[:] values):
         return self._unique(values, uniques={{name}}Vector(), ignore_na=True,
@@ -685,8 +696,19 @@ cdef class StringHashTable(HashTable):
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
+        # define separate functions with/without inverse to force compilation
+        # of the different code paths for boolean "return_inverse"
+        if return_inverse:
+            return self._unique_with_inverse(values)
+        return self._unique_no_inverse(values)
+
+    def _unique_no_inverse(self, ndarray[object] values):
         return self._unique(values, uniques=ObjectVector(), ignore_na=False,
-                            return_inverse=return_inverse)
+                            return_inverse=False)
+
+    def _unique_with_inverse(self, ndarray[object] values):
+        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
+                            return_inverse=True)
 
     def factorize(self, ndarray[object] values):
         return self._unique(values, uniques=ObjectVector(), ignore_na=True,
@@ -831,8 +853,19 @@ cdef class PyObjectHashTable(HashTable):
         return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
+        # define separate functions with/without inverse to force compilation
+        # of the different code paths for boolean "return_inverse"
+        if return_inverse:
+            return self._unique_with_inverse(values)
+        return self._unique_no_inverse(values)
+
+    def _unique_no_inverse(self, ndarray[object] values):
         return self._unique(values, uniques=ObjectVector(), ignore_na=False,
-                            return_inverse=return_inverse)
+                            return_inverse=False)
+
+    def _unique_with_inverse(self, ndarray[object] values):
+        return self._unique(values, uniques=ObjectVector(), ignore_na=False,
+                            return_inverse=True)
 
     def factorize(self, ndarray[object] values):
         return self._unique(values, uniques=ObjectVector(), ignore_na=True,
