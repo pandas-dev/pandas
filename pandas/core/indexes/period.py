@@ -252,17 +252,10 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin,
         result = cls._simple_new(data, name=name)
         return result
 
-    def _shallow_copy(self, values=None, **kwargs):
+    def _shallow_copy(self, values, **kwargs):
         # TODO: simplify, figure out type of values
-        if values is None:
-            # Note: this is the Index implementation.
-            # slightly different from AttributesMixin implementation which
-            # defaults to self._ndarray_values
-            values = self.values
-        else:
-            # this differs too
-            if not isinstance(values, PeriodArray):
-                values = PeriodArray._from_ordinals(values, freq=self.freq)
+        if not isinstance(values, PeriodArray):
+            values = PeriodArray._from_ordinals(values, freq=self.freq)
 
         # I don't like overloading shallow_copy with freq changes.
         # See if it's used anywhere outside of test_resample_empty_dataframe

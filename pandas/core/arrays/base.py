@@ -781,20 +781,24 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
             # a TypeError should be raised
             res = [op(a, b) for (a, b) in zip(lvalues, rvalues)]
 
-            if coerce_to_dtype:
-                if op.__name__ in {'divmod', 'rdivmod'}:
+            def _maybe_convert(arr):
+                if coerce_to_dtype:
+                    # https://github.com/pandas-dev/pandas/issues/22850
+                    # We catch all regular exceptions here, and fall back
+                    # to an ndarray.
                     try:
-                        a, b = zip(*res)
-                        res = (self._from_sequence(a),
-                               self._from_sequence(b))
+                        res = self._from_sequence(arr)
                     except Exception:
-                        pass
+                        res = np.asarray(arr)
                 else:
-                    try:
-                        res = self._from_sequence(res)
-                    except Exception:
-                        pass
+                    res = np.asarray(arr)
+                return res
 
+            if op.__name__ in {'divmod', 'rdivmod'}:
+                a, b = zip(*res)
+                res = _maybe_convert(a), _maybe_convert(b)
+            else:
+                res = _maybe_convert(res)
             return res
 
         op_name = ops._get_op_name(op, True)

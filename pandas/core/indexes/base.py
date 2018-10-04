@@ -540,7 +540,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._simple_new(values, **attributes)
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         """
         create a new Index inferring the class with passed value, don't copy
         the data, use the same object attributes with passed in attributes
@@ -553,8 +553,6 @@ class Index(IndexOpsMixin, PandasObject):
         values : the values to create the new Index, optional
         kwargs : updates the default attributes for this Index
         """
-        if values is None:
-            values = self.values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         attributes['copy'] = False

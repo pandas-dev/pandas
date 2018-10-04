@@ -102,7 +102,7 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
 
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
-    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    @pytest.mark.skip(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
         pass

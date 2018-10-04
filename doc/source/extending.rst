@@ -167,11 +167,11 @@ your ``MyExtensionArray`` class, as follows:
    element one-by-one, this might not be as performant as implementing your own
    version of the associated operators directly on the ``ExtensionArray``.
 
-This implementation will try to reconstruct a new ``ExtensionArray`` with the
-result of the element-wise operation. Whether or not that succeeds depends on
-whether the operation returns a result that's valid for the ``ExtensionArray``.
-If an ``ExtensionArray`` cannot be reconstructed, a list containing the scalars
-returned instead.
+For arithmetic operations, this implementation will try to reconstruct a new
+``ExtensionArray`` with the result of the element-wise operation. Whether
+or not that succeeds depends on whether the operation returns a result
+that's valid for the ``ExtensionArray``. If an ``ExtensionArray`` cannot
+be reconstructed, an ndarray containing the scalars returned instead.
 
 .. _extending.extension.testing:
 

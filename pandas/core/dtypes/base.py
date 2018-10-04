@@ -2,6 +2,7 @@
 import numpy as np
 
 from pandas import compat
+from pandas.core.dtypes.generic import ABCSeries, ABCIndexClass, ABCDataFrame
 from pandas.errors import AbstractMethodError
 
 
@@ -83,7 +84,12 @@ class _DtypeOpsMixin(object):
         """
         dtype = getattr(dtype, 'dtype', dtype)
 
-        if isinstance(dtype, np.dtype):
+        if isinstance(dtype, (ABCSeries, ABCIndexClass,
+                              ABCDataFrame, np.dtype)):
+            # https://github.com/pandas-dev/pandas/issues/22960
+            # avoid passing data to `construct_from_string`. This could
+            # cause a FutureWarning from numpy about failing elementwise
+            # comparison from, e.g., comparing DataFrame == 'category'.
             return False
         elif dtype is None:
             return False
