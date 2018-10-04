@@ -1,6 +1,7 @@
 from warnings import catch_warnings, simplefilter
 from itertools import combinations
 from collections import deque
+from decimal import Decimal
 
 import datetime as dt
 import dateutil
@@ -19,6 +20,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.util import testing as tm
 from pandas.util.testing import (assert_frame_equal,
                                  makeCustomDataframe as mkdf)
+from pandas.tests.extension.decimal import to_decimal
 
 import pytest
 
@@ -2360,6 +2362,17 @@ bar2,12,13,14,15
                                  'b': [np.nan] * 3 + [1, 2, 3]},
                                 index=idx1.append(idx1))
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_different_extension_dtypes_upcasts(self):
+        a = pd.Series(pd.core.arrays.integer_array([1, 2]))
+        b = pd.Series(to_decimal([1, 2]))
+
+        result = pd.concat([a, b], ignore_index=True)
+        expected = pd.Series([
+            1, 2,
+            Decimal(1), Decimal(2)
+        ], dtype=object)
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
