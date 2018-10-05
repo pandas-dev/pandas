@@ -487,6 +487,70 @@ Previous Behavior:
     0 NaT
 
 
+.. _whatsnew_0240.api.dataframe_cmp_broadcasting:
+
+DataFrame Comparison Operations Broadcasting Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, the broadcasting behavior of :class:`DataFrame` comparison
+operations (``==``, ``!=``, ...) was inconsistent with the behavior of
+arithmetic operations (``+``, ``-``, ...).  The behavior of the comparison
+operations has been changed to match the arithmetic operations in these cases.
+
+The affected cases are: operating against a 2-dimensional ``np.ndarray`` with
+either 1 row or 1 column, a list or tuple with the same length matching the
+number of rows in the :class:`DataFrame`, and a list or tuple with the
+length matching the number of columns in the :class:`DataFrame`.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [3]: arr = np.arange(6).reshape(3, 2)
+   In [4]: df = pd.DataFrame(arr)
+
+   In [5]: df == arr[[0], :]  # comparison used to broadcast where arithmetic would raise
+   Out[5]:
+          0      1
+   0   True   True
+   1  False  False
+   2  False  False
+   In [6]: df + arr[[0], :]
+   ...
+   ValueError: Unable to coerce to DataFrame, shape must be (3, 2): given (1, 2)
+
+   In [7]: df == (1, 2)  # length matches number of columns; comparison used to raise where arithmetic would broadcast
+   ...
+   ValueError: Invalid broadcasting comparison [(1, 2)] with block values
+   In [8]: df + (1, 2)
+   Out[8]:
+      0  1
+   0  1  3
+   1  3  5
+   2  5  7
+
+   In [9]: df == (1, 2, 3)  # length matches number of rows; comparison used to broadcast where arithmetic would raise
+   Out[9]:
+          0      1
+   0  False   True
+   1   True  False
+   2  False  False
+   In [10]: df + (1, 2, 3)
+   ...
+   ValueError: Unable to coerce to Series, length must be 2: given 3
+
+*Current Behavior*:
+
+.. ipython:: python
+   In [3]: arr = np.arange(6).reshape(3, 2)
+   In [4]: df = pd.DataFrame(arr)
+   In [5]: df == arr[[0], :]  # raises just like the next arithmetic operation
+   In [6]: df + arr[[0], :]
+   In [7]: df == (1, 2)       # broadcasts just like the next arithmetic operation
+   In [8]: df + (1, 2)
+   In [9]: df == (1, 2, 3)    # raises just like the next arithmetic operation
+   In [10]: df + (1, 2, 3)
+
+
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
