@@ -688,8 +688,6 @@ class ExtensionArray(object):
             name of the function, support values are:
             {any, all, min, max, sum, mean, median, prod,
              std, var, sem, kurt, skew}
-        axis : int, default 0
-            axis over which to apply, defined as 0 currently
         skipna : bool, default True
             if True, skip NaN values
         kwargs : dict
