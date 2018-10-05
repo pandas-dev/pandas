@@ -200,6 +200,7 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
 
 .. _whatsnew_0240.api_breaking.interval_values:
@@ -506,6 +507,7 @@ ExtensionType Changes
 - :meth:`Series.astype` and :meth:`DataFrame.astype` now dispatch to :meth:`ExtensionArray.astype` (:issue:`21185:`).
 - Slicing a single row of a ``DataFrame`` with multiple ExtensionArrays of the same type now preserves the dtype, rather than coercing to object (:issue:`22784`)
 - Added :meth:`pandas.api.types.register_extension_dtype` to register an extension type with pandas (:issue:`22664`)
+- Updated the ``.type`` attribute for ``PeriodDtype``, ``DatetimeTZDtype``, and ``IntervalDtype`` to be instances of the dtype (``Period``, ``Timestamp``, and ``Interval`` respectively) (:issue:`22938`)
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -532,6 +534,35 @@ Current Behavior:
     Out [4]:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
+
+.. _whatsnew_0240.api.crosstab_dtypes
+
+Crosstab Preserves Dtypes
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`crosstab` will preserve now dtypes in some cases that previously would
+cast from integer dtype to floating dtype (:issue:`22019`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+       ...:                    'c': [1, 1, np.nan, 1, 1]})
+    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
+    Out[4]:
+    b    3    4
+    a
+    1  0.5  0.0
+    2  0.5  1.0
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [3]: df = pd.DataFrame({'a': [1, 2, 2, 2, 2], 'b': [3, 3, 4, 4, 4],
+       ...:                    'c': [1, 1, np.nan, 1, 1]})
+    In [4]: pd.crosstab(df.a, df.b, normalize='columns')
 
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -796,6 +827,7 @@ Groupby/Resample/Rolling
 - Bug in :meth:`Resampler.asfreq` when frequency of ``TimedeltaIndex`` is a subperiod of a new frequency (:issue:`13022`).
 - Bug in :meth:`SeriesGroupBy.mean` when values were integral but could not fit inside of int64, overflowing instead. (:issue:`22487`)
 - :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
+- Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` when resampling by a weekly offset (``'W'``) across a DST transition (:issue:`9119`, :issue:`21459`)
 
 Sparse
 ^^^^^^
@@ -819,6 +851,7 @@ Reshaping
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
+- Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 
 Build Changes
 ^^^^^^^^^^^^^

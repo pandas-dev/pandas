@@ -556,7 +556,7 @@ class MultiIndex(Index):
         result._id = self._id
         return result
 
-    def _shallow_copy_with_infer(self, values=None, **kwargs):
+    def _shallow_copy_with_infer(self, values, **kwargs):
         # On equal MultiIndexes the difference is empty.
         # Therefore, an empty MultiIndex is returned GH13490
         if len(values) == 0:
@@ -1001,7 +1001,7 @@ class MultiIndex(Index):
                     (compat.PY3 and isinstance(key, compat.string_types))):
                 try:
                     return _try_mi(key)
-                except (KeyError):
+                except KeyError:
                     raise
                 except (IndexError, ValueError, TypeError):
                     pass
