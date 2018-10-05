@@ -698,7 +698,7 @@ Timedelta
 - Bug in :class:`TimedeltaIndex` incorrectly allowing indexing with ``Timestamp`` object (:issue:`20464`)
 - Fixed bug where subtracting :class:`Timedelta` from an object-dtyped array would raise ``TypeError`` (:issue:`21980`)
 - Fixed bug in adding a :class:`DataFrame` with all-`timedelta64[ns]` dtypes to a :class:`DataFrame` with all-integer dtypes returning incorrect results instead of raising ``TypeError`` (:issue:`22696`)
--
+- Bug in :class:`Timedelta`: where passing a string of a pure number would not take unit into account. Also raises for ambiguous/duplicate unit specification (:issue: `12136`)
 
 Timezones
 ^^^^^^^^^
