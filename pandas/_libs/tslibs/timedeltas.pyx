@@ -1116,11 +1116,34 @@ class Timedelta(_Timedelta):
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
-            if len(value) > 0 and value[0] == 'P':
+            # Check if it is just a number in a string
+            try:
+                value = int(value)
+            except (ValueError, TypeError):
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    pass
+
+            if is_integer_object(value) or is_float_object(value):
+                value = convert_to_timedelta64(value, unit)
+            elif len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:
-                value = parse_timedelta_string(value)
-            value = np.timedelta64(value)
+                try:
+                    orig_value = value
+                    value = float(value)
+                except ValueError:
+                    if unit is not None:
+                        raise ValueError("Unit cannot be defined for strings other than pure integer/floats."
+                        " Value: {} Unit: {}".format(value, unit))
+                    value = parse_timedelta_string(value)
+                    value = np.timedelta64(value)
+                else:
+                    if unit is None:
+                        raise ValueError("Cannot convert float string without unit."
+                        " Value: {} Type: {}".format(orig_value, type(orig_value)))
+                    value = convert_to_timedelta64(value, unit)
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
         elif is_timedelta64_object(value):
