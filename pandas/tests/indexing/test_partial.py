@@ -163,20 +163,20 @@ class TestPartialSetting(object):
                                         index=[dates[-1] + dates.freq])],
                              sort=True)
         df = df_orig.copy()
-        df.loc[dates[-1] + 1, 'A'] = 7
+        df.loc[dates[-1] + dates.freq, 'A'] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + 1, 'A'] = 7
+        df.at[dates[-1] + dates.freq, 'A'] = 7
         tm.assert_frame_equal(df, expected)
 
-        exp_other = DataFrame({0: 7}, index=[dates[-1] + 1])
+        exp_other = DataFrame({0: 7}, index=[dates[-1] + dates.freq])
         expected = pd.concat([df_orig, exp_other], axis=1)
 
         df = df_orig.copy()
-        df.loc[dates[-1] + 1, 0] = 7
+        df.loc[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
         df = df_orig.copy()
-        df.at[dates[-1] + 1, 0] = 7
+        df.at[dates[-1] + dates.freq, 0] = 7
         tm.assert_frame_equal(df, expected)
 
     def test_partial_setting_mixed_dtype(self):
