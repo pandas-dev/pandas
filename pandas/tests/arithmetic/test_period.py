@@ -523,10 +523,14 @@ class TestPeriodIndexArithmetic(object):
     def test_pi_add_iadd_int(self, one):
         # Variants of `one` for #19012
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
-        result = rng + one
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        clear=[pd.core.arrays.datetimelike]):
+            result = rng + one
         expected = pd.period_range('2000-01-01 10:00', freq='H', periods=10)
         tm.assert_index_equal(result, expected)
-        rng += one
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        clear=[pd.core.arrays.datetimelike]):
+            rng += one
         tm.assert_index_equal(rng, expected)
 
     def test_pi_sub_isub_int(self, one):
@@ -600,7 +604,9 @@ class TestPeriodIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(TypeError):
-            other - pi
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                other - pi
 
     # ---------------------------------------------------------------
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)

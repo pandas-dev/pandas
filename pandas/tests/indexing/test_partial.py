@@ -159,7 +159,8 @@ class TestPartialSetting(object):
                             columns=['A', 'B', 'C', 'D'])
 
         expected = pd.concat([df_orig,
-                              DataFrame({'A': 7}, index=[dates[-1] + 1])],
+                              DataFrame({'A': 7},
+                                        index=[dates[-1] + dates.freq])],
                              sort=True)
         df = df_orig.copy()
         df.loc[dates[-1] + 1, 'A'] = 7
