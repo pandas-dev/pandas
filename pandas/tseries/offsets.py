@@ -1305,8 +1305,12 @@ class Week(DateOffset):
     @apply_index_wraps
     def apply_index(self, i):
         if self.weekday is None:
-            return ((i.to_period('W') + Day(self.n)).to_timestamp() +
-                    i.to_perioddelta('W'))
+            with warnings.catch_warnings(record=True):
+                # integer addition on PeriodIndex is deprecated,
+                #  but still used internally for performance
+                warnings.simplefilter("ignore", FutureWarning)
+                shifted = i.to_period('W') + self.n
+            return shifted.to_timestamp() + i.to_perioddelta('W')
         else:
             return self._end_apply_index(i)
 

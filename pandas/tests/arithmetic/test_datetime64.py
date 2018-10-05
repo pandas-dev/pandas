@@ -1054,10 +1054,13 @@ class TestDatetimeIndexArithmetic(object):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
         other = box([4, -1])
-        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
+
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = DatetimeIndex([dti[n] + other[n]
+                                      for n in range(len(dti))])
             result = dti + other
         tm.assert_index_equal(result, expected)
+
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = other + dti
         tm.assert_index_equal(result, expected)
@@ -1068,7 +1071,10 @@ class TestDatetimeIndexArithmetic(object):
         # GH#19959
         dti = pd.date_range('2016-01-01', periods=2, freq=freq)
         other = box([4, -1])
-        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            expected = DatetimeIndex([dti[n] + other[n]
+                                      for n in range(len(dti))])
 
         # tm.assert_produces_warning does not handle cases where we expect
         # two warnings, in this case PerformanceWarning and FutureWarning.
