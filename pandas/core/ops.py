@@ -1798,7 +1798,6 @@ def _align_method_FRAME(left, right, axis):
         if right.ndim == 1:
             right = to_series(right)
 
-
         elif right.ndim == 2:
             if right.shape == left.shape:
                 right = left._constructor(right, index=left.index,
