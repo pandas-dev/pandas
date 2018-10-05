@@ -33,7 +33,8 @@ def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
 
     if check_dates:
         df = DataFrame({'b': date_range('1/1/2001', periods=2)})
-        result = getattr(df, opname)()
+        _f = getattr(df, opname)
+        result = _f()
         assert isinstance(result, Series)
 
         df['a'] = lrange(len(df))
@@ -85,7 +86,7 @@ def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname in ['sum', 'prod']:
-            unit = 1 if opname == 'prod' else 0  # result for empty sum/prod
+            unit = int(opname == 'prod')
             expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
             tm.assert_series_equal(r0, expected)
             expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
@@ -136,7 +137,7 @@ def assert_bool_op_calc(opname, alternative, main_frame, has_skipna=True):
                            check_dtype=False)
 
     # bad axis
-    tm.assert_raises_regex(ValueError, 'No axis named 2', f, axis=2)
+    pytest.raises(ValueError, f, axis=2)
 
     # all NA case
     if has_skipna:
@@ -155,7 +156,7 @@ def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
                        has_bool_only=False):
     # make sure op works on mixed-type frame
     mixed = float_string_frame
-    mixed['_bool_'] = np.random.randn(len(mixed)) > 0.5
+    mixed['_bool_'] = np.random.randn(len(mixed)) > 0
     getattr(mixed, opname)(axis=0)
     getattr(mixed, opname)(axis=1)
 
