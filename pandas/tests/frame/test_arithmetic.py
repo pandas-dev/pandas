@@ -98,50 +98,6 @@ class TestFrameComparisons(object):
 # -------------------------------------------------------------------
 # Arithmetic
 
-class TestFrameArithmetic(object):
-    # TODO: tests for other arithmetic ops
-    def test_df_add_2d_array_rowlike_broadcasts(self):
-        # GH#
-        arr = np.arange(6).reshape(3, 2)
-        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
-
-        rowlike = arr[[1], :]  # shape --> (1, ncols)
-        assert rowlike.shape == (1, df.shape[1])
-
-        expected = pd.DataFrame([[2, 4],
-                                 [4, 6],
-                                 [6, 8]],
-                                columns=df.columns, index=df.index,
-                                # specify dtype explicitly to avoid failing
-                                # on 32bit builds
-                                dtype=arr.dtype)
-        result = df + rowlike
-        tm.assert_frame_equal(result, expected)
-        result = rowlike + df
-        tm.assert_frame_equal(result, expected)
-
-    # TODO: tests for other arithmetic ops
-    def test_df_add_2d_array_collike_broadcasts(self):
-        # GH#
-        arr = np.arange(6).reshape(3, 2)
-        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
-
-        collike = arr[:, [1]]  # shape --> (nrows, 1)
-        assert collike.shape == (df.shape[0], 1)
-
-        expected = pd.DataFrame([[1, 2],
-                                 [5, 6],
-                                 [9, 10]],
-                                columns=df.columns, index=df.index,
-                                # specify dtype explicitly to avoid failing
-                                # on 32bit builds
-                                dtype=arr.dtype)
-        result = df + collike
-        tm.assert_frame_equal(result, expected)
-        result = collike + df
-        tm.assert_frame_equal(result, expected)
-
-
 class TestFrameFlexArithmetic(object):
 
     def test_df_add_td64_columnwise(self):
@@ -297,6 +253,48 @@ class TestFrameFlexArithmetic(object):
 
 
 class TestFrameArithmetic(object):
+    # TODO: tests for other arithmetic ops
+    def test_df_add_2d_array_rowlike_broadcasts(self):
+        # GH#
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        rowlike = arr[[1], :]  # shape --> (1, ncols)
+        assert rowlike.shape == (1, df.shape[1])
+
+        expected = pd.DataFrame([[2, 4],
+                                 [4, 6],
+                                 [6, 8]],
+                                columns=df.columns, index=df.index,
+                                # specify dtype explicitly to avoid failing
+                                # on 32bit builds
+                                dtype=arr.dtype)
+        result = df + rowlike
+        tm.assert_frame_equal(result, expected)
+        result = rowlike + df
+        tm.assert_frame_equal(result, expected)
+
+    # TODO: tests for other arithmetic ops
+    def test_df_add_2d_array_collike_broadcasts(self):
+        # GH#
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        collike = arr[:, [1]]  # shape --> (nrows, 1)
+        assert collike.shape == (df.shape[0], 1)
+
+        expected = pd.DataFrame([[1, 2],
+                                 [5, 6],
+                                 [9, 10]],
+                                columns=df.columns, index=df.index,
+                                # specify dtype explicitly to avoid failing
+                                # on 32bit builds
+                                dtype=arr.dtype)
+        result = df + collike
+        tm.assert_frame_equal(result, expected)
+        result = collike + df
+        tm.assert_frame_equal(result, expected)
+
     def test_df_bool_mul_int(self):
         # GH#22047, GH#22163 multiplication by 1 should result in int dtype,
         # not object dtype
