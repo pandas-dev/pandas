@@ -455,7 +455,7 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
     def _addsub_int_array(self, other, op):
         """
         Add or subtract array-like of integers equivalent to applying
-        `shift` pointwise.
+        `_time_shift` pointwise.
 
         Parameters
         ----------
@@ -565,6 +565,23 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
         --------
         Index.shift : Shift values of Index.
         """
+        return self._time_shift(periods=periods, freq=freq)
+
+    def _time_shift(self, periods, freq=None):
+        """
+        Shift each value by `periods`.
+
+        Note this is different from ExtensionArray.shift, which
+        shifts the *position* of each element, padding the end with
+        missing values.
+
+        Parameters
+        ----------
+        periods : int
+            Number of periods to shift by.
+        freq : pandas.DateOffset, pandas.Timedelta, or string
+            Frequency increment to shift by.
+        """
         if freq is not None and freq != self.freq:
             if isinstance(freq, compat.string_types):
                 freq = frequencies.to_offset(freq)
@@ -622,7 +639,8 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                   "add `n * self.freq`"
                                   .format(cls=type(self).__name__),
                                   FutureWarning, stacklevel=lvl)
-                result = self.shift(other)
+
+                result = self._time_shift(other)
 
             # array-like others
             elif is_timedelta64_dtype(other):
@@ -684,7 +702,9 @@ class DatetimeLikeArrayMixin(ExtensionOpsMixin, AttributesMixin):
                                   "subtract `n * self.freq`"
                                   .format(cls=type(self).__name__),
                                   FutureWarning, stacklevel=lvl)
-                result = self.shift(-other)
+
+                result = self._time_shift(-other)
+
             elif isinstance(other, Period):
                 result = self._sub_period(other)
 

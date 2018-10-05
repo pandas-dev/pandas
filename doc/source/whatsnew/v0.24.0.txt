@@ -199,6 +199,7 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- A newly constructed empty :class:`DataFrame` with integer as the ``dtype`` will now only be cast to ``float64`` if ``index`` is specified (:issue:`22858`)
 
 
 .. _whatsnew_0240.api_breaking.interval_values:
@@ -895,6 +896,7 @@ Reshaping
 - Bug in :meth:`DataFrame.drop_duplicates` for empty ``DataFrame`` which incorrectly raises an error (:issue:`20516`)
 - Bug in :func:`pandas.wide_to_long` when a string is passed to the stubnames argument and a column name is a substring of that stubname (:issue:`22468`)
 - Bug in :func:`merge` when merging ``datetime64[ns, tz]`` data that contained a DST transition (:issue:`18885`)
+- Bug in :func:`merge_asof` when merging on float values within defined tolerance (:issue:`22981`)
 
 Build Changes
 ^^^^^^^^^^^^^
