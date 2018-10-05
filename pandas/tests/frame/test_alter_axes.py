@@ -203,13 +203,14 @@ class TestDataFrameAlterAxes():
         # if either box was iter, the content has been consumed; re-read it
         keys = [box1(df['A']), box2(df['A'])]
 
+        # need to adapt first drop for case that both keys are 'A' --
+        # can't drop the same column twice
+        first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
+
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise
-        # box = list would be illegal; need to adapt drop for case that both
-        # keys are 'A' -- can't drop the same column twice
-        expected = df.set_index([keys[0]], drop=(False if (keys[0] is 'A'
-                                                           and keys[1] is 'A')
-                                                 else drop), append=append)
+        # box = list would be illegal
+        expected = df.set_index([keys[0]], drop=first_drop, append=append)
         expected = expected.set_index([keys[1]], drop=drop, append=True)
         tm.assert_frame_equal(result, expected)
 
