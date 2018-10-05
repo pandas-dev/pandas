@@ -2310,7 +2310,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all='ignore'):
-                    new_values.append(func(lv, rv))
+                    if(np.isnan(func(lv, rv))):
+                        new_values.append(fill_value)
+                    else:
+                        new_values.append(func(lv, rv))
         else:
             # Assume that other is a scalar, so apply the function for
             # each element in the Series
