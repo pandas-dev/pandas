@@ -887,13 +887,13 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
                              "the same size as vals")
         ambiguous_array = np.asarray(ambiguous)
 
-    assert nonexistent in ('NaT', 'raise', 'shift'), ("nonexistent must be "
-                                                      "one of {'NaT', 'raise',"
-                                                      " 'shift'}")
     if nonexistent == 'NaT':
         fill_nonexist = True
     elif nonexistent == 'shift':
         shift = True
+    else:
+        assert nonexistent in ('raise', None), ("nonexistent must be one of"
+                                                "{'NaT', 'raise', 'shift'}")
 
     trans, deltas, typ = get_dst_info(tz)
 
