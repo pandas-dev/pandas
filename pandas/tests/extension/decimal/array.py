@@ -1,5 +1,6 @@
 import decimal
 import numbers
+import random
 import sys
 
 import numpy as np
@@ -136,6 +137,14 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+
+def to_decimal(values, context=None):
+    return DecimalArray([decimal.Decimal(x) for x in values], context=context)
+
+
+def make_data():
+    return [decimal.Decimal(random.random()) for _ in range(100)]
 
 
 DecimalArray._add_arithmetic_ops()
