@@ -129,9 +129,9 @@ class TestFrameArithmetic(object):
         collike = arr[:, [1]]  # shape --> (nrows, 1)
         assert collike.shape == (df.shape[0], 1)
 
-        expected = pd.DataFrame([[2, 4],
-                                 [4, 6],
-                                 [6, 8]],
+        expected = pd.DataFrame([[1, 2],
+                                 [5, 6],
+                                 [9, 10]],
                                 columns=df.columns, index=df.index,
                                 # specify dtype explicitly to avoid failing
                                 # on 32bit builds
