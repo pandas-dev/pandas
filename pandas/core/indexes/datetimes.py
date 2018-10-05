@@ -1079,6 +1079,13 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             return (Timestamp(st, tz=self.tz),
                     Timestamp(Timestamp(st + offsets.Second(),
                                         tz=self.tz).value - 1))
+        elif reso == 'millisecond':
+            st = datetime(parsed.year, parsed.month, parsed.day,
+                          parsed.hour, parsed.minute, parsed.second,
+                          parsed.microsecond)
+            return (Timestamp(st, tz=self.tz),
+                    Timestamp(Timestamp(st + offsets.Milli(),
+                                        tz=self.tz).value - 1))
         elif reso == 'microsecond':
             st = datetime(parsed.year, parsed.month, parsed.day,
                           parsed.hour, parsed.minute, parsed.second,
