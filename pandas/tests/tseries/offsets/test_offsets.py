@@ -2516,10 +2516,8 @@ class TestSemiMonthEnd(Base):
         dt, expected = case
         assert_onOffset(SemiMonthEnd(), dt, expected)
 
-    @pytest.mark.parametrize('klass,assert_func',
-                             [(Series, tm.assert_series_equal),
-                              (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass, assert_func):
+    @pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+    def test_vectorized_offset_addition(self, klass):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
 
@@ -2527,8 +2525,8 @@ class TestSemiMonthEnd(Base):
         result2 = SemiMonthEnd() + s
         exp = klass([Timestamp('2000-01-31 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-29', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
@@ -2536,8 +2534,8 @@ class TestSemiMonthEnd(Base):
         result2 = SemiMonthEnd() + s
         exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
 
 class TestSemiMonthBegin(Base):
@@ -2692,18 +2690,16 @@ class TestSemiMonthBegin(Base):
         dt, expected = case
         assert_onOffset(SemiMonthBegin(), dt, expected)
 
-    @pytest.mark.parametrize('klass,assert_func',
-                             [(Series, tm.assert_series_equal),
-                              (DatetimeIndex, tm.assert_index_equal)])
-    def test_vectorized_offset_addition(self, klass, assert_func):
+    @pytest.mark.parametrize('klass', [Series, DatetimeIndex])
+    def test_vectorized_offset_addition(self, klass):
         s = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-15', tz='US/Central')], name='a')
         result = s + SemiMonthBegin()
         result2 = SemiMonthBegin() + s
         exp = klass([Timestamp('2000-02-01 00:15:00', tz='US/Central'),
                      Timestamp('2000-03-01', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
         s = klass([Timestamp('2000-01-01 00:15:00', tz='US/Central'),
                    Timestamp('2000-02-01', tz='US/Central')], name='a')
@@ -2711,8 +2707,8 @@ class TestSemiMonthBegin(Base):
         result2 = SemiMonthBegin() + s
         exp = klass([Timestamp('2000-01-15 00:15:00', tz='US/Central'),
                      Timestamp('2000-02-15', tz='US/Central')], name='a')
-        assert_func(result, exp)
-        assert_func(result2, exp)
+        tm.assert_equal(result, exp)
+        tm.assert_equal(result2, exp)
 
 
 def test_Easter():

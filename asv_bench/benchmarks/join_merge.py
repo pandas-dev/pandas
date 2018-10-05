@@ -3,14 +3,15 @@ import string
 
 import numpy as np
 import pandas.util.testing as tm
-from pandas import (DataFrame, Series, MultiIndex, date_range, concat, merge,
-                    merge_asof)
+from pandas import (DataFrame, Series, Panel, MultiIndex,
+                    date_range, concat, merge, merge_asof)
+
 try:
     from pandas import merge_ordered
 except ImportError:
     from pandas import ordered_merge as merge_ordered
 
-from .pandas_vb_common import Panel, setup  # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class Append(object):
@@ -29,7 +30,7 @@ class Append(object):
         try:
             with warnings.catch_warnings(record=True):
                 self.mdf1.consolidate(inplace=True)
-        except:
+        except (AttributeError, TypeError):
             pass
         self.mdf2 = self.mdf1.copy()
         self.mdf2.index = self.df2.index
