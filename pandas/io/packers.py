@@ -194,7 +194,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
         if should_close:
             try:
                 path_or_buf.close()
-            except:  # noqa: flake8
+            except IOError:
                 pass
         return l
 
@@ -703,7 +703,7 @@ def decode(obj):
             dtype = dtype_for(obj[u'dtype'])
             try:
                 return dtype(obj[u'data'])
-            except:
+            except (ValueError, TypeError):
                 return dtype.type(obj[u'data'])
     elif typ == u'np_complex':
         return complex(obj[u'real'] + u'+' + obj[u'imag'] + u'j')
