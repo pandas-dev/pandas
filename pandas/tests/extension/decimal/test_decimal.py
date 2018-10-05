@@ -131,7 +131,7 @@ class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class Reduce:
+class Reduce(object):
 
     def check_reduce(self, s, op_name, skipna):
 
