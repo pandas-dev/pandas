@@ -1443,17 +1443,18 @@ class TimeGrouper(Grouper):
             raise TypeError('axis must be a DatetimeIndex, but got '
                             'an instance of %r' % type(ax).__name__)
 
+        freq = self.freq
+
         if not len(ax):
-            binner = labels = PeriodIndex(
-                data=[], freq=self.freq, name=ax.name)
+            binner = labels = PeriodIndex(data=[], freq=freq, name=ax.name)
             return binner, [], labels
 
         labels = binner = PeriodIndex(start=ax[0],
                                       end=ax[-1],
-                                      freq=self.freq,
+                                      freq=freq,
                                       name=ax.name)
 
-        end_stamps = (labels + 1).asfreq(self.freq, 's').to_timestamp()
+        end_stamps = (labels + freq).asfreq(freq, 's').to_timestamp()
         if ax.tzinfo:
             end_stamps = end_stamps.tz_localize(ax.tzinfo)
         bins = ax.searchsorted(end_stamps, side='left')
