@@ -1207,7 +1207,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """
-
         Alter the label(s) of the axis.
 
         Parameters
