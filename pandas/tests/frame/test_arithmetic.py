@@ -98,7 +98,7 @@ class TestFrameComparisons(object):
 # -------------------------------------------------------------------
 # Arithmetic
 
-class TestFrameFlexArithmetic(object):
+class TestFrameArithmetic(object):
     # TODO: tests for other arithmetic ops
     def test_df_add_2d_array_rowlike_broadcasts(self):
         # GH#
@@ -106,6 +106,8 @@ class TestFrameFlexArithmetic(object):
         df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
 
         rowlike = arr[[1], :]  # shape --> (1, ncols)
+        assert rowlike.shape == (1, df.shape[1])
+
         expected = pd.DataFrame([[2, 4],
                                  [4, 6],
                                  [6, 8]],
@@ -124,7 +126,9 @@ class TestFrameFlexArithmetic(object):
         arr = np.arange(6).reshape(3, 2)
         df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
 
-        collike = arr[[1], :]  # shape --> (nrows, 1)
+        collike = arr[:, [1]]  # shape --> (nrows, 1)
+        assert collike.shape == (df.shape[0], 1)
+
         expected = pd.DataFrame([[2, 4],
                                  [4, 6],
                                  [6, 8]],
@@ -136,6 +140,9 @@ class TestFrameFlexArithmetic(object):
         tm.assert_frame_equal(result, expected)
         result = collike + df
         tm.assert_frame_equal(result, expected)
+
+
+class TestFrameFlexArithmetic(object):
 
     def test_df_add_td64_columnwise(self):
         # GH#22534 Check that column-wise addition broadcasts correctly
