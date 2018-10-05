@@ -4929,7 +4929,8 @@ class DataFrame(NDFrame):
             return ops.dispatch_to_series(left, right, func)
         else:
             # fastpath --> operate directly on values
-            new_data = func(left.values.T, right.values).T
+            with np.errstate(all="ignore"):
+                new_data = func(left.values.T, right.values).T
             return self._constructor(new_data,
                                      index=left.index, columns=self.columns,
                                      copy=False)
