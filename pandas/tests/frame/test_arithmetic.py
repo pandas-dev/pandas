@@ -125,7 +125,10 @@ class TestFrameFlexArithmetic(object):
         expected = pd.DataFrame([[2, 4],
                                  [4, 6],
                                  [6, 8]],
-                                columns=df.columns, index=df.index)
+                                columns=df.columns, index=df.index,
+                                # specify dtype explicitly to avoid failing
+                                # on 32bit builds
+                                dtype=arr.dtype)
         result = df + collike
         tm.assert_frame_equal(result, expected)
         result = collike + df
