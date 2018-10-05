@@ -1019,19 +1019,19 @@ class TestDataFrameQueryStrings(object):
 class TestDataFrameEvalWithFrame(object):
 
     def setup_method(self, method):
-        self.frame = DataFrame(randn(10, 3), columns=list('abc'))
+        float_frame = DataFrame(randn(10, 3), columns=list('abc'))
 
     def teardown_method(self, method):
-        del self.frame
+        del float_frame
 
     def test_simple_expr(self, parser, engine):
-        res = self.frame.eval('a + b', engine=engine, parser=parser)
-        expect = self.frame.a + self.frame.b
+        res = float_frame.eval('a + b', engine=engine, parser=parser)
+        expect = float_frame.a + float_frame.b
         assert_series_equal(res, expect)
 
     def test_bool_arith_expr(self, parser, engine):
-        res = self.frame.eval('a[a < 1] + b', engine=engine, parser=parser)
-        expect = self.frame.a[self.frame.a < 1] + self.frame.b
+        res = float_frame.eval('a[a < 1] + b', engine=engine, parser=parser)
+        expect = float_frame.a[float_frame.a < 1] + float_frame.b
         assert_series_equal(res, expect)
 
     @pytest.mark.parametrize('op', ['+', '-', '*', '/'])

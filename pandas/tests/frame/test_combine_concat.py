@@ -459,20 +459,20 @@ class TestDataFrameCombineFirst(TestData):
 
     def test_combine_first(self):
         # disjoint
-        head, tail = self.frame[:5], self.frame[5:]
+        head, tail = float_frame[:5], float_frame[5:]
 
         combined = head.combine_first(tail)
-        reordered_frame = self.frame.reindex(combined.index)
+        reordered_frame = float_frame.reindex(combined.index)
         assert_frame_equal(combined, reordered_frame)
-        assert tm.equalContents(combined.columns, self.frame.columns)
+        assert tm.equalContents(combined.columns, float_frame.columns)
         assert_series_equal(combined['A'], reordered_frame['A'])
 
         # same index
-        fcopy = self.frame.copy()
+        fcopy = float_frame.copy()
         fcopy['A'] = 1
         del fcopy['C']
 
-        fcopy2 = self.frame.copy()
+        fcopy2 = float_frame.copy()
         fcopy2['B'] = 0
         del fcopy2['D']
 
@@ -496,20 +496,20 @@ class TestDataFrameCombineFirst(TestData):
         assert (combined['A'][:10] == 0).all()
 
         # no overlap
-        f = self.frame[:10]
-        g = self.frame[10:]
+        f = float_frame[:10]
+        g = float_frame[10:]
         combined = f.combine_first(g)
         assert_series_equal(combined['A'].reindex(f.index), f['A'])
         assert_series_equal(combined['A'].reindex(g.index), g['A'])
 
         # corner cases
-        comb = self.frame.combine_first(self.empty)
-        assert_frame_equal(comb, self.frame)
+        comb = float_frame.combine_first(empty_frame)
+        assert_frame_equal(comb, float_frame)
 
-        comb = self.empty.combine_first(self.frame)
-        assert_frame_equal(comb, self.frame)
+        comb = empty_frame.combine_first(float_frame)
+        assert_frame_equal(comb, float_frame)
 
-        comb = self.frame.combine_first(DataFrame(index=["faz", "boo"]))
+        comb = float_frame.combine_first(DataFrame(index=["faz", "boo"]))
         assert "faz" in comb.index
 
         # #2525

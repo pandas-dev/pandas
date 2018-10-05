@@ -26,25 +26,25 @@ from pandas.tests.frame.common import TestData
 class TestDataFrameReplace(TestData):
 
     def test_replace_inplace(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        datetime_frame['A'][:5] = nan
+        datetime_frame['A'][-5:] = nan
 
-        tsframe = self.tsframe.copy()
+        tsframe = datetime_frame.copy()
         tsframe.replace(nan, 0, inplace=True)
-        assert_frame_equal(tsframe, self.tsframe.fillna(0))
+        assert_frame_equal(tsframe, datetime_frame.fillna(0))
 
         # mixed type
-        mf = self.mixed_frame
+        mf = float_string_frame
         mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
         mf.iloc[-10:, mf.columns.get_loc('A')] = nan
 
-        result = self.mixed_frame.replace(np.nan, 0)
-        expected = self.mixed_frame.fillna(value=0)
+        result = float_string_frame.replace(np.nan, 0)
+        expected = float_string_frame.fillna(value=0)
         assert_frame_equal(result, expected)
 
-        tsframe = self.tsframe.copy()
+        tsframe = datetime_frame.copy()
         tsframe.replace([nan], [0], inplace=True)
-        assert_frame_equal(tsframe, self.tsframe.fillna(0))
+        assert_frame_equal(tsframe, datetime_frame.fillna(0))
 
     def test_regex_replace_scalar(self):
         obj = {'a': list('ab..'), 'b': list('efgh')}
@@ -555,16 +555,16 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(result, expected)
 
     def test_replace(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        datetime_frame['A'][:5] = nan
+        datetime_frame['A'][-5:] = nan
 
-        zero_filled = self.tsframe.replace(nan, -1e8)
-        assert_frame_equal(zero_filled, self.tsframe.fillna(-1e8))
-        assert_frame_equal(zero_filled.replace(-1e8, nan), self.tsframe)
+        zero_filled = datetime_frame.replace(nan, -1e8)
+        assert_frame_equal(zero_filled, datetime_frame.fillna(-1e8))
+        assert_frame_equal(zero_filled.replace(-1e8, nan), datetime_frame)
 
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
-        self.tsframe['B'][:5] = -1e8
+        datetime_frame['A'][:5] = nan
+        datetime_frame['A'][-5:] = nan
+        datetime_frame['B'][:5] = -1e8
 
         # empty
         df = DataFrame(index=['a', 'b'])
@@ -649,19 +649,19 @@ class TestDataFrameReplace(TestData):
         assert_series_equal(expec, res)
 
     def test_replace_mixed(self):
-        mf = self.mixed_frame
+        mf = float_string_frame
         mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
         mf.iloc[-10:, mf.columns.get_loc('A')] = nan
 
-        result = self.mixed_frame.replace(np.nan, -18)
-        expected = self.mixed_frame.fillna(value=-18)
+        result = float_string_frame.replace(np.nan, -18)
+        expected = float_string_frame.fillna(value=-18)
         assert_frame_equal(result, expected)
-        assert_frame_equal(result.replace(-18, nan), self.mixed_frame)
+        assert_frame_equal(result.replace(-18, nan), float_string_frame)
 
-        result = self.mixed_frame.replace(np.nan, -1e8)
-        expected = self.mixed_frame.fillna(value=-1e8)
+        result = float_string_frame.replace(np.nan, -1e8)
+        expected = float_string_frame.fillna(value=-1e8)
         assert_frame_equal(result, expected)
-        assert_frame_equal(result.replace(-1e8, nan), self.mixed_frame)
+        assert_frame_equal(result.replace(-1e8, nan), float_string_frame)
 
         # int block upcasting
         df = DataFrame({'A': Series([1.0, 2.0], dtype='float64'),
@@ -729,29 +729,29 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(expected, result)
 
     def test_replace_value_is_none(self):
-        orig_value = self.tsframe.iloc[0, 0]
-        orig2 = self.tsframe.iloc[1, 0]
+        orig_value = datetime_frame.iloc[0, 0]
+        orig2 = datetime_frame.iloc[1, 0]
 
-        self.tsframe.iloc[0, 0] = nan
-        self.tsframe.iloc[1, 0] = 1
+        datetime_frame.iloc[0, 0] = nan
+        datetime_frame.iloc[1, 0] = 1
 
-        result = self.tsframe.replace(to_replace={nan: 0})
-        expected = self.tsframe.T.replace(to_replace={nan: 0}).T
+        result = datetime_frame.replace(to_replace={nan: 0})
+        expected = datetime_frame.T.replace(to_replace={nan: 0}).T
         assert_frame_equal(result, expected)
 
-        result = self.tsframe.replace(to_replace={nan: 0, 1: -1e8})
-        tsframe = self.tsframe.copy()
+        result = datetime_frame.replace(to_replace={nan: 0, 1: -1e8})
+        tsframe = datetime_frame.copy()
         tsframe.iloc[0, 0] = 0
         tsframe.iloc[1, 0] = -1e8
         expected = tsframe
         assert_frame_equal(expected, result)
-        self.tsframe.iloc[0, 0] = orig_value
-        self.tsframe.iloc[1, 0] = orig2
+        datetime_frame.iloc[0, 0] = orig_value
+        datetime_frame.iloc[1, 0] = orig2
 
     def test_replace_for_new_dtypes(self):
 
         # dtypes
-        tsframe = self.tsframe.copy().astype(np.float32)
+        tsframe = datetime_frame.copy().astype(np.float32)
         tsframe['A'][:5] = nan
         tsframe['A'][-5:] = nan
 

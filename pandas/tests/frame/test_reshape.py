@@ -117,7 +117,7 @@ class TestDataFrameReshape(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_stack_unstack(self):
-        df = self.frame.copy()
+        df = float_frame.copy()
         df[:] = np.arange(np.prod(df.shape)).reshape(df.shape)
 
         stacked = df.stack()
@@ -485,11 +485,11 @@ class TestDataFrameReshape(TestData):
 
     def test_unstack_to_series(self):
         # check reversibility
-        data = self.frame.unstack()
+        data = float_frame.unstack()
 
         assert isinstance(data, Series)
         undo = data.unstack().T
-        assert_frame_equal(undo, self.frame)
+        assert_frame_equal(undo, float_frame)
 
         # check NA handling
         data = DataFrame({'x': [1, 2, np.NaN], 'y': [3.0, 4, np.NaN]})

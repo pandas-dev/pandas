@@ -195,8 +195,8 @@ class TestDataFrameMutateColumns(TestData):
         assert_frame_equal(df, exp)
 
     def test_delitem(self):
-        del self.frame['A']
-        assert 'A' not in self.frame
+        del float_frame['A']
+        assert 'A' not in float_frame
 
     def test_delitem_multiindex(self):
         midx = MultiIndex.from_product([['A', 'B'], [1, 2]])
@@ -225,15 +225,15 @@ class TestDataFrameMutateColumns(TestData):
             del df['A']
 
     def test_pop(self):
-        self.frame.columns.name = 'baz'
+        float_frame.columns.name = 'baz'
 
-        self.frame.pop('A')
-        assert 'A' not in self.frame
+        float_frame.pop('A')
+        assert 'A' not in float_frame
 
-        self.frame['foo'] = 'bar'
-        self.frame.pop('foo')
-        assert 'foo' not in self.frame
-        # TODO assert self.frame.columns.name == 'baz'
+        float_frame['foo'] = 'bar'
+        float_frame.pop('foo')
+        assert 'foo' not in float_frame
+        # TODO assert float_frame.columns.name == 'baz'
 
         # gh-10912: inplace ops cause caching issue
         a = DataFrame([[1, 2, 3], [4, 5, 6]], columns=[

@@ -42,12 +42,12 @@ def _skip_if_no_pchip():
 class TestDataFrameMissingData(TestData):
 
     def test_dropEmptyRows(self):
-        N = len(self.frame.index)
+        N = len(float_frame.index)
         mat = random.randn(N)
         mat[:5] = nan
 
-        frame = DataFrame({'foo': mat}, index=self.frame.index)
-        original = Series(mat, index=self.frame.index, name='foo')
+        frame = DataFrame({'foo': mat}, index=float_frame.index)
+        original = Series(mat, index=float_frame.index, name='foo')
         expected = original.dropna()
         inplace_frame1, inplace_frame2 = frame.copy(), frame.copy()
 
@@ -64,20 +64,20 @@ class TestDataFrameMissingData(TestData):
         assert_series_equal(inplace_frame2['foo'], expected)
 
     def test_dropIncompleteRows(self):
-        N = len(self.frame.index)
+        N = len(float_frame.index)
         mat = random.randn(N)
         mat[:5] = nan
 
-        frame = DataFrame({'foo': mat}, index=self.frame.index)
+        frame = DataFrame({'foo': mat}, index=float_frame.index)
         frame['bar'] = 5
-        original = Series(mat, index=self.frame.index, name='foo')
+        original = Series(mat, index=float_frame.index, name='foo')
         inp_frame1, inp_frame2 = frame.copy(), frame.copy()
 
         smaller_frame = frame.dropna()
         assert_series_equal(frame['foo'], original)
         inp_frame1.dropna(inplace=True)
 
-        exp = Series(mat[5:], index=self.frame.index[5:], name='foo')
+        exp = Series(mat[5:], index=float_frame.index[5:], name='foo')
         tm.assert_series_equal(smaller_frame['foo'], exp)
         tm.assert_series_equal(inp_frame1['foo'], exp)
 
@@ -85,8 +85,8 @@ class TestDataFrameMissingData(TestData):
         assert_series_equal(frame['foo'], original)
         assert (frame['bar'] == 5).all()
         inp_frame2.dropna(subset=['bar'], inplace=True)
-        tm.assert_index_equal(samesize_frame.index, self.frame.index)
-        tm.assert_index_equal(inp_frame2.index, self.frame.index)
+        tm.assert_index_equal(samesize_frame.index, float_frame.index)
+        tm.assert_index_equal(inp_frame2.index, float_frame.index)
 
     def test_dropna(self):
         df = DataFrame(np.random.randn(6, 4))
@@ -163,10 +163,10 @@ class TestDataFrameMissingData(TestData):
 
     def test_dropna_corner(self):
         # bad input
-        pytest.raises(ValueError, self.frame.dropna, how='foo')
-        pytest.raises(TypeError, self.frame.dropna, how=None)
+        pytest.raises(ValueError, float_frame.dropna, how='foo')
+        pytest.raises(TypeError, float_frame.dropna, how=None)
         # non-existent column - 8303
-        pytest.raises(KeyError, self.frame.dropna, subset=['A', 'X'])
+        pytest.raises(KeyError, float_frame.dropna, subset=['A', 'X'])
 
     def test_dropna_multiple_axes(self):
         df = DataFrame([[1, np.nan, 2, 3],
@@ -212,30 +212,30 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(result, expected)
 
     def test_fillna(self):
-        tf = self.tsframe
+        tf = datetime_frame
         tf.loc[tf.index[:5], 'A'] = nan
         tf.loc[tf.index[-5:], 'A'] = nan
 
-        zero_filled = self.tsframe.fillna(0)
+        zero_filled = datetime_frame.fillna(0)
         assert (zero_filled.loc[zero_filled.index[:5], 'A'] == 0).all()
 
-        padded = self.tsframe.fillna(method='pad')
+        padded = datetime_frame.fillna(method='pad')
         assert np.isnan(padded.loc[padded.index[:5], 'A']).all()
         assert (padded.loc[padded.index[-5:], 'A'] ==
                 padded.loc[padded.index[-5], 'A']).all()
 
         # mixed type
-        mf = self.mixed_frame
+        mf = float_string_frame
         mf.loc[mf.index[5:20], 'foo'] = nan
         mf.loc[mf.index[-10:], 'A'] = nan
-        result = self.mixed_frame.fillna(value=0)
-        result = self.mixed_frame.fillna(method='pad')
+        result = float_string_frame.fillna(value=0)
+        result = float_string_frame.fillna(method='pad')
 
-        pytest.raises(ValueError, self.tsframe.fillna)
-        pytest.raises(ValueError, self.tsframe.fillna, 5, method='ffill')
+        pytest.raises(ValueError, datetime_frame.fillna)
+        pytest.raises(ValueError, datetime_frame.fillna, 5, method='ffill')
 
         # mixed numeric (but no float16)
-        mf = self.mixed_float.reindex(columns=['A', 'B', 'D'])
+        mf = mixed_float_frame.reindex(columns=['A', 'B', 'D'])
         mf.loc[mf.index[-10:], 'A'] = nan
         result = mf.fillna(value=0)
         _check_mixed_float(result, dtype=dict(C=None))
@@ -457,18 +457,18 @@ class TestDataFrameMissingData(TestData):
         tm.assert_frame_equal(result, expected)
 
     def test_ffill(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        datetime_frame['A'][:5] = nan
+        datetime_frame['A'][-5:] = nan
 
-        assert_frame_equal(self.tsframe.ffill(),
-                           self.tsframe.fillna(method='ffill'))
+        assert_frame_equal(datetime_frame.ffill(),
+                           datetime_frame.fillna(method='ffill'))
 
     def test_bfill(self):
-        self.tsframe['A'][:5] = nan
-        self.tsframe['A'][-5:] = nan
+        datetime_frame['A'][:5] = nan
+        datetime_frame['A'][-5:] = nan
 
-        assert_frame_equal(self.tsframe.bfill(),
-                           self.tsframe.fillna(method='bfill'))
+        assert_frame_equal(datetime_frame.bfill(),
+                           datetime_frame.fillna(method='bfill'))
 
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
@@ -597,15 +597,15 @@ class TestDataFrameMissingData(TestData):
 
     def test_fillna_invalid_method(self):
         with tm.assert_raises_regex(ValueError, 'ffil'):
-            self.frame.fillna(method='ffil')
+            float_frame.fillna(method='ffil')
 
     def test_fillna_invalid_value(self):
         # list
-        pytest.raises(TypeError, self.frame.fillna, [1, 2])
+        pytest.raises(TypeError, float_frame.fillna, [1, 2])
         # tuple
-        pytest.raises(TypeError, self.frame.fillna, (1, 2))
+        pytest.raises(TypeError, float_frame.fillna, (1, 2))
         # frame with series
-        pytest.raises(TypeError, self.frame.iloc[:, 0].fillna, self.frame)
+        pytest.raises(TypeError, float_frame.iloc[:, 0].fillna, float_frame)
 
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
@@ -615,15 +615,15 @@ class TestDataFrameMissingData(TestData):
         assert df.columns.tolist() == filled.columns.tolist()
 
     def test_fill_corner(self):
-        mf = self.mixed_frame
+        mf = float_string_frame
         mf.loc[mf.index[5:20], 'foo'] = nan
         mf.loc[mf.index[-10:], 'A'] = nan
 
-        filled = self.mixed_frame.fillna(value=0)
+        filled = float_string_frame.fillna(value=0)
         assert (filled.loc[filled.index[5:20], 'foo'] == 0).all()
-        del self.mixed_frame['foo']
+        del float_string_frame['foo']
 
-        empty_float = self.frame.reindex(columns=[])
+        empty_float = float_frame.reindex(columns=[])
 
         # TODO(wesm): unused?
         result = empty_float.fillna(value=0)  # noqa
