@@ -24,17 +24,8 @@ dtypes = [('object', 'object', 'Infinity()', 'NegInfinity()'),
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-{{if dtype == 'object'}}
-
-
 def rank_1d_{{dtype}}(object in_arr, ties_method='average',
                       ascending=True, na_option='keep', pct=False):
-{{else}}
-
-
-def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
-                      na_option='keep', pct=False):
-{{endif}}
     """
     Fast NaN-friendly version of scipy.stats.rankdata
     """
