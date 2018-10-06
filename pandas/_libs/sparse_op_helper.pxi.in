@@ -8,18 +8,12 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 # Sparse op
 #----------------------------------------------------------------------
 
-{{py:
+ctypedef fused sparse_t:
+    float64_t
+    int64_t
 
-# dtype, float_group
-dtypes = [('float64', True), ('int64', False)]
 
-}}
-
-{{for dtype, float_group in dtypes}}
-
-{{if float_group}}
-
-cdef inline {{dtype}}_t __div_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
+cdef inline float64_t __div(sparse_t a, sparse_t b):
     if b == 0:
         if a > 0:
             return INF
@@ -30,63 +24,41 @@ cdef inline {{dtype}}_t __div_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
     else:
         return float(a) / b
 
-cdef inline {{dtype}}_t __truediv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    return __div_{{dtype}}(a, b)
 
-cdef inline {{dtype}}_t __floordiv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
+cdef inline float64_t __truediv(sparse_t a, sparse_t b):
+    return __div(a, b)
+
+
+cdef inline sparse_t __mod(sparse_t a, sparse_t b):
     if b == 0:
-        # numpy >= 1.11 returns NaN
-        # for a // 0, rather than +-inf
-        if _np_version_under1p11:
-            if a > 0:
-                return INF
-            elif a < 0:
-                return -INF
-        return NaN
-    else:
-        return a // b
-
-cdef inline {{dtype}}_t __mod_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        return NaN
-    else:
-        return a % b
-
-{{else}}
-
-cdef inline float64_t __div_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        if a > 0:
-            return INF
-        elif a < 0:
-            return -INF
-        else:
+        if sparse_t is float64_t:
             return NaN
-    else:
-        return float(a) / b
-
-cdef inline float64_t __truediv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    return __div_{{dtype}}(a, b)
-
-cdef inline {{dtype}}_t __floordiv_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        return 0
-    else:
-        return a // b
-
-cdef inline {{dtype}}_t __mod_{{dtype}}({{dtype}}_t a, {{dtype}}_t b):
-    if b == 0:
-        return 0
+        else:
+            return 0
     else:
         return a % b
 
-{{endif}}
 
-{{endfor}}
+cdef inline sparse_t __floordiv(sparse_t a, sparse_t b):
+    if b == 0:
+        if sparse_t is float64_t:
+            # numpy >= 1.11 returns NaN
+            # for a // 0, rather than +-inf
+            if _np_version_under1p11:
+                if a > 0:
+                    return INF
+                elif a < 0:
+                    return -INF
+            return NaN
+        else:
+            return 0
+    else:
+        return a // b
 
-#----------------------------------------------------------------------
+
+# ----------------------------------------------------------------------
 # sparse array op
-#----------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
 {{py:
 
@@ -106,10 +78,10 @@ def get_op(tup):
     ops_dict = {'add': '{0} + {1}',
                 'sub': '{0} - {1}',
                 'mul': '{0} * {1}',
-                'div': '__div_{2}({0}, {1})',
-                'mod': '__mod_{2}({0}, {1})',
-                'truediv': '__truediv_{2}({0}, {1})',
-                'floordiv': '__floordiv_{2}({0}, {1})',
+                'div': '__div({0}, {1})',
+                'mod': '__mod({0}, {1})',
+                'truediv': '__truediv({0}, {1})',
+                'floordiv': '__floordiv({0}, {1})',
                 'pow': '{0} ** {1}',
                 'eq': '{0} == {1}',
                 'ne': '{0} != {1}',
