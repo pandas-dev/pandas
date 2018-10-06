@@ -1153,7 +1153,7 @@ class Block(PandasObject):
                                                inplace=inplace, limit=limit,
                                                fill_value=fill_value,
                                                coerce=coerce,
-                                               downcast=downcast, mgr=mgr)
+                                               downcast=downcast)
         # try an interp method
         try:
             m = missing.clean_interp_method(method, **kwargs)
@@ -1169,13 +1169,14 @@ class Block(PandasObject):
                                      limit_direction=limit_direction,
                                      limit_area=limit_area,
                                      fill_value=fill_value, inplace=inplace,
-                                     downcast=downcast, mgr=mgr, **kwargs)
+                                     downcast=downcast, **kwargs)
 
-        raise ValueError("invalid method '{0}' to interpolate.".format(method))
+        raise ValueError("invalid method '{method}' to interpolate."
+                         .format(method=method))
 
     def _interpolate_with_fill(self, method='pad', axis=0, inplace=False,
                                limit=None, fill_value=None, coerce=False,
-                               downcast=None, mgr=None):
+                               downcast=None):
         """ fillna but using the interpolate machinery """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1202,7 +1203,7 @@ class Block(PandasObject):
     def _interpolate(self, method=None, index=None, values=None,
                      fill_value=None, axis=0, limit=None,
                      limit_direction='forward', limit_area=None,
-                     inplace=False, downcast=None, mgr=None, **kwargs):
+                     inplace=False, downcast=None, **kwargs):
         """ interpolate using scipy wrappers """
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -1219,8 +1220,8 @@ class Block(PandasObject):
 
         if method in ('krogh', 'piecewise_polynomial', 'pchip'):
             if not index.is_monotonic:
-                raise ValueError("{0} interpolation requires that the "
-                                 "index be monotonic.".format(method))
+                raise ValueError("{method} interpolation requires that the "
+                                 "index be monotonic.".format(method=method))
         # process 1-d slices in the axis direction
 
         def func(x):
