@@ -21,8 +21,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_float,
     is_number,
-    is_integer,
-    needs_i8_conversion)
+    is_integer)
 from pandas.core.indexes.base import (
     Index, ensure_index,
     default_pprint, _index_shared_docs)
@@ -519,40 +518,77 @@ class IntervalIndex(IntervalMixin, Index):
 
         return key
 
-    def _maybe_convert_i8(self, key):
-        if isinstance(key, Interval):
-            if not isinstance(key.left, (Timestamp, Timedelta)):
-                return key
-            left = self._maybe_convert_i8(key.left)
-            right = self._maybe_convert_i8(key.right)
-            return Interval(left, right, key.closed)
-        elif isinstance(key, (IntervalIndex, IntervalArray)):
-            if not needs_i8_conversion(key.left):
-                return key
-            left = self._maybe_convert_i8(key.left)
-            right = self._maybe_convert_i8(key.right)
-            return IntervalIndex.from_arrays(left, right, key.closed)
-        elif is_list_like(key) and not isinstance(key, Index):
-            result = self._maybe_convert_i8(ensure_index(key))
-            if result[0] == key[0]:
-                # return the list-like key if no conversion
-                return key
-            return result
+    def _needs_i8_conversion(self, key):
+        """
+        Check if a given key needs i8 conversion. Conversion is necessary for
+        Timestamp, Timedelta, DatetimeIndex, and TimedeltaIndex keys. An
+        Interval-like requires conversion if it's endpoints are one of the
+        aforementioned types.
 
+        Assumes that any list-like data has already been cast to an Index.
+
+        Parameters
+        ----------
+        key : scalar or Index-like
+            The key that should be checked for i8 conversion
+
+        Returns
+        -------
+        boolean
+        """
+        if is_interval_dtype(key) or isinstance(key, Interval):
+            return self._needs_i8_conversion(key.left)
+
+        i8_types = (Timestamp, Timedelta, DatetimeIndex, TimedeltaIndex)
+        return isinstance(key, i8_types)
+
+    def _maybe_convert_i8(self, key):
+        """
+        Maybe convert a given key to it's equivalent i8 value(s). Used as a
+        preprocessing step prior to IntervalTree queries (self._engine), which
+        expects numeric data.
+
+        Parameters
+        ----------
+        key : scalar or list-like
+            The key that should maybe be converted to i8.
+
+        Returns
+        -------
+        key: scalar or list-like
+            The original key if no conversion occured, int if converted scalar,
+            Int64Index if converted list-like.
+        """
+        original = key
+        if is_list_like(key):
+            key = ensure_index(key)
+
+        if not self._needs_i8_conversion(key):
+            return original
+
+        scalar = is_scalar(key)
+        if is_interval_dtype(key) or isinstance(key, Interval):
+            # convert left/right and reconstruct
+            left = self._maybe_convert_i8(key.left)
+            right = self._maybe_convert_i8(key.right)
+            constructor = Interval if scalar else IntervalIndex.from_arrays
+            return constructor(left, right, closed=self.closed)
+
+        if scalar:
+            # Timestamp/Timedelta
+            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
+        else:
+            # DatetimeIndex/TimedeltaIndex
+            key_dtype, key_i8 = key.dtype, Index(key.asi8)
+
+        # ensure consistency with IntervalIndex subtype
         subtype = self.dtype.subtype
         msg = ('Cannot index an IntervalIndex of subtype {subtype} with '
                'values of dtype {other}')
-        if isinstance(key, (Timestamp, Timedelta)):
-            key_dtype, key_i8 = infer_dtype_from_scalar(key, pandas_dtype=True)
-            if not is_dtype_equal(subtype, key_dtype):
-                raise ValueError(msg.format(subtype=subtype, other=key_dtype))
-            return key_i8
-        elif isinstance(key, (DatetimeIndex, TimedeltaIndex)):
-            if not is_dtype_equal(subtype, key.dtype):
-                raise ValueError(msg.format(subtype=subtype, other=key.dtype))
-            return Index(key.asi8)
+        if not is_dtype_equal(subtype, key_dtype):
+            raise ValueError(msg.format(subtype=subtype, other=key_dtype))
 
-        return key
+        return key_i8
 
     def _check_method(self, method):
         if method is None:
