@@ -362,7 +362,11 @@ cdef class Interval(IntervalMixin):
 
     def overlaps(self, other):
         """
-        Check whether two interval objects overlap.
+        Check whether two Interval objects overlap.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
 
         .. versionadded:: 0.24.0
 
@@ -375,6 +379,34 @@ cdef class Interval(IntervalMixin):
         -------
         bool
             ``True`` if the two intervals overlap, else ``False``.
+
+        Examples
+        --------
+        >>> i1 = pd.Interval(0, 2)
+        >>> i2 = pd.Interval(1, 3)
+        >>> i1.overlaps(i2)
+        True
+        >>> i3 = pd.Interval(4, 5)
+        >>> i1.overlaps(i3)
+        False
+
+        Intervals that share closed endpoints overlap:
+
+        >>> i4 = pd.Interval(0, 1, closed='both')
+        >>> i5 = pd.Interval(1, 2, closed='both')
+        >>> i4.overlaps(i5)
+        True
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> i6 = pd.Interval(1, 2, closed='neither')
+        >>> i4.overlaps(i6)
+        False
+
+        See Also
+        --------
+        IntervalArray.overlaps : The corresponding method for IntervalArray
+        IntervalIndex.overlaps : The corresponding method for IntervalIndex
         """
         if not isinstance(other, Interval):
             msg = '`other` must be an Interval, got {other}'

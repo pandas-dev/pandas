@@ -1018,20 +1018,47 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left=left_repeat, right=right_repeat)
 
     _interval_shared_docs['overlaps'] = """\
-        Check elementwise whether the given input overlaps the intervals in
-        the %(klass)s.
+        Check elementwise if an Interval overlaps the values in the %(klass)s.
+
+        Two intervals overlap if they share a common point, including closed
+        endpoints. Intervals that only have an open endpoint in common do not
+        overlap.
 
         .. versionadded:: 0.24.0
 
         Parameters
         ----------
-        other : Interval-like
-            Interval-like object to check against for an overlap.
+        other : Interval
+            Interval to check against for an overlap.
 
         Returns
         -------
         ndarray
             Boolean array positionally indicating where an overlap occurs.
+
+        Examples
+        --------
+        >>> intervals = %(klass)s.from_tuples([(0, 1), (1, 3), (2, 4)])
+        >>> intervals
+        %(klass)s([(0, 1], (1, 3], (2, 4]],
+              closed='right',
+              dtype='interval[int64]')
+        >>> intervals.overlaps(Interval(0.5, 1.5))
+        array([ True,  True, False])
+
+        Intervals that share closed endpoints overlap:
+
+        >>> intervals.overlaps(Interval(1, 3, closed='left'))
+        array([ True,  True, True])
+
+        Intervals that only have an open endpoint in common do not overlap:
+
+        >>> intervals.overlaps(Interval(1, 2, closed='right'))
+        array([ False,  True, False])
+
+        See Also
+        --------
+        Interval.overlaps : Check whether two Interval objects overlap.
     """
 
     @Appender(_interval_shared_docs['overlaps'] % _shared_docs_kwargs)
