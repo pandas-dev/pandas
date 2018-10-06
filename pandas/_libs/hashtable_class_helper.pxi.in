@@ -415,30 +415,6 @@ cdef class {{name}}HashTable(HashTable):
 
         return uniques.to_array(), np.asarray(labels)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def _unique_no_inverse(self, const {{dtype}}_t[:] values):
-        # define separate functions without inverse for performance
-        cdef:
-           Py_ssize_t i, n = len(values)
-           int ret = 0
-           {{dtype}}_t val
-           khiter_t k
-           {{name}}Vector uniques = {{name}}Vector()
-           {{name}}VectorData *ud
-        ud = uniques.data
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                k = kh_get_{{dtype}}(self.table, val)
-                if k == self.table.n_buckets:
-                    kh_put_{{dtype}}(self.table, val, &ret)
-                    if needs_resize(ud):
-                        with gil:
-                            uniques.resize()
-                    append_data_{{dtype}}(ud, val)
-        return uniques.to_array()
-
     def unique(self, const {{dtype}}_t[:] values, bint return_inverse=False):
         if return_inverse:
             return self._unique_with_inverse(values, uniques={{name}}Vector(),
@@ -502,6 +478,30 @@ cdef class {{name}}HashTable(HashTable):
         arr_uniques = uniques.to_array()
 
         return np.asarray(labels), arr_uniques
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def _unique_no_inverse(self, const {{dtype}}_t[:] values):
+        # define separate functions without inverse for performance
+        cdef:
+           Py_ssize_t i, n = len(values)
+           int ret = 0
+           {{dtype}}_t val
+           khiter_t k
+           {{name}}Vector uniques = {{name}}Vector()
+           {{name}}VectorData *ud
+        ud = uniques.data
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                k = kh_get_{{dtype}}(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_{{dtype}}(self.table, val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+        return uniques.to_array()
 
 {{endfor}}
 
@@ -581,6 +581,41 @@ cdef class StringHashTable(HashTable):
 
         free(vecs)
         return labels
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def _unique_no_inverse(self, ndarray[object] values):
+        # define separate functions without inverse for performance
+        cdef:
+            Py_ssize_t i, count, n = len(values)
+            int64_t[:] uindexer
+            int ret = 0
+            object val
+            ObjectVector uniques
+            khiter_t k
+            const char *v
+            const char **vecs
+        vecs = <const char **> malloc(n * sizeof(char *))
+        uindexer = np.empty(n, dtype=np.int64)
+        for i in range(n):
+            val = values[i]
+            v = util.get_c_string(val)
+            vecs[i] = v
+        count = 0
+        with nogil:
+            for i in range(n):
+                v = vecs[i]
+                k = kh_get_str(self.table, v)
+                if k == self.table.n_buckets:
+                    kh_put_str(self.table, v, &ret)
+                    uindexer[count] = i
+                    count += 1
+        free(vecs)
+        # uniques
+        uniques = ObjectVector()
+        for i in range(count):
+            uniques.append(values[uindexer[i]])
+        return uniques.to_array()
 
     @cython.boundscheck(False)
     def lookup(self, ndarray[object] values):
@@ -705,41 +740,6 @@ cdef class StringHashTable(HashTable):
 
         return uniques.to_array(), np.asarray(labels)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def _unique_no_inverse(self, ndarray[object] values):
-        # define separate functions without inverse for performance
-        cdef:
-            Py_ssize_t i, count, n = len(values)
-            int64_t[:] uindexer
-            int ret = 0
-            object val
-            ObjectVector uniques
-            khiter_t k
-            const char *v
-            const char **vecs
-        vecs = <const char **> malloc(n * sizeof(char *))
-        uindexer = np.empty(n, dtype=np.int64)
-        for i in range(n):
-            val = values[i]
-            v = util.get_c_string(val)
-            vecs[i] = v
-        count = 0
-        with nogil:
-            for i in range(n):
-                v = vecs[i]
-                k = kh_get_str(self.table, v)
-                if k == self.table.n_buckets:
-                    kh_put_str(self.table, v, &ret)
-                    uindexer[count] = i
-                    count += 1
-        free(vecs)
-        # uniques
-        uniques = ObjectVector()
-        for i in range(count):
-            uniques.append(values[uindexer[i]])
-        return uniques.to_array()
-
     def unique(self, ndarray[object] values, bint return_inverse=False):
         if return_inverse:
             return self._unique_with_inverse(values, uniques=ObjectVector(),
@@ -847,6 +847,25 @@ cdef class PyObjectHashTable(HashTable):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
+    def _unique_no_inverse(self, ndarray[object] values):
+        # define separate functions without inverse for performance
+        cdef:
+            Py_ssize_t i, n = len(values)
+            int ret = 0
+            object val
+            khiter_t k
+            ObjectVector uniques = ObjectVector()
+        for i in range(n):
+            val = values[i]
+            hash(val)
+            k = kh_get_pymap(self.table, <PyObject*>val)
+            if k == self.table.n_buckets:
+                kh_put_pymap(self.table, <PyObject*>val, &ret)
+                uniques.append(val)
+        return uniques.to_array()
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def _unique_with_inverse(self, ndarray[object] values,
                              ObjectVector uniques, bint ignore_na=False,
                              Py_ssize_t count_prior=0,
@@ -885,25 +904,6 @@ cdef class PyObjectHashTable(HashTable):
                 count += 1
 
         return uniques.to_array(), np.asarray(labels)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def _unique_no_inverse(self, ndarray[object] values):
-        # define separate functions without inverse for performance
-        cdef:
-            Py_ssize_t i, n = len(values)
-            int ret = 0
-            object val
-            khiter_t k
-            ObjectVector uniques = ObjectVector()
-        for i in range(n):
-            val = values[i]
-            hash(val)
-            k = kh_get_pymap(self.table, <PyObject*>val)
-            if k == self.table.n_buckets:
-                kh_put_pymap(self.table, <PyObject*>val, &ret)
-                uniques.append(val)
-        return uniques.to_array()
 
     def unique(self, ndarray[object] values, bint return_inverse=False):
         if return_inverse:
