@@ -546,9 +546,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         if name in ['any', 'all']:
             pass
 
-        # if we have a numeric op, provide coercion back to an integer
-        # type if possible
-        elif notna(result):
+        # if we have a preservable numeric op,
+        # provide coercion back to an integer type if possible
+        elif name in ['sum', 'min', 'max'] and notna(result):
             int_result = int(result)
             if int_result == result:
                 result = int_result

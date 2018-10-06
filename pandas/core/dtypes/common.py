@@ -1237,8 +1237,7 @@ def is_datetime_or_timedelta_dtype(arr_or_dtype):
     if arr_or_dtype is None:
         return False
     tipo = _get_dtype_type(arr_or_dtype)
-    return (issubclass(tipo, (np.datetime64, np.timedelta64)) or
-            is_datetime64tz_dtype(arr_or_dtype))
+    return issubclass(tipo, (np.datetime64, np.timedelta64))
 
 
 def _is_unorderable_exception(e):

@@ -59,13 +59,13 @@ class ExtensionArray(object):
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
 
-    One can implement methods to handle array reductions.
-
-    * _reduce
-
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
+
+    One can implement methods to handle array reductions.
+
+    * _reduce
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -691,7 +691,7 @@ class ExtensionArray(object):
         skipna : bool, default True
             if True, skip NaN values
         kwargs : dict
-            ddof is the only supported kwarg
+            Additional keyword arguments passed to the reduction function
 
         Returns
         -------
