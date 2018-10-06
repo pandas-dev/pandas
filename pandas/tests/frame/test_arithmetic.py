@@ -253,9 +253,8 @@ class TestFrameFlexArithmetic(object):
 
 
 class TestFrameArithmetic(object):
-    # TODO: tests for other arithmetic ops
     def test_df_add_2d_array_rowlike_broadcasts(self):
-        # GH#
+        # GH#23000
         arr = np.arange(6).reshape(3, 2)
         df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
 
@@ -274,9 +273,8 @@ class TestFrameArithmetic(object):
         result = rowlike + df
         tm.assert_frame_equal(result, expected)
 
-    # TODO: tests for other arithmetic ops
     def test_df_add_2d_array_collike_broadcasts(self):
-        # GH#
+        # GH#23000
         arr = np.arange(6).reshape(3, 2)
         df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
 
@@ -293,6 +291,57 @@ class TestFrameArithmetic(object):
         result = df + collike
         tm.assert_frame_equal(result, expected)
         result = collike + df
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_arith_2d_array_rowlike_broadcasts(self,
+                                                  all_arithmetic_operators):
+        # GH#23000
+        opname = all_arithmetic_operators
+
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        rowlike = arr[[1], :]  # shape --> (1, ncols)
+        assert rowlike.shape == (1, df.shape[1])
+
+        exvals = [getattr(df.loc['A'], opname)(rowlike.squeeze()),
+                  getattr(df.loc['B'], opname)(rowlike.squeeze()),
+                  getattr(df.loc['C'], opname)(rowlike.squeeze())]
+
+        expected = pd.DataFrame(exvals, columns=df.columns, index=df.index)
+
+        if opname in ['__rmod__', '__rfloordiv__']:
+            # exvals will have dtypes [f8, i8, i8] so expected will be
+            #   all-f8, but the DataFrame operation will return mixed dtypes
+            expected[False] = expected[False].astype('i8')
+
+        result = getattr(df, opname)(rowlike)
+        tm.assert_frame_equal(result, expected)
+
+    def test_df_arith_2d_array_collike_broadcasts(self,
+                                                  all_arithmetic_operators):
+        # GH#23000
+        opname = all_arithmetic_operators
+
+        arr = np.arange(6).reshape(3, 2)
+        df = pd.DataFrame(arr, columns=[True, False], index=['A', 'B', 'C'])
+
+        collike = arr[:, [1]]  # shape --> (nrows, 1)
+        assert collike.shape == (df.shape[0], 1)
+
+        exvals = {True: getattr(df[True], opname)(collike.squeeze()),
+                  False: getattr(df[False], opname)(collike.squeeze())}
+
+        dtype = None
+        if opname in ['__rmod__', '__rfloordiv__']:
+            # Series ops may return mixed int/float dtypes in cases where
+            #   DataFrame op will return all-float.  So we upcast `expected`
+            dtype = np.common_type(*[x.values for x in exvals.values()])
+
+        expected = pd.DataFrame(exvals, columns=df.columns, index=df.index,
+                                dtype=dtype)
+
+        result = getattr(df, opname)(collike)
         tm.assert_frame_equal(result, expected)
 
     def test_df_bool_mul_int(self):

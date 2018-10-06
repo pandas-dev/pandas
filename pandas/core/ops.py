@@ -1814,7 +1814,6 @@ def _align_method_FRAME(left, right, axis):
                 right = left._constructor(right,
                                           index=left.index,
                                           columns=left.columns)
-                # TODO: Double-check this doesn't make copies
 
             elif right.shape[1] == left.shape[1] and right.shape[0] == 1:
                 # Broadcast along rows
