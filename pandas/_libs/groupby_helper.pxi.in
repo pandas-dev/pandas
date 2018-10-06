@@ -600,7 +600,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
 
 {{py:
 
-# name, c_type, dest_type2, nan_val
+# name, dest_type2, nan_val, inf_val
 dtypes = [('float64', 'float64_t', 'NAN', 'np.inf'),
           ('float32', 'float32_t', 'NAN', 'np.inf'),
           ('int64', 'int64_t', 'iNaT', '_int64_max')]
@@ -766,25 +766,36 @@ def group_cummin_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                         accum[lab, j] = mval = val
                     out[i, j] = mval
 
+{{endfor}}
+
+
+ctypedef fused groupby_t:
+    float64_t
+    float32_t
+    int64_t
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
-                          ndarray[{{dest_type2}}, ndim=2] values,
-                          ndarray[int64_t] labels,
-                          bint is_datetimelike):
+def group_cummax(ndarray[groupby_t, ndim=2] out,
+                 ndarray[groupby_t, ndim=2] values,
+                 ndarray[int64_t] labels,
+                 bint is_datetimelike):
     """
     Only transforms on axis=0
     """
     cdef:
         Py_ssize_t i, j, N, K, size
-        {{dest_type2}} val, mval
-        ndarray[{{dest_type2}}, ndim=2] accum
+        groupby_t val, mval
+        ndarray[groupby_t, ndim=2] accum
         int64_t lab
 
     N, K = (<object> values).shape
     accum = np.empty_like(values)
-    accum.fill(-{{inf_val}})
+    if groupby_t is int64_t:
+        accum.fill(-_int64_max)
+    else:
+        accum.fill(-np.inf)
 
     with nogil:
         for i in range(N):
@@ -795,16 +806,22 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
             for j in range(K):
                 val = values[i, j]
 
-                {{if name == 'int64'}}
-                if is_datetimelike and val == {{nan_val}}:
-                    out[i, j] = {{nan_val}}
+                if groupby_t is int64_t:
+                    if is_datetimelike and val == iNaT:
+                        out[i, j] = iNaT
+                    else:
+                        mval = accum[lab, j]
+                        if val > mval:
+                            accum[lab, j] = mval = val
+                        out[i, j] = mval
                 else:
-                {{else}}
-                if val == val:
-                {{endif}}
-                    mval = accum[lab, j]
-                    if val > mval:
-                        accum[lab, j] = mval = val
-                    out[i, j] = mval
+                    if val == val:
+                        mval = accum[lab, j]
+                        if val > mval:
+                            accum[lab, j] = mval = val
+                        out[i, j] = mval
 
-{{endfor}}
+
+group_cummax_float64 = group_cummax["float64_t"]
+group_cummax_float32 = group_cummax["float32_t"]
+group_cummax_int64 = group_cummax["int64_t"]
