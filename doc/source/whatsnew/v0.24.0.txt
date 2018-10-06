@@ -512,10 +512,12 @@ Previous Behavior:
 *Current Behavior*:
 
 .. ipython:: python
-   In [3]: arr = np.arange(6).reshape(3, 2)
-   In [4]: df = pd.DataFrame(arr)
-   In [5]: df + arr[[0], :]   # 1 row, 2 columns
-   In [6]: df + arr[:, [1]]   # 1 column, 3 rows
+   arr = np.arange(6).reshape(3, 2)
+   df = pd.DataFrame(arr)
+   df
+
+   df + arr[[0], :]   # 1 row, 2 columns
+   df + arr[:, [1]]   # 1 column, 3 rows
 
 
 .. _whatsnew_0240.api.extension:
