@@ -343,6 +343,16 @@ class TestDataFrameFormatting(object):
 
         assert df2.columns[0] in result.split('\n')[0]
 
+        # GH 22984 ensure entire window is filled
+        terminal_size = (80, 24)
+        df = pd.DataFrame(np.random.rand(1,7))
+        p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
+                        return_value=terminal_size)
+        p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
+                        return_value=terminal_size)
+        with p1, p2:
+            assert "..." not in str(df)
+
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()
         if term_width < 10 or term_height < 10:
