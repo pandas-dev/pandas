@@ -394,6 +394,7 @@ cdef class {{name}}HashTable(HashTable):
                     continue
 
                 k = kh_get_{{dtype}}(self.table, val)
+
                 if k != self.table.n_buckets:
                     # k falls into a previous bucket
                     idx = self.table.vals[k]
@@ -401,6 +402,8 @@ cdef class {{name}}HashTable(HashTable):
                 else:
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
+                    self.table.vals[k] = count
+
                     if needs_resize(ud):
                         with gil:
                             if uniques.external_view_exists:
@@ -409,7 +412,6 @@ cdef class {{name}}HashTable(HashTable):
                                                  "Vector.resize() needed")
                             uniques.resize()
                     append_data_{{dtype}}(ud, val)
-                    self.table.vals[k] = count
                     labels[i] = count
                     count += 1
 
@@ -490,7 +492,9 @@ cdef class {{name}}HashTable(HashTable):
            khiter_t k
            {{name}}Vector uniques = {{name}}Vector()
            {{name}}VectorData *ud
+
         ud = uniques.data
+
         with nogil:
             for i in range(n):
                 val = values[i]
@@ -595,12 +599,14 @@ cdef class StringHashTable(HashTable):
             khiter_t k
             const char *v
             const char **vecs
+
         vecs = <const char **> malloc(n * sizeof(char *))
         uindexer = np.empty(n, dtype=np.int64)
         for i in range(n):
             val = values[i]
             v = util.get_c_string(val)
             vecs[i] = v
+
         count = 0
         with nogil:
             for i in range(n):
@@ -611,6 +617,7 @@ cdef class StringHashTable(HashTable):
                     uindexer[count] = i
                     count += 1
         free(vecs)
+
         # uniques
         uniques = ObjectVector()
         for i in range(count):
@@ -727,8 +734,8 @@ cdef class StringHashTable(HashTable):
                 else:
                     # k hasn't been seen yet
                     k = kh_put_str(self.table, v, &ret)
-                    uindexer[count] = i
                     self.table.vals[k] = count
+                    uindexer[count] = i
                     labels[i] = <int64_t>count
                     count += 1
 
@@ -855,6 +862,7 @@ cdef class PyObjectHashTable(HashTable):
             object val
             khiter_t k
             ObjectVector uniques = ObjectVector()
+
         for i in range(n):
             val = values[i]
             hash(val)
@@ -862,6 +870,7 @@ cdef class PyObjectHashTable(HashTable):
             if k == self.table.n_buckets:
                 kh_put_pymap(self.table, <PyObject*>val, &ret)
                 uniques.append(val)
+
         return uniques.to_array()
 
     @cython.boundscheck(False)
@@ -894,13 +903,13 @@ cdef class PyObjectHashTable(HashTable):
             if k != self.table.n_buckets:
                 # k falls into a previous bucket
                 idx = self.table.vals[k]
-                labels[i] = <int64_t>idx
+                labels[i] = idx
             else:
                 # k hasn't been seen yet
                 k = kh_put_pymap(self.table, <PyObject*>val, &ret)
-                uniques.append(val)
                 self.table.vals[k] = count
-                labels[i] = <int64_t>count
+                uniques.append(val)
+                labels[i] = count
                 count += 1
 
         return uniques.to_array(), np.asarray(labels)
