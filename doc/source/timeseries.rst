@@ -157,7 +157,7 @@ For example:
 
    pd.Period('2012-05', freq='D')
 
-:class:`Timestamp` and :class:`Period` can serve as an index. Lists of 
+:class:`Timestamp` and :class:`Period` can serve as an index. Lists of
 ``Timestamp`` and ``Period`` are automatically coerced to :class:`DatetimeIndex`
 and :class:`PeriodIndex` respectively.
 
@@ -220,7 +220,7 @@ you can pass the ``dayfirst`` flag:
    can't be parsed with the day being first it will be parsed as if
    ``dayfirst`` were False.
 
-If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``. 
+If you pass a single string to ``to_datetime``, it returns a single ``Timestamp``.
 ``Timestamp`` can also accept string input, but it doesn't accept string parsing
 options like ``dayfirst`` or ``format``, so use ``to_datetime`` if these are required.
 
@@ -255,7 +255,7 @@ This could also potentially speed up the conversion considerably.
 
     pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
 
-For more information on the choices available when specifying the ``format`` 
+For more information on the choices available when specifying the ``format``
 option, see the Python `datetime documentation`_.
 
 .. _datetime documentation: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
@@ -473,7 +473,7 @@ Custom Frequency Ranges
    This functionality was originally exclusive to ``cdate_range``, which is
    deprecated as of version 0.21.0 in favor of ``bdate_range``.  Note that
    ``cdate_range`` only utilizes the ``weekmask`` and ``holidays`` parameters
-   when custom business day, 'C', is passed as the frequency string. Support has 
+   when custom business day, 'C', is passed as the frequency string. Support has
    been expanded with ``bdate_range`` to work with any custom frequency string.
 
 .. versionadded:: 0.21.0
@@ -589,7 +589,7 @@ would include matching times on an included date:
    dft
    dft['2013']
 
-This starts on the very first time in the month, and includes the last date and 
+This starts on the very first time in the month, and includes the last date and
 time for the month:
 
 .. ipython:: python
@@ -664,7 +664,7 @@ A timestamp string with minute resolution (or more accurate), gives a scalar ins
     series_minute['2011-12-31 23:59']
     series_minute['2011-12-31 23:59:00']
 
-If index resolution is second, then the minute-accurate timestamp gives a 
+If index resolution is second, then the minute-accurate timestamp gives a
 ``Series``.
 
 .. ipython:: python
@@ -728,9 +728,9 @@ With no defaults.
 Truncating & Fancy Indexing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A :meth:`~DataFrame.truncate` convenience function is provided that is similar 
-to slicing. Note that ``truncate`` assumes a 0 value for any unspecified date 
-component in a ``DatetimeIndex`` in contrast to slicing which returns any 
+A :meth:`~DataFrame.truncate` convenience function is provided that is similar
+to slicing. Note that ``truncate`` assumes a 0 value for any unspecified date
+component in a ``DatetimeIndex`` in contrast to slicing which returns any
 partially matching dates:
 
 .. ipython:: python
@@ -814,7 +814,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     is_year_end,"Logical indicating if last day of year (defined by frequency)"
     is_leap_year,"Logical indicating if the date belongs to a leap year"
 
-Furthermore, if you have a ``Series`` with datetimelike values, then you can 
+Furthermore, if you have a ``Series`` with datetimelike values, then you can
 access these properties via the ``.dt`` accessor, as detailed in the section
 on :ref:`.dt accessors<basics.dt_accessors>`.
 
@@ -889,8 +889,25 @@ The key features of a ``DateOffset`` object are:
 * It can be multiplied by an integer (positive or negative) so that the
   increment will be applied multiple times.
 * It has :meth:`~pandas.DateOffset.rollforward` and
-  :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or 
+  :meth:`~pandas.DateOffset.rollback` methods for moving a date forward or
   backward to the next or previous "offset date".
+
+Beware that ``DatetimeIndexes`` are not assumed to always be monotonic, so
+for example:
+
+.. ipython:: python
+
+df = pd.DataFrame([1,2,3], index=pd.DatetimeIndex(start='2018-02-27',
+                                                  periods=3, freq='D'),
+                                                  columns=['A'])
+df.index
+
+may give you non-monotonic result when performing offsets:
+
+.. ipython:: python
+
+df.index = df.index + pd.tseries.offsets.DateOffset(months=4, days=2)
+df.index
 
 Subclasses of ``DateOffset`` define the ``apply`` function which dictates
 custom date increment logic, such as adding business days:
@@ -919,7 +936,7 @@ The ``rollforward`` and ``rollback`` methods do exactly what you would expect:
 It's definitely worth exploring the ``pandas.tseries.offsets`` module and the
 various docstrings for the classes.
 
-These operations (``apply``, ``rollforward`` and ``rollback``) preserve time 
+These operations (``apply``, ``rollforward`` and ``rollback``) preserve time
 (hour, minute, etc) information by default. To reset time, use ``normalize``
 before or after applying the operation (depending on whether you want the
 time information included in the operation.
@@ -1111,8 +1128,8 @@ allowing to use specific start and end times.
 
 By default, ``BusinessHour`` uses 9:00 - 17:00 as business hours.
 Adding ``BusinessHour`` will increment ``Timestamp`` by hourly frequency.
-If target ``Timestamp`` is out of business hours, move to the next business hour 
-then increment it. If the result exceeds the business hours end, the remaining 
+If target ``Timestamp`` is out of business hours, move to the next business hour
+then increment it. If the result exceeds the business hours end, the remaining
 hours are added to the next business day.
 
 .. ipython:: python
@@ -1139,9 +1156,9 @@ hours are added to the next business day.
     # Subtracting 3 business hours
     pd.Timestamp('2014-08-01 10:00') + BusinessHour(-3)
 
-You can also specify ``start`` and ``end`` time by keywords. The argument must 
-be a ``str`` with an ``hour:minute`` representation or a ``datetime.time`` 
-instance. Specifying seconds, microseconds and nanoseconds as business hour 
+You can also specify ``start`` and ``end`` time by keywords. The argument must
+be a ``str`` with an ``hour:minute`` representation or a ``datetime.time``
+instance. Specifying seconds, microseconds and nanoseconds as business hour
 results in ``ValueError``.
 
 .. ipython:: python
@@ -1198,8 +1215,8 @@ under the default business hours (9:00 - 17:00), there is no gap (0 minutes) bet
     # The result is the same as rollworward because BusinessDay never overlap.
     BusinessHour().apply(pd.Timestamp('2014-08-02'))
 
-``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary 
-holidays, you can use ``CustomBusinessHour`` offset, as explained in the 
+``BusinessHour`` regards Saturday and Sunday as holidays. To use arbitrary
+holidays, you can use ``CustomBusinessHour`` offset, as explained in the
 following subsection.
 
 .. _timeseries.custombusinesshour:
@@ -1490,7 +1507,7 @@ Shifting / Lagging
 ~~~~~~~~~~~~~~~~~~
 
 One may want to *shift* or *lag* the values in a time series back and forward in
-time. The method for this is :meth:`~Series.shift`, which is available on all of 
+time. The method for this is :meth:`~Series.shift`, which is available on all of
 the pandas objects.
 
 .. ipython:: python
@@ -1500,7 +1517,7 @@ the pandas objects.
    ts.shift(1)
 
 The ``shift`` method accepts an ``freq`` argument which can accept a
-``DateOffset`` class or other ``timedelta``-like object or also an 
+``DateOffset`` class or other ``timedelta``-like object or also an
 :ref:`offset alias <timeseries.offset_aliases>`:
 
 .. ipython:: python
@@ -1509,7 +1526,7 @@ The ``shift`` method accepts an ``freq`` argument which can accept a
    ts.shift(5, freq='BM')
 
 Rather than changing the alignment of the data and the index, ``DataFrame`` and
-``Series`` objects also have a :meth:`~Series.tshift` convenience method that 
+``Series`` objects also have a :meth:`~Series.tshift` convenience method that
 changes all the dates in the index by a specified number of offsets:
 
 .. ipython:: python
@@ -1522,9 +1539,9 @@ is not being realigned.
 Frequency Conversion
 ~~~~~~~~~~~~~~~~~~~~
 
-The primary function for changing frequencies is the :meth:`~Series.asfreq` 
-method. For a ``DatetimeIndex``, this is basically just a thin, but convenient 
-wrapper around :meth:`~Series.reindex`  which generates a ``date_range`` and 
+The primary function for changing frequencies is the :meth:`~Series.asfreq`
+method. For a ``DatetimeIndex``, this is basically just a thin, but convenient
+wrapper around :meth:`~Series.reindex`  which generates a ``date_range`` and
 calls ``reindex``.
 
 .. ipython:: python
@@ -1544,13 +1561,13 @@ method for any gaps that may appear after the frequency conversion.
 Filling Forward / Backward
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Related to ``asfreq`` and ``reindex`` is :meth:`~Series.fillna`, which is 
+Related to ``asfreq`` and ``reindex`` is :meth:`~Series.fillna`, which is
 documented in the :ref:`missing data section <missing_data.fillna>`.
 
 Converting to Python Datetimes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``DatetimeIndex`` can be converted to an array of Python native 
+``DatetimeIndex`` can be converted to an array of Python native
 :py:class:`datetime.datetime` objects using the ``to_pydatetime`` method.
 
 .. _timeseries.resampling:
@@ -1563,13 +1580,13 @@ Resampling
    The interface to ``.resample`` has changed in 0.18.0 to be more groupby-like and hence more flexible.
    See the :ref:`whatsnew docs <whatsnew_0180.breaking.resample>` for a comparison with prior versions.
 
-Pandas has a simple, powerful, and efficient functionality for performing 
-resampling operations during frequency conversion (e.g., converting secondly 
-data into 5-minutely data). This is extremely common in, but not limited to, 
+Pandas has a simple, powerful, and efficient functionality for performing
+resampling operations during frequency conversion (e.g., converting secondly
+data into 5-minutely data). This is extremely common in, but not limited to,
 financial applications.
 
-:meth:`~Series.resample` is a time-based groupby, followed by a reduction method 
-on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for 
+:meth:`~Series.resample` is a time-based groupby, followed by a reduction method
+on each of its groups. See some :ref:`cookbook examples <cookbook.resample>` for
 some advanced strategies.
 
 Starting in version 0.18.1, the ``resample()`` function can be used directly from
@@ -1577,7 +1594,7 @@ Starting in version 0.18.1, the ``resample()`` function can be used directly fro
 
 .. note::
 
-   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with 
+   ``.resample()`` is similar to using a :meth:`~Series.rolling` operation with
    a time-based offset, see a discussion :ref:`here <stats.moments.ts-versus-resampling>`.
 
 Basics
@@ -1632,8 +1649,8 @@ labels.
 
 .. note::
 
-    The default values for ``label`` and ``closed`` is 'left' for all 
-    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W' 
+    The default values for ``label`` and ``closed`` is 'left' for all
+    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
     .. ipython:: python
@@ -1680,9 +1697,9 @@ Sparse Resampling
 ~~~~~~~~~~~~~~~~~
 
 Sparse timeseries are the ones where you have a lot fewer points relative
-to the amount of time you are looking to resample. Naively upsampling a sparse 
-series can potentially generate lots of intermediate values. When you don't want 
-to use a method to fill these values, e.g. ``fill_method`` is ``None``, then 
+to the amount of time you are looking to resample. Naively upsampling a sparse
+series can potentially generate lots of intermediate values. When you don't want
+to use a method to fill these values, e.g. ``fill_method`` is ``None``, then
 intermediate values will be filled with ``NaN``.
 
 Since ``resample`` is a time-based groupby, the following is a method to efficiently
