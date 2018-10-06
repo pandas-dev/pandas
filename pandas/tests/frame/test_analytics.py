@@ -25,11 +25,36 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 
-def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
+def assert_stat_op_calc(opname, alternative, frame, has_skipna=True,
                         check_dtype=True, check_dates=False,
                         check_less_precise=False, skipna_alternative=None):
+    """
+    Check that operator opname works as advertised on frame
 
-    f = getattr(main_frame, opname)
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    alternative : function
+        Function that opname is tested against; i.e. "frame.opname()" should
+        equal "alternative(frame)".
+    frame : DataFrame
+        The object that the tests are executed on
+    has_skipna : bool, default True
+        Whether the method "opname" has the kwarg "skip_na"
+    check_dtype : bool, default True
+        Whether the dtypes of the result of "frame.opname()" and
+        "alternative(frame)" should be checked.
+    check_dates : bool, default false
+        Whether opname should be tested on a Datetime Series
+    check_less_precise : bool, default False
+        Whether results should only be compared approximately;
+        passed on to tm.assert_series_equal
+    skipna_alternative : function, default None
+        NaN-safe version of alternative
+    """
+
+    f = getattr(frame, opname)
 
     if check_dates:
         df = DataFrame({'b': date_range('1/1/2001', periods=2)})
@@ -49,11 +74,11 @@ def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
                                                  skipna_alternative)
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
-        tm.assert_series_equal(result0, main_frame.apply(wrapper),
+        tm.assert_series_equal(result0, frame.apply(wrapper),
                                check_dtype=check_dtype,
                                check_less_precise=check_less_precise)
         # HACK: win32
-        tm.assert_series_equal(result1, main_frame.apply(wrapper, axis=1),
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
                                check_dtype=False,
                                check_less_precise=check_less_precise)
     else:
@@ -61,18 +86,18 @@ def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
 
     result0 = f(axis=0)
     result1 = f(axis=1)
-    tm.assert_series_equal(result0, main_frame.apply(skipna_wrapper),
+    tm.assert_series_equal(result0, frame.apply(skipna_wrapper),
                            check_dtype=check_dtype,
                            check_less_precise=check_less_precise)
 
     if opname in ['sum', 'prod']:
-        expected = main_frame.apply(skipna_wrapper, axis=1)
+        expected = frame.apply(skipna_wrapper, axis=1)
         tm.assert_series_equal(result1, expected, check_dtype=False,
                                check_less_precise=check_less_precise)
 
     # check dtypes
     if check_dtype:
-        lcd_dtype = main_frame.values.dtype
+        lcd_dtype = frame.values.dtype
         assert lcd_dtype == result0.dtype
         assert lcd_dtype == result1.dtype
 
@@ -81,7 +106,7 @@ def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
 
     # all NA case
     if has_skipna:
-        all_na = main_frame * np.NaN
+        all_na = frame * np.NaN
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname in ['sum', 'prod']:
@@ -94,6 +119,20 @@ def assert_stat_op_calc(opname, alternative, main_frame, has_skipna=True,
 
 def assert_stat_op_api(opname, float_frame, float_string_frame,
                        has_numeric_only=False):
+    """
+    Check that API for operator opname works as advertised on frame
+
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    float_frame : DataFrame
+        DataFrame with columns of type float
+    float_string_frame : DataFrame
+        DataFrame with both float and string columns
+    has_numeric_only : bool, default False
+        Whether the method "opname" has the kwarg "numeric_only"
+    """
 
     # make sure works on mixed-type frame
     getattr(float_string_frame, opname)(axis=0)
@@ -106,9 +145,24 @@ def assert_stat_op_api(opname, float_frame, float_string_frame,
         getattr(float_frame, opname)(axis=1, numeric_only=False)
 
 
-def assert_bool_op_calc(opname, alternative, main_frame, has_skipna=True):
+def assert_bool_op_calc(opname, alternative, frame, has_skipna=True):
+    """
+    Check that bool operator opname works as advertised on frame
 
-    f = getattr(main_frame, opname)
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    alternative : function
+        Function that opname is tested against; i.e. "frame.opname()" should
+        equal "alternative(frame)".
+    frame : DataFrame
+        The object that the tests are executed on
+    has_skipna : bool, default True
+        Whether the method "opname" has the kwarg "skip_na"
+    """
+
+    f = getattr(frame, opname)
 
     if has_skipna:
         def skipna_wrapper(x):
@@ -121,8 +175,8 @@ def assert_bool_op_calc(opname, alternative, main_frame, has_skipna=True):
         result0 = f(axis=0, skipna=False)
         result1 = f(axis=1, skipna=False)
 
-        tm.assert_series_equal(result0, main_frame.apply(wrapper))
-        tm.assert_series_equal(result1, main_frame.apply(wrapper, axis=1),
+        tm.assert_series_equal(result0, frame.apply(wrapper))
+        tm.assert_series_equal(result1, frame.apply(wrapper, axis=1),
                                check_dtype=False)  # HACK: win32
     else:
         skipna_wrapper = alternative
@@ -131,8 +185,8 @@ def assert_bool_op_calc(opname, alternative, main_frame, has_skipna=True):
     result0 = f(axis=0)
     result1 = f(axis=1)
 
-    tm.assert_series_equal(result0, main_frame.apply(skipna_wrapper))
-    tm.assert_series_equal(result1, main_frame.apply(skipna_wrapper, axis=1),
+    tm.assert_series_equal(result0, frame.apply(skipna_wrapper))
+    tm.assert_series_equal(result1, frame.apply(skipna_wrapper, axis=1),
                            check_dtype=False)
 
     # bad axis
@@ -140,7 +194,7 @@ def assert_bool_op_calc(opname, alternative, main_frame, has_skipna=True):
 
     # all NA case
     if has_skipna:
-        all_na = main_frame * np.NaN
+        all_na = frame * np.NaN
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname == 'any':
@@ -153,6 +207,20 @@ def assert_bool_op_calc(opname, alternative, main_frame, has_skipna=True):
 
 def assert_bool_op_api(opname, bool_frame_with_na, float_string_frame,
                        has_bool_only=False):
+    """
+    Check that API for boolean operator opname works as advertised on frame
+
+    Parameters
+    ----------
+    opname : string
+        Name of the operator to test on frame
+    float_frame : DataFrame
+        DataFrame with columns of type float
+    float_string_frame : DataFrame
+        DataFrame with both float and string columns
+    has_bool_only : bool, default False
+        Whether the method "opname" has the kwarg "bool_only"
+    """
     # make sure op works on mixed-type frame
     mixed = float_string_frame
     mixed['_bool_'] = np.random.randn(len(mixed)) > 0.5
