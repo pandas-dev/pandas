@@ -316,7 +316,9 @@ class TestDatetimeIndexTimezones(object):
                                             check_stacklevel=False):
                 index.tz_localize(tz=tz, errors='raise')
 
-        result = index.tz_localize(tz=tz, errors='coerce')
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False,
+                                        clear=FutureWarning):
+            result = index.tz_localize(tz=tz, errors='coerce')
         test_times = ['2015-03-08 01:00-05:00', 'NaT',
                       '2015-03-08 03:00-04:00']
         dti = to_datetime(test_times, utc=True)
