@@ -654,41 +654,41 @@ class TestIntervalIndex(Base):
     @pytest.mark.parametrize('breaks', [
         np.arange(5, dtype='int64'),
         np.arange(5, dtype='float64')], ids=lambda x: str(x.dtype))
-    def test_maybe_convert_i8_numeric(self, breaks):
+    @pytest.mark.parametrize('make_key', [
+        IntervalIndex.from_breaks,
+        lambda breaks: Interval(breaks[0], breaks[1]),
+        lambda breaks: breaks,
+        lambda breaks: breaks[0],
+        list], ids=['IntervalIndex', 'Interval', 'Index', 'scalar', 'list'])
+    def test_maybe_convert_i8_numeric(self, breaks, make_key):
         # GH 20636
         index = IntervalIndex.from_breaks(breaks)
-        numeric_keys = [
-            IntervalIndex.from_breaks(breaks),
-            Interval(breaks[0], breaks[1]),
-            breaks,
-            breaks[0],
-            list(breaks)]
+        key = make_key(breaks)
 
         # no conversion occurs for numeric
-        for key in numeric_keys:
-            result = index._maybe_convert_i8(key)
-            assert result is key
+        result = index._maybe_convert_i8(key)
+        assert result is key
 
     @pytest.mark.parametrize('breaks1, breaks2', permutations([
         date_range('20180101', periods=4),
         date_range('20180101', periods=4, tz='US/Eastern'),
         timedelta_range('0 days', periods=4)], 2), ids=lambda x: str(x.dtype))
-    def test_maybe_convert_i8_errors(self, breaks1, breaks2):
+    @pytest.mark.parametrize('make_key', [
+        IntervalIndex.from_breaks,
+        lambda breaks: Interval(breaks[0], breaks[1]),
+        lambda breaks: breaks,
+        lambda breaks: breaks[0],
+        list], ids=['IntervalIndex', 'Interval', 'Index', 'scalar', 'list'])
+    def test_maybe_convert_i8_errors(self, breaks1, breaks2, make_key):
         # GH 20636
         index = IntervalIndex.from_breaks(breaks1)
-        invalid_keys = [
-            IntervalIndex.from_breaks(breaks2),
-            Interval(breaks2[0], breaks2[1]),
-            breaks2,
-            breaks2[0],
-            list(breaks2)]
+        key = make_key(breaks2)
 
         msg = ('Cannot index an IntervalIndex of subtype {dtype1} with '
                'values of dtype {dtype2}')
         msg = re.escape(msg.format(dtype1=breaks1.dtype, dtype2=breaks2.dtype))
-        for key in invalid_keys:
-            with tm.assert_raises_regex(ValueError, msg):
-                index._maybe_convert_i8(key)
+        with tm.assert_raises_regex(ValueError, msg):
+            index._maybe_convert_i8(key)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_contains(self):
