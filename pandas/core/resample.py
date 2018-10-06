@@ -1522,7 +1522,8 @@ def _take_new_index(obj, indexer, new_index, axis=0):
 
 
 def _get_range_edges(first, last, offset, closed='left', base=0):
-    if isinstance(offset, Tick):
+
+    if isinstance(offset, Tick) and not isinstance(offset, Day):
         is_day = isinstance(offset, Day)
         day_nanos = delta_to_nanoseconds(timedelta(1))
 
