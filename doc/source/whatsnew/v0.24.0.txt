@@ -516,6 +516,7 @@ Previous Behavior:
    df = pd.DataFrame(arr)
    df
 
+.. ipython:: python
    df + arr[[0], :]   # 1 row, 2 columns
    df + arr[:, [1]]   # 1 column, 3 rows
 
