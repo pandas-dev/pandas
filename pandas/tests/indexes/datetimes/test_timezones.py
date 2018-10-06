@@ -312,7 +312,9 @@ class TestDatetimeIndexTimezones(object):
             index.tz_localize(tz=tz)
 
         with pytest.raises(pytz.NonExistentTimeError):
-            index.tz_localize(tz=tz, errors='raise')
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                index.tz_localize(tz=tz, errors='raise')
 
         result = index.tz_localize(tz=tz, errors='coerce')
         test_times = ['2015-03-08 01:00-05:00', 'NaT',

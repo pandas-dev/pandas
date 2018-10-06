@@ -2357,7 +2357,7 @@ constructor as well as ``tz_localize``.
    # tz_convert(None) is identical with tz_convert('UTC').tz_localize(None)
    didx.tz_convert('UCT').tz_localize(None)
 
-.. _timeseries.timezone_nonexsistent:
+.. _timeseries.timezone_nonexistent:
 
 Nonexistent Times when Localizing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2366,21 +2366,28 @@ A DST transition may also shift the local time ahead by 1 hour creating nonexist
 local times. The behavior of localizing a timeseries with nonexistent times
 can be controlled by the ``nonexistent`` argument. The following options are available:
 
-* ``shift``: Shifts nonexistent times forward to the closest real time
-* ``NaT``: Replaces nonexistent times with ``NaT``
 * ``raise``: Raises a ``pytz.NonExistentTimeError`` (the default behavior)
+* ``NaT``: Replaces nonexistent times with ``NaT``
+* ``shift``: Shifts nonexistent times forward to the closest real time
 
 .. ipython:: python
-    # 2:30 is a nonexistent time
     dti = date_range(start='2015-03-29 01:30:00', periods=3, freq='H')
-    dti
-    dti.tz_localize('Europe/Warsaw', nonexistent='shift')
-    dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
+    # 2:30 is a nonexistent time
+
+Localization of nonexistent times will raise an error by default.
 
 .. code-block:: ipython
 
    In [2]: dti.tz_localize('Europe/Warsaw')
    NonExistentTimeError: 2015-03-29 02:30:00
+
+Transform nonexistent times to ``NaT`` or the closest real time forward in time.
+
+.. ipython:: python
+    dti
+    dti.tz_localize('Europe/Warsaw', nonexistent='shift')
+    dti.tz_localize('Europe/Warsaw', nonexistent='NaT')
+
 
 .. _timeseries.timezone_series:
 

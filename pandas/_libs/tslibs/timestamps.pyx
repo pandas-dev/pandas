@@ -1011,8 +1011,9 @@ class Timestamp(_Timestamp):
 
         if errors is not None:
             warnings.warn("The errors argument is deprecated and will be "
-                          "removed in a future release. Use the ambiguous or "
-                          "nonexistent argument instead.", FutureWarning,
+                          "removed in a future release. Use "
+                          "nonexistent='NaT' or nonexistent='raise' "
+                          "instead.", FutureWarning,
                           stacklevel=2)
             if errors == 'coerce':
                 nonexistent = 'NaT'
