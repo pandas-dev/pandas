@@ -1274,11 +1274,15 @@ Notice how we now instead output ``np.nan`` itself instead of a stringified form
 - Bug in :meth:`detect_client_encoding` where potential ``IOError`` goes unhandled when importing in a mod_wsgi process due to restricted access to stdout. (:issue:`21552`)
 - Bug in :func:`to_string()` that broke column alignment when ``index=False`` and width of first column's values is greater than the width of first column's header (:issue:`16839`, :issue:`13032`)
 <<<<<<< HEAD
+<<<<<<< HEAD
 - Bug in :func:`DataFrame.to_csv` where a single level MultiIndex incorrectly wrote a tuple. Now just the value of the index is written (:issue:`19589`).
 - Bug in :meth:`HDFStore.append` when appending a :class:`DataFrame` with an empty string column and ``min_itemsize`` < 8 (:issue:`12242`)
 =======
 - Bug in :func:`to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
 >>>>>>> a3ace8012... BUG-22984 Fix whatsnew and add test
+=======
+- Bug in :func:`to_string()` that caused representations of :class:`DataFrame` to not take up the whole window (:issue:`22984`)
+>>>>>>> 6271148c6... BUG-22984 Fix whatsnew and add test
 
 Plotting
 ^^^^^^^^
