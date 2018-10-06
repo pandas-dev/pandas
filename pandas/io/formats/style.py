@@ -307,14 +307,15 @@ class Styler(object):
                 cs.extend(cell_context.get("data", {}).get(r, {}).get(c, []))
                 formatter = self._display_funcs[(r, c)]
                 value = self.data.iloc[r, c]
-                row_es.append({
-                    "type": "td",
-                    "value": value,
-                    "class": " ".join(cs),
-                    "id": "_".join(cs[1:]),
-                    "display_value": formatter(value),
-                    "is_visible": (c not in hidden_columns)
-                })
+                row_dict = {"type": "td",
+                            "value": value,
+                            "class": " ".join(cs),
+                            "display_value": formatter(value),
+                            "is_visible": (c not in hidden_columns)}
+                # only add an id if the cell has a style
+                if not(len(ctx[r, c]) == 1 and ctx[r, c][0] == ''):
+                    row_dict["id"] = "_".join(cs[1:])
+                row_es.append(row_dict)
                 props = []
                 for x in ctx[r, c]:
                     # have to handle empty styles like ['']
