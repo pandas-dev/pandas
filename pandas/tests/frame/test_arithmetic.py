@@ -102,7 +102,7 @@ class TestFrameFlexArithmetic(object):
     def test_df_add_td64_columnwise(self):
         # GH#22534 Check that column-wise addition broadcasts correctly
         dti = pd.date_range('2016-01-01', periods=10)
-        tdi = pd.timedelta_range('1', periods=10)
+        tdi = pd.timedelta_range('1ns', periods=10)
         tser = pd.Series(tdi)
         df = pd.DataFrame({0: dti, 1: tdi})
 
@@ -270,7 +270,7 @@ class TestFrameArithmetic(object):
     def test_td64_df_add_int_frame(self):
         # GH#22696 Check that we don't dispatch to numpy implementation,
         # which treats int64 as m8[ns]
-        tdi = pd.timedelta_range('1', periods=3)
+        tdi = pd.timedelta_range('1ns', periods=3)
         df = tdi.to_frame()
         other = pd.DataFrame([1, 2, 3], index=tdi)  # indexed like `df`
         with pytest.raises(TypeError):

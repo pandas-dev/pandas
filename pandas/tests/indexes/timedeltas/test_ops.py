@@ -234,7 +234,7 @@ class TestTimedeltaIndexOps(Ops):
                                       'T', '2T', 'S', '-3S'])
     def test_infer_freq(self, freq):
         # GH#11018
-        idx = pd.timedelta_range('1', freq=freq, periods=10)
+        idx = pd.timedelta_range('1ns', freq=freq, periods=10)
         result = pd.TimedeltaIndex(idx.asi8, freq='infer')
         tm.assert_index_equal(idx, result)
         assert result.freq == freq
